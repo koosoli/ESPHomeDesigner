@@ -1,15 +1,16 @@
 {
   "domain": "reterminal_dashboard",
   "name": "reTerminal Dashboard Designer",
-  "documentation": "https://github.com/your-org/reterminal-dashboard-designer",
-  "issue_tracker": "https://github.com/your-org/reterminal-dashboard-designer/issues",
+  "documentation": "https://github.com/koosoli/ReTerminalDesigner",
+  "issue_tracker": "https://github.com/koosoli/ReTerminalDesigner/issues",
   "version": "0.1.0",
   "after_dependencies": [
     "http",
-    "frontend"
+    "frontend",
+    "panel_iframe"
   ],
   "codeowners": [
-    "@your-github-handle"
+    "@koosoli"
   ],
   "config_flow": true,
   "iot_class": "local_push",

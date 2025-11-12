@@ -164,38 +164,40 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register services (idempotent)
     async_register_services(hass, storage)
 
-    # Register a proper custom panel so the editor appears in the sidebar and
-    # loads inside the authenticated Home Assistant frontend context.
-    #
-    # We use the 'custom' panel type and let HA request:
-    #   /api/panel_custom/reterminal-dashboard
-    # which we fulfill by pointing to our own route /reterminal-dashboard.
-    #
-    # This keeps everything same-origin and authenticated without manual URLs.
+    # Register a custom panel for the sidebar
+    # Use the most compatible approach that works across HA versions
     try:
-        # Import frontend here to avoid relying on hass.components, which may not
-        # expose the frontend module as an attribute on HomeAssistant in all
-        # environments/versions.
-        from homeassistant.components import frontend as ha_frontend
-
-        ha_frontend.async_register_panel(
-            hass=hass,
-            component_name="custom",
-            frontend_url_path="reterminal-dashboard",
-            sidebar_title="reTerminal Dashboard",
-            sidebar_icon="mdi:monitor-dashboard",
-            config={
-                "embed_iframe": True,
-                "url_path": "reterminal-dashboard",
-            },
-            require_admin=True,
-        )
-    except Exception as exc:  # noqa: BLE001
-        _LOGGER.warning(
-            "%s: Failed to register custom panel: %s",
-            DOMAIN,
-            exc,
-        )
+        # Register the panel using the most reliable method
+        hass.data.setdefault("panel_custom", {})
+        hass.data["panel_custom"]["reterminal-dashboard"] = {
+            "embed_iframe": True,
+            "trust": True,
+            "title": "reTerminal Dashboard", 
+            "icon": "mdi:monitor-dashboard",
+            "url_path": "reterminal-dashboard",
+            "require_admin": True,
+        }
+        
+        # Try to register via frontend (if available)
+        if hasattr(hass.components, 'frontend'):
+            try:
+                hass.components.frontend.async_register_built_in_panel(
+                    hass,
+                    "custom",
+                    "reTerminal Dashboard",
+                    "mdi:monitor-dashboard", 
+                    "reterminal-dashboard",
+                    {"url_path": "/reterminal-dashboard"},
+                    require_admin=True
+                )
+                _LOGGER.info("%s: Successfully registered custom panel", DOMAIN)
+            except Exception as exc:
+                _LOGGER.warning("%s: Frontend panel registration failed, continuing: %s", DOMAIN, exc)
+        else:
+            _LOGGER.info("%s: Panel registered in hass.data, frontend registration skipped", DOMAIN)
+                
+    except Exception as exc:
+        _LOGGER.error("%s: Failed to register panel: %s", DOMAIN, exc)
 
     _LOGGER.info("%s: Config entry %s setup completed", DOMAIN, entry.entry_id)
     return True
