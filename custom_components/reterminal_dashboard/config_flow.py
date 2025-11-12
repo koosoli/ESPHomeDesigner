@@ -100,9 +100,6 @@ class ReTerminalDashboardConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class ReTerminalDashboardOptionsFlow(config_entries.OptionsFlow):
     """Options flow: provide device URL hints and simple UX info."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
-
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         """Show read-only info useful for configuring ESPHome and devices."""
         # Options are currently informational; no changes stored here.

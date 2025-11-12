@@ -165,39 +165,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async_register_services(hass, storage)
 
     # Register a custom panel for the sidebar
-    # Use the most compatible approach that works across HA versions
-    try:
-        # Register the panel using the most reliable method
-        hass.data.setdefault("panel_custom", {})
-        hass.data["panel_custom"]["reterminal-dashboard"] = {
-            "embed_iframe": True,
-            "trust": True,
-            "title": "reTerminal Dashboard", 
-            "icon": "mdi:monitor-dashboard",
-            "url_path": "reterminal-dashboard",
-            "require_admin": True,
-        }
-        
-        # Try to register via frontend (if available)
-        if hasattr(hass.components, 'frontend'):
-            try:
-                hass.components.frontend.async_register_built_in_panel(
-                    hass,
-                    "custom",
-                    "reTerminal Dashboard",
-                    "mdi:monitor-dashboard", 
-                    "reterminal-dashboard",
-                    {"url_path": "/reterminal-dashboard"},
-                    require_admin=True
-                )
-                _LOGGER.info("%s: Successfully registered custom panel", DOMAIN)
-            except Exception as exc:
-                _LOGGER.warning("%s: Frontend panel registration failed, continuing: %s", DOMAIN, exc)
-        else:
-            _LOGGER.info("%s: Panel registered in hass.data, frontend registration skipped", DOMAIN)
-                
-    except Exception as exc:
-        _LOGGER.error("%s: Failed to register panel: %s", DOMAIN, exc)
+    # Skip panel registration for now - user can access via direct URL
+    _LOGGER.info("%s: Panel registration skipped - access via /reterminal-dashboard", DOMAIN)
 
     _LOGGER.info("%s: Config entry %s setup completed", DOMAIN, entry.entry_id)
     return True
