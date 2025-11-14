@@ -98,6 +98,12 @@ def _generate_globals() -> str:
     type: std::string
     restore_value: no
     initial_value: "\\U000F0079"
+
+  # Default page refresh interval (seconds)
+  - id: page_refresh_default_s
+    type: int
+    restore_value: no
+    initial_value: '900'
 """
 
 
@@ -260,12 +266,6 @@ def _generate_scripts(device: DeviceConfig) -> str:
     return f"""time:
   - platform: homeassistant
     id: ha_time
-
-globals:
-  - id: page_refresh_default_s
-    type: int
-    restore_value: no
-    initial_value: '900'
 
 script:
   - id: manage_run_and_sleep
