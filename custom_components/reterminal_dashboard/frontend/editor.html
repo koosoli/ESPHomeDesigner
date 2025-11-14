@@ -875,7 +875,9 @@
         const newCache = {};
         for (const entity of entities) {
           if (entity.entity_id && entity.state !== undefined) {
-            newCache[entity.entity_id] = entity.state;
+            // Store state with unit if available
+            const stateValue = entity.unit ? `${entity.state} ${entity.unit}` : entity.state;
+            newCache[entity.entity_id] = stateValue;
           }
         }
         entityStatesCache = newCache;
@@ -1436,6 +1438,7 @@
         // Default Weather-Cloudy icon (F0595) as an example
         widget.props.code = "F0595";
         widget.props.size = 40;
+        widget.props.color = "black";
         // Logical font ref; snippet generator will map to font_mdi_medium/font_mdi_large
         widget.props.font_ref = "font_mdi_medium";
         // Editor-only behavior: when true, icon scales to fill its frame while preserving aspect
@@ -1620,15 +1623,23 @@
         if (type === "icon") {
           const code = (props.code || "").trim().toUpperCase();
           const sizeManual = parseInt(props.size || 40, 10) || 40;
-          const hex = code && code.match(/^F[0-9A-F]{3}$/i) ? code : "F0595";
+          const hex = code && code.match(/^F[0-9A-F]{4}$/i) ? code : "F0595";
           const cp = 0xf0000 + parseInt(hex.slice(1), 16);
           const ch = String.fromCodePoint(cp);
+
+          const color = props.color || "black";
+          const colorStyle =
+            color === "white"
+              ? "#ffffff"
+              : color === "gray"
+              ? "#aaaaaa"
+              : "#000000";
 
           const fit = !!props.fit_icon_to_frame;
           el.classList.add("mdi-icon-preview");
           el.style.fontFamily = "MDI, system-ui, -apple-system, BlinkMacSystemFont, -sans-serif";
           el.style.lineHeight = "1";
-          el.style.color = "#000000";
+          el.style.color = colorStyle;
 
           if (fit) {
             const padding = 4;
@@ -1681,55 +1692,92 @@
             el.style.backgroundColor = colorValue;
           }
         } else {
-          const fontSize = props.font_size || 16;
+          // Text widgets (text, sensor_text)
           const color = props.color || "black";
           const opacityVal = parseInt(props.opacity != null ? props.opacity : 100, 10);
           const opacity = Math.max(0, Math.min(100, isNaN(opacityVal) ? 100 : opacityVal)) / 100;
 
-          const body = document.createElement("div");
-          body.style.fontSize = fontSize + "px";
-          body.style.color =
+          const colorStyle =
             color === "white"
               ? "#ffffff"
               : color === "gray"
               ? "#aaaaaa"
               : "#000000";
-          body.style.opacity = opacity;
 
-          let text = "";
           if (type === "sensor_text") {
             const entityId = widget.entity_id || "";
             const label = widget.title || "";
-            const valueFormat = props.value_format || "value_only"; // "value_only", "label_value", or "label_newline_value"
+            const valueFormat = props.value_format || "value_only";
+            const labelFontSize = props.label_font_size || 14;
+            const valueFontSize = props.value_font_size || 20;
+            
+            // Default preview value when no entity selected
+            let displayValue = "23.5°C";
             
             if (hasHaBackend() && entityId) {
               const state = getEntityState(entityId);
               console.log(`[Canvas] Rendering sensor_text: entity=${entityId}, state=${state}, label=${label}, format=${valueFormat}`);
               
               if (state !== null && state !== undefined) {
-                // Format based on user preference
-                if (valueFormat === "label_value" && label) {
-                  text = `${label}: ${state}`;
-                } else if (valueFormat === "label_newline_value" && label) {
-                  text = `${label}\n${state}`;
-                } else {
-                  // value_only or no label
-                  text = state;
-                }
+                displayValue = String(state);
               } else {
-                // No state available - show label or placeholder
-                text = label || entityId || "sensor";
+                displayValue = "Loading...";
               }
-            } else {
-              // No backend or no entity - show label or placeholder
-              text = label || entityId || "sensor";
             }
+            
+            const body = document.createElement("div");
+            body.style.color = colorStyle;
+            body.style.opacity = opacity;
+            
+            if (valueFormat === "label_value" && label) {
+              // Inline format with separate font sizes for label and value
+              body.style.display = "flex";
+              body.style.alignItems = "baseline";
+              body.style.gap = "4px";
+              
+              const labelSpan = document.createElement("span");
+              labelSpan.style.fontSize = labelFontSize + "px";
+              labelSpan.textContent = label + ":";
+              
+              const valueSpan = document.createElement("span");
+              valueSpan.style.fontSize = valueFontSize + "px";
+              valueSpan.textContent = displayValue;
+              
+              body.appendChild(labelSpan);
+              body.appendChild(valueSpan);
+            } else if (valueFormat === "label_newline_value" && label) {
+              // Multi-line format with separate font sizes
+              body.style.display = "flex";
+              body.style.flexDirection = "column";
+              body.style.gap = "2px";
+              
+              const labelDiv = document.createElement("div");
+              labelDiv.style.fontSize = labelFontSize + "px";
+              labelDiv.textContent = label;
+              
+              const valueDiv = document.createElement("div");
+              valueDiv.style.fontSize = valueFontSize + "px";
+              valueDiv.textContent = displayValue;
+              
+              body.appendChild(labelDiv);
+              body.appendChild(valueDiv);
+            } else {
+              // value_only - just the value
+              body.style.fontSize = valueFontSize + "px";
+              body.textContent = displayValue;
+            }
+            
+            el.appendChild(body);
           } else {
-            text = props.text || widget.title || "Text";
+            // Regular text widget
+            const fontSize = props.font_size || 16;
+            const body = document.createElement("div");
+            body.style.fontSize = fontSize + "px";
+            body.style.color = colorStyle;
+            body.style.opacity = opacity;
+            body.textContent = props.text || widget.title || "Text";
+            el.appendChild(body);
           }
-
-          body.textContent = text;
-          el.appendChild(body);
         }
 
         const handle = document.createElement("div");
@@ -1852,12 +1900,13 @@
 
         addLabeledInput("MDI Unicode (Fxxxx)", "text", widget.props.code || "F0595", (v) => {
           const clean = (v || "").trim().toUpperCase().replace(/^0X/, "");
-          if (/^F[0-9A-F]{3}$/i.test(clean)) {
+          if (/^F[0-9A-F]{4}$/i.test(clean)) {
             widget.props.code = clean;
           } else {
             widget.props.code = "F0595";
           }
           renderCanvas();
+          scheduleSnippetUpdate();
         });
 
         addLabeledInput("Icon size (px)", "number", widget.props.size || 40, (v) => {
@@ -1867,6 +1916,7 @@
           widget.props.size = n;
           // Only relevant when not fitting to frame; still allow editing for compatibility.
           renderCanvas();
+          scheduleSnippetUpdate();
         });
 
         addSelect(
@@ -1876,8 +1926,15 @@
           (val) => {
             widget.props.font_ref = val;
             renderCanvas();
+            scheduleSnippetUpdate();
           }
         );
+
+        addSelect("Icon color", widget.props.color || "black", ["black", "white", "gray"], (val) => {
+          widget.props.color = val;
+          renderCanvas();
+          scheduleSnippetUpdate();
+        });
       }
 
       if (["text", "sensor_text"].includes(type)) {
@@ -1962,8 +2019,10 @@
             renderCanvas();
             scheduleSnippetUpdate();
           });
-        } else {
-          // For regular text widgets, use single font size
+        }
+        
+        // Font size for regular text widgets
+        if (type === "text") {
           addLabeledInput("Font size", "number", widget.props.font_size || 16, (v) => {
             widget.props.font_size = parseInt(v || "16", 10) || 16;
             renderCanvas();
@@ -1971,10 +2030,11 @@
           });
         }
         
-        if (type === "text") {
+        // Color selector for both text types
         addSelect("Text color", widget.props.color || "black", ["black", "white", "gray"], (val) => {
           widget.props.color = val;
           renderCanvas();
+          scheduleSnippetUpdate();
         });
       }
 
@@ -2099,6 +2159,32 @@
       ev.preventDefault();
     }
 
+    function deleteWidget(widgetId) {
+      const page = getCurrentPage();
+      if (!page) return;
+      const idx = page.widgets.findIndex((w) => w.id === widgetId);
+      if (idx === -1) return;
+      page.widgets.splice(idx, 1);
+      widgetsById.delete(widgetId);
+      selectedWidgetId = null;
+      renderCanvas();
+      renderPropertiesPanel();
+      scheduleSnippetUpdate();
+    }
+
+    // Keyboard shortcuts
+    window.addEventListener("keydown", (ev) => {
+      // Delete key removes selected widget
+      if ((ev.key === "Delete" || ev.key === "Backspace") && selectedWidgetId) {
+        // Don't delete if typing in an input field
+        if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") {
+          return;
+        }
+        ev.preventDefault();
+        deleteWidget(selectedWidgetId);
+      }
+    });
+
     function onMouseMove(ev) {
       if (!dragState) return;
       const widget = widgetsById.get(dragState.id);
@@ -2170,7 +2256,7 @@
           const p = w.props || {};
           if (t === "icon") {
             const raw = (p.code || "").trim().toUpperCase().replace(/^0X/, "");
-            if (/^F[0-9A-F]{3}$/i.test(raw)) {
+            if (/^F[0-9A-F]{4}$/i.test(raw)) {
               iconCodes.add(raw);
             }
           }
@@ -2193,8 +2279,10 @@
         lines.push("    glyphs: &mdi_glyphs");
         iconCodes.forEach((code) => {
           const hex = code.toUpperCase();
-          const full = "000" + hex;
-          lines.push(`      - "\\U000${full}"`);
+          // MDI codes are F0000-FFFFF, so we need 5 hex digits total after F
+          // code is like "F0595" (5 chars), we need \U000F0595 (8 hex digits)
+          const full = hex; // Already has F prefix
+          lines.push(`      - "\\\\U000${full}"`);
         });
         lines.push("  - file: 'fonts/materialdesignicons-webfont.ttf'");
         lines.push("    id: font_mdi_medium");
@@ -2230,16 +2318,44 @@
               const txt = (p.text || w.title || "Text").replace(/"/g, '\\"');
               if (!txt) continue;
               const color = p.color === "white" ? "COLOR_ON" : "COLOR_OFF";
+              lines.push(`        // widget:text id:${w.id} type:text x:${w.x} y:${w.y} w:${w.width} h:${w.height} text:"${txt}"`);
               lines.push(`        it.print(${w.x}, ${w.y}, id(font_normal), ${color}, "${txt}");`);
+            } else if (t === "sensor_text") {
+              const entityId = (w.entity_id || "").trim();
+              const label = (w.title || "").replace(/"/g, '\\"');
+              const valueFormat = p.value_format || "label_value";
+              const labelFontSize = parseInt(p.label_font_size || 14, 10) || 14;
+              const valueFontSize = parseInt(p.value_font_size || 20, 10) || 20;
+              const color = p.color === "white" ? "COLOR_ON" : "COLOR_OFF";
+              
+              if (entityId) {
+                const safeId = entityId.replace(/\./g, "_").replace(/-/g, "_");
+                lines.push(`        // widget:sensor_text id:${w.id} type:sensor_text x:${w.x} y:${w.y} w:${w.width} h:${w.height} ent:${entityId} title:"${label}"`);
+                if (valueFormat === "label_newline_value" && label) {
+                  lines.push(`        it.printf(${w.x}, ${w.y}, id(font_normal), ${color}, "${label}");`);
+                  const valueY = w.y + labelFontSize + 4;
+                  lines.push(`        it.printf(${w.x}, ${valueY}, id(font_normal), ${color}, "%s", id(${safeId}).state.c_str());`);
+                } else if (valueFormat === "label_value" && label) {
+                  lines.push(`        it.printf(${w.x}, ${w.y}, id(font_normal), ${color}, "${label}: %s", id(${safeId}).state.c_str());`);
+                } else {
+                  lines.push(`        it.printf(${w.x}, ${w.y}, id(font_normal), ${color}, "%s", id(${safeId}).state.c_str());`);
+                }
+              } else {
+                const placeholder = label || "sensor";
+                lines.push(`        // widget:sensor_text id:${w.id} type:sensor_text x:${w.x} y:${w.y} w:${w.width} h:${w.height} title:"${label}"`);
+                lines.push(`        // No entity_id configured for this sensor_text widget`);
+                lines.push(`        it.printf(${w.x}, ${w.y}, id(font_normal), ${color}, "${placeholder}: N/A");`);
+              }
             } else if (t === "icon") {
               const raw = (p.code || "").trim().toUpperCase().replace(/^0X/, "");
-              if (!/^F[0-9A-F]{3}$/i.test(raw)) continue;
+              if (!/^F[0-9A-F]{4}$/i.test(raw)) continue;
               const hex = raw.toUpperCase();
-              const full = "000" + hex;
-              const glyphEsc = `\\U000${full}`;
+              const glyphEsc = `\\\\U000${hex}`;
               const fontRef = p.font_ref === "font_mdi_large" ? "font_mdi_large" : "font_mdi_medium";
+              const color = p.color === "white" ? "COLOR_ON" : "COLOR_OFF";
+              lines.push(`        // widget:icon id:${w.id} type:icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} code:${hex}`);
               lines.push(
-                `        it.printf(${w.x}, ${w.y}, id(${fontRef}), TextAlign::CENTER, "${glyphEsc}");`
+                `        it.printf(${w.x}, ${w.y}, id(${fontRef}), ${color}, "${glyphEsc}");`
               );
             } else if (t === "shape_rect") {
               const color = p.color === "white" ? "COLOR_ON" : "COLOR_OFF";

@@ -360,6 +360,15 @@ def _resolve_font(props: dict) -> str:
     return "id(font_bold)"
 
 
+def _resolve_font_by_size(size: int) -> str:
+    """Pick a font id based on explicit font size value."""
+    if size < 20:
+        return "id(font_small)"
+    if size < 26:
+        return "id(font_normal)"
+    return "id(font_bold)"
+
+
 def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig) -> None:
     """Render a single widget into display lambda C++ code.
 
@@ -401,28 +410,71 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig) -> 
         if not text:
             return
         font = _resolve_font(props)
+        # Add marker comment for parser
+        dst.append(f'{indent}// widget:text id:{widget.id} type:text x:{x} y:{y} w:{w} h:{h} text:"{text}"')
         dst.append(f'{indent}it.print({x}, {y}, {font}, {fg}, "{text}");')
+        return
+
+    # Icon widget (MDI icon from font)
+    if wtype == "icon":
+        code = (props.get("code") or "F0595").strip().upper()
+        # Validate code format (Fxxx)
+        if not code.startswith("F") or len(code) != 5:
+            code = "F0595"  # Default to weather-cloudy
+        # Convert to unicode codepoint
+        try:
+            hex_val = int(code[1:], 16)
+            codepoint = 0xF0000 + hex_val
+            icon_char = chr(codepoint)
+        except (ValueError, OverflowError):
+            icon_char = chr(0xF0595)  # Fallback
+        
+        font_ref = props.get("font_ref", "font_mdi_medium")
+        # Escape special characters
+        escaped_char = icon_char.replace("\\", "\\\\").replace('"', '\\"')
+        # Add marker comment for parser
+        dst.append(f'{indent}// widget:icon id:{widget.id} type:icon x:{x} y:{y} w:{w} h:{h} code:{code}')
+        dst.append(f'{indent}it.print({x}, {y}, id({font_ref}), {fg}, "{escaped_char}");')
         return
 
     # Sensor text (label + value from HA sensor)
     if wtype in ("sensor", "sensor_text"):
         entity_id = (widget.entity_id or "").strip()
         label = (widget.title or "").replace('"', '\\"')
-        font = _resolve_font(props)
+        value_format = props.get("value_format", "label_value")
+        label_font_size = int(props.get("label_font_size", 14) or 14)
+        value_font_size = int(props.get("value_font_size", 20) or 20)
         
         if entity_id:
             # Generate safe ID from entity_id
             safe_id = entity_id.replace(".", "_").replace("-", "_")
             
-            if label:
-                # Show label + sensor value
+            # Add marker comment for parser
+            dst.append(f'{indent}// widget:sensor_text id:{widget.id} type:sensor_text x:{x} y:{y} w:{w} h:{h} ent:{entity_id} title:"{label}"')
+            
+            if value_format == "label_newline_value" and label:
+                # Label on one line, value on another - use separate fonts
+                label_font = _resolve_font_by_size(label_font_size)
+                value_font = _resolve_font_by_size(value_font_size)
+                # Print label
+                dst.append(f'{indent}it.printf({x}, {y}, {label_font}, {fg}, "{label}");')
+                # Print value below label (approximate line height)
+                value_y = y + label_font_size + 4
+                dst.append(f'{indent}it.printf({x}, {value_y}, {value_font}, {fg}, "%s", id({safe_id}).state.c_str());')
+            elif value_format == "label_value" and label:
+                # Inline format: "Label: Value" - use average size or value size
+                font = _resolve_font_by_size(value_font_size)
                 dst.append(f'{indent}it.printf({x}, {y}, {font}, {fg}, "{label}: %s", id({safe_id}).state.c_str());')
             else:
-                # Show just sensor value
+                # value_only or no label - just show value
+                font = _resolve_font_by_size(value_font_size)
                 dst.append(f'{indent}it.printf({x}, {y}, {font}, {fg}, "%s", id({safe_id}).state.c_str());')
         else:
             # No entity_id configured - show placeholder
             placeholder = label or "sensor"
+            font = _resolve_font_by_size(value_font_size)
+            # Add marker comment for parser
+            dst.append(f'{indent}// widget:sensor_text id:{widget.id} type:sensor_text x:{x} y:{y} w:{w} h:{h} title:"{label}"')
             dst.append(f'{indent}// No entity_id configured for this sensor_text widget')
             dst.append(f'{indent}it.printf({x}, {y}, {font}, {fg}, "{placeholder}: N/A");')
         return

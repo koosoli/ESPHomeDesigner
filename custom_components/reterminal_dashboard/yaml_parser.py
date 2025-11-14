@@ -50,6 +50,7 @@ class ParsedWidget:
     title: str | None = None
     entity_id: str | None = None
     text: str | None = None
+    code: str | None = None  # For icon widgets
 
 
 def yaml_to_layout(snippet: str) -> DeviceConfig:
@@ -109,6 +110,22 @@ def yaml_to_layout(snippet: str) -> DeviceConfig:
             widgets=[],
         )
         for pw in widgets:
+            # Build props based on widget type
+            props = {}
+            if pw.text:
+                props["text"] = pw.text
+            if pw.code:
+                props["code"] = pw.code
+                props["font_ref"] = "font_mdi_medium"  # Default
+                props["fit_icon_to_frame"] = True
+                props["size"] = 40
+                props["color"] = "black"
+            if pw.type == "sensor_text":
+                props["label_font_size"] = 14
+                props["value_font_size"] = 20
+                props["value_format"] = "label_value"
+                props["color"] = "black"
+            
             wc = WidgetConfig(
                 id=pw.id,
                 type=pw.type,
@@ -119,7 +136,7 @@ def yaml_to_layout(snippet: str) -> DeviceConfig:
                 entity_id=pw.entity_id,
                 title=pw.title,
                 icon=None,
-                props={"text": pw.text} if pw.text else {},
+                props=props,
             )
             wc.clamp_to_canvas()
             page.widgets.append(wc)
@@ -231,12 +248,37 @@ def _parse_widget_line(line: str) -> ParsedWidget | None:
     if line.startswith("// widget:"):
         # Example:
         # // widget:label id:w_x type:label x:10 y:20 w:200 h:40 text:Title
+        # // widget:icon id:w_x type:icon x:10 y:20 w:60 h:60 code:F0595
+        # // widget:sensor_text id:w_x type:sensor_text x:10 y:20 w:200 h:60 ent:sensor.entity title:"Label"
         parts = line.replace("//", "").strip().split()
         meta: Dict[str, str] = {}
-        for part in parts[1:]:
+        
+        # Handle quoted values (e.g., title:"My Label")
+        i = 1
+        while i < len(parts):
+            part = parts[i]
             if ":" in part:
                 key, val = part.split(":", 1)
-                meta[key.strip()] = val.strip()
+                key = key.strip()
+                # Check if value is quoted and spans multiple parts
+                if val.startswith('"'):
+                    if val.endswith('"') and len(val) > 1:
+                        # Complete quoted value in one part
+                        meta[key] = val.strip('"')
+                    else:
+                        # Quote spans multiple parts
+                        quote_parts = [val.lstrip('"')]
+                        i += 1
+                        while i < len(parts):
+                            if parts[i].endswith('"'):
+                                quote_parts.append(parts[i].rstrip('"'))
+                                break
+                            quote_parts.append(parts[i])
+                            i += 1
+                        meta[key] = " ".join(quote_parts)
+                else:
+                    meta[key] = val.strip()
+            i += 1
 
         wtype = meta.get("type") or parts[0].split(":")[1]
         wid = meta.get("id", f"w_{abs(hash(line)) % 99999}")
@@ -246,6 +288,8 @@ def _parse_widget_line(line: str) -> ParsedWidget | None:
         h = int(meta.get("h", "60"))
         ent = meta.get("ent")
         text = meta.get("text")
+        code = meta.get("code")
+        title = meta.get("title")
 
         return ParsedWidget(
             id=wid,
@@ -254,9 +298,10 @@ def _parse_widget_line(line: str) -> ParsedWidget | None:
             y=y,
             width=w,
             height=h,
-            title=text or None,
+            title=title or text or None,
             entity_id=ent or None,
             text=text or None,
+            code=code or None,
         )
 
     # Pattern 2: simple printf (VERY conservative)

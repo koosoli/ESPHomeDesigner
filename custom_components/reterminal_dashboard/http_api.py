@@ -291,6 +291,8 @@ class ReTerminalEntitiesView(HomeAssistantView):
                     "entity_id": entity_id,
                     "name": name,
                     "domain": domain,
+                    "state": state.state,
+                    "unit": state.attributes.get("unit_of_measurement", ""),
                 }
             )
 

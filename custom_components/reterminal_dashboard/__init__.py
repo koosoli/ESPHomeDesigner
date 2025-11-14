@@ -168,21 +168,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.http.register_view(ReTerminalDashboardFontView(hass))
     _LOGGER.info("%s: Font view registered at /reterminal-dashboard/materialdesignicons-webfont.ttf", DOMAIN)
 
-    # Register as a frontend sidebar panel using panel_iframe
-    await hass.components.panel_iframe.async_setup(
-        hass,
-        {
-            "panel_iframe": {
-                "reterminal": {
-                    "title": "reTerminal",
-                    "icon": "mdi:monitor-dashboard",
-                    "url": "/reterminal-dashboard",
-                    "require_admin": False,
-                }
-            }
-        },
-    )
-    _LOGGER.info("%s: Frontend sidebar panel registered", DOMAIN)
+    # Note: Panel can be manually added to sidebar via configuration.yaml:
+    # panel_iframe:
+    #   reterminal:
+    #     title: "reTerminal Designer"
+    #     icon: mdi:monitor-dashboard
+    #     url: /reterminal-dashboard
+    #     require_admin: false
+    # See SIDEBAR_PANEL_SETUP.md for details
 
     # Register services (idempotent)
     async_register_services(hass, storage)
@@ -195,18 +188,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     _LOGGER.info("%s: Unloading config entry %s", DOMAIN, entry.entry_id)
 
-    # For now: if all entries are removed, clean up services and panel.
+    # For now: if all entries are removed, clean up services.
     entries = hass.config_entries.async_entries(DOMAIN)
     if len(entries) <= 1:
         async_unregister_services(hass)
         _LOGGER.debug("%s: Unregistered services (last entry unloaded)", DOMAIN)
-        
-        # Unregister the sidebar panel
-        try:
-            hass.components.frontend.async_remove_panel("reterminal")
-            _LOGGER.debug("%s: Frontend sidebar panel unregistered", DOMAIN)
-        except Exception as e:
-            _LOGGER.warning("%s: Failed to unregister panel: %s", DOMAIN, e)
 
     # Keep storage in memory; if you want to fully unload, you could:
     # hass.data[DOMAIN].pop("storage", None) when last entry is removed.
