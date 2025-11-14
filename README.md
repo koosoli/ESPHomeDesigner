@@ -176,5 +176,5 @@ This is a passion project that's almost ready for prime time. Found a bug? Have 
 
 ## License
 
-Open source and free to use. Coming soon!
+GPL 3.0
 
