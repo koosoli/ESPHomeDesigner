@@ -129,15 +129,15 @@ def _generate_fonts(device: DeviceConfig) -> str:
         "font:",
         "  - file: \"gfonts://Inter@400\"",
         "    id: font_small",
-        "    size: 18",
+        "    size: 19",
         "",
         "  - file: \"gfonts://Inter@500\"",
         "    id: font_normal",
         "    size: 22",
         "",
         "  - file: \"gfonts://Inter@700\"",
-        "    id: font_bold",
-        "    size: 26"
+        "    id: font_header",
+        "    size: 24"
     ]
     
     # Add MDI fonts if there are icon widgets
@@ -153,7 +153,8 @@ def _generate_fonts(device: DeviceConfig) -> str:
         font_lines.extend([
             "",
             "  # Material Design Icons for icon widgets",
-            "  - file: \"gfonts://Material+Design+Icons\"",
+            "  # Copy materialdesignicons-webfont.ttf to your ESPHome fonts folder",
+            "  - file: fonts/materialdesignicons-webfont.ttf",
             "    id: font_mdi_medium",
             "    size: 48",
             f"    glyphs: [{glyph_list}]"
@@ -313,9 +314,9 @@ def _generate_display_block(device: DeviceConfig) -> str:
     lines.append("      number: GPIO13")
     lines.append("      inverted: true")
     lines.append("    update_interval: never")
-    lines.append(f"    rotation: {rotation}")
     lines.append("    lambda: |-")
-    lines.append("      int page = id(display_page);")
+    lines.append("      it.fill(Color(0));")
+    lines.append("")
 
     for page_index, page in enumerate(device.pages):
         _append_page_render(lines, page_index, page)
@@ -325,7 +326,7 @@ def _generate_display_block(device: DeviceConfig) -> str:
 
 def _append_page_render(dst: List[str], page_index: int, page: PageConfig) -> None:
     indent = "      "
-    dst.append(f'{indent}if (page == {page_index}) {{')
+    dst.append(f'{indent}if (id(display_page) == {page_index}) {{')
     if not page.widgets:
         dst.append(f"{indent}  // Page {page_index}: no widgets configured.")
     else:
@@ -347,7 +348,7 @@ def _resolve_font(props: dict) -> str:
         return "id(font_small)"
     if size < 26:
         return "id(font_normal)"
-    return "id(font_bold)"
+    return "id(font_header)"
 
 
 def _resolve_font_by_size(size: int) -> str:
@@ -356,7 +357,7 @@ def _resolve_font_by_size(size: int) -> str:
         return "id(font_small)"
     if size < 26:
         return "id(font_normal)"
-    return "id(font_bold)"
+    return "id(font_header)"
 
 
 def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig) -> None:

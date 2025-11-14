@@ -3,30 +3,36 @@
 # ============================================================================
 # INSTRUCTIONS:
 #
-# STEP 1: Create a new device in ESPHome
+# STEP 1: Copy the Material Design Icons font file
+#         - From this repo: font_ttf/font_ttf/materialdesignicons-webfont.ttf
+#         - To ESPHome: /config/esphome/fonts/materialdesignicons-webfont.ttf
+#         (Create the fonts folder if it doesn't exist)
+#
+# STEP 2: Create a new device in ESPHome
 #         - Click "New Device"
 #         - Name: reterminal (or your choice)
 #         - Select: ESP32-S3
 #         - ESPHome will auto-generate a basic config
+#         - IMPORTANT: Change framework from "esp-idf" to "arduino"
 #
-# STEP 2: Copy the "HARDWARE SECTIONS" below (from ▼ START to ▲ END)
+# STEP 3: Copy the "HARDWARE SECTIONS" below (from ▼ START to ▲ END)
 #         Paste them AFTER the captive_portal: line in your ESPHome config
 #
-# STEP 3: Add buzzer services to your api: section (see instructions below)
+# STEP 4: Add buzzer services to your api: section (see instructions below)
 #
-# STEP 4: Design your dashboard in Home Assistant
+# STEP 5: Design your dashboard in Home Assistant
 #         - Open the reTerminal Dashboard integration
 #         - Click "Save Layout" when done
 #         - Click "Generate Snippet"
 #
-# STEP 5: From the generated snippet, copy ONLY these sections:
+# STEP 6: From the generated snippet, copy ONLY these sections:
 #         - globals:
 #         - font:
 #         - text_sensor: (only if you used sensor_text widgets)
 #         - button: (optional virtual buttons for HA)
 #         - script: (if generated)
 #         - display:
-#         Paste them at the end of your config (see STEP 5 marker below)
+#         Paste them at the end of your config (see STEP 6 marker below)
 #
 # IMPORTANT: Do NOT copy output:, rtttl:, sensor:, or time: from the
 #            generated snippet - these are already in the hardware sections!
