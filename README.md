@@ -74,7 +74,11 @@ Done! Your custom dashboard is now running on the reTerminal.
 ## Widget Types
 
 - **Text** - Static labels and headers
+  - Customizable font size (8-260px) - generates fonts automatically
+  - Color options: black, white, gray
 - **Sensor Text** - Live values from Home Assistant entities
+  - Separate font sizes for label and value
+  - Multiple display formats (value only, label + value, stacked)
 - **Icon** - Material Design Icons with customizable size and color
   - Choose from 7000+ Material Design Icons
   - Adjustable size (8-260px) - generates optimized fonts automatically

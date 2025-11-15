@@ -125,6 +125,7 @@ def _generate_fonts(device: DeviceConfig) -> str:
     # Collect all unique image paths from image widgets and icon sizes
     image_paths = {}
     icon_sizes = set()  # Track unique icon sizes
+    text_sizes = set()  # Track unique text font sizes
     
     for page in device.pages:
         for widget in page.widgets:
@@ -137,6 +138,12 @@ def _generate_fonts(device: DeviceConfig) -> str:
                 # Collect icon size if specified
                 size = int(props.get("size", 48) or 48)
                 icon_sizes.add(size)
+            elif wtype in ("text", "label"):
+                props = widget.props or {}
+                # Collect text font size if specified
+                size = int(props.get("font_size", 0) or 0)
+                if size > 0:
+                    text_sizes.add(size)
             elif wtype == "image":
                 props = widget.props or {}
                 path = props.get("path", "").strip()
@@ -149,7 +156,7 @@ def _generate_fonts(device: DeviceConfig) -> str:
                     height = widget.height or 100
                     image_paths[path] = {"id": safe_id, "width": width, "height": height}
     
-    # Base fonts (Inter)
+    # Base fonts (Inter) - always include the standard sizes
     font_lines = [
         "font:",
         "  - file: \"gfonts://Inter@400\"",
@@ -164,6 +171,27 @@ def _generate_fonts(device: DeviceConfig) -> str:
         "    id: font_header",
         "    size: 24"
     ]
+    
+    # Add custom text fonts for non-standard sizes
+    if text_sizes:
+        font_lines.append("")
+        font_lines.append("  # Custom text fonts for specific sizes")
+        for size in sorted(text_sizes):
+            # Skip if it matches our standard sizes closely
+            if size in (19, 22, 24):
+                continue
+            # Choose weight based on size
+            if size < 18:
+                weight = "400"  # Regular
+            elif size < 25:
+                weight = "500"  # Medium
+            else:
+                weight = "700"  # Bold
+            font_lines.extend([
+                f"  - file: \"gfonts://Inter@{weight}\"",
+                f"    id: font_text_{size}",
+                f"    size: {size}"
+            ])
     
     # Add MDI fonts if there are icon widgets
     if icon_codes:
@@ -420,6 +448,20 @@ def _resolve_font(props: dict) -> str:
 
     if size <= 0:
         return "id(font_normal)"
+    
+    # Use exact size font if it's custom
+    if size not in (19, 22, 24):
+        return f"id(font_text_{size})"
+    
+    # Map to standard fonts
+    if size == 19:
+        return "id(font_small)"
+    if size == 22:
+        return "id(font_normal)"
+    if size == 24:
+        return "id(font_header)"
+    
+    # Fallback logic for unspecified sizes
     if size < 20:
         return "id(font_small)"
     if size < 26:
