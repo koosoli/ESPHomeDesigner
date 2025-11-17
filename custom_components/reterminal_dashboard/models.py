@@ -86,6 +86,11 @@ class WidgetConfig:
     title: Optional[str] = None
     icon: Optional[str] = None
 
+    # Conditional visibility settings
+    condition_entity: Optional[str] = None  # Entity to check for visibility
+    condition_state: Optional[str] = None  # Expected state for visibility
+    condition_operator: Optional[str] = None  # Comparison operator: "==", "!=", ">", "<", ">=", "<="
+
     # Arbitrary widget-specific properties; see type doc above.
     props: Dict[str, Any] = field(default_factory=dict)
 
@@ -151,6 +156,9 @@ class PageConfig:
                 entity_id=w.get("entity_id"),
                 title=w.get("title"),
                 icon=w.get("icon"),
+                condition_entity=w.get("condition_entity"),
+                condition_state=w.get("condition_state"),
+                condition_operator=w.get("condition_operator"),
                 props=w.get("props") or {},
             )
             widget.clamp_to_canvas()

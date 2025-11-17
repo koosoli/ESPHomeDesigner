@@ -72,6 +72,11 @@ class ReTerminalDashboardPanelView(HomeAssistantView):
                     body=html,
                     status=200,
                     content_type="text/html",
+                    headers={
+                        "Cache-Control": "no-cache, no-store, must-revalidate",
+                        "Pragma": "no-cache",
+                        "Expires": "0"
+                    }
                 )
             except Exception as e:
                 _LOGGER.error("Failed to read editor from integration: %s", e)
@@ -85,6 +90,11 @@ class ReTerminalDashboardPanelView(HomeAssistantView):
                     body=html,
                     status=200,
                     content_type="text/html",
+                    headers={
+                        "Cache-Control": "no-cache, no-store, must-revalidate",
+                        "Pragma": "no-cache",
+                        "Expires": "0"
+                    }
                 )
             except Exception as e:
                 _LOGGER.error("Failed to read editor from www: %s", e)

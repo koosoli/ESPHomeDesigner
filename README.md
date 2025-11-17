@@ -72,14 +72,28 @@ Done! Your custom dashboard is now running on the reTerminal.
   - Separate font sizes for label and value
   - Multiple display formats (value only, label + value, stacked)
 - **Icon** - Material Design Icons with customizable size and color
-  - Choose from 7000+ Material Design Icons
+  - Choose from 360+ most-used Material Design Icons
   - Adjustable size (8-260px) - generates optimized fonts automatically
   - Color options: black, white, gray (limited by e-paper)
+- **Date & Time** - Display current time and date
+  - Separate font sizes for time and date
+  - Multiple format options (time only, date only, both)
+  - Automatically synced with Home Assistant time
+- **Progress Bar** - Visual progress indicators from sensor values
+  - Links to Home Assistant percentage sensors
+  - Customizable bar height and border width
+  - Shows fill based on 0-100% sensor values
+- **Battery Icon** - Dynamic battery level display
+  - Links to battery level sensors
+  - Icon changes based on battery percentage
+  - Shows percentage text below icon
 - **Shapes** - Rectangles, filled rectangles, circles, filled circles, lines
+  - Gray color renders as dithered pattern for visual distinction
 - **Image** - Display photos and images with optional color inversion
   - Widget frame size sets ESPHome `resize:` parameter automatically
   - Images are resized during compilation (quality preserved with FLOYDSTEINBERG dithering)
-- **More coming** - Weather cards, graphs...
+- **Online Image** - Fetch and display images from URLs
+  - Useful for weather maps, camera feeds, or dynamic content
 
 ## Features
 
@@ -98,7 +112,7 @@ The generator produces **additive YAML only** - it won't touch your WiFi, API, o
 
 **What it generates:**
 - `globals:` - Display page tracking, refresh intervals
-- `font:` - Inter fonts (sizes 19/22/24) + Material Design Icons with dynamic glyph collection
+- `font:` - Dynamic font generation based on your widget sizes + Material Design Icons with automatic glyph collection
 - `image:` - Image definitions for photo/image widgets (BINARY type, FLOYDSTEINBERG dithering)
 - `text_sensor:` - Home Assistant entities used in your widgets
 - `button:` - Page navigation and refresh controls (exposed to HA)
@@ -155,13 +169,13 @@ All exposed as Home Assistant entities for use in automations.
 
 ## Contributing
 
-This is a passion project that's almost ready for prime time. Found a bug? Have an idea? Open an issue or PR!
+This is a passion project built to solve a real problem. Found a bug? Have an idea? Open an issue or PR!
 
 **Planned features:**
 - Weather card widgets
 - Graph/chart widgets
 - Color e-ink support
-- More device types
+- More device types (other ESP32-based e-paper displays)
 
 ## License
 

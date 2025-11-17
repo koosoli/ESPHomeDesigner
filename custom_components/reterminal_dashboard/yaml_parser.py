@@ -51,6 +51,10 @@ class ParsedWidget:
     entity_id: str | None = None
     text: str | None = None
     code: str | None = None  # For icon widgets
+    url: str | None = None  # For online_image widgets
+    path: str | None = None  # For image widgets
+    format: str | None = None  # For datetime widgets
+    invert: bool = False  # For image widgets
 
 
 def yaml_to_layout(snippet: str) -> DeviceConfig:
@@ -127,6 +131,39 @@ def yaml_to_layout(snippet: str) -> DeviceConfig:
                 props["value_font_size"] = 20
                 props["value_format"] = "label_value"
                 props["color"] = "black"
+            elif pw.type == "datetime":
+                # datetime widget properties
+                props["format"] = pw.format or "time_date"
+                props["time_font_size"] = 28
+                props["date_font_size"] = 16
+                props["color"] = "black"
+            elif pw.type == "progress_bar":
+                # progress_bar properties
+                props["bar_height"] = 20
+                props["show_percentage"] = True
+                props["color"] = "black"
+            elif pw.type == "battery_icon":
+                # battery_icon properties
+                props["size"] = 40
+                props["color"] = "black"
+            elif pw.type in ("shape_rect", "shape_circle"):
+                # shape properties
+                props["fill"] = False
+                props["color"] = "black"
+                props["border_width"] = 1
+                props["opacity"] = 100
+            elif pw.type == "line":
+                # line properties
+                props["color"] = "black"
+                props["stroke_width"] = 1
+            elif pw.type == "image":
+                # image properties
+                props["path"] = pw.path or ""
+                props["invert"] = pw.invert
+            elif pw.type == "online_image":
+                # online_image (puppet) properties
+                props["url"] = pw.url or ""
+                props["interval_s"] = 300
             
             wc = WidgetConfig(
                 id=pw.id,
@@ -288,10 +325,14 @@ def _parse_widget_line(line: str) -> ParsedWidget | None:
         y = int(meta.get("y", "40"))
         w = int(meta.get("w", "200"))
         h = int(meta.get("h", "60"))
-        ent = meta.get("ent")
+        ent = meta.get("ent") or meta.get("entity")  # Support both ent: and entity:
         text = meta.get("text")
         code = meta.get("code")
-        title = meta.get("title")
+        title = meta.get("title") or meta.get("label")  # Support both title: and label:
+        url = meta.get("url")
+        path = meta.get("path")
+        format_val = meta.get("format")
+        invert_val = meta.get("invert", "false").lower() in ("true", "1", "yes")
 
         return ParsedWidget(
             id=wid,
@@ -304,6 +345,10 @@ def _parse_widget_line(line: str) -> ParsedWidget | None:
             entity_id=ent or None,
             text=text or None,
             code=code or None,
+            url=url or None,
+            path=path or None,
+            format=format_val or None,
+            invert=invert_val,
         )
 
     # Pattern 2: simple printf (VERY conservative)

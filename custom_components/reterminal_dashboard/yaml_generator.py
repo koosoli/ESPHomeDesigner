@@ -78,6 +78,7 @@ def generate_snippet(device: DeviceConfig) -> str:
     parts.append(_generate_globals())
     parts.append(_generate_fonts(device))  # Pass device to collect icon glyphs
     parts.append(_generate_text_sensors(device))  # Only text_sensors for HA entities
+    parts.append(_generate_online_images(device))
     parts.append(_generate_navigation_buttons(device))
     parts.append(_generate_scripts(device))
     parts.append(_generate_display_block(device))
@@ -134,6 +135,15 @@ def _generate_fonts(device: DeviceConfig) -> str:
                 props = widget.props or {}
                 code = props.get("code", "").strip()
                 if code:
+                    icon_codes.add(code)
+                # Collect icon size if specified
+                size = int(props.get("size", 48) or 48)
+                icon_sizes.add(size)
+            elif wtype == "battery_icon":
+                # Battery icons need all battery level glyphs
+                props = widget.props or {}
+                # Add all battery icon codes
+                for code in ["F0079", "F007A", "F007B", "F007C", "F007D", "F007E", "F007F", "F0080", "F0081", "F0082"]:
                     icon_codes.add(code)
                 # Collect icon size if specified
                 size = int(props.get("size", 48) or 48)
@@ -442,6 +452,42 @@ def _generate_display_block(device: DeviceConfig) -> str:
     return "\n".join(lines)
 
 
+def _generate_online_images(device: DeviceConfig) -> str:
+    """
+    Generate `online_image:` blocks for widgets of type `online_image`.
+    Each widget becomes an `online_image` entry with an id derived from the widget id.
+    """
+    image_widgets = []
+    for pidx, page in enumerate(device.pages):
+        for widget in page.widgets:
+            if (widget.type or "").lower() == "online_image":
+                image_widgets.append((pidx, widget))
+
+    if not image_widgets:
+        return "# No online_image widgets configured"
+
+    lines: List[str] = ["# Remote/puppet images (online_image)"]
+    for pidx, widget in image_widgets:
+        props = widget.props or {}
+        url = (props.get("url") or "").strip()
+        interval = int(props.get("interval_s") or 300)
+        # Safe id for ESPHome
+        safe_id = f"img_{widget.id}".replace("-", "_")
+        lines.append(f"online_image:\n  - id: {safe_id}")
+        if url:
+            lines.append(f"    url: \"{url}\"")
+        lines.append(f"    format: PNG")
+        lines.append(f"    type: BINARY")
+        lines.append(f"    update_interval: {interval}s")
+        # on_download_finished: update epaper_display when this page is visible
+        lines.append("    on_download_finished:")
+        lines.append("      then:")
+        lines.append(f"        - logger.log: \"Puppet image downloaded for widget {widget.id}\"")
+        lines.append("        - component.update: epaper_display")
+
+    return "\n".join(lines)
+
+
 def _append_page_render(dst: List[str], page_index: int, page: PageConfig) -> None:
     indent = "      "
     dst.append(f'{indent}if (id(display_page) == {page_index}) {{')
@@ -492,17 +538,62 @@ def _resolve_font_by_size(size: int) -> str:
     return "id(font_header)"
 
 
+def _wrap_with_condition(dst: List[str], indent: str, widget: WidgetConfig, content_lines: List[str]) -> None:
+    """Wrap widget rendering code with conditional visibility if configured."""
+    has_condition = (
+        widget.condition_entity and 
+        widget.condition_state is not None and 
+        widget.condition_operator
+    )
+    
+    if not has_condition:
+        # No condition - just append content
+        dst.extend(content_lines)
+        return
+    
+    # Generate safe ID from entity_id for condition
+    safe_cond_id = widget.condition_entity.replace(".", "_").replace("-", "_")
+    cond_state = str(widget.condition_state).replace('"', '\\"')
+    cond_op = widget.condition_operator or "=="
+    
+    # Map operators to C++ comparisons
+    if cond_op == "==":
+        # String comparison for equality
+        dst.append(f'{indent}if (id({safe_cond_id}).state == "{cond_state}") {{')
+        dst.extend(content_lines)
+        dst.append(f'{indent}}}')
+    elif cond_op == "!=":
+        dst.append(f'{indent}if (id({safe_cond_id}).state != "{cond_state}") {{')
+        dst.extend(content_lines)
+        dst.append(f'{indent}}}')
+    elif cond_op in (">", "<", ">=", "<="):
+        # Numeric comparison
+        dst.append(f'{indent}{{')
+        dst.append(f'{indent}  float cond_val = atof(id({safe_cond_id}).state.c_str());')
+        dst.append(f'{indent}  if (cond_val {cond_op} {cond_state}) {{')
+        # Content needs extra indent
+        indented_content = [line.replace(indent, indent + "    ", 1) if line.startswith(indent) else "    " + line for line in content_lines]
+        dst.extend(indented_content)
+        dst.append(f'{indent}  }}')
+        dst.append(f'{indent}}}')
+
+
 def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig) -> None:
     """Render a single widget into display lambda C++ code.
 
     Unified styling semantics:
     - type: "text" / "label"
     - type: "sensor" / "sensor_text"
+    - type: "datetime"
+    - type: "progress_bar"
+    - type: "battery_icon"
     - type: "shape_rect"
     - type: "shape_circle"
     - type: "line"
     - type: "image"
     - type: "history"
+    
+    Supports conditional visibility based on entity state.
     """
     # Clamp to canvas
     x = max(0, min(widget.x, IMAGE_WIDTH))
@@ -528,6 +619,9 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig) -> 
     if props.get("invert"):
         fg = "COLOR_OFF" if fg == "COLOR_ON" else "COLOR_ON"
 
+    # Collect widget rendering code, then wrap with condition if needed
+    content: List[str] = []
+
     # Floating text (no box)
     if wtype in ("label", "text"):
         text = (props.get("text") or widget.title or "").replace('"', '\\"')
@@ -535,8 +629,9 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig) -> 
             return
         font = _resolve_font(props)
         # Add marker comment for parser
-        dst.append(f'{indent}// widget:text id:{widget.id} type:text x:{x} y:{y} w:{w} h:{h} text:"{text}"')
-        dst.append(f'{indent}it.print({x}, {y}, {font}, {fg}, "{text}");')
+        content.append(f'{indent}// widget:text id:{widget.id} type:text x:{x} y:{y} w:{w} h:{h} text:"{text}"')
+        content.append(f'{indent}it.print({x}, {y}, {font}, {fg}, "{text}");')
+        _wrap_with_condition(dst, indent, widget, content)
         return
 
     # Icon widget (MDI icon from font)
@@ -572,8 +667,9 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig) -> 
         # Escape special characters
         escaped_char = icon_char.replace("\\", "\\\\").replace('"', '\\"')
         # Add marker comment for parser
-        dst.append(f'{indent}// widget:icon id:{widget.id} type:icon x:{x} y:{y} w:{w} h:{h} code:{code}')
-        dst.append(f'{indent}it.print({x}, {y}, id({font_ref}), {icon_color}, "{escaped_char}");')
+        content.append(f'{indent}// widget:icon id:{widget.id} type:icon x:{x} y:{y} w:{w} h:{h} code:{code} size:{size} color:{color_prop}')
+        content.append(f'{indent}it.print({x}, {y}, id({font_ref}), {icon_color}, "{escaped_char}");')
+        _wrap_with_condition(dst, indent, widget, content)
         return
 
     # Sensor text (label + value from HA sensor)
@@ -589,33 +685,162 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig) -> 
             safe_id = entity_id.replace(".", "_").replace("-", "_")
             
             # Add marker comment for parser
-            dst.append(f'{indent}// widget:sensor_text id:{widget.id} type:sensor_text x:{x} y:{y} w:{w} h:{h} ent:{entity_id} title:"{label}"')
+            content.append(f'{indent}// widget:sensor_text id:{widget.id} type:sensor_text x:{x} y:{y} w:{w} h:{h} ent:{entity_id} title:"{label}"')
             
             if value_format == "label_newline_value" and label:
                 # Label on one line, value on another - use separate fonts
                 label_font = _resolve_font_by_size(label_font_size)
                 value_font = _resolve_font_by_size(value_font_size)
                 # Print label
-                dst.append(f'{indent}it.printf({x}, {y}, {label_font}, {fg}, "{label}");')
+                content.append(f'{indent}it.printf({x}, {y}, {label_font}, {fg}, "{label}");')
                 # Print value below label (approximate line height)
                 value_y = y + label_font_size + 4
-                dst.append(f'{indent}it.printf({x}, {value_y}, {value_font}, {fg}, "%s", id({safe_id}).state.c_str());')
+                content.append(f'{indent}it.printf({x}, {value_y}, {value_font}, {fg}, "%s", id({safe_id}).state.c_str());')
             elif value_format == "label_value" and label:
                 # Inline format: "Label: Value" - use average size or value size
                 font = _resolve_font_by_size(value_font_size)
-                dst.append(f'{indent}it.printf({x}, {y}, {font}, {fg}, "{label}: %s", id({safe_id}).state.c_str());')
+                content.append(f'{indent}it.printf({x}, {y}, {font}, {fg}, "{label}: %s", id({safe_id}).state.c_str());')
             else:
                 # value_only or no label - just show value
                 font = _resolve_font_by_size(value_font_size)
-                dst.append(f'{indent}it.printf({x}, {y}, {font}, {fg}, "%s", id({safe_id}).state.c_str());')
+                content.append(f'{indent}it.printf({x}, {y}, {font}, {fg}, "%s", id({safe_id}).state.c_str());')
         else:
             # No entity_id configured - show placeholder
             placeholder = label or "sensor"
             font = _resolve_font_by_size(value_font_size)
             # Add marker comment for parser
-            dst.append(f'{indent}// widget:sensor_text id:{widget.id} type:sensor_text x:{x} y:{y} w:{w} h:{h} title:"{label}"')
-            dst.append(f'{indent}// No entity_id configured for this sensor_text widget')
-            dst.append(f'{indent}it.printf({x}, {y}, {font}, {fg}, "{placeholder}: N/A");')
+            content.append(f'{indent}// widget:sensor_text id:{widget.id} type:sensor_text x:{x} y:{y} w:{w} h:{h} title:"{label}"')
+            content.append(f'{indent}// No entity_id configured for this sensor_text widget')
+            content.append(f'{indent}it.printf({x}, {y}, {font}, {fg}, "{placeholder}: N/A");')
+        _wrap_with_condition(dst, indent, widget, content)
+        return
+
+    # Date/time widget
+    if wtype == "datetime":
+        format_type = props.get("format", "time_date")
+        time_font_size = int(props.get("time_font_size", 28) or 28)
+        date_font_size = int(props.get("date_font_size", 16) or 16)
+        
+        time_font = _resolve_font_by_size(time_font_size)
+        date_font = _resolve_font_by_size(date_font_size)
+        
+        # Add marker comment for parser
+        content.append(f'{indent}// widget:datetime id:{widget.id} type:datetime x:{x} y:{y} w:{w} h:{h} format:{format_type} time_font:{time_font_size} date_font:{date_font_size}')
+        
+        if format_type == "time_only":
+            # Time only - centered
+            content.append(f'{indent}it.strftime({x}, {y}, {time_font}, {fg}, "%H:%M", id(ha_time).now());')
+        elif format_type == "date_only":
+            # Date only - centered
+            content.append(f'{indent}it.strftime({x}, {y}, {date_font}, {fg}, "%a, %b %d", id(ha_time).now());')
+        else:
+            # time_date - time on top, date below
+            content.append(f'{indent}it.strftime({x}, {y}, {time_font}, {fg}, "%H:%M", id(ha_time).now());')
+            date_y = y + time_font_size + 4
+            content.append(f'{indent}it.strftime({x}, {date_y}, {date_font}, {fg}, "%a, %b %d", id(ha_time).now());')
+        _wrap_with_condition(dst, indent, widget, content)
+        return
+
+    # Progress bar widget
+    if wtype == "progress_bar":
+        entity_id = (widget.entity_id or "").strip()
+        label = (widget.title or "").replace('"', '\\"')
+        show_label = props.get("show_label", True)
+        show_percentage = props.get("show_percentage", True)
+        bar_height = int(props.get("bar_height", 15) or 15)
+        border_width = int(props.get("border_width", 1) or 1)
+        
+        if not entity_id:
+            # No entity configured - show placeholder
+            content.append(f'{indent}// widget:progress_bar id:{widget.id} (no entity configured)')
+            content.append(f'{indent}it.rectangle({x}, {y}, {w}, {h}, {fg});')
+            _wrap_with_condition(dst, indent, widget, content)
+            return
+        
+        # Generate safe ID from entity_id
+        safe_id = entity_id.replace(".", "_").replace("-", "_")
+        
+        # Add marker comment for parser
+        content.append(f'{indent}// widget:progress_bar id:{widget.id} type:progress_bar x:{x} y:{y} w:{w} h:{h} entity:{entity_id} label:"{label}" bar_height:{bar_height} border:{border_width}')
+        
+        # Calculate vertical layout
+        label_y = y
+        bar_y = y
+        
+        if show_label and (label or show_percentage):
+            # Label/percentage row at top
+            if label and show_percentage:
+                # Both label and percentage
+                label_font = _resolve_font_by_size(12)
+                content.append(f'{indent}it.printf({x}, {label_y}, {label_font}, {fg}, "{label}");')
+                # Percentage on the right
+                content.append(f'{indent}it.printf({x}+{w}-30, {label_y}, {label_font}, {fg}, "%.0f%%", id({safe_id}).state);')
+            elif label:
+                # Label only
+                label_font = _resolve_font_by_size(12)
+                content.append(f'{indent}it.printf({x}, {label_y}, {label_font}, {fg}, "{label}");')
+            elif show_percentage:
+                # Percentage only
+                label_font = _resolve_font_by_size(12)
+                content.append(f'{indent}it.printf({x}, {label_y}, {label_font}, {fg}, "%.0f%%", id({safe_id}).state);')
+            
+            bar_y = label_y + 16
+        
+        # Draw progress bar border
+        content.append(f'{indent}it.rectangle({x}, {bar_y}, {w}, {bar_height}, {fg});')
+        
+        # Draw progress bar fill (clamp to 0-100%)
+        content.append(f'{indent}// Fill progress bar based on sensor value (0-100%)')
+        content.append(f'{indent}{{')
+        content.append(f'{indent}  float progress = id({safe_id}).state;')
+        content.append(f'{indent}  if (progress < 0) progress = 0;')
+        content.append(f'{indent}  if (progress > 100) progress = 100;')
+        content.append(f'{indent}  int fill_width = (int)(({w} - 2) * (progress / 100.0));')
+        content.append(f'{indent}  if (fill_width > 0) {{')
+        content.append(f'{indent}    it.filled_rectangle({x}+1, {bar_y}+1, fill_width, {bar_height}-2, {fg});')
+        content.append(f'{indent}  }}')
+        content.append(f'{indent}}}')
+        _wrap_with_condition(dst, indent, widget, content)
+        return
+
+    # Battery icon widget - dynamic icon based on battery level
+    if wtype == "battery_icon":
+        entity_id = (widget.entity_id or "").strip()
+        size = int(props.get("size", 48) or 48)
+        font_id = f"font_mdi_{size}"
+        
+        if not entity_id:
+            # No entity configured - show static battery icon
+            content.append(f'{indent}// widget:battery_icon id:{widget.id} (no entity configured)')
+            content.append(f'{indent}it.printf({x}, {y}, id({font_id}), {fg}, "\\U000F0079");  // battery')
+            _wrap_with_condition(dst, indent, widget, content)
+            return
+        
+        # Generate safe ID from entity_id
+        safe_id = entity_id.replace(".", "_").replace("-", "_")
+        
+        # Add marker comment for parser
+        content.append(f'{indent}// widget:battery_icon id:{widget.id} type:battery_icon x:{x} y:{y} w:{w} h:{h} entity:{entity_id} size:{size} color:{base_color}')
+        
+        # Add logic to pick battery icon based on level
+        content.append(f'{indent}{{')
+        content.append(f'{indent}  float level = id({safe_id}).state;')
+        content.append(f'{indent}  const char* icon;')
+        content.append(f'{indent}  if (level <= 10)      icon = "\\U000F007A";  // battery-10')
+        content.append(f'{indent}  else if (level <= 20) icon = "\\U000F007B";  // battery-20')
+        content.append(f'{indent}  else if (level <= 30) icon = "\\U000F007C";  // battery-30')
+        content.append(f'{indent}  else if (level <= 40) icon = "\\U000F007D";  // battery-40')
+        content.append(f'{indent}  else if (level <= 50) icon = "\\U000F007E";  // battery-50')
+        content.append(f'{indent}  else if (level <= 60) icon = "\\U000F007F";  // battery-60')
+        content.append(f'{indent}  else if (level <= 70) icon = "\\U000F0080";  // battery-70')
+        content.append(f'{indent}  else if (level <= 80) icon = "\\U000F0081";  // battery-80')
+        content.append(f'{indent}  else if (level <= 90) icon = "\\U000F0082";  // battery-90')
+        content.append(f'{indent}  else                  icon = "\\U000F0079";  // battery (full)')
+        content.append(f'{indent}  it.printf({x}, {y}, id({font_id}), {fg}, "%s", icon);')
+        content.append(f'{indent}  // Show percentage below icon')
+        content.append(f'{indent}  it.printf({x}, {y}+{size}+2, id(font_small), {fg}, "%.0f%%", level);')
+        content.append(f'{indent}}}')
+        _wrap_with_condition(dst, indent, widget, content)
         return
 
     # Rectangle / filled rectangle
@@ -623,22 +848,42 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig) -> 
         fill = bool(props.get("fill"))
         border_width = int(props.get("border_width", 1) or 1)
         opacity = int(props.get("opacity", 100) or 100)
+        
+        # Add marker comment for parser
+        fill_str = "true" if fill else "false"
+        content.append(f'{indent}// widget:shape_rect id:{widget.id} type:shape_rect x:{x} y:{y} w:{w} h:{h} fill:{fill_str} border:{border_width} color:{base_color}')
+        
+        # Check if we should use grey dithering pattern (50% checkerboard)
+        use_grey_pattern = (base_color == "gray" and fill)
+        
         if fill:
-            # For now opacity is advisory; could be mapped to patterns in future.
-            dst.append(f"{indent}it.filled_rectangle({x}, {y}, {w}, {h}, {fg});")
+            if use_grey_pattern:
+                # Grey: create 50% checkerboard pattern for visual distinction from solid black
+                content.append(f"{indent}// Grey fill using 50% checkerboard dithering pattern")
+                content.append(f"{indent}for (int dy = 0; dy < {h}; dy++) {{")
+                content.append(f"{indent}  for (int dx = 0; dx < {w}; dx++) {{")
+                content.append(f"{indent}    if ((dx + dy) % 2 == 0) {{")
+                content.append(f"{indent}      it.draw_pixel_at({x}+dx, {y}+dy, COLOR_ON);")
+                content.append(f"{indent}    }}")
+                content.append(f"{indent}  }}")
+                content.append(f"{indent}}}")
+            else:
+                # Solid fill (black or white)
+                content.append(f"{indent}it.filled_rectangle({x}, {y}, {w}, {h}, {fg});")
             if border_width > 1:
-                dst.append(f"{indent}it.rectangle({x}, {y}, {w}, {h}, {fg});")
+                content.append(f"{indent}it.rectangle({x}, {y}, {w}, {h}, {fg});")
         else:
             if border_width <= 1:
-                dst.append(f"{indent}it.rectangle({x}, {y}, {w}, {h}, {fg});")
+                content.append(f"{indent}it.rectangle({x}, {y}, {w}, {h}, {fg});")
             else:
                 # Approximate thicker border using multiple rectangles.
-                dst.append(f"{indent}// rectangle with border_width={border_width}")
-                dst.append(f"{indent}for (int i = 0; i < {border_width}; i++) {{")
-                dst.append(
+                content.append(f"{indent}// rectangle with border_width={border_width}")
+                content.append(f"{indent}for (int i = 0; i < {border_width}; i++) {{")
+                content.append(
                     f"{indent}  it.rectangle({x}+i, {y}+i, {w}-2*i, {h}-2*i, {fg});"
                 )
-                dst.append(f"{indent}}}")
+                content.append(f"{indent}}}")
+        _wrap_with_condition(dst, indent, widget, content)
         return
 
     # Circle / filled circle (use width/height box)
@@ -648,25 +893,52 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig) -> 
         cy = y + h // 2
         fill = bool(props.get("fill"))
         border_width = int(props.get("border_width", 1) or 1)
+        
+        # Add marker comment for parser
+        fill_str = "true" if fill else "false"
+        content.append(f'{indent}// widget:shape_circle id:{widget.id} type:shape_circle x:{x} y:{y} w:{w} h:{h} fill:{fill_str} border:{border_width} color:{base_color}')
+        
+        # Check if we should use grey dithering pattern
+        use_grey_pattern = (base_color == "gray" and fill)
+        
         if fill:
-            dst.append(f"{indent}it.filled_circle({cx}, {cy}, {r}, {fg});")
+            if use_grey_pattern:
+                # Grey: create 50% checkerboard pattern within circle bounds
+                content.append(f"{indent}// Grey fill using 50% checkerboard dithering pattern")
+                content.append(f"{indent}for (int dy = -{r}; dy <= {r}; dy++) {{")
+                content.append(f"{indent}  for (int dx = -{r}; dx <= {r}; dx++) {{")
+                content.append(f"{indent}    if (dx*dx + dy*dy <= {r}*{r}) {{")
+                content.append(f"{indent}      if ((dx + dy) % 2 == 0) {{")
+                content.append(f"{indent}        it.draw_pixel_at({cx}+dx, {cy}+dy, COLOR_ON);")
+                content.append(f"{indent}      }}")
+                content.append(f"{indent}    }}")
+                content.append(f"{indent}  }}")
+                content.append(f"{indent}}}")
+            else:
+                # Solid fill (black or white)
+                content.append(f"{indent}it.filled_circle({cx}, {cy}, {r}, {fg});")
             if border_width > 1:
-                dst.append(f"{indent}it.circle({cx}, {cy}, {r}, {fg});")
+                content.append(f"{indent}it.circle({cx}, {cy}, {r}, {fg});")
         else:
             if border_width <= 1:
-                dst.append(f"{indent}it.circle({cx}, {cy}, {r}, {fg});")
+                content.append(f"{indent}it.circle({cx}, {cy}, {r}, {fg});")
             else:
-                dst.append(f"{indent}// circle with border_width={border_width}")
-                dst.append(f"{indent}for (int i = 0; i < {border_width}; i++) {{")
-                dst.append(f"{indent}  it.circle({cx}, {cy}, {r}-i, {fg});")
-                dst.append(f"{indent}}}")
+                content.append(f"{indent}// circle with border_width={border_width}")
+                content.append(f"{indent}for (int i = 0; i < {border_width}; i++) {{")
+                content.append(f"{indent}  it.circle({cx}, {cy}, {r}-i, {fg});")
+                content.append(f"{indent}}}")
+        _wrap_with_condition(dst, indent, widget, content)
         return
 
     # Line: from (x,y) to (x+width,y+height) using width/height as dx/dy
     if wtype == "line":
         dx = w
         dy = h
-        dst.append(f"{indent}it.line({x}, {y}, {x}+{dx}, {y}+{dy}, {fg});")
+        stroke_width = int(props.get("stroke_width", 1) or 1)
+        # Add marker comment for parser
+        content.append(f'{indent}// widget:line id:{widget.id} type:line x:{x} y:{y} w:{w} h:{h} stroke:{stroke_width} color:{base_color}')
+        content.append(f"{indent}it.line({x}, {y}, {x}+{dx}, {y}+{dy}, {fg});")
+        _wrap_with_condition(dst, indent, widget, content)
         return
 
     # Image widget
@@ -674,9 +946,10 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig) -> 
         path = props.get("path", "").strip()
         if not path:
             # No path configured - show placeholder
-            dst.append(f'{indent}// widget:image id:{widget.id} type:image x:{x} y:{y} w:{w} h:{h}')
-            dst.append(f'{indent}// No image path configured')
-            dst.append(f'{indent}it.rectangle({x}, {y}, {w}, {h}, {fg});')
+            content.append(f'{indent}// widget:image id:{widget.id} type:image x:{x} y:{y} w:{w} h:{h}')
+            content.append(f'{indent}// No image path configured')
+            content.append(f'{indent}it.rectangle({x}, {y}, {w}, {h}, {fg});')
+            _wrap_with_condition(dst, indent, widget, content)
             return
         
         # Generate safe ID from path (same logic as in _generate_fonts)
@@ -687,12 +960,23 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig) -> 
         invert = bool(props.get("invert"))
         
         # Add marker comment for parser
-        dst.append(f'{indent}// widget:image id:{widget.id} type:image x:{x} y:{y} w:{w} h:{h} path:"{path}" invert:{invert}')
+        content.append(f'{indent}// widget:image id:{widget.id} type:image x:{x} y:{y} w:{w} h:{h} path:"{path}" invert:{invert}')
         
         if invert:
-            dst.append(f'{indent}it.image({x}, {y}, id({safe_id}), COLOR_OFF, COLOR_ON);')
+            content.append(f'{indent}it.image({x}, {y}, id({safe_id}), COLOR_OFF, COLOR_ON);')
         else:
-            dst.append(f'{indent}it.image({x}, {y}, id({safe_id}));')
+            content.append(f'{indent}it.image({x}, {y}, id({safe_id}));')
+        _wrap_with_condition(dst, indent, widget, content)
+        return
+
+    # Remote / online image (puppet) widget - rendered from online_image id
+    if wtype == "online_image":
+        props_url = (props.get("url") or "").strip()
+        safe_id = f"img_{widget.id}".replace("-", "_")
+        # Marker comment
+        content.append(f'{indent}// widget:online_image id:{widget.id} type:online_image x:{x} y:{y} w:{w} h:{h} url:"{props_url}"')
+        content.append(f'{indent}it.image({x}, {y}, id({safe_id}));')
+        _wrap_with_condition(dst, indent, widget, content)
         return
 
     # Fallback / unknown
@@ -710,18 +994,19 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig) -> 
         style = (props.get("style") or "bars").lower()
         label = entity_id or "history"
         font = _resolve_font(props)
-        dst.append(f"{indent}// history widget for {entity_id}; expects external aggregation")
-        dst.append(f'{indent}it.print({x}, {y}, {font}, {fg}, "{label}");')
+        content.append(f"{indent}// history widget for {entity_id}; expects external aggregation")
+        content.append(f'{indent}it.print({x}, {y}, {font}, {fg}, "{label}");')
         # Simple placeholder box/lines
         hx = x
         hy = y + 14
         hw = max(10, w)
         hh = max(6, h - 16)
-        dst.append(f"{indent}it.rectangle({hx}, {hy}, {hw}, {hh}, {fg});")
+        content.append(f"{indent}it.rectangle({hx}, {hy}, {hw}, {hh}, {fg});")
         if style == "line":
-            dst.append(f"{indent}it.line({hx+2}, {hy+hh-3}, {hx+hw-2}, {hy+3}, {fg});")
+            content.append(f"{indent}it.line({hx+2}, {hy+hh-3}, {hx+hw-2}, {hy+3}, {fg});")
         else:
-            dst.append(f"{indent}// draw simple bar-style segments as placeholder")
+            content.append(f"{indent}// draw simple bar-style segments as placeholder")
+        _wrap_with_condition(dst, indent, widget, content)
         return
 
     # Unknown type: emit comment for safety

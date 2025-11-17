@@ -46,6 +46,7 @@
       flex-direction: column;
       gap: 16px;
       overflow-y: auto;
+      position: relative;
     }
 
     .sidebar h1 {
@@ -221,6 +222,7 @@
       gap: 8px;
       overflow: hidden;
       min-width: 0;
+      min-height: 0;
     }
 
     .main-header {
@@ -267,14 +269,19 @@
     }
 
     .canvas-wrap {
-      flex: 1;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 260px;
+      display: flex;
       gap: 8px;
       align-items: flex-start;
       justify-content: flex-start;
       min-width: 0;
       overflow: hidden;
+      flex: 0 0 auto;
+    }
+
+    .canvas-area-wrapper {
+      flex: 1;
+      min-width: 0;
+      display: flex;
     }
 
     .canvas-area {
@@ -398,8 +405,8 @@
       flex-direction: column;
       gap: 4px;
       box-sizing: border-box;
-      max-height: 480px;
       overflow-y: auto;
+      position: relative;
     }
 
     .snap-guide {
@@ -460,7 +467,116 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
-      max-height: calc(100vh - 520px);
+      position: relative;
+      overflow: hidden;
+      flex: 1;
+      min-height: 0;
+      max-width: 600px;
+    }
+
+    .snippet-box {
+      width: 100%;
+      min-height: 180px;
+      resize: vertical;
+      font-family: monospace;
+      font-size: 10px;
+      line-height: 1.2;
+      white-space: pre;
+      overflow: auto;
+      background: #0d0f14;
+      color: #e5e9f0;
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 10px;
+    }
+
+    .resizable {
+      position: relative;
+    }
+
+    .resize-handle {
+      position: absolute;
+      background: var(--border-subtle);
+      transition: background 0.15s ease;
+      z-index: 1000;
+      pointer-events: all;
+    }
+
+    .resize-handle:hover,
+    .resize-handle.active {
+      background: var(--accent);
+    }
+
+    .resize-handle-right {
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      cursor: ew-resize;
+    }
+
+    .resize-handle-left {
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      cursor: ew-resize;
+    }
+
+    .resize-handle-bottom {
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 4px;
+      cursor: ns-resize;
+    }
+
+    .resize-handle-top {
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 4px;
+      cursor: ns-resize;
+    }
+
+    .resize-handle-corner {
+      right: 0;
+      bottom: 0;
+      width: 12px;
+      height: 12px;
+      cursor: nwse-resize;
+      background: transparent;
+    }
+
+    .resize-handle-corner::after {
+      content: "";
+      position: absolute;
+      right: 2px;
+      bottom: 2px;
+      width: 8px;
+      height: 8px;
+      border-right: 2px solid var(--border-subtle);
+      border-bottom: 2px solid var(--border-subtle);
+    }
+
+    .resize-handle-corner:hover::after,
+    .resize-handle-corner.active::after {
+      border-color: var(--accent);
+    }
+
+    .sidebar.resizable {
+      min-width: 200px;
+      max-width: 500px;
+    }
+
+    .right-panel.resizable {
+      min-width: 200px;
+      max-width: 600px;
+      width: 260px;
+    }
+
+    .canvas-wrap.resizable {
+      position: relative;
     }
 
     .snippet-header {
@@ -482,7 +598,7 @@
     }
 
     .snippet-box {
-      flex: 1;
+      flex: 1 1 auto;
       border-radius: 6px;
       background: #05070b;
       border: 1px solid var(--border-subtle);
@@ -493,7 +609,8 @@
       white-space: pre;
       overflow-y: auto;
       overflow-x: auto;
-      max-height: 260px;
+      min-height: 0;
+      resize: none;
     }
 
     .status-bar {
@@ -646,6 +763,7 @@
       <div class="sidebar-section-label">Pages</div>
       <div id="pageList" class="page-list"></div>
       <button id="addPageBtn" class="btn btn-secondary btn-full">+ Add page</button>
+      <button id="clearAllBtn" class="btn btn-secondary btn-full" style="margin-top:4px;" title="Remove all widgets from current page">Clear current page</button>
     </div>
 
     <div class="sidebar-group">
@@ -659,9 +777,21 @@
           <span class="label">Sensor text</span>
           <span class="tag">Entity</span>
         </div>
+        <div class="item" data-widget-type="datetime">
+          <span class="label">Date & Time</span>
+          <span class="tag">Time</span>
+        </div>
+        <div class="item" data-widget-type="progress_bar">
+          <span class="label">Progress bar</span>
+          <span class="tag">Entity</span>
+        </div>
         <div class="item" data-widget-type="icon">
           <span class="label">MDI icon</span>
           <span class="tag">Icon</span>
+        </div>
+        <div class="item" data-widget-type="battery_icon">
+          <span class="label">Battery icon</span>
+          <span class="tag">Entity</span>
         </div>
         <div class="item" data-widget-type="shape_rect">
           <span class="label">Rectangle / box</span>
@@ -678,6 +808,10 @@
         <div class="item" data-widget-type="image">
           <span class="label">Image</span>
           <span class="tag">Media</span>
+        </div>
+        <div class="item" data-widget-type="online_image">
+          <span class="label">Puppet / Remote image</span>
+          <span class="tag">Remote</span>
         </div>
       </div>
     </div>
@@ -710,7 +844,8 @@
     </div>
 
     <div class="canvas-wrap">
-      <section class="canvas-area">
+      <div class="canvas-area-wrapper">
+        <section class="canvas-area">
         <div class="canvas-toolbar">
           <span>Page: <strong id="currentPageName">Loading...</strong></span>
           <span>Place widgets to define what the reTerminal shows.</span>
@@ -719,6 +854,7 @@
           <div class="canvas-grid"></div>
         </div>
       </section>
+      </div>
 
       <aside class="right-panel">
         <h3>Widget properties</h3>
@@ -741,20 +877,20 @@
 
     <section class="snippet-area">
       <div class="snippet-header">
-        <span>Generated configuration (append below your base ESPHome YAML)</span>
+        <span>ESPHome YAML Configuration (editable - paste or modify, then click Update Layout)</span>
         <div class="snippet-actions">
           <button id="copySnippetBtn" class="btn btn-secondary" style="padding:3px 6px;font-size:9px;">Copy</button>
           <button id="fullscreenSnippetBtn" class="btn btn-secondary" style="padding:3px 6px;font-size:9px;">Fullscreen</button>
-          <button id="importSnippetBtn" class="btn btn-secondary" style="padding:3px 6px;font-size:9px;">Import</button>
+          <button id="updateLayoutBtn" class="btn btn-primary" style="padding:3px 8px;font-size:9px;font-weight:bold;">Update Layout from YAML</button>
         </div>
       </div>
-      <div id="snippetBox" class="snippet-box">
-# Click "Generate ESPHome snippet" to see output here.
+      <textarea id="snippetBox" class="snippet-box"># Click "Generate ESPHome snippet" to see output here.
 # This includes layout and minimal surrounding definitions.
-      </div>
+# You can paste YAML here or edit it directly, then click "Update Layout from YAML" to import changes.
+      </textarea>
       <div class="status-bar">
-        <span>Does not include esphome/wifi/api/ota/logger.</span>
-        <span>Paste this into ESPHome, then compile and flash.</span>
+        <span>Edit YAML above and click "Update Layout from YAML" to import.</span>
+        <span>Generated YAML can be pasted into ESPHome, then compiled and flashed.</span>
       </div>
     </section>
   </main>
@@ -919,10 +1055,11 @@
     // Minimal client-side ESPHome YAML snippet parser used for offline mode.
     // This is intentionally scoped to the snippet patterns we generate.
     function parseSnippetYamlOffline(yamlText) {
-      // Extremely minimal and permissive parsing:
+      // Minimal and permissive parsing:
       // - Detect display: -> waveshare_epaper block
       // - Extract lines inside lambda: |-
-      // - Recognize simple drawing primitives and map them to widgets.
+      // - Recognize widget marker comments (// widget:xxx id:... type:...) added by yaml_generator
+      // - Fallback to simple drawing primitives if no markers found
       const lines = yamlText.split(/\r?\n/);
       const lambdaLines = [];
       let inLambda = false;
@@ -996,12 +1133,152 @@
       };
 
       const widgets = layout.pages[0].widgets;
+      
+      // Helper to parse widget marker comments
+      // Format: // widget:TYPE id:ID type:TYPE x:X y:Y w:W h:H [additional props]
+      function parseWidgetMarker(comment) {
+        const match = comment.match(/^\/\/\s*widget:(\w+)\s+(.+)$/);
+        if (!match) return null;
+        
+        const widgetType = match[1];
+        const propsStr = match[2];
+        const props = {};
+        
+        // Extract key:value pairs, handling quoted strings
+        const regex = /(\w+):((?:"[^"]*")|(?:[^\s]+))/g;
+        let m;
+        while ((m = regex.exec(propsStr)) !== null) {
+          let value = m[2];
+          // Remove quotes if present
+          if (value.startsWith('"') && value.endsWith('"')) {
+            value = value.slice(1, -1);
+          }
+          props[m[1]] = value;
+        }
+        
+        return { widgetType, props };
+      }
 
+      let skipRendering = false; // Track if we should skip rendering code after a widget marker
+      
       for (const cmd of lambdaLines) {
         const trimmed = cmd.trim();
-        if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith("#")) continue;
+        if (!trimmed || trimmed.startsWith("#")) continue;
 
-        // Match patterns like: it.rectangle(10, 10, 100, 50);
+        // Skip rendering code (it.rectangle, it.printf, etc.) after a widget marker
+        if (skipRendering) {
+          // Reset flag if we hit a closing brace, comment, or another widget marker
+          if (trimmed === "}" || trimmed === "}}" || trimmed.startsWith("//") || !trimmed.match(/^it\./)) {
+            skipRendering = false;
+          }
+          // Skip this line if it's rendering code
+          if (trimmed.match(/^it\./)) {
+            continue;
+          }
+        }
+
+        // First, try to parse widget marker comment
+        if (trimmed.startsWith("//")) {
+          const marker = parseWidgetMarker(trimmed);
+          if (marker && marker.props.id && marker.props.type) {
+            const p = marker.props;
+            const widget = {
+              id: p.id,
+              type: p.type,
+              x: parseInt(p.x || 0, 10),
+              y: parseInt(p.y || 0, 10),
+              width: parseInt(p.w || 100, 10),
+              height: parseInt(p.h || 30, 10),
+              title: p.title || "",
+              entity_id: p.entity || p.ent || "",
+              props: {}
+            };
+            
+            // Add type-specific properties
+            if (p.type === "icon") {
+              widget.props = {
+                code: p.code || "F0595",
+                size: parseInt(p.size || 48, 10),
+                color: p.color || "black",
+                fit_icon_to_frame: (p.fit === "true" || p.fit === "1")
+              };
+            } else if (p.type === "text" || p.type === "label") {
+              widget.props = {
+                text: p.text || "",
+                font_size: parseInt(p.font_size || 12, 10),
+                color: p.color || "black",
+                font_style: p.font_style || "regular"
+              };
+            } else if (p.type === "sensor_text") {
+              widget.props = {
+                label_font_size: parseInt(p.label_font || 14, 10),
+                value_font_size: parseInt(p.value_font || 20, 10),
+                value_format: p.format || "label_value",
+                color: p.color || "black",
+                font_style: p.font_style || "regular",
+                unit: p.unit || ""
+              };
+            } else if (p.type === "datetime") {
+              widget.props = {
+                format: p.format || "time_date",
+                time_font_size: parseInt(p.time_font || 28, 10),
+                date_font_size: parseInt(p.date_font || 16, 10),
+                color: p.color || "black",
+                font_style: p.font_style || "regular"
+              };
+            } else if (p.type === "progress_bar") {
+              widget.props = {
+                show_label: true,
+                show_percentage: true,
+                bar_height: parseInt(p.bar_height || 15, 10),
+                border_width: parseInt(p.border || 1, 10),
+                color: p.color || "black"
+              };
+            } else if (p.type === "battery_icon") {
+              widget.props = {
+                size: parseInt(p.size || 32, 10),
+                color: p.color || "black"
+              };
+            } else if (p.type === "image") {
+              widget.props = {
+                path: p.path || "",
+                invert: (p.invert === "true" || p.invert === "1")
+              };
+            } else if (p.type === "online_image") {
+              widget.props = {
+                url: p.url || "",
+                invert: (p.invert === "true" || p.invert === "1")
+              };
+            } else if (p.type === "shape_rect") {
+              widget.props = {
+                fill: (p.fill === "true" || p.fill === "1"),
+                border_width: parseInt(p.border || 1, 10),
+                color: p.color || "black",
+                opacity: parseInt(p.opacity || 100, 10)
+              };
+            } else if (p.type === "shape_circle") {
+              widget.props = {
+                fill: (p.fill === "true" || p.fill === "1"),
+                border_width: parseInt(p.border || 1, 10),
+                color: p.color || "black",
+                opacity: parseInt(p.opacity || 100, 10)
+              };
+            } else if (p.type === "line") {
+              widget.props = {
+                stroke_width: parseInt(p.stroke || 1, 10),
+                color: p.color || "black"
+              };
+            }
+            
+            widgets.push(widget);
+            skipRendering = true; // Skip any rendering code after this marker
+            continue;
+          }
+          // If it's a comment but not a widget marker, skip it
+          continue;
+        }
+
+        // Fallback: Match patterns like: it.rectangle(10, 10, 100, 50);
         let m;
 
         // Match patterns like: it.rectangle(x, y, w, h); or it.rectangle(x, y, w, h, COLOR_OFF);
@@ -1151,7 +1428,8 @@
       renderPagesSidebar();
       renderCanvas();
       renderPropertiesPanel();
-      scheduleSnippetUpdate();
+      // Do NOT call scheduleSnippetUpdate() here - we just imported FROM YAML
+      // Calling it would regenerate and overwrite the user's YAML edits
     }
 
     // Import handler used by the Import modal confirm button.
@@ -1245,7 +1523,7 @@
     const generateSnippetBtn = document.getElementById("generateSnippetBtn");
     const copySnippetBtn = document.getElementById("copySnippetBtn");
     const fullscreenSnippetBtn = document.getElementById("fullscreenSnippetBtn");
-    const importSnippetBtn = document.getElementById("importSnippetBtn");
+    const updateLayoutBtn = document.getElementById("updateLayoutBtn");
 
     const snippetFullscreenModal = document.getElementById("snippetFullscreenModal");
     const snippetFullscreenContent = document.getElementById("snippetFullscreenContent");
@@ -1257,10 +1535,50 @@
     const importSnippetCancel = document.getElementById("importSnippetCancel");
     const importSnippetConfirm = document.getElementById("importSnippetConfirm");
 
-    // --- Wire up import snippet modal and confirm button ---
-    if (importSnippetBtn) {
-      importSnippetBtn.addEventListener("click", () => {
-        openImportSnippetModal();
+    // --- Wire up Update Layout from YAML button ---
+    if (updateLayoutBtn) {
+      updateLayoutBtn.addEventListener("click", async () => {
+        // Update layout directly from the YAML in snippetBox
+        const yaml = snippetBox.value || "";
+        if (!yaml.trim()) {
+          sidebarStatus.innerHTML = '<span style="color: var(--danger);">YAML is empty. Generate snippet first or paste YAML.</span>';
+          return;
+        }
+
+        // Try HA backend first for full fidelity
+        if (hasHaBackend()) {
+          try {
+            const resp = await fetch(`${HA_API_BASE}/import_snippet`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ yaml })
+            });
+
+            if (!resp.ok) {
+              const data = await resp.json().catch(() => ({}));
+              const msg = data.message || data.error || `Import failed with status ${resp.status}`;
+              sidebarStatus.innerHTML = `<span style="color: var(--danger);">Import error: ${msg}</span>`;
+              return;
+            }
+
+            const result = await resp.json();
+            applyImportedLayout(result);
+            sidebarStatus.innerHTML = '<span style="color: var(--success);">✓ Layout updated from YAML via HA backend</span>';
+            return;
+          } catch (err) {
+            console.warn("HA import_snippet failed, falling back to offline parser", err);
+          }
+        }
+
+        // Fallback: offline parser
+        try {
+          const offlineLayout = parseSnippetYamlOffline(yaml);
+          applyImportedLayout(offlineLayout);
+          sidebarStatus.innerHTML = '<span style="color: var(--success);">✓ Layout updated from YAML (offline parser)</span>';
+        } catch (err) {
+          console.error("Offline snippet import failed", err);
+          sidebarStatus.innerHTML = '<span style="color: var(--danger);">Parse error: ' + err.message + '</span>';
+        }
       });
     }
     if (importSnippetCancel) {
@@ -1308,6 +1626,9 @@
       renderCanvas();
       renderPropertiesPanel();
     }
+
+    // Ensure UI is usable immediately even before backend responds/offline
+    initDefaultLayout();
 
     function applyOrientation(orientation) {
       settings.orientation = orientation === "portrait" ? "portrait" : "landscape";
@@ -1373,19 +1694,44 @@
         item.appendChild(label);
         item.appendChild(tag);
         
-        // Add edit button for page settings
+        // Add action buttons container
+        const actionsContainer = document.createElement("div");
+        actionsContainer.style.display = "flex";
+        actionsContainer.style.gap = "2px";
+        actionsContainer.style.marginLeft = "auto";
+        
+        // Edit button for page settings
         const editBtn = document.createElement("button");
         editBtn.textContent = "⚙";
         editBtn.className = "btn btn-secondary";
         editBtn.style.padding = "1px 4px";
         editBtn.style.fontSize = "8px";
-        editBtn.style.marginLeft = "auto";
         editBtn.title = "Page settings";
         editBtn.onclick = (e) => {
           e.stopPropagation();
           openPageSettingsModal(page);
         };
-        item.appendChild(editBtn);
+        actionsContainer.appendChild(editBtn);
+        
+        // Delete button (only show if more than one page)
+        if (pages.length > 1) {
+          const deleteBtn = document.createElement("button");
+          deleteBtn.textContent = "🗑";
+          deleteBtn.className = "btn btn-secondary";
+          deleteBtn.style.padding = "1px 4px";
+          deleteBtn.style.fontSize = "8px";
+          deleteBtn.style.color = "var(--danger)";
+          deleteBtn.title = "Delete page";
+          deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (confirm(`Delete page "${page.name}"? This cannot be undone.`)) {
+              deletePage(index);
+            }
+          };
+          actionsContainer.appendChild(deleteBtn);
+        }
+        
+        item.appendChild(actionsContainer);
         
         pageListEl.appendChild(item);
       });
@@ -1422,6 +1768,32 @@
         widget.props.color = "black";
         widget.entity_id = "";
         widget.title = "";
+      } else if (type === "datetime") {
+        widget.type = "datetime";
+        widget.width = 200;
+        widget.height = 60;
+        widget.props.format = "time_date";  // time_date, time_only, date_only
+        widget.props.time_font_size = 28;
+        widget.props.date_font_size = 16;
+        widget.props.color = "black";
+      } else if (type === "progress_bar") {
+        widget.type = "progress_bar";
+        widget.width = 200;
+        widget.height = 40;
+        widget.entity_id = "";
+        widget.title = "";
+        widget.props.show_label = true;
+        widget.props.show_percentage = true;
+        widget.props.bar_height = 15;
+        widget.props.border_width = 1;
+        widget.props.color = "black";
+      } else if (type === "battery_icon") {
+        widget.type = "battery_icon";
+        widget.width = 60;
+        widget.height = 60;
+        widget.entity_id = "";
+        widget.props.size = 48;
+        widget.props.color = "black";
       } else if (type === "shape_rect") {
         widget.type = "shape_rect";
         widget.props.fill = false;
@@ -1460,6 +1832,12 @@
         widget.height = 150;
         widget.props.path = "";
         widget.props.invert = false;
+        } else if (type === "online_image") {
+          widget.type = "online_image";
+          widget.width = 800;
+          widget.height = 480;
+          widget.props.url = "";
+          widget.props.interval_s = 300; // default 5 minutes
       }
 
       page.widgets.push(widget);
@@ -1771,6 +2149,185 @@
             placeholder.innerHTML = "🖼️<br/>Image Widget<br/><span style='font-size:9px;color:#ccc;'>Enter path in properties →</span>";
             el.appendChild(placeholder);
           }
+        } else if (type === "datetime") {
+          // Date/time widget
+          const format = props.format || "time_date";
+          const timeFontSize = props.time_font_size || 28;
+          const dateFontSize = props.date_font_size || 16;
+          const color = props.color || "black";
+          const colorStyle =
+            color === "white"
+              ? "#ffffff"
+              : color === "gray"
+              ? "#aaaaaa"
+              : "#000000";
+          
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+          const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+          
+          el.style.display = "flex";
+          el.style.flexDirection = "column";
+          el.style.justifyContent = "center";
+          el.style.alignItems = "center";
+          el.style.color = colorStyle;
+          
+          if (format === "time_only") {
+            const timeEl = document.createElement("div");
+            timeEl.style.fontSize = timeFontSize + "px";
+            timeEl.style.fontWeight = "bold";
+            timeEl.textContent = timeStr;
+            el.appendChild(timeEl);
+          } else if (format === "date_only") {
+            const dateEl = document.createElement("div");
+            dateEl.style.fontSize = dateFontSize + "px";
+            dateEl.textContent = dateStr;
+            el.appendChild(dateEl);
+          } else {
+            // time_date - default
+            const timeEl = document.createElement("div");
+            timeEl.style.fontSize = timeFontSize + "px";
+            timeEl.style.fontWeight = "bold";
+            timeEl.textContent = timeStr;
+            const dateEl = document.createElement("div");
+            dateEl.style.fontSize = dateFontSize + "px";
+            dateEl.style.marginTop = "2px";
+            dateEl.textContent = dateStr;
+            el.appendChild(timeEl);
+            el.appendChild(dateEl);
+          }
+        } else if (type === "progress_bar") {
+          // Progress bar widget
+          const entityId = widget.entity_id || "";
+          const label = widget.title || "";
+          const showLabel = props.show_label !== false;
+          const showPercentage = props.show_percentage !== false;
+          const barHeight = props.bar_height || 15;
+          const borderWidth = props.border_width || 1;
+          const color = props.color || "black";
+          const colorStyle =
+            color === "white"
+              ? "#ffffff"
+              : color === "gray"
+              ? "#aaaaaa"
+              : "#000000";
+          
+          // Get value from entity or use placeholder
+          let progress = 50;  // Default placeholder
+          if (hasHaBackend() && entityId) {
+            const state = getEntityState(entityId);
+            if (state !== null && state !== undefined) {
+              const val = parseFloat(state);
+              if (!isNaN(val)) {
+                progress = Math.max(0, Math.min(100, val));
+              }
+            }
+          }
+          
+          el.style.display = "flex";
+          el.style.flexDirection = "column";
+          el.style.justifyContent = "center";
+          el.style.gap = "4px";
+          el.style.color = colorStyle;
+          
+          // Label row
+          if (showLabel && (label || showPercentage)) {
+            const labelRow = document.createElement("div");
+            labelRow.style.display = "flex";
+            labelRow.style.justifyContent = "space-between";
+            labelRow.style.alignItems = "center";
+            labelRow.style.fontSize = "12px";
+            labelRow.style.paddingBottom = "2px";
+            
+            if (label) {
+              const labelSpan = document.createElement("span");
+              labelSpan.textContent = label;
+              labelRow.appendChild(labelSpan);
+            }
+            
+            if (showPercentage) {
+              const pctSpan = document.createElement("span");
+              pctSpan.textContent = Math.round(progress) + "%";
+              labelRow.appendChild(pctSpan);
+            }
+            
+            el.appendChild(labelRow);
+          }
+          
+          // Progress bar
+          const barContainer = document.createElement("div");
+          barContainer.style.width = "100%";
+          barContainer.style.height = barHeight + "px";
+          barContainer.style.border = borderWidth + "px solid " + colorStyle;
+          barContainer.style.borderRadius = "2px";
+          barContainer.style.position = "relative";
+          barContainer.style.overflow = "hidden";
+          barContainer.style.backgroundColor = color === "white" ? "#000" : "#fff";
+          
+          const barFill = document.createElement("div");
+          barFill.style.width = progress + "%";
+          barFill.style.height = "100%";
+          barFill.style.backgroundColor = colorStyle;
+          barFill.style.transition = "width 0.3s ease";
+          
+          barContainer.appendChild(barFill);
+          el.appendChild(barContainer);
+        } else if (type === "battery_icon") {
+          // Battery icon widget - dynamic icon based on battery level
+          const entityId = widget.entity_id || "";
+          const size = parseInt(props.size || 48, 10) || 48;
+          const color = props.color || "black";
+          const colorStyle =
+            color === "white"
+              ? "#ffffff"
+              : color === "gray"
+              ? "#aaaaaa"
+              : "#000000";
+          
+          // Get battery level from entity
+          let batteryLevel = 75;  // Default placeholder
+          if (hasHaBackend() && entityId) {
+            const state = getEntityState(entityId);
+            if (state !== null && state !== undefined) {
+              const val = parseFloat(state);
+              if (!isNaN(val)) {
+                batteryLevel = Math.max(0, Math.min(100, val));
+              }
+            }
+          }
+          
+          // Determine battery icon based on level (MDI battery icons)
+          let iconCode = "F0079";  // battery (full)
+          if (batteryLevel <= 10) iconCode = "F007A";  // battery-10
+          else if (batteryLevel <= 20) iconCode = "F007B";  // battery-20
+          else if (batteryLevel <= 30) iconCode = "F007C";  // battery-30
+          else if (batteryLevel <= 40) iconCode = "F007D";  // battery-40
+          else if (batteryLevel <= 50) iconCode = "F007E";  // battery-50
+          else if (batteryLevel <= 60) iconCode = "F007F";  // battery-60
+          else if (batteryLevel <= 70) iconCode = "F0080";  // battery-70
+          else if (batteryLevel <= 80) iconCode = "F0081";  // battery-80
+          else if (batteryLevel <= 90) iconCode = "F0082";  // battery-90
+          
+          const cp = 0xf0000 + parseInt(iconCode.slice(1), 16);
+          const ch = String.fromCodePoint(cp);
+          
+          el.classList.add("mdi-icon-preview");
+          el.style.fontFamily = "MDI, system-ui, -apple-system, BlinkMacSystemFont, -sans-serif";
+          el.style.lineHeight = "1";
+          el.style.color = colorStyle;
+          el.style.display = "flex";
+          el.style.flexDirection = "column";
+          el.style.alignItems = "center";
+          el.style.justifyContent = "center";
+          el.style.fontSize = size + "px";
+          el.textContent = ch;
+          
+          // Show percentage below icon
+          const pctLabel = document.createElement("div");
+          pctLabel.style.fontSize = "10px";
+          pctLabel.style.marginTop = "2px";
+          pctLabel.textContent = Math.round(batteryLevel) + "%";
+          el.appendChild(pctLabel);
         } else {
           // Text widgets (text, sensor_text)
           const color = props.color || "black";
@@ -1978,6 +2535,447 @@
         fitWrap.appendChild(fitCb);
         panel.appendChild(fitWrap);
 
+        // Icon picker dropdown with visual MDI icon preview (WYSIWYG)
+        // Expanded to 200+ icons organized by category
+        const iconPickerData = [
+          // Weather (20 icons)
+          { code: "F0594", name: "weather-sunny" },
+          { code: "F0595", name: "weather-cloudy" },
+          { code: "F0596", name: "weather-rainy" },
+          { code: "F0590", name: "weather-snowy" },
+          { code: "F067E", name: "weather-lightning" },
+          { code: "F0597", name: "weather-fog" },
+          { code: "F0F2F", name: "weather-windy" },
+          { code: "F0598", name: "weather-partly-cloudy" },
+          { code: "F0F31", name: "weather-night" },
+          { code: "F0599", name: "weather-hail" },
+          { code: "F0F33", name: "weather-tornado" },
+          { code: "F0593", name: "weather-hurricane" },
+          { code: "F0E6E", name: "weather-pouring" },
+          { code: "F067F", name: "weather-lightning-rainy" },
+          { code: "F0F30", name: "weather-windy-variant" },
+          { code: "F0590", name: "snowflake" },
+          { code: "F059D", name: "white-balance-sunny" },
+          { code: "F0F32", name: "weather-snowy-rainy" },
+          { code: "F0E6D", name: "weather-partly-rainy" },
+          { code: "F0F34", name: "weather-snowy-heavy" },
+          
+          // Temperature & Climate (15 icons)
+          { code: "F010C", name: "thermometer" },
+          { code: "F0E8B", name: "home-thermometer" },
+          { code: "F10BF", name: "temperature-celsius" },
+          { code: "F10C0", name: "temperature-fahrenheit" },
+          { code: "F058E", name: "water-percent" },
+          { code: "F1049", name: "air-humidifier" },
+          { code: "F073F", name: "air-conditioner" },
+          { code: "F0E51", name: "radiator" },
+          { code: "F0238", name: "fan" },
+          { code: "F1025", name: "fan-off" },
+          { code: "F0F2E", name: "weather-windy" },
+          { code: "F0F3D", name: "weather-dust" },
+          { code: "F1837", name: "air-filter" },
+          { code: "F006E", name: "biohazard" },
+          { code: "F050D", name: "fire" },
+          
+          // Home & Rooms (25 icons)
+          { code: "F050F", name: "home" },
+          { code: "F0510", name: "home-variant" },
+          { code: "F06A1", name: "home-outline" },
+          { code: "F15E6", name: "home-automation" },
+          { code: "F0D8A", name: "home-floor-1" },
+          { code: "F0D8B", name: "home-floor-2" },
+          { code: "F0D8C", name: "home-floor-3" },
+          { code: "F02E7", name: "bed" },
+          { code: "F04B9", name: "sofa" },
+          { code: "F070B", name: "door" },
+          { code: "F081B", name: "door-open" },
+          { code: "F081C", name: "door-closed" },
+          { code: "F1359", name: "garage" },
+          { code: "F135A", name: "garage-open" },
+          { code: "F06B9", name: "gate" },
+          { code: "F0E1E", name: "window-open" },
+          { code: "F0E1D", name: "window-closed" },
+          { code: "F1B3E", name: "window-shutter" },
+          { code: "F1B3F", name: "window-shutter-open" },
+          { code: "F0BCA", name: "stairs" },
+          { code: "F07FD", name: "balcony" },
+          { code: "F112A", name: "floor-plan" },
+          { code: "F06A0", name: "roof" },
+          { code: "F1A2F", name: "fence" },
+          { code: "F099D", name: "car" },
+          
+          // Lights (20 icons)
+          { code: "F008A", name: "lightbulb" },
+          { code: "F0335", name: "lightbulb-on" },
+          { code: "F0336", name: "lightbulb-off" },
+          { code: "F06E8", name: "lightbulb-outline" },
+          { code: "F1D9F", name: "ceiling-light" },
+          { code: "F0769", name: "lamp" },
+          { code: "F1433", name: "lamp-outline" },
+          { code: "F17D3", name: "floor-lamp" },
+          { code: "F095C", name: "desk-lamp" },
+          { code: "F0F5B", name: "led-on" },
+          { code: "F0F5C", name: "led-off" },
+          { code: "F0F5D", name: "led-outline" },
+          { code: "F1020", name: "led-strip" },
+          { code: "F1021", name: "led-strip-variant" },
+          { code: "F06C5", name: "lava-lamp" },
+          { code: "F0769", name: "outdoor-lamp" },
+          { code: "F1311", name: "wall-sconce" },
+          { code: "F1312", name: "wall-sconce-flat" },
+          { code: "F1313", name: "wall-sconce-round" },
+          { code: "F1C5C", name: "coach-lamp" },
+          
+          // Switches & Controls (20 icons)
+          { code: "F057F", name: "power" },
+          { code: "F0580", name: "power-off" },
+          { code: "F0425", name: "check" },
+          { code: "F0156", name: "close" },
+          { code: "F0C4E", name: "toggle-switch" },
+          { code: "F0C4F", name: "toggle-switch-off" },
+          { code: "F0493", name: "cog" },
+          { code: "F08BB", name: "settings" },
+          { code: "F0419", name: "menu" },
+          { code: "F035C", name: "dots-vertical" },
+          { code: "F01D9", name: "dots-horizontal" },
+          { code: "F0142", name: "plus" },
+          { code: "F0374", name: "minus" },
+          { code: "F0140", name: "pencil" },
+          { code: "F0A1A", name: "delete" },
+          { code: "F0835", name: "refresh" },
+          { code: "F02E6", name: "backup-restore" },
+          { code: "F0193", name: "content-save" },
+          { code: "F0C55", name: "tray-arrow-up" },
+          { code: "F0C56", name: "tray-arrow-down" },
+          
+          // Security (20 icons)
+          { code: "F06C9", name: "lock" },
+          { code: "F033E", name: "lock-open" },
+          { code: "F0FC7", name: "shield-home" },
+          { code: "F0780", name: "shield" },
+          { code: "F0143", name: "bell" },
+          { code: "F156C", name: "bell-alert" },
+          { code: "F0029", name: "alarm-light" },
+          { code: "F0024", name: "alert" },
+          { code: "F0026", name: "alert-circle" },
+          { code: "F02DC", name: "camera" },
+          { code: "F1900", name: "cctv" },
+          { code: "F07F5", name: "security" },
+          { code: "F111C", name: "motion-sensor" },
+          { code: "F0D39", name: "motion-sensor-off" },
+          { code: "F0D95", name: "smoke-detector" },
+          { code: "F11BD", name: "smoke-detector-alert" },
+          { code: "F1A73", name: "fire-alert" },
+          { code: "F1A74", name: "fire-extinguisher" },
+          { code: "F11C6", name: "sprinkler" },
+          { code: "F11C7", name: "sprinkler-variant" },
+          
+          // Media & Entertainment (25 icons)
+          { code: "F06E8", name: "play" },
+          { code: "F03E4", name: "pause" },
+          { code: "F04DB", name: "stop" },
+          { code: "F04AE", name: "skip-next" },
+          { code: "F04AD", name: "skip-previous" },
+          { code: "F0EE0", name: "volume-high" },
+          { code: "F075E", name: "volume-off" },
+          { code: "F0765", name: "music" },
+          { code: "F040A", name: "speaker" },
+          { code: "F0794", name: "television" },
+          { code: "F0322", name: "wifi" },
+          { code: "F092F", name: "wifi-off" },
+          { code: "F05A9", name: "bluetooth" },
+          { code: "F0B43", name: "spotify" },
+          { code: "F02C3", name: "youtube" },
+          { code: "F11FC", name: "netflix" },
+          { code: "F0057", name: "apple" },
+          { code: "F040B", name: "cast" },
+          { code: "F0239", name: "clock" },
+          { code: "F0453", name: "calendar" },
+          { code: "F08D0", name: "timer" },
+          { code: "F0024", name: "alarm" },
+          { code: "F14E4", name: "radio" },
+          { code: "F036D", name: "microphone" },
+          { code: "F036E", name: "microphone-off" },
+          
+          // Appliances (25 icons)
+          { code: "F0A48", name: "robot-vacuum" },
+          { code: "F070D", name: "washing-machine" },
+          { code: "F0232", name: "fridge" },
+          { code: "F0CD6", name: "coffee-maker" },
+          { code: "F1A42", name: "toaster" },
+          { code: "F06D3", name: "microwave" },
+          { code: "F0246", name: "stove" },
+          { code: "F13E2", name: "oven" },
+          { code: "F0EFB", name: "dishwasher" },
+          { code: "F0A49", name: "vacuum" },
+          { code: "F0663", name: "iron" },
+          { code: "F1C48", name: "iron-outline" },
+          { code: "F04B0", name: "blender" },
+          { code: "F0EEF", name: "kettle" },
+          { code: "F1006", name: "kettle-steam" },
+          { code: "F02E3", name: "scale" },
+          { code: "F0F8A", name: "scale-bathroom" },
+          { code: "F11A1", name: "hair-dryer" },
+          { code: "F11A2", name: "hair-dryer-outline" },
+          { code: "F070C", name: "water-heater" },
+          { code: "F1A6C", name: "water-pump" },
+          { code: "F070E", name: "water-off" },
+          { code: "F058A", name: "water" },
+          { code: "F1436", name: "trash-can" },
+          { code: "F0A79", name: "recycle" },
+          
+          // Sensors & Monitoring (20 icons)
+          { code: "F07E4", name: "battery" },
+          { code: "F07E2", name: "battery-charging" },
+          { code: "F12A1", name: "battery-50" },
+          { code: "F0079", name: "battery-10" },
+          { code: "F1A2E", name: "battery-high" },
+          { code: "F007A", name: "battery-low" },
+          { code: "F053D", name: "speedometer" },
+          { code: "F0316", name: "gauge" },
+          { code: "F07D1", name: "chart-line" },
+          { code: "F01D7", name: "chart-bar" },
+          { code: "F0127", name: "chart-donut" },
+          { code: "F07E0", name: "chart-pie" },
+          { code: "F1460", name: "chart-timeline" },
+          { code: "F0E4C", name: "finance" },
+          { code: "F0356", name: "currency-usd" },
+          { code: "F033A", name: "currency-eur" },
+          { code: "F02C1", name: "percent" },
+          { code: "F0D7D", name: "poll" },
+          { code: "F0125", name: "counter" },
+          { code: "F1A5D", name: "meter-electric" },
+          
+          // Navigation & Arrows (15 icons)
+          { code: "F0141", name: "arrow-up" },
+          { code: "F0045", name: "arrow-down" },
+          { code: "F004D", name: "arrow-left" },
+          { code: "F0054", name: "arrow-right" },
+          { code: "F0143", name: "chevron-up" },
+          { code: "F0140", name: "chevron-down" },
+          { code: "F0141", name: "chevron-left" },
+          { code: "F0142", name: "chevron-right" },
+          { code: "F035F", name: "menu-up" },
+          { code: "F0360", name: "menu-down" },
+          { code: "F035D", name: "menu-left" },
+          { code: "F035E", name: "menu-right" },
+          { code: "F02D7", name: "navigation" },
+          { code: "F0E80", name: "compass" },
+          { code: "F036C", name: "map" },
+          
+          // Status & Indicators (15 icons)
+          { code: "F012C", name: "circle" },
+          { code: "F0765", name: "record" },
+          { code: "F0C92", name: "checkbox-marked" },
+          { code: "F0C91", name: "checkbox-blank" },
+          { code: "F0134", name: "radiobox-marked" },
+          { code: "F0135", name: "radiobox-blank" },
+          { code: "F0E1F", name: "star" },
+          { code: "F0E20", name: "star-outline" },
+          { code: "F029B", name: "heart" },
+          { code: "F029C", name: "heart-outline" },
+          { code: "F0765", name: "thumb-up" },
+          { code: "F0766", name: "thumb-down" },
+          { code: "F0028", name: "information" },
+          { code: "F0625", name: "help-circle" },
+          { code: "F05D6", name: "comment" },
+          
+          // Home Assistant & Integration (20 icons)
+          { code: "F043C", name: "home-assistant" },
+          { code: "F07D0", name: "raspberry-pi" },
+          { code: "F01BC", name: "code-tags" },
+          { code: "F0A2F", name: "satellite-variant" },
+          { code: "F06DC", name: "router-wireless" },
+          { code: "F0317", name: "ethernet" },
+          { code: "F0318", name: "cable-data" },
+          { code: "F05A7", name: "webhook" },
+          { code: "F0E03", name: "api" },
+          { code: "F0DB3", name: "cloud-sync" },
+          { code: "F02C5", name: "cloud" },
+          { code: "F0DB2", name: "cloud-upload" },
+          { code: "F0DB1", name: "cloud-download" },
+          { code: "F019A", name: "download" },
+          { code: "F0552", name: "upload" },
+          { code: "F0625", name: "lan" },
+          { code: "F0DA7", name: "ip-network" },
+          { code: "F132D", name: "nas" },
+          { code: "F0A0C", name: "server" },
+          { code: "F0A0D", name: "server-network" },
+          
+          // Additional Appliances & Devices (20 icons)
+          { code: "F0FB1", name: "air-purifier" },
+          { code: "F104A", name: "humidifier" },
+          { code: "F104B", name: "dehumidifier" },
+          { code: "F181F", name: "air-horn" },
+          { code: "F0697", name: "printer" },
+          { code: "F042A", name: "scanner" },
+          { code: "F0AF9", name: "shredder" },
+          { code: "F0EF9", name: "paper-cut-vertical" },
+          { code: "F06D0", name: "monitor" },
+          { code: "F0322", name: "laptop" },
+          { code: "F0CEE", name: "tablet" },
+          { code: "F0C5F", name: "cellphone" },
+          { code: "F0A5A", name: "phone" },
+          { code: "F06E1", name: "keyboard" },
+          { code: "F06E2", name: "mouse" },
+          { code: "F0A5F", name: "remote" },
+          { code: "F0A63", name: "gamepad" },
+          { code: "F0A64", name: "controller-classic" },
+          { code: "F1358", name: "glasses" },
+          { code: "F0E31", name: "headphones" },
+          
+          // Garden & Outdoor (15 icons)
+          { code: "F0E50", name: "sprinkler" },
+          { code: "F0F5E", name: "water-pump" },
+          { code: "F100A", name: "watering-can" },
+          { code: "F0571", name: "flower" },
+          { code: "F0C93", name: "tree" },
+          { code: "F0C94", name: "palm-tree" },
+          { code: "F0534", name: "grass" },
+          { code: "F0D9F", name: "pine-tree" },
+          { code: "F13ED", name: "grill" },
+          { code: "F1468", name: "grill-outline" },
+          { code: "F0232", name: "pool" },
+          { code: "F0667", name: "hot-tub" },
+          { code: "F1A3B", name: "patio-heater" },
+          { code: "F17D1", name: "outdoor-lighting" },
+          { code: "F0F1D", name: "mailbox" },
+          
+          // Energy & Power (20 icons)
+          { code: "F0A17", name: "solar-panel" },
+          { code: "F0A18", name: "solar-panel-large" },
+          { code: "F0A19", name: "solar-power" },
+          { code: "F110D", name: "wind-turbine" },
+          { code: "F0903", name: "transmission-tower" },
+          { code: "F140B", name: "lightning-bolt" },
+          { code: "F050E", name: "flash" },
+          { code: "F0E9F", name: "flash-outline" },
+          { code: "F0738", name: "ev-station" },
+          { code: "F1873", name: "ev-plug-type1" },
+          { code: "F1874", name: "ev-plug-type2" },
+          { code: "F007F", name: "battery-charging-80" },
+          { code: "F0580", name: "power-plug" },
+          { code: "F06A5", name: "power-socket" },
+          { code: "F1844", name: "power-socket-eu" },
+          { code: "F1845", name: "power-socket-uk" },
+          { code: "F1846", name: "power-socket-us" },
+          { code: "F0C5B", name: "fuel" },
+          { code: "F1344", name: "gas-station" },
+          { code: "F1022", name: "propane-tank" },
+          
+          // Health & Medical (15 icons)
+          { code: "F0765", name: "heart-pulse" },
+          { code: "F0A38", name: "medical-bag" },
+          { code: "F0A39", name: "hospital" },
+          { code: "F050A", name: "pill" },
+          { code: "F0E2E", name: "thermometer-lines" },
+          { code: "F1626", name: "face-mask" },
+          { code: "F0B48", name: "allergy" },
+          { code: "F0BF9", name: "sleep" },
+          { code: "F0BFA", name: "sleep-off" },
+          { code: "F06F7", name: "run" },
+          { code: "F0B56", name: "walk" },
+          { code: "F151F", name: "yoga" },
+          { code: "F04D7", name: "dumbbell" },
+          { code: "F1A91", name: "weight-kilogram" },
+          { code: "F06F4", name: "scale-balance" },
+          
+          // Office & Productivity (15 icons)
+          { code: "F0235", name: "file" },
+          { code: "F0236", name: "file-document" },
+          { code: "F0737", name: "folder" },
+          { code: "F0770", name: "folder-open" },
+          { code: "F0A0E", name: "briefcase" },
+          { code: "F0238", name: "calendar-today" },
+          { code: "F0ED0", name: "calendar-month" },
+          { code: "F0C42", name: "note" },
+          { code: "F0C43", name: "notebook" },
+          { code: "F0C44", name: "clipboard" },
+          { code: "F0765", name: "bookmark" },
+          { code: "F0A2A", name: "tag" },
+          { code: "F0765", name: "label" },
+          { code: "F0239", name: "archive" },
+          { code: "F013C", name: "email" },
+          
+          // Communication (15 icons)
+          { code: "F036D", name: "message" },
+          { code: "F036E", name: "chat" },
+          { code: "F0EF5", name: "forum" },
+          { code: "F0238", name: "send" },
+          { code: "F11C8", name: "phone-ring" },
+          { code: "F11C9", name: "phone-missed" },
+          { code: "F05CB", name: "voicemail" },
+          { code: "F06A2", name: "video" },
+          { code: "F06A3", name: "video-off" },
+          { code: "F03CB", name: "account" },
+          { code: "F0806", name: "account-group" },
+          { code: "F1502", name: "account-multiple" },
+          { code: "F0765", name: "contacts" },
+          { code: "F0765", name: "badge-account" },
+          { code: "F0B7F", name: "human-greeting" }
+        ];
+
+        const iconPickerWrap = document.createElement("div");
+        iconPickerWrap.className = "field";
+        const iconPickerLbl = document.createElement("div");
+        iconPickerLbl.className = "prop-label";
+        iconPickerLbl.textContent = "Quick icon picker (visual preview)";
+        
+        const iconPickerSelect = document.createElement("select");
+        iconPickerSelect.className = "select";
+        iconPickerSelect.style.fontFamily = "MDI, monospace, system-ui";
+        iconPickerSelect.style.fontSize = "16px";
+        iconPickerSelect.style.lineHeight = "1.5";
+        
+        // Add placeholder option
+        const placeholderOpt = document.createElement("option");
+        placeholderOpt.value = "";
+        placeholderOpt.textContent = "-- Select icon --";
+        placeholderOpt.style.fontFamily = "system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+        iconPickerSelect.appendChild(placeholderOpt);
+        
+        // Add icon options with actual glyph preview
+        iconPickerData.forEach(icon => {
+          const opt = document.createElement("option");
+          opt.value = icon.code;
+          // Convert code to unicode character for preview
+          const cp = 0xf0000 + parseInt(icon.code.slice(1), 16);
+          const glyph = String.fromCodePoint(cp);
+          opt.textContent = glyph + "  " + icon.code;
+          opt.style.fontFamily = "MDI, monospace, system-ui";
+          iconPickerSelect.appendChild(opt);
+        });
+        
+        // Set current value if it matches
+        const currentCode = (widget.props.code || "F0595").toUpperCase();
+        const matchingIcon = iconPickerData.find(i => i.code === currentCode);
+        if (matchingIcon) {
+          iconPickerSelect.value = matchingIcon.code;
+        }
+        
+        iconPickerSelect.addEventListener("change", () => {
+          const selectedCode = iconPickerSelect.value;
+          if (selectedCode) {
+            widget.props.code = selectedCode;
+            renderCanvas();
+            renderPropertiesPanel(); // Refresh to update the unicode input
+            scheduleSnippetUpdate();
+          }
+        });
+        
+        iconPickerWrap.appendChild(iconPickerLbl);
+        iconPickerWrap.appendChild(iconPickerSelect);
+        panel.appendChild(iconPickerWrap);
+
+        // Add link to find more icons
+        const moreIconsLink = document.createElement("div");
+        moreIconsLink.style.fontSize = "12px";
+        moreIconsLink.style.marginTop = "4px";
+        moreIconsLink.style.marginBottom = "8px";
+        moreIconsLink.style.color = "#666";
+        moreIconsLink.innerHTML = 'Need more icons? Browse <a href="https://pictogrammers.com/library/mdi/icon/" target="_blank" style="color: #03a9f4; text-decoration: none;">Pictogrammers MDI</a> and paste the Unicode below';
+        panel.appendChild(moreIconsLink);
+
         addLabeledInput("MDI Unicode (Fxxxx)", "text", widget.props.code || "F0595", (v) => {
           const clean = (v || "").trim().toUpperCase().replace(/^0X/, "");
           if (/^F[0-9A-F]{4}$/i.test(clean)) {
@@ -2089,11 +3087,232 @@
         panel.appendChild(fillWrap);
       }
 
+      if (type === "online_image") {
+        // Puppet / Remote image widget properties
+        const helpWrap = document.createElement("div");
+        helpWrap.className = "field";
+        helpWrap.style.fontSize = "9px";
+        helpWrap.style.color = "var(--muted)";
+        helpWrap.style.marginBottom = "8px";
+        helpWrap.innerHTML = "💡 Fetch remote images dynamically (Puppet support):<br/>" +
+          "<code style='background:#f0f0f0;padding:2px 4px;border-radius:2px;'>https://example.com/camera/snapshot.jpg</code><br/>" +
+          "<span style='color:#4a9eff;'>ℹ️ Images are downloaded at specified intervals</span>";
+        panel.appendChild(helpWrap);
+        
+        addLabeledInput("Remote URL", "text", widget.props.url || "", (v) => {
+          widget.props.url = v;
+          renderCanvas();
+          scheduleSnippetUpdate();
+        });
+        
+        addLabeledInput("Update interval (seconds)", "number", widget.props.interval_s || 300, (v) => {
+          widget.props.interval_s = parseInt(v, 10) || 300;
+          renderCanvas();
+          scheduleSnippetUpdate();
+        });
+      }
+
+      if (type === "datetime") {
+        // Date/time widget properties
+        addSelect(
+          "Display format",
+          widget.props.format || "time_date",
+          ["time_date", "time_only", "date_only"],
+          (val) => {
+            widget.props.format = val;
+            renderCanvas();
+            scheduleSnippetUpdate();
+          }
+        );
+        
+        addLabeledInput("Time font size", "number", widget.props.time_font_size || 28, (v) => {
+          widget.props.time_font_size = parseInt(v || "28", 10) || 28;
+          renderCanvas();
+          scheduleSnippetUpdate();
+        });
+        
+        addLabeledInput("Date font size", "number", widget.props.date_font_size || 16, (v) => {
+          widget.props.date_font_size = parseInt(v || "16", 10) || 16;
+          renderCanvas();
+          scheduleSnippetUpdate();
+        });
+        
+        addSelect("Color", widget.props.color || "black", ["black", "white", "gray"], (val) => {
+          widget.props.color = val;
+          renderCanvas();
+          scheduleSnippetUpdate();
+        });
+      }
+
+      if (type === "progress_bar") {
+        // Progress bar widget properties
+        // Entity ID with picker button
+        const entityWrap = document.createElement("div");
+        entityWrap.className = "field";
+        const entityLbl = document.createElement("div");
+        entityLbl.className = "prop-label";
+        entityLbl.textContent = "Entity ID (numeric sensor)";
+        
+        const entityRow = document.createElement("div");
+        entityRow.style.display = "flex";
+        entityRow.style.gap = "4px";
+        
+        const entityInput = document.createElement("input");
+        entityInput.className = "prop-input";
+        entityInput.type = "text";
+        entityInput.value = widget.entity_id || "";
+        entityInput.style.flex = "1";
+        entityInput.addEventListener("input", () => {
+          widget.entity_id = entityInput.value;
+          if (hasHaBackend() && Object.keys(entityStatesCache).length === 0) {
+            fetchEntityStates();
+          }
+          renderCanvas();
+          scheduleSnippetUpdate();
+        });
+        
+        const pickerBtn = document.createElement("button");
+        pickerBtn.className = "btn btn-secondary";
+        pickerBtn.textContent = "⋮⋮⋮";
+        pickerBtn.style.padding = "5px 8px";
+        pickerBtn.style.fontSize = "10px";
+        pickerBtn.type = "button";
+        pickerBtn.title = "Pick from Home Assistant entities";
+        pickerBtn.addEventListener("click", () => {
+          openEntityPickerForWidget(widget, entityInput);
+        });
+        
+        entityRow.appendChild(entityInput);
+        entityRow.appendChild(pickerBtn);
+        entityWrap.appendChild(entityLbl);
+        entityWrap.appendChild(entityRow);
+        panel.appendChild(entityWrap);
+        
+        addLabeledInput("Label (optional)", "text", widget.title || "", (v) => {
+          widget.title = v;
+          renderCanvas();
+          scheduleSnippetUpdate();
+        });
+        
+        const showLabelWrap = document.createElement("div");
+        showLabelWrap.className = "field";
+        const showLabelLbl = document.createElement("div");
+        showLabelLbl.className = "prop-label";
+        showLabelLbl.textContent = "Show label row";
+        const showLabelCb = document.createElement("input");
+        showLabelCb.type = "checkbox";
+        showLabelCb.checked = widget.props.show_label !== false;
+        showLabelCb.addEventListener("change", () => {
+          widget.props.show_label = showLabelCb.checked;
+          renderCanvas();
+          scheduleSnippetUpdate();
+        });
+        showLabelWrap.appendChild(showLabelLbl);
+        showLabelWrap.appendChild(showLabelCb);
+        panel.appendChild(showLabelWrap);
+        
+        const showPctWrap = document.createElement("div");
+        showPctWrap.className = "field";
+        const showPctLbl = document.createElement("div");
+        showPctLbl.className = "prop-label";
+        showPctLbl.textContent = "Show percentage";
+        const showPctCb = document.createElement("input");
+        showPctCb.type = "checkbox";
+        showPctCb.checked = widget.props.show_percentage !== false;
+        showPctCb.addEventListener("change", () => {
+          widget.props.show_percentage = showPctCb.checked;
+          renderCanvas();
+          scheduleSnippetUpdate();
+        });
+        showPctWrap.appendChild(showPctLbl);
+        showPctWrap.appendChild(showPctCb);
+        panel.appendChild(showPctWrap);
+        
+        addLabeledInput("Bar height (px)", "number", widget.props.bar_height || 15, (v) => {
+          widget.props.bar_height = parseInt(v || "15", 10) || 15;
+          renderCanvas();
+          scheduleSnippetUpdate();
+        });
+        
+        addLabeledInput("Border width (px)", "number", widget.props.border_width || 1, (v) => {
+          widget.props.border_width = parseInt(v || "1", 10) || 1;
+          renderCanvas();
+          scheduleSnippetUpdate();
+        });
+        
+        addSelect("Color", widget.props.color || "black", ["black", "white", "gray"], (val) => {
+          widget.props.color = val;
+          renderCanvas();
+          scheduleSnippetUpdate();
+        });
+      }
+
+      if (type === "battery_icon") {
+        // Battery icon widget properties
+        // Entity ID with picker button
+        const entityWrap = document.createElement("div");
+        entityWrap.className = "field";
+        const entityLbl = document.createElement("div");
+        entityLbl.className = "prop-label";
+        entityLbl.textContent = "Battery Entity ID";
+        
+        const entityRow = document.createElement("div");
+        entityRow.style.display = "flex";
+        entityRow.style.gap = "4px";
+        
+        const entityInput = document.createElement("input");
+        entityInput.className = "prop-input";
+        entityInput.type = "text";
+        entityInput.value = widget.entity_id || "";
+        entityInput.style.flex = "1";
+        entityInput.addEventListener("input", () => {
+          widget.entity_id = entityInput.value;
+          if (hasHaBackend() && Object.keys(entityStatesCache).length === 0) {
+            fetchEntityStates();
+          }
+          renderCanvas();
+          scheduleSnippetUpdate();
+        });
+        
+        const pickerBtn = document.createElement("button");
+        pickerBtn.className = "btn btn-secondary";
+        pickerBtn.textContent = "⋮⋮⋮";
+        pickerBtn.style.padding = "5px 8px";
+        pickerBtn.style.fontSize = "10px";
+        pickerBtn.type = "button";
+        pickerBtn.title = "Pick from Home Assistant entities";
+        pickerBtn.addEventListener("click", () => {
+          openEntityPickerForWidget(widget, entityInput);
+        });
+        
+        entityRow.appendChild(entityInput);
+        entityRow.appendChild(pickerBtn);
+        entityWrap.appendChild(entityLbl);
+        entityWrap.appendChild(entityRow);
+        panel.appendChild(entityWrap);
+        
+        addLabeledInput("Icon size (px)", "number", widget.props.size || 48, (v) => {
+          let n = parseInt(v || "48", 10);
+          if (Number.isNaN(n) || n < 16) n = 16;
+          if (n > 200) n = 200;
+          widget.props.size = n;
+          renderCanvas();
+          scheduleSnippetUpdate();
+        });
+        
+        addSelect("Color", widget.props.color || "black", ["black", "white", "gray"], (val) => {
+          widget.props.color = val;
+          renderCanvas();
+          scheduleSnippetUpdate();
+        });
+      }
+
       if (["text", "sensor_text"].includes(type)) {
         if (type === "text") {
           addLabeledInput("Text", "text", widget.props.text || "", (v) => {
             widget.props.text = v;
             renderCanvas();
+            scheduleSnippetUpdate();
           });
         }
         if (type === "sensor_text") {
@@ -2265,6 +3484,103 @@
           }
         );
       }
+
+      // Conditional visibility section (available for all widget types)
+      const condSectionHeader = document.createElement("h3");
+      condSectionHeader.textContent = "Conditional Visibility";
+      condSectionHeader.style.marginTop = "12px";
+      condSectionHeader.style.borderTop = "1px solid var(--border-subtle)";
+      condSectionHeader.style.paddingTop = "8px";
+      panel.appendChild(condSectionHeader);
+      
+      const condHelpWrap = document.createElement("div");
+      condHelpWrap.className = "field";
+      condHelpWrap.style.fontSize = "9px";
+      condHelpWrap.style.color = "var(--muted)";
+      condHelpWrap.style.marginBottom = "6px";
+      condHelpWrap.innerHTML = "Show/hide this widget based on an entity's state.";
+      panel.appendChild(condHelpWrap);
+      
+      // Entity ID for condition
+      const condEntityWrap = document.createElement("div");
+      condEntityWrap.className = "field";
+      const condEntityLbl = document.createElement("div");
+      condEntityLbl.className = "prop-label";
+      condEntityLbl.textContent = "Condition Entity (optional)";
+      
+      const condEntityRow = document.createElement("div");
+      condEntityRow.style.display = "flex";
+      condEntityRow.style.gap = "4px";
+      
+      const condEntityInput = document.createElement("input");
+      condEntityInput.className = "prop-input";
+      condEntityInput.type = "text";
+      condEntityInput.value = widget.condition_entity || "";
+      condEntityInput.style.flex = "1";
+      condEntityInput.placeholder = "e.g., binary_sensor.printer_printing";
+      condEntityInput.addEventListener("input", () => {
+        widget.condition_entity = condEntityInput.value || null;
+        scheduleSnippetUpdate();
+      });
+      
+      const condPickerBtn = document.createElement("button");
+      condPickerBtn.className = "btn btn-secondary";
+      condPickerBtn.textContent = "⋮⋮⋮";
+      condPickerBtn.style.padding = "5px 8px";
+      condPickerBtn.style.fontSize = "10px";
+      condPickerBtn.type = "button";
+      condPickerBtn.title = "Pick from Home Assistant entities";
+      condPickerBtn.addEventListener("click", () => {
+        openEntityPickerForWidget({
+          entity_id: widget.condition_entity || "",
+          title: ""
+        }, condEntityInput, (selectedEntity) => {
+          widget.condition_entity = selectedEntity;
+          condEntityInput.value = selectedEntity;
+          scheduleSnippetUpdate();
+        });
+      });
+      
+      condEntityRow.appendChild(condEntityInput);
+      condEntityRow.appendChild(condPickerBtn);
+      condEntityWrap.appendChild(condEntityLbl);
+      condEntityWrap.appendChild(condEntityRow);
+      panel.appendChild(condEntityWrap);
+      
+      // Condition operator
+      addSelect(
+        "Operator",
+        widget.condition_operator || "==",
+        ["==", "!=", ">", "<", ">=", "<="],
+        (val) => {
+          widget.condition_operator = val;
+          scheduleSnippetUpdate();
+        }
+      );
+      
+      // Condition state/value
+      addLabeledInput("Expected value", "text", widget.condition_state || "", (v) => {
+        widget.condition_state = v || null;
+        scheduleSnippetUpdate();
+      });
+      
+      // Clear condition button
+      const clearCondWrap = document.createElement("div");
+      clearCondWrap.className = "field";
+      clearCondWrap.style.marginTop = "4px";
+      const clearCondBtn = document.createElement("button");
+      clearCondBtn.className = "btn btn-secondary btn-full";
+      clearCondBtn.textContent = "Clear Condition";
+      clearCondBtn.type = "button";
+      clearCondBtn.addEventListener("click", () => {
+        widget.condition_entity = null;
+        widget.condition_state = null;
+        widget.condition_operator = null;
+        renderPropertiesPanel();
+        scheduleSnippetUpdate();
+      });
+      clearCondWrap.appendChild(clearCondBtn);
+      panel.appendChild(clearCondWrap);
     }
 
     function screenToCanvasPosition(clientX, clientY) {
@@ -2324,6 +3640,30 @@
       scheduleSnippetUpdate();
     }
 
+    function deletePage(pageIndex) {
+      if (pages.length <= 1) {
+        alert("Cannot delete the last page. At least one page is required.");
+        return;
+      }
+      
+      // Remove the page
+      pages.splice(pageIndex, 1);
+      
+      // Adjust current page index if needed
+      if (currentPageIndex >= pages.length) {
+        currentPageIndex = pages.length - 1;
+      } else if (currentPageIndex > pageIndex) {
+        currentPageIndex--;
+      }
+      
+      selectedWidgetId = null;
+      rebuildWidgetsIndex();
+      renderPagesSidebar();
+      renderCanvas();
+      renderPropertiesPanel();
+      scheduleSnippetUpdate();
+    }
+
     // Keyboard shortcuts
     window.addEventListener("keydown", (ev) => {
       // Delete key removes selected widget
@@ -2366,6 +3706,22 @@
         h = Math.max(10, Math.min(CANVAS_HEIGHT - widget.y, h));
         widget.width = Math.round(w);
         widget.height = Math.round(h);
+        
+        // For icon widgets: update size property based on frame size
+        const wtype = (widget.type || "").toLowerCase();
+        if (wtype === "icon") {
+          const props = widget.props || {};
+          if (props.fit_icon_to_frame) {
+            // When fitting, size is derived from frame - calculate it
+            const padding = 4;
+            const maxDim = Math.max(8, Math.min(widget.width - padding * 2, widget.height - padding * 2));
+            props.size = Math.round(maxDim);
+          } else {
+            // When not fitting, update size to match smaller dimension
+            const newSize = Math.max(8, Math.min(widget.width, widget.height));
+            props.size = Math.round(newSize);
+          }
+        }
       }
 
       // Live redraw of only the moved widget to keep snap preview smooth.
@@ -2469,8 +3825,10 @@
             if (t === "text" || t === "label") {
               const txt = (p.text || w.title || "Text").replace(/"/g, '\\"');
               if (!txt) continue;
-              const color = p.color === "white" ? "COLOR_ON" : "COLOR_OFF";
-              lines.push(`        // widget:text id:${w.id} type:text x:${w.x} y:${w.y} w:${w.width} h:${w.height} text:"${txt}"`);
+              const fontSize = parseInt(p.font_size || 12, 10) || 12;
+              const colorProp = p.color || "black";
+              const color = colorProp === "white" ? "COLOR_ON" : "COLOR_OFF";
+              lines.push(`        // widget:text id:${w.id} type:text x:${w.x} y:${w.y} w:${w.width} h:${w.height} text:"${txt}" font_size:${fontSize} color:${colorProp}`);
               lines.push(`        it.print(${w.x}, ${w.y}, id(font_normal), ${color}, "${txt}");`);
             } else if (t === "sensor_text") {
               const entityId = (w.entity_id || "").trim();
@@ -2482,7 +3840,7 @@
               
               if (entityId) {
                 const safeId = entityId.replace(/\./g, "_").replace(/-/g, "_");
-                lines.push(`        // widget:sensor_text id:${w.id} type:sensor_text x:${w.x} y:${w.y} w:${w.width} h:${w.height} ent:${entityId} title:"${label}"`);
+                lines.push(`        // widget:sensor_text id:${w.id} type:sensor_text x:${w.x} y:${w.y} w:${w.width} h:${w.height} ent:${entityId} title:"${label}" label_font:${labelFontSize} value_font:${valueFontSize} format:${valueFormat}`);
                 if (valueFormat === "label_newline_value" && label) {
                   lines.push(`        it.printf(${w.x}, ${w.y}, id(font_normal), ${color}, "${label}");`);
                   const valueY = w.y + labelFontSize + 4;
@@ -2494,7 +3852,7 @@
                 }
               } else {
                 const placeholder = label || "sensor";
-                lines.push(`        // widget:sensor_text id:${w.id} type:sensor_text x:${w.x} y:${w.y} w:${w.width} h:${w.height} title:"${label}"`);
+                lines.push(`        // widget:sensor_text id:${w.id} type:sensor_text x:${w.x} y:${w.y} w:${w.width} h:${w.height} title:"${label}" label_font:${labelFontSize} value_font:${valueFontSize}`);
                 lines.push(`        // No entity_id configured for this sensor_text widget`);
                 lines.push(`        it.printf(${w.x}, ${w.y}, id(font_normal), ${color}, "${placeholder}: N/A");`);
               }
@@ -2502,19 +3860,110 @@
               const raw = (p.code || "").trim().toUpperCase().replace(/^0X/, "");
               if (!/^F[0-9A-F]{4}$/i.test(raw)) continue;
               const hex = raw.toUpperCase();
+              const size = parseInt(p.size || 48, 10) || 48;
               const glyphEsc = `\\\\U000${hex}`;
               const fontRef = p.font_ref === "font_mdi_large" ? "font_mdi_large" : "font_mdi_medium";
               const color = p.color === "white" ? "COLOR_ON" : "COLOR_OFF";
-              lines.push(`        // widget:icon id:${w.id} type:icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} code:${hex}`);
+              lines.push(`        // widget:icon id:${w.id} type:icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} code:${hex} size:${size} color:${p.color || "black"}`);
               lines.push(
                 `        it.printf(${w.x}, ${w.y}, id(${fontRef}), ${color}, "${glyphEsc}");`
               );
-            } else if (t === "shape_rect") {
+            } else if (t === "datetime") {
+              const format = p.format || "time_date";
+              const timeFontSize = parseInt(p.time_font_size || 28, 10) || 28;
+              const dateFontSize = parseInt(p.date_font_size || 16, 10) || 16;
               const color = p.color === "white" ? "COLOR_ON" : "COLOR_OFF";
+              lines.push(`        // widget:datetime id:${w.id} type:datetime x:${w.x} y:${w.y} w:${w.width} h:${w.height} format:${format} time_font:${timeFontSize} date_font:${dateFontSize}`);
+              if (format === "time_only") {
+                lines.push(`        it.strftime(${w.x}, ${w.y}, id(font_normal), ${color}, "%H:%M", id(ha_time).now());`);
+              } else if (format === "date_only") {
+                lines.push(`        it.strftime(${w.x}, ${w.y}, id(font_normal), ${color}, "%a, %b %d", id(ha_time).now());`);
+              } else {
+                lines.push(`        it.strftime(${w.x}, ${w.y}, id(font_normal), ${color}, "%H:%M", id(ha_time).now());`);
+                const dateY = w.y + timeFontSize + 4;
+                lines.push(`        it.strftime(${w.x}, ${dateY}, id(font_normal), ${color}, "%a, %b %d", id(ha_time).now());`);
+              }
+            } else if (t === "progress_bar") {
+              const entityId = (w.entity_id || "").trim();
+              const label = (w.title || "").replace(/"/g, '\\"');
+              const barHeight = parseInt(p.bar_height || 15, 10) || 15;
+              const borderWidth = parseInt(p.border_width || 1, 10) || 1;
+              const color = p.color === "white" ? "COLOR_ON" : "COLOR_OFF";
+              if (entityId) {
+                const safeId = entityId.replace(/\./g, "_").replace(/-/g, "_");
+                lines.push(`        // widget:progress_bar id:${w.id} type:progress_bar x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId}`);
+                lines.push(`        it.rectangle(${w.x}, ${w.y}, ${w.width}, ${barHeight}, ${color});`);
+                lines.push(`        // Fill progress bar based on sensor value`);
+                lines.push(`        { float progress = id(${safeId}).state; if (progress > 0 && progress <= 100) {`);
+                lines.push(`          int fill_w = (int)((${w.width} - 2) * (progress / 100.0));`);
+                lines.push(`          it.filled_rectangle(${w.x}+1, ${w.y}+1, fill_w, ${barHeight}-2, ${color}); }}`);
+              } else {
+                lines.push(`        // widget:progress_bar id:${w.id} type:progress_bar x:${w.x} y:${w.y} w:${w.width} h:${w.height} (no entity)`);
+                lines.push(`        it.rectangle(${w.x}, ${w.y}, ${w.width}, ${barHeight}, ${color});`);
+              }
+            } else if (t === "battery_icon") {
+              const entityId = (w.entity_id || "").trim();
+              const size = parseInt(p.size || 48, 10) || 48;
+              const color = p.color === "white" ? "COLOR_ON" : "COLOR_OFF";
+              const fontRef = "font_mdi_medium";
+              if (entityId) {
+                const safeId = entityId.replace(/\./g, "_").replace(/-/g, "_");
+                lines.push(`        // widget:battery_icon id:${w.id} type:battery_icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} size:${size}`);
+                lines.push(`        { float level = id(${safeId}).state;`);
+                lines.push(`          const char* icon = level <= 10 ? "\\\\U000F007A" : level <= 50 ? "\\\\U000F007E" : "\\\\U000F0079";`);
+                lines.push(`          it.printf(${w.x}, ${w.y}, id(${fontRef}), ${color}, "%s", icon);`);
+                lines.push(`          it.printf(${w.x}, ${w.y}+${size}+2, id(font_small), ${color}, "%.0f%%", level); }`);
+              } else {
+                lines.push(`        // widget:battery_icon id:${w.id} type:battery_icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} size:${size} (no entity)`);
+                lines.push(`        it.printf(${w.x}, ${w.y}, id(${fontRef}), ${color}, "\\\\U000F0079");  // battery`);
+              }
+            } else if (t === "image") {
+              const path = (p.path || "").trim();
+              const invert = !!p.invert;
+              const color = p.color === "white" ? "COLOR_ON" : "COLOR_OFF";
+              if (path) {
+                const safeId = "img_" + path.replace(/[^a-zA-Z0-9]/g, "_");
+                lines.push(`        // widget:image id:${w.id} type:image x:${w.x} y:${w.y} w:${w.width} h:${w.height} path:"${path}" invert:${invert}`);
+                if (invert) {
+                  lines.push(`        it.image(${w.x}, ${w.y}, id(${safeId}), COLOR_OFF, COLOR_ON);`);
+                } else {
+                  lines.push(`        it.image(${w.x}, ${w.y}, id(${safeId}));`);
+                }
+              } else {
+                lines.push(`        // widget:image id:${w.id} type:image x:${w.x} y:${w.y} w:${w.width} h:${w.height} (no path)`);
+                lines.push(`        it.rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${color});`);
+              }
+            } else if (t === "online_image") {
+              const url = (p.url || "").trim();
+              const color = p.color === "white" ? "COLOR_ON" : "COLOR_OFF";
+              const safeId = `img_${w.id}`.replace(/-/g, "_");
+              lines.push(`        // widget:online_image id:${w.id} type:online_image x:${w.x} y:${w.y} w:${w.width} h:${w.height} url:"${url}"`);
+              if (url) {
+                lines.push(`        it.image(${w.x}, ${w.y}, id(${safeId}));`);
+              } else {
+                lines.push(`        // No URL configured`);
+                lines.push(`        it.rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${color});`);
+              }
+            } else if (t === "shape_rect") {
+              const colorProp = p.color || "black";
+              const color = colorProp === "white" ? "COLOR_ON" : "COLOR_OFF";
               const fill = !!p.fill;
               const borderWidth = parseInt(p.border_width || 1, 10) || 1;
+              lines.push(`        // widget:shape_rect id:${w.id} type:shape_rect x:${w.x} y:${w.y} w:${w.width} h:${w.height} fill:${fill} border:${borderWidth} color:${colorProp}`);
               if (fill) {
-                lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${color});`);
+                if (colorProp === "grey" || colorProp === "gray") {
+                  // Grey: 50% checkerboard dithering pattern
+                  lines.push(`        // Grey fill using 50% checkerboard dithering pattern`);
+                  lines.push(`        for (int dy = 0; dy < ${w.height}; dy++) {`);
+                  lines.push(`          for (int dx = 0; dx < ${w.width}; dx++) {`);
+                  lines.push(`            if ((dx + dy) % 2 == 0) {`);
+                  lines.push(`              it.draw_pixel_at(${w.x}+dx, ${w.y}+dy, COLOR_OFF);`);
+                  lines.push(`            }`);
+                  lines.push(`          }`);
+                  lines.push(`        }`);
+                } else {
+                  lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${color});`);
+                }
                 if (borderWidth > 1) {
                   lines.push(`        it.rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${color});`);
                 }
@@ -2531,7 +3980,8 @@
                 }
               }
             } else if (t === "shape_circle") {
-              const color = p.color === "white" ? "COLOR_ON" : "COLOR_OFF";
+              const colorProp = p.color || "black";
+              const color = colorProp === "white" ? "COLOR_ON" : "COLOR_OFF";
               const wSafe = Math.max(1, w.width || 1);
               const hSafe = Math.max(1, w.height || 1);
               const r = Math.max(1, Math.floor(Math.min(wSafe, hSafe) / 2));
@@ -2539,8 +3989,23 @@
               const cy = w.y + Math.floor(hSafe / 2);
               const fill = !!p.fill;
               const borderWidth = parseInt(p.border_width || 1, 10) || 1;
+              lines.push(`        // widget:shape_circle id:${w.id} type:shape_circle x:${w.x} y:${w.y} w:${w.width} h:${w.height} fill:${fill} border:${borderWidth} color:${colorProp}`);
               if (fill) {
-                lines.push(`        it.filled_circle(${cx}, ${cy}, ${r}, ${color});`);
+                if (colorProp === "grey" || colorProp === "gray") {
+                  // Grey: 50% checkerboard dithering pattern within circle
+                  lines.push(`        // Grey fill using 50% checkerboard dithering pattern`);
+                  lines.push(`        for (int dy = -${r}; dy <= ${r}; dy++) {`);
+                  lines.push(`          for (int dx = -${r}; dx <= ${r}; dx++) {`);
+                  lines.push(`            if (dx*dx + dy*dy <= ${r}*${r}) {`);
+                  lines.push(`              if ((dx + dy) % 2 == 0) {`);
+                  lines.push(`                it.draw_pixel_at(${cx}+dx, ${cy}+dy, COLOR_OFF);`);
+                  lines.push(`              }`);
+                  lines.push(`            }`);
+                  lines.push(`          }`);
+                  lines.push(`        }`);
+                } else {
+                  lines.push(`        it.filled_circle(${cx}, ${cy}, ${r}, ${color});`);
+                }
                 if (borderWidth > 1) {
                   lines.push(`        it.circle(${cx}, ${cy}, ${r}, ${color});`);
                 }
@@ -2555,12 +4020,14 @@
                 }
               }
             } else if (t === "line") {
-              const color = p.color === "white" ? "COLOR_ON" : "COLOR_OFF";
+              const colorProp = p.color || "black";
+              const color = colorProp === "white" ? "COLOR_ON" : "COLOR_OFF";
               const dx = w.width || 0;
               const dy = w.height || 0;
               const x2 = w.x + dx;
               const y2 = w.y + dy;
               const strokeWidth = parseInt(p.stroke_width || 1, 10) || 1;
+              lines.push(`        // widget:line id:${w.id} type:line x:${w.x} y:${w.y} w:${w.width} h:${w.height} stroke:${strokeWidth} color:${colorProp}`);
               if (strokeWidth <= 1) {
                 lines.push(`        it.line(${w.x}, ${w.y}, ${x2}, ${y2}, ${color});`);
               } else {
@@ -2584,7 +4051,7 @@
       const local = generateSnippetLocally();
 
       if (!preferBackend) {
-        snippetBox.textContent = local + "\n# Local preview (no backend).";
+        snippetBox.value = local + "\n# Local preview (no backend).";
         return;
       }
 
@@ -2594,9 +4061,9 @@
           throw new Error("HTTP " + resp.status);
         }
         const text = await resp.text();
-        snippetBox.textContent = (text && text.trim()) ? text : "# Empty snippet";
+        snippetBox.value = (text && text.trim()) ? text : "# Empty snippet";
       } catch (err) {
-        snippetBox.textContent =
+        snippetBox.value =
           local + "\n# Backend unreachable, showing local preview only.";
       }
     }
@@ -2610,6 +4077,7 @@
       }, 300);
     }
 
+    // Widget palette event listener
     document.getElementById("widgetPalette").addEventListener("click", onWidgetPaletteClick);
 
     const snapToggleEl = document.getElementById("snapToggle");
@@ -2855,6 +4323,29 @@
       scheduleSnippetUpdate();
     };
 
+    const clearAllBtn = document.getElementById("clearAllBtn");
+    if (clearAllBtn) {
+      clearAllBtn.onclick = () => {
+        const page = getCurrentPage();
+        if (!page) return;
+        
+        if (page.widgets.length === 0) {
+          sidebarStatus.textContent = "Current page is already empty.";
+          return;
+        }
+        
+        if (confirm(`Remove all ${page.widgets.length} widget(s) from "${page.name}"? This cannot be undone.`)) {
+          page.widgets = [];
+          selectedWidgetId = null;
+          rebuildWidgetsIndex();
+          renderCanvas();
+          renderPropertiesPanel();
+          scheduleSnippetUpdate();
+          sidebarStatus.textContent = `Cleared all widgets from "${page.name}".`;
+        }
+      };
+    }
+
     saveLayoutBtn.onclick = async () => {
       const body = getPagesPayload();
       try {
@@ -2881,7 +4372,7 @@
     }
 
     copySnippetBtn.onclick = async () => {
-      const text = snippetBox.textContent || "";
+      const text = snippetBox.value || "";
       try {
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(text);
@@ -2908,7 +4399,7 @@
     };
 
     fullscreenSnippetBtn.onclick = () => {
-      snippetFullscreenContent.textContent = snippetBox.textContent || "";
+      snippetFullscreenContent.textContent = snippetBox.value || "";
       snippetFullscreenModal.classList.remove("hidden");
     };
 
@@ -2916,18 +4407,25 @@
       snippetFullscreenModal.classList.add("hidden");
     };
 
-    importSnippetBtn.onclick = () => {
-      importSnippetTextarea.value = "";
-      importSnippetError.textContent = "";
-      importSnippetModal.classList.remove("hidden");
-    };
+    // Old import snippet modal handlers (now replaced by direct Update Layout button)
+    // Kept for backwards compatibility if modal is needed in future
+    if (typeof importSnippetBtn !== 'undefined' && importSnippetBtn) {
+      importSnippetBtn.onclick = () => {
+        importSnippetTextarea.value = "";
+        importSnippetError.textContent = "";
+        importSnippetModal.classList.remove("hidden");
+      };
+    }
 
-    importSnippetCancel.onclick = () => {
-      importSnippetModal.classList.add("hidden");
-      importSnippetError.textContent = "";
-    };
+    if (importSnippetCancel) {
+      importSnippetCancel.onclick = () => {
+        importSnippetModal.classList.add("hidden");
+        importSnippetError.textContent = "";
+      };
+    }
 
-    importSnippetConfirm.onclick = async () => {
+    if (importSnippetConfirm) {
+      importSnippetConfirm.onclick = async () => {
       const yaml = importSnippetTextarea.value;
       if (!yaml.trim()) {
         importSnippetError.textContent = "Paste a snippet first.";
@@ -2958,6 +4456,7 @@
         importSnippetError.textContent = "Network or server error during import.";
       }
     };
+    }
 
     // Page settings modal
     let currentPageSettingsTarget = null;

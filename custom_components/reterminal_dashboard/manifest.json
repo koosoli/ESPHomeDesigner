@@ -4,7 +4,7 @@
   "documentation": "https://github.com/koosoli/ReTerminalDesigner",
   "issue_tracker": "https://github.com/koosoli/ReTerminalDesigner/issues",
   "configuration_url": "/reterminal-dashboard",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "after_dependencies": [
     "http",
     "frontend",
