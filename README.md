@@ -1,6 +1,6 @@
 # reTerminal Dashboard Designer
 
-![Dashboard Editor Screenshot](https://raw.githubusercontent.com/koosoli/ReTerminalDesigner/main/screenshots/Screenshot1.png)
+![Dashboard Editor Screenshot](https://raw.githubusercontent.com/koosoli/ReTerminalDesigner/main/screenshots/Screenshot2.png)
 
 **No more hand-coding ESPHome display lambdas! 🎉**
 
