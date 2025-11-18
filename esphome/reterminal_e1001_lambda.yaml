@@ -138,6 +138,30 @@ sensor:
     address: 0x44
     update_interval: 60s
 
+  - platform: adc
+    pin: GPIO1
+    name: "Battery Voltage"
+    id: battery_voltage
+    update_interval: 60s
+    attenuation: 12db
+    filters:
+      - multiply: 2.0
+
+  - platform: template
+    name: "Battery Level"
+    id: battery_level
+    lambda: 'return id(battery_voltage).state;'
+    unit_of_measurement: "%"
+    device_class: battery
+    update_interval: 60s
+    filters:
+      - calibrate_linear:
+          - 3.27 -> 0.0
+          - 4.15 -> 100.0
+      - clamp:
+          min_value: 0
+          max_value: 100
+
 binary_sensor:
   - platform: gpio
     id: button_left
