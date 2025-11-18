@@ -119,7 +119,7 @@
     .input:focus,
     textarea:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 1px var(--accent-soft);
+      box-shadow:  0 0 0 1px var(--accent-soft);
     }
 
     .sidebar-group {
@@ -275,28 +275,35 @@
       align-items: flex-start;
       justify-content: center;
       min-width: 0;
-      overflow: auto;
+      overflow: hidden;
       flex: 1;
       min-height: 0;
     }
 
-    .canvas-area-wrapper {
-      flex: 1;
+    .centered-stack {
+      flex: 1 1 auto;
       min-width: 0;
+      max-width: 100%;
       display: flex;
-      align-items: flex-start;
-      justify-content: center;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 100%;
+      align-items: center;
     }
 
     .canvas-area {
+      flex: 1 1 auto;
+      min-height: 300px;
+      max-height: 70vh;
+      width: 100%;
+      max-width: 820px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
       background: radial-gradient(circle at top, #171b22, #05070b);
       border-radius: 12px;
       border: 1px solid var(--border-subtle);
       padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      min-width: 0;
       overflow: hidden;
     }
 
@@ -346,60 +353,17 @@
     }
 
     .right-panel {
-      width: 280px;
-      flex: 0 0 280px;
+      width: 260px;
+      background: #0d1016;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      padding: 8px 9px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 4px;
+      box-sizing: border-box;
       overflow-y: auto;
-      overflow-x: hidden;
-      background: var(--bg-secondary);
-      border-radius: 8px;
-      border: 1px solid var(--border-subtle);
-      padding: 10px;
-    }
-
-    .right-panel h3 {
-      margin: 0;
-      font-size: 11px;
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: var(--muted);
-      flex-shrink: 0;
-    }
-
-    /* Responsive scaling for smaller screens */
-    @media (max-height: 900px) {
-      .canvas.portrait {
-        transform: scale(0.7);
-        transform-origin: top center;
-      }
-      .snippet-area {
-        min-height: 200px;
-      }
-    }
-
-    @media (max-width: 1600px) {
-      .snippet-area {
-        width: 700px;
-        max-width: 700px;
-      }
-    }
-
-    @media (max-width: 1400px) {
-      .canvas {
-        transform: scale(0.8);
-        transform-origin: top center;
-      }
-      .canvas.portrait {
-        transform: scale(0.6);
-        transform-origin: top center;
-      }
-      .snippet-area {
-        width: 600px;
-        max-width: 600px;
-      }
+      position: relative;
     }
 
     .canvas-grid {
@@ -456,20 +420,6 @@
       opacity: 0.9;
     }
 
-    .right-panel {
-      width: 260px;
-      background: #0d1016;
-      border-radius: 12px;
-      border: 1px solid var(--border-subtle);
-      padding: 8px 9px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      box-sizing: border-box;
-      overflow-y: auto;
-      position: relative;
-    }
-
     .snap-guide {
       position: absolute;
       background: rgba(82, 199, 234, 0.6);
@@ -524,121 +474,16 @@
     }
 
     .snippet-area {
+      flex: 0 1 auto;
+      min-height: 200px;
+      max-height: 35vh;
+      width: 900px;
+      max-width: 100%;
+      margin: 0;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       gap: 4px;
-      position: relative;
-      overflow: hidden;
-      flex: 0 0 auto;
-      min-height: 300px;
-      width: 900px;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-
-    .snippet-box {
-      width: 100%;
-      min-height: 180px;
-      resize: vertical;
-      font-family: monospace;
-      font-size: 10px;
-      line-height: 1.2;
-      white-space: pre;
-      overflow: auto;
-      background: #0d0f14;
-      color: #e5e9f0;
-      border: 1px solid var(--border-subtle);
-      border-radius: 6px;
-      padding: 10px;
-    }
-
-    .resizable {
-      position: relative;
-    }
-
-    .resize-handle {
-      position: absolute;
-      background: var(--border-subtle);
-      transition: background 0.15s ease;
-      z-index: 1000;
-      pointer-events: all;
-    }
-
-    .resize-handle:hover,
-    .resize-handle.active {
-      background: var(--accent);
-    }
-
-    .resize-handle-right {
-      right: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-      cursor: ew-resize;
-    }
-
-    .resize-handle-left {
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-      cursor: ew-resize;
-    }
-
-    .resize-handle-bottom {
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 4px;
-      cursor: ns-resize;
-    }
-
-    .resize-handle-top {
-      left: 0;
-      right: 0;
-      top: 0;
-      height: 4px;
-      cursor: ns-resize;
-    }
-
-    .resize-handle-corner {
-      right: 0;
-      bottom: 0;
-      width: 12px;
-      height: 12px;
-      cursor: nwse-resize;
-      background: transparent;
-    }
-
-    .resize-handle-corner::after {
-      content: "";
-      position: absolute;
-      right: 2px;
-      bottom: 2px;
-      width: 8px;
-      height: 8px;
-      border-right: 2px solid var(--border-subtle);
-      border-bottom: 2px solid var(--border-subtle);
-    }
-
-    .resize-handle-corner:hover::after,
-    .resize-handle-corner.active::after {
-      border-color: var(--accent);
-    }
-
-    .sidebar.resizable {
-      min-width: 200px;
-      max-width: 500px;
-    }
-
-    .right-panel.resizable {
-      min-width: 200px;
-      max-width: 600px;
-      width: 260px;
-    }
-
-    .canvas-wrap.resizable {
-      position: relative;
     }
 
     .snippet-header {
@@ -764,19 +609,7 @@
       gap: 6px;
       margin-top: 4px;
     }
-  </style>
 
-  <!-- Load Material Design Icons TTF (for editor preview only).
-       Works in multiple scenarios (tries in order):
-       1) Offline file:// usage -> loads ./materialdesignicons-webfont.ttf next to this HTML file.
-       2) ESPHome fonts directory -> /local/esphome/fonts/materialdesignicons-webfont.ttf
-       3) Home Assistant /local deployment -> /local/reterminal_dashboard/materialdesignicons-webfont.ttf
-       4) HACS deployment -> /hacsfiles/reterminal_dashboard/materialdesignicons-webfont.ttf
-       5) Panel view route -> /reterminal-dashboard/materialdesignicons-webfont.ttf
-       
-       NOTE: Users should place materialdesignicons-webfont.ttf in /config/esphome/fonts/
-       for both ESPHome device usage AND editor preview. -->
-  <style>
     @font-face {
       font-family: "MDI";
       src:
@@ -794,6 +627,109 @@
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+
+    /* Responsive vertical space management */
+    @media (max-height: 900px) {
+      .canvas-area {
+        max-height: 65vh;
+        min-height: 250px;
+      }
+      .snippet-area {
+        max-height: 30vh;
+        min-height: 150px;
+      }
+      .canvas.portrait {
+        transform: scale(0.7);
+        transform-origin: top center;
+      }
+    }
+
+    @media (max-height: 700px) {
+      .canvas-area {
+        max-height: 60vh;
+        min-height: 200px;
+      }
+      .snippet-area {
+        max-height: 25vh;
+        min-height: 120px;
+      }
+    }
+
+    @media (max-width: 1600px) {
+      .canvas-area {
+        max-width: 750px;
+      }
+      .snippet-area {
+        width: 750px;
+        max-width: 750px;
+      }
+    }
+
+    @media (max-width: 1400px) {
+      .canvas {
+        transform: scale(0.8);
+        transform-origin: top center;
+      }
+      .canvas.portrait {
+        transform: scale(0.6);
+        transform-origin: top center;
+      }
+      .canvas-area {
+        max-width: 650px;
+      }
+      .snippet-area {
+        width: 650px;
+        max-width: 650px;
+      }
+    }
+
+    @media (max-width: 1200px) {
+      .canvas-area {
+        max-width: 550px;
+      }
+      .snippet-area {
+        width: 550px;
+        max-width: 550px;
+      }
+    }
+
+    /* Portrait mode specific adjustments */
+    @media (orientation: portrait) and (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+      
+      .sidebar {
+        width: 100%;
+        height: 120px;
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-right: none;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      
+      .canvas-wrap {
+        flex-direction: column;
+      }
+      
+      .right-panel {
+        width: 100%;
+        height: 150px;
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+      
+      .canvas-area {
+        min-height: 180px;
+        max-height: 50vh;
+      }
+      
+      .snippet-area {
+        min-height: 100px;
+        max-height: 30vh;
+      }
     }
   </style>
 </head>
@@ -907,15 +843,36 @@
 
     <div class="canvas-wrap">
       <div class="canvas-area-wrapper">
-        <section class="canvas-area">
-        <div class="canvas-toolbar">
-          <span>Page: <strong id="currentPageName">Loading...</strong></span>
-          <span>Place widgets to define what the reTerminal shows.</span>
+        <div class="centered-stack">
+          <section class="canvas-area">
+            <div class="canvas-toolbar">
+              <span>Page: <strong id="currentPageName">Loading...</strong></span>
+              <span>Place widgets to define what the reTerminal shows.</span>
+            </div>
+            <div id="canvas" class="canvas">
+              <div class="canvas-grid"></div>
+            </div>
+          </section>
+
+          <section class="snippet-area">
+            <div class="snippet-header">
+              <span>ESPHome YAML Configuration (editable - paste or modify, then click Update Layout)</span>
+              <div class="snippet-actions">
+                <button id="copySnippetBtn" class="btn btn-secondary" style="padding:3px 6px;font-size:9px;">Copy</button>
+                <button id="fullscreenSnippetBtn" class="btn btn-secondary" style="padding:3px 6px;font-size:9px;">Fullscreen</button>
+                <button id="updateLayoutBtn" class="btn btn-primary" style="padding:3px 8px;font-size:9px;font-weight:bold;">Update Layout from YAML</button>
+              </div>
+            </div>
+            <textarea id="snippetBox" class="snippet-box"># Click "Generate ESPHome snippet" to see output here.
+# This includes layout and minimal surrounding definitions.
+# You can paste YAML here or edit it directly, then click "Update Layout from YAML" to import changes.
+            </textarea>
+            <div class="status-bar">
+              <span>Edit YAML above and click "Update Layout from YAML" to import.</span>
+              <span>Generated YAML can be pasted into ESPHome, then compiled and flashed.</span>
+            </div>
+          </section>
         </div>
-        <div id="canvas" class="canvas">
-          <div class="canvas-grid"></div>
-        </div>
-      </section>
       </div>
 
       <aside class="right-panel">
@@ -936,25 +893,6 @@
         </div>
       </aside>
     </div>
-
-    <section class="snippet-area">
-      <div class="snippet-header">
-        <span>ESPHome YAML Configuration (editable - paste or modify, then click Update Layout)</span>
-        <div class="snippet-actions">
-          <button id="copySnippetBtn" class="btn btn-secondary" style="padding:3px 6px;font-size:9px;">Copy</button>
-          <button id="fullscreenSnippetBtn" class="btn btn-secondary" style="padding:3px 6px;font-size:9px;">Fullscreen</button>
-          <button id="updateLayoutBtn" class="btn btn-primary" style="padding:3px 8px;font-size:9px;font-weight:bold;">Update Layout from YAML</button>
-        </div>
-      </div>
-      <textarea id="snippetBox" class="snippet-box"># Click "Generate ESPHome snippet" to see output here.
-# This includes layout and minimal surrounding definitions.
-# You can paste YAML here or edit it directly, then click "Update Layout from YAML" to import changes.
-      </textarea>
-      <div class="status-bar">
-        <span>Edit YAML above and click "Update Layout from YAML" to import.</span>
-        <span>Generated YAML can be pasted into ESPHome, then compiled and flashed.</span>
-      </div>
-    </section>
   </main>
 
   <!-- Fullscreen snippet modal -->
@@ -1017,14 +955,10 @@
     // --- Environment detection: HA backend vs standalone/offline ---
     function detectHaBackendBaseUrl() {
       try {
-        // If served via HA panel or reverse proxy, use relative API base.
-        // If running from file:// or static host without HA, fetch will fail and we fall back to offline mode.
         const loc = window.location;
         if (loc.protocol === "file:") {
           return null;
         }
-        // If likely under Home Assistant, assume same-origin API.
-        // For file:// or plain static hosts without HA, return null so we stay fully offline.
         if (
           loc.hostname === "homeassistant" ||
           loc.hostname === "hassio" ||
@@ -1057,7 +991,7 @@
         return;
       }
       if (entityStatesFetchInProgress) return;
-      
+
       entityStatesFetchInProgress = true;
       try {
         console.log("[EntityStates] Fetching from:", `${HA_API_BASE}/entities`);
@@ -1071,22 +1005,19 @@
           console.warn("[EntityStates] Invalid response format");
           return;
         }
-        
+
         console.log(`[EntityStates] Received ${entities.length} entities`);
-        
-        // Build a map of entity_id -> state
+
         const newCache = {};
         for (const entity of entities) {
           if (entity.entity_id && entity.state !== undefined) {
-            // Store state with unit if available
             const stateValue = entity.unit ? `${entity.state} ${entity.unit}` : entity.state;
             newCache[entity.entity_id] = stateValue;
           }
         }
         entityStatesCache = newCache;
         console.log(`[EntityStates] Cached ${Object.keys(newCache).length} entity states`);
-        
-        // Re-render canvas to show updated states
+
         if (typeof renderCanvas === 'function') {
           renderCanvas();
         }
@@ -1101,9 +1032,8 @@
       return entityStatesCache[entityId] || null;
     }
 
-    // Auto-refresh entity states every 30 seconds when HA backend is available
     if (hasHaBackend()) {
-      fetchEntityStates(); // Initial fetch
+      fetchEntityStates();
       setInterval(fetchEntityStates, 30000);
     }
 
@@ -1114,14 +1044,7 @@
       }
     }
 
-    // Minimal client-side ESPHome YAML snippet parser used for offline mode.
-    // This is intentionally scoped to the snippet patterns we generate.
     function parseSnippetYamlOffline(yamlText) {
-      // Minimal and permissive parsing:
-      // - Detect display: -> waveshare_epaper block
-      // - Extract lines inside lambda: |-
-      // - Recognize widget marker comments (// widget:xxx id:... type:...) added by yaml_generator
-      // - Fallback to simple drawing primitives if no markers found
       const lines = yamlText.split(/\r?\n/);
       const lambdaLines = [];
       let inLambda = false;
@@ -1132,33 +1055,27 @@
 
         if (!inLambda && line.match(/^\s*lambda:\s*\|\-/)) {
           inLambda = true;
-          // Next indented lines belong to lambda
           continue;
         }
 
         if (inLambda) {
-          // End lambda when indentation is lost on a non-empty line
           if (!line.trim()) {
-            // allow blank lines inside lambda
             lambdaLines.push("");
             continue;
           }
 
           const indentMatch = line.match(/^(\s+)/);
           if (!indentMatch) {
-            // no leading spaces -> lambda ended
             inLambda = false;
             continue;
           }
 
           const indentLen = indentMatch[1].length;
           if (lambdaIndent === 0) {
-            // first lambda body line defines base indent
             lambdaIndent = indentLen;
           }
 
           if (indentLen < lambdaIndent) {
-            // dedented -> outside lambda
             inLambda = false;
             continue;
           }
@@ -1168,10 +1085,6 @@
         }
       }
 
-      // Strip our own fallback wrapper comments / lines if present so re-import is idempotent.
-      // This ignores:
-      // - leading comment lines starting with "# Local preview snippet"
-      // - trailing comment lines starting with "# Backend unreachable"
       while (lines.length && lines[0].match(/^\s*#\s*Local preview snippet/)) {
         lines.shift();
       }
@@ -1179,11 +1092,9 @@
         lines.pop();
       }
 
-      // Parse multiple pages from lambda
-      const pageMap = new Map(); // Map<pageIndex, widgets[]>
+      const pageMap = new Map();
       let currentPageIndex = null;
 
-      // First pass: detect page blocks
       for (const line of lambdaLines) {
         const pageMatch = line.match(/if\s*\(\s*id\s*\(\s*display_page\s*\)\s*==\s*(\d+)\s*\)/);
         if (pageMatch) {
@@ -1194,12 +1105,10 @@
         }
       }
 
-      // If no pages detected, create default page 0
       if (pageMap.size === 0) {
         pageMap.set(0, []);
       }
 
-      // Build layout with all detected pages
       const layout = {
         settings: {
           orientation: "landscape",
@@ -1212,69 +1121,57 @@
         }))
       };
 
-      // Track current page for widget assignment
       currentPageIndex = 0;
-      
-      // Helper to get current page's widgets array
+
       function getCurrentPageWidgets() {
         const page = layout.pages.find((p, idx) => idx === currentPageIndex);
         return page ? page.widgets : layout.pages[0].widgets;
       }
-      
-      // Helper to parse widget marker comments
-      // Format: // widget:TYPE id:ID type:TYPE x:X y:Y w:W h:H [additional props]
+
       function parseWidgetMarker(comment) {
         const match = comment.match(/^\/\/\s*widget:(\w+)\s+(.+)$/);
         if (!match) return null;
-        
+
         const widgetType = match[1];
         const propsStr = match[2];
         const props = {};
-        
-        // Extract key:value pairs, handling quoted strings
+
         const regex = /(\w+):((?:"[^"]*")|(?:[^\s]+))/g;
         let m;
         while ((m = regex.exec(propsStr)) !== null) {
           let value = m[2];
-          // Remove quotes if present
           if (value.startsWith('"') && value.endsWith('"')) {
             value = value.slice(1, -1);
           }
           props[m[1]] = value;
         }
-        
+
         return { widgetType, props };
       }
 
-      let skipRendering = false; // Track if we should skip rendering code after a widget marker
-      
+      let skipRendering = false;
+
       for (const cmd of lambdaLines) {
         const trimmed = cmd.trim();
         if (!trimmed || trimmed.startsWith("#")) continue;
 
-        // Check for page switches: if (id(display_page) == N)
         const pageMatch = trimmed.match(/if\s*\(\s*id\s*\(\s*display_page\s*\)\s*==\s*(\d+)\s*\)/);
         if (pageMatch) {
           currentPageIndex = parseInt(pageMatch[1], 10);
           continue;
         }
 
-        // Get widgets array for current page
         const widgets = getCurrentPageWidgets();
 
-        // Skip rendering code (it.rectangle, it.printf, etc.) after a widget marker
         if (skipRendering) {
-          // Reset flag if we hit a closing brace, comment, or another widget marker
           if (trimmed === "}" || trimmed === "}}" || trimmed.startsWith("//") || !trimmed.match(/^it\./)) {
             skipRendering = false;
           }
-          // Skip this line if it's rendering code
           if (trimmed.match(/^it\./)) {
             continue;
           }
         }
 
-        // First, try to parse widget marker comment
         if (trimmed.startsWith("//")) {
           const marker = parseWidgetMarker(trimmed);
           if (marker && marker.props.id && marker.props.type) {
@@ -1290,8 +1187,7 @@
               entity_id: p.entity || p.ent || "",
               props: {}
             };
-            
-            // Add type-specific properties
+
             if (p.type === "icon") {
               widget.props = {
                 code: p.code || "F0595",
@@ -1366,19 +1262,16 @@
                 color: p.color || "black"
               };
             }
-            
+
             widgets.push(widget);
-            skipRendering = true; // Skip any rendering code after this marker
+            skipRendering = true;
             continue;
           }
-          // If it's a comment but not a widget marker, skip it
           continue;
         }
 
-        // Fallback: Match patterns like: it.rectangle(10, 10, 100, 50);
         let m;
 
-        // Match patterns like: it.rectangle(x, y, w, h); or it.rectangle(x, y, w, h, COLOR_OFF);
         m = trimmed.match(/^it\.rectangle\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*COLOR_OFF)?\s*\)\s*;?/);
         if (m) {
           widgets.push({
@@ -1400,7 +1293,6 @@
           continue;
         }
 
-        // it.filled_rectangle(x, y, w, h); or with COLOR_OFF
         m = trimmed.match(/^it\.filled_rectangle\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*COLOR_OFF)?\s*\)\s*;?/);
         if (m) {
           widgets.push({
@@ -1422,7 +1314,6 @@
           continue;
         }
 
-        // it.circle(cx, cy, r); or with COLOR_OFF
         m = trimmed.match(/^it\.circle\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*COLOR_OFF)?\s*\)\s*;?/);
         if (m) {
           const r = parseInt(m[3], 10);
@@ -1445,7 +1336,6 @@
           continue;
         }
 
-        // it.filled_circle(cx, cy, r); or with COLOR_OFF
         m = trimmed.match(/^it\.filled_circle\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*COLOR_OFF)?\s*\)\s*;?/);
         if (m) {
           const r = parseInt(m[3], 10);
@@ -1468,8 +1358,6 @@
           continue;
         }
 
-        // Simple line pattern: it.line(x1, y1, x2, y2);
-        // it.line(x1, y1, x2, y2); (plain only for now)
         m = trimmed.match(/^it\.line\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)\s*;?/);
         if (m) {
           const x1 = parseInt(m[1], 10);
@@ -1492,27 +1380,12 @@
           });
           continue;
         }
-
-        // Ignore other commands in offline mode.
       }
-
-      console.log("parseSnippetYamlOffline result:", JSON.stringify({
-        pageCount: layout.pages.length,
-        widgetCounts: layout.pages.map(p => p.widgets.length)
-      }));
 
       return layout;
     }
 
-    // Apply imported layout object (from backend or offline parser) into current editor state.
     function applyImportedLayout(layout) {
-      console.log("applyImportedLayout called with:", JSON.stringify({
-        hasLayout: !!layout,
-        hasPages: !!layout?.pages,
-        pageCount: layout?.pages?.length,
-        widgetCounts: layout?.pages?.map(p => p.widgets?.length || 0)
-      }));
-
       if (!layout || !Array.isArray(layout.pages)) {
         throw new Error("invalid_layout");
       }
@@ -1532,23 +1405,13 @@
       }
       settings = layout.settings || settings || {};
       currentPageIndex = 0;
-
-      console.log("After mapping pages:", JSON.stringify({
-        pageCount: pages.length,
-        widgetCounts: pages.map(p => p.widgets.length),
-        firstPageWidgets: pages[0]?.widgets.map(w => ({ id: w.id, type: w.type }))
-      }));
-
       rebuildWidgetsIndex();
       applyOrientation(settings.orientation || "landscape");
       renderPagesSidebar();
       renderCanvas();
       renderPropertiesPanel();
-      // Do NOT call scheduleSnippetUpdate() here - we just imported FROM YAML
-      // Calling it would regenerate and overwrite the user's YAML edits
     }
 
-    // Import handler used by the Import modal confirm button.
     async function handleImportSnippetConfirm() {
       setImportError("");
       const textarea = document.getElementById("importSnippetTextarea");
@@ -1559,7 +1422,6 @@
         return;
       }
 
-      // If HA backend is available, prefer server-side parser for full fidelity.
       if (hasHaBackend()) {
         try {
           const resp = await fetch(`${HA_API_BASE}/import_snippet`, {
@@ -1587,12 +1449,10 @@
             '<span>Imported layout from snippet via Home Assistant backend.</span>';
           return;
         } catch (err) {
-          // On network/host errors (e.g. when opened standalone), fall back to offline parser.
           console.warn("HA import_snippet request failed; falling back to offline parser.", err);
         }
       }
 
-      // Offline / fallback path: parse snippet locally.
       try {
         const offlineLayout = parseSnippetYamlOffline(yaml);
         applyImportedLayout(offlineLayout);
@@ -1607,7 +1467,6 @@
       }
     }
 
-    // Modal helpers used by existing Import button wiring (extended below).
     function openImportSnippetModal() {
       const modal = document.getElementById("importSnippetModal");
       const textarea = document.getElementById("importSnippetTextarea");
@@ -1651,17 +1510,14 @@
     const importSnippetCancel = document.getElementById("importSnippetCancel");
     const importSnippetConfirm = document.getElementById("importSnippetConfirm");
 
-    // --- Wire up Update Layout from YAML button ---
     if (updateLayoutBtn) {
       updateLayoutBtn.addEventListener("click", async () => {
-        // Update layout directly from the YAML in snippetBox
         const yaml = snippetBox.value || "";
         if (!yaml.trim()) {
           sidebarStatus.innerHTML = '<span style="color: var(--danger);">YAML is empty. Generate snippet first or paste YAML.</span>';
           return;
         }
 
-        // Try HA backend first for full fidelity
         if (hasHaBackend()) {
           try {
             const resp = await fetch(`${HA_API_BASE}/import_snippet`, {
@@ -1686,7 +1542,6 @@
           }
         }
 
-        // Fallback: offline parser
         try {
           const offlineLayout = parseSnippetYamlOffline(yaml);
           applyImportedLayout(offlineLayout);
@@ -1697,16 +1552,15 @@
         }
       });
     }
+
     if (importSnippetCancel) {
       importSnippetCancel.addEventListener("click", () => {
         closeImportSnippetModal();
       });
     }
+
     if (importSnippetConfirm) {
       importSnippetConfirm.addEventListener("click", () => {
-        // Always go through our dual-mode handler; it will:
-        // - Use HA API when available
-        // - Otherwise perform offline parsing without any network calls.
         handleImportSnippetConfirm();
       });
     }
@@ -1715,7 +1569,7 @@
     let CANVAS_HEIGHT = 480;
 
     const SNAP_ENABLED_DEFAULT = true;
-    const SNAP_DISTANCE = 10; // px on editor canvas (more generous snapping)
+    const SNAP_DISTANCE = 10;
     let snapEnabled = SNAP_ENABLED_DEFAULT;
 
     let pages = [];
@@ -1743,7 +1597,6 @@
       renderPropertiesPanel();
     }
 
-    // Ensure UI is usable immediately even before backend responds/offline
     initDefaultLayout();
 
     function applyOrientation(orientation) {
@@ -1791,7 +1644,6 @@
         const item = document.createElement("div");
         item.className = "item" + (index === currentPageIndex ? " active" : "");
         
-        // Main click: select page
         item.onclick = () => {
           currentPageIndex = index;
           selectedWidgetId = null;
@@ -1810,13 +1662,11 @@
         item.appendChild(label);
         item.appendChild(tag);
         
-        // Add action buttons container
         const actionsContainer = document.createElement("div");
         actionsContainer.style.display = "flex";
         actionsContainer.style.gap = "2px";
         actionsContainer.style.marginLeft = "auto";
         
-        // Edit button for page settings
         const editBtn = document.createElement("button");
         editBtn.textContent = "⚙";
         editBtn.className = "btn btn-secondary";
@@ -1829,7 +1679,6 @@
         };
         actionsContainer.appendChild(editBtn);
         
-        // Delete button (only show if more than one page)
         if (pages.length > 1) {
           const deleteBtn = document.createElement("button");
           deleteBtn.textContent = "🗑";
@@ -1888,7 +1737,7 @@
         widget.type = "datetime";
         widget.width = 200;
         widget.height = 60;
-        widget.props.format = "time_date";  // time_date, time_only, date_only
+        widget.props.format = "time_date";
         widget.props.time_font_size = 28;
         widget.props.date_font_size = 16;
         widget.props.color = "black";
@@ -1928,13 +1777,10 @@
         widget.type = "icon";
         widget.width = 60;
         widget.height = 60;
-        // Default Weather-Cloudy icon (F0595) as an example
         widget.props.code = "F0595";
         widget.props.size = 40;
         widget.props.color = "black";
-        // Logical font ref; snippet generator will map to font_mdi_medium/font_mdi_large
         widget.props.font_ref = "font_mdi_medium";
-        // Editor-only behavior: when true, icon scales to fill its frame while preserving aspect
         widget.props.fit_icon_to_frame = true;
       } else if (type === "line") {
         widget.type = "line";
@@ -1948,12 +1794,12 @@
         widget.height = 150;
         widget.props.path = "";
         widget.props.invert = false;
-        } else if (type === "online_image") {
-          widget.type = "online_image";
-          widget.width = 800;
-          widget.height = 480;
-          widget.props.url = "";
-          widget.props.interval_s = 300; // default 5 minutes
+      } else if (type === "online_image") {
+        widget.type = "online_image";
+        widget.width = 800;
+        widget.height = 480;
+        widget.props.url = "";
+        widget.props.interval_s = 300;
       }
 
       page.widgets.push(widget);
@@ -1995,7 +1841,6 @@
       const vertical = [];
       const horizontal = [];
 
-      // Canvas edges and centers
       vertical.push(0, CANVAS_WIDTH / 2, CANVAS_WIDTH);
       horizontal.push(0, CANVAS_HEIGHT / 2, CANVAS_HEIGHT);
 
@@ -2047,7 +1892,6 @@
       let snappedV = null;
       let snappedH = null;
 
-      // Vertical snapping (left, center, right)
       const vCandidates = [
         { val: left, offset: (val, line) => line, apply: (line) => (snappedX = line) },
         { val: cx, offset: (val, line) => line - w / 2, apply: (line) => (snappedX = line - w / 2) },
@@ -2066,7 +1910,6 @@
         }
       }
 
-      // Horizontal snapping (top, center, bottom)
       const hCandidates = [
         { val: top, apply: (line) => (snappedY = line) },
         { val: cy, apply: (line) => (snappedY = line - h / 2) },
@@ -2100,8 +1943,6 @@
 
     function renderCanvas() {
       const page = getCurrentPage();
-      // Preserve existing widgets when re-rendering to keep current drag guides visible.
-      // We only clear existing widget elements and keep the grid and any active snap guides.
       const existingGrid = canvas.querySelector(".canvas-grid");
       const existingGuides = canvas.querySelectorAll(".snap-guide");
       canvas.innerHTML = "";
@@ -2197,7 +2038,6 @@
             el.style.backgroundColor = colorValue;
           }
         } else if (type === "image") {
-          // Image widget - show placeholder or try to load image
           const path = props.path || "";
           const invert = !!props.invert;
           
@@ -2210,13 +2050,10 @@
           el.style.overflow = "hidden";
           
           if (path) {
-            // Try to load image via proxy
             const filename = path.split("/").pop();
             
-            // Clear element first
             el.innerHTML = "";
             
-            // Try to load image through HA proxy
             const img = document.createElement("img");
             img.style.maxWidth = "100%";
             img.style.maxHeight = "100%";
@@ -2227,7 +2064,6 @@
             }
             
             img.onerror = () => {
-              // If image fails to load, show placeholder
               el.innerHTML = "<div style='text-align:center;color:#666;font-size:11px;padding:8px;line-height:1.4;'>" +
                 "🖼️<br/><strong>" + filename + "</strong><br/>" +
                 "<span style='color:#999;font-size:9px;'>" + 
@@ -2237,7 +2073,6 @@
             };
             
             img.onload = () => {
-              // Successfully loaded - show size info as overlay
               const overlay = document.createElement("div");
               overlay.style.position = "absolute";
               overlay.style.bottom = "2px";
@@ -2252,12 +2087,10 @@
               el.appendChild(overlay);
             };
             
-            // Use proxy endpoint to load image
             const proxyUrl = "/api/reterminal_dashboard/image_proxy?path=" + encodeURIComponent(path);
             img.src = proxyUrl;
             el.appendChild(img);
           } else {
-            // No path specified - show empty placeholder
             const placeholder = document.createElement("div");
             placeholder.style.textAlign = "center";
             placeholder.style.color = "#aaa";
@@ -2266,7 +2099,6 @@
             el.appendChild(placeholder);
           }
         } else if (type === "datetime") {
-          // Date/time widget
           const format = props.format || "time_date";
           const timeFontSize = props.time_font_size || 28;
           const dateFontSize = props.date_font_size || 16;
@@ -2300,7 +2132,6 @@
             dateEl.textContent = dateStr;
             el.appendChild(dateEl);
           } else {
-            // time_date - default
             const timeEl = document.createElement("div");
             timeEl.style.fontSize = timeFontSize + "px";
             timeEl.style.fontWeight = "bold";
@@ -2313,7 +2144,6 @@
             el.appendChild(dateEl);
           }
         } else if (type === "progress_bar") {
-          // Progress bar widget
           const entityId = widget.entity_id || "";
           const label = widget.title || "";
           const showLabel = props.show_label !== false;
@@ -2328,8 +2158,7 @@
               ? "#aaaaaa"
               : "#000000";
           
-          // Get value from entity or use placeholder
-          let progress = 50;  // Default placeholder
+          let progress = 50;
           if (hasHaBackend() && entityId) {
             const state = getEntityState(entityId);
             if (state !== null && state !== undefined) {
@@ -2346,7 +2175,6 @@
           el.style.gap = "4px";
           el.style.color = colorStyle;
           
-          // Label row
           if (showLabel && (label || showPercentage)) {
             const labelRow = document.createElement("div");
             labelRow.style.display = "flex";
@@ -2370,7 +2198,6 @@
             el.appendChild(labelRow);
           }
           
-          // Progress bar
           const barContainer = document.createElement("div");
           barContainer.style.width = "100%";
           barContainer.style.height = barHeight + "px";
@@ -2389,7 +2216,6 @@
           barContainer.appendChild(barFill);
           el.appendChild(barContainer);
         } else if (type === "battery_icon") {
-          // Battery icon widget - dynamic icon based on battery level
           const entityId = widget.entity_id || "";
           const size = parseInt(props.size || 48, 10) || 48;
           const color = props.color || "black";
@@ -2400,8 +2226,7 @@
               ? "#aaaaaa"
               : "#000000";
           
-          // Get battery level from entity
-          let batteryLevel = 75;  // Default placeholder
+          let batteryLevel = 75;
           if (hasHaBackend() && entityId) {
             const state = getEntityState(entityId);
             if (state !== null && state !== undefined) {
@@ -2412,17 +2237,16 @@
             }
           }
           
-          // Determine battery icon based on level (MDI battery icons)
-          let iconCode = "F0079";  // battery (full)
-          if (batteryLevel <= 10) iconCode = "F007A";  // battery-10
-          else if (batteryLevel <= 20) iconCode = "F007B";  // battery-20
-          else if (batteryLevel <= 30) iconCode = "F007C";  // battery-30
-          else if (batteryLevel <= 40) iconCode = "F007D";  // battery-40
-          else if (batteryLevel <= 50) iconCode = "F007E";  // battery-50
-          else if (batteryLevel <= 60) iconCode = "F007F";  // battery-60
-          else if (batteryLevel <= 70) iconCode = "F0080";  // battery-70
-          else if (batteryLevel <= 80) iconCode = "F0081";  // battery-80
-          else if (batteryLevel <= 90) iconCode = "F0082";  // battery-90
+          let iconCode = "F0079";
+          if (batteryLevel <= 10) iconCode = "F007A";
+          else if (batteryLevel <= 20) iconCode = "F007B";
+          else if (batteryLevel <= 30) iconCode = "F007C";
+          else if (batteryLevel <= 40) iconCode = "F007D";
+          else if (batteryLevel <= 50) iconCode = "F007E";
+          else if (batteryLevel <= 60) iconCode = "F007F";
+          else if (batteryLevel <= 70) iconCode = "F0080";
+          else if (batteryLevel <= 80) iconCode = "F0081";
+          else if (batteryLevel <= 90) iconCode = "F0082";
           
           const cp = 0xf0000 + parseInt(iconCode.slice(1), 16);
           const ch = String.fromCodePoint(cp);
@@ -2438,14 +2262,12 @@
           el.style.fontSize = size + "px";
           el.textContent = ch;
           
-          // Show percentage below icon
           const pctLabel = document.createElement("div");
           pctLabel.style.fontSize = "10px";
           pctLabel.style.marginTop = "2px";
           pctLabel.textContent = Math.round(batteryLevel) + "%";
           el.appendChild(pctLabel);
         } else {
-          // Text widgets (text, sensor_text)
           const color = props.color || "black";
           const opacityVal = parseInt(props.opacity != null ? props.opacity : 100, 10);
           const opacity = Math.max(0, Math.min(100, isNaN(opacityVal) ? 100 : opacityVal)) / 100;
@@ -2464,7 +2286,6 @@
             const labelFontSize = props.label_font_size || 14;
             const valueFontSize = props.value_font_size || 20;
             
-            // Default preview value when no entity selected
             let displayValue = "23.5°C";
             
             if (hasHaBackend() && entityId) {
@@ -2483,7 +2304,6 @@
             body.style.opacity = opacity;
             
             if (valueFormat === "label_value" && label) {
-              // Inline format with separate font sizes for label and value
               body.style.display = "flex";
               body.style.alignItems = "baseline";
               body.style.gap = "4px";
@@ -2499,7 +2319,6 @@
               body.appendChild(labelSpan);
               body.appendChild(valueSpan);
             } else if (valueFormat === "label_newline_value" && label) {
-              // Multi-line format with separate font sizes
               body.style.display = "flex";
               body.style.flexDirection = "column";
               body.style.gap = "2px";
@@ -2515,14 +2334,12 @@
               body.appendChild(labelDiv);
               body.appendChild(valueDiv);
             } else {
-              // value_only - just the value
               body.style.fontSize = valueFontSize + "px";
               body.textContent = displayValue;
             }
             
             el.appendChild(body);
           } else {
-            // Regular text widget
             const fontSize = props.font_size || 16;
             const body = document.createElement("div");
             body.style.fontSize = fontSize + "px";
@@ -2651,10 +2468,7 @@
         fitWrap.appendChild(fitCb);
         panel.appendChild(fitWrap);
 
-        // Icon picker dropdown with visual MDI icon preview (WYSIWYG)
-        // Expanded to 200+ icons organized by category
         const iconPickerData = [
-          // Weather (20 icons)
           { code: "F0594", name: "weather-sunny" },
           { code: "F0595", name: "weather-cloudy" },
           { code: "F0596", name: "weather-rainy" },
@@ -2675,8 +2489,6 @@
           { code: "F0F32", name: "weather-snowy-rainy" },
           { code: "F0E6D", name: "weather-partly-rainy" },
           { code: "F0F34", name: "weather-snowy-heavy" },
-          
-          // Temperature & Climate (15 icons)
           { code: "F010C", name: "thermometer" },
           { code: "F0E8B", name: "home-thermometer" },
           { code: "F10BF", name: "temperature-celsius" },
@@ -2692,8 +2504,6 @@
           { code: "F1837", name: "air-filter" },
           { code: "F006E", name: "biohazard" },
           { code: "F050D", name: "fire" },
-          
-          // Home & Rooms (25 icons)
           { code: "F050F", name: "home" },
           { code: "F0510", name: "home-variant" },
           { code: "F06A1", name: "home-outline" },
@@ -2719,8 +2529,6 @@
           { code: "F06A0", name: "roof" },
           { code: "F1A2F", name: "fence" },
           { code: "F099D", name: "car" },
-          
-          // Lights (20 icons)
           { code: "F008A", name: "lightbulb" },
           { code: "F0335", name: "lightbulb-on" },
           { code: "F0336", name: "lightbulb-off" },
@@ -2741,8 +2549,6 @@
           { code: "F1312", name: "wall-sconce-flat" },
           { code: "F1313", name: "wall-sconce-round" },
           { code: "F1C5C", name: "coach-lamp" },
-          
-          // Switches & Controls (20 icons)
           { code: "F057F", name: "power" },
           { code: "F0580", name: "power-off" },
           { code: "F0425", name: "check" },
@@ -2763,8 +2569,6 @@
           { code: "F0193", name: "content-save" },
           { code: "F0C55", name: "tray-arrow-up" },
           { code: "F0C56", name: "tray-arrow-down" },
-          
-          // Security (20 icons)
           { code: "F06C9", name: "lock" },
           { code: "F033E", name: "lock-open" },
           { code: "F0FC7", name: "shield-home" },
@@ -2785,8 +2589,6 @@
           { code: "F1A74", name: "fire-extinguisher" },
           { code: "F11C6", name: "sprinkler" },
           { code: "F11C7", name: "sprinkler-variant" },
-          
-          // Media & Entertainment (25 icons)
           { code: "F06E8", name: "play" },
           { code: "F03E4", name: "pause" },
           { code: "F04DB", name: "stop" },
@@ -2812,8 +2614,6 @@
           { code: "F14E4", name: "radio" },
           { code: "F036D", name: "microphone" },
           { code: "F036E", name: "microphone-off" },
-          
-          // Appliances (25 icons)
           { code: "F0A48", name: "robot-vacuum" },
           { code: "F070D", name: "washing-machine" },
           { code: "F0232", name: "fridge" },
@@ -2839,8 +2639,6 @@
           { code: "F058A", name: "water" },
           { code: "F1436", name: "trash-can" },
           { code: "F0A79", name: "recycle" },
-          
-          // Sensors & Monitoring (20 icons)
           { code: "F07E4", name: "battery" },
           { code: "F07E2", name: "battery-charging" },
           { code: "F12A1", name: "battery-50" },
@@ -2861,8 +2659,6 @@
           { code: "F0D7D", name: "poll" },
           { code: "F0125", name: "counter" },
           { code: "F1A5D", name: "meter-electric" },
-          
-          // Navigation & Arrows (15 icons)
           { code: "F0141", name: "arrow-up" },
           { code: "F0045", name: "arrow-down" },
           { code: "F004D", name: "arrow-left" },
@@ -2878,8 +2674,6 @@
           { code: "F02D7", name: "navigation" },
           { code: "F0E80", name: "compass" },
           { code: "F036C", name: "map" },
-          
-          // Status & Indicators (15 icons)
           { code: "F012C", name: "circle" },
           { code: "F0765", name: "record" },
           { code: "F0C92", name: "checkbox-marked" },
@@ -2895,8 +2689,6 @@
           { code: "F0028", name: "information" },
           { code: "F0625", name: "help-circle" },
           { code: "F05D6", name: "comment" },
-          
-          // Home Assistant & Integration (20 icons)
           { code: "F043C", name: "home-assistant" },
           { code: "F07D0", name: "raspberry-pi" },
           { code: "F01BC", name: "code-tags" },
@@ -2917,8 +2709,6 @@
           { code: "F132D", name: "nas" },
           { code: "F0A0C", name: "server" },
           { code: "F0A0D", name: "server-network" },
-          
-          // Additional Appliances & Devices (20 icons)
           { code: "F0FB1", name: "air-purifier" },
           { code: "F104A", name: "humidifier" },
           { code: "F104B", name: "dehumidifier" },
@@ -2939,8 +2729,6 @@
           { code: "F0A64", name: "controller-classic" },
           { code: "F1358", name: "glasses" },
           { code: "F0E31", name: "headphones" },
-          
-          // Garden & Outdoor (15 icons)
           { code: "F0E50", name: "sprinkler" },
           { code: "F0F5E", name: "water-pump" },
           { code: "F100A", name: "watering-can" },
@@ -2956,8 +2744,6 @@
           { code: "F1A3B", name: "patio-heater" },
           { code: "F17D1", name: "outdoor-lighting" },
           { code: "F0F1D", name: "mailbox" },
-          
-          // Energy & Power (20 icons)
           { code: "F0A17", name: "solar-panel" },
           { code: "F0A18", name: "solar-panel-large" },
           { code: "F0A19", name: "solar-power" },
@@ -2978,8 +2764,6 @@
           { code: "F0C5B", name: "fuel" },
           { code: "F1344", name: "gas-station" },
           { code: "F1022", name: "propane-tank" },
-          
-          // Health & Medical (15 icons)
           { code: "F0765", name: "heart-pulse" },
           { code: "F0A38", name: "medical-bag" },
           { code: "F0A39", name: "hospital" },
@@ -2995,8 +2779,6 @@
           { code: "F04D7", name: "dumbbell" },
           { code: "F1A91", name: "weight-kilogram" },
           { code: "F06F4", name: "scale-balance" },
-          
-          // Office & Productivity (15 icons)
           { code: "F0235", name: "file" },
           { code: "F0236", name: "file-document" },
           { code: "F0737", name: "folder" },
@@ -3012,8 +2794,6 @@
           { code: "F0765", name: "label" },
           { code: "F0239", name: "archive" },
           { code: "F013C", name: "email" },
-          
-          // Communication (15 icons)
           { code: "F036D", name: "message" },
           { code: "F036E", name: "chat" },
           { code: "F0EF5", name: "forum" },
@@ -3043,18 +2823,15 @@
         iconPickerSelect.style.fontSize = "16px";
         iconPickerSelect.style.lineHeight = "1.5";
         
-        // Add placeholder option
         const placeholderOpt = document.createElement("option");
         placeholderOpt.value = "";
         placeholderOpt.textContent = "-- Select icon --";
         placeholderOpt.style.fontFamily = "system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
         iconPickerSelect.appendChild(placeholderOpt);
         
-        // Add icon options with actual glyph preview
         iconPickerData.forEach(icon => {
           const opt = document.createElement("option");
           opt.value = icon.code;
-          // Convert code to unicode character for preview
           const cp = 0xf0000 + parseInt(icon.code.slice(1), 16);
           const glyph = String.fromCodePoint(cp);
           opt.textContent = glyph + "  " + icon.code;
@@ -3062,7 +2839,6 @@
           iconPickerSelect.appendChild(opt);
         });
         
-        // Set current value if it matches
         const currentCode = (widget.props.code || "F0595").toUpperCase();
         const matchingIcon = iconPickerData.find(i => i.code === currentCode);
         if (matchingIcon) {
@@ -3074,7 +2850,7 @@
           if (selectedCode) {
             widget.props.code = selectedCode;
             renderCanvas();
-            renderPropertiesPanel(); // Refresh to update the unicode input
+            renderPropertiesPanel();
             scheduleSnippetUpdate();
           }
         });
@@ -3083,13 +2859,12 @@
         iconPickerWrap.appendChild(iconPickerSelect);
         panel.appendChild(iconPickerWrap);
 
-        // Add link to find more icons
         const moreIconsLink = document.createElement("div");
         moreIconsLink.style.fontSize = "12px";
         moreIconsLink.style.marginTop = "4px";
         moreIconsLink.style.marginBottom = "8px";
         moreIconsLink.style.color = "#666";
-        moreIconsLink.innerHTML = 'Need more icons? Browse <a href="https://pictogrammers.com/library/mdi/icon/" target="_blank" style="color: #03a9f4; text-decoration: none;">Pictogrammers MDI</a> and paste the Unicode below';
+        moreIconsLink.innerHTML = 'Need more icons? Browse <a href="https://pictogrammers.com/library/mdi/icon/ " target="_blank" style="color: #03a9f4; text-decoration: none;">Pictogrammers MDI</a> and paste the Unicode below';
         panel.appendChild(moreIconsLink);
 
         addLabeledInput("MDI Unicode (Fxxxx)", "text", widget.props.code || "F0595", (v) => {
@@ -3108,7 +2883,6 @@
           if (Number.isNaN(n) || n < 8) n = 8;
           if (n > 260) n = 260;
           widget.props.size = n;
-          // Only relevant when not fitting to frame; still allow editing for compatibility.
           renderCanvas();
           scheduleSnippetUpdate();
         });
@@ -3132,7 +2906,6 @@
       }
 
       if (type === "image") {
-        // Add helper text about image paths
         const helpWrap = document.createElement("div");
         helpWrap.className = "field";
         helpWrap.style.fontSize = "9px";
@@ -3165,7 +2938,6 @@
         invertWrap.appendChild(invertCb);
         panel.appendChild(invertWrap);
         
-        // Fill screen toggle
         const fillWrap = document.createElement("div");
         fillWrap.className = "field";
         fillWrap.style.marginTop = "12px";
@@ -3183,13 +2955,11 @@
           if (widget.x === 0 && widget.y === 0 && 
               widget.width === CANVAS_WIDTH && 
               widget.height === CANVAS_HEIGHT) {
-            // Restore to reasonable default size
             widget.x = 50;
             widget.y = 50;
             widget.width = 200;
             widget.height = 150;
           } else {
-            // Fill screen
             widget.x = 0;
             widget.y = 0;
             widget.width = CANVAS_WIDTH;
@@ -3204,14 +2974,13 @@
       }
 
       if (type === "online_image") {
-        // Puppet / Remote image widget properties
         const helpWrap = document.createElement("div");
         helpWrap.className = "field";
         helpWrap.style.fontSize = "9px";
         helpWrap.style.color = "var(--muted)";
         helpWrap.style.marginBottom = "8px";
         helpWrap.innerHTML = "💡 Fetch remote images dynamically (Puppet support):<br/>" +
-          "<code style='background:#f0f0f0;padding:2px 4px;border-radius:2px;'>https://example.com/camera/snapshot.jpg</code><br/>" +
+          "<code style='background:#f0f0f0;padding:2px 4px;border-radius:2px;'>https://example.com/camera/snapshot.jpg </code><br/>" +
           "<span style='color:#4a9eff;'>ℹ️ Images are downloaded at specified intervals</span>";
         panel.appendChild(helpWrap);
         
@@ -3229,7 +2998,6 @@
       }
 
       if (type === "datetime") {
-        // Date/time widget properties
         addSelect(
           "Display format",
           widget.props.format || "time_date",
@@ -3261,8 +3029,6 @@
       }
 
       if (type === "progress_bar") {
-        // Progress bar widget properties
-        // Entity ID with picker button
         const entityWrap = document.createElement("div");
         entityWrap.className = "field";
         const entityLbl = document.createElement("div");
@@ -3364,8 +3130,6 @@
       }
 
       if (type === "battery_icon") {
-        // Battery icon widget properties
-        // Entity ID with picker button
         const entityWrap = document.createElement("div");
         entityWrap.className = "field";
         const entityLbl = document.createElement("div");
@@ -3432,7 +3196,6 @@
           });
         }
         if (type === "sensor_text") {
-          // Entity ID with picker button
           const entityWrap = document.createElement("div");
           entityWrap.className = "field";
           const entityLbl = document.createElement("div");
@@ -3450,7 +3213,6 @@
           entityInput.style.flex = "1";
           entityInput.addEventListener("input", () => {
             widget.entity_id = entityInput.value;
-            // Fetch entity state when entity ID changes
             if (hasHaBackend() && Object.keys(entityStatesCache).length === 0) {
               fetchEntityStates();
             }
@@ -3475,14 +3237,12 @@
           entityWrap.appendChild(entityRow);
           panel.appendChild(entityWrap);
           
-          // Label (optional - can be cleared to show only value)
           addLabeledInput("Label (leave empty for value only)", "text", widget.title || "", (v) => {
             widget.title = v;
             renderCanvas();
             scheduleSnippetUpdate();
           });
           
-          // Value format dropdown
           addSelect(
             "Display format",
             widget.props.value_format || "value_only",
@@ -3494,7 +3254,6 @@
             }
           );
           
-          // Separate font sizes for label and value
           addLabeledInput("Label font size", "number", widget.props.label_font_size || 14, (v) => {
             widget.props.label_font_size = parseInt(v || "14", 10) || 14;
             renderCanvas();
@@ -3508,7 +3267,6 @@
           });
         }
         
-        // Font size for regular text widgets
         if (type === "text") {
           addLabeledInput("Font size", "number", widget.props.font_size || 16, (v) => {
             widget.props.font_size = parseInt(v || "16", 10) || 16;
@@ -3517,7 +3275,6 @@
           });
         }
         
-        // Color selector for both text types
         addSelect("Text color", widget.props.color || "black", ["black", "white", "gray"], (val) => {
           widget.props.color = val;
           renderCanvas();
@@ -3601,7 +3358,6 @@
         );
       }
 
-      // Conditional visibility section (available for all widget types)
       const condSectionHeader = document.createElement("h3");
       condSectionHeader.textContent = "Conditional Visibility";
       condSectionHeader.style.marginTop = "12px";
@@ -3617,7 +3373,6 @@
       condHelpWrap.innerHTML = "Show/hide this widget based on an entity's state.";
       panel.appendChild(condHelpWrap);
       
-      // Entity ID for condition
       const condEntityWrap = document.createElement("div");
       condEntityWrap.className = "field";
       const condEntityLbl = document.createElement("div");
@@ -3663,7 +3418,6 @@
       condEntityWrap.appendChild(condEntityRow);
       panel.appendChild(condEntityWrap);
       
-      // Condition operator
       addSelect(
         "Operator",
         widget.condition_operator || "==",
@@ -3674,13 +3428,11 @@
         }
       );
       
-      // Condition state/value
       addLabeledInput("Expected value", "text", widget.condition_state || "", (v) => {
         widget.condition_state = v || null;
         scheduleSnippetUpdate();
       });
       
-      // Clear condition button
       const clearCondWrap = document.createElement("div");
       clearCondWrap.className = "field";
       clearCondWrap.style.marginTop = "4px";
@@ -3762,10 +3514,8 @@
         return;
       }
       
-      // Remove the page
       pages.splice(pageIndex, 1);
       
-      // Adjust current page index if needed
       if (currentPageIndex >= pages.length) {
         currentPageIndex = pages.length - 1;
       } else if (currentPageIndex > pageIndex) {
@@ -3780,11 +3530,8 @@
       scheduleSnippetUpdate();
     }
 
-    // Keyboard shortcuts
     window.addEventListener("keydown", (ev) => {
-      // Delete key removes selected widget
       if ((ev.key === "Delete" || ev.key === "Backspace") && selectedWidgetId) {
-        // Don't delete if typing in an input field
         if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") {
           return;
         }
@@ -3798,7 +3545,6 @@
       const widget = widgetsById.get(dragState.id);
       if (!widget) return;
 
-      // Ensure canvas keeps grid element for guide positioning
       if (!canvas.querySelector(".canvas-grid")) {
         const grid = document.createElement("div");
         grid.className = "canvas-grid";
@@ -3823,25 +3569,20 @@
         widget.width = Math.round(w);
         widget.height = Math.round(h);
         
-        // For icon widgets: update size property based on frame size
         const wtype = (widget.type || "").toLowerCase();
         if (wtype === "icon") {
           const props = widget.props || {};
           if (props.fit_icon_to_frame) {
-            // When fitting, size is derived from frame - calculate it
             const padding = 4;
             const maxDim = Math.max(8, Math.min(widget.width - padding * 2, widget.height - padding * 2));
             props.size = Math.round(maxDim);
           } else {
-            // When not fitting, update size to match smaller dimension
             const newSize = Math.max(8, Math.min(widget.width, widget.height));
             props.size = Math.round(newSize);
           }
         }
       }
 
-      // Live redraw of only the moved widget to keep snap preview smooth.
-      // Full render + properties update are deferred to mouseup for performance.
       renderCanvas();
     }
 
@@ -3850,7 +3591,6 @@
       clearSnapGuides();
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
-      // Now commit: re-render everything and properties, then update snippet.
       renderCanvas();
       renderPropertiesPanel();
       scheduleSnippetUpdate();
@@ -3865,13 +3605,11 @@
       };
     }
 
-    // Local fallback snippet: simple but multiline and structured
     function generateSnippetLocally() {
       const payload = getPagesPayload();
       const pagesLocal = payload.pages || [];
       const lines = [];
 
-      // Collect all icon glyphs in use
       const iconCodes = new Set();
       for (const page of pagesLocal) {
         if (!page || !Array.isArray(page.widgets)) continue;
@@ -3903,10 +3641,7 @@
         lines.push("    glyphs: &mdi_glyphs");
         iconCodes.forEach((code) => {
           const hex = code.toUpperCase();
-          // MDI codes are F0000-FFFFF, so we need 5 hex digits total after F
-          // code is like "F0595" (5 chars), we need \U000F0595 (8 hex digits)
-          const full = hex; // Already has F prefix
-          lines.push(`      - "\\\\U000${full}"`);
+          lines.push(`      - "\\\\U000${hex}"`);
         });
         lines.push("  - file: 'fonts/materialdesignicons-webfont.ttf'");
         lines.push("    id: font_mdi_medium");
@@ -3937,7 +3672,6 @@
           for (const w of page.widgets) {
             const t = (w.type || "").toLowerCase();
             const p = w.props || {};
-            // Local preview mirrors backend yaml_generator.py as closely as possible.
             if (t === "text" || t === "label") {
               const txt = (p.text || w.title || "Text").replace(/"/g, '\\"');
               if (!txt) continue;
@@ -4068,7 +3802,6 @@
               lines.push(`        // widget:shape_rect id:${w.id} type:shape_rect x:${w.x} y:${w.y} w:${w.width} h:${w.height} fill:${fill} border:${borderWidth} color:${colorProp}`);
               if (fill) {
                 if (colorProp === "grey" || colorProp === "gray") {
-                  // Grey: 50% checkerboard dithering pattern
                   lines.push(`        // Grey fill using 50% checkerboard dithering pattern`);
                   lines.push(`        for (int dy = 0; dy < ${w.height}; dy++) {`);
                   lines.push(`          for (int dx = 0; dx < ${w.width}; dx++) {`);
@@ -4108,8 +3841,7 @@
               lines.push(`        // widget:shape_circle id:${w.id} type:shape_circle x:${w.x} y:${w.y} w:${w.width} h:${w.height} fill:${fill} border:${borderWidth} color:${colorProp}`);
               if (fill) {
                 if (colorProp === "grey" || colorProp === "gray") {
-                  // Grey: 50% checkerboard dithering pattern within circle
-                  lines.push(`        // Grey fill using 50% checkerboard dithering pattern`);
+                  lines.push(`        // Grey fill using 50% checkerboard dithering pattern within circle`);
                   lines.push(`        for (int dy = -${r}; dy <= ${r}; dy++) {`);
                   lines.push(`          for (int dx = -${r}; dx <= ${r}; dx++) {`);
                   lines.push(`            if (dx*dx + dy*dy <= ${r}*${r}) {`);
@@ -4193,7 +3925,6 @@
       }, 300);
     }
 
-    // Widget palette event listener
     document.getElementById("widgetPalette").addEventListener("click", onWidgetPaletteClick);
 
     const snapToggleEl = document.getElementById("snapToggle");
@@ -4204,8 +3935,6 @@
         clearSnapGuides();
       });
     }
-
-    // --- HA-backed entity picker support ---
 
     let haEntitiesCache = null;
     let haEntitiesLoaded = false;
@@ -4238,14 +3967,12 @@
       }
     }
 
-    function openEntityPickerForWidget(widget, inputEl) {
-      // If loading previously failed or no backend, do nothing (manual entry only).
+    function openEntityPickerForWidget(widget, inputEl, callback) {
       if (!hasHaBackend || !hasHaBackend() || haEntitiesLoadError) {
         return;
       }
 
       const container = propertiesPanel;
-      // Remove any existing picker
       const existing = container.querySelector(".entity-picker-overlay");
       if (existing) {
         existing.remove();
@@ -4372,19 +4099,19 @@
           row.appendChild(meta);
 
           row.addEventListener("click", () => {
-            widget.entity_id = e.entity_id;
-            // Always update title to entity name (user can customize after)
-            widget.title = e.name || e.entity_id || "";
-            inputEl.value = widget.entity_id;
-            
-            // Trigger entity state fetch if not already done
-            if (Object.keys(entityStatesCache).length === 0) {
-              fetchEntityStates();
+            if (callback) {
+              callback(e.entity_id);
+            } else {
+              widget.entity_id = e.entity_id;
+              widget.title = e.name || e.entity_id || "";
+              inputEl.value = widget.entity_id;
+              if (Object.keys(entityStatesCache).length === 0) {
+                fetchEntityStates();
+              }
+              renderCanvas();
+              renderPropertiesPanel();
+              scheduleSnippetUpdate();
             }
-            
-            renderCanvas();
-            renderPropertiesPanel();
-            scheduleSnippetUpdate();
             overlay.remove();
           });
 
@@ -4392,7 +4119,6 @@
         });
       }
 
-      // Load entities and wire filters
       loadHaEntitiesIfNeeded().then((entities) => {
         if (!entities || entities.length === 0) {
           renderList([]);
@@ -4494,7 +4220,6 @@
           await navigator.clipboard.writeText(text);
           sidebarStatus.textContent = "Snippet copied to clipboard.";
         } else {
-          // Fallback for non-secure contexts (http://)
           const textarea = document.createElement("textarea");
           textarea.value = text;
           textarea.style.position = "fixed";
@@ -4523,106 +4248,6 @@
       snippetFullscreenModal.classList.add("hidden");
     };
 
-    // Old import snippet modal handlers (now replaced by direct Update Layout button)
-    // Kept for backwards compatibility if modal is needed in future
-    if (typeof importSnippetBtn !== 'undefined' && importSnippetBtn) {
-      importSnippetBtn.onclick = () => {
-        importSnippetTextarea.value = "";
-        importSnippetError.textContent = "";
-        importSnippetModal.classList.remove("hidden");
-      };
-    }
-
-    if (importSnippetCancel) {
-      importSnippetCancel.onclick = () => {
-        importSnippetModal.classList.add("hidden");
-        importSnippetError.textContent = "";
-      };
-    }
-
-    if (importSnippetConfirm) {
-      importSnippetConfirm.onclick = async () => {
-      const yaml = importSnippetTextarea.value;
-      if (!yaml.trim()) {
-        importSnippetError.textContent = "Paste a snippet first.";
-        return;
-      }
-      try {
-        const resp = await fetch("/api/reterminal_dashboard/import_snippet", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ yaml })
-        });
-        const data = await resp.json().catch(() => ({}));
-        if (!resp.ok) {
-          importSnippetError.textContent = data.message || data.error || "Import failed.";
-          return;
-        }
-        pages = data.pages || [];
-        currentPageIndex = data.current_page || 0;
-        selectedWidgetId = null;
-        rebuildWidgetsIndex();
-        renderPagesSidebar();
-        renderCanvas();
-        renderPropertiesPanel();
-        importSnippetModal.classList.add("hidden");
-        importSnippetError.textContent = "";
-        scheduleSnippetUpdate();
-      } catch (err) {
-        importSnippetError.textContent = "Network or server error during import.";
-      }
-    };
-    }
-
-    // Page settings modal
-    let currentPageSettingsTarget = null;
-
-    function openPageSettingsModal(page) {
-      currentPageSettingsTarget = page;
-      const modal = document.getElementById("pageSettingsModal");
-      const nameInput = document.getElementById("pageSettingsName");
-      const refreshInput = document.getElementById("pageSettingsRefresh");
-      
-      if (nameInput) nameInput.value = page.name || "";
-      if (refreshInput) {
-        refreshInput.value = (page.refresh_s != null && page.refresh_s > 0) ? page.refresh_s : "";
-      }
-      
-      if (modal) modal.classList.remove("hidden");
-    }
-
-    function closePageSettingsModal() {
-      const modal = document.getElementById("pageSettingsModal");
-      if (modal) modal.classList.add("hidden");
-      currentPageSettingsTarget = null;
-    }
-
-    function savePageSettings() {
-      if (!currentPageSettingsTarget) return;
-      
-      const nameInput = document.getElementById("pageSettingsName");
-      const refreshInput = document.getElementById("pageSettingsRefresh");
-      
-      if (nameInput) {
-        currentPageSettingsTarget.name = nameInput.value || "Page";
-      }
-      
-      if (refreshInput) {
-        const val = refreshInput.value.trim();
-        if (val === "") {
-          currentPageSettingsTarget.refresh_s = null;
-        } else {
-          const num = parseInt(val, 10);
-          currentPageSettingsTarget.refresh_s = (num >= 0) ? num : null;
-        }
-      }
-      
-      renderPagesSidebar();
-      scheduleSnippetUpdate();
-      closePageSettingsModal();
-    }
-
-    // Wire up page settings modal
     const pageSettingsClose = document.getElementById("pageSettingsClose");
     const pageSettingsSave = document.getElementById("pageSettingsSave");
     if (pageSettingsClose) {
@@ -4657,7 +4282,6 @@
 
     loadLayoutFromBackend().then(() => {
       updateSnippet(true);
-      // Load entities for picker if HA backend is available
       loadHaEntitiesIfNeeded().catch(err => {
         console.warn("Entity loading failed during init:", err);
       });
