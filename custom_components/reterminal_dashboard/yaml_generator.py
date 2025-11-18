@@ -643,9 +643,9 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig) -> 
     w = max(1, min(widget.width, IMAGE_WIDTH - x))
     h = max(1, min(widget.height, IMAGE_HEIGHT - y))
     
-    _LOGGER.debug(f"Generating widget {widget.id} type={wtype} x={widget.x}→{x} y={widget.y}→{y} w={widget.width}→{w} h={widget.height}→{h}")
-
     wtype = (widget.type or "text").lower()
+    
+    _LOGGER.debug(f"Generating widget {widget.id} type={wtype} x={widget.x}→{x} y={widget.y}→{y} w={widget.width}→{w} h={widget.height}→{h}")
     props = widget.props or {}
 
     # Determine base color polarity from props.color and invert.
