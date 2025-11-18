@@ -126,15 +126,15 @@ sensor:
     temperature:
       name: "reTerminal Onboard Temperature"
       id: onboard_temperature
-      accuracy_decimals: 1
+      accuracy_decimals: 2
       filters:
-        - round: 1
+        - round: 2
     humidity:
       name: "reTerminal Onboard Humidity"
       id: onboard_humidity
-      accuracy_decimals: 1
+      accuracy_decimals: 2
       filters:
-        - round: 1
+        - round: 2
     address: 0x44
     update_interval: 60s
 
@@ -144,8 +144,10 @@ sensor:
     id: battery_voltage
     update_interval: 60s
     attenuation: 12db
+    accuracy_decimals: 2
     filters:
       - multiply: 2.0
+      - round: 2
 
   - platform: template
     name: "Battery Level"
@@ -154,6 +156,7 @@ sensor:
     unit_of_measurement: "%"
     device_class: battery
     update_interval: 60s
+    accuracy_decimals: 0
     filters:
       - calibrate_linear:
           - 3.27 -> 0.0
@@ -161,6 +164,7 @@ sensor:
       - clamp:
           min_value: 0
           max_value: 100
+      - round: 0
 
 binary_sensor:
   - platform: gpio

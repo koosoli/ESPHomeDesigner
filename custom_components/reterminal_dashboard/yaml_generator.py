@@ -82,6 +82,7 @@ def generate_snippet(device: DeviceConfig) -> str:
     parts.append(_generate_fonts(device))  # Pass device to collect icon glyphs
     parts.append(_generate_text_sensors(device))  # Only text_sensors for HA entities
     parts.append(_generate_online_images(device))
+    parts.append(_generate_deep_sleep(device))
     parts.append(_generate_navigation_buttons(device))
     parts.append(_generate_scripts(device))
     parts.append(_generate_display_block(device))
@@ -115,6 +116,17 @@ def _generate_globals() -> str:
     type: int
     restore_value: no
     initial_value: '900'
+"""
+
+
+def _generate_deep_sleep(device: DeviceConfig) -> str:
+    """
+    Generate deep_sleep configuration for power saving.
+    """
+    return """deep_sleep:
+  id: deep_sleep_1
+  run_duration: 24h
+  sleep_duration: 60min
 """
 
 
@@ -401,11 +413,13 @@ def _generate_navigation_buttons(device: DeviceConfig) -> str:
 def _generate_scripts(device: DeviceConfig) -> str:
     """
     Generate time + manage_run_and_sleep script with per-page refresh support.
+    Includes night-time power saving logic (00:01 - 05:00).
 
     Semantics:
     - A global default interval (page_refresh_default_s).
     - Inline switch(page) using PageConfig.refresh_s values when provided.
     - Enforce a minimum of 60 seconds for any effective interval.
+    - Night mode: Deep sleep between 00:01 and 05:00, waking only at top of hour.
     """
     case_lines: List[str] = []
     for idx, page in enumerate(device.pages):
@@ -428,10 +442,42 @@ def _generate_scripts(device: DeviceConfig) -> str:
   - id: manage_run_and_sleep
     mode: restart
     then:
-      - if:
+      - wait_until:
           condition:
             lambda: 'return id(ha_time).now().is_valid();'
+          timeout: 120s
+      
+      # Night Mode Check (00:01 - 05:00)
+      - if:
+          condition:
+            lambda: |-
+              auto now = id(ha_time).now();
+              if (!now.is_valid()) {{
+                return false;
+              }}
+              // Deep sleep only between 00:01 and 05:00
+              return (now.hour >= 0 && now.hour < 5 && !(now.hour == 0 && now.minute == 0));
           then:
+            - lambda: |-
+                auto now = id(ha_time).now();
+                if (now.is_valid()) {{
+                  ESP_LOGI("sleep", "Deep sleep mode %02d:%02d", now.hour, now.minute);
+                }}
+            - if:
+                condition:
+                  lambda: |-
+                    auto now = id(ha_time).now();
+                    return now.is_valid() && (now.minute == 0);
+                then:
+                  - component.update: epaper_display
+                else:
+                  - logger.log: "Deep sleep mode: skipping refresh until the top of the hour."
+            - deep_sleep.enter:
+                id: deep_sleep_1
+                sleep_duration: 60min
+          
+          # Active Mode
+          else:
             - lambda: |-
                 int page = id(display_page);
                 int interval = id(page_refresh_default_s);
@@ -443,12 +489,9 @@ def _generate_scripts(device: DeviceConfig) -> str:
                 }}
                 id(page_refresh_current_s) = interval;
                 ESP_LOGI("refresh", "Next refresh in %d seconds for page %d", interval, page);
+            
+            - component.update: epaper_display
             - delay: !lambda 'return id(page_refresh_current_s) * 1000;'
-            - component.update: epaper_display
-            - script.execute: manage_run_and_sleep
-          else:
-            - delay: 300s
-            - component.update: epaper_display
             - script.execute: manage_run_and_sleep
 """
 
@@ -731,7 +774,6 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig) -> 
         value_format = props.get("value_format", "label_value")
         label_font_size = int(props.get("label_font_size", 14) or 14)
         value_font_size = int(props.get("value_font_size", 20) or 20)
-        value_format = props.get("value_format", "label_value")
         font_family = props.get("font_family") or "Inter"
         
         if entity_id:
@@ -778,20 +820,23 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig) -> 
         time_font = _resolve_font_by_size(time_font_size)
         date_font = _resolve_font_by_size(date_font_size)
         
+        # Calculate center X for alignment
+        cx = x + w // 2
+        
         # Add marker comment for parser
         content.append(f'{indent}// widget:datetime id:{widget.id} type:datetime x:{x} y:{y} w:{w} h:{h} format:{format_type} time_font:{time_font_size} date_font:{date_font_size}')
         
         if format_type == "time_only":
             # Time only - centered
-            content.append(f'{indent}it.strftime({x}, {y}, {time_font}, {fg}, "%H:%M", id(ha_time).now());')
+            content.append(f'{indent}it.strftime({cx}, {y}, {time_font}, TextAlign::TOP_CENTER, {fg}, "%H:%M", id(ha_time).now());')
         elif format_type == "date_only":
             # Date only - centered
-            content.append(f'{indent}it.strftime({x}, {y}, {date_font}, {fg}, "%a, %b %d", id(ha_time).now());')
+            content.append(f'{indent}it.strftime({cx}, {y}, {date_font}, TextAlign::TOP_CENTER, {fg}, "%a, %b %d", id(ha_time).now());')
         else:
             # time_date - time on top, date below
-            content.append(f'{indent}it.strftime({x}, {y}, {time_font}, {fg}, "%H:%M", id(ha_time).now());')
+            content.append(f'{indent}it.strftime({cx}, {y}, {time_font}, TextAlign::TOP_CENTER, {fg}, "%H:%M", id(ha_time).now());')
             date_y = y + time_font_size + 4
-            content.append(f'{indent}it.strftime({x}, {date_y}, {date_font}, {fg}, "%a, %b %d", id(ha_time).now());')
+            content.append(f'{indent}it.strftime({cx}, {date_y}, {date_font}, TextAlign::TOP_CENTER, {fg}, "%a, %b %d", id(ha_time).now());')
         _wrap_with_condition(dst, indent, widget, content)
         return
 
