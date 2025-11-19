@@ -60,6 +60,22 @@ class WidgetConfig:
         Uses:
           - props.stroke_width: int
           - props.color, props.invert
+
+    - "image":
+        Static image reference.
+        Uses:
+          - props.image_id: str (must match ESPHome image id)
+
+    - "history":
+        Simple history/graph placeholder.
+        Uses:
+          - props.entity_id: str
+          - props.time_window: int (e.g. minutes)
+          - props.style: str ("bars", "line", etc.)
+    """
+
+    id: str
+    type: str
     x: int
     y: int
     width: int
