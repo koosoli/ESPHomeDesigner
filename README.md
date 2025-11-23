@@ -5,7 +5,7 @@
 
 
 
-![Dashboard Editor Screenshot](https://raw.githubusercontent.com/koosoli/ReTerminalDesigner/main/screenshots/Screenshot3.png)
+![Dashboard Editor Screenshot](https://raw.githubusercontent.com/koosoli/ReTerminalDesigner/main/screenshots/Screenshot4.png)
 
 **No more hand-coding ESPHome display lambdas! 🎉**
 
