@@ -1,8 +1,5 @@
 # reTerminal Dashboard Designer
 
-![reTerminal Dashboard Designer](images/brand.png)
-
-
 **A visual drag-and-drop editor for ESPHome e-paper dashboards, running right inside Home Assistant.**
 
 
