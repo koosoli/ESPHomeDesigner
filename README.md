@@ -5,13 +5,22 @@
 
 
 
-![Dashboard Editor Screenshot](https://raw.githubusercontent.com/koosoli/ReTerminalDesigner/main/screenshots/Screenshot4.png)
+<div align="center">
+  <a href="https://youtu.be/bzCbiUypN_4">
+    <img src="screenshots/Reterminal_Designer_v05.gif" alt="Watch the video">
+  </a>
+  <br>
+  <small>Click to watch the demo video</small>
+</div>
+
+
 
 **No more hand-coding ESPHome display lambdas! 🎉**
 
 Got a Seeed Studio reTerminal E1001 and frustrated with manually writing display code? Yeah, me too. So I built a drag-and-drop editor that runs right inside Home Assistant.
 
 Design your e-ink dashboard visually, click generate, flash it - done. No YAML wrestling required (unless you're into that).
+
 
 ## What Does It Do?
 
@@ -26,14 +35,21 @@ Design your e-ink dashboard visually, click generate, flash it - done. No YAML w
 
 ## Quick Start
 
-### 1. Install via HACS
+### 1. Install via HACS (Recommended)
 
 1. Add this repository to HACS as a custom repository
 2. Search for "reTerminal Dashboard Designer" and install
 3. Restart Home Assistant
 4. Go to **Settings** → **Devices & Services** → **Add Integration** → Search for "reTerminal Dashboard Designer"
 
-### 2. Prepare Your reTerminal Hardware
+### 2. Manual Installation
+
+1. Download the `custom_components/reterminal_dashboard` folder from this repo
+2. Copy it to your Home Assistant `config/custom_components/` directory
+3. Restart Home Assistant
+4. Add the integration via **Settings** → **Devices & Services**
+
+### 3. Prepare Your reTerminal Hardware
 
 **Important:** Copy the Material Design Icons font file first!
 
@@ -46,12 +62,13 @@ Then use the provided hardware template:
 
 1. Open `esphome/reterminal_e1001_lambda.yaml` in this repo
 2. Follow the step-by-step instructions in the template
-3. Create a new ESPHome device and paste the hardware sections
-4. Flash the base config to your reTerminal
+3. **Crucial:** You must add the `services:` block to your `api:` section (as shown in the template) for the buzzer to work
+4. Create a new ESPHome device and paste the hardware sections
+5. Flash the base config to your reTerminal
 
 The template includes all the hardware setup: display driver, buttons, buzzer, sensors, battery monitoring.
 
-### 3. Design Your Dashboard
+### 4. Design Your Dashboard
 
 1. Open the integration at `/reterminal-dashboard` in Home Assistant
 2. Drag widgets onto the 800x480 canvas
@@ -59,7 +76,7 @@ The template includes all the hardware setup: display driver, buttons, buzzer, s
 4. Create multiple pages with different refresh rates
 5. Click **"Generate Snippet"**
 
-### 4. Flash It
+### 5. Flash It
 
 1. Copy the generated YAML snippet
 2. Paste it at the bottom of your ESPHome config (below the hardware sections)
@@ -79,6 +96,9 @@ Done! Your custom dashboard is now running on the reTerminal.
   - Choose from 360+ most-used Material Design Icons
   - Adjustable size (8-260px) - generates optimized fonts automatically
   - Color options: black, white, gray (limited by e-paper)
+- **Weather Icon** - Dynamic weather icons based on Home Assistant state
+  - Automatically maps standard HA weather states (sunny, rainy, cloudy, etc.) to MDI icons
+  - Customizable size and color
 - **Date & Time** - Display current time and date
   - Separate font sizes for time and date
   - Multiple format options (time only, date only, both)
@@ -98,6 +118,7 @@ Done! Your custom dashboard is now running on the reTerminal.
   - Customizable line style (solid, dashed, dotted), thickness, and color
   - Optional X/Y grid lines with presets
   - Auto-scaling Y-axis based on sensor min/max attributes
+  - Automatic X/Y axis labeling based on time and value range
 - **Image** - Display photos and images with optional color inversion
   - Widget frame size sets ESPHome `resize:` parameter automatically
   - Images are resized during compilation (quality preserved with FLOYDSTEINBERG dithering)
@@ -109,8 +130,11 @@ Done! Your custom dashboard is now running on the reTerminal.
 - **Visual Editor** - Drag-and-drop canvas with snap-to-grid, live entity state updates
 - **Entity Picker** - Browse and search your actual HA entities with real-time preview
 - **Multi-Page Support** - Create up to 10 pages, each with custom refresh intervals
+- **Page Management** - Drag & drop to reorder pages in the sidebar
+- **Productivity Tools** - Copy/Paste (Ctrl+C/V), Undo/Redo (Ctrl+Z/Y), and Z-Index layering support
 - **Hardware Integration** - Buttons, buzzer, temperature/humidity sensors exposed to HA
 - **Smart Generator** - Produces clean, additive YAML that doesn't conflict with your base config
+- **Live YAML Preview** - Select any widget to instantly highlight its corresponding code in the generated YAML snippet
 - **Round-Trip Editing** - Import existing ESPHome display code back into the editor
 - **Battery Management** - Voltage monitoring, battery level percentage, icon indicators
 - **Power Saving** - Configurable refresh rates, deep sleep support for night hours
@@ -123,9 +147,12 @@ The generator produces **additive YAML only** - it won't touch your WiFi, API, o
 - `globals:` - Display page tracking, refresh intervals
 - `font:` - Dynamic font generation based on your widget sizes + Material Design Icons with automatic glyph collection
 - `image:` - Image definitions for photo/image widgets (BINARY type, FLOYDSTEINBERG dithering)
+- `online_image:` - Definitions for online image and puppet widgets
 - `text_sensor:` - Home Assistant entities used in your widgets
+- `graph:` - Graph widget configurations
 - `button:` - Page navigation and refresh controls (exposed to HA)
 - `script:` - Smart refresh logic with per-page interval support
+- `deep_sleep:` - Power saving logic (if enabled)
 - `display:` - Lambda code that renders your layout
 
 **What you provide** (via the hardware template):
@@ -174,12 +201,28 @@ All exposed as Home Assistant entities for use in automations.
 - Only paste `globals`, `font`, `text_sensor`, `button`, `script`, `display` from generated snippet
 - Don't copy `output`, `rtttl`, `sensor`, `time` - these are in the hardware template
 
+**Compilation Fails ("Killed signal" / Out of Memory)?**
+If your Raspberry Pi crashes with `Killed signal terminated program`, it lacks the RAM for these fonts.
+
+**Try this first:**
+Add `compile_process_limit: 1` to your `esphome:` section in the YAML. This reduces memory usage but slows down compilation.
+
+**If that fails, compile on your PC:**
+
+1. **Install ESPHome**: Install Python, then run `pip install esphome` in your terminal.
+2. **Setup Folder**: Create a folder like `C:\esphome_build` (**Important**: No spaces in the folder path!).
+3. **Copy Files**: Copy your `reterminal.yaml` and the `fonts/` folder into that folder.
+4. **Compile**: Run this command:
+   ```powershell
+   python -m esphome compile C:\esphome_build\reterminal.yaml
+   ```
+5. **Upload**: Take the generated `.bin` file and upload it via the Home Assistant ESPHome dashboard (Install → Manual Download).
+
 ## Contributing
 
 This is a passion project built to solve a real problem. Found a bug? Have an idea? Open an issue or PR!
 
 **Planned features:**
-- Weather card widgets
 - Color e-ink support
 - More device types (other ESP32-based e-paper displays)
 

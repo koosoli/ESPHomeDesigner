@@ -1,5 +1,61 @@
 # Release Notes
 
+
+
+## v0.5.0
+> [!WARNING]
+> **BREAKING CHANGE**: This version requires the **latest hardware template**.
+> Global settings have been moved to the template.
+> You **MUST** update your `reterminal_e1001_lambda.yaml` (or equivalent) to the latest version for these features to work.
+> Old templates will cause compilation errors or ignore your power settings.
+
+### 🎉 Major Features
+- **Page Management**:
+  - **Drag & Drop Reordering**: You can now reorder pages in the sidebar by dragging them.
+  - **Persistent Page Names**: Custom page names are now saved in the YAML and restored upon import.
+- **New Power Management UI**: Complete redesign with radio buttons for clear, mutually exclusive power modes:
+  - **Standard (Always On)** - Auto-refresh based on page intervals
+  - **Night Mode** - Screen off during specified hours for energy savings
+  - **Manual Refresh Only** - Updates only via button or Home Assistant trigger
+  - **Deep Sleep (Battery Saver)** - Device offline between updates for maximum power savings
+- **Deep Sleep Support**: Full ESPHome deep sleep implementation with configurable intervals (default: 600s)
+- **Smart Text Optimization**: Automatically strips unused characters from large static fonts to save massive amounts of RAM, preventing compilation crashes. Dynamic text (sensors) remains untouched.
+
+### 🐛 Bug Fixes
+#### Settings & Persistence
+- **Device Settings Persistence**: Fixed all device settings (power mode, sleep times, deep sleep interval) not saving and jumping back to defaults on restart.
+- **Page Refresh Rates**: Fixed page refresh intervals not persisting and resetting when updating layout from YAML.
+- **Power Management Settings**: Fixed settings resetting to "Standard" mode when updating layout from YAML.
+
+#### YAML Generation
+- **Script Generation**: Fixed wrong script generated for deep sleep mode (was using auto-refresh loop instead of simple sleep).
+- **Display Lambda**: Fixed missing COLOR_ON/COLOR_OFF definitions causing compilation errors.
+- **Sensor Text Widget**: Fixed value-only mode (no label) missing critical YAML sections (button:, font:, script:, globals:).
+- **Refresh Intervals**: Fixed page refresh intervals < 60 seconds being filtered out.
+- **No-Refresh Window**: Fixed invalid conditions generated when window not configured (0-0 case).
+- **Manual Refresh Mode**: Fixed manual refresh showing unnecessary page interval logic (now minimal script only).
+
+#### Widget Improvements
+- **Line Widget**: Fixed lines not rendering straight on e-paper (right side was ~10px lower).
+- **Image Widget**: Fixed missing path property in UI and drag functionality not working.
+- **Battery Icon**: Fixed percentage text not centering underneath battery symbol when icon is enlarged.
+- **Sensor Text Alignment**: Added separate alignment options for label and value (e.g., label left, value right) with WYSIWYG canvas preview.
+- **DateTime Widget**: Verified alignment options working correctly.
+- **Progress Bar Widget**: Verified alignment options working correctly.
+
+#### Font System
+- **Google Fonts**: Fonts now work correctly - all fonts pre-defined in template (Template-Only approach).
+- **Font Selection**: Verified font dropdown shows all 15 supported families.
+- **Font Persistence**: Fixed font selections (Family, Weight, Size) for Sensor Text widgets not persisting through YAML updates.
+
+
+### 🔧 Technical Improvements
+- **Frontend/Backend Parity**: Both generators now produce identical output.
+- **Robust Import**: `applyImportedLayout()` now merges settings instead of overwriting, preserving user preferences.
+- **Smart Parsing**: The YAML parser now intelligently extracts page names and refresh rates from comments and code logic.
+- **YAML Highlighting**: Selecting a widget on the canvas now automatically highlights its corresponding YAML definition in the snippet box.
+
+
 ## v0.4.6.1
 - **Critical Bug Fix**: Fixed JavaScript error `ReferenceError: isTextSensor is not defined` in snippet generator that prevented YAML generation and caused compilation errors.
 

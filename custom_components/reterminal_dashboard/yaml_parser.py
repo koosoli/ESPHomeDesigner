@@ -84,6 +84,9 @@ class ParsedWidget:
     label_font_size: int | None = None
     value_font_size: int | None = None
     value_format: str | None = None
+    text_align: str | None = None
+    label_align: str | None = None
+    value_align: str | None = None
     # Common properties
     color: str | None = None
     # Shape properties
@@ -122,6 +125,13 @@ class ParsedWidget:
     condition_min: float | None = None
     condition_max: float | None = None
     condition_logic: str | None = None
+
+
+@dataclass
+class ParsedPage:
+    """Intermediate structure for a page."""
+    widgets: List[ParsedWidget]
+    name: str | None = None
 
 
 def yaml_to_layout(snippet: str) -> DeviceConfig:
@@ -198,7 +208,8 @@ def yaml_to_layout(snippet: str) -> DeviceConfig:
     # Convert parsed pages to PageConfig/WidgetConfig
     sorted_page_nums = sorted(pages.keys())
     for page_num in sorted_page_nums:
-        widget_list = pages[page_num]
+        parsed_page = pages[page_num]
+        widget_list = parsed_page.widgets
         page_widgets: List[WidgetConfig] = []
         
         for pw in widget_list:
@@ -217,6 +228,9 @@ def yaml_to_layout(snippet: str) -> DeviceConfig:
             if pw.value_font_size is not None: props["value_font_size"] = pw.value_font_size
             if pw.value_format is not None: props["format"] = pw.value_format
             if pw.value_format is not None: props["value_format"] = pw.value_format # Ensure both keys work
+            if pw.text_align is not None: props["text_align"] = pw.text_align
+            if pw.label_align is not None: props["label_align"] = pw.label_align
+            if pw.value_align is not None: props["value_align"] = pw.value_align
             
             # Common properties
             if pw.color is not None: props["color"] = pw.color
@@ -301,7 +315,7 @@ def yaml_to_layout(snippet: str) -> DeviceConfig:
 
         page_conf = PageConfig(
             id=f"page_{page_num}",
-            name=f"Page {page_num + 1}",
+            name=parsed_page.name or f"Page {page_num + 1}",
             widgets=page_widgets
         )
         device.pages.append(page_conf)
@@ -349,7 +363,7 @@ def _find_display_block(data: Any) -> Dict[str, Any] | None:
     return candidate
 
 
-def _parse_pages_from_lambda(lines: List[str]) -> Dict[int, List[ParsedWidget]]:
+def _parse_pages_from_lambda(lines: List[str]) -> Dict[int, ParsedPage]:
     """
     Extract pages and widgets from the lambda body.
 
@@ -366,7 +380,7 @@ def _parse_pages_from_lambda(lines: List[str]) -> Dict[int, List[ParsedWidget]]:
     - width: 200
     - height: 60
     """
-    pages: Dict[int, List[ParsedWidget]] = {}
+    pages: Dict[int, ParsedPage] = {}
     current_page: int | None = None
     brace_depth = 0
 
@@ -394,7 +408,8 @@ def _parse_pages_from_lambda(lines: List[str]) -> Dict[int, List[ParsedWidget]]:
         
         if page_match is not None:
             current_page = page_match
-            pages.setdefault(current_page, [])
+            if current_page not in pages:
+                pages[current_page] = ParsedPage(widgets=[])
             brace_depth = 1
             continue
 
@@ -409,9 +424,20 @@ def _parse_pages_from_lambda(lines: List[str]) -> Dict[int, List[ParsedWidget]]:
                 continue
 
             # Inside page block: look for our widget hints or patterns
+            
+            # Check for page name comment: // page:name "My Page"
+            if "// page:name" in line:
+                try:
+                    # Extract content between quotes
+                    parts = line.split('"', 2)
+                    if len(parts) >= 2:
+                        pages[current_page].name = parts[1]
+                except Exception:
+                    pass
+
             pw = _parse_widget_line(line)
             if pw:
-                pages[current_page].append(pw)
+                pages[current_page].widgets.append(pw)
 
     return pages
 
@@ -506,7 +532,7 @@ def _parse_widget_line(line: str) -> ParsedWidget | None:
         # CRITICAL: Widget property extraction from markers
         # DO NOT CHANGE: These preserve widget styling (color, size, opacity, etc.)
         # ============================================================================
-        font_family = meta.get("font_family")
+        font_family = meta.get("font_family") or meta.get("font")
         font_style = meta.get("font_style")
         color = meta.get("color")
         
@@ -533,10 +559,10 @@ def _parse_widget_line(line: str) -> ParsedWidget | None:
                 return None
             return val.lower() in ("true", "1", "yes")
         
-        font_size = parse_int(meta.get("font_size"))
+        font_size = parse_int(meta.get("font_size")) or parse_int(meta.get("size"))
         font_weight = parse_int(meta.get("font_weight")) or parse_int(meta.get("weight"))
-        label_font_size = parse_int(meta.get("label_font"))
-        value_font_size = parse_int(meta.get("value_font"))
+        label_font_size = parse_int(meta.get("label_font_size")) or parse_int(meta.get("label_font"))
+        value_font_size = parse_int(meta.get("value_font_size")) or parse_int(meta.get("value_font"))
         size = parse_int(meta.get("size"))
         opacity = parse_int(meta.get("opacity"))
         border_width = parse_int(meta.get("border_width")) or parse_int(meta.get("border"))
@@ -544,6 +570,10 @@ def _parse_widget_line(line: str) -> ParsedWidget | None:
         bar_height = parse_int(meta.get("bar_height"))
         time_font_size = parse_int(meta.get("time_font"))
         date_font_size = parse_int(meta.get("date_font"))
+        
+        text_align = meta.get("align") or meta.get("text_align")
+        label_align = meta.get("label_align")
+        value_align = meta.get("value_align")
         
         fill = parse_bool(meta.get("fill"))
         show_label = parse_bool(meta.get("show_label"))
@@ -596,6 +626,9 @@ def _parse_widget_line(line: str) -> ParsedWidget | None:
             label_font_size=label_font_size,
             value_font_size=value_font_size,
             value_format=format_val or None,
+            text_align=text_align,
+            label_align=label_align,
+            value_align=value_align,
             color=color,
             fill=fill,
             opacity=opacity,

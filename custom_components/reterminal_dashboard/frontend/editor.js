@@ -30,6 +30,7 @@ function hasHaBackend() {
 // --- HA Entity States Cache for Live Preview ---
 let entityStatesCache = {};
 let entityStatesFetchInProgress = false;
+let currentPageSettingsTarget = null;
 
 async function fetchEntityStates() {
     if (!hasHaBackend()) {
@@ -156,6 +157,8 @@ function parseSnippetYamlOffline(yamlText) {
     }
 
     const pageMap = new Map();
+    const intervalMap = new Map();
+    const nameMap = new Map();
     let currentPageIndex = null;
 
     for (const line of lambdaLines) {
@@ -165,6 +168,22 @@ function parseSnippetYamlOffline(yamlText) {
             if (!pageMap.has(currentPageIndex)) {
                 pageMap.set(currentPageIndex, []);
             }
+        }
+
+        const intervalMatch = line.match(/case\s+(\d+):\s*interval\s*=\s*(\d+);/);
+        if (intervalMatch) {
+            const idx = parseInt(intervalMatch[1], 10);
+            const val = parseInt(intervalMatch[2], 10);
+            intervalMap.set(idx, val);
+            // Ensure page exists in map even if no widgets yet
+            if (!pageMap.has(idx)) {
+                pageMap.set(idx, []);
+            }
+        }
+
+        const nameMatch = line.match(/\/\/\s*page:name\s+"(.+)"/);
+        if (nameMatch && currentPageIndex !== null) {
+            nameMap.set(currentPageIndex, nameMatch[1]);
         }
     }
 
@@ -179,7 +198,8 @@ function parseSnippetYamlOffline(yamlText) {
         },
         pages: Array.from(pageMap.entries()).sort((a, b) => a[0] - b[0]).map(([idx, _]) => ({
             id: `page_${idx}`,
-            name: `Page ${idx + 1}`,
+            name: nameMap.has(idx) ? nameMap.get(idx) : `Page ${idx + 1}`,
+            refresh_s: intervalMap.has(idx) ? intervalMap.get(idx) : null,
             widgets: []
         }))
     };
@@ -199,12 +219,16 @@ function parseSnippetYamlOffline(yamlText) {
         const propsStr = match[2];
         const props = {};
 
-        const regex = /(\w+):((?:"[^"]*")|(?:[^\s]+))/g;
+        // Improved regex to handle:
+        // 1. Quoted strings: key:"value with spaces"
+        // 2. Unquoted values: key:value
+        // 3. Unquoted values at the end of string: key:value with spaces
+        const regex = /(\w+):(?:"([^"]*)"|([^:]*?)(?=\s+\w+:|$))/g;
         let m;
         while ((m = regex.exec(propsStr)) !== null) {
-            let value = m[2];
-            if (value.startsWith('"') && value.endsWith('"')) {
-                value = value.slice(1, -1);
+            let value = m[2] !== undefined ? m[2] : m[3];
+            if (value) {
+                value = value.trim();
             }
             props[m[1]] = value;
         }
@@ -248,6 +272,11 @@ function parseSnippetYamlOffline(yamlText) {
                     height: parseInt(p.h || 30, 10),
                     title: p.title || "",
                     entity_id: p.entity || p.ent || "",
+                    condition_entity: p.cond_ent || "",
+                    condition_operator: p.cond_op || "",
+                    condition_state: p.cond_state || "",
+                    condition_min: p.cond_min || "",
+                    condition_max: p.cond_max || "",
                     props: {}
                 };
 
@@ -267,12 +296,12 @@ function parseSnippetYamlOffline(yamlText) {
                         italic: (p.italic === "true" || p.italic === true),
                         bpp: parseInt(p.bpp || 1, 10),
                         color: p.color || "black",
-                        text_align: p.align || "TOP_LEFT"
+                        text_align: p.align || p.text_align || "TOP_LEFT"
                     };
                 } else if (p.type === "sensor_text") {
                     widget.props = {
-                        label_font_size: parseInt(p.label_font || 14, 10),
-                        value_font_size: parseInt(p.value_font || 20, 10),
+                        label_font_size: parseInt(p.label_font || p.label_font_size || 14, 10),
+                        value_font_size: parseInt(p.value_font || p.value_font_size || 20, 10),
                         value_format: p.format || "label_value",
                         color: p.color || "black",
                         font_style: p.font_style || "regular",
@@ -280,7 +309,9 @@ function parseSnippetYamlOffline(yamlText) {
                         font_weight: parseInt(p.font_weight || 400, 10),
                         unit: p.unit || "",
                         precision: parseInt(p.precision || -1, 10),
-                        text_align: p.align || "TOP_LEFT"
+                        text_align: p.align || p.text_align || "TOP_LEFT",
+                        label_align: p.label_align || p.align || p.text_align || "TOP_LEFT",
+                        value_align: p.value_align || p.align || p.text_align || "TOP_LEFT"
                     };
                 } else if (p.type === "datetime") {
                     widget.props = {
@@ -325,6 +356,7 @@ function parseSnippetYamlOffline(yamlText) {
                 } else if (p.type === "puppet") {
                     widget.props = {
                         image_url: p.url || "",
+                        invert: (p.invert === "true" || p.invert === "1"),
                         image_type: p.img_type || "RGB565",
                         transparency: p.transparency || "opaque"
                     };
@@ -503,6 +535,7 @@ function applyImportedLayout(layout) {
     });
 
     pages = layout.pages.map((p, idx) => ({
+        ...p,  // Preserve all properties from imported page
         id: p.id || `page_${idx}`,
         name: p.name || `Page ${idx + 1}`,
         widgets: Array.isArray(p.widgets) ? p.widgets : []
@@ -523,12 +556,16 @@ function applyImportedLayout(layout) {
             }
         ];
     }
-    settings = layout.settings || settings || {};
-    deviceName = layout.name || "reTerminal E1001";
+    // Merge imported settings with existing settings to preserve power management choices
+    settings = { ...settings, ...(layout.settings || {}) };
+    deviceName = layout.name || deviceName || "reTerminal E1001";
     // Ensure defaults for new settings
     if (settings.sleep_enabled === undefined) settings.sleep_enabled = false;
     if (settings.sleep_start_hour === undefined) settings.sleep_start_hour = 0;
     if (settings.sleep_end_hour === undefined) settings.sleep_end_hour = 5;
+    if (settings.manual_refresh_only === undefined) settings.manual_refresh_only = false;
+    if (settings.deep_sleep_enabled === undefined) settings.deep_sleep_enabled = false;
+    if (settings.deep_sleep_interval === undefined) settings.deep_sleep_interval = 600;
 
     // Preserve current page index if possible, otherwise reset to 0
     if (currentPageIndex >= pages.length) {
@@ -622,6 +659,10 @@ const currentPageNameEl = document.getElementById("currentPageName");
 const propertiesPanel = document.getElementById("propertiesPanel");
 const sidebarStatus = document.getElementById("sidebarStatus");
 const snippetBox = document.getElementById("snippetBox");
+if (snippetBox) {
+    snippetBox.addEventListener("mousedown", () => { isAutoHighlight = false; });
+    snippetBox.addEventListener("input", () => { isAutoHighlight = false; });
+}
 
 const addPageBtn = document.getElementById("addPageBtn");
 const saveLayoutBtn = document.getElementById("saveLayoutBtn");
@@ -650,6 +691,8 @@ const deviceNameInput = document.getElementById('deviceName');
 const deviceOrientationInput = document.getElementById('deviceOrientation');
 const deviceDarkModeInput = document.getElementById('deviceDarkMode');
 
+// Power Strategy Radio Buttons
+const modeStandard = document.getElementById('mode-standard');
 const settingSleepEnabled = document.getElementById('setting-sleep-enabled');
 const settingSleepStart = document.getElementById('setting-sleep-start');
 const settingSleepEnd = document.getElementById('setting-sleep-end');
@@ -665,65 +708,181 @@ const settingNoRefreshEnd = document.getElementById('setting-no-refresh-end');
 
 
 function openDeviceSettings() {
-    deviceNameInput.value = deviceName || "reTerminal E1001";
-    deviceOrientationInput.value = settings.orientation || "landscape";
-    deviceDarkModeInput.checked = !!settings.dark_mode;
+    console.log("Opening Device Settings. Current settings:", JSON.stringify(settings));
 
-    settingSleepEnabled.checked = !!settings.sleep_enabled;
-    settingSleepStart.value = settings.sleep_start_hour ?? 0;
-    settingSleepEnd.value = settings.sleep_end_hour ?? 5;
-    sleepTimesRow.style.display = settingSleepEnabled.checked ? 'flex' : 'none';
+    if (deviceNameInput) deviceNameInput.value = deviceName || "reTerminal E1001";
+    if (deviceOrientationInput) deviceOrientationInput.value = settings.orientation || "landscape";
+    if (deviceDarkModeInput) deviceDarkModeInput.checked = !!settings.dark_mode;
 
-    settingDeepSleepEnabled.checked = !!settings.deep_sleep_enabled;
-    settingDeepSleepInterval.value = settings.deep_sleep_interval ?? 600;
-    settingDeepSleepEnabled.checked = !!settings.deep_sleep_enabled;
-    settingDeepSleepInterval.value = settings.deep_sleep_interval ?? 600;
-    deepSleepIntervalRow.style.display = settingDeepSleepEnabled.checked ? 'flex' : 'none';
+    // Determine which power mode is active and select the appropriate radio button
+    const isSleep = !!settings.sleep_enabled;
+    const isManual = !!settings.manual_refresh_only;
+    const isDeepSleep = !!settings.deep_sleep_enabled;
+    const isStandard = !isSleep && !isManual && !isDeepSleep;
 
-    settingManualRefresh.checked = !!settings.manual_refresh_only;
+    // Select the appropriate radio button
+    if (modeStandard) modeStandard.checked = isStandard;
+    if (settingSleepEnabled) settingSleepEnabled.checked = isSleep;
+    if (settingManualRefresh) settingManualRefresh.checked = isManual;
+    if (settingDeepSleepEnabled) settingDeepSleepEnabled.checked = isDeepSleep;
+
+    // Set time inputs
+    if (settingSleepStart) settingSleepStart.value = settings.sleep_start_hour ?? 0;
+    if (settingSleepEnd) settingSleepEnd.value = settings.sleep_end_hour ?? 5;
+    if (settingDeepSleepInterval) settingDeepSleepInterval.value = settings.deep_sleep_interval ?? 600;
+
+    // Show/hide sub-settings based on selection
+    if (sleepTimesRow) sleepTimesRow.style.display = isSleep ? 'flex' : 'none';
+    if (deepSleepIntervalRow) deepSleepIntervalRow.style.display = isDeepSleep ? 'flex' : 'none';
 
     deviceSettingsModal.classList.remove("hidden");
     deviceSettingsModal.style.display = 'flex';
 }
 
-settingSleepEnabled.addEventListener('change', () => {
-    sleepTimesRow.style.display = settingSleepEnabled.checked ? 'flex' : 'none';
-});
+if (settingSleepEnabled) {
+    settingSleepEnabled.addEventListener('change', () => {
+        if (sleepTimesRow) sleepTimesRow.style.display = settingSleepEnabled.checked ? 'flex' : 'none';
+    });
+}
 
-settingDeepSleepEnabled.addEventListener('change', () => {
-    deepSleepIntervalRow.style.display = settingDeepSleepEnabled.checked ? 'flex' : 'none';
-});
+if (settingDeepSleepEnabled) {
+    settingDeepSleepEnabled.addEventListener('change', () => {
+        if (deepSleepIntervalRow) deepSleepIntervalRow.style.display = settingDeepSleepEnabled.checked ? 'flex' : 'none';
+    });
+}
 
 const deviceSettingsBtn = document.getElementById('deviceSettingsBtn');
 if (deviceSettingsBtn) {
     deviceSettingsBtn.addEventListener('click', openDeviceSettings);
 }
 
-deviceSettingsClose.addEventListener('click', () => {
-    deviceSettingsModal.style.display = 'none';
-});
+if (deviceSettingsClose) {
+    deviceSettingsClose.addEventListener('click', () => {
+        deviceSettingsModal.style.display = 'none';
+        deviceSettingsModal.classList.add("hidden");
+    });
+}
 
-deviceSettingsSave.addEventListener('click', async () => {
-    deviceName = deviceNameInput.value.trim();
-    settings.orientation = deviceOrientationInput.value;
-    settings.dark_mode = deviceDarkModeInput.checked;
+if (deviceSettingsSave) {
+    deviceSettingsSave.addEventListener('click', () => {
+        deviceSettingsModal.style.display = 'none';
+        deviceSettingsModal.classList.add("hidden");
+    });
+}
 
-    settings.sleep_enabled = settingSleepEnabled.checked;
-    settings.sleep_start_hour = parseInt(settingSleepStart.value) || 0;
-    settings.sleep_end_hour = parseInt(settingSleepEnd.value) || 0;
+// --- Auto-Save Logic for Device & Page Settings ---
+function setupAutoSaveListeners() {
+    console.log("Setting up auto-save listeners...");
 
-    settings.deep_sleep_enabled = settingDeepSleepEnabled.checked;
-    settings.deep_sleep_interval = parseInt(settingDeepSleepInterval.value) || 600;
+    // Helper to update device settings
+    const updateDeviceSetting = (key, value) => {
+        settings[key] = value;
+        console.log(`Auto-saved ${key}:`, value);
+        scheduleSnippetUpdate();
+    };
 
-    settings.manual_refresh_only = settingManualRefresh.checked;
+    // Device Name
+    if (deviceNameInput) {
+        deviceNameInput.addEventListener('input', () => {
+            deviceName = deviceNameInput.value.trim();
+            scheduleSnippetUpdate();
+        });
+    }
 
-    applyOrientation(settings.orientation);
-    renderCanvas();
-    scheduleSnippetUpdate();
+    // Orientation
+    if (deviceOrientationInput) {
+        deviceOrientationInput.addEventListener('change', () => {
+            const val = deviceOrientationInput.value;
+            updateDeviceSetting('orientation', val);
+            applyOrientation(val);
+            renderCanvas();
+        });
+    }
 
-    deviceSettingsModal.classList.add("hidden");
-    deviceSettingsModal.style.display = 'none';
-});
+    // Dark Mode
+    if (deviceDarkModeInput) {
+        deviceDarkModeInput.addEventListener('change', () => {
+            updateDeviceSetting('dark_mode', deviceDarkModeInput.checked);
+            renderCanvas();
+        });
+    }
+
+    // Power Strategy Radio Buttons (unified handler)
+    const powerStrategyRadios = [modeStandard, settingSleepEnabled, settingManualRefresh, settingDeepSleepEnabled];
+    powerStrategyRadios.forEach(radio => {
+        if (radio) {
+            radio.addEventListener('change', () => {
+                if (!radio.checked) return; // Only handle the selected radio
+
+                // Determine which mode is selected
+                const isStandard = modeStandard && modeStandard.checked;
+                const isSleep = settingSleepEnabled && settingSleepEnabled.checked;
+                const isManual = settingManualRefresh && settingManualRefresh.checked;
+                const isDeepSleep = settingDeepSleepEnabled && settingDeepSleepEnabled.checked;
+
+                // Update settings based on selection
+                updateDeviceSetting('sleep_enabled', isSleep);
+                updateDeviceSetting('manual_refresh_only', isManual);
+                updateDeviceSetting('deep_sleep_enabled', isDeepSleep);
+
+                console.log('Power mode changed:', { isStandard, isSleep, isManual, isDeepSleep });
+            });
+        }
+    });
+
+    // Sleep time inputs
+    if (settingSleepStart) {
+        settingSleepStart.addEventListener('input', () => {
+            updateDeviceSetting('sleep_start_hour', parseInt(settingSleepStart.value) || 0);
+        });
+    }
+    if (settingSleepEnd) {
+        settingSleepEnd.addEventListener('input', () => {
+            updateDeviceSetting('sleep_end_hour', parseInt(settingSleepEnd.value) || 0);
+        });
+    }
+
+    // Deep Sleep interval input
+    if (settingDeepSleepInterval) {
+        settingDeepSleepInterval.addEventListener('input', () => {
+            updateDeviceSetting('deep_sleep_interval', parseInt(settingDeepSleepInterval.value) || 600);
+        });
+    }
+
+    // --- Page Settings Auto-Save ---
+    const pageNameEl = document.getElementById('pageSettingsName');
+    const pageRefreshEl = document.getElementById('pageSettingsRefresh');
+
+    if (pageNameEl) {
+        pageNameEl.addEventListener('input', () => {
+            if (currentPageSettingsTarget) {
+                currentPageSettingsTarget.name = pageNameEl.value;
+                renderPagesSidebar(); // Update sidebar name
+                scheduleSnippetUpdate();
+            }
+        });
+    }
+
+    if (pageRefreshEl) {
+        const handleRefreshChange = () => {
+            if (currentPageSettingsTarget) {
+                const val = pageRefreshEl.value.trim();
+                if (val === "") {
+                    currentPageSettingsTarget.refresh_s = null;
+                } else {
+                    const num = parseInt(val, 10);
+                    currentPageSettingsTarget.refresh_s = (num >= 0) ? num : null;
+                }
+                scheduleSnippetUpdate();
+            }
+        };
+        pageRefreshEl.addEventListener('input', handleRefreshChange);
+        pageRefreshEl.addEventListener('change', handleRefreshChange);
+    }
+}
+
+// Initialize listeners immediately
+setupAutoSaveListeners();
 
 if (updateLayoutBtn) {
     updateLayoutBtn.addEventListener("click", async () => {
@@ -802,16 +961,18 @@ let settings = {
     dark_mode: false,
     sleep_enabled: false,
     sleep_start_hour: 0,
-    sleep_enabled: false,
-    sleep_start_hour: 0,
     sleep_end_hour: 5,
-    manual_refresh_only: false
+    manual_refresh_only: false,
+    no_refresh_start_hour: 0,
+    no_refresh_end_hour: 0
 };
 let currentPageIndex = 0;
 let widgetsById = new Map();
 let selectedWidgetId = null;
 let deviceName = "reTerminal E1001";
-let currentPageSettingsTarget = null;
+
+
+let isAutoHighlight = false;
 
 // --- Undo/Redo & Clipboard ---
 let historyStack = [];
@@ -1080,6 +1241,87 @@ function renderPagesSidebar() {
     pages.forEach((page, index) => {
         const item = document.createElement("div");
         item.className = "item" + (index === currentPageIndex ? " active" : "");
+        item.draggable = true;
+
+        // Drag and Drop Handlers
+        item.ondragstart = (e) => {
+            e.dataTransfer.setData("text/plain", index);
+            e.dataTransfer.effectAllowed = "move";
+            item.style.opacity = "0.5";
+        };
+
+        item.ondragend = (e) => {
+            item.style.opacity = "1";
+            // Use pageListEl directly to ensure we target the correct container
+            Array.from(pageListEl.children).forEach(el => {
+                el.style.borderTop = "";
+                el.style.borderBottom = "";
+            });
+        };
+
+        item.ondragover = (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            const rect = item.getBoundingClientRect();
+            const midpoint = rect.top + rect.height / 2;
+            if (e.clientY < midpoint) {
+                item.style.borderTop = "2px solid var(--primary)";
+                item.style.borderBottom = "";
+            } else {
+                item.style.borderTop = "";
+                item.style.borderBottom = "2px solid var(--primary)";
+            }
+        };
+
+        item.ondragleave = () => {
+            item.style.borderTop = "";
+            item.style.borderBottom = "";
+        };
+
+        item.ondrop = (e) => {
+            e.preventDefault();
+            item.style.borderTop = "";
+            item.style.borderBottom = "";
+            const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
+            const toIndex = index;
+
+            if (fromIndex === toIndex) return;
+
+            // Calculate actual insertion index based on drop position
+            const rect = item.getBoundingClientRect();
+            const midpoint = rect.top + rect.height / 2;
+            let insertIndex = toIndex;
+            if (e.clientY >= midpoint) {
+                insertIndex++;
+            }
+
+            // Adjust insertIndex if moving downwards
+            if (fromIndex < insertIndex) {
+                insertIndex--;
+            }
+
+            // Move the page
+            const movedPage = pages.splice(fromIndex, 1)[0];
+            pages.splice(insertIndex, 0, movedPage);
+
+            // Renumber page IDs to ensure order persists (backend often sorts by ID)
+            pages.forEach((p, i) => {
+                p.id = `page_${i}`;
+            });
+
+            // Update selection to follow the moved page
+            if (currentPageIndex === fromIndex) {
+                currentPageIndex = insertIndex;
+            } else if (currentPageIndex > fromIndex && currentPageIndex <= insertIndex) {
+                currentPageIndex--;
+            } else if (currentPageIndex < fromIndex && currentPageIndex >= insertIndex) {
+                currentPageIndex++;
+            }
+
+            // Re-render
+            renderPagesSidebar();
+            scheduleSnippetUpdate();
+        };
 
         item.onclick = () => {
             currentPageIndex = index;
@@ -1166,6 +1408,7 @@ function createWidget(type) {
         widget.props.font_weight = 400;  // Regular
         widget.props.italic = false;
         widget.props.bpp = 1;  // No anti-aliasing by default
+        widget.props.text_align = "TOP_LEFT";  // Default alignment: left
     } else if (type === "sensor_text") {
         widget.type = "sensor_text";
         widget.props.label_font_size = 14;
@@ -1177,6 +1420,7 @@ function createWidget(type) {
         widget.props.italic = false;
         widget.props.unit = "";
         widget.props.precision = -1;
+        widget.props.text_align = "TOP_LEFT";  // Default alignment: left
         widget.entity_id = "";
         widget.title = "";
     } else if (type === "datetime") {
@@ -1216,6 +1460,7 @@ function createWidget(type) {
     } else if (type === "puppet") {
         widget.type = "puppet";
         widget.props.image_url = "";
+        widget.props.invert = false;
         widget.props.image_type = "RGB565";  // ESPHome default for color displays
         widget.props.transparency = "opaque";  // No transparency by default
     } else if (type === "shape_rect") {
@@ -1258,6 +1503,7 @@ function createWidget(type) {
         widget.width = 800;
         widget.height = 480;
         widget.props.url = "";
+        widget.props.invert = false;
         widget.props.interval_s = 300;
     } else if (type === "graph") {
         widget.type = "graph";
@@ -1287,6 +1533,127 @@ function createWidget(type) {
     renderPropertiesPanel();
     scheduleSnippetUpdate();
     recordHistory();
+}
+
+// --- Graph Preview Helpers ---
+
+function parseDuration(durationStr) {
+    if (!durationStr) return 3600; // Default 1h
+    const match = durationStr.match(/^(\d+)([a-z]+)$/i);
+    if (!match) return 3600;
+    const val = parseInt(match[1], 10);
+    const unit = match[2].toLowerCase();
+    if (unit.startsWith("s")) return val;
+    if (unit.startsWith("m")) return val * 60;
+    if (unit.startsWith("h")) return val * 3600;
+    if (unit.startsWith("d")) return val * 86400;
+    return val;
+}
+
+function generateMockData(width, height, min, max) {
+    const points = [];
+    const numPoints = 50;
+
+    // Generate a nice wavy line
+    for (let i = 0; i < numPoints; i++) {
+        const x = (i / (numPoints - 1)) * width;
+
+        // Sine wave + noise
+        const normalizedX = i / numPoints;
+        const base = Math.sin(normalizedX * Math.PI * 2); // One full wave
+        const noise = (Math.random() - 0.5) * 0.2; // +/- 10% noise
+
+        let normalizedY = 0.5 + (base * 0.3) + noise;
+        normalizedY = Math.max(0.1, Math.min(0.9, normalizedY)); // Clamp to keep inside
+
+        // Map to pixel coordinates (Y is inverted in SVG/Canvas)
+        const y = height - (normalizedY * height);
+        points.push({ x, y });
+    }
+    return points;
+}
+
+function drawInternalGrid(svg, width, height, xGridStr, yGridStr) {
+    const gridGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    gridGroup.setAttribute("stroke", "rgba(0,0,0,0.1)");
+    gridGroup.setAttribute("stroke-dasharray", "2,2");
+    gridGroup.setAttribute("stroke-width", "1");
+
+    // Simple heuristic for grid lines if no specific interval is parsed
+    // In a real scenario we'd parse "10min" or "1.5"
+    const xLines = 4;
+    const yLines = 4;
+
+    for (let i = 1; i < xLines; i++) {
+        const x = (i / xLines) * width;
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", x);
+        line.setAttribute("y1", 0);
+        line.setAttribute("x2", x);
+        line.setAttribute("y2", height);
+        gridGroup.appendChild(line);
+    }
+
+    for (let i = 1; i < yLines; i++) {
+        const y = (i / yLines) * height;
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", 0);
+        line.setAttribute("y1", y);
+        line.setAttribute("x2", width);
+        line.setAttribute("y2", y);
+        gridGroup.appendChild(line);
+    }
+
+    svg.appendChild(gridGroup);
+}
+
+function drawSmartAxisLabels(container, x, y, width, height, min, max, durationStr) {
+    // Y-Axis Labels (Left of graph)
+    const range = max - min;
+    const steps = 4; // Min, 25%, 50%, 75%, Max
+
+    for (let i = 0; i <= steps; i++) {
+        const val = min + (range * (i / steps));
+        const labelY = y + height - ((i / steps) * height);
+
+        const div = document.createElement("div");
+        div.style.position = "absolute";
+        div.style.right = `${(CANVAS_WIDTH - x) + 4}px`; // Position to left of graph
+        div.style.top = `${labelY - 6}px`; // Center vertically
+        div.style.fontSize = "10px";
+        div.style.color = "#666";
+        div.style.textAlign = "right";
+        div.textContent = val.toFixed(1);
+        container.appendChild(div);
+    }
+
+    // X-Axis Labels (Below graph)
+    const durationSec = parseDuration(durationStr);
+    const xSteps = 2; // Start, Middle, End
+
+    for (let i = 0; i <= xSteps; i++) {
+        const ratio = i / xSteps;
+        const labelX = x + (width * ratio);
+
+        let labelText = "";
+        if (i === xSteps) labelText = "Now";
+        else {
+            const timeAgo = durationSec * (1 - ratio);
+            if (timeAgo >= 3600) labelText = `-${(timeAgo / 3600).toFixed(1)}h`;
+            else if (timeAgo >= 60) labelText = `-${(timeAgo / 60).toFixed(0)}m`;
+            else labelText = `-${timeAgo.toFixed(0)}s`;
+        }
+
+        const div = document.createElement("div");
+        div.style.position = "absolute";
+        div.style.left = `${labelX}px`;
+        div.style.top = `${y + height + 4}px`; // Below graph
+        div.style.fontSize = "10px";
+        div.style.color = "#666";
+        div.style.transform = "translateX(-50%)";
+        div.textContent = labelText;
+        container.appendChild(div);
+    }
 }
 
 function onWidgetPaletteClick(e) {
@@ -1625,6 +1992,8 @@ function renderCanvas() {
             }
         } else if (type === "puppet") {
             const url = props.image_url || "";
+            const invert = !!props.invert;
+
             el.style.overflow = "hidden";
             el.style.backgroundColor = "#f0f0f0";
             el.style.display = "flex";
@@ -1639,6 +2008,10 @@ function renderCanvas() {
                 img.style.objectFit = "contain";
                 img.draggable = false;
 
+                if (invert) {
+                    img.style.filter = "invert(1)";
+                }
+
                 img.onerror = () => {
                     el.innerHTML = "<div style='text-align:center;color:#666;font-size:10px;padding:4px;'>" +
                         "Puppet<br/>(Load Failed)</div>";
@@ -1651,6 +2024,42 @@ function renderCanvas() {
                 placeholder.style.color = "#aaa";
                 placeholder.style.fontSize = "10px";
                 placeholder.innerHTML = "Puppet<br/><span style='font-size:9px;'>Enter URL</span>";
+                el.appendChild(placeholder);
+            }
+        } else if (type === "online_image") {
+            const url = props.url || "";
+            const invert = !!props.invert;
+
+            el.style.overflow = "hidden";
+            el.style.backgroundColor = "#f0f0f0";
+            el.style.display = "flex";
+            el.style.alignItems = "center";
+            el.style.justifyContent = "center";
+
+            if (url) {
+                const img = document.createElement("img");
+                img.src = url;
+                img.style.width = "100%";
+                img.style.height = "100%";
+                img.style.objectFit = "contain"; // Keep aspect ratio
+                img.draggable = false;
+
+                if (invert) {
+                    img.style.filter = "invert(1)";
+                }
+
+                img.onerror = () => {
+                    el.innerHTML = "<div style='text-align:center;color:#666;font-size:10px;padding:4px;'>" +
+                        "Online Image<br/>(Load Failed)</div>";
+                };
+
+                el.appendChild(img);
+            } else {
+                const placeholder = document.createElement("div");
+                placeholder.style.textAlign = "center";
+                placeholder.style.color = "#aaa";
+                placeholder.style.fontSize = "10px";
+                placeholder.innerHTML = "Online Image<br/><span style='font-size:9px;'>Enter URL</span>";
                 el.appendChild(placeholder);
             }
         } else if (type === "progress_bar") {
@@ -1864,95 +2273,22 @@ function renderCanvas() {
             const svg = document.createElementNS(svgNS, "svg");
             svg.setAttribute("width", "100%");
             svg.setAttribute("height", "100%");
+            // Set viewBox to match widget dimensions for easier coordinate mapping
+            svg.setAttribute("viewBox", `0 0 ${widget.width} ${widget.height}`);
             svg.style.display = "block";
 
-            // Helper to parse duration/time strings to seconds
-            const parseTime = (str) => {
-                if (!str) return 0;
-                const match = str.match(/^(\d+(?:\.\d+)?)\s*(s|min|h|d)?/);
-                if (!match) return 0;
-                const val = parseFloat(match[1]);
-                const unit = match[2] || "s";
-                if (unit === "min") return val * 60;
-                if (unit === "h") return val * 3600;
-                if (unit === "d") return val * 86400;
-                return val;
-            };
+            // Draw internal grid
+            drawInternalGrid(svg, widget.width, widget.height, props.x_grid, props.y_grid);
 
-            // Calculate grid lines
-            const durationSec = parseTime(props.duration || "1h");
-            const xGridSec = parseTime(props.x_grid);
+            // Generate mock data
+            const minVal = parseFloat(props.min_value) || 0;
+            const maxVal = parseFloat(props.max_value) || 100;
+            const points = generateMockData(widget.width, widget.height, minVal, maxVal);
 
-            let xDivisions = 4; // Default
-            if (durationSec > 0 && xGridSec > 0) {
-                xDivisions = Math.floor(durationSec / xGridSec);
-                // Limit to reasonable number for preview
-                if (xDivisions > 20) xDivisions = 20;
-            }
-
-            let yDivisions = 2; // Default
-            const yGridVal = parseFloat(props.y_grid);
-            if (!isNaN(yGridVal) && yGridVal > 0) {
-                // Estimate based on min/max or default range
-                // This is hard to preview accurately without real data range, so we'll just show a few lines
-                // or try to use min/max if set
-                const min = parseFloat(props.min_value) || 0;
-                const max = parseFloat(props.max_value) || 100;
-                if (max > min) {
-                    yDivisions = Math.floor((max - min) / yGridVal);
-                    if (yDivisions > 10) yDivisions = 10;
-                }
-            }
-
-            const gridGroup = document.createElementNS(svgNS, "g");
-            gridGroup.setAttribute("stroke", "#e0e0e0");
-            gridGroup.setAttribute("stroke-width", "1");
-
-            // Vertical grid lines
-            for (let i = 0; i <= xDivisions; i++) {
-                if (i === 0 && borderEnabled) continue; // Skip first if border exists
-                if (i === xDivisions && borderEnabled) continue; // Skip last
-
-                const line = document.createElementNS(svgNS, "line");
-                const x = (i / xDivisions * 100) + "%";
-                line.setAttribute("x1", x);
-                line.setAttribute("y1", "0");
-                line.setAttribute("x2", x);
-                line.setAttribute("y2", "100%");
-                gridGroup.appendChild(line);
-            }
-
-            // Horizontal grid lines
-            for (let i = 0; i <= yDivisions; i++) {
-                if (i === 0 && borderEnabled) continue;
-                if (i === yDivisions && borderEnabled) continue;
-
-                const line = document.createElementNS(svgNS, "line");
-                const y = (i / yDivisions * 100) + "%";
-                line.setAttribute("x1", "0");
-                line.setAttribute("y1", y);
-                line.setAttribute("x2", "100%");
-                line.setAttribute("y2", y);
-                gridGroup.appendChild(line);
-            }
-            svg.appendChild(gridGroup);
-
-            // Generate sample data points for preview
-            const sampleData = [
-                0.3, 0.5, 0.7, 0.8, 0.65, 0.9, 0.4, 0.2, 0.35, 0.6, 0.75, 0.55
-            ];
-
-            // Create polyline for the graph
+            // Create polyline
             const polyline = document.createElementNS(svgNS, "polyline");
-
-            // Use normalized coordinates (0-100) for the points to match viewBox
-            const points = sampleData.map((val, idx) => {
-                const x = (idx / (sampleData.length - 1)) * 100;
-                const y = 100 - (val * 100); // Invert Y because SVG 0 is top
-                return `${x},${y}`;
-            }).join(" ");
-
-            polyline.setAttribute("points", points);
+            const pointsStr = points.map(p => `${p.x},${p.y}`).join(" ");
+            polyline.setAttribute("points", pointsStr);
             polyline.setAttribute("fill", "none");
             polyline.setAttribute("stroke", colorStyle);
             const thickness = parseInt(props.line_thickness || 3, 10);
@@ -1968,6 +2304,10 @@ function renderCanvas() {
 
             svg.appendChild(polyline);
             el.appendChild(svg);
+
+            // Draw smart axis labels (outside border)
+            // Note: We append to 'canvas' because 'el' has overflow:hidden
+            drawSmartAxisLabels(canvas, widget.x, widget.y, widget.width, widget.height, minVal, maxVal, props.duration);
 
             // Add label if no entity selected OR if title is set
             if (widget.title) {
@@ -2074,6 +2414,15 @@ function renderCanvas() {
                     valueSpan.style.fontSize = valueFontSize + "px";
                     valueSpan.textContent = displayValue;
 
+                    const align = props.label_align || props.text_align || "TOP_LEFT";
+                    if (align === "TOP_CENTER") {
+                        body.style.justifyContent = "center";
+                    } else if (align === "TOP_RIGHT") {
+                        body.style.justifyContent = "flex-end";
+                    } else {
+                        body.style.justifyContent = "flex-start";
+                    }
+
                     body.appendChild(labelSpan);
                     body.appendChild(valueSpan);
                 } else if (valueFormat === "label_newline_value" && label) {
@@ -2085,15 +2434,45 @@ function renderCanvas() {
                     labelDiv.style.fontSize = labelFontSize + "px";
                     labelDiv.textContent = label;
 
+                    // Apply label alignment
+                    const labelAlign = props.label_align || props.text_align || "TOP_LEFT";
+                    if (labelAlign === "TOP_CENTER") {
+                        labelDiv.style.textAlign = "center";
+                    } else if (labelAlign === "TOP_RIGHT") {
+                        labelDiv.style.textAlign = "right";
+                    } else {
+                        labelDiv.style.textAlign = "left";
+                    }
+
                     const valueDiv = document.createElement("div");
                     valueDiv.style.fontSize = valueFontSize + "px";
                     valueDiv.textContent = displayValue;
+
+                    // Apply value alignment
+                    const valueAlign = props.value_align || props.text_align || "TOP_LEFT";
+                    if (valueAlign === "TOP_CENTER") {
+                        valueDiv.style.textAlign = "center";
+                    } else if (valueAlign === "TOP_RIGHT") {
+                        valueDiv.style.textAlign = "right";
+                    } else {
+                        valueDiv.style.textAlign = "left";
+                    }
 
                     body.appendChild(labelDiv);
                     body.appendChild(valueDiv);
                 } else {
                     body.style.fontSize = valueFontSize + "px";
                     body.textContent = displayValue;
+
+                    // Apply value alignment for single-line display
+                    const valueAlign = props.value_align || props.text_align || "TOP_LEFT";
+                    if (valueAlign === "TOP_CENTER") {
+                        body.style.textAlign = "center";
+                    } else if (valueAlign === "TOP_RIGHT") {
+                        body.style.textAlign = "right";
+                    } else {
+                        body.style.textAlign = "left";
+                    }
                 }
 
                 el.appendChild(body);
@@ -2102,6 +2481,8 @@ function renderCanvas() {
                 const fontFamily = props.font_family || "Inter";
                 const fontWeight = props.font_weight || 400;
                 const fontStyle = props.italic ? "italic" : "normal";
+                const textAlign = props.text_align || "TOP_LEFT";
+
                 const body = document.createElement("div");
                 body.style.fontSize = fontSize + "px";
                 body.style.fontFamily = fontFamily + ", sans-serif";
@@ -2109,6 +2490,16 @@ function renderCanvas() {
                 body.style.fontStyle = fontStyle;
                 body.style.color = colorStyle;
                 body.style.opacity = opacity;
+
+                // Apply CSS text alignment based on text_align property
+                if (textAlign === "TOP_CENTER") {
+                    body.style.textAlign = "center";
+                } else if (textAlign === "TOP_RIGHT") {
+                    body.style.textAlign = "right";
+                } else {
+                    body.style.textAlign = "left";
+                }
+
                 body.textContent = props.text || widget.title || "Text";
                 el.appendChild(body);
             }
@@ -2326,6 +2717,106 @@ function renderPropertiesPanel() {
         addLabeledInput("Height", "number", widget.height, (v) => {
             widget.height = parseInt(v || "0", 10) || 0;
             renderCanvas();
+        });
+    }
+
+    // Text alignment for text widgets
+    if (type === "text" || type === "label") {
+        addSelect("Text Alignment", widget.props.text_align || "TOP_LEFT",
+            ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT"], (val) => {
+                widget.props.text_align = val;
+                renderCanvas();
+                scheduleSnippetUpdate();
+            });
+    }
+
+
+    if (type === "sensor_text") {
+        // Entity ID with picker
+        const entityWrap = document.createElement("div");
+        entityWrap.className = "field";
+        const entityLbl = document.createElement("div");
+        entityLbl.className = "prop-label";
+        entityLbl.textContent = "Sensor Entity ID";
+
+        const entityRow = document.createElement("div");
+        entityRow.style.display = "flex";
+        entityRow.style.gap = "4px";
+
+        const entityInput = document.createElement("input");
+        entityInput.className = "prop-input";
+        entityInput.type = "text";
+        entityInput.value = widget.entity_id || "";
+        entityInput.style.flex = "1";
+        entityInput.addEventListener("input", () => {
+            widget.entity_id = entityInput.value;
+            if (hasHaBackend() && Object.keys(entityStatesCache).length === 0) {
+                fetchEntityStates();
+            }
+            renderCanvas();
+            scheduleSnippetUpdate();
+        });
+
+        const pickerBtn = document.createElement("button");
+        pickerBtn.className = "btn btn-secondary";
+        pickerBtn.textContent = "⋮⋮⋮";
+        pickerBtn.style.padding = "5px 8px";
+        pickerBtn.style.fontSize = "10px";
+        pickerBtn.type = "button";
+        pickerBtn.title = "Pick from Home Assistant entities";
+        pickerBtn.addEventListener("click", () => {
+            openEntityPickerForWidget(widget, entityInput);
+        });
+
+        entityRow.appendChild(entityInput);
+        entityRow.appendChild(pickerBtn);
+        entityWrap.appendChild(entityLbl);
+        entityWrap.appendChild(entityRow);
+        panel.appendChild(entityWrap);
+
+        // Local sensor checkbox
+        const localWrap = document.createElement("div");
+        localWrap.className = "field";
+        const localLbl = document.createElement("div");
+        localLbl.className = "prop-label";
+        localLbl.textContent = "Local / On-Device Sensor";
+        const localCb = document.createElement("input");
+        localCb.type = "checkbox";
+        localCb.checked = !!widget.props.is_local_sensor;
+        localCb.addEventListener("change", () => {
+            widget.props.is_local_sensor = localCb.checked;
+            scheduleSnippetUpdate();
+        });
+        localWrap.appendChild(localLbl);
+        localWrap.appendChild(localCb);
+        panel.appendChild(localWrap);
+
+        // Label
+        addLabeledInput("Label (optional)", "text", widget.title || "", (v) => {
+            widget.title = v;
+            renderCanvas();
+            scheduleSnippetUpdate();
+        });
+
+        // Alignment dropdown - **NEW FEATURE**
+        addSelect("Text Alignment", widget.props.text_align || "TOP_LEFT",
+            ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT"], (val) => {
+                widget.props.text_align = val;
+                renderCanvas();
+                scheduleSnippetUpdate();
+            });
+
+        // Unit
+        addLabeledInput("Unit (e.g., °C)", "text", widget.props.unit || "", (v) => {
+            widget.props.unit = v;
+            renderCanvas();
+            scheduleSnippetUpdate();
+        });
+
+        addSelect("Color", widget.props.color || "black", ["black", "white", "gray"], (val) => {
+            widget.props.color = val;
+            renderCanvas();
+            scheduleSnippetUpdate();
         });
     }
 
@@ -3228,6 +3719,25 @@ function renderPropertiesPanel() {
         helpWrap.style.fontSize = "9px";
         helpWrap.style.color = "var(--muted)";
         helpWrap.style.marginBottom = "8px";
+        helpWrap.innerHTML = "🖼️ Static image from ESPHome:<br/>" +
+            "<code style='background:#f0f0f0;padding:2px 4px;border-radius:2px;'>/config/esphome/images/logo.png</code><br/>" +
+            "<span style='color:#4a9eff;'>ℹ️ Place images in /config/esphome/images/ folder</span>";
+        panel.appendChild(helpWrap);
+
+        // Image Path Property
+        addLabeledInput("Image Path", "text", widget.props.path || "", (v) => {
+            widget.props.path = v;
+            renderCanvas();
+            scheduleSnippetUpdate();
+        });
+
+        // Invert Colors Checkbox
+        const invertWrap = document.createElement("div");
+        invertWrap.className = "field";
+        const invertLbl = document.createElement("div");
+        invertLbl.className = "prop-label";
+        invertLbl.textContent = "Invert colors";
+        const invertCb = document.createElement("input");
         invertCb.type = "checkbox";
         invertCb.checked = !!widget.props.invert;
         invertCb.addEventListener("change", () => {
@@ -3239,6 +3749,7 @@ function renderPropertiesPanel() {
         invertWrap.appendChild(invertCb);
         panel.appendChild(invertWrap);
 
+        // Fill Screen Button
         const fillWrap = document.createElement("div");
         fillWrap.className = "field";
         fillWrap.style.marginTop = "12px";
@@ -3296,6 +3807,24 @@ function renderPropertiesPanel() {
             renderCanvas();
             scheduleSnippetUpdate();
         });
+
+        // Invert Colors Checkbox
+        const invertWrap = document.createElement("div");
+        invertWrap.className = "field";
+        const invertLbl = document.createElement("div");
+        invertLbl.className = "prop-label";
+        invertLbl.textContent = "Invert colors";
+        const invertCb = document.createElement("input");
+        invertCb.type = "checkbox";
+        invertCb.checked = !!widget.props.invert;
+        invertCb.addEventListener("change", () => {
+            widget.props.invert = invertCb.checked;
+            renderCanvas();
+            scheduleSnippetUpdate();
+        });
+        invertWrap.appendChild(invertLbl);
+        invertWrap.appendChild(invertCb);
+        panel.appendChild(invertWrap);
     }
 
     if (type === "datetime") {
@@ -4051,6 +4580,16 @@ function renderPropertiesPanel() {
         scheduleSnippetUpdate();
     });
 
+    addLabeledInput("Visible Min (>)", "number", widget.condition_min || "", (v) => {
+        widget.condition_min = v || null;
+        scheduleSnippetUpdate();
+    });
+
+    addLabeledInput("Visible Max (<)", "number", widget.condition_max || "", (v) => {
+        widget.condition_max = v || null;
+        scheduleSnippetUpdate();
+    });
+
     const clearCondWrap = document.createElement("div");
     clearCondWrap.className = "field";
     clearCondWrap.style.marginTop = "4px";
@@ -4062,6 +4601,8 @@ function renderPropertiesPanel() {
         widget.condition_entity = null;
         widget.condition_state = null;
         widget.condition_operator = null;
+        widget.condition_min = null;
+        widget.condition_max = null;
         renderPropertiesPanel();
         scheduleSnippetUpdate();
     });
@@ -4079,6 +4620,64 @@ function screenToCanvasPosition(clientX, clientY) {
 }
 
 let dragState = null;
+let lastHighlightRange = null;
+
+function highlightWidgetInSnippet(widgetId) {
+    const box = document.getElementById("snippetBox");
+    if (!box) return;
+
+    const yaml = box.value;
+    if (!yaml) return;
+
+    // Search for the widget ID in the comments
+    // Format: // widget:type id:w_123 ...
+    const targetStr = `id:${widgetId}`;
+    const index = yaml.indexOf(targetStr);
+
+    if (index !== -1) {
+        // Find the start of the line containing the ID
+        const lineStart = yaml.lastIndexOf('\n', index) + 1;
+
+        // Find the next widget marker to determine block end
+        const nextWidgetIndex = yaml.indexOf("// widget:", index + targetStr.length);
+        let blockEnd = nextWidgetIndex !== -1 ? nextWidgetIndex : yaml.length;
+
+        // If there's a next widget, back up to the previous newline to avoid selecting the next widget's comment
+        if (nextWidgetIndex !== -1) {
+            blockEnd = yaml.lastIndexOf('\n', nextWidgetIndex) + 1;
+        }
+
+        // Check if user is typing in a property field
+        const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
+        const isTyping = (activeTag === "input" || activeTag === "textarea") && document.activeElement !== box;
+
+        // Only steal focus if NOT typing in properties
+        if (!isTyping) {
+            isAutoHighlight = true;
+            box.focus();
+        }
+
+        // Use "backward" to keep the cursor/focus at the start of the selection
+        // This helps prevent the browser from scrolling to the bottom of the block
+        box.setSelectionRange(lineStart, blockEnd, "backward");
+        lastHighlightRange = { start: lineStart, end: blockEnd };
+
+        // Scroll to selection with a slight delay to override browser default behavior
+        // setTimeout is often more reliable than requestAnimationFrame for overriding focus scrolling
+        setTimeout(() => {
+            const lines = yaml.substring(0, lineStart).split('\n');
+            const totalLines = yaml.split('\n').length;
+            const lineNum = lines.length;
+
+            // Calculate dynamic line height based on actual rendered height
+            // This works for ANY font size (online or offline)
+            const lineHeight = box.scrollHeight / totalLines;
+
+            // Scroll to center the line
+            box.scrollTop = (lineNum * lineHeight) - (box.clientHeight / 3);
+        }, 10);
+    }
+}
 
 function onWidgetMouseDown(ev, widgetId) {
     const widget = widgetsById.get(widgetId);
@@ -4086,6 +4685,7 @@ function onWidgetMouseDown(ev, widgetId) {
     selectedWidgetId = widgetId;
     renderCanvas();
     renderPropertiesPanel();
+    highlightWidgetInSnippet(widgetId);
 
     const target = ev.target;
     const rect = canvas.getBoundingClientRect();
@@ -4121,6 +4721,7 @@ function deleteWidget(widgetId) {
     page.widgets.splice(idx, 1);
     widgetsById.delete(widgetId);
     selectedWidgetId = null;
+    lastHighlightRange = null; // Clear highlight range
     renderCanvas();
     renderPropertiesPanel();
     scheduleSnippetUpdate();
@@ -4152,6 +4753,17 @@ function deletePage(pageIndex) {
 
 window.addEventListener("keydown", (ev) => {
     if ((ev.key === "Delete" || ev.key === "Backspace") && selectedWidgetId) {
+        // Special case: If snippet box is focused but selection matches the auto-highlight,
+        // treat it as a widget delete.
+        if (ev.target.id === "snippetBox" && lastHighlightRange) {
+            if (ev.target.selectionStart === lastHighlightRange.start &&
+                ev.target.selectionEnd === lastHighlightRange.end) {
+                ev.preventDefault();
+                deleteWidget(selectedWidgetId);
+                return;
+            }
+        }
+
         if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") {
             return;
         }
@@ -4162,14 +4774,28 @@ window.addEventListener("keydown", (ev) => {
 
     // Copy: Ctrl+C
     if ((ev.ctrlKey || ev.metaKey) && ev.key === "c") {
-        if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") return;
+        if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") {
+            if (ev.target.id === "snippetBox" && isAutoHighlight) {
+                ev.preventDefault();
+                copyWidget();
+                return;
+            }
+            return;
+        }
         ev.preventDefault();
         copyWidget();
     }
 
     // Paste: Ctrl+V
     if ((ev.ctrlKey || ev.metaKey) && ev.key === "v") {
-        if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") return;
+        if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") {
+            if (ev.target.id === "snippetBox" && isAutoHighlight) {
+                ev.preventDefault();
+                pasteWidget();
+                return;
+            }
+            return;
+        }
         ev.preventDefault();
         pasteWidget();
     }
@@ -4211,12 +4837,26 @@ function onMouseMove(ev) {
     } else if (dragState.mode === "resize") {
         let w = dragState.startW + (ev.clientX - dragState.startX);
         let h = dragState.startH + (ev.clientY - dragState.startY);
-        w = Math.max(10, Math.min(CANVAS_WIDTH - widget.x, w));
-        h = Math.max(10, Math.min(CANVAS_HEIGHT - widget.y, h));
+
+        // For line widgets, lock the non-dominant axis to prevent slanting
+        const wtype = (widget.type || "").toLowerCase();
+        if (wtype === "line") {
+            if (Math.abs(dragState.startW) >= Math.abs(dragState.startH)) {
+                // Horizontal-ish: Lock Height, allow Width to change
+                h = dragState.startH;
+            } else {
+                // Vertical-ish: Lock Width, allow Height to change
+                w = dragState.startW;
+            }
+        }
+
+        // Clamp to canvas bounds (skip minimum for line widgets to allow 0)
+        const minSize = (wtype === "line") ? 0 : 10;
+        w = Math.max(minSize, Math.min(CANVAS_WIDTH - widget.x, w));
+        h = Math.max(minSize, Math.min(CANVAS_HEIGHT - widget.y, h));
         widget.width = Math.round(w);
         widget.height = Math.round(h);
 
-        const wtype = (widget.type || "").toLowerCase();
         if (wtype === "icon") {
             const props = widget.props || {};
             if (props.fit_icon_to_frame) {
@@ -4261,32 +4901,330 @@ function getPagesPayload() {
         sleep_start_hour: settings.sleep_start_hour,
         sleep_end_hour: settings.sleep_end_hour,
         manual_refresh_only: settings.manual_refresh_only,
+        deep_sleep_enabled: settings.deep_sleep_enabled,
+        deep_sleep_interval: settings.deep_sleep_interval,
         no_refresh_start_hour: settings.no_refresh_start_hour,
         no_refresh_end_hour: settings.no_refresh_end_hour,
         pages
     };
 }
 
-function generateSnippetLocally() {
-    const payload = getPagesPayload();
-    // Ensure we are using the latest pages from the payload, which reflects the current state
-    const pagesLocal = payload.pages || [];
+function generateScriptSection(payload, pagesLocal) {
     const lines = [];
 
+    // Manual refresh only mode - minimal script
+    if (payload.manual_refresh_only) {
+        lines.push("script:");
+        lines.push("  - id: manage_run_and_sleep");
+        lines.push("    mode: restart");
+        lines.push("    then:");
+        lines.push("      - logger.log: \"Manual refresh only mode. Auto-refresh loop disabled.\"");
+        return lines.join("\n");
+    }
+
+    // Deep Sleep mode - simple script: update then sleep
+    if (payload.deep_sleep_enabled) {
+        lines.push("script:");
+        lines.push("  - id: manage_run_and_sleep");
+        lines.push("    mode: restart");
+        lines.push("    then:");
+        lines.push("      # Update screen immediately");
+        lines.push("      - component.update: epaper_display");
+        lines.push("      ");
+        lines.push("      # Enter deep sleep (wakes up after sleep_duration)");
+        lines.push("      - deep_sleep.enter: deep_sleep_1");
+        return lines.join("\n");
+    }
+
+    // Build per-page interval cases
+    const casesLines = [];
+    for (let idx = 0; idx < pagesLocal.length; idx++) {
+        const page = pagesLocal[idx];
+        const refreshS = page.refresh_s;
+        if (refreshS !== undefined && refreshS !== null) {
+            const val = parseInt(refreshS, 10);
+            if (!isNaN(val) && val > 0) {
+                casesLines.push(`                  case ${idx}: interval = ${val}; break;`);
+            }
+        }
+    }
+
+    const casesBlock = casesLines.length > 0
+        ? casesLines.join("\n")
+        : "                  default:\n                    break;";
+
+    // Sleep logic
+    let sleepLogic = "";
+    if (payload.sleep_enabled) {
+        const startH = parseInt(payload.sleep_start_hour || 0, 10);
+        const endH = parseInt(payload.sleep_end_hour || 5, 10);
+
+        // Handle wrap-around time (e.g. 22:00 to 06:00)
+        const condition = startH > endH
+            ? `(now.hour >= ${startH} || now.hour < ${endH})`
+            : `(now.hour >= ${startH} && now.hour < ${endH})`;
+
+        sleepLogic = `
+      # Night Mode Check (${String(startH).padStart(2, '0')}:00 - ${String(endH).padStart(2, '0')}:00)
+      - if:
+          condition:
+            lambda: |-
+              auto now = id(ha_time).now();
+              if (!now.is_valid()) {
+                return false;
+              }
+              // Deep sleep only between ${String(startH).padStart(2, '0')}:00 and ${String(endH).padStart(2, '0')}:00
+              // But skip if it's exactly the top of the hour (we just woke up to refresh)
+              return ${condition} && !(now.minute == 0);
+          then:
+            - lambda: |-
+                auto now = id(ha_time).now();
+                if (now.is_valid()) {
+                  ESP_LOGI("sleep", "Deep sleep mode %02d:%02d", now.hour, now.minute);
+                }
+            - if:
+                condition:
+                  lambda: |-
+                    auto now = id(ha_time).now();
+                    return now.is_valid() && (now.minute == 0);
+                then:
+                  - component.update: epaper_display
+                else:
+                  - logger.log: "Deep sleep mode: skipping refresh until the top of the hour."
+            - deep_sleep.enter:
+                id: deep_sleep_1
+                sleep_duration: 60min
+          
+          # Active Mode
+          else:`;
+    } else {
+        // No sleep mode
+        sleepLogic = `
+      # Sleep mode disabled
+      - if:
+          condition:
+            lambda: 'return false;'
+          then:
+            - delay: 1s
+          else:`;
+    }
+
+    // No-refresh window logic
+    let noRefreshLogic = "";
+    const nrStart = payload.no_refresh_start_hour;
+    const nrEnd = payload.no_refresh_end_hour;
+
+    if (nrStart !== undefined && nrStart !== null && nrEnd !== undefined && nrEnd !== null) {
+        const sH = parseInt(nrStart, 10);
+        const eH = parseInt(nrEnd, 10);
+        // Only generate if start != end (avoid 0-0 case)
+        if (!isNaN(sH) && !isNaN(eH) && sH !== eH) {
+            const cond = sH > eH
+                ? `(now.hour >= ${sH} || now.hour < ${eH})`
+                : `(now.hour >= ${sH} && now.hour < ${eH})`;
+
+            noRefreshLogic = `
+            - if:
+                condition:
+                  lambda: |-
+                    auto now = id(ha_time).now();
+                    return now.is_valid() && ${cond};
+                then:
+                  - logger.log: "In no-refresh window. Skipping display update."
+                  - delay: 60s
+                  - script.execute: manage_run_and_sleep
+                  - script.stop: manage_run_and_sleep
+            `;
+        }
+    }
+
+    // Build image trigger logic
+    const imageCases = [];
+    for (let idx = 0; idx < pagesLocal.length; idx++) {
+        const page = pagesLocal[idx];
+        const pageImages = [];
+        if (page.widgets) {
+            for (const w of page.widgets) {
+                const t = (w.type || "").toLowerCase();
+                if (t === "online_image") {
+                    pageImages.push(`online_image_${w.id}`.replace(/-/g, "_"));
+                } else if (t === "puppet") {
+                    pageImages.push(`puppet_${w.id}`.replace(/-/g, "_"));
+                }
+            }
+        }
+        if (pageImages.length > 0) {
+            const updates = pageImages.map(pid => `id(${pid}).update();`).join(" ");
+            imageCases.push(`                  case ${idx}: ${updates} triggered = true; break;`);
+        }
+    }
+
+    let updateLambda = "";
+    if (imageCases.length > 0) {
+        updateLambda = [
+            "            - lambda: |-",
+            "                bool triggered = false;",
+            "                int page = id(display_page);",
+            "                switch (page) {",
+            imageCases.join("\n"),
+            "                }",
+            "                if (!triggered) {",
+            "                  id(epaper_display).update();",
+            "                }"
+        ].join("\n");
+    } else {
+        updateLambda = "            - component.update: epaper_display";
+    }
+
+    // Assemble the full script
+    lines.push("script:");
+    lines.push("  - id: manage_run_and_sleep");
+    lines.push("    mode: restart");
+    lines.push("    then:");
+    lines.push("      - wait_until:");
+    lines.push("          condition:");
+    lines.push("            lambda: 'return id(ha_time).now().is_valid();'");
+    lines.push("          timeout: 120s");
+    lines.push(sleepLogic);
+    lines.push("            - lambda: |-");
+    lines.push("                int page = id(display_page);");
+    lines.push("                int interval = id(page_refresh_default_s);");
+    lines.push("                switch (page) {");
+    lines.push(casesBlock);
+    lines.push("                }");
+    lines.push("                if (interval < 60) {");
+    lines.push("                  interval = 60;");
+    lines.push("                }");
+    lines.push("                id(page_refresh_current_s) = interval;");
+    lines.push("                ESP_LOGI(\"refresh\", \"Next refresh in %d seconds for page %d\", interval, page);");
+    lines.push("            ");
+    lines.push(noRefreshLogic);
+    lines.push(updateLambda);
+    lines.push("      ");
+    lines.push("            - delay: !lambda 'return id(page_refresh_current_s) * 1000;'");
+    lines.push("            ");
+    lines.push("            - script.execute: manage_run_and_sleep");
+
+    return lines.join("\n");
+}
+
+function generateSnippetLocally() {
+    const payload = getPagesPayload();
+    const pages = payload.pages || [];
+    const pagesLocal = pages;
+    const lines = [];
+
+    // Helper to wrap widget rendering with conditional logic
+    const wrapWithCondition = (lines, w, contentFn) => {
+        const p = w.props || {};
+        const condEntity = w.condition_entity || w.entity_id;
+
+        const hasSingle = condEntity && w.condition_state != null && w.condition_operator;
+        const hasRange = condEntity && (w.condition_min != null || w.condition_max != null);
+
+        if (!hasSingle && !hasRange) {
+            contentFn();
+            return;
+        }
+
+        let safeCondId = condEntity;
+        if (condEntity.includes(".")) {
+            safeCondId = condEntity.replace(/\./g, "_").replace(/-/g, "_");
+        }
+
+        const isNumeric = condEntity.startsWith("sensor.") && !p.is_text_sensor;
+
+        lines.push(`        {`);
+
+        let valExpr = `id(${safeCondId}).state`;
+        if (!isNumeric && hasRange) {
+            lines.push(`          float cond_val = atof(id(${safeCondId}).state.c_str());`);
+            valExpr = `cond_val`;
+        } else if (!isNumeric) {
+            valExpr = `id(${safeCondId}).state.c_str()`;
+        }
+
+        if (hasRange) {
+            const parts = [];
+            if (w.condition_min) parts.push(`${valExpr} > ${w.condition_min}`);
+            if (w.condition_max) parts.push(`${valExpr} < ${w.condition_max}`);
+
+            if (parts.length > 0) {
+                lines.push(`          if (${parts.join(" && ")}) {`);
+            } else {
+                lines.push(`          if (true) {`);
+            }
+        } else {
+            const op = w.condition_operator || "==";
+            const state = w.condition_state;
+            if (["<", ">", "<=", ">="].includes(op)) {
+                lines.push(`          if (${valExpr} ${op} ${state}) {`);
+            } else {
+                if (isNumeric) {
+                    lines.push(`          if (${valExpr} ${op} ${state}) {`);
+                } else {
+                    if (op === "==") {
+                        lines.push(`          if (id(${safeCondId}).state == "${state}") {`);
+                    } else {
+                        lines.push(`          if (id(${safeCondId}).state != "${state}") {`);
+                    }
+                }
+            }
+        }
+
+        contentFn();
+
+        lines.push(`          }`);
+        lines.push(`        }`);
+    };
+
+    const getCondProps = (w) => {
+        const ce = w.condition_entity || "";
+        const co = w.condition_operator || "";
+        const cs = w.condition_state || "";
+        const cmin = w.condition_min || "";
+        const cmax = w.condition_max || "";
+        return `cond_ent:${ce} cond_op:${co} cond_state:${cs} cond_min:${cmin} cond_max:${cmax}`;
+    };
+
     const iconCodes = new Set();
+    const textFonts = new Set(); // Stores strings "family|weight|size"
+
+    // Helper to add font
+    const addFont = (family, weight, size) => {
+        const f = (family || "Roboto");
+        const w = parseInt(weight || 400, 10);
+        const s = parseInt(size || 20, 10);
+        textFonts.add(`${f}|${w}|${s}`);
+    };
+
     for (const page of pagesLocal) {
         if (!page || !Array.isArray(page.widgets)) continue;
         for (const w of page.widgets) {
             const t = (w.type || "").toLowerCase();
             const p = w.props || {};
+
             if (t === "icon") {
                 const raw = (p.code || "").trim().toUpperCase().replace(/^0X/, "");
                 if (/^F[0-9A-F]{4}$/i.test(raw)) {
                     iconCodes.add(raw);
                 }
+            } else if (t === "text" || t === "label") {
+                addFont(p.font_family, p.font_weight, p.font_size || p.size);
+            } else if (t === "sensor_text") {
+                addFont(p.font_family, p.font_weight, p.label_font_size || p.label_font);
+                addFont(p.font_family, p.font_weight, p.value_font_size || p.value_font);
+            } else if (t === "datetime") {
+                // Datetime uses specific sizes
+                addFont(p.font_family, 700, p.time_font_size);
+                addFont(p.font_family, 400, p.date_font_size);
             }
         }
     }
+
+    // Always add fallback fonts (Roboto 14 & 20)
+    addFont("Roboto", 400, 14);
+    addFont("Roboto", 400, 20);
 
     lines.push("# Local preview snippet (fallback)");
     lines.push("# Paste below your base ESPHome config.");
@@ -4295,21 +5233,92 @@ function generateSnippetLocally() {
     lines.push("# Then keep the 'file: fonts/materialdesignicons-webfont.ttf' path below.");
     lines.push("");
 
-    if (iconCodes.size > 0) {
-        lines.push("font:");
-        lines.push("  # Icon fonts used by MDI icon widgets generated from the reTerminal editor.");
-        lines.push("  - file: 'fonts/materialdesignicons-webfont.ttf'");
-        lines.push("    id: font_mdi_large");
-        lines.push("    size: 200");
-        lines.push("    glyphs: &mdi_glyphs");
-        iconCodes.forEach((code) => {
-            const hex = code.toUpperCase();
-            lines.push(`      - "\\\\U000${hex}"`);
+    // Output device settings
+    lines.push("# ====================================");
+    lines.push("# Device Settings (from editor)");
+    lines.push("# ====================================");
+    lines.push(`# Orientation: ${payload.orientation || 'landscape'}`);
+    lines.push(`# Dark Mode: ${payload.dark_mode ? 'enabled' : 'disabled'}`);
+    lines.push(`# Sleep Mode: ${payload.sleep_enabled ? 'enabled (' + payload.sleep_start_hour + 'h - ' + payload.sleep_end_hour + 'h)' : 'disabled'}`);
+    lines.push(`# Manual Refresh Only: ${payload.manual_refresh_only ? 'enabled' : 'disabled'}`);
+    lines.push(`# Deep Sleep: ${payload.deep_sleep_enabled ? 'enabled (' + (payload.deep_sleep_interval || 600) + 's interval)' : 'disabled'}`);
+    lines.push("# ====================================");
+    lines.push("");
+
+    // Generate Font Section
+    const fontLines = [];
+
+    // 1. Text Fonts
+    if (textFonts.size > 0) {
+        fontLines.push("  # Custom text fonts for widget sizes/weights");
+        // Sort fonts for consistent output
+        const sortedFonts = Array.from(textFonts).map(s => {
+            const [f, w, z] = s.split("|");
+            return { family: f, weight: parseInt(w), size: parseInt(z) };
+        }).sort((a, b) => {
+            if (a.family !== b.family) return a.family.localeCompare(b.family);
+            if (a.weight !== b.weight) return a.weight - b.weight;
+            return a.size - b.size;
         });
-        lines.push("  - file: 'fonts/materialdesignicons-webfont.ttf'");
-        lines.push("    id: font_mdi_medium");
-        lines.push("    size: 40");
-        lines.push("    glyphs: *mdi_glyphs");
+
+        sortedFonts.forEach(font => {
+            const familyId = font.family.toLowerCase().replace(/\s+/g, "_");
+            const fontId = `font_${familyId}_${font.weight}_${font.size}`;
+            fontLines.push(`  - file:`);
+            fontLines.push(`      type: gfonts`);
+            fontLines.push(`      family: ${font.family}`);
+            fontLines.push(`      weight: ${font.weight}`);
+            fontLines.push(`    id: ${fontId}`);
+            fontLines.push(`    size: ${font.size}`);
+            fontLines.push(`    bpp: 1`);
+        });
+    }
+
+    // 2. MDI Font Instructions
+    if (iconCodes.size > 0) {
+        const glyphs = Array.from(iconCodes).sort().map(code => {
+            // Convert hex F0595 to unicode char
+            const charCode = parseInt(code, 16);
+            // ESPHome expects actual characters or \U format. 
+            // In JS string literal for YAML, we can use \U format.
+            return `"\\U000${code}"`;
+        }).join(", ");
+
+        fontLines.push("");
+        fontLines.push("  # ============================================================================");
+        fontLines.push("  # INSTRUCTION: Icon Widget Fonts");
+        fontLines.push("  # ============================================================================");
+        fontLines.push("  # Your widgets use Material Design Icons. Add these glyphs to your existing");
+        fontLines.push("  # font: section in the hardware template (around line 150).");
+        fontLines.push("  # Find the matching font_mdi_XX and replace glyphs: [] with the list below.");
+        fontLines.push("  # ============================================================================");
+        fontLines.push("  #");
+
+        const sizes = new Set();
+        for (const page of pagesLocal) {
+            if (!page || !page.widgets) continue;
+            for (const w of page.widgets) {
+                if ((w.type || "").toLowerCase() === "icon") {
+                    sizes.add(parseInt(w.props?.size || 48, 10));
+                }
+            }
+        }
+        if (sizes.size === 0) sizes.add(48);
+
+        Array.from(sizes).sort((a, b) => a - b).forEach(size => {
+            const fontId = `font_mdi_${size}`;
+            fontLines.push(`  # font_mdi_${size} - Add these glyphs to your template:`);
+            fontLines.push(`  #   - file: fonts/materialdesignicons-webfont.ttf`);
+            fontLines.push(`  #     id: ${fontId}`);
+            fontLines.push(`  #     size: ${size}`);
+            fontLines.push(`  #     glyphs: [${glyphs}]`);
+            fontLines.push(`  #`);
+        });
+    }
+
+    if (fontLines.length > 0) {
+        lines.push("font:");
+        lines.push(...fontLines);
         lines.push("");
     }
 
@@ -4396,43 +5405,78 @@ function generateSnippetLocally() {
         lines.push("");
     }
 
-    // Collect all puppet widgets
-    const puppetWidgets = [];
+    // Collect all puppet and online_image widgets
+    const onlineImageWidgets = [];
     for (const page of pagesLocal) {
         if (!page || !Array.isArray(page.widgets)) continue;
         for (const w of page.widgets) {
             const t = (w.type || "").toLowerCase();
-            if (t === "puppet") {
-                puppetWidgets.push(w);
+            if (t === "puppet" || t === "online_image") {
+                onlineImageWidgets.push(w);
             }
         }
     }
 
-    // Generate online_image: component declarations for Puppet
-    if (puppetWidgets.length > 0) {
-        lines.push("# Required for Puppet widgets (uncomment if not already present)");
+    // Generate online_image: component declarations
+    if (onlineImageWidgets.length > 0) {
+        lines.push("# Required for Online Image / Puppet widgets (uncomment if not already present)");
         lines.push("# http_request:");
         lines.push("#   verify_ssl: false");
         lines.push("#   timeout: 20s");
         lines.push("");
 
         lines.push("online_image:");
-        puppetWidgets.forEach(w => {
+        onlineImageWidgets.forEach(w => {
             const p = w.props || {};
-            const url = p.image_url || "";
-            const puppetId = `puppet_${w.id}`.replace(/-/g, "_");
+            const t = (w.type || "").toLowerCase();
 
+            // Handle both Puppet (image_url) and Online Image (url) properties
+            const url = (p.url || p.image_url || "").trim();
+            const safeId = t === "puppet"
+                ? `puppet_${w.id}`.replace(/-/g, "_")
+                : `online_image_${w.id}`.replace(/-/g, "_");
+
+            const format = p.format || "jpg";
+            const updateInterval = p.update_interval || "1h";
+
+            lines.push(`  - id: ${safeId}`);
+            lines.push(`    url: "${url}"`);
+            lines.push(`    format: ${format}`);
+            lines.push(`    resize: ${w.width}x${w.height}`);
+            lines.push(`    update_interval: never`);
             lines.push(`    on_download_finished:`);
-            lines.push(`      - component.update: epaper_display`);
+            lines.push(`      then:`);
+            lines.push(`        - component.update: epaper_display`);
+            lines.push(`    on_error:`);
+            lines.push(`      then:`);
+            lines.push(`        - component.update: epaper_display`);
         });
         lines.push("");
     }
 
-    // Collect all entities used in widgets
-    const usedEntities = new Map(); // id -> { domain, entity_id }
+    // Generate deep_sleep: configuration if enabled
+    if (payload.deep_sleep_enabled) {
+        const interval = payload.deep_sleep_interval || 600;
+        lines.push("deep_sleep:");
+        lines.push("  id: deep_sleep_1");
+        lines.push("  run_duration: 30s");
+        lines.push(`  sleep_duration: ${interval}s`);
+        lines.push("");
+    }
 
-    for (const page of pagesLocal) {
-        if (!page || !Array.isArray(page.widgets)) continue;
+    // Generate script: section with sleep and refresh logic
+    const scriptSection = generateScriptSection(payload, pagesLocal);
+    lines.push(scriptSection);
+    lines.push("");
+
+
+    // NOTE: Fonts are pre-defined in the template (Step 3), not generated here
+    // to avoid YAML duplicate key errors. Users should add custom fonts to the
+    // template's font: section if needed.
+
+    // Track used entities for sensor/binary_sensor declarations
+    const usedEntities = new Map();
+    for (const page of pages) {
         for (const w of page.widgets) {
             const p = w.props || {};
             // Check main entity
@@ -4484,351 +5528,466 @@ function generateSnippetLocally() {
         }
     }
 
-    lines.push("globals:");
-    lines.push("  - id: display_page");
-    lines.push("    type: int");
-    lines.push("    restore_value: true");
-    lines.push("    initial_value: '0'");
-    lines.push("");
+
     lines.push("display:");
     lines.push("  - platform: waveshare_epaper");
     lines.push("    id: epaper_display");
-    lines.push("    model: 7.50inv2");
-    lines.push("    cs_pin: GPIO10");
-    lines.push("    dc_pin: GPIO11");
+    lines.push("    model: ${display_model}");
+    lines.push("    cs_pin: ${display_cs_pin}");
+    lines.push("    dc_pin: ${display_dc_pin}");
     lines.push("    reset_pin:");
-    lines.push("      number: GPIO12");
+    lines.push("      number: ${display_reset_pin}");
     lines.push("      inverted: false");
     lines.push("    busy_pin:");
-    lines.push("      number: GPIO13");
+    lines.push("      number: ${display_busy_pin}");
     lines.push("      inverted: true");
-    lines.push("    update_interval: 0s");
+    lines.push("    update_interval: never");
     lines.push("    lambda: |-");
+    lines.push("      // Define common colors for widgets");
+    lines.push("      Color COLOR_ON = Color(1);");
+    lines.push("      Color COLOR_OFF = Color(0);");
+    lines.push("      it.fill(COLOR_OFF);");
+    lines.push("");
     lines.push("      int page = id(display_page);");
 
     pages.forEach((page, pageIndex) => {
         lines.push(`      if (page == ${pageIndex}) {`);
+        lines.push(`        // page:name "${page.name}"`);
         if (!page.widgets || !page.widgets.length) {
             lines.push("        // No widgets on this page.");
         } else {
             for (const w of page.widgets) {
-                const t = (w.type || "").toLowerCase();
-                const p = w.props || {};
+                wrapWithCondition(lines, w, () => {
+                    const t = (w.type || "").toLowerCase();
+                    const p = w.props || {};
 
-                // Add local sensor marker comment for relevant widgets
-                let localMarker = "";
-                if (p.is_local_sensor) {
-                    localMarker = " // local: true";
-                }
-
-                if (t === "text" || t === "label") {
-                    const txt = (p.text || w.title || "Text").replace(/"/g, '\\"');
-                    if (!txt) continue;
-                    const fontSize = parseInt(p.font_size || 12, 10) || 12;
-                    const colorProp = p.color || "black";
-                    const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
-                    const textAlign = p.text_align || "TOP_LEFT";
-                    const fontWeight = p.font_weight || 400;
-                    const fontFamily = p.font_family || "Roboto";
-                    const italic = p.italic ? "true" : "false";
-                    const bpp = p.bpp || 1;
-
-                    lines.push(`        // widget:text id:${w.id} type:text x:${w.x} y:${w.y} w:${w.width} h:${w.height} text:"${txt}" font:"${fontFamily}" size:${fontSize} weight:${fontWeight} italic:${italic} bpp:${bpp} color:${colorProp} align:${textAlign}`);
-                    lines.push(`        // Note: Configure font with weight in font: section. Example:`);
-                    lines.push(`        // font:`);
-                    lines.push(`        //   - file:`);
-                    lines.push(`        //       type: gfonts`);
-                    lines.push(`        //       family: ${fontFamily}`);
-                    lines.push(`        //       weight: ${fontWeight}`);
-                    if (p.italic) {
-                        lines.push(`        //       italic: true`);
+                    // Add local sensor marker comment for relevant widgets
+                    let localMarker = "";
+                    if (p.is_local_sensor) {
+                        localMarker = " // local: true";
                     }
-                    lines.push(`        //     id: font_${fontFamily.toLowerCase().replace(/\s+/g, '_')}_${fontWeight}`);
-                    lines.push(`        //     size: ${fontSize}`);
-                    lines.push(`        //     bpp: ${bpp}  # 1=no AA, 2=4 levels, 4=16 levels, 8=256 levels`);
-                    lines.push(`        it.printf(${w.x}, ${w.y}, id(font_normal), ${color}, TextAlign::${textAlign}, "${txt}");`);
-                } else if (t === "sensor_text") {
-                    const entityId = (w.entity_id || "").trim();
-                    const label = (w.title || "").replace(/"/g, '\\"');
-                    const valueFormat = p.value_format || "label_value";
-                    const labelFontSize = parseInt(p.label_font_size || 14, 10) || 14;
-                    const valueFontSize = parseInt(p.value_font_size || 20, 10) || 20;
-                    const colorProp = p.color || "black";
-                    const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
-                    const textAlign = p.text_align || "TOP_LEFT";
-                    const precision = parseInt(p.precision !== undefined ? p.precision : -1, 10);
-                    const unit = p.unit || "";
 
-                    lines.push(`        // widget:sensor_text id:${w.id} type:sensor_text x:${w.x} y:${w.y} w:${w.width} h:${w.height} ent:${entityId} title:"${label}" format:${valueFormat} label_font:${labelFontSize} value_font:${valueFontSize} color:${colorProp} align:${textAlign} precision:${precision} unit:"${unit}" local:${!!p.is_local_sensor}`);
+                    if (t === "text" || t === "label") {
+                        const txt = (p.text || w.title || "Text").replace(/"/g, '\\"');
+                        if (!txt) return;
+                        const fontSize = parseInt(p.font_size || p.size || 12, 10) || 12;
+                        const colorProp = p.color || "black";
+                        const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
+                        const textAlign = p.text_align || "TOP_LEFT";
+                        const fontWeight = p.font_weight || 400;
+                        const fontFamily = p.font_family || "Roboto";
+                        const italic = p.italic ? "true" : "false";
+                        const bpp = p.bpp || 1;
 
-                    if (entityId) {
-                        const safeId = entityId.replace(/\./g, "_").replace(/-/g, "_");
-                        // Determine if it's a numeric sensor or text sensor
-                        // Default to numeric for 'sensor.' unless is_text_sensor is explicitly true
-                        const isNumeric = entityId.startsWith("sensor.") && !p.is_text_sensor;
+                        lines.push(`        // widget:text id:${w.id} type:text x:${w.x} y:${w.y} w:${w.width} h:${w.height} text:"${txt}" font_family:"${fontFamily}" size:${fontSize} weight:${fontWeight} italic:${italic} bpp:${bpp} color:${colorProp} align:${textAlign} ${getCondProps(w)}`);
 
-                        let valueExpr = `id(${safeId}).state`;
-                        let fmtSpec = "%.1f";
-                        if (precision >= 0) fmtSpec = `%${precision}.${precision}f`;
 
-                        if (!isNumeric) {
-                            // For text sensors, .state is a std::string, so we need .c_str() for printf
-                            valueExpr = `id(${safeId}).state.c_str()`;
-                            fmtSpec = "%s";
+                        // Calculate correct x coordinate based on alignment
+                        let alignX = w.x;
+                        if (textAlign === "TOP_CENTER") {
+                            alignX = w.x + Math.floor(w.width / 2);
+                        } else if (textAlign === "TOP_RIGHT") {
+                            alignX = w.x + w.width;
                         }
 
-                        if (valueFormat === "label_value") {
-                            lines.push(`        it.printf(${w.x}, ${w.y}, id(font_small), ${color}, TextAlign::TOP_LEFT, "${label}");`);
-                            lines.push(`        it.printf(${w.x}, ${w.y} + ${labelFontSize} + 2, id(font_large), ${color}, TextAlign::TOP_LEFT, "${fmtSpec}%s", ${valueExpr}, "${unit}");`);
-                        } else if (valueFormat === "value_only") {
-                            lines.push(`        it.printf(${w.x}, ${w.y}, id(font_large), ${color}, TextAlign::${textAlign}, "${fmtSpec}%s", ${valueExpr}, "${unit}");`);
+                        // Generate specific font ID matching template: font_<family>_<weight>_<size>
+                        const fontId = `font_${fontFamily.toLowerCase().replace(/\s+/g, '_')}_${fontWeight}_${fontSize}`;
+
+                        lines.push(`        it.printf(${alignX}, ${w.y}, id(${fontId}), ${color}, TextAlign::${textAlign}, "${txt}");`);
+                    } else if (t === "sensor_text") {
+                        const entityId = (w.entity_id || "").trim();
+                        const label = (w.title || "").replace(/"/g, '\\"');
+                        const valueFormat = p.value_format || "label_value";
+                        const labelFontSize = parseInt(p.label_font_size || p.label_font || 14, 10) || 14;
+                        const valueFontSize = parseInt(p.value_font_size || p.value_font || 20, 10) || 20;
+                        const colorProp = p.color || "black";
+                        const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
+                        const textAlign = p.text_align || "TOP_LEFT";
+                        const labelAlign = p.label_align || textAlign;
+                        const valueAlign = p.value_align || textAlign;
+                        const precision = parseInt(p.precision !== undefined ? p.precision : -1, 10);
+                        const unit = p.unit || "";
+                        const fontFamily = p.font_family || "Roboto";
+                        const fontWeight = parseInt(p.font_weight || 400, 10);
+
+                        // Helper function to calculate x coordinate based on alignment
+                        const getAlignX = (alignment) => {
+                            if (alignment === "TOP_CENTER") {
+                                return w.x + Math.floor(w.width / 2);
+                            } else if (alignment === "TOP_RIGHT") {
+                                return w.x + w.width;
+                            }
+                            return w.x; // TOP_LEFT
+                        };
+
+                        // Generate specific font IDs matching template
+                        const labelFontId = `font_${fontFamily.toLowerCase().replace(/\s+/g, '_')}_${fontWeight}_${labelFontSize}`;
+                        const valueFontId = `font_${fontFamily.toLowerCase().replace(/\s+/g, '_')}_${fontWeight}_${valueFontSize}`;
+
+                        lines.push(`        // widget:sensor_text id:${w.id} type:sensor_text x:${w.x} y:${w.y} w:${w.width} h:${w.height} ent:${entityId} title:"${label}" format:${valueFormat} label_font_size:${labelFontSize} value_font_size:${valueFontSize} color:${colorProp} text_align:${textAlign} label_align:${labelAlign} value_align:${valueAlign} precision:${precision} unit:"${unit}" font_family:"${fontFamily}" weight:${fontWeight} local:${!!p.is_local_sensor} ${getCondProps(w)}`);
+
+                        if (entityId) {
+                            const safeId = entityId.replace(/\./g, "_").replace(/-/g, "_");
+                            // Determine if it's a numeric sensor or text sensor
+                            // Default to numeric for 'sensor.' unless is_text_sensor is explicitly true
+                            const isNumeric = entityId.startsWith("sensor.") && !p.is_text_sensor;
+
+                            let valueExpr = `id(${safeId}).state`;
+                            let fmtSpec = "%.1f";
+                            if (precision >= 0) fmtSpec = `%${precision}.${precision}f`;
+
+                            if (!isNumeric) {
+                                // For text sensors, .state is a std::string, so we need .c_str() for printf
+                                valueExpr = `id(${safeId}).state.c_str()`;
+                                fmtSpec = "%s";
+                            }
+
+                            if (valueFormat === "label_value") {
+                                const labelX = getAlignX(labelAlign);
+                                const valueX = getAlignX(valueAlign);
+                                lines.push(`        it.printf(${labelX}, ${w.y}, id(${labelFontId}), ${color}, TextAlign::${labelAlign}, "${label}");`);
+                                lines.push(`        it.printf(${valueX}, ${w.y} + ${labelFontSize} + 2, id(${valueFontId}), ${color}, TextAlign::${valueAlign}, "${fmtSpec}%s", ${valueExpr}, "${unit}");`);
+                            } else if (valueFormat === "value_only") {
+                                const valueX = getAlignX(valueAlign);
+                                lines.push(`        it.printf(${valueX}, ${w.y}, id(${valueFontId}), ${color}, TextAlign::${valueAlign}, "${fmtSpec}%s", ${valueExpr}, "${unit}");`);
+                            } else {
+                                // label_only
+                                const labelX = getAlignX(labelAlign);
+                                lines.push(`        it.printf(${labelX}, ${w.y}, id(${labelFontId}), ${color}, TextAlign::${labelAlign}, "${label}");`);
+                            }
                         } else {
-                            // label_only
-                            lines.push(`        it.printf(${w.x}, ${w.y}, id(font_medium), ${color}, TextAlign::${textAlign}, "${label}");`);
-                        }
-                    } else {
-                        lines.push(`        it.printf(${w.x}, ${w.y}, id(font_medium), ${color}, TextAlign::${textAlign}, "${label}: (No Entity)");`);
-                    }
-
-                } else if (t === "graph") {
-                    const entityId = (w.entity_id || "").trim();
-                    const title = (w.title || "").replace(/"/g, '\\"');
-                    const duration = p.duration || "1h";
-                    const borderEnabled = p.border !== false;
-                    const colorProp = p.color || "black";
-                    const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
-                    const xGrid = p.x_grid || "";
-                    const yGrid = p.y_grid || "";
-                    const lineType = p.line_type || "SOLID";
-                    const lineThickness = parseInt(p.line_thickness || 3, 10);
-                    const continuous = !!p.continuous;
-                    const minValue = p.min_value || "";
-                    const maxValue = p.max_value || "";
-                    const minRange = p.min_range || "";
-                    const maxRange = p.max_range || "";
-
-                    const safeId = `graph_${w.id}`.replace(/-/g, "_");
-
-                    lines.push(`        // widget:graph id:${w.id} type:graph x:${w.x} y:${w.y} w:${w.width} h:${w.height} title:"${title}" entity:${entityId} local:${!!p.is_local_sensor} duration:${duration} border:${borderEnabled} color:${colorProp} x_grid:${xGrid} y_grid:${yGrid} line_type:${lineType} line_thickness:${lineThickness} continuous:${continuous} min_value:${minValue} max_value:${maxValue} min_range:${minRange} max_range:${maxRange}`);
-
-                    if (entityId) {
-                        // Add to graph: section (handled by backend usually, but we add comments for local)
-                        lines.push(`        // graph:`);
-                        lines.push(`        //   - id: ${safeId}`);
-                        lines.push(`        //     entity: ${entityId}`);
-                        lines.push(`        //     duration: ${duration}`);
-                        lines.push(`        //     width: ${w.width}`);
-                        lines.push(`        //     height: ${w.height}`);
-
-                        lines.push(`        it.graph(${w.x}, ${w.y}, id(${safeId}));`);
-                        if (title) {
-                            lines.push(`        it.printf(${w.x}+4, ${w.y}+2, id(font_small), ${color}, TextAlign::TOP_LEFT, "${title}");`);
-                        }
-                    } else {
-                        lines.push(`        it.rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${color});`);
-                        lines.push(`        it.printf(${w.x}+5, ${w.y}+5, id(font_small), ${color}, TextAlign::TOP_LEFT, "Graph (no entity)");`);
-                    }
-                } else if (t === "progress_bar") {
-                    const entityId = (w.entity_id || "").trim();
-                    const title = (w.title || "").replace(/"/g, '\\"');
-                    const showLabel = p.show_label !== false;
-                    const showPercentage = p.show_percentage !== false;
-                    const barHeight = parseInt(p.bar_height || 15, 10);
-                    const borderWidth = parseInt(p.border_width || 1, 10);
-                    const colorProp = p.color || "black";
-                    const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
-
-                    lines.push(`        // widget:progress_bar id:${w.id} type:progress_bar x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} title:"${title}" show_label:${showLabel} show_pct:${showPercentage} bar_height:${barHeight} border:${borderWidth} color:${colorProp} local:${!!p.is_local_sensor}`);
-
-                    if (entityId) {
-                        const safeId = entityId.replace(/\./g, "_").replace(/-/g, "_");
-                        lines.push(`        // Progress Bar for ${entityId}`);
-                        lines.push(`        // Note: Requires a sensor with percentage value (0-100)`);
-                        lines.push(`        float val_${w.id} = id(${safeId}).state;`);
-                        lines.push(`        if (std::isnan(val_${w.id})) val_${w.id} = 0;`);
-                        lines.push(`        int pct_${w.id} = (int)val_${w.id};`);
-                        lines.push(`        if (pct_${w.id} < 0) pct_${w.id} = 0;`);
-                        lines.push(`        if (pct_${w.id} > 100) pct_${w.id} = 100;`);
-
-                        // Draw label
-                        if (showLabel && title) {
-                            lines.push(`        it.printf(${w.x}, ${w.y}, id(font_small), ${color}, TextAlign::TOP_LEFT, "${title}");`);
+                            const valueX = getAlignX(valueAlign);
+                            lines.push(`        it.printf(${valueX}, ${w.y}, id(${valueFontId}), ${color}, TextAlign::${valueAlign}, "${label}: (No Entity)");`);
                         }
 
-                        // Draw percentage
-                        if (showPercentage) {
-                            lines.push(`        it.printf(${w.x} + ${w.width}, ${w.y}, id(font_small), ${color}, TextAlign::TOP_RIGHT, "%d%%", pct_${w.id});`);
-                        }
+                    } else if (t === "graph") {
+                        const entityId = (w.entity_id || "").trim();
+                        const title = (w.title || "").replace(/"/g, '\\"');
+                        const duration = p.duration || "1h";
+                        const borderEnabled = p.border !== false;
+                        const colorProp = p.color || "black";
+                        const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
+                        const xGrid = p.x_grid || "";
+                        const yGrid = p.y_grid || "";
+                        const lineType = p.line_type || "SOLID";
+                        const lineThickness = parseInt(p.line_thickness || 3, 10);
+                        const continuous = !!p.continuous;
+                        const minValue = p.min_value || "";
+                        const maxValue = p.max_value || "";
+                        const minRange = p.min_range || "";
+                        const maxRange = p.max_range || "";
 
-                        // Draw bar
-                        const barY = w.y + (w.height - barHeight);
-                        lines.push(`        it.rectangle(${w.x}, ${barY}, ${w.width}, ${barHeight}, ${color});`);
-                        lines.push(`        if (pct_${w.id} > 0) {`);
-                        lines.push(`          int bar_w = (${w.width} - 4) * pct_${w.id} / 100;`);
-                        lines.push(`          it.filled_rectangle(${w.x} + 2, ${barY} + 2, bar_w, ${barHeight} - 4, ${color});`);
-                        lines.push(`        }`);
-                    } else {
-                        lines.push(`        // Progress Bar (Preview)`);
-                        lines.push(`        it.rectangle(${w.x}, ${w.y} + ${w.height} - ${barHeight}, ${w.width}, ${barHeight}, ${color});`);
-                        lines.push(`        it.filled_rectangle(${w.x} + 2, ${w.y} + ${w.height} - ${barHeight} + 2, ${w.width} / 2, ${barHeight} - 4, ${color});`);
-                        if (showLabel && title) {
-                            lines.push(`        it.printf(${w.x}, ${w.y}, id(font_small), ${color}, TextAlign::TOP_LEFT, "${title}");`);
-                        }
-                    }
+                        const safeId = `graph_${w.id}`.replace(/-/g, "_");
 
-                } else if (t === "icon") {
-                    const code = (p.code || "F0595").replace(/^0x/i, "");
-                    const size = parseInt(p.size || 40, 10);
-                    const colorProp = p.color || "black";
-                    const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
-                    const fontRef = (size >= 100) ? "font_mdi_large" : "font_mdi_medium";
+                        lines.push(`        // widget:graph id:${w.id} type:graph x:${w.x} y:${w.y} w:${w.width} h:${w.height} title:"${title}" entity:${entityId} local:${!!p.is_local_sensor} duration:${duration} border:${borderEnabled} color:${colorProp} x_grid:${xGrid} y_grid:${yGrid} line_type:${lineType} line_thickness:${lineThickness} continuous:${continuous} min_value:${minValue} max_value:${maxValue} min_range:${minRange} max_range:${maxRange} ${getCondProps(w)}`);
 
-                    lines.push(`        // widget:icon id:${w.id} type:icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} code:${code} size:${size} color:${colorProp}`);
-                    lines.push(`        it.print(${w.x}, ${w.y}, id(${fontRef}), ${color}, "\\U000${code}");`);
+                        if (entityId) {
+                            // Add to graph: section (handled by backend usually, but we add comments for local)
+                            lines.push(`        // graph:`);
+                            lines.push(`        //   - id: ${safeId}`);
+                            lines.push(`        //     entity: ${entityId}`);
+                            lines.push(`        //     duration: ${duration}`);
+                            lines.push(`        //     width: ${w.width}`);
+                            lines.push(`        //     height: ${w.height}`);
 
-                } else if (t === "battery_icon") {
-                    const entityId = (w.entity_id || "").trim();
-                    const size = parseInt(p.size || 24, 10);
-                    const colorProp = p.color || "black";
-                    const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
+                            lines.push(`        it.graph(${w.x}, ${w.y}, id(${safeId}));`);
+                            if (title) {
+                                lines.push(`        it.printf(${w.x}+4, ${w.y}+2, id(font_small), ${color}, TextAlign::TOP_LEFT, "${title}");`);
+                            }
 
-                    lines.push(`        // widget:battery_icon id:${w.id} type:battery_icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} size:${size} color:${colorProp} local:${!!p.is_local_sensor}`);
+                            // --- Generate Axis Labels (matching live preview) ---
+                            // Y-Axis Labels (Left)
+                            const minVal = parseFloat(minValue) || 0;
+                            const maxVal = parseFloat(maxValue) || 100;
+                            const yRange = maxVal - minVal;
+                            const ySteps = 4;
+                            for (let i = 0; i <= ySteps; i++) {
+                                const val = minVal + (yRange * (i / ySteps));
+                                const yOffset = Math.round(w.height * (1 - (i / ySteps)));
+                                // Adjust Y slightly to center text vertically (approx -6px for small font)
+                                // Draw to the left of the graph (x - 4)
+                                // Smart formatting: use %.0f if range >= 10, else %.1f
+                                const fmt = yRange >= 10 ? "%.0f" : "%.1f";
+                                lines.push(`        it.printf(${w.x} - 4, ${w.y} + ${yOffset} - 6, id(font_small), ${color}, TextAlign::TOP_RIGHT, "${fmt}", (float)${val});`);
+                            }
 
-                    if (entityId) {
-                        const safeId = entityId.replace(/\./g, "_").replace(/-/g, "_");
-                        lines.push(`        // Battery Icon for ${entityId}`);
-                        lines.push(`        float bat_${w.id} = id(${safeId}).state;`);
-                        lines.push(`        if (std::isnan(bat_${w.id})) bat_${w.id} = 0;`);
-                        lines.push(`        // Simple battery drawing logic (placeholder)`);
-                        lines.push(`        it.rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${color});`);
-                        lines.push(`        it.printf(${w.x}+2, ${w.y}+2, id(font_small), ${color}, "%.0f%%", bat_${w.id});`);
-                    } else {
-                        lines.push(`        it.rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${color});`);
-                        lines.push(`        it.printf(${w.x}+2, ${w.y}+2, id(font_small), ${color}, "100%");`);
-                    }
+                            // X-Axis Labels (Bottom)
+                            // Parse duration for labels
+                            let durationSec = 3600;
+                            const durMatch = duration.match(/^(\d+)([a-z]+)$/i);
+                            if (durMatch) {
+                                const v = parseInt(durMatch[1], 10);
+                                const u = durMatch[2].toLowerCase();
+                                if (u.startsWith("s")) durationSec = v;
+                                else if (u.startsWith("m")) durationSec = v * 60;
+                                else if (u.startsWith("h")) durationSec = v * 3600;
+                                else if (u.startsWith("d")) durationSec = v * 86400;
+                            }
 
-                } else if (t === "weather_icon") {
-                    const entityId = (w.entity_id || "").trim();
-                    const size = parseInt(p.size || 48, 10);
-                    const colorProp = p.color || "black";
-                    const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
+                            const xSteps = 2; // Start, Middle, End
+                            for (let i = 0; i <= xSteps; i++) {
+                                const ratio = i / xSteps;
+                                const xOffset = Math.round(w.width * ratio);
+                                let align = "TextAlign::TOP_CENTER";
+                                if (i === 0) align = "TextAlign::TOP_LEFT";
+                                if (i === xSteps) align = "TextAlign::TOP_RIGHT";
 
-                    lines.push(`        // widget:weather_icon id:${w.id} type:weather_icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} size:${size} color:${colorProp}`);
-
-                    if (entityId) {
-                        const safeId = entityId.replace(/\./g, "_").replace(/-/g, "_");
-                        lines.push(`        // Weather Icon for ${entityId}`);
-                        lines.push(`        // Note: You need a mapping function or switch case to select icon based on state`);
-                        lines.push(`        it.printf(${w.x}, ${w.y}, id(font_mdi_medium), ${color}, "\\U000F0595"); // Default to sunny`);
-                    } else {
-                        lines.push(`        it.printf(${w.x}, ${w.y}, id(font_mdi_medium), ${color}, "\\U000F0595");`);
-                    }
-
-                } else if (t === "shape_rect") {
-                    const fill = !!p.fill;
-                    const borderWidth = parseInt(p.border_width || 1, 10);
-                    const colorProp = p.color || "black";
-                    const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
-                    const opacity = parseInt(p.opacity || 100, 10);
-
-                    lines.push(`        // widget:shape_rect id:${w.id} type:shape_rect x:${w.x} y:${w.y} w:${w.width} h:${w.height} fill:${fill} border:${borderWidth} opacity:${opacity} color:${colorProp}`);
-
-                    if (fill) {
-                        lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${color});`);
-                    } else {
-                        if (borderWidth <= 1) {
+                                let labelText = "";
+                                if (i === xSteps) labelText = "Now";
+                                else {
+                                    const timeAgo = durationSec * (1 - ratio);
+                                    if (timeAgo >= 3600) labelText = `-${(timeAgo / 3600).toFixed(1)}h`;
+                                    else if (timeAgo >= 60) labelText = `-${(timeAgo / 60).toFixed(0)}m`;
+                                    else labelText = `-${timeAgo.toFixed(0)}s`;
+                                }
+                                lines.push(`        it.printf(${w.x} + ${xOffset}, ${w.y} + ${w.height} + 2, id(font_small), ${color}, ${align}, "${labelText}");`);
+                            }
+                        } else {
                             lines.push(`        it.rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${color});`);
-                        } else {
-                            lines.push(`        for (int i=0; i<${borderWidth}; i++) {`);
-                            lines.push(`          it.rectangle(${w.x}+i, ${w.y}+i, ${w.width}-2*i, ${w.height}-2*i, ${color});`);
+                            lines.push(`        it.printf(${w.x}+5, ${w.y}+5, id(font_small), ${color}, TextAlign::TOP_LEFT, "Graph (no entity)");`);
+                        }
+                    } else if (t === "progress_bar") {
+                        const entityId = (w.entity_id || "").trim();
+                        const title = (w.title || "").replace(/"/g, '\\"');
+                        const showLabel = p.show_label !== false;
+                        const showPercentage = p.show_percentage !== false;
+                        const barHeight = parseInt(p.bar_height || 15, 10);
+                        const borderWidth = parseInt(p.border_width || 1, 10);
+                        const colorProp = p.color || "black";
+                        const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
+
+                        lines.push(`        // widget:progress_bar id:${w.id} type:progress_bar x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} title:"${title}" show_label:${showLabel} show_pct:${showPercentage} bar_height:${barHeight} border:${borderWidth} color:${colorProp} local:${!!p.is_local_sensor} ${getCondProps(w)}`);
+
+                        if (entityId) {
+                            const safeId = entityId.replace(/\./g, "_").replace(/-/g, "_");
+                            lines.push(`        // Progress Bar for ${entityId}`);
+                            lines.push(`        // Note: Requires a sensor with percentage value (0-100)`);
+                            lines.push(`        float val_${w.id} = id(${safeId}).state;`);
+                            lines.push(`        if (std::isnan(val_${w.id})) val_${w.id} = 0;`);
+                            lines.push(`        int pct_${w.id} = (int)val_${w.id};`);
+                            lines.push(`        if (pct_${w.id} < 0) pct_${w.id} = 0;`);
+                            lines.push(`        if (pct_${w.id} > 100) pct_${w.id} = 100;`);
+
+                            // Draw label
+                            if (showLabel && title) {
+                                lines.push(`        it.printf(${w.x}, ${w.y}, id(font_small), ${color}, TextAlign::TOP_LEFT, "${title}");`);
+                            }
+
+                            // Draw percentage
+                            if (showPercentage) {
+                                lines.push(`        it.printf(${w.x} + ${w.width}, ${w.y}, id(font_small), ${color}, TextAlign::TOP_RIGHT, "%d%%", pct_${w.id});`);
+                            }
+
+                            // Draw bar
+                            const barY = w.y + (w.height - barHeight);
+                            lines.push(`        it.rectangle(${w.x}, ${barY}, ${w.width}, ${barHeight}, ${color});`);
+                            lines.push(`        if (pct_${w.id} > 0) {`);
+                            lines.push(`          int bar_w = (${w.width} - 4) * pct_${w.id} / 100;`);
+                            lines.push(`          it.filled_rectangle(${w.x} + 2, ${barY} + 2, bar_w, ${barHeight} - 4, ${color});`);
                             lines.push(`        }`);
+                        } else {
+                            lines.push(`        // Progress Bar (Preview)`);
+                            lines.push(`        it.rectangle(${w.x}, ${w.y} + ${w.height} - ${barHeight}, ${w.width}, ${barHeight}, ${color});`);
+                            lines.push(`        it.filled_rectangle(${w.x} + 2, ${w.y} + ${w.height} - ${barHeight} + 2, ${w.width} / 2, ${barHeight} - 4, ${color});`);
+                            if (showLabel && title) {
+                                lines.push(`        it.printf(${w.x}, ${w.y}, id(font_small), ${color}, TextAlign::TOP_LEFT, "${title}");`);
+                            }
+                        }
+
+                    } else if (t === "icon") {
+                        const code = (p.code || "F0595").replace(/^0x/i, "");
+                        const size = parseInt(p.size || 48, 10);
+                        const colorProp = p.color || "black";
+                        const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
+                        // Use dynamic font ID matching the generator instructions
+                        const fontRef = `font_mdi_${size}`;
+
+                        lines.push(`        // widget:icon id:${w.id} type:icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} code:${code} size:${size} color:${colorProp} ${getCondProps(w)}`);
+                        lines.push(`        it.print(${w.x}, ${w.y}, id(${fontRef}), ${color}, "\\U000${code}");`);
+
+                    } else if (t === "battery_icon") {
+                        const entityId = (w.entity_id || "").trim();
+                        const size = parseInt(p.size || 24, 10);
+                        const colorProp = p.color || "black";
+                        const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
+
+                        lines.push(`        // widget:battery_icon id:${w.id} type:battery_icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} size:${size} color:${colorProp} local:${!!p.is_local_sensor} ${getCondProps(w)}`);
+
+                        if (entityId) {
+                            const safeId = entityId.replace(/\./g, "_").replace(/-/g, "_");
+                            lines.push(`        // Battery Icon for ${entityId}`);
+                            lines.push(`        float bat_${w.id} = id(${safeId}).state;`);
+                            lines.push(`        if (std::isnan(bat_${w.id})) bat_${w.id} = 0;`);
+                            lines.push(`        // Simple battery drawing logic (placeholder)`);
+                            lines.push(`        it.rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${color});`);
+                            // Center text relative to icon size
+                            lines.push(`        it.printf(${w.x} + ${size}/2, ${w.y} + ${size} + 2, id(font_small), ${color}, TextAlign::TOP_CENTER, "%.0f%%", bat_${w.id});`);
+                        } else {
+                            lines.push(`        it.rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${color});`);
+                            lines.push(`        it.printf(${w.x} + ${size}/2, ${w.y} + ${size} + 2, id(font_small), ${color}, TextAlign::TOP_CENTER, "100%");`);
+                        }
+
+                    } else if (t === "weather_icon") {
+                        const entityId = (w.entity_id || "").trim();
+                        const size = parseInt(p.size || 48, 10);
+                        const colorProp = p.color || "black";
+                        const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
+
+                        lines.push(`        // widget:weather_icon id:${w.id} type:weather_icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} size:${size} color:${colorProp} ${getCondProps(w)}`);
+
+                        if (entityId) {
+                            const safeId = entityId.replace(/\./g, "_").replace(/-/g, "_");
+                            lines.push(`        // Weather Icon for ${entityId}`);
+                            lines.push(`        // Note: You need a mapping function or switch case to select icon based on state`);
+                            lines.push(`        it.printf(${w.x}, ${w.y}, id(font_mdi_medium), ${color}, "\\U000F0595"); // Default to sunny`);
+                        } else {
+                            lines.push(`        it.printf(${w.x}, ${w.y}, id(font_mdi_medium), ${color}, "\\U000F0595");`);
+                        }
+
+                    } else if (t === "shape_rect") {
+                        const fill = !!p.fill;
+                        const borderWidth = parseInt(p.border_width || 1, 10);
+                        const colorProp = p.color || "black";
+                        const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
+                        const opacity = parseInt(p.opacity || 100, 10);
+
+                        lines.push(`        // widget:shape_rect id:${w.id} type:shape_rect x:${w.x} y:${w.y} w:${w.width} h:${w.height} fill:${fill} border:${borderWidth} opacity:${opacity} color:${colorProp} ${getCondProps(w)}`);
+
+                        if (fill) {
+                            lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${color});`);
+                        } else {
+                            if (borderWidth <= 1) {
+                                lines.push(`        it.rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${color});`);
+                            } else {
+                                lines.push(`        for (int i=0; i<${borderWidth}; i++) {`);
+                                lines.push(`          it.rectangle(${w.x}+i, ${w.y}+i, ${w.width}-2*i, ${w.height}-2*i, ${color});`);
+                                lines.push(`        }`);
+                            }
+                        }
+
+                    } else if (t === "shape_circle") {
+                        const r = Math.min(w.width, w.height) / 2;
+                        const cx = w.x + w.width / 2;
+                        const cy = w.y + w.height / 2;
+                        const fill = !!p.fill;
+                        const borderWidth = parseInt(p.border_width || 1, 10);
+                        const colorProp = p.color || "black";
+                        const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
+                        const opacity = parseInt(p.opacity || 100, 10);
+
+                        lines.push(`        // widget:shape_circle id:${w.id} type:shape_circle x:${w.x} y:${w.y} w:${w.width} h:${w.height} fill:${fill} border:${borderWidth} opacity:${opacity} color:${colorProp} ${getCondProps(w)}`);
+
+                        if (fill) {
+                            lines.push(`        it.filled_circle(${cx}, ${cy}, ${r}, ${color});`);
+                        } else {
+                            if (borderWidth <= 1) {
+                                lines.push(`        it.circle(${cx}, ${cy}, ${r}, ${color});`);
+                            } else {
+                                lines.push(`        for (int i=0; i<${borderWidth}; i++) {`);
+                                lines.push(`          it.circle(${cx}, ${cy}, ${r}-i, ${color});`);
+                                lines.push(`        }`);
+                            }
+                        }
+
+                    } else if (t === "datetime") {
+                        const format = p.format || "time_date";
+                        const timeSize = parseInt(p.time_font_size || 28, 10);
+                        const dateSize = parseInt(p.date_font_size || 16, 10);
+                        const colorProp = p.color || "black";
+                        const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
+                        const fontFamily = p.font_family || "Roboto";
+
+                        // Generate font IDs
+                        const timeFontId = `font_${fontFamily.toLowerCase().replace(/\s+/g, '_')}_700_${timeSize}`;
+                        const dateFontId = `font_${fontFamily.toLowerCase().replace(/\s+/g, '_')}_400_${dateSize}`;
+
+                        lines.push(`        // widget:datetime id:${w.id} type:datetime x:${w.x} y:${w.y} w:${w.width} h:${w.height} format:${format} time_font:${timeSize} date_font:${dateSize} color:${colorProp} font_family:"${fontFamily}" ${getCondProps(w)}`);
+                        lines.push(`        // Note: Requires 'time' component in ESPHome`);
+                        lines.push(`        auto now = id(homeassistant_time).now();`);
+
+                        // Calculate center X
+                        const cx = w.x + Math.floor(w.width / 2);
+
+                        if (format === "time_only") {
+                            lines.push(`        it.strftime(${cx}, ${w.y}, id(${timeFontId}), ${color}, TextAlign::TOP_CENTER, "%H:%M", now);`);
+                        } else if (format === "date_only") {
+                            lines.push(`        it.strftime(${cx}, ${w.y}, id(${dateFontId}), ${color}, TextAlign::TOP_CENTER, "%a, %b %d", now);`);
+                        } else {
+                            lines.push(`        it.strftime(${cx}, ${w.y}, id(${timeFontId}), ${color}, TextAlign::TOP_CENTER, "%H:%M", now);`);
+                            lines.push(`        it.strftime(${cx}, ${w.y} + ${timeSize} + 4, id(${dateFontId}), ${color}, TextAlign::TOP_CENTER, "%a, %b %d", now);`);
+                        }
+
+                    } else if (t === "image") {
+                        const path = p.path || "";
+                        const invert = !!p.invert;
+                        lines.push(`        // widget:image id:${w.id} type:image x:${w.x} y:${w.y} w:${w.width} h:${w.height} path:"${path}" invert:${invert} ${getCondProps(w)}`);
+                        lines.push(`        // Note: Requires 'image' component with id matching filename`);
+                        if (path) {
+                            const filename = path.split("/").pop().replace(/\./g, "_");
+                            lines.push(`        it.image(${w.x}, ${w.y}, id(img_${filename}));`);
+                        }
+
+                    } else if (t === "online_image") {
+                        const url = p.url || "";
+                        const invert = !!p.invert;
+                        lines.push(`        // widget:online_image id:${w.id} type:online_image x:${w.x} y:${w.y} w:${w.width} h:${w.height} url:"${url}" invert:${invert} ${getCondProps(w)}`);
+                        lines.push(`        // Note: Requires 'online_image' component`);
+                        if (invert) {
+                            lines.push(`        it.image(${w.x}, ${w.y}, id(online_image_${w.id}), COLOR_OFF, COLOR_ON);`);
+                        } else {
+                            lines.push(`        it.image(${w.x}, ${w.y}, id(online_image_${w.id}));`);
+                        }
+
+                    } else if (t === "puppet") {
+                        const url = p.image_url || "";
+                        const invert = !!p.invert;
+                        lines.push(`        // widget:puppet id:${w.id} type:puppet x:${w.x} y:${w.y} w:${w.width} h:${w.height} url:"${url}" invert:${invert} ${getCondProps(w)}`);
+                        const puppetId = `puppet_${w.id}`.replace(/-/g, "_");
+                        if (invert) {
+                            lines.push(`        it.image(${w.x}, ${w.y}, id(${puppetId}), COLOR_OFF, COLOR_ON);`);
+                        } else {
+                            lines.push(`        it.image(${w.x}, ${w.y}, id(${puppetId}));`);
+                        }
+
+                    } else if (t === "line") {
+                        const colorProp = p.color || "black";
+                        const color = colorProp === "white" ? "COLOR_ON" : "COLOR_OFF";
+                        const dx = w.width || 0;
+                        const dy = w.height || 0;
+                        const strokeWidth = parseInt(p.stroke_width || 1, 10) || 1;
+
+                        // Determine dominant direction to force straight lines
+                        let x2, y2;
+                        let isHorizontal = Math.abs(dx) > Math.abs(dy);
+
+                        if (isHorizontal) {
+                            // Horizontal: force y2 = y1
+                            x2 = w.x + dx;
+                            y2 = w.y;
+                        } else {
+                            // Vertical: force x2 = x1
+                            x2 = w.x;
+                            y2 = w.y + dy;
+                        }
+
+                        lines.push(`        // widget:line id:${w.id} type:line x:${w.x} y:${w.y} w:${w.width} h:${w.height} stroke:${strokeWidth} color:${colorProp} ${getCondProps(w)}`);
+
+                        if (strokeWidth <= 1) {
+                            lines.push(`        it.line(${w.x}, ${w.y}, ${x2}, ${y2}, ${color});`);
+                        } else {
+                            lines.push(`        // line with stroke_width=${strokeWidth}`);
+                            lines.push("        for (int i = 0; i < " + strokeWidth + "; i++) {");
+                            if (isHorizontal) {
+                                // Horizontal line: offset vertically
+                                lines.push(`          it.line(${w.x}, ${w.y}+i, ${x2}, ${y2}+i, ${color});`);
+                            } else {
+                                // Vertical line: offset horizontally
+                                lines.push(`          it.line(${w.x}+i, ${w.y}, ${x2}+i, ${y2}, ${color});`);
+                            }
+                            lines.push("        }");
                         }
                     }
-
-                } else if (t === "shape_circle") {
-                    const r = Math.min(w.width, w.height) / 2;
-                    const cx = w.x + w.width / 2;
-                    const cy = w.y + w.height / 2;
-                    const fill = !!p.fill;
-                    const borderWidth = parseInt(p.border_width || 1, 10);
-                    const colorProp = p.color || "black";
-                    const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
-                    const opacity = parseInt(p.opacity || 100, 10);
-
-                    lines.push(`        // widget:shape_circle id:${w.id} type:shape_circle x:${w.x} y:${w.y} w:${w.width} h:${w.height} fill:${fill} border:${borderWidth} opacity:${opacity} color:${colorProp}`);
-
-                    if (fill) {
-                        lines.push(`        it.filled_circle(${cx}, ${cy}, ${r}, ${color});`);
-                    } else {
-                        if (borderWidth <= 1) {
-                            lines.push(`        it.circle(${cx}, ${cy}, ${r}, ${color});`);
-                        } else {
-                            lines.push(`        for (int i=0; i<${borderWidth}; i++) {`);
-                            lines.push(`          it.circle(${cx}, ${cy}, ${r}-i, ${color});`);
-                            lines.push(`        }`);
-                        }
-                    }
-
-                } else if (t === "datetime") {
-                    const format = p.format || "time_date";
-                    const timeSize = parseInt(p.time_font_size || 28, 10);
-                    const dateSize = parseInt(p.date_font_size || 16, 10);
-                    const colorProp = p.color || "black";
-                    const color = colorProp === "white" ? "COLOR_OFF" : "COLOR_ON";
-
-                    lines.push(`        // widget:datetime id:${w.id} type:datetime x:${w.x} y:${w.y} w:${w.width} h:${w.height} format:${format} time_font:${timeSize} date_font:${dateSize} color:${colorProp}`);
-                    lines.push(`        // Note: Requires 'time' component in ESPHome`);
-                    lines.push(`        auto now = id(homeassistant_time).now();`);
-
-                    if (format === "time_only") {
-                        lines.push(`        it.strftime(${w.x}, ${w.y}, id(font_large), ${color}, TextAlign::TOP_LEFT, "%H:%M", now);`);
-                    } else if (format === "date_only") {
-                        lines.push(`        it.strftime(${w.x}, ${w.y}, id(font_medium), ${color}, TextAlign::TOP_LEFT, "%a, %b %d", now);`);
-                    } else {
-                        lines.push(`        it.strftime(${w.x}, ${w.y}, id(font_large), ${color}, TextAlign::TOP_LEFT, "%H:%M", now);`);
-                        lines.push(`        it.strftime(${w.x}, ${w.y} + ${timeSize}, id(font_medium), ${color}, TextAlign::TOP_LEFT, "%a, %b %d", now);`);
-                    }
-
-                } else if (t === "image") {
-                    const path = p.path || "";
-                    const invert = !!p.invert;
-                    lines.push(`        // widget:image id:${w.id} type:image x:${w.x} y:${w.y} w:${w.width} h:${w.height} path:"${path}" invert:${invert}`);
-                    lines.push(`        // Note: Requires 'image' component with id matching filename`);
-                    if (path) {
-                        const filename = path.split("/").pop().replace(/\./g, "_");
-                        lines.push(`        it.image(${w.x}, ${w.y}, id(img_${filename}));`);
-                    }
-
-                } else if (t === "online_image") {
-                    const url = p.url || "";
-                    lines.push(`        // widget:online_image id:${w.id} type:online_image x:${w.x} y:${w.y} w:${w.width} h:${w.height} url:"${url}"`);
-                    lines.push(`        // Note: Requires 'online_image' component`);
-                    lines.push(`        it.image(${w.x}, ${w.y}, id(online_image_${w.id}));`);
-
-                } else if (t === "puppet") {
-                    const url = p.image_url || "";
-                    lines.push(`        // widget:puppet id:${w.id} type:puppet x:${w.x} y:${w.y} w:${w.width} h:${w.height} url:"${url}"`);
-                    const puppetId = `puppet_${w.id}`.replace(/-/g, "_");
-                    lines.push(`        it.image(${w.x}, ${w.y}, id(${puppetId}));`);
-
-                } else if (t === "line") {
-                    const colorProp = p.color || "black";
-                    const color = colorProp === "white" ? "COLOR_ON" : "COLOR_OFF";
-                    const dx = w.width || 0;
-                    const dy = w.height || 0;
-                    const x2 = w.x + dx;
-                    const y2 = w.y + dy;
-                    const strokeWidth = parseInt(p.stroke_width || 1, 10) || 1;
-                    lines.push(`        // widget:line id:${w.id} type:line x:${w.x} y:${w.y} w:${w.width} h:${w.height} stroke:${strokeWidth} color:${colorProp}`);
-                    if (strokeWidth <= 1) {
-                        lines.push(`        it.line(${w.x}, ${w.y}, ${x2}, ${y2}, ${color});`);
-                    } else {
-                        lines.push(`        // line with stroke_width=${strokeWidth}`);
-                        lines.push("        for (int i = 0; i < " + strokeWidth + "; i++) {");
-                        lines.push(`          it.line(${w.x}, ${w.y}+i, ${x2}, ${y2}+i, ${color});`);
-                        lines.push("        }");
-                    }
-                }
+                });
             }
         }
         lines.push("      }");
@@ -4868,9 +6027,16 @@ async function updateSnippet(preferBackend = true) {
         const text = await resp.text();
         snippetBox.value = (text && text.trim()) ? text : "# Empty snippet";
     } catch (err) {
-        console.warn("Backend error, using local generation:", err);
+        if (window.location.protocol !== 'file:') {
+            console.warn("Backend error, using local generation:", err);
+        }
         snippetBox.value =
-            local + "\n# Backend unreachable, showing local preview only.";
+            local + "\n# Backend unreachable (or local mode), showing local preview only.";
+    }
+
+    // Attempt to highlight the selected widget in the new snippet
+    if (typeof selectedWidgetId !== 'undefined' && selectedWidgetId) {
+        highlightWidgetInSnippet(selectedWidgetId);
     }
 }
 
@@ -5190,6 +6356,52 @@ if (generateSnippetBtn) {
     });
 }
 
+// Update Layout from YAML button handler
+if (updateLayoutBtn) {
+    updateLayoutBtn.addEventListener("click", async () => {
+        const yaml = snippetBox.value || "";
+        if (!yaml.trim()) {
+            sidebarStatus.innerHTML = '<span style="color:var(--danger);">YAML snippet is empty.</span>';
+            return;
+        }
+
+        if (hasHaBackend()) {
+            try {
+                const resp = await fetch(`${HA_API_BASE}/import_snippet`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ yaml })
+                });
+
+                if (!resp.ok) {
+                    const data = await resp.json().catch(() => ({}));
+                    const msg = data.message || data.error || `Import failed with status ${resp.status}`;
+                    sidebarStatus.innerHTML = '<span style="color:var(--danger);">' + msg + '</span>';
+                    return;
+                }
+
+                const result = await resp.json();
+                applyImportedLayout(result);
+                sidebarStatus.innerHTML = '<span>Layout updated from YAML via Home Assistant backend.</span>';
+                return;
+            } catch (err) {
+                console.warn("HA import_snippet request failed; falling back to offline parser.", err);
+            }
+        }
+
+        try {
+            const offlineLayout = parseSnippetYamlOffline(yaml);
+            applyImportedLayout(offlineLayout);
+            sidebarStatus.innerHTML = '<span>Layout updated from YAML (offline client-side parser).</span>';
+        } catch (err) {
+            console.error("Offline snippet import failed", err);
+            sidebarStatus.innerHTML = '<span style="color:var(--danger);">Could not parse YAML. Try importing within Home Assistant for full support.</span>';
+        }
+    });
+}
+
 copySnippetBtn.onclick = async () => {
     const text = snippetBox.value || "";
     try {
@@ -5306,20 +6518,19 @@ if (pageSettingsClose) {
     pageSettingsClose.addEventListener("click", closePageSettingsModal);
 }
 if (pageSettingsSave) {
-    pageSettingsSave.addEventListener("click", savePageSettings);
+    // Auto-save is now active, so this button just closes the modal
+    pageSettingsSave.addEventListener("click", closePageSettingsModal);
 }
-
-// ============================================================================
-// Device Settings Modal Functions
-// ============================================================================
-
-
-
 async function loadLayoutFromBackend() {
     console.log("Loading layout from backend...");
     const apiBase = hasHaBackend() ? HA_API_BASE : "/api/reterminal_dashboard";
 
     try {
+        if (window.location.protocol === 'file:') {
+            console.log("Running locally (file://), skipping backend load.");
+            initDefaultLayout();
+            return;
+        }
         const resp = await fetch(`${apiBase}/layout`);
         console.log("Load response status:", resp.status, resp.ok);
         if (!resp.ok) {

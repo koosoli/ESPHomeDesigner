@@ -28,7 +28,6 @@
 #         - globals:
 #         - font:
 #         - text_sensor: (only if you used sensor_text widgets)
-#         - button: (optional virtual buttons for HA)
 #         - script: (if generated)
 #         - display:
 #         Paste them at the end of your config (see STEP 6 marker below)
@@ -50,11 +49,14 @@
 esphome:
   name: reterminal-e1001-dashboard
   friendly_name: reTerminal E1001
+  # Limit compilation to 1 process to prevent OOM errors with large fonts
+  compile_process_limit: 1
   on_boot:
     priority: 600
     then:
       - output.turn_on: bsp_battery_enable
-      - delay: 200ms
+      - delay: 2s
+      # - component.update: epaper_display  <-- REMOVED to prevent boot loop with heavy layouts
       - script.execute: manage_run_and_sleep  
 #
 # esp32:
@@ -75,6 +77,8 @@ esphome:
 # wifi:
 #   ssid: !secret wifi_ssid
 #   password: !secret wifi_password
+#   fast_connect: true      # Recommended for faster connection
+#   power_save_mode: NONE   # Recommended for stability
 #   ap:
 #     ssid: "Reterminal Fallback Hotspot"
 #     password: "auto_generated_password"
@@ -91,9 +95,464 @@ esphome:
 # Paste it in your ESPHome config AFTER the "captive_portal:" line
 # ============================================================================
 
+substitutions:
+  # Display Settings for reTerminal E1001
+  display_model: 7.50inv2
+  display_cs_pin: GPIO10
+  display_dc_pin: GPIO11
+  display_reset_pin: GPIO12
+  display_busy_pin: GPIO13
+
+globals:
+  # Navigation & Refresh Logic
+  - id: display_page
+    type: int
+    restore_value: true
+    initial_value: '0'
+
+  # Default page refresh interval (seconds)
+  - id: page_refresh_default_s
+    type: int
+    restore_value: no
+    initial_value: '900'
+
+  # Current computed refresh interval (seconds)
+  - id: page_refresh_current_s
+    type: int
+    restore_value: no
+    initial_value: '900'
+
+  - id: battery_glyph
+    type: std::string
+    restore_value: no
+    initial_value: '"\U000F0079"'
+
+# ============================================================================
+# PRE-CONFIGURED FONTS
+# ============================================================================
+# Popular Google Fonts pre-configured for use in the dashboard editor
+# ESPHome will automatically download these fonts during compilation
+#
+# To use these fonts in your widgets, select them from the "Font Family"
+# dropdown in the editor's widget properties panel.
+#
+# ADDING CUSTOM FONTS:
+# If you want to use a different Google Font, add it here following this pattern:
+#
+#   - file:
+#       type: gfonts
+#       family: YourFontName      # e.g., "Playfair Display"
+#       weight: 400                # 100=Thin, 300=Light, 400=Regular, 500=Medium, 600=SemiBold, 700=Bold, 900=Black
+#     id: font_yourfont_400_20     # Unique ID: font_<family>_<weight>_<size>
+#     size: 20                     # Font size in pixels
+#     bpp: 1                       # 1=no anti-aliasing (sharpest), 2=4 levels, 4=16 levels, 8=256 levels
+#
+# Then add that font family to your editor's font dropdown by editing editor.js
+# ============================================================================
+
+# font:
+#   # --- REQUIRED ALIASES FOR WIDGETS ---
+#   # These generic names are used by widgets like Clock, Graph, and Battery
+#   # - file:
+#   #     type: gfonts
+#   #     family: Roboto
+#   #     weight: 700
+#   #   id: font_large
+#   #   size: 48
+#   #   bpp: 1
+#   # - file:
+#   #     type: gfonts
+#   #     family: Roboto
+#   #     weight: 400
+#   #   id: font_medium
+#   #   size: 24
+#   #   bpp: 1
+#   # - file:
+#   #     type: gfonts
+#   #     family: Roboto
+#   #     weight: 400
+#   #   id: font_small
+#   #   size: 14
+#   #   bpp: 1
+# 
+#   # Material Design Icons (MDI) - Placeholder fonts for icon widgets
+#   # When you generate a snippet, it will include the specific icon glyphs you need
+#   # Copy those glyphs into the matching size below, replacing the empty []
+#   # - file: fonts/materialdesignicons-webfont.ttf
+#   #   id: font_mdi_24
+#   #   size: 24
+#   #   glyphs: []
+#   # - file: fonts/materialdesignicons-webfont.ttf
+#   #   id: font_mdi_32
+#   #   size: 32
+#   #   glyphs: []
+#   # - file: fonts/materialdesignicons-webfont.ttf
+#   #   id: font_mdi_48
+#   #   size: 48
+#   #   glyphs: []
+#   # - file: fonts/materialdesignicons-webfont.ttf
+#   #   id: font_mdi_64
+#   #   size: 64
+#   #   glyphs: []
+
+
+  # Roboto - Material Design font (default)
+  # - file:
+  #     type: gfonts
+  #     family: Roboto
+  #     weight: 400
+  #   id: font_roboto_400_14
+  #   size: 14
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Roboto
+  #     weight: 400
+  #   id: font_roboto_400_20
+  #   size: 20
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Roboto
+  #     weight: 500
+  #   id: font_roboto_500_20
+  #   size: 20
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Roboto
+  #     weight: 700
+  #   id: font_roboto_700_20
+  #   size: 20
+  #   bpp: 1
+
+
+  # Poppins - Geometric, modern look
+  # - file:
+  #     type: gfonts
+  #     family: Poppins
+  #     weight: 400
+  #   id: font_poppins_400_14
+  #   size: 14
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Poppins
+  #     weight: 400
+  #   id: font_poppins_400_20
+  #   size: 20
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Poppins
+  #     weight: 600
+  #   id: font_poppins_600_20
+  #   size: 20
+  #   bpp: 1
+
+  # Open Sans - Clean, professional
+  # - file:
+  #     type: gfonts
+  #     family: Open Sans
+  #     weight: 400
+  #   id: font_opensans_400_14
+  #   size: 14
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Open Sans
+  #     weight: 400
+  #   id: font_opensans_400_20
+  #   size: 20
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Open Sans
+  #     weight: 600
+  #   id: font_opensans_600_20
+  #   size: 20
+  #   bpp: 1
+
+  # Montserrat - Geometric sans-serif, great for headings
+  # - file:
+  #     type: gfonts
+  #     family: Montserrat
+  #     weight: 400
+  #   id: font_montserrat_400_14
+  #   size: 14
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Montserrat
+  #     weight: 400
+  #   id: font_montserrat_400_20
+  #   size: 20
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Montserrat
+  #     weight: 700
+  #   id: font_montserrat_700_20
+  #   size: 20
+  #   bpp: 1
+
+  # Lato - Warm, friendly sans-serif
+  # - file:
+  #     type: gfonts
+  #     family: Lato
+  #     weight: 400
+  #   id: font_lato_400_14
+  #   size: 14
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Lato
+  #     weight: 400
+  #   id: font_lato_400_20
+  #   size: 20
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Lato
+  #     weight: 700
+  #   id: font_lato_700_20
+  #   size: 20
+  #   bpp: 1
+
+  # Source Sans Pro - Adobe's clean sans-serif
+  # - file:
+  #     type: gfonts
+  #     family: Source Sans Pro
+  #     weight: 400
+  #   id: font_sourcesans_400_14
+  #   size: 14
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Source Sans Pro
+  #     weight: 400
+  #   id: font_sourcesans_400_20
+  #   size: 20
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Source Sans Pro
+  #     weight: 600
+  #   id: font_sourcesans_600_20
+  #   size: 20
+  #   bpp: 1
+
+  # Nunito - Rounded, friendly
+  # - file:
+  #     type: gfonts
+  #     family: Nunito
+  #     weight: 400
+  #   id: font_nunito_400_14
+  #   size: 14
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Nunito
+  #     weight: 400
+  #   id: font_nunito_400_20
+  #   size: 20
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Nunito
+  #     weight: 700
+  #   id: font_nunito_700_20
+  #   size: 20
+  #   bpp: 1
+
+  # Playfair Display - Elegant serif for headings
+  # - file:
+  #     type: gfonts
+  #     family: Playfair Display
+  #     weight: 400
+  #   id: font_playfair_display_400_14
+  #   size: 14
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Playfair Display
+  #     weight: 400
+  #   id: font_playfair_display_400_20
+  #   size: 20
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Playfair Display
+  #     weight: 700
+  #   id: font_playfair_display_700_20
+  #   size: 20
+  #   bpp: 1
+
+  # Merriweather - Classic serif, highly readable
+  # - file:
+  #     type: gfonts
+  #     family: Merriweather
+  #     weight: 400
+  #   id: font_merriweather_400_14
+  #   size: 14
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Merriweather
+  #     weight: 400
+  #   id: font_merriweather_400_20
+  #   size: 20
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Merriweather
+  #     weight: 700
+  #   id: font_merriweather_700_20
+  #   size: 20
+  #   bpp: 1
+
+  # Raleway - Elegant sans-serif
+  # - file:
+  #     type: gfonts
+  #     family: Raleway
+  #     weight: 400
+  #   id: font_raleway_400_14
+  #   size: 14
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Raleway
+  #     weight: 400
+  #   id: font_raleway_400_20
+  #   size: 20
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Raleway
+  #     weight: 600
+  #   id: font_raleway_600_20
+  #   size: 20
+  #   bpp: 1
+
+  # Ubuntu - Modern, humanist sans-serif
+  # - file:
+  #     type: gfonts
+  #     family: Ubuntu
+  #     weight: 400
+  #   id: font_ubuntu_400_14
+  #   size: 14
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Ubuntu
+  #     weight: 400
+  #   id: font_ubuntu_400_20
+  #   size: 20
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Ubuntu
+  #     weight: 700
+  #   id: font_ubuntu_700_20
+  #   size: 20
+  #   bpp: 1
+
+  # Work Sans - Optimized for screens
+  # - file:
+  #     type: gfonts
+  #     family: Work Sans
+  #     weight: 400
+  #   id: font_work_sans_400_14
+  #   size: 14
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Work Sans
+  #     weight: 400
+  #   id: font_work_sans_400_20
+  #   size: 20
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Work Sans
+  #     weight: 600
+  #   id: font_work_sans_600_20
+  #   size: 20
+  #   bpp: 1
+
+  # Roboto Mono - Monospace variant
+  # - file:
+  #     type: gfonts
+  #     family: Roboto Mono
+  #     weight: 400
+  #   id: font_roboto_mono_400_14
+  #   size: 14
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Roboto Mono
+  #     weight: 400
+  #   id: font_roboto_mono_400_20
+  #   size: 20
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Roboto Mono
+  #     weight: 700
+  #   id: font_roboto_mono_700_20
+  #   size: 20
+  #   bpp: 1
+
+  # Quicksand - Rounded, friendly display font
+  # - file:
+  #     type: gfonts
+  #     family: Quicksand
+  #     weight: 400
+  #   id: font_quicksand_400_14
+  #   size: 14
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Quicksand
+  #     weight: 400
+  #   id: font_quicksand_400_20
+  #   size: 20
+  #   bpp: 1
+  # - file:
+  #     type: gfonts
+  #     family: Quicksand
+  #     weight: 700
+  #   id: font_quicksand_700_20
+  #   size: 20
+  #   bpp: 1
+
+  # Material Design Icons (MDI) - For icon widgets
+  # This font is required for the icon widget functionality
+  # - file: fonts/materialdesignicons-webfont.ttf
+  #   id: font_mdi_24
+  #   size: 24
+  #   glyphs: []
+  # - file: fonts/materialdesignicons-webfont.ttf
+  #   id: font_mdi_32
+  #   size: 32
+  #   glyphs: []
+  # - file: fonts/materialdesignicons-webfont.ttf
+  #   id: font_mdi_48
+  #   size: 48
+  #   glyphs: []
+  # - file: fonts/materialdesignicons-webfont.ttf
+  #   id: font_mdi_64
+  #   size: 64
+  #   glyphs: []
+
 psram:
   mode: octal
   speed: 80MHz
+
+# Required for Online Image / Puppet widgets
+http_request:
+  verify_ssl: false
+  timeout: 20s
 
 time:
   - platform: homeassistant
@@ -214,6 +673,92 @@ binary_sensor:
       then:
         - component.update: epaper_display
 
+# ... end of binary_sensor section ...
+
+
+button:
+  - platform: template
+    name: "Play Beep Short"
+    icon: "mdi:bell-ring"
+    on_press:
+      - rtttl.play: "beep:d=32,o=5,b=200:16e6"
+
+  - platform: template
+    name: "Play Beep OK"
+    icon: "mdi:check-circle-outline"
+    on_press:
+      - rtttl.play: "ok:d=16,o=5,b=200:e6"
+
+  - platform: template
+    name: "Play Beep Error"
+    icon: "mdi:alert-circle-outline"
+    on_press:
+      - rtttl.play: "error:d=16,o=5,b=200:c6"
+
+  - platform: template
+    name: "Play Star Wars"
+    icon: "mdi:music-note"
+    on_press:
+      - rtttl.play: "StarWars:d=4,o=5,b=45:32p,32f,32f,32f,8a#.,8f.6,32d#,32d,32c,8a#.6,4f.6,32d#,32d,32c,8a#.6,4f.6,32d#,32d,32d#,8c6,32p,32f,32f,32f,8a#.,8f.6,32d#,32d,32c,8a#.6,4f.6,32d#,32d,32c,8a#.6,4f.6,32d#,32d,32d#,8c6"
+
+  - platform: template
+    name: "reTerminal Next Page"
+    id: reterminal_next_page
+    on_press:
+      - lambda: |-
+          int pages = 5;
+          id(display_page) = (id(display_page) + 1) % pages;
+
+  - platform: template
+    name: "reTerminal Previous Page"
+    id: reterminal_prev_page
+    on_press:
+      - lambda: |-
+          int pages = 5;
+          id(display_page) = (id(display_page) - 1 + pages) % pages;
+
+  - platform: template
+    name: "reTerminal Refresh Display"
+    id: reterminal_refresh_display
+    on_press:
+      - component.update: epaper_display
+
+  - platform: template
+    name: "reTerminal Go to Page 1"
+    id: reterminal_goto_page_0
+    on_press:
+      - lambda: 'id(display_page) = 0;'
+      - component.update: epaper_display
+  - platform: template
+    name: "reTerminal Go to Page 2"
+    id: reterminal_goto_page_1
+    on_press:
+      - lambda: 'id(display_page) = 1;'
+      - component.update: epaper_display
+  - platform: template
+    name: "reTerminal Go to Page 3"
+    id: reterminal_goto_page_2
+    on_press:
+      - lambda: 'id(display_page) = 2;'
+      - component.update: epaper_display
+  - platform: template
+    name: "reTerminal Go to Page 4"
+    id: reterminal_goto_page_3
+    on_press:
+      - lambda: 'id(display_page) = 3;'
+      - component.update: epaper_display
+  - platform: template
+    name: "reTerminal Go to Page 5"
+    id: reterminal_goto_page_4
+    on_press:
+      - lambda: 'id(display_page) = 4;'
+      - component.update: epaper_display
+
+
+# ============================================================================
+# ▲▲▲ END: HARDWARE SECTIONS - COPY UNTIL HERE ▲▲▲
+
+
 # ============================================================================
 # ▲▲▲ END: HARDWARE SECTIONS - COPY UNTIL HERE ▲▲▲
 # ============================================================================
@@ -259,10 +804,8 @@ binary_sensor:
 # ============================================================================
 # After designing your dashboard:
 # 1. Click "Save Layout"
-# 2. Click "Generate Snippet"
 # 3. From the generated code, copy ONLY these sections and paste them below:
 #
-#    ✓ globals:      (always generated)
 #    ✓ font:         (always generated)
 #    ✓ text_sensor:  (ONLY if you used sensor_text widgets)
 #                    If generated, ADD these to the sensor: section above
@@ -283,11 +826,6 @@ binary_sensor:
 #
 # Example of what to paste:
 #
-# globals:
-#   - id: display_page
-#     type: int
-#     restore_value: true
-#     initial_value: '0'
 #
 # font:
 #   - file: "gfonts://Material+Design+Icons"
@@ -310,13 +848,14 @@ binary_sensor:
 # display:
 #   - platform: waveshare_epaper
 #     id: epaper_display
-#     cs_pin: GPIO10
-#     dc_pin: GPIO11
+#     model: ${display_model}
+#     cs_pin: ${display_cs_pin}
+#     dc_pin: ${display_dc_pin}
 #     reset_pin:
-#       number: GPIO12
+#       number: ${display_reset_pin}
 #       inverted: false
 #     busy_pin:
-#       number: GPIO13
+#       number: ${display_busy_pin}
 #       inverted: true
 #     update_interval: never
 #     lambda: |-
@@ -326,5 +865,5 @@ binary_sensor:
 #       }
 #
 # ============================================================================
-# ← PASTE YOUR GENERATED CODE HERE (globals, font, text_sensor, script, display)
+# ← PASTE YOUR GENERATED CODE HERE (font, text_sensor, script, display)
 # ============================================================================

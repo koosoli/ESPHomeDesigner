@@ -202,6 +202,20 @@ class DashboardStorage:
             # Pass through new root fields if present; from_dict will sanitize.
             "orientation": raw_layout.get("orientation", getattr(existing, "orientation", "landscape") if existing else "landscape"),
             "dark_mode": raw_layout.get("dark_mode", getattr(existing, "dark_mode", False) if existing else False),
+            
+            # Energy Saving / Night Mode
+            "sleep_enabled": raw_layout.get("sleep_enabled", getattr(existing, "sleep_enabled", False) if existing else False),
+            "sleep_start_hour": raw_layout.get("sleep_start_hour", getattr(existing, "sleep_start_hour", 0) if existing else 0),
+            "sleep_end_hour": raw_layout.get("sleep_end_hour", getattr(existing, "sleep_end_hour", 5) if existing else 5),
+            
+            # Deep Sleep
+            "deep_sleep_enabled": raw_layout.get("deep_sleep_enabled", getattr(existing, "deep_sleep_enabled", False) if existing else False),
+            "deep_sleep_interval": raw_layout.get("deep_sleep_interval", getattr(existing, "deep_sleep_interval", 600) if existing else 600),
+            
+            # Refresh Strategy
+            "manual_refresh_only": raw_layout.get("manual_refresh_only", getattr(existing, "manual_refresh_only", False) if existing else False),
+            "no_refresh_start_hour": raw_layout.get("no_refresh_start_hour", getattr(existing, "no_refresh_start_hour", None) if existing else None),
+            "no_refresh_end_hour": raw_layout.get("no_refresh_end_hour", getattr(existing, "no_refresh_end_hour", None) if existing else None),
         }
 
         try:

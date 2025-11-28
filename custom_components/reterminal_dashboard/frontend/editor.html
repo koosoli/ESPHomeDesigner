@@ -20,11 +20,7 @@
   <aside class="sidebar">
     <div>
       <h1><span class="logo-dot"></span> reTerminal Designer <span
-          style="font-size: 10px; color: var(--muted); vertical-align: middle;">v0.4.6.1</span></h1>
-      <div class="pill">
-        <span></span>
-        <div>ESPHome YAML snippet · Local + HA backend</div>
-      </div>
+          style="font-size: 10px; color: var(--muted); vertical-align: middle;">v0.5</span></h1>
       <div style="margin-top: 4px; font-size: 10px;">
         <a href="https://github.com/koosoli/ReTerminalDesigner" target="_blank"
           style="color: var(--accent); text-decoration: none; display: flex; align-items: center; gap: 4px;">
@@ -39,17 +35,9 @@
     </div>
 
     <div class="sidebar-group">
-      <div class="sidebar-section-label">Target device</div>
-      <div class="select" style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
-        <div>
-          <div style="font-size:11px;color:var(--text);">reTerminal E1001</div>
-          <div style="font-size:9px;color:var(--muted);">ESP32-S3 · 800x480 epaper</div>
-        </div>
-        <div class="badge">MVP</div>
       </div>
       <button id="deviceSettingsBtn" class="btn btn-secondary btn-full" style="margin-top:4px;">Device Settings</button>
       <div class="status-bar">
-        <span>Base ESPHome config is managed in ESPHome UI.</span>
       </div>
     </div>
 
@@ -263,13 +251,28 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label>Energy Saving / Night Mode</label>
-          <div class="checkbox-row">
-            <input type="checkbox" id="setting-sleep-enabled">
-            <label for="setting-sleep-enabled">Turn off screen at night</label>
+        <!-- Unified Power Strategy Section (Replacing old checkboxes with Radio Buttons) -->
+        <div class="form-group" style="border-top: 1px solid var(--border-subtle); padding-top: 12px;">
+          <label>Power & Refresh Strategy</label>
+          
+          <!-- Option 1: Standard (Always On) -->
+          <div class="checkbox-row" style="margin-top: 6px;">
+            <input type="radio" id="mode-standard" name="powerStrategy" value="standard" checked 
+                   onchange="togglePowerSettings()">
+            <label for="mode-standard" style="font-weight: 500;">Standard (Always On)</label>
           </div>
-          <div class="row" id="sleep-times-row" style="display:none; margin-top:8px;">
+          <p class="hint" style="margin-left: 22px; margin-bottom: 8px;">
+            Device stays online. Screen updates automatically based on page timers.
+          </p>
+
+          <!-- Option 2: Night Mode -->
+          <div class="checkbox-row">
+            <input type="radio" id="setting-sleep-enabled" name="powerStrategy" value="night" 
+                   onchange="togglePowerSettings()">
+            <label for="setting-sleep-enabled" style="font-weight: 500;">Night Mode (Screen off at night)</label>
+          </div>
+          <!-- Night Mode Settings (Hidden by default) -->
+          <div class="row" id="sleep-times-row" style="display:none; margin-left: 22px; margin-bottom: 8px; border-left: 2px solid var(--border-subtle); padding-left: 10px;">
             <div class="col">
               <label class="sub-label">Start Hour (0-23)</label>
               <input type="number" id="setting-sleep-start" min="0" max="23" value="0">
@@ -279,42 +282,38 @@
               <input type="number" id="setting-sleep-end" min="0" max="23" value="5">
             </div>
           </div>
-        </div>
-      </div>
 
-      <div class="form-group" style="border-top: 1px solid var(--border-subtle); padding-top: 12px;">
-        <label>Refresh Strategy</label>
-        <div class="checkbox-row">
-          <input type="checkbox" id="setting-manual-refresh">
-          <label for="setting-manual-refresh">Manual Refresh Only (No Auto-Update)</label>
-        </div>
-        <p class="hint" style="margin-top:4px;">
-          If enabled, the display will only update when you press a physical button or trigger it via Home Assistant.
-        </p>
-      </div>
+          <!-- Option 3: Manual Refresh -->
+          <div class="checkbox-row">
+            <input type="radio" id="setting-manual-refresh" name="powerStrategy" value="manual" 
+                   onchange="togglePowerSettings()">
+            <label for="setting-manual-refresh" style="font-weight: 500;">Manual Refresh Only</label>
+          </div>
+          <p class="hint" style="margin-left: 22px; margin-bottom: 8px;">
+            No auto-updates. Device stays online waiting for button presses or HA commands.
+          </p>
 
-      <div class="form-group" style="border-top: 1px solid var(--border-subtle); padding-top: 12px;">
-        <label>Battery Saver (Deep Sleep)</label>
-        <div class="checkbox-row">
-          <input type="checkbox" id="setting-deep-sleep-enabled">
-          <label for="setting-deep-sleep-enabled">Enable Deep Sleep</label>
-        </div>
-        <p class="hint" style="margin-top:4px; color: var(--accent);">
-          <strong>Warning:</strong> Device will be offline/unreachable between updates.
-        </p>
-        <div class="row" id="deep-sleep-interval-row" style="display:none; margin-top:8px;">
-          <div class="col">
-            <label class="sub-label">Update Interval (seconds)</label>
-            <input type="number" id="setting-deep-sleep-interval" min="60" value="600">
-            <p class="hint">Recommended: 600s (10 mins) or more.</p>
+          <!-- Option 4: Deep Sleep -->
+          <div class="checkbox-row">
+            <input type="radio" id="setting-deep-sleep-enabled" name="powerStrategy" value="deepsleep" 
+                   onchange="togglePowerSettings()">
+            <label for="setting-deep-sleep-enabled" style="font-weight: 500;">Deep Sleep (Battery Saver)</label>
+          </div>
+          <!-- Deep Sleep Settings (Hidden by default) -->
+          <div class="row" id="deep-sleep-interval-row" style="display:none; margin-left: 22px; margin-bottom: 8px; border-left: 2px solid var(--border-subtle); padding-left: 10px;">
+            <div class="col">
+              <label class="sub-label">Update Interval (seconds)</label>
+              <input type="number" id="setting-deep-sleep-interval" min="60" value="600">
+              <p class="hint">Device goes offline between updates.</p>
+            </div>
           </div>
         </div>
+
+      </div>
+      <div class="modal-actions">
+        <button id="deviceSettingsSave" class="btn">Save</button>
       </div>
     </div>
-    <div class="modal-actions">
-      <button id="deviceSettingsSave" class="btn">Save</button>
-    </div>
-  </div>
   </div>
 
   <!-- Page settings modal -->
@@ -344,6 +343,22 @@
     </div>
   </div>
 
+  <!-- Visual toggling script for Power Strategy -->
+  <script>
+    function togglePowerSettings() {
+      // Hide all sub-settings first
+      document.getElementById('sleep-times-row').style.display = 'none';
+      document.getElementById('deep-sleep-interval-row').style.display = 'none';
+
+      // Show based on selection
+      if (document.getElementById('setting-sleep-enabled').checked) {
+        document.getElementById('sleep-times-row').style.display = 'flex';
+      }
+      if (document.getElementById('setting-deep-sleep-enabled').checked) {
+        document.getElementById('deep-sleep-interval-row').style.display = 'flex';
+      }
+    }
+  </script>
 
   <script src="editor.js"></script>
 </body>

@@ -48,6 +48,8 @@ SNIPPET_HEADER = """# ==========================================================
 # 1. Ensure you already have a working base ESPHome config for your device:
 #    - Includes: esphome, esp32, wifi, api, ota, logger
 #    - Uses the correct board for the reTerminal E1001
+#    - CRITICAL: Add 'compile_process_limit: 1' to your 'esphome:' section
+#      to prevent Out-Of-Memory errors during compilation!
 # 2. Paste this snippet BELOW your existing base config.
 # 3. Do NOT duplicate esphome:, wifi:, api:, ota:, logger: sections.
 # 4. If you already define conflicting ids (e.g. epaper_display), adjust accordingly.
@@ -82,46 +84,75 @@ def generate_snippet(device: DeviceConfig) -> str:
     # Pre-classify entities to determine numeric vs text vs local
     text_entity_ids, numeric_entity_ids, local_entity_ids = _classify_entities(device)
     
+    # STEP 1: Generate display block FIRST (this contains all the font references)
+    display_block = _generate_display_block(device, numeric_entity_ids)
+    
+    # STEP 2: Parse the display block to extract which fonts are actually used
+    fonts_used = _extract_fonts_from_display_code(display_block)
+    
+    # STEP 3: Generate font definitions for only the fonts that were referenced
     parts.append(_generate_globals())
-    parts.append(_generate_fonts(device))  # Pass device to collect icon glyphs
-    parts.append(_generate_text_sensors(device, text_entity_ids, numeric_entity_ids, local_entity_ids))  # Only text_sensors for HA entities
+    parts.append(_generate_fonts_from_usage(device, fonts_used))
+    parts.append(_generate_text_sensors(device, text_entity_ids, numeric_entity_ids, local_entity_ids))
     parts.append(_generate_online_images(device))
     parts.append(_generate_deep_sleep(device))
-    parts.append(_generate_navigation_buttons(device))
     parts.append(_generate_scripts(device))
     parts.append(_generate_graphs(device))
-    parts.append(_generate_display_block(device, numeric_entity_ids))
+    parts.append(display_block)
 
     # Join with double newlines between major sections
     return "\n\n".join(p for p in parts if p.strip())
 
 
+def _extract_fonts_from_display_code(display_code: str) -> dict:
+    """
+    Parse the generated display lambda code to extract all font references.
+    Returns a dict with text_fonts and icon_fonts that were actually used.
+    
+    This is the BULLETPROOF approach - we parse exactly what's in the generated code,
+    so there's no possibility of mismatch between font references and font definitions.
+    """
+    import re
+    
+    fonts_used = {
+        'text_fonts': {},  # {(family, weight, size): {'dynamic': True, 'chars': set()}}
+        'icon_fonts_by_size': {}  # {size: set_of_glyph_codes}
+    }
+    
+    # Pattern to match text font references: id(font_inter_400_14) or id(font_roboto_900_100)
+    text_font_pattern = r'id\(font_([a-z_]+)_(\d+)_(\d+)\)'
+    text_matches = re.findall(text_font_pattern, display_code)
+    
+    for family_id, weight, size in text_matches:
+        # Convert family_id back to proper case (inter -> Inter, roboto -> Roboto)
+        family = family_id.replace('_', ' ').title().replace(' ', '')
+        if family.lower() == 'roboto':
+            family = 'Roboto'
+        elif family.lower() == 'inter':
+            family = 'Inter'
+        
+        key = (family, int(weight), int(size))
+        if key not in fonts_used['text_fonts']:
+            # Mark as dynamic since we can't tell from the code alone
+            fonts_used['text_fonts'][key] = {'dynamic': True, 'chars': set()}
+    
+    # Pattern to match icon font references: id(font_mdi_48) or id(font_mdi_249)
+    icon_font_pattern = r'id\(font_mdi_(\d+)\)'
+    icon_matches = re.findall(icon_font_pattern, display_code)
+    
+    for size_str in icon_matches:
+        size = int(size_str)
+        if size not in fonts_used['icon_fonts_by_size']:
+            fonts_used['icon_fonts_by_size'][size] = set()
+        # We'll need to extract actual glyphs used later, for now just mark the size
+    
+    _LOGGER.info(f"Extracted fonts from display code: {len(fonts_used['text_fonts'])} text fonts, {len(fonts_used['icon_fonts_by_size'])} icon font sizes")
+    
+    return fonts_used
+
+
 def _generate_globals() -> str:
-    return """globals:
-  # Current page index (0-based)
-  - id: display_page
-    type: int
-    restore_value: true
-    initial_value: '0'
-
-  # Battery icon glyph (optional usage in display lambda)
-  - id: battery_glyph
-    type: std::string
-    restore_value: no
-    initial_value: '"\\U000F0079"'
-
-  # Default page refresh interval (seconds)
-  - id: page_refresh_default_s
-    type: int
-    restore_value: no
-    initial_value: '900'
-
-  # Current computed refresh interval (seconds)
-  - id: page_refresh_current_s
-    type: int
-    restore_value: no
-    initial_value: '900'
-"""
+    return ""
 
 
 def _generate_deep_sleep(device: DeviceConfig) -> str:
@@ -140,6 +171,133 @@ def _generate_deep_sleep(device: DeviceConfig) -> str:
 """
 
 
+
+
+def _generate_fonts_from_usage(device: DeviceConfig, fonts_used: dict) -> str:
+    """
+    Generate font definitions based on fonts extracted from the display code.
+    This ensures we only generate fonts that are actually referenced.
+    
+    Also collects icon glyphs from widgets to populate the MDI fonts.
+    """
+    # Extract icon glyphs from widgets (we still need this since display code doesn't contain the actual Unicode chars)
+    icon_glyphs_by_size = {}
+    
+    for page in device.pages:
+        for widget in page.widgets:
+            wtype = (widget.type or "").lower()
+            props = widget.props or {}
+            
+            if wtype == "icon":
+                code = (props.get("code") or "").strip()
+                size = int(props.get("size", 48) or 48)
+                if code and size in fonts_used['icon_fonts_by_size']:
+                    if size not in icon_glyphs_by_size:
+                        icon_glyphs_by_size[size] = set()
+                    icon_glyphs_by_size[size].add(code)
+            
+            elif wtype == "battery_icon":
+                size = int(props.get("size", 48) or 48)
+                if size in fonts_used['icon_fonts_by_size']:
+                    if size not in icon_glyphs_by_size:
+                        icon_glyphs_by_size[size] = set()
+                    for code in ["F0079", "F007A", "F007B", "F007C", "F007D", "F007E", "F007F", "F0080", "F0081", "F0082"]:
+                        icon_glyphs_by_size[size].add(code)
+            
+            elif wtype == "weather_icon":
+                size = int(props.get("size", 48) or 48)
+                if size in fonts_used['icon_fonts_by_size']:
+                    if size not in icon_glyphs_by_size:
+                        icon_glyphs_by_size[size] = set()
+                    for code in ["F0591", "F0594", "F0595", "F192C", "F0E6E", "F0598", "F067F", "F0599", "F06A1", "F0596", "F0590", "F0F32", "F0597", "F0F2F", "F0024"]:
+                        icon_glyphs_by_size[size].add(code)
+    
+    font_lines = []
+    
+    # Always generate the standard fonts
+    font_lines.extend([
+        "font:",
+        "  # --- Standard Fonts (Auto-Generated) ---",
+        "  - file:",
+        "      type: gfonts",
+        "      family: Roboto",
+        "      weight: 700",
+        "    id: font_large",
+        "    size: 48",
+        "    bpp: 1",
+        "  - file:",
+        "      type: gfonts",
+        "      family: Roboto",
+        "      weight: 400",
+        "    id: font_medium",
+        "    size: 24",
+        "    bpp: 1",
+        "  - file:",
+        "      type: gfonts",
+        "      family: Roboto",
+        "      weight: 400",
+        "    id: font_small",
+        "    size: 14",
+        "    bpp: 1",
+        "  - file:",
+        "      type: gfonts",
+        "      family: Roboto",
+        "      weight: 400",
+        "    id: font_roboto_400_12",
+        "    size: 12",
+        "    bpp: 1"
+    ])
+    
+    # Generate custom text fonts that were actually used
+    if fonts_used['text_fonts']:
+        font_lines.append("")
+        font_lines.append("  # Custom text fonts for widget sizes/weights")
+        for (family, weight, size), usage in sorted(fonts_used['text_fonts'].items()):
+            family_id = family.lower().replace(" ", "_")
+            font_id = f"font_{family_id}_{weight}_{size}"
+            
+            font_lines.extend([
+                "  - file:",
+                "      type: gfonts",
+                f"      family: {family}",
+                f"      weight: {weight}",
+                f"    id: {font_id}",
+                f"    size: {size}",
+                "    bpp: 1"
+            ])
+            
+            # Smart Optimization: If not dynamic and we have known chars, restrict glyphs
+            if not usage['dynamic'] and usage['chars']:
+                chars_str = "".join(sorted(usage['chars'])).replace('"', '\\"')
+                font_lines.append(f'    glyphs: "{chars_str}"')
+    
+    # Generate MDI fonts for icon sizes that were used
+    if icon_glyphs_by_size:
+        font_lines.append("")
+        font_lines.append("  # Material Design Icons (Optimized - Only used glyphs)")
+        for size in sorted(icon_glyphs_by_size.keys()):
+            glyphs = icon_glyphs_by_size[size]
+            unicode_chars = []
+            for code in sorted(glyphs):
+                try:
+                    hex_val = int(code[1:], 16) if code.startswith("F") else int(code, 16)
+                    codepoint = 0xF0000 + hex_val
+                    unicode_chars.append(chr(codepoint))
+                except (ValueError, OverflowError):
+                    pass
+            
+            if unicode_chars:
+                glyphs_str = '", "'.join(unicode_chars)
+                font_lines.extend([
+                    "  - file: fonts/materialdesignicons-webfont.ttf",
+                    f"    id: font_mdi_{size}",
+                    f"    size: {size}",
+                    f'    glyphs: ["{glyphs_str}"]'
+                ])
+    
+    return "\n".join(font_lines)
+
+
 def _generate_fonts(device: DeviceConfig) -> str:
     """
     Generate font definitions including Material Design Icons fonts for icon widgets.
@@ -147,75 +305,98 @@ def _generate_fonts(device: DeviceConfig) -> str:
     Also generates image definitions for image widgets.
     Supports font family selection - uses the first font_family found in widgets, defaults to Inter.
     """
-    # Collect all unique icon codes from icon widgets
-    icon_codes = set()
+    # Collect icon codes per size to avoid generating huge fonts with unused glyphs
+    icon_usage_by_size = {}  # size (int) -> set of codes (str)
+    
     # Collect all unique image paths from image widgets and icon sizes
     image_paths = {}
-    icon_sizes = set()  # Track unique icon sizes
-    text_sizes = set()  # Track unique text font sizes
+    
+    # Track text font usage: (family, weight, size) -> {'dynamic': bool, 'chars': set()}
+    text_usage = {}
     selected_font_family = "Inter"  # Default font family
     
+    def get_text_usage(family, weight, size):
+        key = (family, weight, size)
+        if key not in text_usage:
+            text_usage[key] = {'dynamic': False, 'chars': set()}
+        return text_usage[key]
+
     for page in device.pages:
         for widget in page.widgets:
             wtype = (widget.type or "").lower()
             if wtype == "icon":
                 props = widget.props or {}
                 code = (props.get("code") or "").strip()
-                if code:
-                    icon_codes.add(code)
-                # Collect icon size if specified
                 size = int(props.get("size", 48) or 48)
-                icon_sizes.add(size)
+                
+                if code:
+                    if size not in icon_usage_by_size:
+                        icon_usage_by_size[size] = set()
+                    icon_usage_by_size[size].add(code)
+
             elif wtype == "battery_icon":
                 # Battery icons need all battery level glyphs
                 props = widget.props or {}
+                size = int(props.get("size", 48) or 48)
+                
+                if size not in icon_usage_by_size:
+                    icon_usage_by_size[size] = set()
+                
                 # Add all battery icon codes
                 for code in ["F0079", "F007A", "F007B", "F007C", "F007D", "F007E", "F007F", "F0080", "F0081", "F0082"]:
-                    icon_codes.add(code)
-                # Collect icon size if specified
-                size = int(props.get("size", 48) or 48)
-                icon_sizes.add(size)
+                    icon_usage_by_size[size].add(code)
+
             elif wtype == "weather_icon":
                 # Weather icons need all weather state glyphs
                 props = widget.props or {}
+                size = int(props.get("size", 48) or 48)
+                
+                if size not in icon_usage_by_size:
+                    icon_usage_by_size[size] = set()
+                    
                 # Add all weather icon codes
                 for code in ["F0591", "F0594", "F0595", "F192C", "F0E6E", "F0598", "F067F", "F0599", "F06A1", "F0596", "F0590", "F0F32", "F0597", "F0F2F", "F0024"]:
-                    icon_codes.add(code)
-                # Collect icon size if specified
-                size = int(props.get("size", 48) or 48)
-                icon_sizes.add(size)
+                    icon_usage_by_size[size].add(code)
+
             elif wtype in ("text", "label", "sensor_text"):
                 props = widget.props or {}
-                # Get font family from first widget that has it
-                family = props.get("font_family")
-                if family and selected_font_family == "Inter":
-                    selected_font_family = family
+                # Get font family (default Roboto)
+                family = props.get("font_family", "Roboto")
                 
                 # Get weight (default 400)
                 weight = int(props.get("font_weight", 400) or 400)
                 
                 # Collect text font size if specified
                 if wtype in ("text", "label"):
-                    size = int(props.get("font_size", 0) or 0)
-                    if size > 0:
-                        text_sizes.add((size, weight))
+                    size = int(props.get("font_size", 20) or 20)
+                    usage = get_text_usage(family, weight, size)
+                    
+                    # Add characters from static text
+                    text = (props.get("text") or widget.title or "")
+                    for char in text:
+                        usage['chars'].add(char)
+                        
                 else:  # sensor_text
-                    label_size = int(props.get("label_font_size", 0) or 0)
-                    value_size = int(props.get("value_font_size", 0) or 0)
-                    if label_size > 0:
-                        text_sizes.add((label_size, weight))
-                    if value_size > 0:
-                        text_sizes.add((value_size, weight))
+                    label_size = int(props.get("label_font_size", 14) or 14)
+                    value_size = int(props.get("value_font_size", 20) or 20)
+                    weight_for_value = int(props.get("font_weight", 400) or 400)
+                    weight_for_label = 400  # Labels typically use regular weight
+                    
+                    # Sensor text is dynamic
+                    get_text_usage(family, weight_for_label, label_size)['dynamic'] = True
+                    get_text_usage(family, weight_for_value, value_size)['dynamic'] = True
+
             elif wtype == "datetime":
                 props = widget.props or {}
+                family = props.get("font_family", "Roboto")
                 # Datetime usually uses standard weights, but we can support custom if needed
-                # For now, assume standard weights for datetime to avoid complexity unless requested
-                time_size = int(props.get("time_font_size", 0) or 0)
-                date_size = int(props.get("date_font_size", 0) or 0)
-                if time_size > 0:
-                    text_sizes.add((time_size, 700)) # Time usually bold
-                if date_size > 0:
-                    text_sizes.add((date_size, 400)) # Date usually regular
+                time_size = int(props.get("time_font_size", 28) or 28)
+                date_size = int(props.get("date_font_size", 16) or 16)
+                
+                # Datetime is dynamic
+                get_text_usage(family, 700, time_size)['dynamic'] = True
+                get_text_usage(family, 400, date_size)['dynamic'] = True
+
             elif wtype == "image":
                 props = widget.props or {}
                 path = (props.get("path") or "").strip()
@@ -235,78 +416,97 @@ def _generate_fonts(device: DeviceConfig) -> str:
                     dither = props.get("dither", "FLOYDSTEINBERG").upper()
                     transparency = props.get("transparency", "").lower()
                     
-                    # Store path with dimensions and config
-                    # Key by path+width+height to allow same image at different sizes
-                    key = (path, width, height)
-                    image_paths[key] = {
+                    image_paths[(path, width, height)] = {
                         "id": safe_id,
-                        "width": width,
-                        "height": height,
                         "type": img_type,
                         "dither": dither,
                         "transparency": transparency
                     }
     
-    # Base fonts - use selected font family for all standard sizes
-    font_lines = [
-        "font:",
-        f"  - file: \"gfonts://{selected_font_family}@400\"",
-        "    id: font_axis",
-        "    size: 10",
-        "",
-        f"  - file: \"gfonts://{selected_font_family}@400\"",
-        "    id: font_small",
-        "    size: 19",
-        "",
-        f"  - file: \"gfonts://{selected_font_family}@500\"",
-        "    id: font_normal",
-        "    size: 22",
-        "",
-        f"  - file: \"gfonts://{selected_font_family}@700\"",
-        "    id: font_header",
-        "    size: 24"
-    ]
     
-    # Add custom text fonts for non-standard sizes or weights
-    if text_sizes:
+    # Always generate the standard fonts that were previously in the hardware template
+    # This ensures they are available even if no widgets use them (e.g. for system messages)
+    font_lines = []
+    
+    # Standard Roboto Fonts (replacing the static ones from hardware template)
+    font_lines.extend([
+        "  # --- Standard Fonts (Auto-Generated) ---",
+        "  - file:",
+        "      type: gfonts",
+        "      family: Roboto",
+        "      weight: 700",
+        "    id: font_large",
+        "    size: 48",
+        "    bpp: 1",
+        "  - file:",
+        "      type: gfonts",
+        "      family: Roboto",
+        "      weight: 400",
+        "    id: font_medium",
+        "    size: 24",
+        "    bpp: 1",
+        "  - file:",
+        "      type: gfonts",
+        "      family: Roboto",
+        "      weight: 400",
+        "    id: font_small",
+        "    size: 14",
+        "    bpp: 1",
+        "  - file:",
+        "      type: gfonts",
+        "      family: Roboto",
+        "      weight: 400",
+        "    id: font_roboto_400_12",
+        "    size: 12",
+        "    bpp: 1"
+    ])
+
+    # Generate custom text fonts for specific sizes/weights used by widgets
+    if text_usage:
         font_lines.append("")
-        font_lines.append("  # Custom text fonts for specific sizes and weights")
-        for size, weight in sorted(text_sizes):
-            # Check if this matches a standard font exactly
-            if size == 19 and weight == 400: continue
-            if size == 22 and weight == 500: continue
-            if size == 24 and weight == 700: continue
+        font_lines.append("  # Custom text fonts for widget sizes/weights")
+        for (family, weight, size), usage in sorted(text_usage.items()):
+            # Create consistent ID format
+            family_id = family.lower().replace(" ", "_")
+            font_id = f"font_{family_id}_{weight}_{size}"
             
             font_lines.extend([
-                f"  - file: \"gfonts://{selected_font_family}@{weight}\"",
-                f"    id: font_text_{size}_{weight}",
-                f"    size: {size}"
+                "  - file:",
+                "      type: gfonts",
+                f"      family: {family}",
+                f"      weight: {weight}",
+                f"    id: {font_id}",
+                f"    size: {size}",
+                "    bpp: 1"
             ])
+            
+            # Smart Optimization: If not dynamic and we have known chars, restrict glyphs
+            if not usage['dynamic'] and usage['chars']:
+                # Escape chars for YAML string
+                chars_str = "".join(sorted(usage['chars'])).replace('"', '\\"')
+                font_lines.append(f'    glyphs: "{chars_str}"')
     
     # Add MDI fonts if there are icon widgets
-    if icon_codes:
-        # Convert codes to Unicode escapes
-        glyphs = []
-        for code in sorted(icon_codes):
-            # code is like "F0595" - convert to "\U000F0595"
-            glyphs.append(f'"\\U000{code}"')
+    if icon_usage_by_size:
+        font_lines.append("")
+        font_lines.append("  # Material Design Icons (Optimized - Only used glyphs)")
         
-        glyph_list = ", ".join(glyphs)
-        
-        # Generate fonts for each unique size
-        if not icon_sizes:
-            icon_sizes = {48}  # Default size
-        
-        font_lines.extend([
-            "",
-            "  # Material Design Icons for icon widgets",
-            "  # Copy materialdesignicons-webfont.ttf to your ESPHome fonts folder"
-        ])
-        
-        # Generate a font for each unique size
-        for size in sorted(icon_sizes):
+        # Generate a font for each unique size with ONLY the glyphs needed for that size
+        for size, codes in sorted(icon_usage_by_size.items()):
             # Always use size-specific ID for consistency
             font_id = f"font_mdi_{size}"
+            
+            # Convert codes to Unicode escapes
+            glyphs = []
+            for code in sorted(codes):
+                # code is like "F0595" - convert to actual Unicode character U+F0595
+                # Use f-string with \U to create the Unicode character directly
+                try:
+                    glyphs.append(f'"{chr(0xF0000 + int(code[1:], 16))}"')
+                except (ValueError, IndexError):
+                    pass
+            
+            glyph_list = ", ".join(glyphs)
             
             font_lines.extend([
                 "  - file: fonts/materialdesignicons-webfont.ttf",
@@ -315,7 +515,8 @@ def _generate_fonts(device: DeviceConfig) -> str:
                 f"    glyphs: [{glyph_list}]"
             ])
     
-    result = "\n".join(font_lines)
+    # Add font: parent key
+    result = "font:" + "\n" + "\n".join(font_lines)
     
     # Add image definitions if there are image widgets
     if image_paths:
@@ -377,7 +578,6 @@ def _generate_text_sensors(device: DeviceConfig, text_entity_ids: set[str], nume
         sections.append("")
     
     # Generate sensor section for numeric widgets
-    # Generate sensor section for numeric widgets
     if numeric_entity_ids:
         sections.append("# ============================================================================")
         sections.append("# INSTRUCTION: Copy these sensors into your existing 'sensor:' section")
@@ -393,10 +593,10 @@ def _generate_text_sensors(device: DeviceConfig, text_entity_ids: set[str], nume
             safe_id = entity_id.replace(".", "_").replace("-", "_")
             precision = numeric_entity_ids[entity_id]
             
-            sections.append(f"""#   - platform: homeassistant
-#     id: {safe_id}
-#     entity_id: {entity_id}
-#     internal: true""")
+            sections.append(f"#   - platform: homeassistant")
+            sections.append(f"#     id: {safe_id}")
+            sections.append(f"#     entity_id: {entity_id}")
+            sections.append(f"#     internal: true")
             if precision >= 0:
                 sections.append(f"#     accuracy_decimals: {precision}")
         sections.append("")
@@ -419,6 +619,15 @@ def _classify_entities(device: DeviceConfig) -> tuple[set[str], dict[str, int], 
     numeric_entity_ids = {}  # Map entity_id -> max precision found (-1 = default)
     local_entity_ids = set()  # Track local sensors
     
+    # Sensors already defined in the hardware template - do not generate these!
+    TEMPLATE_SENSOR_IDS = {
+        "battery_voltage",
+        "battery_level",
+        "wifi_signal_db",
+        "sensor_reterminal_e1001_reterminal_onboard_temperature",
+        "sensor_reterminal_e1001_reterminal_onboard_humidity"
+    }
+    
     for page in device.pages:
         for widget in page.widgets:
             entity_id = (widget.entity_id or "").strip()
@@ -432,6 +641,10 @@ def _classify_entities(device: DeviceConfig) -> tuple[set[str], dict[str, int], 
             is_local = props.get("is_local_sensor") or props.get("local")
             if is_local:
                 local_entity_ids.add(entity_id)
+            
+            # Skip if this is a known template sensor
+            if entity_id in TEMPLATE_SENSOR_IDS:
+                continue
             
             # Widgets that need numeric (float) values
             if wtype in ("progress_bar", "battery_icon", "graph"):
@@ -470,71 +683,7 @@ def _classify_entities(device: DeviceConfig) -> tuple[set[str], dict[str, int], 
     return text_entity_ids, numeric_entity_ids, local_entity_ids
 
 
-def _generate_navigation_buttons(device: DeviceConfig) -> str:
-    # Template buttons for navigation and refresh.
-    # These operate on display_page and let HA/ESPHome automations drive page changes.
-    num_pages = len(device.pages)
-    
-    # Start with basic navigation buttons
-    buttons = ["""button:
-  - platform: template
-    name: "reTerminal Next Page"
-    id: reterminal_next_page
-    on_press:
-      - lambda: |-
-          int pages = {pages};
-          id(display_page) = (id(display_page) + 1) % pages;
 
-  - platform: template
-    name: "reTerminal Previous Page"
-    id: reterminal_prev_page
-    on_press:
-      - lambda: |-
-          int pages = {pages};
-          id(display_page) = (id(display_page) - 1 + pages) % pages;
-
-  - platform: template
-    name: "reTerminal Refresh Display"
-    id: reterminal_refresh_display
-    on_press:
-      - component.update: epaper_display
-""".format(pages=num_pages)]
-    
-    # Add "Go to Page X" buttons for each page
-    for idx in range(num_pages):
-        page_name = device.pages[idx].name if hasattr(device.pages[idx], 'name') and device.pages[idx].name else f"Page {idx}"
-        buttons.append(f"""
-  - platform: template
-    name: "reTerminal Go to {page_name}"
-    id: reterminal_goto_page_{idx}
-    on_press:
-      - lambda: 'id(display_page) = {idx};'
-      - component.update: epaper_display""")
-    
-    # Add buzzer control buttons (hardware feature - always included)
-    buttons.append("""
-
-  # Buzzer control buttons (hardware feature)
-  - platform: template
-    name: "reTerminal Beep"
-    id: reterminal_beep
-    on_press:
-      - rtttl.play: "beep:d=32,o=5,b=200:16e6"
-
-  - platform: template
-    name: "reTerminal Beep Error"
-    id: reterminal_beep_error
-    on_press:
-      - rtttl.play: "error:d=16,o=5,b=200:c6"
-
-  - platform: template
-    name: "reTerminal Play Star Wars"
-    id: reterminal_star_wars
-    on_press:
-      - rtttl.play: "StarWars:d=4,o=5,b=45:32p,32f,32f,32f,8a#.,8f.6,32d#,32d,32c,8a#.6,4f.6,32d#,32d,32c,8a#.6,4f.6,32d#,32d,32d#,8c6,32p,32f,32f,32f,8a#.,8f.6,32d#,32d,32c,8a#.6,4f.6,32d#,32d,32c,8a#.6,4f.6,32d#,32d,32d#,8c6"
-""")
-    
-    return "".join(buttons)
 
 
 def _generate_scripts(device: DeviceConfig) -> str:
@@ -658,7 +807,40 @@ def _generate_scripts(device: DeviceConfig) -> str:
         except (ValueError, TypeError):
             pass
 
-    return f"""script:
+    # Build image trigger logic to prevent race conditions
+    # If page has online images, trigger them and let them update display.
+    # Otherwise, update display directly.
+    image_cases = []
+    for idx, page in enumerate(device.pages):
+        page_images = []
+        for w in page.widgets:
+            wtype = (w.type or "").lower()
+            if wtype == "online_image":
+                safe_id = f"online_image_{w.id}".replace("-", "_")
+                page_images.append(safe_id)
+            elif wtype == "puppet":
+                safe_id = f"puppet_{w.id}".replace("-", "_")
+                page_images.append(safe_id)
+        
+        if page_images:
+            updates = " ".join([f"id({pid}).update();" for pid in page_images])
+            image_cases.append(f"                  case {idx}: {updates} triggered = true; break;")
+
+    if image_cases:
+        image_cases_block = "\n".join(image_cases)
+        update_lambda = f"""            - lambda: |-
+                bool triggered = false;
+                int page = id(display_page);
+                switch (page) {{
+{image_cases_block}
+                }}
+                if (!triggered) {{
+                  id(epaper_display).update();
+                }}"""
+    else:
+        update_lambda = "            - component.update: epaper_display"
+
+    return """script:
   - id: manage_run_and_sleep
     mode: restart
     then:
@@ -680,10 +862,10 @@ def _generate_scripts(device: DeviceConfig) -> str:
                 ESP_LOGI("refresh", "Next refresh in %d seconds for page %d", interval, page);
             
             {no_refresh_logic}
-            - component.update: epaper_display
+{update_lambda}
             - delay: !lambda 'return id(page_refresh_current_s) * 1000;'
             - script.execute: manage_run_and_sleep
-"""
+""".format(sleep_logic=sleep_logic, cases_block=cases_block, no_refresh_logic=no_refresh_logic, update_lambda=update_lambda)
 
 
 def _generate_graphs(device: DeviceConfig) -> str:
@@ -769,6 +951,55 @@ def _generate_graphs(device: DeviceConfig) -> str:
     return "\n".join(lines)
 
 
+def _generate_display_block_and_track_fonts(device: DeviceConfig, numeric_entity_ids: dict[str, int]) -> tuple[str, dict]:
+    """
+    Generate the display: epaper_display block while tracking all fonts that are referenced.
+    Returns: (display_block_yaml, fonts_used)
+    
+    fonts_used format: {
+        'text_fonts': {(family, weight, size): {'dynamic': bool, 'chars': set()}},
+        'icon_fonts_by_size': {size: set_of_glyph_codes}
+    }
+    """
+    fonts_used = {
+        'text_fonts': {},
+        'icon_fonts_by_size': {}
+    }
+    
+    lines: List[str] = []
+
+    orientation = getattr(device, "orientation", "landscape")
+    if orientation == "portrait":
+        rotation = 90
+    else:
+        rotation = 0
+
+    lines.append("display:")
+    lines.append("  - platform: waveshare_epaper")
+    lines.append("    id: epaper_display")
+    lines.append("    model: ${display_model}")
+    lines.append("    cs_pin: ${display_cs_pin}")
+    lines.append("    dc_pin: ${display_dc_pin}")
+    lines.append("    reset_pin:")
+    lines.append("      number: ${display_reset_pin}")
+    lines.append("      inverted: false")
+    lines.append("    busy_pin:")
+    lines.append("      number: ${display_busy_pin}")
+    lines.append("      inverted: true")
+    lines.append("    update_interval: never")
+    lines.append("    lambda: |-")
+    lines.append("      // Define common colors for widgets")
+    lines.append("      Color COLOR_ON = Color(1);")
+    lines.append("      Color COLOR_OFF = Color(0);")
+    lines.append("      it.fill(COLOR_OFF);")
+    lines.append("")
+
+    for page_index, page in enumerate(device.pages):
+        _append_page_render(lines, page_index, page, numeric_entity_ids, fonts_used)
+
+    return "\n".join(lines), fonts_used
+
+
 def _generate_display_block(device: DeviceConfig, numeric_entity_ids: dict[str, int]) -> str:
     """
     Generate the display: epaper_display block with a lambda that:
@@ -790,14 +1021,14 @@ def _generate_display_block(device: DeviceConfig, numeric_entity_ids: dict[str, 
     lines.append("display:")
     lines.append("  - platform: waveshare_epaper")
     lines.append("    id: epaper_display")
-    lines.append(f"    model: {getattr(device, 'model', '7.50inv2')}")
-    lines.append("    cs_pin: GPIO10")
-    lines.append("    dc_pin: GPIO11")
+    lines.append("    model: ${display_model}")
+    lines.append("    cs_pin: ${display_cs_pin}")
+    lines.append("    dc_pin: ${display_dc_pin}")
     lines.append("    reset_pin:")
-    lines.append("      number: GPIO12")
+    lines.append("      number: ${display_reset_pin}")
     lines.append("      inverted: false")
     lines.append("    busy_pin:")
-    lines.append("      number: GPIO13")
+    lines.append("      number: ${display_busy_pin}")
     lines.append("      inverted: true")
     lines.append("    update_interval: never")
     lines.append("    lambda: |-")
@@ -830,36 +1061,45 @@ def _generate_online_images(device: DeviceConfig) -> str:
 
     lines: List[str] = [
         "# Remote/puppet images (online_image)",
-        "# Required dependency for online_image",
-        "http_request:",
-        "  timeout: 20s",
-        "  verify_ssl: false",
-        ""
+        "# NOTE: Requires http_request: component (already in hardware template)",
+        "",
+        "online_image:"  # Single parent key for all images
     ]
+    
     for pidx, widget in image_widgets:
         props = widget.props or {}
         url = (props.get("url") or props.get("image_url") or "").strip()
-        interval = int(props.get("interval_s") or 300)
-        # Safe id for ESPHome
-        safe_id = f"img_{widget.id}".replace("-", "_")
-        lines.append(f"online_image:\n  - id: {safe_id}")
+        wtype = (widget.type or "").lower()
+        
+        # Safe id for ESPHome matching frontend logic
+        if wtype == "puppet":
+            safe_id = f"puppet_{widget.id}".replace("-", "_")
+        else:
+            safe_id = f"online_image_{widget.id}".replace("-", "_")
+
+        # Default properties
+        img_format = (props.get("format", "PNG") or "PNG").upper()  # PNG or JPEG
+        # ESPHome expects "JPEG" not "JPG"
+        if img_format == "JPG":
+            img_format = "JPEG"
+        img_type = (props.get("type", "GRAYSCALE") or "GRAYSCALE").upper()  # GRAYSCALE for e-paper
+        resize = f"{widget.width}x{widget.height}"
+        update_interval = props.get("update_interval", "1h")
+
+        lines.append(f"  - id: {safe_id}")
         if url:
             lines.append(f"    url: \"{url}\"")
-        lines.append(f"    format: PNG")
-        lines.append(f"    type: BINARY")
-        lines.append(f"    update_interval: {interval}s")
+        lines.append(f"    format: {img_format}")
+        lines.append(f"    type: {img_type}")
+        lines.append(f"    resize: {resize}")
+        lines.append(f"    update_interval: never")
         # on_download_finished: update epaper_display when this page is visible
         lines.append("    on_download_finished:")
         lines.append("      then:")
-        lines.append(f"        - logger.log: \"Puppet image downloaded for widget {widget.id}\"")
-        lines.append("        - if:")
-        lines.append(f"            condition:")
-        lines.append(f"              lambda: 'return id(display_page) == {pidx};'")
-        lines.append(f"            then:")
-        lines.append(f"              - component.update: epaper_display")
+        lines.append(f"        - component.update: epaper_display")
         lines.append("    on_error:")
         lines.append("      then:")
-        lines.append(f"        - logger.log: \"Puppet image download FAILED for widget {widget.id}\"")
+        lines.append(f"        - component.update: epaper_display")
 
     return "\n".join(lines)
 
@@ -876,61 +1116,55 @@ def _append_page_render(dst: List[str], page_index: int, page: PageConfig, numer
 
 
 def _resolve_font(props: dict, default_weight: int = 400) -> str:
-    """Pick a font id based on optional font_size and font_weight in widget props."""
+    """Pick a font id based on font_family, font_size and font_weight in widget props."""
     try:
-        size = int(props.get("font_size", 0))
+        size = int(props.get("font_size", 20))
     except (TypeError, ValueError):
-        size = 0
+        size = 20
         
     try:
         weight = int(props.get("font_weight", default_weight))
     except (TypeError, ValueError):
         weight = default_weight
 
-    if size <= 0:
-        return "id(font_normal)"
+    # Get font family, default to Roboto
+    family = props.get("font_family", "Roboto")
     
-    # Check for standard fonts first
-    if size == 19 and weight == 400:
-        return "id(font_small)"
-    if size == 22 and weight == 500:
-        return "id(font_normal)"
-    if size == 24 and weight == 700:
-        return "id(font_header)"
-        
-    # Otherwise use generated custom font
-    return f"id(font_text_{size}_{weight})"
+    # Convert to template format: font_<family>_<weight>_<size>
+    # e.g., "Open Sans" -> "open_sans"
+    family_id = family.lower().replace(" ", "_")
+    
+    return f"id(font_{family_id}_{weight}_{size})"
 
 
-def _resolve_font_by_size(size: int, weight: int = 400) -> str:
-    """Pick a font id based on explicit font size and weight."""
+def _resolve_font_by_size(size: int, weight: int = 400, family: str = "Roboto") -> str:
+    """Pick a font id based on explicit font size, weight, and family."""
     if size <= 0:
-        return "id(font_normal)"
+        size = 20
     
-    # Check for standard fonts first
-    if size == 19 and weight == 400:
-        return "id(font_small)"
-    if size == 22 and weight == 500:
-        return "id(font_normal)"
-    if size == 24 and weight == 700:
-        return "id(font_header)"
-        
-    # Otherwise use generated custom font
-    return f"id(font_text_{size}_{weight})"
+    # Convert to template format: font_<family>_<weight>_<size>
+    # e.g., "Open Sans" -> "open_sans"
+    family_id = family.lower().replace(" ", "_")
+    
+    return f"id(font_{family_id}_{weight}_{size})"
 
 
 def _wrap_with_condition(dst: List[str], indent: str, widget: WidgetConfig, content_lines: List[str], numeric_entity_ids: dict[str, int]) -> None:
     """Wrap widget rendering code with conditional visibility if configured."""
+    
+    # Fallback to widget.entity_id if condition_entity is not set
+    cond_entity = widget.condition_entity or widget.entity_id
+
     # Check for Single Value mode
     has_single = (
-        widget.condition_entity and 
+        cond_entity and 
         widget.condition_state is not None and 
         widget.condition_operator
     )
     
     # Check for Range mode
     has_range = (
-        widget.condition_entity and 
+        cond_entity and 
         (widget.condition_min is not None or widget.condition_max is not None)
     )
     
@@ -940,13 +1174,13 @@ def _wrap_with_condition(dst: List[str], indent: str, widget: WidgetConfig, cont
         return
     
     # Generate safe ID from entity_id for condition
-    if "." in widget.condition_entity:
-        safe_cond_id = widget.condition_entity.replace(".", "_").replace("-", "_")
+    if "." in cond_entity:
+        safe_cond_id = cond_entity.replace(".", "_").replace("-", "_")
     else:
-        safe_cond_id = widget.condition_entity
+        safe_cond_id = cond_entity
     
     # Determine if condition entity is numeric
-    is_numeric = widget.condition_entity in numeric_entity_ids
+    is_numeric = cond_entity in numeric_entity_ids
     
     dst.append(f'{indent}{{')
     
@@ -1070,9 +1304,19 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig, num
         color_prop = (props.get("color") or "black").lower()
         font_style = props.get("font_style") or "regular"
         font_weight = int(props.get("font_weight", 400) or 400)
+        text_align = props.get("text_align", "TOP_LEFT").upper()
+        
+        # Calculate correct x coordinate based on alignment
+        if text_align == "TOP_CENTER":
+            align_x = x + w // 2
+        elif text_align == "TOP_RIGHT":
+            align_x = x + w
+        else:  # TOP_LEFT
+            align_x = x
+            
         # Add marker comment for parser with all properties including font_family and font_weight
-        content.append(f'{indent}// widget:text id:{widget.id} type:text x:{x} y:{y} w:{w} h:{h} text:"{text}" font_size:{font_size} font_family:{font_family} font_weight:{font_weight} weight:{font_weight} color:{color_prop} font_style:{font_style}')
-        content.append(f'{indent}it.print({x}, {y}, {font}, {fg}, "{text}");')
+        content.append(f'{indent}// widget:text id:{widget.id} type:text x:{x} y:{y} w:{w} h:{h} text:"{text}" font_size:{font_size} font_family:"{font_family}" font_weight:{font_weight} weight:{font_weight} color:{color_prop} font_style:{font_style} text_align:{text_align}')
+        content.append(f'{indent}it.print({align_x}, {y}, {font}, {fg}, TextAlign::{text_align}, "{text}");')
         _wrap_with_condition(dst, indent, widget, content, numeric_entity_ids)
         return
 
@@ -1155,31 +1399,48 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig, num
             # CRITICAL: Parser depends on exact format
             is_local = "true" if props.get("is_local_sensor") else "false"
             is_text = "true" if not is_numeric else "false"
-            text_align = props.get("text_align", "TOP_LEFT").upper()
             
-            label_font = _resolve_font_by_size(label_font_size, font_weight)
-            value_font = _resolve_font_by_size(value_font_size, font_weight)
+            # Support separate alignments for label and value
+            text_align = props.get("text_align", "TOP_LEFT").upper()
+            label_align = props.get("label_align", text_align).upper()
+            value_align = props.get("value_align", text_align).upper()
+            
+            # Helper function to calculate x coordinate based on alignment
+            def get_align_x(alignment):
+                if alignment == "TOP_CENTER":
+                    return x + w // 2
+                elif alignment == "TOP_RIGHT":
+                    return x + w
+                else:  # TOP_LEFT
+                    return x
+            
+            label_font = _resolve_font_by_size(label_font_size, font_weight, font_family)
+            value_font = _resolve_font_by_size(value_font_size, font_weight, font_family)
 
-            content.append(f'{indent}// widget:sensor_text id:{widget.id} type:sensor_text x:{x} y:{y} w:{w} h:{h} ent:{entity_id} title:"{label}" format:{value_format} label_font:{label_font_size} value_font:{value_font_size} color:{base_color} align:{text_align} precision:{props.get("precision", -1)} unit:"{unit}" local:{is_local} text_sensor:{is_text}')
+            content.append(f'{indent}// widget:sensor_text id:{widget.id} type:sensor_text x:{x} y:{y} w:{w} h:{h} ent:{entity_id} title:"{label}" format:{value_format} label_font:{label_font_size} value_font:{value_font_size} color:{base_color} label_align:{label_align} value_align:{value_align} precision:{props.get("precision", -1)} unit:"{unit}" local:{is_local} text_sensor:{is_text} font_family:"{font_family}" font_weight:{font_weight}')
 
             if value_format == "label_newline_value" and label:
-                # Label on top, value below
-                content.append(f'{indent}it.printf({x}, {y}, {label_font}, {fg}, TextAlign::{text_align}, "{label}");')
+                # Label on top, value below (using separate alignments and coordinates)
+                label_x = get_align_x(label_align)
+                value_x = get_align_x(value_align)
+                content.append(f'{indent}it.printf({label_x}, {y}, {label_font}, {fg}, TextAlign::{label_align}, "{label}");')
                 # Value below label
-                content.append(f'{indent}it.printf({x}, {y} + {label_font_size} + 2, {value_font}, {fg}, TextAlign::{text_align}, "{fmt}%s", {val_expr}, "{unit}");')
+                content.append(f'{indent}it.printf({value_x}, {y} + {label_font_size} + 2, {value_font}, {fg}, TextAlign::{value_align}, "{fmt}%s", {val_expr}, "{unit}");')
             elif value_format == "label_value" and label:
-                # Inline format: "Label: Value"
-                content.append(f'{indent}it.printf({x}, {y}, {value_font}, {fg}, TextAlign::{text_align}, "{label}: {fmt}%s", {val_expr}, "{unit}");')
+                # Inline format: "Label: Value" - use value_align since it's a single line
+                value_x = get_align_x(value_align)
+                content.append(f'{indent}it.printf({value_x}, {y}, {value_font}, {fg}, TextAlign::{value_align}, "{label}: {fmt}%s", {val_expr}, "{unit}");')
             else:
                 # value_only or no label - just show value
-                font = _resolve_font_by_size(value_font_size, font_weight)
-                content.append(f'{indent}it.printf({x}, {y}, {font}, {fg}, "{fmt_spec}", {val_expr});')
+                font = _resolve_font_by_size(value_font_size, font_weight, font_family)
+                value_x = get_align_x(value_align)
+                content.append(f'{indent}it.printf({value_x}, {y}, {font}, {fg}, TextAlign::{value_align}, "{fmt}%s", {val_expr}, "{unit}");')
         else:
             # No entity_id configured - show placeholder
             placeholder = label or "sensor"
-            font = _resolve_font_by_size(value_font_size, font_weight)
+            font = _resolve_font_by_size(value_font_size, font_weight, font_family)
             # Add marker comment for parser with font sizes and font_family
-            content.append(f'{indent}// widget:sensor_text id:{widget.id} type:sensor_text x:{x} y:{y} w:{w} h:{h} title:"{label}" label_font:{label_font_size} value_font:{value_font_size} format:{value_format} font_family:{font_family} font_weight:{font_weight} precision:{precision}')
+            content.append(f'{indent}// widget:sensor_text id:{widget.id} type:sensor_text x:{x} y:{y} w:{w} h:{h} title:"{label}" label_font:{label_font_size} value_font:{value_font_size} format:{value_format} font_family:"{font_family}" font_weight:{font_weight} precision:{precision}')
             content.append(f'{indent}// No entity_id configured for this sensor_text widget')
             content.append(f'{indent}it.printf({x}, {y}, {font}, {fg}, "{placeholder}: N/A");')
         _wrap_with_condition(dst, indent, widget, content, numeric_entity_ids)
@@ -1191,17 +1452,17 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig, num
         time_font_size = int(props.get("time_font_size", 28) or 28)
         date_font_size = int(props.get("date_font_size", 16) or 16)
         
-        time_font = _resolve_font_by_size(time_font_size, 700)
-        date_font = _resolve_font_by_size(date_font_size, 400)
+        # Extract font_family for marker (even though datetime currently doesn't use it for rendering)
+        font_family = props.get("font_family") or "Inter"
+        
+        time_font = _resolve_font_by_size(time_font_size, 700, font_family)
+        date_font = _resolve_font_by_size(date_font_size, 400, font_family)
         
         # Calculate center X for alignment
         cx = x + w // 2
         
-        # Extract font_family for marker (even though datetime currently doesn't use it for rendering)
-        font_family = props.get("font_family") or "Inter"
-        
         # Add marker comment for parser
-        content.append(f'{indent}// widget:datetime id:{widget.id} type:datetime x:{x} y:{y} w:{w} h:{h} format:{format_type} time_font:{time_font_size} date_font:{date_font_size} color:{base_color} font_family:{font_family}')
+        content.append(f'{indent}// widget:datetime id:{widget.id} type:datetime x:{x} y:{y} w:{w} h:{h} format:{format_type} time_font:{time_font_size} date_font:{date_font_size} color:{base_color} font_family:"{font_family}"')
         
         if format_type == "time_only":
             # Time only - centered
@@ -1336,8 +1597,11 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig, num
         content.append(f'{indent}  else if (level <= 90) icon = "\\U000F0082";  // battery-90')
         content.append(f'{indent}  else                  icon = "\\U000F0079";  // battery (full)')
         content.append(f'{indent}  it.printf({x}, {y}, id({font_id}), {fg}, "%s", icon);')
-        content.append(f'{indent}  // Show percentage below icon')
-        content.append(f'{indent}  it.printf({x}, {y}+{size}+2, id(font_small), {fg}, "%.0f%%", level);')
+        content.append(f'{indent}  // Show percentage below icon, centered')
+        # Calculate center X relative to the ICON size, not the widget width
+        # The icon is drawn at (x,y) with width 'size'
+        cx = x + size // 2
+        content.append(f'{indent}  it.printf({cx}, {y}+{size}+2, id(font_small), {fg}, TextAlign::TOP_CENTER, "%.0f%%", level);')
         content.append(f'{indent}}}')
         _wrap_with_condition(dst, indent, widget, content, numeric_entity_ids)
         return
@@ -1382,6 +1646,94 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig, num
         content.append(f'{indent}  else if (state == "exceptional") icon = "\\U000F0024";')
         content.append(f'{indent}  it.printf({x}, {y}, id({font_id}), {fg}, "%s", icon);')
         content.append(f'{indent}}}')
+        _wrap_with_condition(dst, indent, widget, content, numeric_entity_ids)
+        return
+
+    # Graph widget
+    if wtype == "graph":
+        entity_id = (widget.entity_id or "").strip()
+        title = (widget.title or "").replace('"', '\\"')
+        duration = props.get("duration", "1h")
+        border = str(props.get("border", True)).lower()
+        x_grid = props.get("x_grid", "")
+        y_grid = props.get("y_grid", "")
+        line_type = props.get("line_type", "SOLID")
+        line_thickness = int(props.get("line_thickness", 3))
+        continuous = str(props.get("continuous", True)).lower()
+        min_value = props.get("min_value", "")
+        max_value = props.get("max_value", "")
+        min_range = props.get("min_range", "")
+        max_range = props.get("max_range", "")
+        is_local = "true" if props.get("is_local_sensor") else "false"
+        
+        # Generate safe ID
+        safe_id = f"graph_{widget.id}".replace("-", "_")
+        
+        # Marker comment
+        content.append(f'{indent}// widget:graph id:{widget.id} type:graph x:{x} y:{y} w:{w} h:{h} title:"{title}" entity:{entity_id} local:{is_local} duration:{duration} border:{border} color:{base_color} x_grid:{x_grid} y_grid:{y_grid} line_type:{line_type} line_thickness:{line_thickness} continuous:{continuous} min_value:{min_value} max_value:{max_value} min_range:{min_range} max_range:{max_range}')
+        
+        if entity_id:
+            # Draw graph
+            content.append(f'{indent}it.graph({x}, {y}, id({safe_id}));')
+            
+            if title:
+                content.append(f'{indent}it.printf({x}+4, {y}+2, id(font_small), {fg}, TextAlign::TOP_LEFT, "{title}");')
+            
+            # --- Generate Axis Labels ---
+            try:
+                min_val = float(min_value) if min_value else 0.0
+                max_val = float(max_value) if max_value else 100.0
+                
+                # Y-Axis Labels
+                y_range = max_val - min_val
+                y_steps = 4
+                for i in range(y_steps + 1):
+                    val = min_val + (y_range * (i / y_steps))
+                    y_offset = int(h * (1 - (i / y_steps)))
+                    # Adjust Y slightly to center text vertically (approx -6px for small font)
+                    # Smart formatting: use %.0f if range >= 10, else %.1f
+                    fmt = "%.0f" if y_range >= 10 else "%.1f"
+                    content.append(f'{indent}it.printf({x} - 4, {y} + {y_offset} - 6, id(font_small), {fg}, TextAlign::TOP_RIGHT, "{fmt}", (float){val});')
+                
+                # X-Axis Labels
+                duration_sec = 3600
+                import re
+                match = re.match(r'^(\d+)([a-z]+)$', duration, re.IGNORECASE)
+                if match:
+                    v = int(match.group(1))
+                    u = match.group(2).lower()
+                    if u.startswith("s"): duration_sec = v
+                    elif u.startswith("m"): duration_sec = v * 60
+                    elif u.startswith("h"): duration_sec = v * 3600
+                    elif u.startswith("d"): duration_sec = v * 86400
+
+                x_steps = 2
+                for i in range(x_steps + 1):
+                    ratio = i / x_steps
+                    x_offset = int(w * ratio)
+                    align = "TextAlign::TOP_CENTER"
+                    if i == 0: align = "TextAlign::TOP_LEFT"
+                    if i == x_steps: align = "TextAlign::TOP_RIGHT"
+                    
+                    label_text = ""
+                    if i == x_steps:
+                        label_text = "Now"
+                    else:
+                        time_ago = duration_sec * (1 - ratio)
+                        if time_ago >= 3600: label_text = f"-{time_ago/3600:.1f}h"
+                        elif time_ago >= 60: label_text = f"-{time_ago/60:.0f}m"
+                        else: label_text = f"-{time_ago:.0f}s"
+                    
+                    content.append(f'{indent}it.printf({x} + {x_offset}, {y} + {h} + 2, id(font_small), {fg}, {align}, "{label_text}");')
+
+            except ValueError:
+                pass # Skip labels if min/max are not valid numbers
+
+        else:
+            # Placeholder for no entity
+            content.append(f'{indent}it.rectangle({x}, {y}, {w}, {h}, {fg});')
+            content.append(f'{indent}it.printf({x}+5, {y}+5, id(font_small), {fg}, TextAlign::TOP_LEFT, "Graph (no entity)");')
+
         _wrap_with_condition(dst, indent, widget, content, numeric_entity_ids)
         return
 
@@ -1518,7 +1870,40 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig, num
         stroke_width = int(props.get("stroke_width", 1) or 1)
         # Add marker comment for parser
         content.append(f'{indent}// widget:line id:{widget.id} type:line x:{x} y:{y} w:{w} h:{h} stroke:{stroke_width} color:{base_color}')
-        content.append(f"{indent}it.line({x}, {y}, {x}+{dx}, {y}+{dy}, {fg});")
+        
+        # For straight lines: use only the dominant direction
+        # If mostly horizontal (|dx| > |dy|), make it perfectly horizontal (dy=0)
+        # If mostly vertical (|dy| > |dx|), make it perfectly vertical (dx=0)
+        # This prevents "crooked" lines where users expect horizontal but set height>0
+        if abs(dx) > abs(dy):
+            # Horizontal line - force y2 = y1
+            end_y = y  # NOT y+dy
+        else:
+            # Vertical line - keep dy, but could force x2 = x1 if desired
+            end_y = y + dy
+            
+        if abs(dy) > abs(dx):
+            # Vertical line - force x2 = x1  
+            end_x = x  # NOT x+dx
+        else:
+            # Horizontal line - keep dx
+            end_x = x + dx
+        
+        # Draw line from (x,y) to (end_x, end_y)
+        # For thick lines (stroke_width > 1), draw parallel lines
+        if stroke_width <= 1:
+            content.append(f"{indent}it.line({x}, {y}, {end_x}, {end_y}, {fg});")
+        else:
+            # Draw multiple parallel lines for thickness
+            content.append(f"{indent}// Line with stroke_width={stroke_width}")
+            content.append(f"{indent}for (int i = 0; i < {stroke_width}; i++) {{")
+            # Offset perpendicular to line direction
+            if abs(dx) > abs(dy):  # Horizontal line - offset vertically
+                content.append(f"{indent}  it.line({x}, {y}+i, {end_x}, {end_y}+i, {fg});")
+            else:  # Vertical line - offset horizontally
+                content.append(f"{indent}  it.line({x}+i, {y}, {end_x}+i, {end_y}, {fg});")
+            content.append(f"{indent}}}")
+        
         _wrap_with_condition(dst, indent, widget, content, numeric_entity_ids)
         return
 
@@ -1632,18 +2017,38 @@ def _append_widget_render(dst: List[str], indent: str, widget: WidgetConfig, num
     # Online Image widget
     if wtype == "online_image":
         url = (props.get("url") or "").strip()
-        safe_id = f"img_{widget.id}".replace("-", "_")
-        content.append(f'{indent}// widget:online_image id:{widget.id} type:online_image x:{x} y:{y} w:{w} h:{h} url:"{url}"')
-        content.append(f"{indent}it.image({x}, {y}, id({safe_id}));")
+        invert = bool(props.get("invert"))
+        # IMPORTANT: Must match ID from _generate_online_images
+        safe_id = f"online_image_{widget.id}".replace("-", "_")
+        
+        # Add invert property to marker comment
+        content.append(f'{indent}// widget:online_image id:{widget.id} type:online_image x:{x} y:{y} w:{w} h:{h} url:"{url}" invert:{str(invert).lower()}')
+        
+        # Render with color inversion if enabled
+        if invert:
+            content.append(f"{indent}it.image({x}, {y}, id({safe_id}), COLOR_OFF, COLOR_ON);")
+        else:
+            content.append(f"{indent}it.image({x}, {y}, id({safe_id}));")
+        
         _wrap_with_condition(dst, indent, widget, content, numeric_entity_ids)
         return
 
     # Puppet widget (online image wrapper)
     if wtype == "puppet":
         url = (props.get("image_url") or "").strip()
-        safe_id = f"img_{widget.id}".replace("-", "_")
-        content.append(f'{indent}// widget:puppet id:{widget.id} type:puppet x:{x} y:{y} w:{w} h:{h} url:"{url}"')
-        content.append(f"{indent}it.image({x}, {y}, id({safe_id}));")
+        invert = bool(props.get("invert"))
+        # IMPORTANT: Must match ID from _generate_online_images
+        safe_id = f"puppet_{widget.id}".replace("-", "_")
+        
+        # Add invert property to marker comment
+        content.append(f'{indent}// widget:puppet id:{widget.id} type:puppet x:{x} y:{y} w:{w} h:{h} url:"{url}" invert:{str(invert).lower()}')
+        
+        # Render with color inversion if enabled
+        if invert:
+            content.append(f"{indent}it.image({x}, {y}, id({safe_id}), COLOR_OFF, COLOR_ON);")
+        else:
+            content.append(f"{indent}it.image({x}, {y}, id({safe_id}));")
+        
         _wrap_with_condition(dst, indent, widget, content, numeric_entity_ids)
         return
 

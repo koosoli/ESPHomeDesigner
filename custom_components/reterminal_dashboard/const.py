@@ -30,7 +30,7 @@ API_LAYOUT_PATH = f"{API_BASE_PATH}" + "/{device_id}/layout"
 API_LAYOUT_PAGE_PATH = f"{API_BASE_PATH}" + "/{device_id}/page/{page_index}"
 
 # Defaults
-DEFAULT_PAGES = 3
+DEFAULT_PAGES = 1
 MIN_PAGES = 1
 MAX_PAGES = 8
 
