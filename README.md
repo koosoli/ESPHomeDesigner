@@ -17,7 +17,7 @@
 
 **No more hand-coding ESPHome display lambdas! 🎉**
 
-Building a custom smart display for Home Assistant? Frustrated with manually writing C++ lambdas and guessing coordinates?
+Building a custom smart display for Home Assistant? Frustrated with manually writing YAML and guessing coordinates?
 
 **Meet your new HMI Designer.**
 
