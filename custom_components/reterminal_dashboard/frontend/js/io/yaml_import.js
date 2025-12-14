@@ -94,6 +94,8 @@ function parseSnippetYamlOffline(yamlText) {
     const intervalMap = new Map();
     const nameMap = new Map();
     const darkModeMap = new Map(); // Per-page dark mode setting
+    const refreshTypeMap = new Map();
+    const refreshTimeMap = new Map();
     let currentPageIndex = null;
 
     for (const line of lambdaLines) {
@@ -138,6 +140,16 @@ function parseSnippetYamlOffline(yamlText) {
         if (darkModeMatch && currentPageIndex !== null) {
             darkModeMap.set(currentPageIndex, darkModeMatch[1]);
         }
+
+        const refreshTypeMatch = line.match(/\/\/\s*page:refresh_type\s+"(.+)"/);
+        if (refreshTypeMatch && currentPageIndex !== null) {
+            refreshTypeMap.set(currentPageIndex, refreshTypeMatch[1]);
+        }
+
+        const refreshTimeMatch = line.match(/\/\/\s*page:refresh_time\s+"(.*)"/);
+        if (refreshTimeMatch && currentPageIndex !== null) {
+            refreshTimeMap.set(currentPageIndex, refreshTimeMatch[1]);
+        }
     }
 
     if (pageMap.size === 0) {
@@ -153,6 +165,8 @@ function parseSnippetYamlOffline(yamlText) {
             id: `page_${idx}`,
             name: nameMap.has(idx) ? nameMap.get(idx) : `Page ${idx + 1}`,
             refresh_s: intervalMap.has(idx) ? intervalMap.get(idx) : null,
+            refresh_type: refreshTypeMap.has(idx) ? refreshTypeMap.get(idx) : "interval",
+            refresh_time: refreshTimeMap.has(idx) ? refreshTimeMap.get(idx) : "",
             dark_mode: darkModeMap.has(idx) ? darkModeMap.get(idx) : "inherit",
             widgets: []
         }))
@@ -296,6 +310,7 @@ function parseSnippetYamlOffline(yamlText) {
                         prefix: p.prefix || "",
                         postfix: p.postfix || "",
                         unit: p.unit || "",
+                        hide_unit: (p.hide_unit === "true" || p.hide_unit === true),
                         precision: parseInt(p.precision || -1, 10),
                         text_align: p.align || p.text_align || "TOP_LEFT",
                         label_align: p.label_align || p.align || p.text_align || "TOP_LEFT",

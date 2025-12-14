@@ -95,7 +95,18 @@ function generateSnippetLocally() {
     lines.push("# STEP 2: Create a new device in ESPHome");
     lines.push("#         - Click \"New Device\"");
     lines.push("#         - Name: your-device-name");
-    lines.push("#         - Select: ESP32-S3 (or appropriate for your board)");
+    if (getDeviceModel() === "m5stack_coreink") {
+        lines.push("#         - Select: ESP32 (do NOT use S3!)");
+        lines.push("#         - Board: m5stack-coreink");
+        lines.push("#         - Framework: esp-idf (Recommended) or arduino");
+    } else if (getDeviceModel() === "m5stack_paper") {
+        lines.push("#         - Select: ESP32 (do NOT use S3!)");
+        lines.push("#         - Board: m5stack-paper");
+        lines.push("#         - Framework: arduino (Required)");
+        lines.push("#         - Flash Size: 16MB");
+    } else {
+        lines.push("#         - Select: ESP32-S3 (or appropriate for your board)");
+    }
     lines.push("#");
     lines.push("# STEP 3: Add the on_boot sequence");
     if (getDeviceModel() === "esp32_s3_photopainter") {
@@ -116,6 +127,36 @@ function generateSnippetLocally() {
         lines.push("#           ESP_LOGI(\"power\", \"AXP2101 Configured\");");
         lines.push("#       - delay: 200ms");
         lines.push("#       - component.update: epaper_display");
+        lines.push("#       - script.execute: manage_run_and_sleep");
+        lines.push("#");
+    } else if (getDeviceModel() === "m5stack_paper") {
+        lines.push("#         Paste this under 'esphome:' in your YAML:");
+        lines.push("#");
+        lines.push("#   on_boot:");
+        lines.push("#     - priority: 600");
+        lines.push("#       then:");
+        lines.push("#       - delay: 2s");
+        lines.push("#       - component.update: epaper_display");
+        lines.push("#       - script.execute: manage_run_and_sleep");
+        lines.push("#     - priority: 220.0");
+        lines.push("#       then:");
+        lines.push("#           - it8951e.clear");
+        lines.push("#           - delay: 100ms");
+        lines.push("#           - component.update: epaper_display");
+        lines.push("#     - priority: -100.0");
+        lines.push("#       then:");
+        lines.push("#       - delay: 10s");
+        lines.push("#       - component.update: epaper_display");
+        lines.push("#");
+    } else if (getDeviceModel() === "m5stack_coreink") {
+        lines.push("#         Paste this under 'esphome:' in your YAML:");
+        lines.push("#");
+        lines.push("#   on_boot:");
+        lines.push("#     priority: 600");
+        lines.push("#     then:");
+        lines.push("#       - output.turn_on: bsp_battery_enable");
+        lines.push("#       - delay: 2s");
+        lines.push("#       # Note: Display update moved to script to save battery (Deep Sleep)");
         lines.push("#       - script.execute: manage_run_and_sleep");
         lines.push("#");
     } else {
@@ -225,6 +266,14 @@ function generateSnippetLocally() {
     lines.push(...generateBacklightSection(profile));
     lines.push(...generateRTTTLSection(profile));
     lines.push(...generateAudioSection(profile));
+
+    // Generate M5Paper specific components
+    if (profile.m5paper) {
+        lines.push("m5paper:");
+        if (profile.m5paper.battery_power_pin) lines.push(`  battery_power_pin: ${profile.m5paper.battery_power_pin}`);
+        if (profile.m5paper.main_power_pin) lines.push(`  main_power_pin: ${profile.m5paper.main_power_pin}`);
+        lines.push("");
+    }
 
     // 4. Time (Home Assistant)
     lines.push("time:");
@@ -459,7 +508,8 @@ function generateSnippetLocally() {
     }
 
     // Generate deep_sleep: configuration if enabled
-    if (payload.deep_sleep_enabled) {
+    // Generate deep_sleep: configuration if enabled or if CoreInk
+    if (payload.deep_sleep_enabled || getDeviceModel() === "m5stack_coreink") {
         const interval = payload.deep_sleep_interval || 600;
         lines.push("deep_sleep:");
         lines.push("  id: deep_sleep_1");
@@ -975,8 +1025,12 @@ function generateSnippetLocally() {
                 // Export page name and dark mode for round-trip persistence
                 const pageName = page.name || `Page ${pageIdx + 1}`;
                 const pageDarkMode = page.dark_mode || "inherit";
+                const refreshType = page.refresh_type || "interval";
+                const refreshTime = page.refresh_time || "";
                 lines.push(`        // page:name "${pageName}"`);
                 lines.push(`        // page:dark_mode "${pageDarkMode}"`);
+                lines.push(`        // page:refresh_type "${refreshType}"`);
+                lines.push(`        // page:refresh_time "${refreshTime}"`);
 
                 // Determine effective dark mode for this page
                 // Page setting overrides global: "dark" = true, "light" = false, "inherit" = use global
@@ -1059,7 +1113,7 @@ function generateSnippetLocally() {
                             const valueFontId = addFont(family, weight, valueFontSize, italic);
 
                             // Widget metadata comment - include all properties for round-trip persistence
-                            lines.push(`        // widget:sensor_text id:${w.id} type:sensor_text x:${w.x} y:${w.y} w:${w.width} h:${w.height} ent:${entity} entity_2:${entity2} title:"${title}" format:${valueFormat} label_font:${labelFontSize} value_font:${valueFontSize} color:${colorProp} label_align:${align} value_align:${align} precision:${precision} unit:"${unit}" prefix:"${prefix}" postfix:"${postfix}" separator:"${separator}" local:${isLocalSensor} text_sensor:${isTextSensor} font_family:"${family}" font_weight:${weight} italic:${italic}`);
+                            lines.push(`        // widget:sensor_text id:${w.id} type:sensor_text x:${w.x} y:${w.y} w:${w.width} h:${w.height} ent:${entity} entity_2:${entity2} title:"${title}" format:${valueFormat} label_font:${labelFontSize} value_font:${valueFontSize} color:${colorProp} label_align:${align} value_align:${align} precision:${precision} unit:"${unit}" hide_unit:${!!p.hide_unit} prefix:"${prefix}" postfix:"${postfix}" separator:"${separator}" local:${isLocalSensor} text_sensor:${isTextSensor} font_family:"${family}" font_weight:${weight} italic:${italic}`);
 
                             if (!entity) {
                                 lines.push(`        it.printf(${w.x}, ${w.y}, id(${valueFontId}), ${color}, TextAlign::TOP_LEFT, "No Entity");`);
@@ -1987,29 +2041,34 @@ function generateScriptSection(payload, pagesLocal, profile = {}) {
         return lines.join("\n");
     }
 
-    // Deep Sleep mode - simple script: update then sleep
-    if (payload.deep_sleep_enabled) {
-        lines.push("script:");
-        lines.push("  - id: manage_run_and_sleep");
-        lines.push("    mode: restart");
-        lines.push("    then:");
-        lines.push("      # Update screen immediately");
-        lines.push(`      - component.update: ${displayId}`);
-        lines.push("      ");
-        lines.push("      # Enter deep sleep (wakes up after sleep_duration)");
-        lines.push("      - deep_sleep.enter: deep_sleep_1");
-        return lines.join("\n");
-    }
+    // Deep Sleep mode - simple script block REMOVED to support smart intervals
 
     // Build per-page interval cases
     const casesLines = [];
     for (let idx = 0; idx < pagesLocal.length; idx++) {
         const page = pagesLocal[idx];
-        const refreshS = page.refresh_s;
-        if (refreshS !== undefined && refreshS !== null) {
-            const val = parseInt(refreshS, 10);
-            if (!isNaN(val) && val > 0) {
-                casesLines.push(`                  case ${idx}: interval = ${val}; break;`);
+        const refreshType = page.refresh_type || 'interval';
+
+        if (refreshType === 'daily' && page.refresh_time) {
+            // Daily at HH:MM
+            const [h, m] = page.refresh_time.split(':').map(Number);
+            if (!isNaN(h) && !isNaN(m)) {
+                casesLines.push(`                  case ${idx}: {`);
+                casesLines.push(`                      auto now = id(ha_time).now();`);
+                casesLines.push(`                      int target_s = ${h} * 3600 + ${m} * 60;`);
+                casesLines.push(`                      int current_s = now.hour * 3600 + now.minute * 60 + now.second;`);
+                casesLines.push(`                      if (current_s >= target_s) target_s += 86400;`);
+                casesLines.push(`                      interval = target_s - current_s;`);
+                casesLines.push(`                  } break;`);
+            }
+        } else {
+            // Interval (Seconds)
+            const refreshS = page.refresh_s;
+            if (refreshS !== undefined && refreshS !== null) {
+                const val = parseInt(refreshS, 10);
+                if (!isNaN(val) && val > 0) {
+                    casesLines.push(`                  case ${idx}: interval = ${val}; break;`);
+                }
             }
         }
     }
@@ -2018,9 +2077,15 @@ function generateScriptSection(payload, pagesLocal, profile = {}) {
         ? casesLines.join("\n")
         : "                  default:\n                    break;";
 
-    // Sleep logic
+    // Sleep logic (Night Mode) - If Deep Sleep is enabled globally, we ignore this specific "Night Mode" sleep
+    // because we sleep essentially all the time. But we might want to skip updates.
+    // For simplicity, if deep_sleep_enabled is YES, we rely on the main loop's deep sleep.
+    // We only keep the "Active Mode" logic if deep sleep is NOT enabled.
+
     let sleepLogic = "";
-    if (payload.sleep_enabled) {
+    // Only generate legacy "Night Mode" logic if we are NOT using global deep sleep
+    // (If using global deep sleep, the device is always sleeping between updates anyway)
+    if (payload.sleep_enabled && !payload.deep_sleep_enabled) {
         const startH = parseInt(payload.sleep_start_hour || 0, 10);
         const endH = parseInt(payload.sleep_end_hour || 5, 10);
 
@@ -2038,39 +2103,23 @@ function generateScriptSection(payload, pagesLocal, profile = {}) {
               if (!now.is_valid()) {
                 return false;
               }
-              // Deep sleep only between ${String(startH).padStart(2, '0')}:00 and ${String(endH).padStart(2, '0')}:00
-              // But skip if it's exactly the top of the hour (we just woke up to refresh)
               return ${condition} && !(now.minute == 0);
           then:
-            - lambda: |-
-                auto now = id(ha_time).now();
-                if (now.is_valid()) {
-                  ESP_LOGI("sleep", "Deep sleep mode %02d:%02d", now.hour, now.minute);
-                }
-            - if:
-                condition:
-                  lambda: |-
-                    auto now = id(ha_time).now();
-                    return now.is_valid() && (now.minute == 0);
-                then:
-                  - component.update: ${displayId}
-                else:
-                  - logger.log: "Deep sleep mode: skipping refresh until the top of the hour."
-            - deep_sleep.enter:
-                id: deep_sleep_1
-                sleep_duration: 60min
+            - logger.log: "Night Mode: skipping refresh until morning."
+            - delay: 60s
+            - script.execute: manage_run_and_sleep
           
           # Active Mode
           else:`;
     } else {
-        // No sleep mode
+        // No sleep mode or using global Deep Sleep (logic handled at end)
         sleepLogic = `
-      # Sleep mode disabled
+      # Regular Run
       - if:
           condition:
-            lambda: 'return false;'
+            lambda: 'return !id(ha_time).now().is_valid();'
           then:
-            - delay: 1s
+            - delay: 100ms
           else:`;
     }
 
@@ -2096,8 +2145,7 @@ function generateScriptSection(payload, pagesLocal, profile = {}) {
                     return now.is_valid() && ${cond};
                 then:
                   - logger.log: "In no-refresh window. Skipping display update."
-                  - delay: 60s
-                  - script.execute: manage_run_and_sleep
+                  ${payload.deep_sleep_enabled ? "- deep_sleep.enter: { id: deep_sleep_1, sleep_duration: 60min }" : "- delay: 60s\n                  - script.execute: manage_run_and_sleep"}
             `;
         }
     }
@@ -2148,7 +2196,16 @@ function generateScriptSection(payload, pagesLocal, profile = {}) {
     lines.push("      - wait_until:");
     lines.push("          condition:");
     lines.push("            lambda: 'return id(ha_time).now().is_valid();'");
-    lines.push("          timeout: 120s");
+    lines.push("          timeout: 60s"); // Adjusted to 60s as compromise
+
+    // Safety Fallback for Time Sync failure (prevent boot loops)
+    lines.push("      - lambda: |-");
+    lines.push("          if (!id(ha_time).now().is_valid()) {");
+    lines.push("            ESP_LOGW(\"script\", \"Time sync failed/invalid! Sleeping for 1 hour to retry.\");");
+    lines.push("            id(deep_sleep_1).set_sleep_duration(3600 * 1000);");
+    lines.push("            return;");
+    lines.push("          }");
+
     lines.push(sleepLogic);
     lines.push("            - lambda: |-");
     lines.push("                int page = id(display_page);");
@@ -2165,9 +2222,14 @@ function generateScriptSection(payload, pagesLocal, profile = {}) {
     lines.push(noRefreshLogic);
     lines.push(updateLambda);
     lines.push("      ");
-    lines.push("            - delay: !lambda 'return id(page_refresh_current_s) * 1000;'");
-    lines.push("            ");
-    lines.push("            - script.execute: manage_run_and_sleep");
+
+    if (payload.deep_sleep_enabled || profile.model === "m5stack_coreink" || (profile.name && profile.name.includes("CoreInk"))) {
+        lines.push("            - lambda: 'id(deep_sleep_1).set_sleep_duration(id(page_refresh_current_s) * 1000);'");
+        lines.push("            - deep_sleep.enter: deep_sleep_1");
+    } else {
+        lines.push("            - delay: !lambda 'return id(page_refresh_current_s) * 1000;'");
+        lines.push("            - script.execute: manage_run_and_sleep");
+    }
 
     return lines.join("\n");
 }

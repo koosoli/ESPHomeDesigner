@@ -2,14 +2,14 @@
 // HARDWARE SECTION GENERATORS
 // ============================================================================
 
-function generateTouchscreenSection(profile) {
+function generateTouchscreenSection(profile, displayId = "my_display") {
     if (!profile.touch) return []; // E-paper usually has no touch or handled differently
 
     const t = profile.touch;
     const lines = ["touchscreen:"];
     lines.push(`  - platform: ${t.platform}`);
     lines.push(`    id: my_touchscreen`);
-    lines.push(`    display: my_display`); // Assumes display ID is my_display (LCDs)
+    lines.push(`    display: ${displayId}`);
 
     if (t.i2c_id) lines.push(`    i2c_id: ${t.i2c_id}`);
     if (t.spi_id) lines.push(`    spi_id: ${t.spi_id}`);
@@ -191,6 +191,7 @@ function generateSPISection(profile) {
 function generateDisplaySection(profile) {
     const lines = [];
 
+
     // Display Platform Configuration
     if (profile.display_config) {
         lines.push("display:");
@@ -219,7 +220,19 @@ function generateDisplaySection(profile) {
         addPin("reset_pin", p.reset);
         addPin("busy_pin", p.busy);
 
-        if (profile.displayModel) lines.push(`    model: "${profile.displayModel}"`);
+        if (profile.displayModel === "M5Paper" || profile.displayPlatform === "it8951e") {
+            lines.push("    rotation: 0");
+            lines.push("    reversed: false");
+            lines.push("    reset_duration: 100ms");
+        }
+        else if (profile.displayModel) {
+            let modelLine = `    model: "${profile.displayModel}"`;
+            // Add warning for E1002 consumers using older ESPHome versions
+            if (profile.displayModel === "Seeed-reTerminal-E1002") {
+                modelLine += " #Please update your ESPHome version to 2025.11.1 above";
+            }
+            lines.push(modelLine);
+        }
 
         lines.push("    update_interval: never");
 
@@ -245,7 +258,9 @@ function generateDisplaySection(profile) {
     }
 
     // Add Touchscreen if present
-    lines.push(...generateTouchscreenSection(profile));
+    // Fallback generation (e-paper) uses epaper_display, custom/LCD likely uses my_display
+    const linkedDisplayId = profile.display_config ? "my_display" : "epaper_display";
+    lines.push(...generateTouchscreenSection(profile, linkedDisplayId));
 
     // Note: Backlight section is generated in yaml_export.js, not here (to avoid duplicates)
 
@@ -341,9 +356,15 @@ function generateBinarySensorSection(profile, numPages, displayId = "my_display"
     if (b.left) {
         lines.push("  - platform: gpio"); // Left Button
         lines.push(`    pin:`);
-        lines.push(`      number: ${b.left}`);
-        lines.push(`      mode: INPUT_PULLUP`);
-        lines.push(`      inverted: true`);
+        if (typeof b.left === 'object') {
+            lines.push(`      number: ${b.left.number}`);
+            lines.push(`      mode: ${b.left.mode || 'INPUT_PULLUP'}`);
+            lines.push(`      inverted: ${b.left.inverted !== undefined ? b.left.inverted : true}`);
+        } else {
+            lines.push(`      number: ${b.left}`);
+            lines.push(`      mode: INPUT_PULLUP`);
+            lines.push(`      inverted: true`);
+        }
         lines.push("    name: \"Left Button\"");
         lines.push("    id: button_left");
         lines.push("    on_press:");
@@ -362,9 +383,15 @@ function generateBinarySensorSection(profile, numPages, displayId = "my_display"
     if (b.right) {
         lines.push("  - platform: gpio"); // Right Button
         lines.push(`    pin:`);
-        lines.push(`      number: ${b.right}`);
-        lines.push(`      mode: INPUT_PULLUP`);
-        lines.push(`      inverted: true`);
+        if (typeof b.right === 'object') {
+            lines.push(`      number: ${b.right.number}`);
+            lines.push(`      mode: ${b.right.mode || 'INPUT_PULLUP'}`);
+            lines.push(`      inverted: ${b.right.inverted !== undefined ? b.right.inverted : true}`);
+        } else {
+            lines.push(`      number: ${b.right}`);
+            lines.push(`      mode: INPUT_PULLUP`);
+            lines.push(`      inverted: true`);
+        }
         lines.push("    name: \"Right Button\"");
         lines.push("    id: button_right");
         lines.push("    on_press:");
@@ -383,9 +410,15 @@ function generateBinarySensorSection(profile, numPages, displayId = "my_display"
     if (b.refresh) {
         lines.push("  - platform: gpio"); // Refresh Button
         lines.push(`    pin:`);
-        lines.push(`      number: ${b.refresh}`);
-        lines.push(`      mode: INPUT_PULLUP`);
-        lines.push(`      inverted: true`);
+        if (typeof b.refresh === 'object') {
+            lines.push(`      number: ${b.refresh.number}`);
+            lines.push(`      mode: ${b.refresh.mode || 'INPUT_PULLUP'}`);
+            lines.push(`      inverted: ${b.refresh.inverted !== undefined ? b.refresh.inverted : true}`);
+        } else {
+            lines.push(`      number: ${b.refresh}`);
+            lines.push(`      mode: INPUT_PULLUP`);
+            lines.push(`      inverted: true`);
+        }
         lines.push("    name: \"Refresh Button\"");
         lines.push("    id: button_refresh");
         lines.push("    on_press:");
@@ -551,7 +584,18 @@ function generateOutputSection(profile) {
     lines.push("output:");
     if (profile.pins.batteryEnable) {
         lines.push("  - platform: gpio"); // Use standard gpio output
-        lines.push(`    pin: ${profile.pins.batteryEnable}`);
+        if (typeof profile.pins.batteryEnable === 'object') {
+            lines.push("    pin:");
+            lines.push(`      number: ${profile.pins.batteryEnable.number}`);
+            if (profile.pins.batteryEnable.ignore_strapping_warning) {
+                lines.push("      ignore_strapping_warning: true");
+            }
+            if (profile.pins.batteryEnable.inverted !== undefined) {
+                lines.push(`      inverted: ${profile.pins.batteryEnable.inverted}`);
+            }
+        } else {
+            lines.push(`    pin: ${profile.pins.batteryEnable}`);
+        }
         lines.push("    id: bsp_battery_enable");
         // Often good to set restore_mode or inverted if needed
         // For now matching legacy exactly

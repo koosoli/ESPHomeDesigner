@@ -41,8 +41,6 @@
 
 
 ### 🐛 Bug Fixes
-- **Feature Forecast**: Resolved bug fixes for the weather forecast feature; it should now work correctly.
-- **Graph Widget**: Fixed issue where graphs would intersect/overlap incorrectly.
 - **Date/Time Alignment Persistence**: Fixed an issue where alignment settings were lost when updating layout from YAML.
 - **Duplicate Config Fields**: Resolved an issue where duplicate "Postfix" fields appeared in the Sensor Text widget properties.
 - **Disappearing Sensor**: Addressed a root cause where manual YAML editing (required due to UI issues) caused sensor configuration loss.

@@ -81,6 +81,81 @@ window.DEVICE_PROFILES = {
             sht4x: false
         }
     },
+    m5stack_coreink: {
+        name: "M5Stack CoreInk (200x200)",
+        displayModel: "1.54in-m5coreink-m09",
+        displayPlatform: "waveshare_epaper",
+        resolution: { width: 200, height: 200 },
+        features: {
+            psram: false,
+            buzzer: true,
+            buttons: true,
+            lcd: false,
+            epaper: true
+        },
+        pins: {
+            display: { cs: "GPIO9", dc: "GPIO15", reset: "GPIO0", busy: { number: "GPIO4", inverted: true } },
+            i2c: { sda: "GPIO21", scl: "GPIO22" },
+            spi: { clk: "GPIO18", mosi: "GPIO23" },
+            batteryEnable: { number: "GPIO12", ignore_strapping_warning: true }, // Power Hold Pin
+            batteryAdc: "GPIO35",
+            buzzer: "GPIO2",
+            buttons: {
+                left: { number: "GPIO39", mode: "INPUT" },
+                right: { number: "GPIO37", mode: "INPUT" },
+                refresh: { number: "GPIO38", mode: "INPUT" }
+            }
+        },
+        battery: {
+            attenuation: "12db",
+            multiplier: 2.0,
+            calibration: { min: 3.30, max: 4.15 }
+        },
+        i2c_config: { scan: true }, // Internal I2C for RTC
+    },
+    m5stack_paper: {
+        name: "M5Paper (540x960)",
+        displayModel: "M5Paper",
+        displayPlatform: "it8951e",
+        resolution: { width: 540, height: 960 },
+        features: {
+            psram: true,
+            buzzer: false,
+            buttons: false, // Touchscreen only
+            lcd: false,
+            epaper: true,
+            touch: true // Has GT911
+        },
+        pins: {
+            display: { cs: "GPIO15", dc: null, reset: "GPIO23", busy: "GPIO27" }, // DC not used for IT8951E
+            i2c: { sda: "GPIO21", scl: "GPIO22" }, // For GT911 and others
+            spi: { clk: "GPIO14", mosi: "GPIO12", miso: "GPIO13" }, // M5Paper SPI
+            batteryEnable: null,
+            batteryAdc: "GPIO35",
+            buzzer: null,
+            buttons: null
+        },
+        m5paper: {
+            battery_power_pin: "GPIO5",
+            main_power_pin: "GPIO2"
+        },
+        battery: {
+            attenuation: "11db",
+            multiplier: 2.0,
+            calibration: { min: 3.27, max: 4.15 } // Standard LiPo
+        },
+        touch: {
+            platform: "gt911",
+            i2c_id: "bus_a",
+            interrupt_pin: "GPIO36",
+            update_interval: "never", // Interrupt used
+            transform: { mirror_x: false, mirror_y: false, swap_xy: false },
+            calibration: { x_min: 0, x_max: 540, y_min: 0, y_max: 960 }
+        },
+        external_components: [
+            "  - source: github://Passific/m5paper_esphome"
+        ]
+    },
     esp32_s3_photopainter: {
         name: "Waveshare PhotoPainter (7-Color)",
         displayModel: "7.30in-f",

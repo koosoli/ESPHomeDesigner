@@ -551,11 +551,27 @@
           <input id="pageSettingsName" class="prop-input" type="text" placeholder="Page name" />
         </div>
         <div class="field">
-          <div class="prop-label">Refresh Interval (seconds)</div>
+          <div class="prop-label">Refresh Schedule</div>
+          <select id="pageSettingsRefreshMode" class="prop-input">
+            <option value="interval">Periodic Interval</option>
+            <option value="daily">Daily at specific time</option>
+          </select>
+        </div>
+
+        <div class="field" id="field-refresh-interval">
+          <div class="prop-label">Interval (seconds)</div>
           <input id="pageSettingsRefresh" class="prop-input" type="number" min="0" step="1"
             placeholder="Auto (uses ESPHome default)" />
           <div style="font-size: 9px; color: var(--muted); margin-top: 2px;">
             Leave empty for default. Set to 0 for manual refresh only. Recommended: 60-300 seconds.
+          </div>
+        </div>
+
+        <div class="field" id="field-refresh-time" style="display:none;">
+          <div class="prop-label">Wake Up Time</div>
+          <input id="pageSettingsRefreshTime" class="prop-input" type="time" />
+          <div style="font-size: 9px; color: var(--muted); margin-top: 2px;">
+            Device will wake up at this time every day.
           </div>
         </div>
         <div class="field">
