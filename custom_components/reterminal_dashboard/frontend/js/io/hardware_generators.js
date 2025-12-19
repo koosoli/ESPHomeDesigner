@@ -271,7 +271,8 @@ function generateSensorSection(profile, widgetSensorLines = [], displayId = "my_
     const lines = [];
 
     // Check if we need a sensor: block
-    const hasBattery = profile.pins.batteryAdc;
+    const pins = profile.pins || {};
+    const hasBattery = pins.batteryAdc;
     const hasSht4x = profile.features.sht4x;
     const hasShtc3 = profile.features.shtc3;
     const hasWidgets = widgetSensorLines.length > 0;
@@ -281,23 +282,18 @@ function generateSensorSection(profile, widgetSensorLines = [], displayId = "my_
     lines.push("sensor:");
 
     // 1. Battery Voltage
+    // 1. Battery Voltage
     if (hasBattery) {
         lines.push("  - platform: adc");
-        lines.push(`    pin: ${profile.pins.batteryAdc}`);
+        lines.push(`    pin: ${pins.batteryAdc}`);
         lines.push("    id: battery_voltage");
         lines.push("    name: \"Battery Voltage\"");
         lines.push("    update_interval: 60s");
         lines.push("    attenuation: " + profile.battery.attenuation);
         lines.push("    filters:");
         lines.push("      - multiply: " + profile.battery.multiplier);
-        if (profile.battery.calibration) {
-            lines.push(`      - calibrate_linear:`);
-            lines.push(`          - 0.0 -> 0.0`);
-            lines.push(`          - ${profile.battery.calibration.min} -> 0.0`); // Empty?
-            lines.push(`          - ${profile.battery.calibration.max} -> 100.0`); // Full?
-            // Actually usually voltage is just voltage. Percentage is separate.
-            // But existing code likely maps voltage to simple value or uses it for percentage template.
-        }
+        // NOTE: removed calibrate_linear here so that "Battery Voltage" remains in Volts
+        // If specific devices relied on this outputting %, they will need to use "Battery Level" instead.
     }
 
     // 2. SHT4x (Temperature/Humidity)
@@ -336,10 +332,32 @@ function generateSensorSection(profile, widgetSensorLines = [], displayId = "my_
         lines.push("    name: \"Battery Level\"");
         lines.push("    id: battery_level");
         lines.push("    unit_of_measurement: \"%\"");
-        lines.push("    lambda: |-");
-        lines.push("      if (id(battery_voltage).state > 4.15) return 100;");
-        lines.push("      if (id(battery_voltage).state < 3.27) return 0;");
-        lines.push("      return (id(battery_voltage).state - 3.27) / (4.15 - 3.27) * 100.0;");
+        // Optional icon/class if desired:
+        lines.push("    icon: \"mdi:battery\"");
+        lines.push("    device_class: battery");
+        lines.push("    state_class: measurement");
+
+        if (profile.battery.curve) {
+            // Use curve calibration
+            lines.push("    lambda: 'return id(battery_voltage).state;'");
+            lines.push("    update_interval: 60s");
+            lines.push("    filters:");
+            lines.push("      - calibrate_linear:");
+            profile.battery.curve.forEach(pt => {
+                lines.push(`          - ${pt.from} -> ${pt.to}`);
+            });
+            lines.push("      - clamp:");
+            lines.push("          min_value: 0");
+            lines.push("          max_value: 100");
+        } else {
+            // Fallback: simple linear calculation lambda
+            const minV = profile.battery.calibration ? profile.battery.calibration.min : 3.27;
+            const maxV = profile.battery.calibration ? profile.battery.calibration.max : 4.15;
+            lines.push("    lambda: |-");
+            lines.push(`      if (id(battery_voltage).state > ${maxV}) return 100;`);
+            lines.push(`      if (id(battery_voltage).state < ${minV}) return 0;`);
+            lines.push(`      return (id(battery_voltage).state - ${minV}) / (${maxV} - ${minV}) * 100.0;`);
+        }
     }
 
     lines.push("");
@@ -349,6 +367,9 @@ function generateSensorSection(profile, widgetSensorLines = [], displayId = "my_
 function generateBinarySensorSection(profile, numPages, displayId = "my_display") {
     const lines = [];
     if (!profile.features.buttons) return lines;
+
+    // CoreInk uses activity_timer script for sleep management
+    const isCoreInk = profile.name && profile.name.includes("CoreInk");
 
     lines.push("binary_sensor:");
     const b = profile.pins.buttons;
@@ -369,15 +390,23 @@ function generateBinarySensorSection(profile, numPages, displayId = "my_display"
         lines.push("    id: button_left");
         lines.push("    on_press:");
         lines.push("      then:");
-        lines.push("        - if:");
-        lines.push("            condition:");
-        lines.push("              lambda: 'return id(display_page) > 0;'");
-        lines.push("            then:");
-        lines.push("              - lambda: 'id(display_page) -= 1;'");
-        lines.push(`              - component.update: ${displayId}`);
-        lines.push("            else:");
-        lines.push(`              - lambda: 'id(display_page) = ${numPages - 1};'`);
-        lines.push(`              - component.update: ${displayId}`);
+        if (isCoreInk) {
+            // CoreInk: Simple page change with activity timer reset
+            lines.push(`        - lambda: 'if (id(display_page) > 0) id(display_page) -= 1; else id(display_page) = ${numPages - 1};'`);
+            lines.push(`        - component.update: ${displayId}`);
+            lines.push("        - script.stop: activity_timer");
+            lines.push("        - script.execute: activity_timer");
+        } else {
+            lines.push("        - if:");
+            lines.push("            condition:");
+            lines.push("              lambda: 'return id(display_page) > 0;'");
+            lines.push("            then:");
+            lines.push("              - lambda: 'id(display_page) -= 1;'");
+            lines.push(`              - component.update: ${displayId}`);
+            lines.push("            else:");
+            lines.push(`              - lambda: 'id(display_page) = ${numPages - 1};'`);
+            lines.push(`              - component.update: ${displayId}`);
+        }
     }
 
     if (b.right) {
@@ -396,15 +425,23 @@ function generateBinarySensorSection(profile, numPages, displayId = "my_display"
         lines.push("    id: button_right");
         lines.push("    on_press:");
         lines.push("      then:");
-        lines.push("        - if:");
-        lines.push(`            condition:`);
-        lines.push(`              lambda: 'return id(display_page) < ${numPages - 1};'`);
-        lines.push("            then:");
-        lines.push("              - lambda: 'id(display_page) += 1;'");
-        lines.push(`              - component.update: ${displayId}`);
-        lines.push("            else:");
-        lines.push("              - lambda: 'id(display_page) = 0;'");
-        lines.push(`              - component.update: ${displayId}`);
+        if (isCoreInk) {
+            // CoreInk: Simple page change with activity timer reset
+            lines.push(`        - lambda: 'if (id(display_page) < ${numPages - 1}) id(display_page) += 1; else id(display_page) = 0;'`);
+            lines.push(`        - component.update: ${displayId}`);
+            lines.push("        - script.stop: activity_timer");
+            lines.push("        - script.execute: activity_timer");
+        } else {
+            lines.push("        - if:");
+            lines.push(`            condition:`);
+            lines.push(`              lambda: 'return id(display_page) < ${numPages - 1};'`);
+            lines.push("            then:");
+            lines.push("              - lambda: 'id(display_page) += 1;'");
+            lines.push(`              - component.update: ${displayId}`);
+            lines.push("            else:");
+            lines.push("              - lambda: 'id(display_page) = 0;'");
+            lines.push(`              - component.update: ${displayId}`);
+        }
     }
 
     if (b.refresh) {
@@ -419,11 +456,18 @@ function generateBinarySensorSection(profile, numPages, displayId = "my_display"
             lines.push(`      mode: INPUT_PULLUP`);
             lines.push(`      inverted: true`);
         }
-        lines.push("    name: \"Refresh Button\"");
-        lines.push("    id: button_refresh");
+        // CoreInk: Middle button is "Enter", others: "Refresh"
+        const buttonName = isCoreInk ? "Enter Button" : "Refresh Button";
+        const buttonId = isCoreInk ? "button_enter" : "button_refresh";
+        lines.push(`    name: "${buttonName}"`);
+        lines.push(`    id: ${buttonId}`);
         lines.push("    on_press:");
         lines.push("      then:");
         lines.push(`        - component.update: ${displayId}`);
+        if (isCoreInk) {
+            lines.push("        - script.stop: activity_timer");
+            lines.push("        - script.execute: activity_timer");
+        }
     }
 
     lines.push("");

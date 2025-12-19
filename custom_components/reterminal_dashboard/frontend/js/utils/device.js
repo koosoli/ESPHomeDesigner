@@ -48,7 +48,13 @@ function getAvailableColors() {
  * @returns {string} Hex color code
  */
 function getColorStyle(colorName) {
-    switch ((colorName || "").toLowerCase()) {
+    if (!colorName) return "#000000";
+
+    // Passthrough hex colors (from LVGL color mixer)
+    if (colorName.startsWith("#")) return colorName;
+    if (colorName.startsWith("0x")) return "#" + colorName.substring(2);
+
+    switch (colorName.toLowerCase()) {
         case "white": return "#ffffff";
         case "red": return "#ff0000";
         case "green": return "#00ff00";

@@ -860,8 +860,8 @@ class PropertiesPanel {
             this.addHint("Entity to toggle/trigger when clicked");
 
             this.addLabeledInput("Text", "text", props.text || "BTN", (v) => updateProp("text", v));
-            this.addSelect("Background Color", props.bg_color || "white", colors, (v) => updateProp("bg_color", v));
-            this.addSelect("Text Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorMixer("Background Color", props.bg_color || "white", (v) => updateProp("bg_color", v));
+            this.addColorMixer("Text Color", props.color || "black", (v) => updateProp("color", v));
             this.addLabeledInput("Border Width", "number", props.border_width || 2, (v) => updateProp("border_width", parseInt(v, 10)));
             this.addLabeledInput("Corner Radius", "number", props.radius || 5, (v) => updateProp("radius", parseInt(v, 10)));
         }
@@ -881,7 +881,7 @@ class PropertiesPanel {
             this.addLabeledInput("Default/Preview Value", "number", props.value || 0, (v) => updateProp("value", parseInt(v, 10)));
 
             this.addLabeledInput("Thickness", "number", props.thickness || 10, (v) => updateProp("thickness", parseInt(v, 10)));
-            this.addSelect("Color", props.color || "blue", colors, (v) => updateProp("color", v));
+            this.addColorMixer("Color", props.color || "blue", (v) => updateProp("color", v));
         }
         else if (type === "lvgl_chart") {
             this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
@@ -891,7 +891,7 @@ class PropertiesPanel {
             this.addSelect("Type", props.type || "LINE", ["LINE", "SCATTER", "BAR"], (v) => updateProp("type", v));
             this.addLabeledInput("Min Value", "number", props.min || 0, (v) => updateProp("min", parseInt(v, 10)));
             this.addLabeledInput("Max Value", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
-            this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorMixer("Color", props.color || "black", (v) => updateProp("color", v));
         }
         else if (type === "lvgl_img") {
             this.addLabeledInput("Source (Image/Symbol)", "text", props.src || "", (v) => updateProp("src", v));
@@ -899,13 +899,13 @@ class PropertiesPanel {
 
             this.addLabeledInput("Rotation (0.1 deg)", "number", props.rotation || 0, (v) => updateProp("rotation", parseInt(v, 10)));
             this.addLabeledInput("Scale (256 = 1x)", "number", props.scale || 256, (v) => updateProp("scale", parseInt(v, 10)));
-            this.addSelect("Color (Tint)", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorMixer("Color (Tint)", props.color || "black", (v) => updateProp("color", v));
         }
         else if (type === "lvgl_qrcode") {
             this.addLabeledInput("Content / URL", "text", props.text || "", (v) => updateProp("text", v));
             this.addLabeledInput("Size (px)", "number", props.size || 100, (v) => updateProp("size", parseInt(v, 10)));
-            this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
-            this.addSelect("Background Color", props.bg_color || "white", colors, (v) => updateProp("bg_color", v));
+            this.addColorMixer("Color", props.color || "black", (v) => updateProp("color", v));
+            this.addColorMixer("Background Color", props.bg_color || "white", (v) => updateProp("bg_color", v));
         }
         else if (type === "lvgl_bar") {
             this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
@@ -916,8 +916,8 @@ class PropertiesPanel {
             this.addLabeledInput("Max Value", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
             this.addLabeledInput("Preview Value", "number", props.value || 50, (v) => updateProp("value", parseInt(v, 10)));
 
-            this.addSelect("Bar Color", props.color || "black", colors, (v) => updateProp("color", v));
-            this.addSelect("Background Color", props.bg_color || "gray", colors, (v) => updateProp("bg_color", v));
+            this.addColorMixer("Bar Color", props.color || "black", (v) => updateProp("color", v));
+            this.addColorMixer("Background Color", props.bg_color || "gray", (v) => updateProp("bg_color", v));
             this.addCheckbox("Range Mode", props.range_mode || false, (v) => updateProp("range_mode", v));
         }
         else if (type === "lvgl_slider") {
@@ -930,8 +930,8 @@ class PropertiesPanel {
             this.addLabeledInput("Max Value", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
             this.addLabeledInput("Preview Value", "number", props.value || 30, (v) => updateProp("value", parseInt(v, 10)));
 
-            this.addSelect("Knob/Bar Color", props.color || "black", colors, (v) => updateProp("color", v));
-            this.addSelect("Track Color", props.bg_color || "gray", colors, (v) => updateProp("bg_color", v));
+            this.addColorMixer("Knob/Bar Color", props.color || "black", (v) => updateProp("color", v));
+            this.addColorMixer("Track Color", props.bg_color || "gray", (v) => updateProp("bg_color", v));
             this.addLabeledInput("Border Width", "number", props.border_width || 2, (v) => updateProp("border_width", parseInt(v, 10)));
         }
         else if (type === "calendar") {
@@ -992,21 +992,21 @@ class PropertiesPanel {
                 const tabs = v.split(",").map(t => t.trim()).filter(t => t);
                 updateProp("tabs", tabs);
             });
-            this.addSelect("Background Color", props.bg_color || "white", colors, (v) => updateProp("bg_color", v));
+            this.addColorMixer("Background Color", props.bg_color || "white", (v) => updateProp("bg_color", v));
         }
         else if (type === "lvgl_tileview") {
             this.addHint("Tiles are currently configured via YAML or advanced properties.");
-            this.addSelect("Background Color", props.bg_color || "white", colors, (v) => updateProp("bg_color", v));
+            this.addColorMixer("Background Color", props.bg_color || "white", (v) => updateProp("bg_color", v));
         }
         else if (type === "lvgl_led") {
-            this.addSelect("Color", props.color || "red", colors, (v) => updateProp("color", v));
+            this.addColorMixer("Color", props.color || "red", (v) => updateProp("color", v));
             this.addLabeledInput("Brightness (0-255)", "number", props.brightness || 255, (v) => updateProp("brightness", parseInt(v, 10)));
         }
         else if (type === "lvgl_spinner") {
             this.addLabeledInput("Spin Time (ms)", "number", props.spin_time || 1000, (v) => updateProp("spin_time", parseInt(v, 10)));
             this.addLabeledInput("Arc Length (deg)", "number", props.arc_length || 60, (v) => updateProp("arc_length", parseInt(v, 10)));
-            this.addSelect("Arc Color", props.arc_color || "blue", colors, (v) => updateProp("arc_color", v));
-            this.addSelect("Track Color", props.track_color || "white", colors, (v) => updateProp("track_color", v));
+            this.addColorMixer("Arc Color", props.arc_color || "blue", (v) => updateProp("arc_color", v));
+            this.addColorMixer("Track Color", props.track_color || "white", (v) => updateProp("track_color", v));
         }
         else if (type === "lvgl_buttonmatrix") {
             this.addHint("Edit rows via YAML or simple comma-separated lists per row.");
@@ -1022,12 +1022,12 @@ class PropertiesPanel {
 
             this.addLabeledInput("Label", "text", props.text || "Checkbox", (v) => updateProp("text", v));
             this.addCheckbox("Checked", props.checked || false, (v) => updateProp("checked", v));
-            this.addSelect("Color", props.color || "blue", colors, (v) => updateProp("color", v));
+            this.addColorMixer("Color", props.color || "blue", (v) => updateProp("color", v));
         }
         else if (type === "lvgl_dropdown") {
             this.addLabeledInput("Options (one per line)", "textarea", props.options || "", (v) => updateProp("options", v));
             this.addLabeledInput("Selected Index", "number", props.selected_index || 0, (v) => updateProp("selected_index", parseInt(v, 10)));
-            this.addSelect("Color", props.color || "white", colors, (v) => updateProp("color", v));
+            this.addColorMixer("Color", props.color || "white", (v) => updateProp("color", v));
         }
         else if (type === "lvgl_keyboard") {
             this.addSelect("Mode", props.mode || "TEXT_UPPER", ["TEXT_LOWER", "TEXT_UPPER", "SPECIAL", "NUMBER"], (v) => updateProp("mode", v));
@@ -1036,10 +1036,10 @@ class PropertiesPanel {
         else if (type === "lvgl_roller") {
             this.addLabeledInput("Options (one per line)", "textarea", props.options || "", (v) => updateProp("options", v));
             this.addLabeledInput("Visible Rows", "number", props.visible_row_count || 3, (v) => updateProp("visible_row_count", parseInt(v, 10)));
-            this.addSelect("Color", props.color || "white", colors, (v) => updateProp("color", v));
-            this.addSelect("Background Color", props.bg_color || "black", colors, (v) => updateProp("bg_color", v));
-            this.addSelect("Selected BG Color", props.selected_bg_color || "blue", colors, (v) => updateProp("selected_bg_color", v));
-            this.addSelect("Selected Text Color", props.selected_text_color || "white", colors, (v) => updateProp("selected_text_color", v));
+            this.addColorMixer("Color", props.color || "white", (v) => updateProp("color", v));
+            this.addColorMixer("Background Color", props.bg_color || "black", (v) => updateProp("bg_color", v));
+            this.addColorMixer("Selected BG Color", props.selected_bg_color || "blue", (v) => updateProp("selected_bg_color", v));
+            this.addColorMixer("Selected Text Color", props.selected_text_color || "white", (v) => updateProp("selected_text_color", v));
         }
         else if (type === "lvgl_spinbox") {
             this.addLabeledInput("Min", "number", props.min || 0, (v) => updateProp("min", parseInt(v, 10)));
@@ -1055,9 +1055,9 @@ class PropertiesPanel {
             this.addHint("Toggle switch/light/input_boolean when tapped");
 
             this.addCheckbox("Checked", props.checked || false, (v) => updateProp("checked", v));
-            this.addSelect("Indicator Color", props.color || "blue", colors, (v) => updateProp("color", v));
-            this.addSelect("Background Color", props.bg_color || "gray", colors, (v) => updateProp("bg_color", v));
-            this.addSelect("Knob Color", props.knob_color || "white", colors, (v) => updateProp("knob_color", v));
+            this.addColorMixer("Indicator Color", props.color || "blue", (v) => updateProp("color", v));
+            this.addColorMixer("Background Color", props.bg_color || "gray", (v) => updateProp("bg_color", v));
+            this.addColorMixer("Knob Color", props.knob_color || "white", (v) => updateProp("knob_color", v));
         }
         else if (type === "lvgl_textarea") {
             this.addLabeledInput("Placeholder", "text", props.placeholder || "", (v) => updateProp("placeholder", v));
@@ -1066,9 +1066,9 @@ class PropertiesPanel {
             this.addLabeledInput("Max Length", "number", props.max_length || 0, (v) => updateProp("max_length", parseInt(v, 10)));
         }
         else if (type === "lvgl_obj") {
-            this.addSelect("Color", props.color || "white", colors, (v) => updateProp("color", v));
+            this.addColorMixer("Color", props.color || "white", (v) => updateProp("color", v));
             this.addLabeledInput("Border Width", "number", props.border_width || 1, (v) => updateProp("border_width", parseInt(v, 10)));
-            this.addSelect("Border Color", props.border_color || "gray", colors, (v) => updateProp("border_color", v));
+            this.addColorMixer("Border Color", props.border_color || "gray", (v) => updateProp("border_color", v));
             this.addLabeledInput("Radius", "number", props.radius || 0, (v) => updateProp("radius", parseInt(v, 10)));
         }
     }
@@ -1443,4 +1443,175 @@ class PropertiesPanel {
         wrap.appendChild(inputRow);
         this.panel.appendChild(wrap);
     }
+
+    addColorMixer(label, value, onChange) {
+        const wrap = document.createElement("div");
+        wrap.className = "field";
+        wrap.style.marginBottom = "10px";
+
+        const lbl = document.createElement("div");
+        lbl.className = "prop-label";
+        lbl.textContent = label;
+        wrap.appendChild(lbl);
+
+        // Parse initial color
+        let r = 0, g = 0, b = 0;
+        let hex = "#000000";
+
+        // Helper to parse existing color (named, hex, or int)
+        const parseColor = (c) => {
+            const names = {
+                "black": "#000000", "white": "#FFFFFF", "red": "#FF0000", "green": "#00FF00",
+                "blue": "#0000FF", "yellow": "#FFFF00", "gray": "#808080", "grey": "#808080"
+            };
+            if (!c) return "#000000";
+            if (names[c.toLowerCase()]) return names[c.toLowerCase()];
+            if (c.startsWith("0x")) return "#" + c.substring(2);
+            if (c.startsWith("#")) return c;
+            return "#000000";
+        };
+
+        const hexToRgb = (h) => {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : { r: 0, g: 0, b: 0 };
+        };
+
+        const rgbToHex = (rv, gv, bv) => {
+            const toHex = (c) => {
+                const hx = Math.max(0, Math.min(255, c)).toString(16);
+                return hx.length === 1 ? "0" + hx : hx;
+            };
+            return "#" + toHex(rv) + toHex(gv) + toHex(bv);
+        };
+
+        // Initialize state
+        hex = parseColor(value);
+        const rgb = hexToRgb(hex);
+        r = rgb.r; g = rgb.g; b = rgb.b;
+
+        // Container for Preview + Inputs
+        const mixerContainer = document.createElement("div");
+        mixerContainer.style.background = "var(--bg)";
+        mixerContainer.style.padding = "8px";
+        mixerContainer.style.borderRadius = "6px";
+        mixerContainer.style.border = "1px solid var(--border-subtle)";
+
+        // Top Row: Preview Box + Hex Input
+        const topRow = document.createElement("div");
+        topRow.style.display = "flex";
+        topRow.style.alignItems = "center";
+        topRow.style.marginBottom = "8px";
+        topRow.style.gap = "8px";
+
+        const previewBox = document.createElement("div");
+        previewBox.style.width = "24px";
+        previewBox.style.height = "24px";
+        previewBox.style.borderRadius = "3px";
+        previewBox.style.backgroundColor = hex;
+        previewBox.style.border = "1px solid var(--border-subtle)";
+
+        const hexInput = document.createElement("input");
+        hexInput.type = "text";
+        hexInput.value = hex.toUpperCase();
+        hexInput.className = "prop-input";
+        hexInput.style.flex = "1";
+        hexInput.style.fontFamily = "monospace";
+
+        topRow.appendChild(previewBox);
+        topRow.appendChild(hexInput);
+        mixerContainer.appendChild(topRow);
+
+        // Sliders
+        const createSlider = (sliderLabel, val, color) => {
+            const row = document.createElement("div");
+            row.style.display = "flex";
+            row.style.alignItems = "center";
+            row.style.marginBottom = "4px";
+            row.style.fontSize = "11px";
+
+            const rowLbl = document.createElement("span");
+            rowLbl.textContent = sliderLabel;
+            rowLbl.style.width = "15px";
+            rowLbl.style.fontWeight = "bold";
+            rowLbl.style.color = "var(--text)";
+
+            const slider = document.createElement("input");
+            slider.type = "range";
+            slider.min = "0";
+            slider.max = "255";
+            slider.value = val;
+            slider.style.flex = "1";
+            slider.style.marginLeft = "4px";
+            slider.style.accentColor = color;
+
+            const valLbl = document.createElement("span");
+            valLbl.textContent = val;
+            valLbl.style.width = "25px";
+            valLbl.style.textAlign = "right";
+            valLbl.style.marginLeft = "4px";
+            valLbl.style.color = "var(--muted)";
+
+            row.appendChild(rowLbl);
+            row.appendChild(slider);
+            row.appendChild(valLbl);
+            return { row, slider, valLbl };
+        };
+
+        const rSlider = createSlider("R", r, "red");
+        const gSlider = createSlider("G", g, "green");
+        const bSlider = createSlider("B", b, "blue");
+
+        mixerContainer.appendChild(rSlider.row);
+        mixerContainer.appendChild(gSlider.row);
+        mixerContainer.appendChild(bSlider.row);
+
+        wrap.appendChild(mixerContainer);
+        this.panel.appendChild(wrap);
+
+        // Event Handling logic
+        const updateFromSliders = () => {
+            r = parseInt(rSlider.slider.value);
+            g = parseInt(gSlider.slider.value);
+            b = parseInt(bSlider.slider.value);
+
+            rSlider.valLbl.textContent = r;
+            gSlider.valLbl.textContent = g;
+            bSlider.valLbl.textContent = b;
+
+            const newHex = rgbToHex(r, g, b).toUpperCase();
+            hexInput.value = newHex;
+            previewBox.style.backgroundColor = newHex;
+
+            onChange(newHex);
+        };
+
+        const updateFromHex = () => {
+            let val = hexInput.value.trim();
+            if (!val.startsWith("#")) val = "#" + val;
+
+            if (/^#[0-9A-F]{6}$/i.test(val)) {
+                const rgbVal = hexToRgb(val);
+                r = rgbVal.r; g = rgbVal.g; b = rgbVal.b;
+
+                rSlider.slider.value = r; rSlider.valLbl.textContent = r;
+                gSlider.slider.value = g; gSlider.valLbl.textContent = g;
+                bSlider.slider.value = b; bSlider.valLbl.textContent = b;
+
+                previewBox.style.backgroundColor = val;
+                onChange(val);
+            }
+        };
+
+        rSlider.slider.addEventListener("input", updateFromSliders);
+        gSlider.slider.addEventListener("input", updateFromSliders);
+        bSlider.slider.addEventListener("input", updateFromSliders);
+
+        hexInput.addEventListener("input", updateFromHex);
+        hexInput.addEventListener("change", updateFromHex);
+    }
 }
+

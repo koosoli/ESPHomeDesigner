@@ -72,9 +72,9 @@ class App {
         // Top Toolbar Buttons
         const saveLayoutBtn = document.getElementById('saveLayoutBtn');
         if (saveLayoutBtn) {
-            saveLayoutBtn.addEventListener('click', () => {
+            saveLayoutBtn.addEventListener('click', async () => {
                 if (hasHaBackend()) {
-                    const yaml = generateSnippetLocally();
+                    const yaml = await generateSnippetLocally();
                     saveLayoutToBackend(yaml)
                         .then(() => showToast("Layout saved to Home Assistant", "success"))
                         .catch(err => showToast(`Save failed: ${err.message}`, "error"));
@@ -157,8 +157,9 @@ class App {
     updateSnippetBox() {
         const snippetBox = document.getElementById('snippetBox');
         if (snippetBox) {
-            const yaml = generateSnippetLocally();
-            snippetBox.value = yaml;
+            generateSnippetLocally().then(yaml => {
+                snippetBox.value = yaml;
+            });
         }
     }
 
@@ -166,7 +167,9 @@ class App {
         const modal = document.getElementById('snippetFullscreenModal');
         const content = document.getElementById('snippetFullscreenContent');
         if (modal && content) {
-            content.textContent = generateSnippetLocally();
+            generateSnippetLocally().then(yaml => {
+                content.textContent = yaml;
+            });
             modal.classList.remove('hidden');
             modal.style.display = 'flex';
         }

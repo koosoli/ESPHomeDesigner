@@ -3,6 +3,51 @@
 
 
 
+
+## v0.7.5 - Modular Profiles & Enhancements
+
+**Release Date:** December 19, 2025
+
+### 🎉 New Features
+- **RGB Color Picker**: Added a full RGB color picker for LVGL widgets, allowing for more precise UI design.
+- **Modular Hardware Profiles**: Implemented support for loading hardware profiles from plain YAML files (package-based). This enables seamless profile sharing with the [esphome-modular-lvgl-buttons](https://github.com/agillis/esphome-modular-lvgl-buttons/) project. Big thank you to [agillis](https://github.com/agillis/) for these awesome profiles!
+
+### 🐛 Bug Fixes
+- **Calendar Widget Compiler Error**: Fixed a critical issue where adding multiple calendar widgets would cause a C++ compiler error due to duplicate variable declarations.
+- **TRMNL DIY Battery**: Fixed incorrect battery level and voltage readings for the TRMNL DIY (ESP32-S3) hardware by implementing a proper 12-point calibration curve.
+- **M5CoreInk Profile Refinement**: Fixed several issues in the M5CoreInk profile, including battery calibration and button logic.
+
+### 🔧 Architectural Changes
+- **Hybrid Profile Solution**: Implemented a hybrid loading system. While new LCD profiles are fetched as YAML packages, legacy E-Ink profiles (M5Paper, CoreInk, TRMNL) are still served via built-in JS definitions.
+- **Online/Standalone Warning**: Note that due to browser security restrictions, package-based profiles require the application to be served via a web server (like Home Assistant) and will show a warning in the standalone offline version (`file://`).
+
+---
+
+## v0.7.4 - Trmnl DIY Support
+
+**Release Date:** December 17, 2025
+
+### 🚀 New Hardware Support
+- **Seeed Studio Trmnl DIY Kit (ESP32-S3)**: Added full support for the Trmnl DIY Kit, including:
+  - Correct pin mappings for display, buttons, battery, and SPI.
+  - Support for `7.50inv2p` display model with partial update capabilities.
+  - Automatic `inverted` color handling to fix "Dark Mode" logic (Hardware White is treated as logical White).
+
+### 🐛 Bug Fixes
+- **QR Code Widget**: Fixed a regression where the `qr_code` component definition was missing from the generated YAML, causing "Couldn't find ID" errors.
+
+---
+
+## v0.7.3 - Hotfix
+
+**Release Date:** December 17, 2025
+
+### 🐛 Bug Fixes
+- **Duplicate Weather Entity**: Fixed a bug where using a weather entity in both a generic widget (like `sensor_text`) and a dedicated weather widget caused duplicate entity definitions in the generated YAML, leading to compilation errors.
+- **Input Text Filtering**: Fixed entity picker filtering to allow selecting `input_text` entities in widgets like Sensor Text. Also improved the entity picker to search across all supported domains including `input_select`, `switch`, `input_boolean`, etc.
+
+---
+
 ## v0.7.2 - Hotfix
 
 **Release Date:** December 15, 2025

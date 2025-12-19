@@ -232,16 +232,20 @@ class App {
                 }
 
                 try {
-                    const yaml = generateSnippetLocally();
-                    snippetBox.value = yaml;
-                    // console.log("Snippet box updated.");
+                    generateSnippetLocally().then(yaml => {
+                        snippetBox.value = yaml;
+                        // console.log("Snippet box updated.");
 
-                    // Re-highlight the selected widget if any
-                    // This is needed because the initial highlight attempt (on selection change)
-                    // might have failed if the widget wasn't in the YAML yet (due to debounce)
-                    if (window.AppState && window.AppState.selectedWidgetId && typeof highlightWidgetInSnippet === 'function') {
-                        highlightWidgetInSnippet(window.AppState.selectedWidgetId);
-                    }
+                        // Re-highlight the selected widget if any
+                        // This is needed because the initial highlight attempt (on selection change)
+                        // might have failed if the widget wasn't in the YAML yet (due to debounce)
+                        if (window.AppState && window.AppState.selectedWidgetId && typeof highlightWidgetInSnippet === 'function') {
+                            highlightWidgetInSnippet(window.AppState.selectedWidgetId);
+                        }
+                    }).catch(e => {
+                        console.error("Error generating snippet async:", e);
+                        snippetBox.value = "# Error generating YAML (async): " + e.message;
+                    });
                 } catch (e) {
                     console.error("Error generating snippet:", e);
                     snippetBox.value = "# Error generating YAML: " + e.message;
