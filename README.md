@@ -1,29 +1,26 @@
+<div align="center">
+
 # ESPHome Designer
 
 **A visual drag-and-drop editor for ESPHome displays (E-Ink, OLED, LCD, Touch), running right inside Home Assistant.**
 
+<a href="#">
+  <img src="screenshots/Reterminal_Designer_v05.gif" alt="Watch the video">
+</a>
+<br>
+<small>Click to watch the demo video</small>
 
-
-<div align="center">
-  <a href="https://youtu.be/bzCbiUypN_4">
-    <img src="screenshots/Reterminal_Designer_v05.gif" alt="Watch the video">
-  </a>
-  <br>
-  <small>Click to watch the demo video</small>
-</div>
-
-<div align="center">
-
-
+<br>
 
 **No more hand-coding ESPHome display lambdas! 🎉**
+
+</div>
 
 Building a custom smart display for Home Assistant? Frustrated with manually writing C++ lambdas and guessing coordinates?
 
 Design ESPHome displays right inside Home Assistant. This HACS integration offers a drag-and-drop editor with direct access to your sensor library via an intuitive entity picker.
 
 It enables you to build premium, touch-interactive dashboards for various ESP32-based devices (like the Seeed reTerminal, TRMNL, standard touch screens, and more) without writing a single line of display code.
-
 
 ## What Does It Do?
 
@@ -186,7 +183,7 @@ For stable results, stick to **Native Mode** (standard widgets without LVGL pref
 - **Productivity Tools** - Copy/Paste (Ctrl+C/V), Undo/Redo (Ctrl+Z/Y), and Z-Index layering support
 - **Canvas Controls** - Zoom in/out and recenter for precise editing
 - **Dark Mode Option** - Toggle "Dark Mode" in device settings for black backgrounds
-- **Hardware Integration** - Buttons, buzzer, temperature/humidity sensors exposed to HA
+- **Hardware Integration** - Buttons, buzzer, temperature, humidity sensors exposed to HA
 - **Smart Generator** - Produces clean, additive YAML that doesn't conflict with your base config
 - **Template-Free Workflow** - No more manual template merging, just paste and go
 - **Live YAML Preview** - Select any widget to instantly highlight its corresponding code in the generated YAML snippet
@@ -275,17 +272,16 @@ Add `compile_process_limit: 1` to your `esphome:` section in the YAML. This redu
 4. **Compile**: Run this command:
    ```powershell
    python -m esphome compile C:\esphome_build\reterminal.yaml
-   ```
-5. **Upload**: Take the generated `.bin` file and upload it via the Home Assistant ESPHome dashboard (Install → Manual Download).
+Upload: Take the generated .bin file and upload it via the Home Assistant ESPHome dashboard (Install → Manual Download).
 
 ## License
 
 Made with love ❤️ - free and Open Source under the GPL 3.0 license. Share the love!
+
+<div align="center">
 
 ☕ **If you find this project useful, consider supporting its development!**
 
 [![Sponsor](https://img.shields.io/badge/Sponsor-❤️-ff69b4?style=for-the-badge&logo=github-sponsors)](https://github.com/sponsors/koosoli)
 
 </div>
-
-
