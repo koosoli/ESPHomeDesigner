@@ -853,6 +853,125 @@ class PropertiesPanel {
             this.addSelect("Transparency", props.transparency || "opaque", ["opaque", "chroma_key", "alpha_channel"], (v) => updateProp("transparency", v));
             this.addHint("opaque=no transparency, chroma_key=color key, alpha_channel=smooth blend");
         }
+        else if (type === "touch_area") {
+            this.addLabeledInputWithPicker("Entity ID (Binary Sensor)", "text", widget.entity_id || "", (v) => {
+                AppState.updateWidget(widget.id, { entity_id: v });
+            }, widget);
+            this.addHint("ID for the binary_sensor (e.g. my_touch_button)");
+
+            this.addLabeledInput("Label (Preview)", "text", props.title || "Touch Area", (v) => updateProp("title", v));
+
+            // User requested non-LVGL style color picker. 
+            // We'll use a simple native picker for color and a slider for opacity.
+            // But we need to combine them into RGBA.
+            const currentColor = props.color || "rgba(0, 0, 255, 0.2)";
+            // Naive parse or default
+            let hex = "#0000ff";
+            let alpha = 0.2;
+            if (currentColor.startsWith("#")) {
+                hex = currentColor;
+                alpha = 1.0;
+            } else if (currentColor.startsWith("rgba")) {
+                const parts = currentColor.match(/([\d\.]+)/g);
+                if (parts && parts.length >= 4) {
+                    const r = parseInt(parts[0]);
+                    const g = parseInt(parts[1]);
+                    const b = parseInt(parts[2]);
+                    alpha = parseFloat(parts[3]);
+                    hex = "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+                }
+            }
+
+            this.addLabeledInput("Preview Color", "color", hex, (v) => {
+                // Convert back to rgba
+                // v is hex
+                const r = parseInt(v.slice(1, 3), 16);
+                const g = parseInt(v.slice(3, 5), 16);
+                const b = parseInt(v.slice(5, 7), 16);
+                updateProp("color", `rgba(${r}, ${g}, ${b}, ${alpha})`);
+            });
+
+            this.addLabeledInput("Opacity (0.0 - 1.0)", "number", alpha, (v) => {
+                let a = parseFloat(v);
+                if (a < 0) a = 0; if (a > 1) a = 1;
+                // Reconstruct RGBA
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                updateProp("color", `rgba(${r}, ${g}, ${b}, ${a})`);
+            });
+
+            this.addLabeledInput("Border Color", "color", props.border_color || "#0000ff", (v) => updateProp("border_color", v));
+        }
+        else if (type === "lvgl_label") {
+            this.addLabeledInput("Text", "text", props.text || "Label", (v) => updateProp("text", v));
+            this.addLabeledInput("Font Size", "number", props.font_size || 20, (v) => updateProp("font_size", parseInt(v, 10)));
+            this.addColorMixer("Text Color", props.color || "black", (v) => updateProp("color", v));
+            this.addColorMixer("Background Color", props.bg_color || "transparent", (v) => updateProp("bg_color", v));
+
+            // Font Family
+            const fontOptions = ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand", "Custom..."];
+            const currentFont = props.font_family || "Roboto";
+            const isCustom = !fontOptions.slice(0, -1).includes(currentFont);
+
+            this.addSelect("Font", isCustom ? "Custom..." : currentFont, fontOptions, (v) => {
+                if (v !== "Custom...") {
+                    updateProp("font_family", v);
+                } else {
+                    updateProp("font_family", "Custom...");
+                }
+            });
+
+            this.addSelect("Weight", props.font_weight || 400, [100, 200, 300, 400, 500, 600, 700, 800, 900], (v) => updateProp("font_weight", parseInt(v, 10)));
+            this.addCheckbox("Italic", props.italic || false, (v) => updateProp("italic", v));
+
+            // Alignment
+            const alignOptions = ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"];
+            this.addSelect("Align", props.text_align || "CENTER", alignOptions, (v) => updateProp("text_align", v));
+        }
+        else if (type === "lvgl_line") {
+            // "Like non-LVGL widget": Simple Horizontal/Vertical orientation
+            const orientation = props.orientation || "horizontal";
+            this.addSelect("Orientation", orientation, ["horizontal", "vertical"], (v) => {
+                // When changing orientation, swap width/height to preserve 'length' feel
+                const oldW = widget.width;
+                const oldH = widget.height;
+                AppState.updateWidget(widget.id, {
+                    props: { ...props, orientation: v },
+                    width: oldH,
+                    height: oldW
+                });
+            });
+
+            this.addLabeledInput("Line Width", "number", props.line_width || 3, (v) => updateProp("line_width", parseInt(v, 10)));
+            this.addColorMixer("Line Color", props.line_color || props.color || "black", (v) => updateProp("line_color", v));
+            this.addCheckbox("Rounded Ends", props.line_rounded !== false, (v) => updateProp("line_rounded", v));
+
+            // Advanced: Allow manual points? 
+            // The user wants it to behave like the simple line widget, so we hide manual points 
+            // and generate them from width/height in export/render.
+        }
+        else if (type === "lvgl_meter") {
+            this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
+                AppState.updateWidget(widget.id, { entity_id: v });
+            }, widget);
+
+            this.addSectionLabel("Scale");
+            this.addLabeledInput("Min Value", "number", props.min || 0, (v) => updateProp("min", parseInt(v, 10)));
+            this.addLabeledInput("Max Value", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
+
+            this.addSectionLabel("Preview");
+            this.addLabeledInput("Value (Preview)", "number", props.value !== undefined ? props.value : 60, (v) => updateProp("value", parseInt(v, 10)));
+
+            this.addSectionLabel("Appearance");
+            this.addColorMixer("Scale Color", props.color || "black", (v) => updateProp("color", v));
+            this.addColorMixer("Needle Color", props.indicator_color || "red", (v) => updateProp("indicator_color", v));
+            this.addLabeledInput("Scale Width", "number", props.scale_width || 10, (v) => updateProp("scale_width", parseInt(v, 10)));
+            this.addLabeledInput("Needle Width", "number", props.indicator_width || 4, (v) => updateProp("indicator_width", parseInt(v, 10)));
+            this.addLabeledInput("Ticks", "number", props.tick_count || 11, (v) => updateProp("tick_count", parseInt(v, 10)));
+            this.addLabeledInput("Tick Length", "number", props.tick_length || 10, (v) => updateProp("tick_length", parseInt(v, 10)));
+        }
+
         else if (type === "lvgl_button") {
             this.addLabeledInputWithPicker("Action Entity ID", "text", widget.entity_id || "", (v) => {
                 AppState.updateWidget(widget.id, { entity_id: v });

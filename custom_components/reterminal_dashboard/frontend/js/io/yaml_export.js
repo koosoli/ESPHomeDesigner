@@ -499,6 +499,38 @@ async function generateSnippetLocally() {
     }
 
 
+    // Generate touch_area binary sensors
+    const touchAreaWidgets = [];
+    pagesLocal.forEach(p => {
+        if (p.widgets) {
+            p.widgets.forEach(w => {
+                if (w.type === "touch_area") {
+                    touchAreaWidgets.push(w);
+                }
+            });
+        }
+    });
+
+    if (touchAreaWidgets.length > 0) {
+        lines.push(`  # Touch Area Binary Sensors`);
+        touchAreaWidgets.forEach(w => {
+            const safeId = (w.entity_id || `touch_area_${w.id}`).replace(/[^a-zA-Z0-9_]/g, "_");
+            const xMin = w.x;
+            const xMax = w.x + w.width;
+            const yMin = w.y;
+            const yMax = w.y + w.height;
+
+            lines.push(`  - platform: touchscreen`);
+            lines.push(`    id: ${safeId}`);
+            lines.push(`    x_min: ${xMin}`);
+            lines.push(`    x_max: ${xMax}`);
+            lines.push(`    y_min: ${yMin}`);
+            lines.push(`    y_max: ${yMax}`);
+            // Note: on_press/on_release triggers would be handled by user automation or 
+            // if we added a property for it. For now, we just expose the binary sensor.
+        });
+    }
+
     // 7. Binary Sensors (Buttons)
     lines.push(...generateBinarySensorSection(profile, pagesLocal.length, displayId));
 
@@ -1147,7 +1179,7 @@ async function generateSnippetLocally() {
                 return "";
             };
 
-            const RECT_Y_OFFSET = -15;
+            const RECT_Y_OFFSET = 0;
             const TEXT_Y_OFFSET = 0;
 
             if (getDeviceModel() === "m5stack_paper" || getDeviceModel() === "reterminal_e1001" || getDeviceModel() === "trmnl_diy_esp32s3") {
@@ -1873,6 +1905,17 @@ async function generateSnippetLocally() {
 
                             lines.push(`        // widget:qr_code id:${w.id} type:qr_code x:${w.x} y:${w.y} w:${w.width} h:${w.height} value:"${value}" scale:${scale} ecc:${ecc} color:${colorProp} ${getCondProps(w)}`);
                             lines.push(`        it.qr_code(${w.x}, ${w.y}, id(${safeId}), ${color}, ${scale});`);
+
+                        } else if (t === "touch_area") {
+                            const entityId = (w.entity_id || "").trim();
+                            const title = (w.props.title || "Touch Area").replace(/"/g, '\\"');
+                            const color = w.props.color || "rgba(0, 0, 255, 0.2)";
+                            const borderColor = w.props.border_color || "#0000ff";
+
+                            // We only output the widget marker so the importer can find it.
+                            // We do NOT draw anything because this is an invisible touch area.
+                            // (Unless we wanted to draw a debug outline, but for production it should be invisible)
+                            lines.push(`        // widget:touch_area id:${w.id} type:touch_area x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} title:"${title}" color:"${color}" border_color:"${borderColor}"`);
 
                         } else if (t === "quote_rss") {
                             const feedUrl = (p.feed_url || "https://www.brainyquote.com/link/quotebr.rss").replace(/"/g, '\\"');

@@ -389,6 +389,12 @@ function parseSnippetYamlOffline(yamlText) {
                         color: p.color || "black",
                         opacity: parseInt(p.opacity || 100, 10)
                     };
+                } else if (widgetType === "touch_area") {
+                    widget.props = {
+                        title: p.title || "Touch Area",
+                        color: p.color || "rgba(0, 0, 255, 0.2)",
+                        border_color: p.border_color || "#0000ff"
+                    };
                 } else if (widgetType === "rounded_rect") {
                     widget.props = {
                         fill: (p.fill === "true" || p.fill === "1"),
@@ -600,6 +606,38 @@ function parseSnippetYamlOffline(yamlText) {
                         text: (p.text || "").replace(/^"|"$/g, ''),
                         one_line: (p.one_line === "true" || p.one_line === true),
                         max_length: parseInt(p.max_length || 0, 10)
+                    };
+                } else if (widgetType === "lvgl_label") {
+                    widget.props = {
+                        text: (p.text || "Label").replace(/^"|"$/g, ''),
+                        font_size: parseInt(p.font_size || p.size || 20, 10),
+                        font_family: p.font_family || "Roboto",
+                        font_weight: parseInt(p.font_weight || 400, 10),
+                        italic: (p.italic === "true" || p.italic === true),
+                        color: p.color || "black",
+                        bg_color: p.bg_color || "transparent",
+                        text_align: p.text_align || p.align || "CENTER"
+                    };
+                } else if (widgetType === "lvgl_line") {
+                    widget.props = {
+                        orientation: p.orientation || "horizontal",
+                        points: p.points || "", // Keep points if present for backward combat, but orientation rules
+                        line_width: parseInt(p.line_width || 3, 10),
+                        line_color: p.line_color || p.color || "black",
+                        line_rounded: (p.line_rounded !== "false")
+                    };
+                } else if (widgetType === "lvgl_meter") {
+                    widget.props = {
+                        min: parseInt(p.min || 0, 10),
+                        max: parseInt(p.max || 100, 10),
+                        value: parseInt(p.value || 60, 10),
+                        color: p.color || "black",
+                        indicator_color: p.indicator_color || "red",
+                        tick_count: parseInt(p.tick_count || 11, 10),
+                        tick_length: parseInt(p.tick_length || 10, 10),
+                        label_gap: parseInt(p.label_gap || 10, 10),
+                        scale_width: parseInt(p.scale_width || 10, 10),
+                        indicator_width: parseInt(p.indicator_width || 4, 10)
                     };
                 } else if (widgetType === "lvgl_obj") {
                     widget.props = {

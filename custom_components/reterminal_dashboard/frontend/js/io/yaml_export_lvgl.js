@@ -133,7 +133,10 @@ function serializeWidget(w) {
             if (typeof v === 'object') return;
 
             const valStr = String(v);
-            if (valStr.includes(' ') || valStr === "" || valStr.includes('\n')) {
+            // Fix: Check for numbers that might be 0 or similar
+            if (typeof v === 'number') {
+                parts.push(`${k}:${v}`);
+            } else if (valStr.includes(' ') || valStr === "" || valStr.includes('\n')) {
                 // Escape newlines for options
                 parts.push(`${k}:"${valStr.replace(/\n/g, '\\n')}"`);
             } else {
@@ -443,6 +446,87 @@ function transpileToLVGL(w, profile) {
                     border_width: p.border_width,
                     border_color: convertColor(p.border_color),
                     radius: p.radius
+                }
+            };
+
+        case "lvgl_label":
+            return {
+                label: {
+                    ...common,
+                    text: `"${p.text || 'Label'}"`,
+                    text_font: getLVGLFont(p.font_family, p.font_size, p.font_weight, p.italic),
+                    text_color: convertColor(p.color),
+                    bg_color: p.bg_color === "transparent" ? undefined : convertColor(p.bg_color),
+                    text_align: convertAlign(p.text_align)
+                }
+            };
+
+        case "lvgl_line":
+            let pointsArr;
+            const orientation = p.orientation || "horizontal";
+
+            // If points are manually specified (and old style), use them. 
+            // BUT, if we are in new "Like non-LVGL" mode, we generate based on w/h.
+            // Presence of 'orientation' property is a good indicator of new mode.
+            if (p.points && !p.orientation) {
+                pointsArr = p.points.split(" ").map(pt => {
+                    const [x, y] = pt.split(",").map(Number);
+                    return [x, y];
+                });
+            } else {
+                // Generate points from dimensions
+                const lw = p.line_width || 3;
+                if (orientation === "vertical") {
+                    // Vertical: Center X, from 0 to H
+                    // Make sure X is 0 relative to widget
+                    pointsArr = [[0, 0], [0, w_h]];
+                } else {
+                    // Horizontal: Center Y, from 0 to W
+                    pointsArr = [[0, 0], [w_w, 0]];
+                }
+            }
+
+            return {
+                line: {
+                    ...common,
+                    points: pointsArr,
+                    line_width: p.line_width || 3,
+                    line_color: convertColor(p.line_color || p.color),
+                    line_rounded: p.line_rounded !== false
+                }
+            };
+
+        case "lvgl_meter":
+            let meterValue = p.value || 0;
+            if (w.entity_id) {
+                const safeId = w.entity_id.replace(/^sensor\./, "").replace(/[^a-zA-Z0-9_]/g, "_");
+                meterValue = `!lambda "return id(${safeId}).state;"`;
+            }
+            return {
+                meter: {
+                    ...common,
+                    scales: {
+                        range_from: p.min || 0,
+                        range_to: p.max || 100,
+                        angle_range: 240,
+                        ticks: {
+                            count: p.tick_count || 11,
+                            length: p.tick_length || 10,
+                            color: convertColor(p.color),
+                            width: 2
+                        },
+                        scale_width: p.scale_width || 10,
+                        indicators: [
+                            {
+                                line: {
+                                    color: convertColor(p.indicator_color || "red"),
+                                    r_mod: -4,
+                                    width: p.indicator_width || 4,
+                                    value: meterValue
+                                }
+                            }
+                        ]
+                    }
                 }
             };
 

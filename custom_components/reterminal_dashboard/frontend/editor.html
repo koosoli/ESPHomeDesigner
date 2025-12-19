@@ -20,7 +20,7 @@
   <aside class="sidebar">
     <div>
       <h1><span class="logo-dot"></span> ESPHome Designer <span
-          style="font-size: 10px; color: var(--muted); vertical-align: middle;">v0.7.5</span></h1>
+          style="font-size: 10px; color: var(--muted); vertical-align: middle;">v0.7.5-RC6</span></h1>
       <div style="margin-top: 4px; font-size: 10px;">
         <a href="https://github.com/koosoli/esphomedesigner" target="_blank"
           style="color: var(--accent); text-decoration: none; display: flex; align-items: center; gap: 4px;">
@@ -246,6 +246,31 @@
           </div>
         </div>
 
+        <!-- Inputs Category -->
+        <div class="widget-category" data-category="inputs">
+          <div class="widget-category-header" onclick="toggleWidgetCategory('inputs')">
+            <span class="category-icon">▶</span>
+            <svg class="category-svg" viewBox="0 0 24 24" width="16" height="16">
+              <path
+                d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zM16.06 17H15v-1l-1-1h-6l-1 1v1H5.94c-.58 0-1.06-.48-1.06-1.06V7.5c0-3.59 2.91-6.5 6.5-6.5s6.5 2.91 6.5 6.5v8.44c0 .58-.48 1.06-1.06 1.06z"
+                fill="none" stroke="currentColor" stroke-width="2" />
+              <path d="M12 13h.01" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+            </svg>
+            <span class="category-name">Inputs</span>
+            <span class="category-count">1</span>
+          </div>
+          <div class="widget-category-items">
+            <div class="item" data-widget-type="touch_area">
+              <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
+                <rect x="5" y="5" width="14" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-dasharray="2,2" />
+                <circle cx="12" cy="12" r="3" fill="currentColor" />
+              </svg>
+              <span class="label">Touch Area</span>
+            </div>
+          </div>
+        </div>
+
         <!-- LVGL Category -->
         <div class="widget-category" data-category="lvgl">
           <div class="widget-category-header" onclick="toggleWidgetCategory('lvgl')">
@@ -256,9 +281,29 @@
                 fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
             </svg>
             <span class="category-name">LVGL Widgets</span>
-            <span class="category-count">7</span>
+            <span class="category-count">10</span>
           </div>
           <div class="widget-category-items">
+            <div class="item" data-widget-type="lvgl_label">
+              <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18"><text x="4" y="17" font-size="14"
+                  font-weight="bold" fill="currentColor">Aa</text></svg>
+              <span class="label">Label</span>
+            </div>
+            <div class="item" data-widget-type="lvgl_line">
+              <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
+                <polyline points="4,18 10,8 14,14 20,4" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span class="label">Line</span>
+            </div>
+            <div class="item" data-widget-type="lvgl_meter">
+              <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
+                <path d="M4 18 A 10 10 0 1 1 20 18" fill="none" stroke="currentColor" stroke-width="2" />
+                <line x1="12" y1="12" x2="16" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <circle cx="12" cy="12" r="2" fill="currentColor" />
+              </svg>
+              <span class="label">Meter</span>
+            </div>
             <div class="item" data-widget-type="lvgl_button">
               <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
                 <rect x="4" y="8" width="16" height="8" rx="2" fill="currentColor" fill-opacity="0.2"

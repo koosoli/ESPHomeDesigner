@@ -197,8 +197,171 @@ class Canvas {
         else if (type === "progress_bar") {
             // Migrated to features/progress_bar/render.js
         }
+        else if (type === "touch_area") {
+            el.style.backgroundColor = props.color || "rgba(0, 0, 255, 0.2)";
+            el.style.border = `1px dashed ${props.border_color || "#0000ff"}`;
+            el.style.display = "flex";
+            el.style.alignItems = "center";
+            el.style.justifyContent = "center";
+            el.style.color = props.border_color || "#0000ff";
+            el.style.fontSize = "12px";
+            el.style.fontWeight = "bold";
+            el.innerText = props.title || widget.entity_id || "Touch Area";
+            el.style.overflow = "hidden";
+        }
         else if (type === "graph") {
             // Migrated to features/graph/render.js
+        }
+        else if (type === "lvgl_label") {
+            el.innerText = props.text || "Label";
+            el.style.fontSize = (props.font_size || 20) + "px";
+            el.style.color = props.color || "black";
+            el.style.backgroundColor = props.bg_color || "transparent";
+            el.style.display = "flex";
+            const align = props.text_align || "CENTER";
+            // Map LVGL align to flex
+            if (align.includes("LEFT")) el.style.justifyContent = "flex-start";
+            else if (align.includes("RIGHT")) el.style.justifyContent = "flex-end";
+            else el.style.justifyContent = "center";
+
+            if (align.includes("TOP")) el.style.alignItems = "flex-start";
+            else if (align.includes("BOTTOM")) el.style.alignItems = "flex-end";
+            else el.style.alignItems = "center";
+
+            el.style.fontFamily = props.font_family === "Custom..." ? (props.custom_font_family || "sans-serif") : (props.font_family || "sans-serif");
+            if (props.italic) el.style.fontStyle = "italic";
+            el.style.fontWeight = props.font_weight || 400;
+            // Prevent wrapping unless specified (default behavior of LVGL label usually wraps, but for simple preview...)
+            el.style.whiteSpace = "pre-wrap";
+            el.style.overflow = "hidden";
+        }
+        else if (type === "lvgl_line") {
+            // "Behave like non-LVGL" -> Use orientation/dimensions
+            const orientation = props.orientation || "horizontal";
+            const lineWidth = props.line_width || 3;
+            const color = props.line_color || props.color || "black";
+
+            // Update container size to match line thickness if needed (handled by resize logic, but ensure render does too)
+            if (orientation === "vertical") {
+                el.style.width = `${lineWidth}px`;
+                // Height controlled by widget.height
+            } else {
+                el.style.height = `${lineWidth}px`;
+                // Width controlled by widget.width
+            }
+
+            el.style.backgroundColor = color;
+            if (props.line_rounded !== false) {
+                el.style.borderRadius = `${lineWidth}px`;
+            } else {
+                el.style.borderRadius = "0";
+            }
+
+            // We don't need SVG for a simple rect line unless we want points. 
+            // Since we are mimicing the simple "Line" widget, a div with background color suffices and matches the "Line" widget implementation.
+        }
+        else if (type === "lvgl_meter") {
+            // Draw a meter preview using SVG
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.style.width = "100%";
+            svg.style.height = "100%";
+
+            const cx = widget.width / 2;
+            const cy = widget.height / 2;
+            const padding = 10;
+            const r = Math.min(cx, cy) - padding;
+
+            const min = props.min || 0;
+            const max = props.max || 100;
+            const val = props.value !== undefined ? props.value : min;
+            const scaleWidth = parseInt(props.scale_width || 10, 10);
+            const indicatorWidth = parseInt(props.indicator_width || 4, 10);
+            const tickCount = parseInt(props.tick_count || 11, 10);
+            const tickLength = parseInt(props.tick_length || 10, 10); // Not adding prop for this yet, maybe default or derived? User said "ticks", usually means count. But prop exists in export. Let's assume standard default if not in props.
+
+            // Standard LVGL arc: 270 degrees, starting at 135
+            const startAngle = 135;
+            const range = 270;
+            const endAngle = startAngle + range;
+
+            const toRad = (deg) => deg * (Math.PI / 180);
+
+            // 1. Draw Scale (Arc)
+            // Arc path
+            const startRad = toRad(startAngle);
+            const endRad = toRad(endAngle);
+
+            // Calculate arc points
+            const arcR = r - Math.max(scaleWidth, tickLength) / 2; // Inset slightly
+
+            const x1 = cx + arcR * Math.cos(startRad);
+            const y1 = cy + arcR * Math.sin(startRad);
+            const x2 = cx + arcR * Math.cos(endRad);
+            const y2 = cy + arcR * Math.sin(endRad);
+
+            const d = `M ${x1} ${y1} A ${arcR} ${arcR} 0 1 1 ${x2} ${y2}`;
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", d);
+            path.style.fill = "none";
+            path.style.stroke = props.color || "black";
+            path.style.strokeWidth = `${scaleWidth}px`;
+            path.style.strokeLinecap = "round";
+            svg.appendChild(path);
+
+            // 2. Draw Ticks
+            if (tickCount > 1) {
+                const tickGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                tickGroup.style.stroke = props.color || "black";
+                tickGroup.style.strokeWidth = "2px";
+
+                for (let i = 0; i < tickCount; i++) {
+                    const pct = i / (tickCount - 1);
+                    const angle = startAngle + (range * pct);
+                    const rad = toRad(angle);
+
+                    const tx1 = cx + (arcR - scaleWidth / 2) * Math.cos(rad);
+                    const ty1 = cy + (arcR - scaleWidth / 2) * Math.sin(rad);
+                    const tx2 = cx + (arcR - scaleWidth / 2 - 10) * Math.cos(rad); // 10px tick length default
+                    const ty2 = cy + (arcR - scaleWidth / 2 - 10) * Math.sin(rad);
+
+                    const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    tick.setAttribute("x1", tx1);
+                    tick.setAttribute("y1", ty1);
+                    tick.setAttribute("x2", tx2);
+                    tick.setAttribute("y2", ty2);
+                    tickGroup.appendChild(tick);
+                }
+                svg.appendChild(tickGroup);
+            }
+
+            // 3. Draw Needle
+            const pct = Math.max(0, Math.min(1, (val - min) / (max - min)));
+            const needleAngle = startAngle + (range * pct);
+            const needleRad = toRad(needleAngle);
+
+            const nx = cx + (arcR - 10) * Math.cos(needleRad);
+            const ny = cy + (arcR - 10) * Math.sin(needleRad);
+
+            const needle = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            needle.setAttribute("x1", cx);
+            needle.setAttribute("y1", cy);
+            needle.setAttribute("x2", nx);
+            needle.setAttribute("y2", ny);
+            needle.style.stroke = props.indicator_color || "red";
+            needle.style.strokeWidth = `${indicatorWidth}px`;
+            needle.style.strokeLinecap = "round";
+            svg.appendChild(needle);
+
+            // Center pivot
+            const pivot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            pivot.setAttribute("cx", cx);
+            pivot.setAttribute("cy", cy);
+            pivot.setAttribute("r", indicatorWidth); // Match pivot to needle width roughly
+            pivot.style.fill = props.indicator_color || "red";
+            svg.appendChild(pivot);
+
+            el.appendChild(svg);
         }
         else {
             el.textContent = `Unknown: ${type}`;
@@ -357,17 +520,21 @@ class Canvas {
             const wtype = (widget.type || "").toLowerCase();
 
             // Special handling for line widgets - allow resizing along the line direction
-            if (wtype === "line") {
+            if (wtype === "line" || wtype === "lvgl_line") {
                 const props = widget.props || {};
                 const orientation = props.orientation || "horizontal";
-                const strokeWidth = parseInt(props.stroke_width || 3, 10);
+                const strokeWidth = parseInt(props.stroke_width || props.line_width || 3, 10);
 
                 if (orientation === "vertical") {
                     // Vertical line: height is the length (resizable), width stays as stroke_width
                     w = strokeWidth;
+                    // Enforce minimum height
+                    h = Math.max(10, h);
                 } else {
                     // Horizontal line: width is the length (resizable), height stays as stroke_width
                     h = strokeWidth;
+                    // Enforce minimum width
+                    w = Math.max(10, w);
                 }
             }
 

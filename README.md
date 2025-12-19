@@ -12,6 +12,8 @@
   <small>Click to watch the demo video</small>
 </div>
 
+<div align="center">
+
 
 
 **No more hand-coding ESPHome display lambdas! 🎉**
@@ -279,4 +281,11 @@ Add `compile_process_limit: 1` to your `esphome:` section in the YAML. This redu
 ## License
 
 Made with love ❤️ - free and Open Source under the GPL 3.0 license. Share the love!
+
+☕ **If you find this project useful, consider supporting its development!**
+
+[![Sponsor](https://img.shields.io/badge/Sponsor-❤️-ff69b4?style=for-the-badge&logo=github-sponsors)](https://github.com/sponsors/koosoli)
+
+</div>
+
 

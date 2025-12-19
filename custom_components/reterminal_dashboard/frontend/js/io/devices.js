@@ -8,7 +8,7 @@
 
 window.DEVICE_PROFILES = {
   reterminal_e1001: {
-    name: "reTerminal E1001 (Monochrome)",
+    name: "Seeedstudio reTerminal E1001 (Monochrome)",
     displayModel: "7.50inv2p",
     displayPlatform: "waveshare_epaper",
     psram_mode: "octal",
@@ -34,7 +34,7 @@ window.DEVICE_PROFILES = {
     }
   },
   reterminal_e1002: {
-    name: "reTerminal E1002 (6-Color)",
+    name: "Seeedstudio reTerminal E1002 (6-Color)",
     displayModel: "Seeed-reTerminal-E1002",
     displayPlatform: "epaper_spi",
     psram_mode: "octal",
