@@ -35,7 +35,8 @@ window.DEVICE_PROFILES = {
       psram: true,
       buzzer: true,
       buttons: true,
-      sht4x: true
+      sht4x: true,
+      inverted_colors: true
     }
   },
   reterminal_e1002: {
@@ -172,8 +173,7 @@ window.DEVICE_PROFILES = {
       axp2101: true,
       manual_pmic: true,
       shtc3: true,
-      epaper: true,
-      inverted_colors: true
+      epaper: true
     },
     i2c_config: {
       scan: false,
@@ -245,8 +245,7 @@ window.DEVICE_PROFILES = {
       buttons: true, // Has multifunction button
       lcd: false,
       epaper: true,
-      touch: true, // Has GT911
-      inverted_colors: true
+      touch: true // Has GT911
     },
     pins: {
       display: { cs: "GPIO15", dc: null, reset: "GPIO23", busy: "GPIO27" }, // DC not used for IT8951E
