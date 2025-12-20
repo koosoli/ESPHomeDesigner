@@ -193,70 +193,7 @@ body {
   display: block;
 }
 
-@media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    top: 48px;
-    bottom: 0;
-    left: 0;
-    width: var(--sidebar-width);
-    z-index: 1000;
-    transform: translateX(-100%);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
-  }
 
-  .sidebar.mobile-active {
-    transform: translateX(0);
-  }
-
-  .right-panel {
-    position: fixed;
-    top: 48px;
-    bottom: 0;
-    right: 0;
-    width: var(--sidebar-width);
-    z-index: 1000;
-    transform: translateX(100%);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: -20px 0 50px rgba(0, 0, 0, 0.5);
-  }
-
-  .right-panel.mobile-active {
-    transform: translateX(0);
-  }
-
-  .main {
-    min-width: 0 !important;
-  }
-
-  .resizer {
-    display: none !important;
-  }
-
-  .main-header-title h2 {
-    font-size: var(--fs-base);
-  }
-
-  .main-header-title span {
-    display: none;
-  }
-
-  .canvas-viewport {
-    padding: 20px;
-  }
-
-  .canvas-controls {
-    top: auto;
-    bottom: 24px;
-    width: auto;
-    padding: 8px 16px;
-  }
-
-  .code-panel {
-    max-height: 50vh;
-  }
-}
 
 .main {
   flex: 1;
@@ -911,82 +848,108 @@ textarea:focus {
   justify-content: center;
 }
 
-/* Responsive vertical space management */
-@media (max-height: 900px) {
-  .snippet-area {
-    min-height: 150px;
-    max-height: 220px;
-  }
-}
+/* End of stylesheet */
 
-@media (max-height: 700px) {
-  .snippet-area {
-    min-height: 120px;
-    max-height: 180px;
-  }
-}
-
-/* Responsive width management - let canvas fill available space */
-@media (max-width: 1600px) {
-
-  .canvas-area,
-  .snippet-area {
-    max-width: 100%;
-  }
-}
-
-@media (max-width: 1400px) {
-
-  .canvas-area,
-  .snippet-area {
-    max-width: 100%;
-  }
-}
-
-@media (max-width: 1200px) {
-
-  .canvas-area,
-  .snippet-area {
-    max-width: 100%;
-  }
-}
-
-/* Portrait mode specific adjustments */
-@media (orientation: portrait) and (max-width: 768px) {
-  body {
-    flex-direction: column;
-  }
-
+@media (max-width: 768px) {
   .sidebar {
-    width: 100%;
-    height: 140px;
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
-    border-right: none;
-    border-bottom: 1px solid var(--border-subtle);
+    position: fixed;
+    top: 48px;
+    bottom: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
   }
 
-  .canvas-wrap {
-    flex-direction: column;
+  .sidebar.mobile-active {
+    transform: translateX(0);
   }
 
   .right-panel {
-    width: 100%;
-    height: 180px;
-    overflow-x: auto;
-    overflow-y: hidden;
+    position: fixed;
+    top: 48px;
+    bottom: 0;
+    right: 0;
+    width: var(--sidebar-width);
+    z-index: 1000;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: -20px 0 50px rgba(0, 0, 0, 0.5);
   }
 
-  .canvas-area {
-    min-height: 180px;
+  .right-panel.mobile-active {
+    transform: translateX(0);
+  }
+
+  .main {
+    min-width: 0 !important;
+  }
+
+  .resizer {
+    display: none !important;
+  }
+
+  .main-header-title h2 {
+    font-size: var(--fs-base);
+  }
+
+  .main-header-title span {
+    display: none;
+  }
+
+  .canvas-viewport {
+    padding: 20px;
+  }
+
+  .canvas-controls {
+    top: auto !important;
+    bottom: 12px;
+    width: auto;
+    padding: 2px 8px;
+    gap: 6px;
+    background: rgba(24, 27, 34, 0.9);
+    backdrop-filter: blur(2px);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .canvas-info {
+    font-size: 9px;
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  .canvas-info .separator {
+    margin: 0 2px;
+    display: none;
+  }
+
+  /* Specific canvas control buttons - smaller */
+  .canvas-controls .btn-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+  }
+
+  /* Header buttons - slightly larger for mobile taps */
+  .main-header .btn,
+  .main-header .btn-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .main-header .btn svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .code-panel {
     max-height: 50vh;
   }
-
-  .snippet-area {
-    min-height: 150px;
-    max-height: 30vh;
-  }
 }
-
-/* End of stylesheet */
