@@ -26,9 +26,14 @@
 - **Icon Rendering**: Fixed a bug where gray icons would result in solid squares when flashed on device due to dithering logic issues.
 - **Alignment Fixes**: Removed the legacy 15px vertical offset for shapes to ensure they render exactly where they appear on the canvas.
 - **Calendar Widget**: Various improvements to rendering, performance, and stability.
+- **Major Energy Management Overhaul**: Complete logic rewrite for better reliability and clarity.
+    - **Silent Hours (No Refresh Window)**: Added ability to disable display updates during specific hours to prevent ghosting or noise at night. Integrated with both Standard and Ultra Eco modes.
+    - **Global Interval Fix**: Fixed a bug where the refresh interval was incorrectly exported to YAML.
+- **M5Stack CoreInk Refinements**:
+    - Fixed **Dark Mode** rendering issues where the background remained white instead of black.
+    - Improved battery calibration and button logic responsiveness.
 - **Rounded Rectangles**: Improved the rendering of rounded rectangles to look much nicer when flashed to a physical device.
 - **TRMNL DIY Battery**: Fixed incorrect battery level and voltage readings for the TRMNL DIY (ESP32-S3) hardware by implementing a proper 12-point calibration curve.
-- **M5CoreInk Profile Refinement**: Fixed several issues in the M5CoreInk profile, including battery calibration and button logic.
 
 ### 🔧 Architectural Changes
 - **Live YAML Generation**: Removed the "Generate YAML" button as it has become redundant; YAML is now generated on the fly as you design.

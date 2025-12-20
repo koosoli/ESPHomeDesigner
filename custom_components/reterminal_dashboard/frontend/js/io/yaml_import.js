@@ -152,15 +152,62 @@ function parseSnippetYamlOffline(yamlText) {
         }
     }
 
+    // --- DEVICE LEVEL SETTINGS PARSING ---
+    // Extract settings from the header comments
+    const deviceSettings = {
+        orientation: "landscape",
+        dark_mode: false,
+        sleep_enabled: false,
+        sleep_start_hour: 0,
+        sleep_end_hour: 5,
+        manual_refresh_only: false,
+        deep_sleep_enabled: false,
+        deep_sleep_interval: 600,
+        daily_refresh_enabled: false,
+        daily_refresh_time: "08:00"
+    };
+
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line.startsWith("#")) continue;
+
+        let m;
+        if (m = line.match(/Orientation:\s*(landscape|portrait)/i)) deviceSettings.orientation = m[1].toLowerCase();
+        if (m = line.match(/Dark Mode:\s*(enabled|disabled)/i)) deviceSettings.dark_mode = (m[1].toLowerCase() === "enabled");
+
+        // Handle New Power Strategy format
+        if (m = line.match(/Power Strategy:\s*(.*)/i)) {
+            const strategy = m[1].trim().toLowerCase();
+            deviceSettings.sleep_enabled = strategy.includes("night");
+            deviceSettings.manual_refresh_only = strategy.includes("manual");
+            deviceSettings.deep_sleep_enabled = strategy.includes("ultra") || strategy.includes("deep");
+            deviceSettings.daily_refresh_enabled = strategy.includes("daily");
+        }
+
+        // Individual settings (fallback or specific values)
+        if (m = line.match(/Sleep Mode:\s*(enabled|disabled)/i)) deviceSettings.sleep_enabled = (m[1].toLowerCase() === "enabled");
+        if (m = line.match(/Sleep Start Hour:\s*(\d+)/i)) deviceSettings.sleep_start_hour = parseInt(m[1], 10);
+        if (m = line.match(/Sleep End Hour:\s*(\d+)/i)) deviceSettings.sleep_end_hour = parseInt(m[1], 10);
+        if (m = line.match(/Manual Refresh:\s*(enabled|disabled)/i)) deviceSettings.manual_refresh_only = (m[1].toLowerCase() === "enabled");
+        if (m = line.match(/Deep Sleep:\s*(enabled|disabled)/i)) deviceSettings.deep_sleep_enabled = (m[1].toLowerCase() === "enabled");
+        if (m = line.match(/Deep Sleep Interval:\s*(\d+)/i)) deviceSettings.deep_sleep_interval = parseInt(m[1], 10);
+
+        // Daily refresh specific
+        if (m = line.match(/Refresh Time:\s*(\d{2}:\d{2})/i)) deviceSettings.daily_refresh_time = m[1];
+
+        // Silent Hours
+        if (m = line.match(/Disable updates from\s*(\d+)\s*to\s*(\d+)/i)) {
+            deviceSettings.no_refresh_start_hour = parseInt(m[1], 10);
+            deviceSettings.no_refresh_end_hour = parseInt(m[2], 10);
+        }
+    }
+
     if (pageMap.size === 0) {
         pageMap.set(0, []);
     }
 
     const layout = {
-        settings: {
-            orientation: "landscape",
-            dark_mode: false
-        },
+        settings: deviceSettings,
         pages: Array.from(pageMap.entries()).sort((a, b) => a[0] - b[0]).map(([idx, _]) => ({
             id: `page_${idx}`,
             name: nameMap.has(idx) ? nameMap.get(idx) : `Page ${idx + 1}`,

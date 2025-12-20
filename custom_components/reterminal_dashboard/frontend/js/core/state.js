@@ -26,7 +26,8 @@ class StateStore {
                 manual_refresh_only: false,
                 deep_sleep_enabled: false,
                 deep_sleep_interval: 600,
-                deep_sleep_interval: 600,
+                no_refresh_start_hour: null,
+                no_refresh_end_hour: null,
                 editor_light_mode: false,
                 grid_opacity: 8,
                 device_model: "reterminal_e1001" // Ensure it's in settings too for consistency

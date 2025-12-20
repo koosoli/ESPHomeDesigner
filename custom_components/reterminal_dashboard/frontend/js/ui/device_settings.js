@@ -15,14 +15,21 @@ class DeviceSettings {
         this.modeSleep = document.getElementById('setting-sleep-enabled');
         this.modeManual = document.getElementById('setting-manual-refresh');
         this.modeDeepSleep = document.getElementById('setting-deep-sleep-enabled');
+        this.modeDaily = document.getElementById('setting-daily-refresh-enabled');
 
         // Sub-settings
         this.sleepStart = document.getElementById('setting-sleep-start');
         this.sleepEnd = document.getElementById('setting-sleep-end');
         this.sleepRow = document.getElementById('sleep-times-row');
 
+        this.dailyRefreshTime = document.getElementById('setting-daily-refresh-time');
+        this.dailyRefreshRow = document.getElementById('daily-refresh-row');
+
         this.deepSleepInterval = document.getElementById('setting-deep-sleep-interval');
         this.deepSleepRow = document.getElementById('deep-sleep-interval-row');
+
+        this.noRefreshStart = document.getElementById('setting-no-refresh-start');
+        this.noRefreshEnd = document.getElementById('setting-no-refresh-end');
     }
 
     init() {
@@ -79,17 +86,24 @@ class DeviceSettings {
         const isSleep = !!s.sleep_enabled;
         const isManual = !!s.manual_refresh_only;
         const isDeepSleep = !!s.deep_sleep_enabled;
-        const isStandard = !isSleep && !isManual && !isDeepSleep;
+        const isDaily = !!s.daily_refresh_enabled;
+        const isStandard = !isSleep && !isManual && !isDeepSleep && !isDaily;
 
         if (this.modeStandard) this.modeStandard.checked = isStandard;
         if (this.modeSleep) this.modeSleep.checked = isSleep;
         if (this.modeManual) this.modeManual.checked = isManual;
         if (this.modeDeepSleep) this.modeDeepSleep.checked = isDeepSleep;
+        if (this.modeDaily) this.modeDaily.checked = isDaily;
 
         // Set time inputs
         if (this.sleepStart) this.sleepStart.value = s.sleep_start_hour ?? 0;
         if (this.sleepEnd) this.sleepEnd.value = s.sleep_end_hour ?? 5;
+        if (this.dailyRefreshTime) this.dailyRefreshTime.value = s.daily_refresh_time || "08:00";
         if (this.deepSleepInterval) this.deepSleepInterval.value = s.deep_sleep_interval ?? 600;
+
+        // Silent Hours
+        if (this.noRefreshStart) this.noRefreshStart.value = s.no_refresh_start_hour ?? "";
+        if (this.noRefreshEnd) this.noRefreshEnd.value = s.no_refresh_end_hour ?? "";
 
         // Show/hide sub-settings
         this.updateVisibility();
@@ -108,10 +122,12 @@ class DeviceSettings {
 
     updateVisibility() {
         const isSleep = this.modeSleep && this.modeSleep.checked;
+        const isDaily = this.modeDaily && this.modeDaily.checked;
         const isDeepSleep = this.modeDeepSleep && this.modeDeepSleep.checked;
 
         if (this.sleepRow) this.sleepRow.style.display = isSleep ? 'flex' : 'none';
-        if (this.deepSleepRow) this.deepSleepRow.style.display = isDeepSleep ? 'flex' : 'none';
+        if (this.dailyRefreshRow) this.dailyRefreshRow.style.display = isDaily ? 'flex' : 'none';
+        if (this.deepSleepRow) this.deepSleepRow.style.display = isDeepSleep ? 'block' : 'none';
     }
 
     setupAutoSaveListeners() {
@@ -180,15 +196,16 @@ class DeviceSettings {
         }
 
         // Power Strategy
-        const radios = [this.modeStandard, this.modeSleep, this.modeManual, this.modeDeepSleep];
+        const radios = [this.modeStandard, this.modeSleep, this.modeManual, this.modeDeepSleep, this.modeDaily];
         radios.forEach(radio => {
             if (radio) {
                 radio.addEventListener('change', () => {
                     if (!radio.checked) return;
 
-                    updateSetting('sleep_enabled', this.modeSleep.checked);
-                    updateSetting('manual_refresh_only', this.modeManual.checked);
-                    updateSetting('deep_sleep_enabled', this.modeDeepSleep.checked);
+                    updateSetting('sleep_enabled', !!(this.modeSleep && this.modeSleep.checked));
+                    updateSetting('manual_refresh_only', !!(this.modeManual && this.modeManual.checked));
+                    updateSetting('deep_sleep_enabled', !!(this.modeDeepSleep && this.modeDeepSleep.checked));
+                    updateSetting('daily_refresh_enabled', !!(this.modeDaily && this.modeDaily.checked));
 
                     this.updateVisibility();
                 });
@@ -197,13 +214,20 @@ class DeviceSettings {
 
         // Sleep Times
         if (this.sleepStart) {
-            this.sleepStart.addEventListener('input', () => {
+            this.sleepStart.addEventListener('change', () => {
                 updateSetting('sleep_start_hour', parseInt(this.sleepStart.value) || 0);
             });
         }
         if (this.sleepEnd) {
-            this.sleepEnd.addEventListener('input', () => {
+            this.sleepEnd.addEventListener('change', () => {
                 updateSetting('sleep_end_hour', parseInt(this.sleepEnd.value) || 0);
+            });
+        }
+
+        // Daily Refresh Time
+        if (this.dailyRefreshTime) {
+            this.dailyRefreshTime.addEventListener('change', () => {
+                updateSetting('daily_refresh_time', this.dailyRefreshTime.value);
             });
         }
 
@@ -211,6 +235,20 @@ class DeviceSettings {
         if (this.deepSleepInterval) {
             this.deepSleepInterval.addEventListener('input', () => {
                 updateSetting('deep_sleep_interval', parseInt(this.deepSleepInterval.value) || 600);
+            });
+        }
+
+        // Silent Hours
+        if (this.noRefreshStart) {
+            this.noRefreshStart.addEventListener('change', () => {
+                const val = this.noRefreshStart.value === "" ? null : parseInt(this.noRefreshStart.value);
+                updateSetting('no_refresh_start_hour', val);
+            });
+        }
+        if (this.noRefreshEnd) {
+            this.noRefreshEnd.addEventListener('change', () => {
+                const val = this.noRefreshEnd.value === "" ? null : parseInt(this.noRefreshEnd.value);
+                updateSetting('no_refresh_end_hour', val);
             });
         }
     }

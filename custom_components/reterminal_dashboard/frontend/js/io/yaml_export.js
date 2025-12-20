@@ -288,7 +288,27 @@ async function generateSnippetLocally() {
     lines.push("# ====================================");
     lines.push(`# Orientation: ${payload.orientation || 'landscape'}`);
     lines.push(`# Dark Mode: ${payload.dark_mode ? 'enabled' : 'disabled'}`);
-    lines.push(`# Sleep Mode: ${payload.sleep_enabled ? 'enabled' : 'disabled'}`);
+
+    // Power Strategy
+    if (payload.daily_refresh_enabled) {
+        lines.push(`# Power Strategy: Daily Scheduled Refresh`);
+        lines.push(`# Refresh Time: ${payload.daily_refresh_time || '08:00'}`);
+    } else if (payload.sleep_enabled) {
+        lines.push(`# Power Strategy: Scheduled Night Sleep`);
+        lines.push(`# Sleep Start Hour: ${payload.sleep_start_hour || 0}`);
+        lines.push(`# Sleep End Hour: ${payload.sleep_end_hour || 5}`);
+    } else if (payload.manual_refresh_only) {
+        lines.push(`# Power Strategy: Manual Refresh Only`);
+    } else if (payload.deep_sleep_enabled) {
+        lines.push(`# Power Strategy: Ultra Eco (Deep Sleep)`);
+        lines.push(`# Deep Sleep Interval: ${payload.deep_sleep_interval || 600}`);
+    } else {
+        lines.push(`# Power Strategy: Full Power (Always On)`);
+    }
+
+    if (payload.no_refresh_start_hour !== null && payload.no_refresh_end_hour !== null && payload.no_refresh_start_hour !== undefined) {
+        lines.push(`# Disable updates from ${payload.no_refresh_start_hour} to ${payload.no_refresh_end_hour}`);
+    }
     lines.push("# ====================================");
     lines.push("");
 
@@ -302,7 +322,7 @@ async function generateSnippetLocally() {
     lines.push("  - id: page_refresh_default_s");
     lines.push("    type: int");
     lines.push("    restore_value: true");
-    lines.push(`    initial_value: '${payload.refresh_interval || 600}'`);
+    lines.push(`    initial_value: '${payload.deep_sleep_interval || 600}'`);
 
     lines.push("  - id: page_refresh_current_s");
     lines.push("    type: int");
@@ -1182,34 +1202,29 @@ async function generateSnippetLocally() {
             const RECT_Y_OFFSET = 0;
             const TEXT_Y_OFFSET = 0;
 
-            if (getDeviceModel() === "m5stack_paper" || getDeviceModel() === "reterminal_e1001" || getDeviceModel() === "trmnl_diy_esp32s3") {
+            if (getDeviceModel() === "m5stack_paper" || getDeviceModel() === "m5stack_coreink" || getDeviceModel() === "reterminal_e1001" || getDeviceModel() === "trmnl_diy_esp32s3") {
                 lines.push("      const auto COLOR_WHITE = Color(0, 0, 0); // Inverted for e-ink");
-            } else {
-                lines.push("      const auto COLOR_WHITE = Color(255, 255, 255);");
-            }
-            // ============================================================================
-            // COLOR MAPPING FOR 'Waveshare PhotoPainter' (7.30in-f)
-            // Manufacturer Confirmed: 6-Color Display (Not 7), and BRG pixel order.
-            // MAPPING BASED ON USER TESTING OBSERVATIONS (Input -> Output):
-            // - Blue(0,0,255)    -> Shows RED    => Use (0,0,255) for COLOR_RED
-            // - Orange(255,128,0)-> Shows GREEN  => Use (255,128,0) for COLOR_GREEN
-            // - Yellow(255,255,0)-> Shows BLUE   => Use (255,255,0) for COLOR_BLUE
-            // - Green(0,255,0)   -> Shows YELLOW => Use (0,255,0) for COLOR_YELLOW
-            // - Red(255,0,0)     -> Shows WHITE/Invisible
-            // - Display is 6-color (Black, White, Red, Green, Blue, Yellow)
-            // ============================================================================
-            if (getDeviceModel() === "m5stack_paper" || getDeviceModel() === "reterminal_e1001" || getDeviceModel() === "trmnl_diy_esp32s3") {
                 lines.push("      const auto COLOR_BLACK = Color(255, 255, 255); // Inverted for e-ink");
             } else {
+                lines.push("      const auto COLOR_WHITE = Color(255, 255, 255);");
                 lines.push("      const auto COLOR_BLACK = Color(0, 0, 0);");
             }
-            lines.push("      const auto COLOR_RED = Color(0, 0, 255);");      // Map to Blue -> Device shows Red
-            lines.push("      const auto COLOR_GREEN = Color(255, 128, 0);");  // Map to Orange -> Device shows Green
-            lines.push("      const auto COLOR_BLUE = Color(255, 255, 0);");   // Map to Yellow -> Device shows Blue
-            lines.push("      const auto COLOR_YELLOW = Color(0, 255, 0);");   // Map to Green -> Device shows Yellow
-            lines.push("      const auto COLOR_ORANGE = Color(0, 128, 255);"); // Manufacturer Code Key for Orange
-            lines.push("      const auto COLOR_OFF = COLOR_WHITE;");
-            lines.push("      const auto COLOR_ON = COLOR_BLACK;");
+
+            if (getDeviceModel() === "esp32_s3_photopainter") {
+                lines.push("      const auto COLOR_RED = Color(0, 0, 255);");      // Map to Blue -> Device shows Red
+                lines.push("      const auto COLOR_GREEN = Color(255, 128, 0);");  // Map to Orange -> Device shows Green
+                lines.push("      const auto COLOR_BLUE = Color(255, 255, 0);");   // Map to Yellow -> Device shows Blue
+                lines.push("      const auto COLOR_YELLOW = Color(0, 255, 0);");   // Map to Green -> Device shows Yellow
+                lines.push("      const auto COLOR_ORANGE = Color(0, 128, 255);"); // Manufacturer Code Key for Orange
+            } else {
+                lines.push("      const auto COLOR_RED = Color(255, 0, 0);");
+                lines.push("      const auto COLOR_GREEN = Color(0, 255, 0);");
+                lines.push("      const auto COLOR_BLUE = Color(0, 0, 255);");
+                lines.push("      const auto COLOR_YELLOW = Color(255, 255, 0);");
+                lines.push("      const auto COLOR_ORANGE = Color(255, 165, 0);");
+            }
+            lines.push("      auto color_off = COLOR_WHITE;");
+            lines.push("      auto color_on = COLOR_BLACK;");
             lines.push("");
 
             // Check if any widget needs dithering (Icons set to Gray)
@@ -1251,7 +1266,7 @@ async function generateSnippetLocally() {
                 lines.push("              for (int j = 0; j < h; j++) {");
                 lines.push("                  // Subtractive dither: Punch holes on alternating pixels");
                 lines.push("                  if ((x + i + y + j) % 2 != 0) {");
-                lines.push("                      it.draw_pixel_at(x + i, y + j, COLOR_OFF);");
+                lines.push("                      it.draw_pixel_at(x + i, y + j, color_off);");
                 lines.push("                  }");
                 lines.push("              }");
                 lines.push("          }");
@@ -1335,8 +1350,12 @@ async function generateSnippetLocally() {
                 lines.push(`        // Clear screen for this page`);
                 if (effectiveDarkMode) {
                     lines.push(`        it.fill(COLOR_BLACK);`);
+                    lines.push(`        color_off = COLOR_BLACK;`);
+                    lines.push(`        color_on = COLOR_WHITE;`);
                 } else {
                     lines.push(`        it.fill(COLOR_WHITE);`);
+                    lines.push(`        color_off = COLOR_WHITE;`);
+                    lines.push(`        color_on = COLOR_BLACK;`);
                 }
 
                 if (page.widgets) {
@@ -1843,12 +1862,12 @@ async function generateSnippetLocally() {
                                     lines.push(`          // Apply dither to border`);
                                     lines.push(`          for (int i = 0; i < ${borderWidth}; i++) {`);
                                     lines.push(`            for (int x = ${w.x}; x < ${w.x} + ${w.width}; x++) {`);
-                                    lines.push(`              if ((x + ${w.y} + i) % 2 != 0) it.draw_pixel_at(x, ${w.y} + i, COLOR_OFF);`);
-                                    lines.push(`              if ((x + ${w.y} + ${w.height} - 1 - i) % 2 != 0) it.draw_pixel_at(x, ${w.y} + ${w.height} - 1 - i, COLOR_OFF);`);
+                                    lines.push(`              if ((x + ${w.y} + i) % 2 != 0) it.draw_pixel_at(x, ${w.y} + i, color_off);`);
+                                    lines.push(`              if ((x + ${w.y} + ${w.height} - 1 - i) % 2 != 0) it.draw_pixel_at(x, ${w.y} + ${w.height} - 1 - i, color_off);`);
                                     lines.push(`            }`);
                                     lines.push(`            for (int y = ${w.y}; y < ${w.y} + ${w.height}; y++) {`);
-                                    lines.push(`              if ((${w.x} + i + y) % 2 != 0) it.draw_pixel_at(${w.x} + i, y, COLOR_OFF);`);
-                                    lines.push(`              if ((${w.x} + ${w.width} - 1 - i + y) % 2 != 0) it.draw_pixel_at(${w.x} + ${w.width} - 1 - i, y, COLOR_OFF);`);
+                                    lines.push(`              if ((${w.x} + i + y) % 2 != 0) it.draw_pixel_at(${w.x} + i, y, color_off);`);
+                                    lines.push(`              if ((${w.x} + ${w.width} - 1 - i + y) % 2 != 0) it.draw_pixel_at(${w.x} + ${w.width} - 1 - i, y, color_off);`);
                                     lines.push(`            }`);
                                     lines.push(`          }`);
                                 }
@@ -2152,7 +2171,7 @@ async function generateSnippetLocally() {
                             const borderColorProp = p.border_color || (fill ? "black" : colorProp);
                             const color = getColorConst(colorProp);
                             const borderColor = getColorConst(borderColorProp);
-                            const isGray = colorProp.toLowerCase() === "gray";
+
                             const rrectY = w.y + RECT_Y_OFFSET;
                             lines.push(`        // widget:rounded_rect id:${w.id} type:rounded_rect x:${w.x} y:${w.y} w:${w.width} h:${w.height} fill:${fill} show_border:${showBorder} border:${thickness} radius:${r} color:${colorProp} border_color:${borderColorProp} ${getCondProps(w)}`);
                             lines.push(`        {`);
@@ -2192,7 +2211,7 @@ async function generateSnippetLocally() {
                                 let ir = r - t; if (ir < 0) ir = 0;
                                 // Need BG color for erase. Assuming white/black inverse of color?
                                 // Backup used specific bg.
-                                lines.push(`          draw_rrect(${w.x + t}, ${rrectY + t}, ${w.width - 2 * t}, ${w.height - 2 * t}, ${ir}, COLOR_OFF);`);
+                                lines.push(`          draw_rrect(${w.x + t}, ${rrectY + t}, ${w.width - 2 * t}, ${w.height - 2 * t}, ${ir}, color_off);`);
                             }
                             if (borderColorProp.toLowerCase() === "gray" && (showBorder || !fill)) {
                                 lines.push(`          apply_grey_dither_mask(${w.x}, ${rrectY}, ${w.width}, ${w.height});`);
@@ -2313,7 +2332,7 @@ async function generateSnippetLocally() {
                             lines.push(`        // widget:${t} id:${w.id} type:${t} x:${w.x} y:${w.y} w:${w.width} h:${w.height} path:"${path}" url:"${url}" invert:${invert} render_mode:"${renderMode}" ${getCondProps(w)}`);
 
                             if (imgId) {
-                                if (invert) lines.push(`        it.image(${w.x}, ${w.y}, id(${imgId}), COLOR_OFF, COLOR_ON);`);
+                                if (invert) lines.push(`        it.image(${w.x}, ${w.y}, id(${imgId}), color_off, color_on);`);
                                 else lines.push(`        it.image(${w.x}, ${w.y}, id(${imgId}));`);
                             }
 
@@ -2488,9 +2507,35 @@ function generateScriptSection(payload, pagesLocal, profile = {}) {
     // We only keep the "Active Mode" logic if deep sleep is NOT enabled.
 
     let sleepLogic = "";
-    // Only generate legacy "Night Mode" logic if we are NOT using global deep sleep
-    // (If using global deep sleep, the device is always sleeping between updates anyway)
-    if (payload.sleep_enabled && !payload.deep_sleep_enabled) {
+
+    if (payload.daily_refresh_enabled) {
+        const [h, m] = (payload.daily_refresh_time || "08:00").split(':').map(Number);
+        sleepLogic = `
+      # Daily Scheduled Refresh Check (${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')})
+      - if:
+          condition:
+            lambda: |-
+              auto now = id(ha_time).now();
+              int target_s = ${h} * 3600 + ${m} * 60;
+              int current_s = now.hour * 3600 + now.minute * 60 + now.second;
+              // Return true if we are in the 1-minute window of the target time
+              return (abs(current_s - target_s) < 60);
+          then:
+            - component.update: ${displayId}
+            - delay: 8s
+            - lambda: 'id(page_refresh_current_s) = 86400;' # Sleep for 24h after success
+            ${payload.deep_sleep_enabled ? "- script.execute: enter_deep_sleep" : "- delay: 86400s\n            - script.execute: manage_run_and_sleep"}
+          else:
+            - lambda: |-
+                auto now = id(ha_time).now();
+                int target_s = ${h} * 3600 + ${m} * 60;
+                int current_s = now.hour * 3600 + now.minute * 60 + now.second;
+                if (current_s >= target_s) target_s += 86400;
+                id(page_refresh_current_s) = target_s - current_s;
+                ESP_LOGI("daily", "Not time yet. Waiting %d seconds until %02d:%02d", (int)id(page_refresh_current_s), ${h}, ${m});
+            ${payload.deep_sleep_enabled ? "- script.execute: enter_deep_sleep" : "- delay: !lambda 'return id(page_refresh_current_s) * 1000;'\n            - script.execute: manage_run_and_sleep"}
+`;
+    } else if (payload.sleep_enabled) {
         const startH = parseInt(payload.sleep_start_hour || 0, 10);
         const endH = parseInt(payload.sleep_end_hour || 5, 10);
 
@@ -2505,19 +2550,23 @@ function generateScriptSection(payload, pagesLocal, profile = {}) {
           condition:
             lambda: |-
               auto now = id(ha_time).now();
-              if (!now.is_valid()) {
-                return false;
-              }
-              return ${condition} && !(now.minute == 0);
+              if (!now.is_valid()) return false;
+              return ${condition};
           then:
-            - logger.log: "Night Mode: skipping refresh until morning."
-            - delay: 60s
-            - script.execute: manage_run_and_sleep
+            - logger.log: "Night Mode: Sleeping until next hour boundary."
+            - lambda: |-
+                auto now = id(ha_time).now();
+                // Calculate seconds until the top of the next hour
+                int seconds_to_next_hour = 3600 - (now.minute * 60 + now.second);
+                if (seconds_to_next_hour < 60) seconds_to_next_hour = 3600; // Case for exactly on the hour
+                
+                id(page_refresh_current_s) = seconds_to_next_hour;
+            ${payload.deep_sleep_enabled ? "- script.execute: enter_deep_sleep" : "- delay: !lambda 'return id(page_refresh_current_s) * 1000;'\n            - script.execute: manage_run_and_sleep"}
           
           # Active Mode
           else:`;
     } else {
-        // No sleep mode or using global Deep Sleep (logic handled at end)
+        // No sleep mode
         sleepLogic = `
       # Regular Run
       - if:
@@ -2614,29 +2663,43 @@ function generateScriptSection(payload, pagesLocal, profile = {}) {
     lines.push("          }");
 
     lines.push(sleepLogic);
-    lines.push("            - lambda: |-");
-    lines.push("                int page = id(display_page);");
-    lines.push("                int interval = id(page_refresh_default_s);");
-    lines.push("                switch (page) {");
-    lines.push(casesBlock);
-    lines.push("                }");
-    lines.push("                if (interval < 60) {");
-    lines.push("                  interval = 60;");
-    lines.push("                }");
-    lines.push("                id(page_refresh_current_s) = interval;");
-    lines.push("                ESP_LOGI(\"refresh\", \"Next refresh in %d seconds for page %d\", interval, page);");
-    lines.push("            ");
-    lines.push(noRefreshLogic);
-    lines.push(updateLambda);
-    lines.push("      ");
 
+    // If Daily Refresh is active, it handles its own update and sleep cycle,
+    // so we skip the standard "Active Mode" logic.
+    if (!payload.daily_refresh_enabled) {
+        lines.push("            - lambda: |-");
+        lines.push("                int page = id(display_page);");
+        lines.push("                int interval = id(page_refresh_default_s);");
+        lines.push("                switch (page) {");
+        lines.push(casesBlock);
+        lines.push("                }");
+        lines.push("                if (interval < 60) {");
+        lines.push("                  interval = 60;");
+        lines.push("                }");
+        lines.push("                id(page_refresh_current_s) = interval;");
+        lines.push("                ESP_LOGI(\"refresh\", \"Next refresh in %d seconds for page %d\", interval, page);");
+        lines.push("            ");
+        lines.push(noRefreshLogic);
+        lines.push(updateLambda);
+        lines.push("      ");
+
+        if (payload.deep_sleep_enabled || profile.model === "m5stack_coreink" || (profile.name && profile.name.includes("CoreInk"))) {
+            lines.push("            - script.execute: enter_deep_sleep");
+        } else {
+            lines.push("            - delay: !lambda 'return id(page_refresh_current_s) * 1000;'");
+            lines.push("            - script.execute: manage_run_and_sleep");
+        }
+    }
+
+    // Add helper script for deep sleep entry to keep code DRY
     if (payload.deep_sleep_enabled || profile.model === "m5stack_coreink" || (profile.name && profile.name.includes("CoreInk"))) {
-        lines.push("            - lambda: 'id(deep_sleep_1).set_sleep_duration(id(page_refresh_current_s) * 1000);'");
-        lines.push("            - delay: 8s # Ensure display refresh completes");
-        lines.push("            - deep_sleep.enter: deep_sleep_1");
-    } else {
-        lines.push("            - delay: !lambda 'return id(page_refresh_current_s) * 1000;'");
-        lines.push("            - script.execute: manage_run_and_sleep");
+        lines.push("");
+        lines.push("  - id: enter_deep_sleep");
+        lines.push("    then:");
+        lines.push("      - logger.log: \"Entering deep sleep strategy...\"");
+        lines.push("      - lambda: 'id(deep_sleep_1).set_sleep_duration(id(page_refresh_current_s) * 1000);'");
+        lines.push("      - delay: 8s # Ensure display refresh completes");
+        lines.push("      - deep_sleep.enter: deep_sleep_1");
     }
 
     return lines.join("\n");
