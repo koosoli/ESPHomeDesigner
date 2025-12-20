@@ -623,8 +623,13 @@
           <input id="deviceName" class="prop-input" type="text" placeholder="My E-Ink Device" />
         </div>
         <div class="field">
-          <div class="prop-label">Hardware Profile</div>
+          <div class="prop-label" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Hardware Profile</span>
+            <button id="importHardwareBtn" class="btn btn-secondary btn-xs"
+              style="font-size: 10px; padding: 2px 6px;">Import Recipe</button>
+          </div>
           <select id="deviceModel" class="prop-input"></select>
+          <input type="file" id="hardwareFileInput" accept=".yaml" style="display:none;" />
         </div>
         <div class="field">
           <div class="prop-label">Screen Orientation</div>
@@ -952,6 +957,7 @@
   <script src="js/io/file_ops.js"></script>
   <script src="js/io/ha_api.js"></script>
   <script src="js/io/yaml_import.js"></script>
+  <script src="js/io/hardware_import.js"></script>
   <script src="js/io/devices.js"></script>
   <script src="js/io/hardware_generators.js"></script>
   <script src="js/io/yaml_export.js"></script>
@@ -1002,6 +1008,7 @@
   <script src="features/shape_circle/render.js"></script>
   <script src="features/shape_rect/render.js"></script>
   <script src="features/text/render.js"></script>
+  <script src="features/touch_area/render.js"></script>
   <script src="features/weather_forecast/render.js"></script>
   <script src="features/weather_icon/render.js"></script>
   <script src="js/main.js"></script>

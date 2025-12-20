@@ -1382,7 +1382,8 @@ async function generateSnippetLocally() {
                             const postfix = (p.postfix || "").replace(/"/g, '\\"');
                             const unit = (p.unit || "").replace(/"/g, '\\"');
                             let displayUnit = unit;
-                            if (p.hide_unit) {
+                            const isNoUnit = valueFormat && valueFormat.endsWith("_no_unit");
+                            if (p.hide_unit || isNoUnit) {
                                 displayUnit = "";
                             } else if (!displayUnit && entity && window.AppState && window.AppState.entityStates && window.AppState.entityStates[entity]) {
                                 const stateObj = window.AppState.entityStates[entity];
@@ -1466,7 +1467,7 @@ async function generateSnippetLocally() {
                                 lines.push(`          std::string fullValue = "${prefix}" + sensorValue + "${displayUnit}" + "${postfix}";`);
 
                                 // Render based on value_format
-                                if (valueFormat === "label_value" && title) {
+                                if ((valueFormat === "label_value" || valueFormat === "label_value_no_unit") && title) {
                                     // Label and value on same line
                                     // Use single printf to respect alignment logic simply
                                     lines.push(`          // label_value format: label and value on same line`);
@@ -1475,7 +1476,7 @@ async function generateSnippetLocally() {
                                         lines.push(`          apply_grey_dither_mask(${w.x}, ${w.y + TEXT_Y_OFFSET}, ${w.width}, ${w.height});`);
                                     }
 
-                                } else if (valueFormat === "label_newline_value" && title) {
+                                } else if ((valueFormat === "label_newline_value" || valueFormat === "label_newline_value_no_unit") && title) {
                                     // Label on first line, value on second line  
                                     const lineSpacing = labelFontSize + 2;
 
@@ -2170,47 +2171,54 @@ async function generateSnippetLocally() {
                             const borderColorProp = p.border_color || (fill ? "black" : colorProp);
                             const color = getColorConst(colorProp);
                             const borderColor = getColorConst(borderColorProp);
+                            const isGray = colorProp.toLowerCase() === "gray";
 
                             const rrectY = w.y + RECT_Y_OFFSET;
                             lines.push(`        // widget:rounded_rect id:${w.id} type:rounded_rect x:${w.x} y:${w.y} w:${w.width} h:${w.height} fill:${fill} show_border:${showBorder} border:${thickness} radius:${r} color:${colorProp} border_color:${borderColorProp} ${getCondProps(w)}`);
                             lines.push(`        {`);
-                            lines.push(`          auto draw_rrect = [&](int x, int y, int w, int h, int r, auto c) {`);
-                            lines.push(`            it.filled_rectangle(x + r, y, w - 2 * r, h, c);`);
-                            lines.push(`            it.filled_rectangle(x, y + r, r, h - 2 * r, c);`);
-                            lines.push(`            it.filled_rectangle(x + w - r, y + r, r, h - 2 * r, c);`);
-                            lines.push(`            it.filled_circle(x + r, y + r, r, c);`);
-                            lines.push(`            it.filled_circle(x + w - r - 1, y + r, r, c);`);
-                            lines.push(`            it.filled_circle(x + r, y + h - r - 1, r, c);`);
-                            lines.push(`            it.filled_circle(x + w - r - 1, y + h - r - 1, r, c);`);
-                            lines.push(`          };`);
 
                             if (fill) {
+                                lines.push(`          auto draw_filled_rrect = [&](int x, int y, int w, int h, int r, auto c) {`);
+                                lines.push(`            it.filled_rectangle(x + r, y, w - 2 * r, h, c);`);
+                                lines.push(`            it.filled_rectangle(x, y + r, r, h - 2 * r, c);`);
+                                lines.push(`            it.filled_rectangle(x + w - r, y + r, r, h - 2 * r, c);`);
+                                lines.push(`            it.filled_circle(x + r, y + r, r, c);`);
+                                lines.push(`            it.filled_circle(x + w - r - 1, y + r, r, c);`);
+                                lines.push(`            it.filled_circle(x + r, y + h - r - 1, r, c);`);
+                                lines.push(`            it.filled_circle(x + w - r - 1, y + h - r - 1, r, c);`);
+                                lines.push(`          };`);
+
                                 let fx = w.x, fy = rrectY, fw = w.width, fh = w.height, fr = r;
                                 if (showBorder) {
-                                    lines.push(`          draw_rrect(${w.x}, ${rrectY}, ${w.width}, ${w.height}, ${r}, ${borderColor});`);
+                                    lines.push(`          draw_filled_rrect(${w.x}, ${rrectY}, ${w.width}, ${w.height}, ${r}, ${borderColor});`);
                                     fx += thickness; fy += thickness; fw -= 2 * thickness; fh -= 2 * thickness; fr -= thickness;
                                     if (fr < 0) fr = 0;
                                 }
                                 if (isGray) {
-                                    lines.push(`          apply_grey_dither_mask(${fx}, ${fy}, ${fw}, ${fh});`); // Simply apply dither mask for now, assume rect underlying correct?? No, dither helper draws pixels.
-                                    // Backup had complex loop. I'll use simple dither helper I added earlier if possible.
-                                    // Earlier helper: apply_grey_dither_mask(x,y,w,h) draws pattern.
-                                    // It does NOT respect rounded corners unless we mask it.
-                                    // Backup manual loop respected corners.
-                                    // For brevity, I will use simple dither for now.
+                                    lines.push(`          apply_grey_dither_mask(${fx}, ${fy}, ${fw}, ${fh});`);
                                 } else {
-                                    // inner fill logic?
-                                    // filled rrect
-                                    if (fw > 0 && fh > 0) lines.push(`          draw_rrect(${fx}, ${fy}, ${fw}, ${fh}, ${fr}, ${color});`);
+                                    if (fw > 0 && fh > 0) lines.push(`          draw_filled_rrect(${fx}, ${fy}, ${fw}, ${fh}, ${fr}, ${color});`);
                                 }
                             } else {
-                                lines.push(`          draw_rrect(${w.x}, ${rrectY}, ${w.width}, ${w.height}, ${r}, ${borderColor});`);
-                                // Erase center
-                                let t = thickness;
-                                let ir = r - t; if (ir < 0) ir = 0;
-                                // Need BG color for erase. Assuming white/black inverse of color?
-                                // Backup used specific bg.
-                                lines.push(`          draw_rrect(${w.x + t}, ${rrectY + t}, ${w.width - 2 * t}, ${w.height - 2 * t}, ${ir}, color_off);`);
+                                // Transparent Border logic
+                                lines.push(`          auto draw_rrect_border = [&](int x, int y, int w, int h, int r, int t, auto c) {`);
+                                lines.push(`            it.filled_rectangle(x + r, y, w - 2 * r, t, c);`);
+                                lines.push(`            it.filled_rectangle(x + r, y + h - t, w - 2 * r, t, c);`);
+                                lines.push(`            it.filled_rectangle(x, y + r, t, h - 2 * r, c);`);
+                                lines.push(`            it.filled_rectangle(x + w - t, y + r, t, h - 2 * r, c);`);
+                                lines.push(`            for (int dx = 0; dx <= r; dx++) {`);
+                                lines.push(`              for (int dy = 0; dy <= r; dy++) {`);
+                                lines.push(`                int ds = dx*dx + dy*dy;`);
+                                lines.push(`                if (ds <= r*r && ds > (r-t)*(r-t)) {`);
+                                lines.push(`                  it.draw_pixel_at(x + r - dx, y + r - dy, c);`);
+                                lines.push(`                  it.draw_pixel_at(x + w - r + dx - 1, y + r - dy, c);`);
+                                lines.push(`                  it.draw_pixel_at(x + r - dx, y + h - r + dy - 1, c);`);
+                                lines.push(`                  it.draw_pixel_at(x + w - r + dx - 1, y + h - r + dy - 1, c);`);
+                                lines.push(`                }`);
+                                lines.push(`              }`);
+                                lines.push(`            }`);
+                                lines.push(`          };`);
+                                lines.push(`          draw_rrect_border(${w.x}, ${rrectY}, ${w.width}, ${w.height}, ${r}, ${thickness}, ${borderColor});`);
                             }
                             if (borderColorProp.toLowerCase() === "gray" && (showBorder || !fill)) {
                                 lines.push(`          apply_grey_dither_mask(${w.x}, ${rrectY}, ${w.width}, ${w.height});`);

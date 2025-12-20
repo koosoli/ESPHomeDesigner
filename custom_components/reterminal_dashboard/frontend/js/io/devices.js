@@ -281,96 +281,35 @@ window.DEVICE_PROFILES = {
     external_components: [
       "  - source: github://Passific/m5paper_esphome"
     ]
-  },
-
-  // ========================================================================
-  // PACKAGE-BASED LCD DEVICES (Online Only - Runtime Fetch)
-  // These profiles reference YAML files in frontend/hardware/*.yaml
-  // ========================================================================
-
-  // --- Guition Devices ---
-  guition_esp32_s3_4848s040: {
-    name: "Guition 4848s040 4.0\" 480x480",
-    isPackageBased: true,
-    hardwarePackage: "hardware/guition-esp32-s3-4848s040.yaml",
-    resolution: { width: 480, height: 480 },
-    shape: "round",
-    features: { psram: true, buzzer: false, buttons: false, lcd: true }
-  },
-  guition_esp32_jc4827w543: {
-    name: "Guition jc4827w543 4.3\" 480x272",
-    isPackageBased: true,
-    hardwarePackage: "hardware/guition-esp32-jc4827w543.yaml",
-    resolution: { width: 480, height: 272 },
-    features: { psram: true, buzzer: false, buttons: false, lcd: true }
-  },
-  guition_esp32_jc8048w535: {
-    name: "Guition jc8048w535 3.5\" 320x480",
-    isPackageBased: true,
-    hardwarePackage: "hardware/guition-esp32-jc8048w535.yaml",
-    resolution: { width: 320, height: 480 },
-    features: { psram: true, buzzer: false, buttons: false, lcd: true }
-  },
-  guition_esp32_jc8048w550: {
-    name: "Guition jc8048w550 5.0\" 800x480",
-    isPackageBased: true,
-    hardwarePackage: "hardware/guition-esp32-jc8048w550.yaml",
-    resolution: { width: 800, height: 480 },
-    features: { psram: true, buzzer: false, buttons: false, lcd: true }
-  },
-
-  // --- Sunton Devices ---
-  sunton_esp32_8048s070: {
-    name: "Sunton 8048s070 7.0\" 800x480",
-    isPackageBased: true,
-    hardwarePackage: "hardware/sunton-esp32-8048s070.yaml",
-    resolution: { width: 800, height: 480 },
-    features: { psram: true, buzzer: false, buttons: false, lcd: true }
-  },
-  sunton_esp32_8048s050: {
-    name: "Sunton 8048s050 5.0\" 800x480",
-    isPackageBased: true,
-    hardwarePackage: "hardware/sunton-esp32-8048s050.yaml",
-    resolution: { width: 800, height: 480 },
-    features: { psram: true, buzzer: false, buttons: false, lcd: true }
-  },
-  sunton_esp32_2432s028: {
-    name: "Sunton 2432s028 2.8\" 240x320",
-    isPackageBased: true,
-    hardwarePackage: "hardware/sunton-esp32-2432s028.yaml",
-    resolution: { width: 240, height: 320 },
-    features: { psram: false, buzzer: false, buttons: false, lcd: true }
-  },
-  sunton_esp32_2432s028R: {
-    name: "Sunton 2432s028R 2.8\" 240x320 (Resistive)",
-    isPackageBased: true,
-    hardwarePackage: "hardware/sunton-esp32-2432s028R.yaml",
-    resolution: { width: 240, height: 320 },
-    features: { psram: false, buzzer: false, buttons: false, lcd: true }
-  },
-  sunton_esp32_4827s032R: {
-    name: "Sunton 4827s032R 4.3\" 480x272 (Resistive)",
-    isPackageBased: true,
-    hardwarePackage: "hardware/sunton-esp32-4827s032R.yaml",
-    resolution: { width: 480, height: 272 },
-    features: { psram: true, buzzer: false, buttons: false, lcd: true }
-  },
-
-  // --- Elecrow ---
-  elecrow_esp32_7inch: {
-    name: "Elecrow 7.0\" HMI 800x480",
-    isPackageBased: true,
-    hardwarePackage: "hardware/elecrow-esp32-7inch.yaml",
-    resolution: { width: 800, height: 480 },
-    features: { psram: true, buzzer: false, buttons: false, lcd: true }
-  },
-
-  // --- LilyGo ---
-  lilygo_tdisplays3: {
-    name: "LilyGo T-Display S3 170x320",
-    isPackageBased: true,
-    hardwarePackage: "hardware/lilygo-tdisplays3.yaml",
-    resolution: { width: 170, height: 320 },
-    features: { psram: true, buzzer: false, buttons: true, lcd: true }
   }
 };
+
+/**
+ * Dynamically loads external hardware profiles from the backend
+ * and merges them into window.DEVICE_PROFILES.
+ */
+async function loadExternalProfiles() {
+  if (typeof fetchDynamicHardwareProfiles !== 'function') {
+    console.warn("fetchDynamicHardwareProfiles not available. Hardware Recipes might not be loaded yet.");
+    return;
+  }
+
+  try {
+    const dynamicTemplates = await fetchDynamicHardwareProfiles();
+    console.log(`[Devices] Loaded ${dynamicTemplates.length} dynamic hardware templates.`);
+
+    dynamicTemplates.forEach(template => {
+      // Backend templates are the source of truth for YAML-based devices
+      window.DEVICE_PROFILES[template.id] = template;
+    });
+
+    // Trigger UI update if necessary (e.g., refresh device settings modal)
+    if (window.app && window.app.deviceSettings && typeof window.app.deviceSettings.populateDeviceSelect === 'function') {
+      window.app.deviceSettings.populateDeviceSelect();
+    }
+  } catch (e) {
+    console.error("Failed to load external hardware profiles:", e);
+  }
+}
+
+window.loadExternalProfiles = loadExternalProfiles;

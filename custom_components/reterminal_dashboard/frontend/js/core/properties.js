@@ -388,7 +388,14 @@ class PropertiesPanel {
             this.addLabeledInput("Title/Label", "text", widget.title || "", (v) => {
                 AppState.updateWidget(widget.id, { title: v });
             });
-            this.addSelect("Display Format", props.value_format || "label_value", ["label_value", "label_newline_value", "value_only"], (v) => updateProp("value_format", v));
+            this.addSelect("Display Format", props.value_format || "label_value", [
+                { value: "label_value", label: "Label: Value & Unit" },
+                { value: "label_value_no_unit", label: "Label: Value Only" },
+                { value: "label_newline_value", label: "Label [newline] Value & Unit" },
+                { value: "label_newline_value_no_unit", label: "Label [newline] Value Only" },
+                { value: "value_only", label: "Value & Unit" },
+                { value: "value_only_no_unit", label: "Value Only" }
+            ], (v) => updateProp("value_format", v));
             this.addLabeledInput("Precision", "number", props.precision !== undefined ? props.precision : 2, (v) => updateProp("precision", parseInt(v, 10)));
             this.addLabeledInputWithDataList("Prefix", "text", props.prefix || "", ["€", "$", "£", "¥", "CHF", "kr"], (v) => updateProp("prefix", v));
             this.addLabeledInputWithDataList("Postfix", "text", props.postfix || "", [" kWh", " W", " V", " A", " °C", " %", " ppm", " lx"], (v) => updateProp("postfix", v));
@@ -1183,9 +1190,15 @@ class PropertiesPanel {
         select.className = "prop-input";
         options.forEach(opt => {
             const o = document.createElement("option");
-            o.value = opt;
-            o.textContent = opt;
-            if (opt === value) o.selected = true;
+            if (typeof opt === 'object' && opt !== null) {
+                o.value = opt.value;
+                o.textContent = opt.label;
+                if (opt.value === value) o.selected = true;
+            } else {
+                o.value = opt;
+                o.textContent = opt;
+                if (opt === value) o.selected = true;
+            }
             select.appendChild(o);
         });
         select.addEventListener("change", () => onChange(select.value));

@@ -13,10 +13,14 @@
 - **Drag & Drop Workflow**: Widgets in the sidebar can now be dragged directly onto the canvas for intuitive placement, in addition to being clickable.
 - **RGB Color Picker**: Added a full RGB color picker for LVGL widgets, allowing for more precise UI design.
 - **Interactive Touch Icons**: The `touch_area` widget now supports dual-state icons (Normal/Pressed). This allows for professional-looking buttons on non-LVGL displays that provide visual feedback when touched.
+- **Touch Area Migration**: The `touch_area` widget has been migrated to the modern Feature Registry system, fixing console warnings and improving performance.
 - **Advanced Icon Pickers**: A completely refactored icon selection UI featuring a quick-search visual dropdown and a full modal browser for the entire Material Design Icons library.
 - **High-Fidelity Canvas Feedback**: Added color accuracy to the canvas preview and an interactive hover effect. Hovering over a touch area now simulates the "pressed" state, allowing you to preview interactions instantly.
-- **Transparent Font Management**: The YAML generator now automatically handles glyph registration. Any icon you select is tracked and added to the `glyphs:` list in the font configuration, eliminating "missing icon" issues on hardware.
 - **Border Styling**: Added the possibility to apply border colors for squares and circles.
+- **Hardware Recipes & Templates**:
+    - **Dynamic Discovery**: Drop a YAML file into `frontend/hardware/` and it will automatically appear in the device selector.
+    - **Dynamic Import (GUI)**: Click **"Import Recipe"** in the Device Settings to upload a new template directly through the browser.
+    - **Offline Manual Import**: Added support for parsing YAML recipes directly in the browser when running offline.
 - **Modular Hardware Profiles**: Implemented support for loading hardware profiles from plain YAML files (package-based). This enables seamless profile sharing with the [esphome-modular-lvgl-buttons](https://github.com/agillis/esphome-modular-lvgl-buttons/) project. Big thank you to [agillis](https://github.com/agillis/) for these awesome profiles!
 
 ### 🐛 Bug Fixes

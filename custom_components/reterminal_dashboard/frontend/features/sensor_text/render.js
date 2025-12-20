@@ -18,7 +18,8 @@
         const separator = props.separator || " ~ ";
 
         let displayValue = "--";
-        let displayUnit = props.hide_unit ? "" : unitProp;
+        const isNoUnit = format && format.endsWith("_no_unit");
+        let displayUnit = (props.hide_unit || isNoUnit) ? "" : unitProp;
 
         // Helper to format a single value
         const formatValue = (eId) => {
@@ -33,7 +34,7 @@
                         const val = parseFloat(match[1]);
                         const extractedUnit = match[2] || "";
                         // Capture unit from first entity if not set manually, AND not hidden
-                        if (eId === entityId && (unitProp === undefined || unitProp === "") && !props.hide_unit) {
+                        if (eId === entityId && (unitProp === undefined || unitProp === "") && !props.hide_unit && !isNoUnit) {
                             displayUnit = extractedUnit;
                         }
                         if (!isNaN(val)) {
@@ -44,7 +45,7 @@
                         }
                     }
                     // Fallback: update unit from attributes if needed
-                    if (eId === entityId && (unitProp === undefined || unitProp === "") && entityObj.attributes && entityObj.attributes.unit_of_measurement && !props.hide_unit) {
+                    if (eId === entityId && (unitProp === undefined || unitProp === "") && entityObj.attributes && entityObj.attributes.unit_of_measurement && !props.hide_unit && !isNoUnit) {
                         displayUnit = entityObj.attributes.unit_of_measurement;
                     }
                     return strState;
@@ -171,7 +172,7 @@
             body.textContent = title;
             applyAlign(props.text_align || "TOP_LEFT", body);
         } else {
-            // value_only or default
+            // value_only, value_only_no_unit or default
             body.style.fontSize = `${valueFontSize}px`;
             body.textContent = fullValue;
             applyAlign(props.value_align || props.text_align || "TOP_LEFT", body);

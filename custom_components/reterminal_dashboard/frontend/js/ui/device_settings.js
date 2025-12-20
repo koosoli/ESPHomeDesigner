@@ -40,23 +40,28 @@ class DeviceSettings {
             this.closeBtn.addEventListener('click', () => this.close());
         }
 
-        // Dynamically populate device model options
-        if (this.modelInput && window.DEVICE_PROFILES) {
-            const currentVal = this.modelInput.value; // Preserve if already set
-            this.modelInput.innerHTML = "";
-            Object.entries(window.DEVICE_PROFILES).forEach(([key, profile]) => {
-                const opt = document.createElement("option");
-                opt.value = key;
-                opt.textContent = profile.name;
-                this.modelInput.appendChild(opt);
+        // Import Hardware Recipe
+        const importBtn = document.getElementById('importHardwareBtn');
+        const fileInput = document.getElementById('hardwareFileInput');
+        if (importBtn && fileInput) {
+            importBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                fileInput.click();
             });
-            // Restore selection or default
-            if (currentVal && window.DEVICE_PROFILES[currentVal]) {
-                this.modelInput.value = currentVal;
-            } else {
-                this.modelInput.value = "reterminal_e1001";
-            }
+            fileInput.addEventListener('change', async (e) => {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    try {
+                        await uploadHardwareTemplate(file);
+                    } catch (err) {
+                        // Toast handled in upload function
+                    }
+                    fileInput.value = ""; // Clear for next selection
+                }
+            });
         }
+
+        this.populateDeviceSelect();
 
         // Save button (hides modal, as auto-save handles the rest)
         if (this.saveBtn) {
@@ -117,6 +122,28 @@ class DeviceSettings {
         if (this.modal) {
             this.modal.classList.add('hidden');
             this.modal.style.display = 'none';
+        }
+    }
+
+    populateDeviceSelect() {
+        if (this.modelInput && window.DEVICE_PROFILES) {
+            const currentVal = this.modelInput.value;
+            this.modelInput.innerHTML = "";
+
+            // Convert profiles to array and sort if possible, or just iterate
+            Object.entries(window.DEVICE_PROFILES).forEach(([key, profile]) => {
+                const opt = document.createElement("option");
+                opt.value = key;
+                opt.textContent = profile.name;
+                this.modelInput.appendChild(opt);
+            });
+
+            // Restore selection or default
+            if (currentVal && window.DEVICE_PROFILES[currentVal]) {
+                this.modelInput.value = currentVal;
+            } else if (!this.modelInput.value) {
+                this.modelInput.value = "reterminal_e1001";
+            }
         }
     }
 

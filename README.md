@@ -234,6 +234,17 @@ The workflow is safe and deterministic - same layout always produces the same YA
 
 All exposed as Home Assistant entities for use in automations.
 
+## Hardware Recipes (Custom Templates)
+
+Expand device support by importing your own YAML templates ("recipes").
+
+- **Dynamic Discovery**: Drop a YAML file into `frontend/hardware/` and it will automatically appear in the device selector.
+- **Dynamic Import (GUI)**: Click **"Import Recipe"** in the Device Settings to upload a new template directly through the browser.
+- **Offline Support**: Running standalone? Import a recipe and it will be parsed locally in your browser for the current session.
+- **Foundation Support**: Recipes use a `__LAMBDA_PLACEHOLDER__` to define exactly where the designer should inject its code, allowing you to use complex base configurations (e.g., custom PMIC management).
+
+Check the [Hardware Recipes Walkthrough](.gemini/antigravity/brain/0492e006-0cde-4015-bbef-4e81368f9465/walkthrough.md) for more details.
+
 ## Repository Structure
 
 - `custom_components/reterminal_dashboard/` - Home Assistant integration

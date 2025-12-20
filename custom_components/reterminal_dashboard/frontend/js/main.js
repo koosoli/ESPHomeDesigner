@@ -59,6 +59,7 @@ class App {
         if (hasHaBackend()) {
             console.log("HA Backend detected. Loading layout from backend...");
             await loadLayoutFromBackend();
+            await loadExternalProfiles(); // Load dynamic hardware templates
             await fetchEntityStates();
         } else {
             console.log("Running in standalone/offline mode.");

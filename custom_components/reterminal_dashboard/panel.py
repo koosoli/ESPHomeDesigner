@@ -41,9 +41,6 @@ class ReTerminalDashboardPanelView(HomeAssistantView):
     name = "reterminal_dashboard:panel"
     requires_auth = False  # Temporarily disable for testing
     # WARNING: Do NOT add custom `options()` handlers to this view!
-    # Home Assistant's CORS middleware handles OPTIONS preflight automatically when cors_allowed is set.
-    # Adding custom OPTIONS handlers causes: ValueError: already has OPTIONS handler
-    # This breaks component setup and causes 404 errors for all static assets.
     cors_allowed = False
 
     def __init__(self, hass: HomeAssistant) -> None:
@@ -150,9 +147,9 @@ class ReTerminalDashboardStaticView(HomeAssistantView):
     url = "/reterminal-dashboard/static/{path:.*}"
     name = "reterminal_dashboard:static"
     requires_auth = False
-    # WARNING: Do NOT add custom `options()` handlers to this view!
-    # Home Assistant's CORS middleware handles OPTIONS preflight automatically.
-    # Adding custom OPTIONS handlers causes: ValueError: already has OPTIONS handler
+    # This breaks component setup and causes 404 errors for all static assets.
+    # We enable it for static assets because some browsers (like Chrome) might 
+    # require CORS headers for .local addresses on non-secure contexts (PNA).
     cors_allowed = True
 
     def __init__(self, hass: HomeAssistant) -> None:
@@ -226,7 +223,8 @@ class ReTerminalDashboardStaticView(HomeAssistantView):
                 headers={
                     "Cache-Control": "no-cache, no-store, must-revalidate" if not is_binary else "public, max-age=31536000",
                     "Pragma": "no-cache" if not is_binary else "",
-                    "Expires": "0" if not is_binary else ""
+                    "Expires": "0" if not is_binary else "",
+                    "Access-Control-Allow-Private-Network": "true"
                 }
             )
         except Exception as e:

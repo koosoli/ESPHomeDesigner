@@ -35,6 +35,7 @@ from .const import (
 from .models import DeviceConfig
 from .storage import DashboardStorage
 from .yaml_parser import yaml_to_layout
+from .hardware_api import ReTerminalHardwareListView, ReTerminalHardwareUploadView
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -850,6 +851,10 @@ async def async_register_http_views(hass: HomeAssistant, storage: DashboardStora
     hass.http.register_view(ReTerminalLayoutDetailView(hass, storage))
     hass.http.register_view(ReTerminalLayoutExportView(hass, storage))
     hass.http.register_view(ReTerminalLayoutImportView(hass, storage))
+
+    # Hardware Template management
+    hass.http.register_view(ReTerminalHardwareListView(hass))
+    hass.http.register_view(ReTerminalHardwareUploadView(hass))
 
     _LOGGER.debug(
         "reterminal_dashboard: HTTP API views registered at %s (layout, layouts, import_snippet, entities, test, image_proxy, rss_proxy)",
