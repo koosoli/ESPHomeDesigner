@@ -68,9 +68,13 @@
 
         val = Math.max(min, Math.min(max, val)); // Clamp
 
-        const percentage = (val - min) / (max - min);
         // Total angle range is 270 degrees (-135 to 135)
         const angleSpan = 270;
+        let percentage = 0;
+        if (max > min) {
+            percentage = (val - min) / (max - min);
+        }
+
         const endAngle = -135 + (percentage * angleSpan);
 
         if (percentage > 0.01) {

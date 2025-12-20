@@ -15,7 +15,12 @@
         el.style.border = "1px solid #999";
         el.style.overflow = "hidden";
 
-        const options = (props.options || "Option A\nOption B\nOption C").split("\n");
+        let options = props.options || "Option A\nOption B\nOption C";
+        if (typeof options === 'string') {
+            options = options.split("\n");
+        } else if (!Array.isArray(options)) {
+            options = ["Option A", "Option B", "Option C"];
+        }
         const rowHeight = widget.height / visibleRows;
 
         // Show middle row as selected, others as normal

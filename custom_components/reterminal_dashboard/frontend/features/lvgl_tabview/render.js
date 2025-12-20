@@ -18,7 +18,12 @@
         header.style.height = "30px";
         header.style.flexShrink = "0";
 
-        const tabs = props.tabs || ["Tab 1", "Tab 2"];
+        let tabs = props.tabs || ["Tab 1", "Tab 2"];
+        if (typeof tabs === 'string') {
+            tabs = tabs.includes("\n") ? tabs.split("\n") : tabs.split(",").map(t => t.trim());
+        } else if (!Array.isArray(tabs)) {
+            tabs = ["Tab 1", "Tab 2"];
+        }
         tabs.forEach((tabName, i) => {
             const tab = document.createElement("div");
             tab.textContent = tabName;

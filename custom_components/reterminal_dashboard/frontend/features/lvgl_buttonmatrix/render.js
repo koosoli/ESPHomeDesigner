@@ -9,11 +9,20 @@
         el.style.padding = "2px";
         el.style.backgroundColor = "#444";
 
-        const rows = props.rows || [{ buttons: ["Btn1", "Btn2"] }, { buttons: ["Btn3", "Btn4"] }];
-        el.style.gridTemplateRows = `repeat(${rows.length}, 1fr)`;
+        let rows = props.rows || [{ buttons: ["Btn1", "Btn2"] }, { buttons: ["Btn3", "Btn4"] }];
+        if (!Array.isArray(rows)) rows = [];
+        el.style.gridTemplateRows = `repeat(${rows.length || 1}, 1fr)`;
 
         rows.forEach(rowObj => {
-            const buttons = rowObj.buttons || [];
+            let buttons = [];
+            if (rowObj && typeof rowObj === 'object') {
+                buttons = rowObj.buttons || [];
+            } else if (typeof rowObj === 'string') {
+                buttons = [rowObj];
+            }
+
+            if (!Array.isArray(buttons)) buttons = [String(buttons)];
+
             const rowDiv = document.createElement("div");
             rowDiv.style.display = "grid";
             rowDiv.style.gridTemplateColumns = `repeat(${buttons.length}, 1fr)`;

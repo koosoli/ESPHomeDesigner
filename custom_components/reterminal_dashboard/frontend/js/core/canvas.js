@@ -235,74 +235,12 @@ class Canvas {
             // Migrated to features/graph/render.js
         }
         else if (type === "lvgl_label") {
-            el.innerText = props.text || "Label";
-            el.style.fontSize = (props.font_size || 20) + "px";
-            el.style.color = props.color || "black";
-            el.style.backgroundColor = props.bg_color || "transparent";
-            el.style.display = "flex";
-            const align = props.text_align || "CENTER";
-            // Map LVGL align to flex
-            if (align.includes("LEFT")) el.style.justifyContent = "flex-start";
-            else if (align.includes("RIGHT")) el.style.justifyContent = "flex-end";
-            else el.style.justifyContent = "center";
-
-            if (align.includes("TOP")) el.style.alignItems = "flex-start";
-            else if (align.includes("BOTTOM")) el.style.alignItems = "flex-end";
-            else el.style.alignItems = "center";
-
-            el.style.fontFamily = props.font_family === "Custom..." ? (props.custom_font_family || "sans-serif") : (props.font_family || "sans-serif");
-            if (props.italic) el.style.fontStyle = "italic";
-            el.style.fontWeight = props.font_weight || 400;
-            // Prevent wrapping unless specified (default behavior of LVGL label usually wraps, but for simple preview...)
-            el.style.whiteSpace = "pre-wrap";
-            el.style.overflow = "hidden";
+            // Migrated to features/lvgl_label/render.js
         }
         else if (type === "lvgl_line") {
-            // "Behave like non-LVGL" -> Use orientation/dimensions
-            const orientation = props.orientation || "horizontal";
-            const lineWidth = props.line_width || 3;
-            const color = props.line_color || props.color || "black";
-
-            // Update container size to match line thickness if needed (handled by resize logic, but ensure render does too)
-            if (orientation === "vertical") {
-                el.style.width = `${lineWidth}px`;
-                // Height controlled by widget.height
-            } else {
-                el.style.height = `${lineWidth}px`;
-                // Width controlled by widget.width
-            }
-
-            el.style.backgroundColor = color;
-            if (props.line_rounded !== false) {
-                el.style.borderRadius = `${lineWidth}px`;
-            } else {
-                el.style.borderRadius = "0";
-            }
-
-            // We don't need SVG for a simple rect line unless we want points. 
-            // Since we are mimicing the simple "Line" widget, a div with background color suffices and matches the "Line" widget implementation.
+            // Migrated to features/lvgl_line/render.js
         }
         else if (type === "lvgl_meter") {
-            // Draw a meter preview using SVG
-            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            svg.style.width = "100%";
-            svg.style.height = "100%";
-
-            const cx = widget.width / 2;
-            const cy = widget.height / 2;
-            const padding = 10;
-            const r = Math.min(cx, cy) - padding;
-
-            const min = props.min || 0;
-            const max = props.max || 100;
-            const val = props.value !== undefined ? props.value : min;
-            const scaleWidth = parseInt(props.scale_width || 10, 10);
-            const indicatorWidth = parseInt(props.indicator_width || 4, 10);
-            const tickCount = parseInt(props.tick_count || 11, 10);
-            const tickLength = parseInt(props.tick_length || 10, 10); // Not adding prop for this yet, maybe default or derived? User said "ticks", usually means count. But prop exists in export. Let's assume standard default if not in props.
-
-            // Standard LVGL arc: 270 degrees, starting at 135
-            const startAngle = 135;
             const range = 270;
             const endAngle = startAngle + range;
 

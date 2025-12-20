@@ -35,7 +35,8 @@
         svg.appendChild(track);
 
         // Spinning arc
-        const arcLen = (props.arc_length || 60) * (Math.PI / 180);
+        const rawArcLen = props.arc_length !== undefined ? parseFloat(props.arc_length) : 60;
+        const arcLen = (isNaN(rawArcLen) ? 60 : rawArcLen) * (Math.PI / 180);
         const startAngle = -Math.PI / 2;
         const endAngle = startAngle + arcLen;
 

@@ -12,7 +12,12 @@
         el.style.padding = "0 10px";
 
         // Get selected option
-        const options = (props.options || "Option 1\nOption 2\nOption 3").split("\n");
+        let options = props.options || "Option 1\nOption 2\nOption 3";
+        if (typeof options === 'string') {
+            options = options.split("\n");
+        } else if (!Array.isArray(options)) {
+            options = ["Option 1", "Option 2", "Option 3"];
+        }
         const idx = props.selected_index || 0;
         const selectedText = options[Math.min(idx, options.length - 1)] || "Select...";
 

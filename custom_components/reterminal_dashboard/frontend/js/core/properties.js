@@ -873,293 +873,356 @@ class PropertiesPanel {
 
             this.addSelect("Icon Color", props.icon_color || "black", colors, (v) => updateProp("icon_color", v));
         }
-        else if (type === "lvgl_label") {
-            this.addLabeledInput("Text", "text", props.text || "Label", (v) => updateProp("text", v));
-            this.addLabeledInput("Font Size", "number", props.font_size || 20, (v) => updateProp("font_size", parseInt(v, 10)));
-            this.addColorMixer("Text Color", props.color || "black", (v) => updateProp("color", v));
-            this.addColorMixer("Background Color", props.bg_color || "transparent", (v) => updateProp("bg_color", v));
+        else if (type === "lvgl_label" || type.startsWith("lvgl_")) {
+            // Apply common LVGL properties to all lvgl_* widgets
+            this.addCommonLVGLProperties(widget, props);
+            this.addSectionLabel("Widget Settings");
 
-            // Font Family
-            const fontOptions = ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand", "Custom..."];
-            const currentFont = props.font_family || "Roboto";
-            const isCustom = !fontOptions.slice(0, -1).includes(currentFont);
+            if (type === "lvgl_label") {
+                this.addLabeledInput("Text", "text", props.text || "Label", (v) => updateProp("text", v));
+                this.addLabeledInput("Font Size", "number", props.font_size || 20, (v) => updateProp("font_size", parseInt(v, 10)));
+                this.addColorMixer("Text Color", props.color || "black", (v) => updateProp("color", v));
+                this.addColorMixer("Background Color", props.bg_color || "transparent", (v) => updateProp("bg_color", v));
 
-            this.addSelect("Font", isCustom ? "Custom..." : currentFont, fontOptions, (v) => {
-                if (v !== "Custom...") {
-                    updateProp("font_family", v);
-                } else {
-                    updateProp("font_family", "Custom...");
-                }
-            });
+                // Font Family
+                const fontOptions = ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand", "Custom..."];
+                const currentFont = props.font_family || "Roboto";
+                const isCustom = !fontOptions.slice(0, -1).includes(currentFont);
 
-            this.addSelect("Weight", props.font_weight || 400, [100, 200, 300, 400, 500, 600, 700, 800, 900], (v) => updateProp("font_weight", parseInt(v, 10)));
-            this.addCheckbox("Italic", props.italic || false, (v) => updateProp("italic", v));
-
-            // Alignment
-            const alignOptions = ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"];
-            this.addSelect("Align", props.text_align || "CENTER", alignOptions, (v) => updateProp("text_align", v));
-        }
-        else if (type === "lvgl_line") {
-            // "Like non-LVGL widget": Simple Horizontal/Vertical orientation
-            const orientation = props.orientation || "horizontal";
-            this.addSelect("Orientation", orientation, ["horizontal", "vertical"], (v) => {
-                // When changing orientation, swap width/height to preserve 'length' feel
-                const oldW = widget.width;
-                const oldH = widget.height;
-                AppState.updateWidget(widget.id, {
-                    props: { ...props, orientation: v },
-                    width: oldH,
-                    height: oldW
+                this.addSelect("Font", isCustom ? "Custom..." : currentFont, fontOptions, (v) => {
+                    if (v !== "Custom...") {
+                        updateProp("font_family", v);
+                    } else {
+                        updateProp("font_family", "Custom...");
+                    }
                 });
-            });
 
-            this.addLabeledInput("Line Width", "number", props.line_width || 3, (v) => updateProp("line_width", parseInt(v, 10)));
-            this.addColorMixer("Line Color", props.line_color || props.color || "black", (v) => updateProp("line_color", v));
-            this.addCheckbox("Rounded Ends", props.line_rounded !== false, (v) => updateProp("line_rounded", v));
+                this.addSelect("Weight", props.font_weight || 400, [100, 200, 300, 400, 500, 600, 700, 800, 900], (v) => updateProp("font_weight", parseInt(v, 10)));
+                this.addCheckbox("Italic", props.italic || false, (v) => updateProp("italic", v));
 
-            // Advanced: Allow manual points? 
-            // The user wants it to behave like the simple line widget, so we hide manual points 
-            // and generate them from width/height in export/render.
-        }
-        else if (type === "lvgl_meter") {
-            this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
-                AppState.updateWidget(widget.id, { entity_id: v });
-            }, widget);
+                // Alignment
+                const alignOptions = ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"];
+                this.addSelect("Align", props.text_align || "CENTER", alignOptions, (v) => updateProp("text_align", v));
+            }
+            else if (type === "lvgl_line") {
+                // "Like non-LVGL widget": Simple Horizontal/Vertical orientation
+                const orientation = props.orientation || "horizontal";
+                this.addSelect("Orientation", orientation, ["horizontal", "vertical"], (v) => {
+                    // When changing orientation, swap width/height to preserve 'length' feel
+                    const oldW = widget.width;
+                    const oldH = widget.height;
+                    AppState.updateWidget(widget.id, {
+                        props: { ...props, orientation: v },
+                        width: oldH,
+                        height: oldW
+                    });
+                });
 
-            this.addSectionLabel("Scale");
-            this.addLabeledInput("Min Value", "number", props.min || 0, (v) => updateProp("min", parseInt(v, 10)));
-            this.addLabeledInput("Max Value", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
+                this.addLabeledInput("Line Width", "number", props.line_width || 3, (v) => updateProp("line_width", parseInt(v, 10)));
+                this.addColorMixer("Line Color", props.line_color || props.color || "black", (v) => updateProp("line_color", v));
+                this.addCheckbox("Rounded Ends", props.line_rounded !== false, (v) => updateProp("line_rounded", v));
+                this.addLabeledInput("Opacity (0-255)", "number", props.opa || 255, (v) => updateProp("opa", parseInt(v, 10)));
 
-            this.addSectionLabel("Preview");
-            this.addLabeledInput("Value (Preview)", "number", props.value !== undefined ? props.value : 60, (v) => updateProp("value", parseInt(v, 10)));
+                // Advanced: Allow manual points? 
+                // The user wants it to behave like the simple line widget, so we hide manual points 
+                // and generate them from width/height in export/render.
+            }
+            else if (type === "lvgl_meter") {
+                this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
+                    AppState.updateWidget(widget.id, { entity_id: v });
+                }, widget);
 
-            this.addSectionLabel("Appearance");
-            this.addColorMixer("Scale Color", props.color || "black", (v) => updateProp("color", v));
-            this.addColorMixer("Needle Color", props.indicator_color || "red", (v) => updateProp("indicator_color", v));
-            this.addLabeledInput("Scale Width", "number", props.scale_width || 10, (v) => updateProp("scale_width", parseInt(v, 10)));
-            this.addLabeledInput("Needle Width", "number", props.indicator_width || 4, (v) => updateProp("indicator_width", parseInt(v, 10)));
-            this.addLabeledInput("Ticks", "number", props.tick_count || 11, (v) => updateProp("tick_count", parseInt(v, 10)));
-            this.addLabeledInput("Tick Length", "number", props.tick_length || 10, (v) => updateProp("tick_length", parseInt(v, 10)));
-        }
+                this.addSectionLabel("Scale");
+                this.addLabeledInput("Min Value", "number", props.min || 0, (v) => updateProp("min", parseInt(v, 10)));
+                this.addLabeledInput("Max Value", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
 
-        else if (type === "lvgl_button") {
-            this.addLabeledInputWithPicker("Action Entity ID", "text", widget.entity_id || "", (v) => {
-                AppState.updateWidget(widget.id, { entity_id: v });
-            }, widget);
-            this.addHint("Entity to toggle/trigger when clicked");
+                this.addSectionLabel("Preview");
+                this.addLabeledInput("Value (Preview)", "number", props.value !== undefined ? props.value : 60, (v) => updateProp("value", parseInt(v, 10)));
 
-            this.addLabeledInput("Text", "text", props.text || "BTN", (v) => updateProp("text", v));
-            this.addColorMixer("Background Color", props.bg_color || "white", (v) => updateProp("bg_color", v));
-            this.addColorMixer("Text Color", props.color || "black", (v) => updateProp("color", v));
-            this.addLabeledInput("Border Width", "number", props.border_width || 2, (v) => updateProp("border_width", parseInt(v, 10)));
-            this.addLabeledInput("Corner Radius", "number", props.radius || 5, (v) => updateProp("radius", parseInt(v, 10)));
-        }
-        else if (type === "lvgl_arc") {
-            this.addLabeledInputWithPicker("Sensor Entity ID", "text", widget.entity_id || "", (v) => {
-                AppState.updateWidget(widget.id, { entity_id: v });
-            }, widget);
-            this.addHint("Sensor to bind to arc value");
+                this.addSectionLabel("Appearance");
+                this.addColorMixer("Scale Color", props.color || "black", (v) => updateProp("color", v));
+                this.addColorMixer("Needle Color", props.indicator_color || "red", (v) => updateProp("indicator_color", v));
+                this.addLabeledInput("Scale Width", "number", props.scale_width || 10, (v) => updateProp("scale_width", parseInt(v, 10)));
+                this.addLabeledInput("Needle Width", "number", props.indicator_width || 4, (v) => updateProp("indicator_width", parseInt(v, 10)));
+                this.addLabeledInput("Ticks", "number", props.tick_count || 11, (v) => updateProp("tick_count", parseInt(v, 10)));
+                this.addLabeledInput("Tick Length", "number", props.tick_length || 10, (v) => updateProp("tick_length", parseInt(v, 10)));
+                this.addLabeledInput("Label Gap", "number", props.label_gap || 10, (v) => updateProp("label_gap", parseInt(v, 10)));
+            }
 
-            this.addLabeledInput("Title / Label", "text", props.title || "", (v) => {
-                const newProps = { ...widget.props, title: v };
-                AppState.updateWidget(widget.id, { props: newProps });
-            });
+            else if (type === "lvgl_button") {
+                this.addLabeledInputWithPicker("Action Entity ID", "text", widget.entity_id || "", (v) => {
+                    AppState.updateWidget(widget.id, { entity_id: v });
+                }, widget);
+                this.addHint("Entity to toggle/trigger when clicked");
 
-            this.addLabeledInput("Min Value", "number", props.min || 0, (v) => updateProp("min", parseInt(v, 10)));
-            this.addLabeledInput("Max Value", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
-            this.addLabeledInput("Default/Preview Value", "number", props.value || 0, (v) => updateProp("value", parseInt(v, 10)));
+                this.addLabeledInput("Text", "text", props.text || "BTN", (v) => updateProp("text", v));
+                this.addColorMixer("Background Color", props.bg_color || "white", (v) => updateProp("bg_color", v));
+                this.addColorMixer("Text Color", props.color || "black", (v) => updateProp("color", v));
+                this.addLabeledInput("Border Width", "number", props.border_width || 2, (v) => updateProp("border_width", parseInt(v, 10)));
+                this.addLabeledInput("Corner Radius", "number", props.radius || 5, (v) => updateProp("radius", parseInt(v, 10)));
+                this.addCheckbox("Checkable (Toggle)", props.checkable || false, (v) => updateProp("checkable", v));
+            }
+            else if (type === "lvgl_arc") {
+                this.addLabeledInputWithPicker("Sensor Entity ID", "text", widget.entity_id || "", (v) => {
+                    AppState.updateWidget(widget.id, { entity_id: v });
+                }, widget);
+                this.addHint("Sensor to bind to arc value");
 
-            this.addLabeledInput("Thickness", "number", props.thickness || 10, (v) => updateProp("thickness", parseInt(v, 10)));
-            this.addColorMixer("Color", props.color || "blue", (v) => updateProp("color", v));
-        }
-        else if (type === "lvgl_chart") {
-            this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
-                AppState.updateWidget(widget.id, { entity_id: v });
-            }, widget);
-            this.addLabeledInput("Title", "text", props.title || "", (v) => updateProp("title", v));
-            this.addSelect("Type", props.type || "LINE", ["LINE", "SCATTER", "BAR"], (v) => updateProp("type", v));
-            this.addLabeledInput("Min Value", "number", props.min || 0, (v) => updateProp("min", parseInt(v, 10)));
-            this.addLabeledInput("Max Value", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
-            this.addColorMixer("Color", props.color || "black", (v) => updateProp("color", v));
-        }
-        else if (type === "lvgl_img") {
-            this.addLabeledInput("Source (Image/Symbol)", "text", props.src || "", (v) => updateProp("src", v));
-            this.addHint("e.g. symbol_ok, symbol_home, or /image.png");
+                this.addLabeledInput("Title / Label", "text", props.title || "", (v) => {
+                    const newProps = { ...widget.props, title: v };
+                    AppState.updateWidget(widget.id, { props: newProps });
+                });
 
-            this.addLabeledInput("Rotation (0.1 deg)", "number", props.rotation || 0, (v) => updateProp("rotation", parseInt(v, 10)));
-            this.addLabeledInput("Scale (256 = 1x)", "number", props.scale || 256, (v) => updateProp("scale", parseInt(v, 10)));
-            this.addColorMixer("Color (Tint)", props.color || "black", (v) => updateProp("color", v));
-        }
-        else if (type === "lvgl_qrcode") {
-            this.addLabeledInput("Content / URL", "text", props.text || "", (v) => updateProp("text", v));
-            this.addLabeledInput("Size (px)", "number", props.size || 100, (v) => updateProp("size", parseInt(v, 10)));
-            this.addColorMixer("Color", props.color || "black", (v) => updateProp("color", v));
-            this.addColorMixer("Background Color", props.bg_color || "white", (v) => updateProp("bg_color", v));
-        }
-        else if (type === "lvgl_bar") {
-            this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
-                AppState.updateWidget(widget.id, { entity_id: v });
-            }, widget);
+                this.addLabeledInput("Min Value", "number", props.min || 0, (v) => updateProp("min", parseInt(v, 10)));
+                this.addLabeledInput("Max Value", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
+                this.addLabeledInput("Default/Preview Value", "number", props.value || 0, (v) => updateProp("value", parseInt(v, 10)));
 
-            this.addLabeledInput("Min Value", "number", props.min || 0, (v) => updateProp("min", parseInt(v, 10)));
-            this.addLabeledInput("Max Value", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
-            this.addLabeledInput("Preview Value", "number", props.value || 50, (v) => updateProp("value", parseInt(v, 10)));
+                this.addLabeledInput("Thickness", "number", props.thickness || 10, (v) => updateProp("thickness", parseInt(v, 10)));
+                this.addLabeledInput("Start Angle", "number", props.start_angle || 135, (v) => updateProp("start_angle", parseInt(v, 10)));
+                this.addLabeledInput("End Angle", "number", props.end_angle || 45, (v) => updateProp("end_angle", parseInt(v, 10)));
+                this.addSelect("Mode", props.mode || "NORMAL", ["NORMAL", "SYMMETRICAL", "REVERSE"], (v) => updateProp("mode", v));
+                this.addColorMixer("Color", props.color || "blue", (v) => updateProp("color", v));
+            }
+            else if (type === "lvgl_chart") {
+                this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
+                    AppState.updateWidget(widget.id, { entity_id: v });
+                }, widget);
+                this.addLabeledInput("Title", "text", props.title || "", (v) => updateProp("title", v));
+                this.addSelect("Type", props.type || "LINE", ["LINE", "SCATTER", "BAR"], (v) => updateProp("type", v));
+                this.addLabeledInput("Min Value", "number", props.min || 0, (v) => updateProp("min", parseInt(v, 10)));
+                this.addLabeledInput("Max Value", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
+                this.addLabeledInput("Point Count", "number", props.point_count || 10, (v) => updateProp("point_count", parseInt(v, 10)));
+                this.addLabeledInput("X Div Lines", "number", props.x_div_lines || 3, (v) => updateProp("x_div_lines", parseInt(v, 10)));
+                this.addLabeledInput("Y Div Lines", "number", props.y_div_lines || 3, (v) => updateProp("y_div_lines", parseInt(v, 10)));
+                this.addColorMixer("Color", props.color || "black", (v) => updateProp("color", v));
+            }
+            else if (type === "lvgl_img") {
+                this.addLabeledInput("Source (Image/Symbol)", "text", props.src || "", (v) => updateProp("src", v));
+                this.addHint("e.g. symbol_ok, symbol_home, or /image.png");
 
-            this.addColorMixer("Bar Color", props.color || "black", (v) => updateProp("color", v));
-            this.addColorMixer("Background Color", props.bg_color || "gray", (v) => updateProp("bg_color", v));
-            this.addCheckbox("Range Mode", props.range_mode || false, (v) => updateProp("range_mode", v));
-        }
-        else if (type === "lvgl_slider") {
-            this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
-                AppState.updateWidget(widget.id, { entity_id: v });
-            }, widget);
-            this.addHint("Controls this entity number/level");
+                this.addLabeledInput("Rotation (0.1 deg)", "number", props.rotation || 0, (v) => updateProp("rotation", parseInt(v, 10)));
+                this.addLabeledInput("Scale (256 = 1x)", "number", props.scale || 256, (v) => updateProp("scale", parseInt(v, 10)));
+                this.addColorMixer("Color (Tint)", props.color || "black", (v) => updateProp("color", v));
+            }
+            else if (type === "lvgl_qrcode") {
+                this.addLabeledInput("Content / URL", "text", props.text || "", (v) => updateProp("text", v));
+                this.addLabeledInput("Size (px)", "number", props.size || 100, (v) => updateProp("size", parseInt(v, 10)));
+                this.addColorMixer("Color", props.color || "black", (v) => updateProp("color", v));
+                this.addColorMixer("Background Color", props.bg_color || "white", (v) => updateProp("bg_color", v));
+            }
+            else if (type === "lvgl_bar") {
+                this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
+                    AppState.updateWidget(widget.id, { entity_id: v });
+                }, widget);
 
-            this.addLabeledInput("Min Value", "number", props.min || 0, (v) => updateProp("min", parseInt(v, 10)));
-            this.addLabeledInput("Max Value", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
-            this.addLabeledInput("Preview Value", "number", props.value || 30, (v) => updateProp("value", parseInt(v, 10)));
+                this.addLabeledInput("Min Value", "number", props.min || 0, (v) => updateProp("min", parseInt(v, 10)));
+                this.addLabeledInput("Max Value", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
+                this.addLabeledInput("Preview Value", "number", props.value || 50, (v) => updateProp("value", parseInt(v, 10)));
 
-            this.addColorMixer("Knob/Bar Color", props.color || "black", (v) => updateProp("color", v));
-            this.addColorMixer("Track Color", props.bg_color || "gray", (v) => updateProp("bg_color", v));
-            this.addLabeledInput("Border Width", "number", props.border_width || 2, (v) => updateProp("border_width", parseInt(v, 10)));
-        }
-        else if (type === "calendar") {
-            this.addHint("📅 Displays a monthly calendar and agenda.");
-            this.addHint("⚠️ Requires 'esp_calendar_data_conversion.py' setup in Home Assistant.");
+                this.addColorMixer("Bar Color", props.color || "black", (v) => updateProp("color", v));
+                this.addColorMixer("Background Color", props.bg_color || "gray", (v) => updateProp("bg_color", v));
+                this.addLabeledInput("Start Value", "number", props.start_value || 0, (v) => updateProp("start_value", parseInt(v, 10)));
+                this.addSelect("Mode", props.mode || "NORMAL", ["NORMAL", "SYMMETRICAL", "REVERSE"], (v) => updateProp("mode", v));
+                this.addCheckbox("Range Mode", props.range_mode || false, (v) => updateProp("range_mode", v));
+            }
+            else if (type === "lvgl_slider") {
+                this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
+                    AppState.updateWidget(widget.id, { entity_id: v });
+                }, widget);
+                this.addHint("Controls this entity number/level");
 
-            this.addLabeledInputWithPicker("Data Entity ID", "text", widget.props.entity_id || "sensor.esp_calendar_data", (v) => {
-                const newProps = { ...widget.props, entity_id: v };
-                AppState.updateWidget(widget.id, { props: newProps });
-            }, widget);
+                this.addLabeledInput("Min Value", "number", props.min || 0, (v) => updateProp("min", parseInt(v, 10)));
+                this.addLabeledInput("Max Value", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
+                this.addLabeledInput("Preview Value", "number", props.value || 30, (v) => updateProp("value", parseInt(v, 10)));
 
-            this.addSectionLabel("Appearance");
-            this.addCheckbox("Show Border", props.show_border !== false, (v) => updateProp("show_border", v));
-            this.addLabeledInput("Border Width", "number", props.border_width || 2, (v) => updateProp("border_width", parseInt(v, 10)));
-            this.addSelect("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
-            this.addSelect("Background Color", props.background_color || "white", colors, (v) => updateProp("background_color", v));
-            this.addSelect("Text Color", props.text_color || "black", colors, (v) => updateProp("text_color", v));
+                this.addColorMixer("Knob/Bar Color", props.color || "black", (v) => updateProp("color", v));
+                this.addColorMixer("Track Color", props.bg_color || "gray", (v) => updateProp("bg_color", v));
+                this.addLabeledInput("Border Width", "number", props.border_width || 2, (v) => updateProp("border_width", parseInt(v, 10)));
+                this.addSelect("Mode", props.mode || "NORMAL", ["NORMAL", "SYMMETRICAL", "REVERSE"], (v) => updateProp("mode", v));
+            }
+            else if (type === "calendar") {
+                this.addHint("📅 Displays a monthly calendar and agenda.");
+                this.addHint("⚠️ Requires 'esp_calendar_data_conversion.py' setup in Home Assistant.");
 
-            this.addSectionLabel("Font Sizes");
-            this.addLabeledInput("Big Date Size", "number", props.font_size_date || 100, (v) => updateProp("font_size_date", parseInt(v, 10)));
-            this.addLabeledInput("Day Name Size", "number", props.font_size_day || 24, (v) => updateProp("font_size_day", parseInt(v, 10)));
-            this.addLabeledInput("Grid Text Size", "number", props.font_size_grid || 14, (v) => updateProp("font_size_grid", parseInt(v, 10)));
-            this.addLabeledInput("Event Text Size", "number", props.font_size_event || 18, (v) => updateProp("font_size_event", parseInt(v, 10)));
+                this.addLabeledInputWithPicker("Data Entity ID", "text", widget.props.entity_id || "sensor.esp_calendar_data", (v) => {
+                    const newProps = { ...widget.props, entity_id: v };
+                    AppState.updateWidget(widget.id, { props: newProps });
+                }, widget);
 
-            // Add "Download Helper Script" button
-            const container = this.panel; // Or create a sub-container
-            const downloadBtn = document.createElement("button");
-            downloadBtn.className = "action-btn"; // Assuming this class exists or button basic style
-            downloadBtn.style.marginTop = "15px";
-            downloadBtn.style.width = "100%";
-            downloadBtn.style.cursor = "pointer";
-            downloadBtn.style.padding = "8px";
-            downloadBtn.innerHTML = "📥 Download Helper Script";
+                this.addSectionLabel("Appearance");
+                this.addCheckbox("Show Border", props.show_border !== false, (v) => updateProp("show_border", v));
+                this.addLabeledInput("Border Width", "number", props.border_width || 2, (v) => updateProp("border_width", parseInt(v, 10)));
+                this.addSelect("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
+                this.addSelect("Background Color", props.background_color || "white", colors, (v) => updateProp("background_color", v));
+                this.addSelect("Text Color", props.text_color || "black", colors, (v) => updateProp("text_color", v));
 
-            downloadBtn.onclick = () => {
-                const blob = new Blob([CALENDAR_HELPER_SCRIPT], { type: "text/x-python" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "esp_calendar_data_conversion.py";
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            };
-            container.appendChild(downloadBtn);
+                this.addSectionLabel("Font Sizes");
+                this.addLabeledInput("Big Date Size", "number", props.font_size_date || 100, (v) => updateProp("font_size_date", parseInt(v, 10)));
+                this.addLabeledInput("Day Name Size", "number", props.font_size_day || 24, (v) => updateProp("font_size_day", parseInt(v, 10)));
+                this.addLabeledInput("Grid Text Size", "number", props.font_size_grid || 14, (v) => updateProp("font_size_grid", parseInt(v, 10)));
+                this.addLabeledInput("Event Text Size", "number", props.font_size_event || 18, (v) => updateProp("font_size_event", parseInt(v, 10)));
 
-            const note = document.createElement("div");
-            note.style.marginTop = "5px";
-            note.style.fontSize = "10px";
-            note.style.color = "#888";
-            note.style.textAlign = "center";
-            note.innerText = "Check widget instructions for HA setup.";
-            container.appendChild(note);
-        }
-        else if (type === "lvgl_tabview") {
-            this.addLabeledInput("Tabs (comma separated)", "text", (props.tabs || []).join(", "), (v) => {
-                const tabs = v.split(",").map(t => t.trim()).filter(t => t);
-                updateProp("tabs", tabs);
-            });
-            this.addColorMixer("Background Color", props.bg_color || "white", (v) => updateProp("bg_color", v));
-        }
-        else if (type === "lvgl_tileview") {
-            this.addHint("Tiles are currently configured via YAML or advanced properties.");
-            this.addColorMixer("Background Color", props.bg_color || "white", (v) => updateProp("bg_color", v));
-        }
-        else if (type === "lvgl_led") {
-            this.addColorMixer("Color", props.color || "red", (v) => updateProp("color", v));
-            this.addLabeledInput("Brightness (0-255)", "number", props.brightness || 255, (v) => updateProp("brightness", parseInt(v, 10)));
-        }
-        else if (type === "lvgl_spinner") {
-            this.addLabeledInput("Spin Time (ms)", "number", props.spin_time || 1000, (v) => updateProp("spin_time", parseInt(v, 10)));
-            this.addLabeledInput("Arc Length (deg)", "number", props.arc_length || 60, (v) => updateProp("arc_length", parseInt(v, 10)));
-            this.addColorMixer("Arc Color", props.arc_color || "blue", (v) => updateProp("arc_color", v));
-            this.addColorMixer("Track Color", props.track_color || "white", (v) => updateProp("track_color", v));
-        }
-        else if (type === "lvgl_buttonmatrix") {
-            this.addHint("Edit rows via YAML or simple comma-separated lists per row.");
-            // Simple editor: Row 1, Row 2...
-            const rows = props.rows || [];
-            // Just a placeholder for now
-        }
-        else if (type === "lvgl_checkbox") {
-            this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
-                AppState.updateWidget(widget.id, { entity_id: v });
-            }, widget);
-            this.addHint("Toggle input_boolean when tapped");
+                // Add "Download Helper Script" button
+                const container = this.panel; // Or create a sub-container
+                const downloadBtn = document.createElement("button");
+                downloadBtn.className = "action-btn"; // Assuming this class exists or button basic style
+                downloadBtn.style.marginTop = "15px";
+                downloadBtn.style.width = "100%";
+                downloadBtn.style.cursor = "pointer";
+                downloadBtn.style.padding = "8px";
+                downloadBtn.innerHTML = "📥 Download Helper Script";
 
-            this.addLabeledInput("Label", "text", props.text || "Checkbox", (v) => updateProp("text", v));
-            this.addCheckbox("Checked", props.checked || false, (v) => updateProp("checked", v));
-            this.addColorMixer("Color", props.color || "blue", (v) => updateProp("color", v));
-        }
-        else if (type === "lvgl_dropdown") {
-            this.addLabeledInput("Options (one per line)", "textarea", props.options || "", (v) => updateProp("options", v));
-            this.addLabeledInput("Selected Index", "number", props.selected_index || 0, (v) => updateProp("selected_index", parseInt(v, 10)));
-            this.addColorMixer("Color", props.color || "white", (v) => updateProp("color", v));
-        }
-        else if (type === "lvgl_keyboard") {
-            this.addSelect("Mode", props.mode || "TEXT_UPPER", ["TEXT_LOWER", "TEXT_UPPER", "SPECIAL", "NUMBER"], (v) => updateProp("mode", v));
-            this.addLabeledInput("Textarea ID Link", "text", props.textarea_id || "", (v) => updateProp("textarea_id", v));
-        }
-        else if (type === "lvgl_roller") {
-            this.addLabeledInput("Options (one per line)", "textarea", props.options || "", (v) => updateProp("options", v));
-            this.addLabeledInput("Visible Rows", "number", props.visible_row_count || 3, (v) => updateProp("visible_row_count", parseInt(v, 10)));
-            this.addColorMixer("Color", props.color || "white", (v) => updateProp("color", v));
-            this.addColorMixer("Background Color", props.bg_color || "black", (v) => updateProp("bg_color", v));
-            this.addColorMixer("Selected BG Color", props.selected_bg_color || "blue", (v) => updateProp("selected_bg_color", v));
-            this.addColorMixer("Selected Text Color", props.selected_text_color || "white", (v) => updateProp("selected_text_color", v));
-        }
-        else if (type === "lvgl_spinbox") {
-            this.addLabeledInput("Min", "number", props.min || 0, (v) => updateProp("min", parseInt(v, 10)));
-            this.addLabeledInput("Max", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
-            this.addLabeledInput("Value", "number", props.value || 0, (v) => updateProp("value", parseInt(v, 10)));
-            this.addLabeledInput("Digits", "number", props.digit_count || 4, (v) => updateProp("digit_count", parseInt(v, 10)));
-            this.addLabeledInput("Step", "number", props.step || 1, (v) => updateProp("step", parseInt(v, 10)));
-        }
-        else if (type === "lvgl_switch") {
-            this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
-                AppState.updateWidget(widget.id, { entity_id: v });
-            }, widget);
-            this.addHint("Toggle switch/light/input_boolean when tapped");
+                downloadBtn.onclick = () => {
+                    const blob = new Blob([CALENDAR_HELPER_SCRIPT], { type: "text/x-python" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "esp_calendar_data_conversion.py";
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                };
+                container.appendChild(downloadBtn);
 
-            this.addCheckbox("Checked", props.checked || false, (v) => updateProp("checked", v));
-            this.addColorMixer("Indicator Color", props.color || "blue", (v) => updateProp("color", v));
-            this.addColorMixer("Background Color", props.bg_color || "gray", (v) => updateProp("bg_color", v));
-            this.addColorMixer("Knob Color", props.knob_color || "white", (v) => updateProp("knob_color", v));
+                const note = document.createElement("div");
+                note.style.marginTop = "5px";
+                note.style.fontSize = "10px";
+                note.style.color = "#888";
+                note.style.textAlign = "center";
+                note.innerText = "Check widget instructions for HA setup.";
+                container.appendChild(note);
+            }
+            else if (type === "lvgl_tabview") {
+                this.addLabeledInput("Tabs (comma separated)", "text", (props.tabs || []).join(", "), (v) => {
+                    const tabs = v.split(",").map(t => t.trim()).filter(t => t);
+                    updateProp("tabs", tabs);
+                });
+                this.addColorMixer("Background Color", props.bg_color || "white", (v) => updateProp("bg_color", v));
+            }
+            else if (type === "lvgl_tileview") {
+                this.addHint("Tiles are currently configured via YAML or advanced properties.");
+                this.addColorMixer("Background Color", props.bg_color || "white", (v) => updateProp("bg_color", v));
+            }
+            else if (type === "lvgl_led") {
+                this.addColorMixer("Color", props.color || "red", (v) => updateProp("color", v));
+                this.addLabeledInput("Brightness (0-255)", "number", props.brightness || 255, (v) => updateProp("brightness", parseInt(v, 10)));
+            }
+            else if (type === "lvgl_spinner") {
+                this.addLabeledInput("Spin Time (ms)", "number", props.spin_time || 1000, (v) => updateProp("spin_time", parseInt(v, 10)));
+                this.addLabeledInput("Arc Length (deg)", "number", props.arc_length || 60, (v) => updateProp("arc_length", parseInt(v, 10)));
+                this.addColorMixer("Arc Color", props.arc_color || "blue", (v) => updateProp("arc_color", v));
+                this.addColorMixer("Track Color", props.track_color || "white", (v) => updateProp("track_color", v));
+            }
+            else if (type === "lvgl_buttonmatrix") {
+                this.addHint("Edit rows via YAML or simple comma-separated lists per row.");
+                // Simple editor: Row 1, Row 2...
+                const rows = props.rows || [];
+                // Just a placeholder for now
+            }
+            else if (type === "lvgl_checkbox") {
+                this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
+                    AppState.updateWidget(widget.id, { entity_id: v });
+                }, widget);
+                this.addHint("Toggle input_boolean when tapped");
+
+                this.addLabeledInput("Label", "text", props.text || "Checkbox", (v) => updateProp("text", v));
+                this.addCheckbox("Checked", props.checked || false, (v) => updateProp("checked", v));
+                this.addColorMixer("Color", props.color || "blue", (v) => updateProp("color", v));
+            }
+            else if (type === "lvgl_dropdown") {
+                this.addLabeledInput("Options (one per line)", "textarea", props.options || "", (v) => updateProp("options", v));
+                this.addLabeledInput("Selected Index", "number", props.selected_index || 0, (v) => updateProp("selected_index", parseInt(v, 10)));
+                this.addSelect("Direction", props.direction || "DOWN", ["DOWN", "UP", "LEFT", "RIGHT"], (v) => updateProp("direction", v));
+                this.addLabeledInput("Max Height", "number", props.max_height || 200, (v) => updateProp("max_height", parseInt(v, 10)));
+                this.addColorMixer("Color", props.color || "white", (v) => updateProp("color", v));
+            }
+            else if (type === "lvgl_keyboard") {
+                this.addSelect("Mode", props.mode || "TEXT_UPPER", ["TEXT_LOWER", "TEXT_UPPER", "SPECIAL", "NUMBER"], (v) => updateProp("mode", v));
+                this.addLabeledInput("Textarea ID Link", "text", props.textarea_id || "", (v) => updateProp("textarea_id", v));
+            }
+            else if (type === "lvgl_roller") {
+                this.addLabeledInput("Options (one per line)", "textarea", props.options || "", (v) => updateProp("options", v));
+                this.addLabeledInput("Visible Rows", "number", props.visible_row_count || 3, (v) => updateProp("visible_row_count", parseInt(v, 10)));
+                this.addColorMixer("Color", props.color || "white", (v) => updateProp("color", v));
+                this.addColorMixer("Background Color", props.bg_color || "black", (v) => updateProp("bg_color", v));
+                this.addColorMixer("Selected BG Color", props.selected_bg_color || "blue", (v) => updateProp("selected_bg_color", v));
+                this.addColorMixer("Selected Text Color", props.selected_text_color || "white", (v) => updateProp("selected_text_color", v));
+                this.addSelect("Mode", props.mode || "NORMAL", ["NORMAL", "INFINITE"], (v) => updateProp("mode", v));
+            }
+            else if (type === "lvgl_spinbox") {
+                this.addLabeledInput("Min", "number", props.min || 0, (v) => updateProp("min", parseInt(v, 10)));
+                this.addLabeledInput("Max", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
+                this.addLabeledInput("Value", "number", props.value || 0, (v) => updateProp("value", parseInt(v, 10)));
+                this.addLabeledInput("Digits", "number", props.digit_count || 4, (v) => updateProp("digit_count", parseInt(v, 10)));
+                this.addLabeledInput("Step", "number", props.step || 1, (v) => updateProp("step", parseInt(v, 10)));
+            }
+            else if (type === "lvgl_switch") {
+                this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
+                    AppState.updateWidget(widget.id, { entity_id: v });
+                }, widget);
+                this.addHint("Toggle switch/light/input_boolean when tapped");
+
+                this.addCheckbox("Checked", props.checked || false, (v) => updateProp("checked", v));
+                this.addColorMixer("Indicator Color", props.color || "blue", (v) => updateProp("color", v));
+                this.addColorMixer("Background Color", props.bg_color || "gray", (v) => updateProp("bg_color", v));
+                this.addColorMixer("Knob Color", props.knob_color || "white", (v) => updateProp("knob_color", v));
+            }
+            else if (type === "lvgl_textarea") {
+                this.addLabeledInput("Placeholder", "text", props.placeholder || "", (v) => updateProp("placeholder", v));
+                this.addLabeledInput("Text", "text", props.text || "", (v) => updateProp("text", v));
+                this.addCheckbox("One Line", props.one_line || false, (v) => updateProp("one_line", v));
+                this.addCheckbox("Password Mode", props.password_mode || false, (v) => updateProp("password_mode", v));
+                this.addLabeledInput("Accepted Chars", "text", props.accepted_chars || "", (v) => updateProp("accepted_chars", v));
+                this.addLabeledInput("Max Length", "number", props.max_length || 0, (v) => updateProp("max_length", parseInt(v, 10)));
+            }
+            else if (type === "lvgl_obj") {
+                this.addColorMixer("Color", props.color || "white", (v) => updateProp("color", v));
+                this.addLabeledInput("Border Width", "number", props.border_width || 1, (v) => updateProp("border_width", parseInt(v, 10)));
+                this.addColorMixer("Border Color", props.border_color || "gray", (v) => updateProp("border_color", v));
+                this.addLabeledInput("Radius", "number", props.radius || 0, (v) => updateProp("radius", parseInt(v, 10)));
+            }
         }
-        else if (type === "lvgl_textarea") {
-            this.addLabeledInput("Placeholder", "text", props.placeholder || "", (v) => updateProp("placeholder", v));
-            this.addLabeledInput("Text", "text", props.text || "", (v) => updateProp("text", v));
-            this.addCheckbox("One Line", props.one_line || false, (v) => updateProp("one_line", v));
-            this.addLabeledInput("Max Length", "number", props.max_length || 0, (v) => updateProp("max_length", parseInt(v, 10)));
-        }
-        else if (type === "lvgl_obj") {
-            this.addColorMixer("Color", props.color || "white", (v) => updateProp("color", v));
-            this.addLabeledInput("Border Width", "number", props.border_width || 1, (v) => updateProp("border_width", parseInt(v, 10)));
-            this.addColorMixer("Border Color", props.border_color || "gray", (v) => updateProp("border_color", v));
-            this.addLabeledInput("Radius", "number", props.radius || 0, (v) => updateProp("radius", parseInt(v, 10)));
-        }
+    }
+
+    addCommonLVGLProperties(widget, props) {
+        const updateProp = (key, value) => {
+            const newProps = { ...widget.props, [key]: value };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        this.addSectionLabel("Common LVGL");
+
+        // Flags
+        const flagContainer = document.createElement("div");
+        flagContainer.style.display = "grid";
+        flagContainer.style.gridTemplateColumns = "1fr 1fr";
+        flagContainer.style.gap = "4px";
+
+        this.panel.appendChild(flagContainer);
+
+        const addFlag = (label, key, def = false) => {
+            const wrap = document.createElement("div");
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = props[key] !== undefined ? props[key] : def;
+            checkbox.addEventListener("change", () => updateProp(key, checkbox.checked));
+            const lbl = document.createElement("span");
+            lbl.textContent = " " + label;
+            lbl.style.fontSize = "10px";
+            wrap.appendChild(checkbox);
+            wrap.appendChild(lbl);
+            flagContainer.appendChild(wrap);
+        };
+
+        addFlag("Hidden", "hidden", false);
+        addFlag("Clickable", "clickable", true);
+        addFlag("Checkable", "checkable", false);
+        addFlag("Scrollable", "scrollable", true);
+        addFlag("Floating", "floating", false);
+        addFlag("Ignore Layout", "ignore_layout", false);
+
+        this.addSelect("Scrollbar Mode", props.scrollbar_mode || "AUTO", ["AUTO", "ON", "OFF", "ACTIVE"], (v) => updateProp("scrollbar_mode", v));
     }
 
     // --- Helpers ---

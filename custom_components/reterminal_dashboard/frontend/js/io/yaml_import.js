@@ -96,27 +96,187 @@ function parseSnippetYamlOffline(yamlText) {
     const darkModeMap = new Map(); // Per-page dark mode setting
     const refreshTypeMap = new Map();
     const refreshTimeMap = new Map();
+    const pagePropsMap = new Map(); // Store page-level properties (bg_color, etc)
+
+    const parseYamlRecursive = (lines, startJ, baseInd) => {
+        const firstLine = lines[startJ];
+        if (!firstLine) return { value: null, nextJ: startJ + 1 };
+        const trimmed = firstLine.trim();
+
+        if (trimmed.startsWith("- ")) {
+            const seq = [];
+            let j = startJ;
+            while (j < lines.length) {
+                const l = lines[j];
+                const t = l.trim();
+                if (!t || t.startsWith("#")) { j++; continue; }
+                const ind = (l.match(/^(\s*)/) || [""])[0].length;
+                if (ind < baseInd) break;
+                if (ind === baseInd && t.startsWith("- ")) {
+                    let valRaw = t.substring(2).trim();
+                    if (valRaw === "") {
+                        if (j + 1 < lines.length) {
+                            const nextLine = lines[j + 1];
+                            const nextInd = (nextLine.match(/^(\s*)/) || [""])[0].length;
+                            if (nextInd > ind) {
+                                const res = parseYamlRecursive(lines, j + 1, nextInd);
+                                seq.push(res.value);
+                                j = res.nextJ - 1;
+                            } else {
+                                seq.push("");
+                            }
+                        }
+                    } else if (valRaw.includes(":")) {
+                        const match = valRaw.match(/^(\w+):\s*(.*)$/);
+                        if (match) {
+                            const key = match[1];
+                            let val = match[2].trim();
+                            const itemObj = {};
+                            if (val === "" && j + 1 < lines.length) {
+                                const nextIndMatch = lines[j + 1].match(/^(\s*)/);
+                                const nextInd = nextIndMatch ? nextIndMatch[1].length : 0;
+                                if (nextInd > ind) {
+                                    const res = parseYamlRecursive(lines, j + 1, nextInd);
+                                    itemObj[key] = res.value;
+                                    j = res.nextJ - 1;
+                                } else {
+                                    itemObj[key] = "";
+                                }
+                            } else {
+                                if (val.startsWith("0x")) val = "#" + val.substring(2);
+                                itemObj[key] = val.replace(/^["']|["']$/g, "");
+                            }
+
+                            let k = j + 1;
+                            while (k < lines.length) {
+                                const kl = lines[k];
+                                const kt = kl.trim();
+                                if (!kt || kt.startsWith("#")) { k++; continue; }
+                                const kInd = (kl.match(/^(\s*)/) || [""])[0].length;
+                                if (kInd <= ind || kt.startsWith("- ")) break;
+                                const km = kt.match(/^(\w+):\s*(.*)$/);
+                                if (km) {
+                                    const mk = km[1];
+                                    let mv = km[2].trim();
+                                    if (mv === "" && k + 1 < lines.length) {
+                                        const knextIndMatch = lines[k + 1].match(/^(\s*)/);
+                                        const knextInd = knextIndMatch ? knextIndMatch[1].length : 0;
+                                        if (knextInd > kInd) {
+                                            const res = parseYamlRecursive(lines, k + 1, knextInd);
+                                            itemObj[mk] = res.value;
+                                            k = res.nextJ - 1;
+                                        } else {
+                                            itemObj[mk] = "";
+                                        }
+                                    } else {
+                                        if (mv.startsWith("0x")) mv = "#" + mv.substring(2);
+                                        itemObj[mk] = mv.replace(/^["']|["']$/g, "");
+                                    }
+                                }
+                                k++;
+                            }
+                            seq.push(itemObj);
+                            j = k - 1;
+                        } else {
+                            seq.push(valRaw.replace(/^["']|["']$/g, ""));
+                        }
+                    } else {
+                        seq.push(valRaw.replace(/^["']|["']$/g, ""));
+                    }
+                }
+                j++;
+            }
+            return { value: seq, nextJ: j };
+        } else {
+            const obj = {};
+            let j = startJ;
+            while (j < lines.length) {
+                const l = lines[j];
+                const t = l.trim();
+                if (!t || t.startsWith("#")) { j++; continue; }
+                const ind = (l.match(/^(\s*)/) || [""])[0].length;
+                if (ind < baseInd) break;
+
+                const m = t.match(/^(\w+):\s*(.*)$/);
+                if (m) {
+                    const k = m[1];
+                    let v = m[2].trim();
+                    if (v === "" && j + 1 < lines.length) {
+                        const nextIndMatch = lines[j + 1].match(/^(\s*)/);
+                        const nextInd = nextIndMatch ? nextIndMatch[1].length : 0;
+                        if (nextInd > ind) {
+                            const res = parseYamlRecursive(lines, j + 1, nextInd);
+                            obj[k] = res.value;
+                            j = res.nextJ - 1;
+                        } else {
+                            obj[k] = "";
+                        }
+                    } else {
+                        if (v.startsWith("0x")) v = "#" + v.substring(2);
+                        obj[k] = v.replace(/^["']|["']$/g, "");
+                    }
+                }
+                j++;
+            }
+            return { value: obj, nextJ: j };
+        }
+    }
     let currentPageIndex = null;
+    let inWidgetsBlockLookahead = false;
+
+    const WIDGET_TAGS = [
+        "label", "button", "arc", "bar", "slider", "chart", "dropdown",
+        "roller", "spinbox", "switch", "textarea", "obj", "img",
+        "qrcode", "led", "spinner", "line", "meter", "tabview",
+        "tileview", "checkbox", "keyboard", "buttonmatrix", "list", "icon"
+    ];
+
+    const TAG_MAP = {
+        "label": "lvgl_label", "button": "lvgl_button", "arc": "lvgl_arc", "bar": "lvgl_bar",
+        "slider": "lvgl_slider", "chart": "lvgl_chart", "dropdown": "lvgl_dropdown",
+        "roller": "lvgl_roller", "spinbox": "lvgl_spinbox", "switch": "lvgl_switch",
+        "textarea": "lvgl_textarea", "obj": "lvgl_obj", "img": "lvgl_img",
+        "qrcode": "lvgl_qrcode", "led": "lvgl_led", "spinner": "lvgl_spinner",
+        "line": "lvgl_line", "meter": "lvgl_meter", "tabview": "lvgl_tabview",
+        "tileview": "lvgl_tileview", "checkbox": "lvgl_checkbox", "keyboard": "lvgl_keyboard",
+        "buttonmatrix": "lvgl_buttonmatrix", "icon": "icon"
+    };
 
     for (const line of lambdaLines) {
+        const trimmedLine = line.trim();
+        if (!trimmedLine) continue;
+
         // Native Lambda page check
         let pageMatch = line.match(/if\s*\(\s*(?:id\s*\(\s*display_page\s*\)|page|currentPage)\s*==\s*(\d+)\s*\)/);
         if (pageMatch) {
             currentPageIndex = parseInt(pageMatch[1], 10);
+            inWidgetsBlockLookahead = false;
             if (!pageMap.has(currentPageIndex)) {
                 pageMap.set(currentPageIndex, []);
             }
         }
 
         // LVGL Page check
-        // Looking for: "    - id: page_0"
-        const lvglPageMatch = line.match(/^\s*-\s*id:\s*page_(\d+)/);
+        // Looking for: "    - id: main_page" (or page_0, etc.)
+        const lvglPageMatch = line.match(/^\s*-\s*id:\s*(\w+)/);
         if (lvglPageMatch) {
-            currentPageIndex = parseInt(lvglPageMatch[1], 10);
-            if (!pageMap.has(currentPageIndex)) {
-                pageMap.set(currentPageIndex, []);
+            const pageIdStr = lvglPageMatch[1];
+            // If it's page_N, use N as index, otherwise use sequential index
+            const numMatch = pageIdStr.match(/^page_(\d+)$/);
+            let idx = numMatch ? parseInt(numMatch[1], 10) : pageMap.size;
+
+            if (!pageMap.has(idx)) {
+                pageMap.set(idx, []);
+                nameMap.set(idx, pageIdStr); // Default name to ID
             }
-            console.log(`[parseSnippetYamlOffline] Detected LVGL Page: ${currentPageIndex}`);
+            currentPageIndex = idx;
+            inWidgetsBlockLookahead = false;
+            console.log(`[parseSnippetYamlOffline] Detected LVGL Page: ${pageIdStr} (mapped to idx ${idx})`);
+        }
+
+        if (trimmedLine.startsWith("widgets:")) {
+            inWidgetsBlockLookahead = true;
+            continue;
         }
 
         const intervalMatch = line.match(/case\s+(\d+):\s*interval\s*=\s*(\d+);/);
@@ -149,6 +309,41 @@ function parseSnippetYamlOffline(yamlText) {
         const refreshTimeMatch = line.match(/\/\/\s*page:refresh_time\s+"(.*)"/);
         if (refreshTimeMatch && currentPageIndex !== null) {
             refreshTimeMap.set(currentPageIndex, refreshTimeMatch[1]);
+        }
+
+        // Native LVGL Page Properties (Only if NOT in a widgets block to avoid misattribution)
+        if (!inWidgetsBlockLookahead) {
+            const pgBgColorMatch = line.match(/^\s*bg_color:\s*(.*)/);
+            if (pgBgColorMatch && currentPageIndex !== null) {
+                let val = pgBgColorMatch[1].trim().replace(/^["']|["']$/g, "");
+                if (val.startsWith("0x")) val = "#" + val.substring(2);
+                if (!pagePropsMap.has(currentPageIndex)) pagePropsMap.set(currentPageIndex, {});
+                pagePropsMap.get(currentPageIndex).bg_color = val;
+
+                // Auto-detect dark mode from background color
+                if (val.startsWith("#")) {
+                    const hex = val.substring(1);
+                    if (hex.length === 6) {
+                        const r = parseInt(hex.substring(0, 2), 16);
+                        const g = parseInt(hex.substring(2, 4), 16);
+                        const b = parseInt(hex.substring(4, 6), 16);
+                        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                        if (brightness < 128) {
+                            if (!darkModeMap.has(currentPageIndex)) {
+                                darkModeMap.set(currentPageIndex, "dark");
+                            }
+                        }
+                    }
+                }
+            }
+
+            const pgBgOpaMatch = line.match(/^\s*bg_opa:\s*(.*)/);
+            if (pgBgOpaMatch && currentPageIndex !== null) {
+                let val = pgBgOpaMatch[1].trim().replace(/^["']|["']$/g, "");
+                if (val.endsWith("%")) val = Math.round(parseFloat(val) * 2.55);
+                if (!pagePropsMap.has(currentPageIndex)) pagePropsMap.set(currentPageIndex, {});
+                pagePropsMap.get(currentPageIndex).bg_opa = parseInt(val, 10);
+            }
         }
     }
 
@@ -215,6 +410,8 @@ function parseSnippetYamlOffline(yamlText) {
             refresh_type: refreshTypeMap.has(idx) ? refreshTypeMap.get(idx) : "interval",
             refresh_time: refreshTimeMap.has(idx) ? refreshTimeMap.get(idx) : "",
             dark_mode: darkModeMap.has(idx) ? darkModeMap.get(idx) : "inherit",
+            bg_color: pagePropsMap.has(idx) ? pagePropsMap.get(idx).bg_color : null,
+            bg_opa: pagePropsMap.has(idx) ? pagePropsMap.get(idx).bg_opa : null,
             widgets: []
         }))
     };
@@ -263,7 +460,8 @@ function parseSnippetYamlOffline(yamlText) {
 
     let skipRendering = false;
 
-    for (const cmd of lambdaLines) {
+    for (let i = 0; i < lambdaLines.length; i++) {
+        const cmd = lambdaLines[i];
         const trimmed = cmd.trim();
         if (!trimmed || trimmed.startsWith("#")) continue;
 
@@ -274,21 +472,21 @@ function parseSnippetYamlOffline(yamlText) {
             continue;
         }
 
-        // LVGL Page Check (raw line check from lambdaLines loop context, but trimmed here)
-        // We need to match "- id: page_X"
-        const lvglPageMatch = trimmed.match(/^-\s*id:\s*page_(\d+)/);
+        // LVGL Page Check
+        const lvglPageMatch = trimmed.match(/^-\s*id:\s*(\w+)/);
         if (lvglPageMatch) {
-            currentPageIndex = parseInt(lvglPageMatch[1], 10);
-            console.log(`[parseSnippetYamlOffline] Processing widgets for LVGL Page: ${currentPageIndex}`);
+            const pageIdStr = lvglPageMatch[1];
+            const numMatch = pageIdStr.match(/^page_(\d+)$/);
+            currentPageIndex = numMatch ? parseInt(numMatch[1], 10) : (Array.from(nameMap.entries()).find(([k, v]) => v === pageIdStr)?.[0] || 0);
+            console.log(`[parseSnippetYamlOffline] Processing widgets for page: ${pageIdStr} (idx ${currentPageIndex})`);
             continue;
         }
 
         const widgets = getCurrentPageWidgets();
 
         if (skipRendering) {
-            // Only stop skipping if we see a new widget marker
-            // We use a regex to match "// widget:" with optional spaces
-            if (trimmed.match(/^\/\/\s*widget:/)) {
+            // Stop skipping if we see a new widget marker, a page transition, or a line with 0 indent
+            if (trimmed.match(/^\/\/\s*widget:/) || trimmed.match(/^\s*-\s*id:/) || !cmd.match(/^\s/)) {
                 skipRendering = false;
             } else {
                 continue;
@@ -326,6 +524,18 @@ function parseSnippetYamlOffline(yamlText) {
                     condition_max: p.cond_max || "",
                     props: {}
                 };
+
+                // Common LVGL properties
+                if (widgetType.startsWith("lvgl_")) {
+                    widget.props.hidden = (p.hidden === "true");
+                    widget.props.clickable = (p.clickable !== "false");
+                    widget.props.checkable = (p.checkable === "true");
+                    widget.props.scrollable = (p.scrollable !== "false");
+                    widget.props.floating = (p.floating === "true");
+                    widget.props.ignore_layout = (p.ignore_layout === "true");
+                    widget.props.scrollbar_mode = p.scrollbar_mode || "AUTO";
+                    widget.props.opa = parseInt(p.opa || 255, 10);
+                }
 
                 if (widgetType === "icon") {
                     widget.props = {
@@ -524,24 +734,26 @@ function parseSnippetYamlOffline(yamlText) {
                     };
                 } else if (widgetType === "lvgl_button") {
                     widget.props = {
+                        ...widget.props,
                         text: p.text || "BTN",
                         bg_color: p.bg_color || "white",
                         color: p.color || "black",
                         border_width: parseInt(p.border_width || p.border || 2, 10),
-                        radius: parseInt(p.radius || 5, 10)
+                        radius: parseInt(p.radius || 5, 10),
+                        checkable: (p.checkable === "true")
                     };
                     if (p.title) widget.title = p.title;
                 } else if (widgetType === "lvgl_arc") {
                     widget.props = {
+                        ...widget.props,
                         min: parseInt(p.min || 0, 10),
                         max: parseInt(p.max || 100, 10),
                         value: parseInt(p.value || 0, 10),
                         thickness: parseInt(p.thickness || 10, 10),
-                        min: parseInt(p.min || 0, 10),
-                        max: parseInt(p.max || 100, 10),
-                        value: parseInt(p.value || 0, 10),
-                        thickness: parseInt(p.thickness || 10, 10),
-                        color: p.color || "blue"
+                        color: p.color || "blue",
+                        start_angle: parseInt(p.start_angle || 135, 10),
+                        end_angle: parseInt(p.end_angle || 45, 10),
+                        mode: p.mode || "NORMAL"
                     };
                     // Ensure title is captured for Arc
                     if (p.title) {
@@ -550,15 +762,20 @@ function parseSnippetYamlOffline(yamlText) {
                     }
                 } else if (widgetType === "lvgl_chart") {
                     widget.props = {
+                        ...widget.props,
                         title: p.title || "Graph",
                         type: p.type || "LINE",
                         color: p.color || "black",
-                        bg_color: p.bg_color || "white"
+                        bg_color: p.bg_color || "white",
+                        point_count: parseInt(p.point_count || 10, 10),
+                        x_div_lines: parseInt(p.x_div_lines || 3, 10),
+                        y_div_lines: parseInt(p.y_div_lines || 3, 10)
                     };
                     if (p.title) widget.title = p.title;
 
                 } else if (widgetType === "lvgl_img") {
                     widget.props = {
+                        ...widget.props,
                         src: p.src || "symbol_image",
                         rotation: parseInt(p.rotation || 0, 10),
                         scale: parseInt(p.scale || 256, 10),
@@ -569,6 +786,7 @@ function parseSnippetYamlOffline(yamlText) {
 
                 } else if (widgetType === "lvgl_qrcode") {
                     widget.props = {
+                        ...widget.props,
                         text: p.text || "https://esphome.io",
                         scale: parseInt(p.scale || 2, 10),
                         color: p.color || "black",
@@ -577,39 +795,48 @@ function parseSnippetYamlOffline(yamlText) {
 
                 } else if (widgetType === "lvgl_bar") {
                     widget.props = {
+                        ...widget.props,
                         min: parseInt(p.min || 0, 10),
                         max: parseInt(p.max || 100, 10),
                         value: parseInt(p.value || 0, 10),
                         color: p.color || "blue",
-                        bg_color: p.bg_color || "gray"
+                        bg_color: p.bg_color || "gray",
+                        start_value: parseInt(p.start_value || 0, 10),
+                        mode: p.mode || "NORMAL"
                     };
 
                 } else if (widgetType === "lvgl_slider") {
                     widget.props = {
+                        ...widget.props,
                         min: parseInt(p.min || 0, 10),
                         max: parseInt(p.max || 100, 10),
-                        value: parseInt(p.value || 0, 10),
+                        value: parseInt(p.value || 30, 10),
                         border_width: parseInt(p.border_width || 2, 10),
                         color: p.color || "blue",
-                        bg_color: p.bg_color || "gray"
+                        bg_color: p.bg_color || "gray",
+                        mode: p.mode || "NORMAL"
                     };
                 } else if (widgetType === "lvgl_tabview") {
                     widget.props = {
+                        ...widget.props,
                         bg_color: p.bg_color || "white",
                         tabs: (p.tabs || "").split(",").map(t => t.trim()).filter(t => t)
                     };
                 } else if (widgetType === "lvgl_tileview") {
                     widget.props = {
+                        ...widget.props,
                         bg_color: p.bg_color || "white",
                         tiles: [] // tile structure not easily parseable from flat props yet, defaulting empty
                     };
                 } else if (widgetType === "lvgl_led") {
                     widget.props = {
+                        ...widget.props,
                         color: p.color || "red",
                         brightness: parseInt(p.brightness || 255, 10)
                     };
                 } else if (widgetType === "lvgl_spinner") {
                     widget.props = {
+                        ...widget.props,
                         spin_time: parseInt(p.spin_time || 1000, 10),
                         arc_length: parseInt(p.arc_length || 60, 10),
                         arc_color: p.arc_color || "blue",
@@ -621,32 +848,40 @@ function parseSnippetYamlOffline(yamlText) {
                     };
                 } else if (widgetType === "lvgl_checkbox") {
                     widget.props = {
+                        ...widget.props,
                         text: (p.text || "Checkbox").replace(/^"|"$/g, ''),
                         checked: (p.checked === "true" || p.checked === true),
                         color: p.color || "blue"
                     };
                 } else if (widgetType === "lvgl_dropdown") {
                     widget.props = {
+                        ...widget.props,
                         options: (p.options || "").replace(/\\n/g, "\n"), // handle escaped newlines
                         selected_index: parseInt(p.selected_index || 0, 10),
-                        color: p.color || "white"
+                        color: p.color || "white",
+                        direction: p.direction || "DOWN",
+                        max_height: parseInt(p.max_height || 200, 10)
                     };
                 } else if (widgetType === "lvgl_keyboard") {
                     widget.props = {
+                        ...widget.props,
                         mode: p.mode || "TEXT_UPPER",
                         textarea_id: p.textarea || ""
                     };
                 } else if (widgetType === "lvgl_roller") {
                     widget.props = {
+                        ...widget.props,
                         options: (p.options || "").replace(/\\n/g, "\n"),
                         visible_row_count: parseInt(p.visible_row_count || 3, 10),
                         color: p.color || "white",
                         bg_color: p.bg_color || "black",
                         selected_bg_color: p.selected_bg_color || "blue",
-                        selected_text_color: p.selected_text_color || "white"
+                        selected_text_color: p.selected_text_color || "white",
+                        mode: p.mode || "NORMAL"
                     };
                 } else if (widgetType === "lvgl_spinbox") {
                     widget.props = {
+                        ...widget.props,
                         min: parseInt(p.range_from || p.min || 0, 10),
                         max: parseInt(p.range_to || p.max || 100, 10),
                         digit_count: parseInt(p.digits || p.digit_count || 4, 10),
@@ -655,6 +890,7 @@ function parseSnippetYamlOffline(yamlText) {
                     };
                 } else if (widgetType === "lvgl_switch") {
                     widget.props = {
+                        ...widget.props,
                         checked: (p.state === "true" || p.state === true || p.checked === "true"),
                         bg_color: p.bg_color || "gray",
                         color: p.color || "blue", // indicator
@@ -662,13 +898,17 @@ function parseSnippetYamlOffline(yamlText) {
                     };
                 } else if (widgetType === "lvgl_textarea") {
                     widget.props = {
+                        ...widget.props,
                         placeholder: (p.placeholder_text || p.placeholder || "").replace(/^"|"$/g, ''),
                         text: (p.text || "").replace(/^"|"$/g, ''),
                         one_line: (p.one_line === "true" || p.one_line === true),
-                        max_length: parseInt(p.max_length || 0, 10)
+                        max_length: parseInt(p.max_length || 0, 10),
+                        password_mode: (p.password_mode === "true"),
+                        accepted_chars: p.accepted_chars || ""
                     };
                 } else if (widgetType === "lvgl_label") {
                     widget.props = {
+                        ...widget.props,
                         text: (p.text || "Label").replace(/^"|"$/g, ''),
                         font_size: parseInt(p.font_size || p.size || 20, 10),
                         font_family: p.font_family || "Roboto",
@@ -680,6 +920,7 @@ function parseSnippetYamlOffline(yamlText) {
                     };
                 } else if (widgetType === "lvgl_line") {
                     widget.props = {
+                        ...widget.props,
                         orientation: p.orientation || "horizontal",
                         points: p.points || "", // Keep points if present for backward combat, but orientation rules
                         line_width: parseInt(p.line_width || 3, 10),
@@ -688,6 +929,7 @@ function parseSnippetYamlOffline(yamlText) {
                     };
                 } else if (widgetType === "lvgl_meter") {
                     widget.props = {
+                        ...widget.props,
                         min: parseInt(p.min || 0, 10),
                         max: parseInt(p.max || 100, 10),
                         value: parseInt(p.value || 60, 10),
@@ -701,6 +943,7 @@ function parseSnippetYamlOffline(yamlText) {
                     };
                 } else if (widgetType === "lvgl_obj") {
                     widget.props = {
+                        ...widget.props,
                         color: p.color || "white",
                         border_width: parseInt(p.border_width || 1, 10),
                         border_color: p.border_color || "gray",
@@ -718,6 +961,11 @@ function parseSnippetYamlOffline(yamlText) {
                         }
                         if (val === "true") widget.props[key] = true;
                         else if (val === "false") widget.props[key] = false;
+                        else if (Array.isArray(val)) {
+                            if (key === "options") widget.props[key] = val.join("\n");
+                            else if (key === "points") widget.props[key] = val.map(pt => Array.isArray(pt) ? pt.join(",") : String(pt)).join(" ");
+                            else widget.props[key] = val;
+                        }
                         else widget.props[key] = val;
                     });
                 } else if (widgetType === "calendar") {
@@ -852,6 +1100,128 @@ function parseSnippetYamlOffline(yamlText) {
                 }
             });
             continue;
+        }
+
+        // --- NATIVE YAML PARSING (FALLBACK) ---
+        // If we didn't find a marker or a drawing command, check for native widget tags like "- label:"
+        const nativeRegex = new RegExp(`^(\\s*)-?\\s*(${WIDGET_TAGS.join('|')}):\\s*(.*)$`);
+        const mNative = cmd.match(nativeRegex);
+
+        if (mNative) {
+            const indent = mNative[1].length;
+            const nativeTag = mNative[2];
+            const inlineValue = mNative[3].trim();
+
+            const widgetType = TAG_MAP[nativeTag] || `lvgl_${nativeTag}`;
+
+            // Start collecting properties for this native widget
+            const nativeProps = {};
+            if (inlineValue) {
+                nativeProps._inline = inlineValue.replace(/^["']|["']$/g, "");
+            }
+
+            const res = parseYamlRecursive(lambdaLines, i + 1, indent + 2);
+            Object.assign(nativeProps, res.value);
+            i = res.nextJ - 1;
+
+            const widgetId = nativeProps.id || `lv_${nativeTag}_${widgets.length}`;
+            const widget = {
+                id: widgetId,
+                type: widgetType,
+                x: parseInt(nativeProps.x || 0, 10),
+                y: parseInt(nativeProps.y || 0, 10),
+                width: parseInt(nativeProps.width || nativeProps.w || 100, 10),
+                height: parseInt(nativeProps.height || nativeProps.h || 30, 10),
+                title: nativeProps.title || nativeProps.name || "",
+                entity_id: nativeProps.entity_id || nativeProps.entity || nativeProps.sensor || "",
+                props: {}
+            };
+
+            // Common LVGL properties from native YAML
+            widget.props.hidden = (nativeProps.hidden === "true");
+            widget.props.clickable = (nativeProps.clickable !== "false");
+            widget.props.scrollable = (nativeProps.scrollable !== "false");
+            if (nativeProps.bg_color) widget.props.bg_color = nativeProps.bg_color;
+            if (nativeProps.bg_opa) {
+                let opa = nativeProps.bg_opa;
+                if (opa.toString().endsWith("%")) {
+                    opa = Math.round(parseFloat(opa) * 2.55);
+                }
+                widget.props.opa = parseInt(opa, 10);
+            }
+            if (nativeProps.text) widget.props.text = nativeProps.text;
+            else if (nativeProps._inline && nativeTag === "label") widget.props.text = nativeProps._inline;
+
+            // Improved property mapping and data type handling
+            Object.entries(nativeProps).forEach(([k, v]) => {
+                if (["id", "x", "y", "width", "height", "w", "h", "type", "bg_color", "bg_opa", "_inline", "widgets"].includes(k)) return;
+
+                // Handle nested styles (indicator, knob) by flattening or mapping
+                if (k === "indicator" || k === "knob" || k === "selected") {
+                    if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+                        Object.entries(v).forEach(([sk, sv]) => {
+                            widget.props[`${k}_${sk}`] = sv;
+                        });
+                        return;
+                    }
+                }
+
+                // Normalization: Join arrays for internal properties that expect strings
+                let val = v;
+                if (Array.isArray(v)) {
+                    if (k === "options") {
+                        val = v.join("\n");
+                    } else if (k === "points") {
+                        val = v.map(pt => Array.isArray(pt) ? pt.join(",") : String(pt)).join(" ");
+                    }
+                } else if (typeof v === 'string') {
+                    // Strip units from numeric values
+                    if (/^-?\d+(\.\d+)?(ms|deg|px|%)$/.test(v)) {
+                        val = v.replace(/(ms|deg|px|%)$/, "");
+                    }
+                }
+
+                if (widget.props[k] === undefined) {
+                    if (val === "true") widget.props[k] = true;
+                    else if (val === "false") widget.props[k] = false;
+                    else if (!isNaN(val) && val !== "" && k !== "text" && k !== "id" && k !== "name" && typeof val !== 'object') {
+                        widget.props[k] = parseFloat(val);
+                    }
+                    else {
+                        // Handle potential escaped Unicode in text
+                        if (typeof val === 'string' && val.includes("\\u")) {
+                            try {
+                                widget.props[k] = JSON.parse(`"${val}"`);
+                            } catch (e) { widget.props[k] = val; }
+                        } else {
+                            widget.props[k] = val;
+                        }
+                    }
+                }
+            });
+
+            widgets.push(widget);
+
+            // Handle nested widgets (flattening into the page for now)
+            if (Array.isArray(nativeProps.widgets)) {
+                nativeProps.widgets.forEach(nw => {
+                    const tag = Object.keys(nw)[0];
+                    const nwProps = nw[tag];
+                    if (tag && nwProps) {
+                        const nwType = TAG_MAP[tag] || `lvgl_${tag}`;
+                        const nestedWidget = {
+                            id: nwProps.id || `lv_${tag}_${widgets.length}`,
+                            type: nwType,
+                            x: widget.x + parseInt(nwProps.x || 0, 10), // Relative to parent
+                            y: widget.y + parseInt(nwProps.y || 0, 10),
+                            width: parseInt(nwProps.width || nwProps.w || 50, 10),
+                            height: parseInt(nwProps.height || nwProps.h || 20, 10),
+                            props: { ...nwProps }
+                        };
+                        widgets.push(nestedWidget);
+                    }
+                });
+            }
         }
     }
 

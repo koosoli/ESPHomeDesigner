@@ -311,7 +311,8 @@ class WidgetFactory {
                     color: defaultColor,
                     bg_color: defaultBgColor,
                     border_width: 2,
-                    radius: 5
+                    radius: 5,
+                    opa: 255
                 };
                 break;
 
@@ -324,7 +325,10 @@ class WidgetFactory {
                     value: 50,
                     color: defaultColor,
                     title: "Arc",
-                    thickness: 10
+                    thickness: 10,
+                    start_angle: 135,
+                    end_angle: 45,
+                    mode: "NORMAL"
                 };
                 break;
 
@@ -336,7 +340,10 @@ class WidgetFactory {
                     max: 100,
                     color: defaultColor,
                     title: "Chart",
-                    type: "LINE" // LINE or SCATTER
+                    type: "LINE", // LINE or SCATTER
+                    point_count: 10,
+                    x_div_lines: 3,
+                    y_div_lines: 3
                 };
                 break;
 
@@ -373,7 +380,9 @@ class WidgetFactory {
                     value: 50,
                     color: defaultColor, // Main color
                     bg_color: "gray", // Background color
-                    range_mode: false
+                    range_mode: false,
+                    start_value: 0,
+                    mode: "NORMAL"
                 };
                 break;
 
@@ -386,7 +395,8 @@ class WidgetFactory {
                     value: 30,
                     color: defaultColor,
                     bg_color: "gray",
-                    border_width: 2
+                    border_width: 2,
+                    mode: "NORMAL"
                 };
                 break;
             case "calendar":
@@ -476,7 +486,9 @@ class WidgetFactory {
                 widget.props = {
                     options: "Option 1\nOption 2\nOption 3",
                     selected_index: 0,
-                    color: defaultColor
+                    color: defaultColor,
+                    direction: "DOWN",
+                    max_height: 200
                 };
                 break;
 
@@ -498,7 +510,8 @@ class WidgetFactory {
                     color: defaultColor,
                     bg_color: defaultBgColor,
                     selected_bg_color: "blue",
-                    selected_text_color: "white"
+                    selected_text_color: "white",
+                    mode: "NORMAL"
                 };
                 break;
 
@@ -533,7 +546,9 @@ class WidgetFactory {
                     text: "",
                     placeholder: "Enter text here...",
                     one_line: false,
-                    max_length: 0
+                    max_length: 0,
+                    password_mode: false,
+                    accepted_chars: ""
                 };
                 break;
 

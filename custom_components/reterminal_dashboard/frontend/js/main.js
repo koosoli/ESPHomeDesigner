@@ -312,10 +312,17 @@ class App {
             if (errorBox) errorBox.textContent = "";
 
             let layout;
-            if (hasHaBackend()) {
-                layout = await importSnippetBackend(yaml);
-            } else {
+            // Always try offline parser first for snippets as it's more robust for native LVGL
+            try {
                 layout = parseSnippetYamlOffline(yaml);
+                console.log("[handleImportSnippet] Successfully used offline parser.");
+            } catch (offlineErr) {
+                console.warn("[handleImportSnippet] Offline parser failed, falling back to backend:", offlineErr);
+                if (hasHaBackend()) {
+                    layout = await importSnippetBackend(yaml);
+                } else {
+                    throw offlineErr;
+                }
             }
 
             loadLayoutIntoState(layout);
