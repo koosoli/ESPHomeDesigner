@@ -447,7 +447,11 @@ function parseSnippetYamlOffline(yamlText) {
                     widget.props = {
                         title: p.title || "Touch Area",
                         color: p.color || "rgba(0, 0, 255, 0.2)",
-                        border_color: p.border_color || "#0000ff"
+                        border_color: p.border_color || "#0000ff",
+                        icon: p.icon || "",
+                        icon_pressed: p.icon_pressed || "",
+                        icon_size: parseInt(p.icon_size || 40, 10),
+                        icon_color: p.icon_color || "black"
                     };
                 } else if (widgetType === "rounded_rect") {
                     widget.props = {

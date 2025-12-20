@@ -109,6 +109,7 @@ async function generateSnippetLocally() {
     const weatherForecastWidgets = [];
     const onlineImageWidgets = [];
     const qrCodeWidgets = [];
+    const touchAreaWidgets = [];
     const staticImageMap = new Map();
 
     pagesLocal.forEach(p => {
@@ -129,6 +130,9 @@ async function generateSnippetLocally() {
                 }
                 if (t === "qr_code") {
                     qrCodeWidgets.push(w);
+                }
+                if (t === "touch_area") {
+                    touchAreaWidgets.push(w);
                 }
                 if (t === "image") {
                     const path = (w.props?.path || "").trim();
@@ -519,40 +523,8 @@ async function generateSnippetLocally() {
     }
 
 
-    // Generate touch_area binary sensors
-    const touchAreaWidgets = [];
-    pagesLocal.forEach(p => {
-        if (p.widgets) {
-            p.widgets.forEach(w => {
-                if (w.type === "touch_area") {
-                    touchAreaWidgets.push(w);
-                }
-            });
-        }
-    });
-
-    if (touchAreaWidgets.length > 0) {
-        lines.push(`  # Touch Area Binary Sensors`);
-        touchAreaWidgets.forEach(w => {
-            const safeId = (w.entity_id || `touch_area_${w.id}`).replace(/[^a-zA-Z0-9_]/g, "_");
-            const xMin = w.x;
-            const xMax = w.x + w.width;
-            const yMin = w.y;
-            const yMax = w.y + w.height;
-
-            lines.push(`  - platform: touchscreen`);
-            lines.push(`    id: ${safeId}`);
-            lines.push(`    x_min: ${xMin}`);
-            lines.push(`    x_max: ${xMax}`);
-            lines.push(`    y_min: ${yMin}`);
-            lines.push(`    y_max: ${yMax}`);
-            // Note: on_press/on_release triggers would be handled by user automation or 
-            // if we added a property for it. For now, we just expose the binary sensor.
-        });
-    }
-
-    // 7. Binary Sensors (Buttons)
-    lines.push(...generateBinarySensorSection(profile, pagesLocal.length, displayId));
+    // 7. Binary Sensors (Buttons + Touch Areas)
+    lines.push(...generateBinarySensorSection(profile, pagesLocal.length, displayId, touchAreaWidgets));
 
     // 8. Buttons (Page Navigation Templates)
     lines.push(...generateButtonSection(profile, pagesLocal.length, displayId));
@@ -1020,6 +992,11 @@ async function generateSnippetLocally() {
                     const codes = ["F0079", "F007A", "F007B", "F007C", "F007D", "F007E", "F007F",
                         "F0080", "F0081", "F0082", "F0083"];
                     codes.forEach(c => addCode(c, size));
+                } else if (t === "touch_area") {
+                    // touch_area uses icon_size (default 40)
+                    const size = p.icon_size || 40;
+                    if (p.icon) addCode(p.icon, size);
+                    if (p.icon_pressed) addCode(p.icon_pressed, size);
                 }
             });
         }
@@ -1202,7 +1179,7 @@ async function generateSnippetLocally() {
             const RECT_Y_OFFSET = 0;
             const TEXT_Y_OFFSET = 0;
 
-            if (getDeviceModel() === "m5stack_paper" || getDeviceModel() === "m5stack_coreink" || getDeviceModel() === "reterminal_e1001" || getDeviceModel() === "trmnl_diy_esp32s3") {
+            if (profile.features?.inverted_colors) {
                 lines.push("      const auto COLOR_WHITE = Color(0, 0, 0); // Inverted for e-ink");
                 lines.push("      const auto COLOR_BLACK = Color(255, 255, 255); // Inverted for e-ink");
             } else {
@@ -1978,10 +1955,32 @@ async function generateSnippetLocally() {
                             const color = w.props.color || "rgba(0, 0, 255, 0.2)";
                             const borderColor = w.props.border_color || "#0000ff";
 
-                            // We only output the widget marker so the importer can find it.
-                            // We do NOT draw anything because this is an invisible touch area.
-                            // (Unless we wanted to draw a debug outline, but for production it should be invisible)
-                            lines.push(`        // widget:touch_area id:${w.id} type:touch_area x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} title:"${title}" color:"${color}" border_color:"${borderColor}"`);
+                            const icon = (w.props.icon || "").replace("mdi:", "").toUpperCase();
+                            const iconPressed = (w.props.icon_pressed || "").replace("mdi:", "").toUpperCase();
+                            const iconSize = parseInt(w.props.icon_size || 40, 10);
+                            const iconColorProp = w.props.icon_color || "black";
+                            const iconColor = getColorConst(iconColorProp);
+
+                            lines.push(`        // widget:touch_area id:${w.id} type:touch_area x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} title:"${title}" color:"${color}" border_color:"${borderColor}" icon:"${w.props.icon || ""}" icon_pressed:"${w.props.icon_pressed || ""}" icon_size:${iconSize} icon_color:${iconColorProp}`);
+
+                            if (icon) {
+                                const fontRef = addFont("Material Design Icons", 400, iconSize);
+                                const safeId = (w.entity_id || `touch_area_${w.id}`).replace(/[^a-zA-Z0-9_]/g, "_");
+
+                                if (iconPressed) {
+                                    lines.push(`        if (id(${safeId}).state) {`);
+                                    lines.push(`          it.printf(${w.x} + ${w.width}/2, ${w.y} + ${w.height}/2, id(${fontRef}), ${iconColor}, TextAlign::CENTER, "\\U000${iconPressed}");`);
+                                    lines.push(`        } else {`);
+                                    lines.push(`          it.printf(${w.x} + ${w.width}/2, ${w.y} + ${w.height}/2, id(${fontRef}), ${iconColor}, TextAlign::CENTER, "\\U000${icon}");`);
+                                    lines.push(`        }`);
+                                } else {
+                                    lines.push(`        it.printf(${w.x} + ${w.width}/2, ${w.y} + ${w.height}/2, id(${fontRef}), ${iconColor}, TextAlign::CENTER, "\\U000${icon}");`);
+                                }
+
+                                if (iconColorProp.toLowerCase() === "gray") {
+                                    lines.push(`        apply_grey_dither_mask(${w.x}, ${w.y}, ${w.width}, ${w.height});`);
+                                }
+                            }
 
                         } else if (t === "quote_rss") {
                             const feedUrl = (p.feed_url || "https://www.brainyquote.com/link/quotebr.rss").replace(/"/g, '\\"');

@@ -105,7 +105,9 @@ window.DEVICE_PROFILES = {
       psram: true,
       buzzer: false,
       buttons: true,
-      sht4x: false
+      sht4x: false,
+      epaper: true,
+      inverted_colors: true
     }
   },
   trmnl: {
@@ -132,7 +134,9 @@ window.DEVICE_PROFILES = {
       psram: false,
       buzzer: false,
       buttons: false,
-      sht4x: false
+      sht4x: false,
+      epaper: true,
+      inverted_colors: true
     }
   },
 
@@ -167,7 +171,9 @@ window.DEVICE_PROFILES = {
       sht4x: false,
       axp2101: true,
       manual_pmic: true,
-      shtc3: true
+      shtc3: true,
+      epaper: true,
+      inverted_colors: true
     },
     i2c_config: {
       scan: false,
@@ -203,7 +209,8 @@ window.DEVICE_PROFILES = {
       buzzer: true,
       buttons: true,
       lcd: false,
-      epaper: true
+      epaper: true,
+      inverted_colors: true
     },
     pins: {
       // BUSY PIN REMOVED: Causes timeout on some devices (Blind Mode)
@@ -238,7 +245,8 @@ window.DEVICE_PROFILES = {
       buttons: true, // Has multifunction button
       lcd: false,
       epaper: true,
-      touch: true // Has GT911
+      touch: true, // Has GT911
+      inverted_colors: true
     },
     pins: {
       display: { cs: "GPIO15", dc: null, reset: "GPIO23", busy: "GPIO27" }, // DC not used for IT8951E

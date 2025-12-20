@@ -522,60 +522,8 @@ class PropertiesPanel {
         else if (type === "icon") {
             this.addCheckbox("Fit icon to frame", props.fit_icon_to_frame || false, (v) => updateProp("fit_icon_to_frame", v));
 
-            // Quick Icon Picker
-            const iconPickerData = window.iconPickerData || [];
-            const pickerWrap = document.createElement("div");
-            pickerWrap.className = "field";
-            const pickerLbl = document.createElement("div");
-            pickerLbl.className = "prop-label";
-            pickerLbl.textContent = "Quick icon picker (visual preview)";
-
-            const pickerSelect = document.createElement("select");
-            pickerSelect.className = "select";
-            pickerSelect.style.fontFamily = "MDI, monospace, system-ui";
-            pickerSelect.style.fontSize = "16px";
-            pickerSelect.style.lineHeight = "1.5";
-            pickerSelect.style.width = "100%";
-
-            const placeholderOpt = document.createElement("option");
-            placeholderOpt.value = "";
-            placeholderOpt.textContent = "-- Select icon --";
-            placeholderOpt.style.fontFamily = "system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-            pickerSelect.appendChild(placeholderOpt);
-
-            iconPickerData.forEach(icon => {
-                const opt = document.createElement("option");
-                opt.value = icon.code;
-                const cp = 0xf0000 + parseInt(icon.code.slice(1), 16);
-                const glyph = String.fromCodePoint(cp);
-                opt.textContent = glyph + "  " + icon.code;
-                opt.style.fontFamily = "MDI, monospace, system-ui";
-                if (icon.code === (props.code || "F0595").toUpperCase()) {
-                    opt.selected = true;
-                }
-                pickerSelect.appendChild(opt);
-            });
-
-            pickerSelect.addEventListener("change", () => {
-                if (pickerSelect.value) {
-                    updateProp("code", pickerSelect.value);
-                }
-            });
-
-            pickerWrap.appendChild(pickerLbl);
-            pickerWrap.appendChild(pickerSelect);
-            this.panel.appendChild(pickerWrap);
-
-            // Link to MDI
-            this.addHint('Need more icons? Browse <a href="https://pictogrammers.com/library/mdi/icon/" target="_blank" style="color: #03a9f4; text-decoration: none;">Pictogrammers MDI</a> and paste the Unicode below');
-
-            // Manual Code Input
-            this.addLabeledInput("MDI Unicode (Fxxxx)", "text", props.code || "F0595", (v) => {
-                const clean = (v || "").trim().toUpperCase().replace(/^0X/, "");
-                if (/^F[0-9A-F]{4}$/i.test(clean)) {
-                    updateProp("code", clean);
-                }
-            });
+            // Use the new reusable icon picker
+            this.addIconPicker("Select Icon", props.code || "F0595", (v) => updateProp("code", v), widget);
 
             this.addLabeledInput("Icon Size (px)", "number", props.size || 40, (v) => {
                 let n = parseInt(v || "40", 10);
@@ -904,6 +852,19 @@ class PropertiesPanel {
             });
 
             this.addLabeledInput("Border Color", "color", props.border_color || "#0000ff", (v) => updateProp("border_color", v));
+
+            this.addSectionLabel("Icons");
+            this.addIconPicker("Normal Icon", props.icon || "", (v) => updateProp("icon", v), widget);
+            this.addIconPicker("Pressed Icon", props.icon_pressed || "", (v) => updateProp("icon_pressed", v), widget);
+            this.addHint("Leave Normal Icon empty for invisible touch area. Pressed Icon is optional.");
+
+            this.addLabeledInput("Icon Size (px)", "number", props.icon_size || 40, (v) => {
+                let n = parseInt(v || "40", 10);
+                if (Number.isNaN(n) || n < 8) n = 8;
+                updateProp("icon_size", n);
+            });
+
+            this.addSelect("Icon Color", props.icon_color || "black", colors, (v) => updateProp("icon_color", v));
         }
         else if (type === "lvgl_label") {
             this.addLabeledInput("Text", "text", props.text || "Label", (v) => updateProp("text", v));
@@ -1519,6 +1480,116 @@ class PropertiesPanel {
 
         wrap.appendChild(lbl);
         wrap.appendChild(inputRow);
+        this.panel.appendChild(wrap);
+    }
+
+    addIconPicker(label, currentValue, onSelect, widget) {
+        const iconPickerData = window.iconPickerData || [];
+        const wrap = document.createElement("div");
+        wrap.className = "field";
+        const lbl = document.createElement("div");
+        lbl.className = "prop-label";
+        lbl.textContent = label;
+        wrap.appendChild(lbl);
+
+        // Visual Select Dropdown
+        const pickerSelect = document.createElement("select");
+        pickerSelect.className = "select";
+        pickerSelect.style.fontFamily = "MDI, monospace, system-ui";
+        pickerSelect.style.fontSize = "16px";
+        pickerSelect.style.lineHeight = "1.5";
+        pickerSelect.style.width = "100%";
+        pickerSelect.style.marginBottom = "4px";
+
+        const placeholderOpt = document.createElement("option");
+        placeholderOpt.value = "";
+        placeholderOpt.textContent = "-- Quick visual picker --";
+        placeholderOpt.style.fontFamily = "system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+        pickerSelect.appendChild(placeholderOpt);
+
+        const currentCode = (currentValue || "").replace("mdi:", "").toUpperCase();
+
+        iconPickerData.forEach(icon => {
+            const opt = document.createElement("option");
+            opt.value = icon.code;
+            const cp = 0xf0000 + parseInt(icon.code.slice(1), 16);
+            const glyph = String.fromCodePoint(cp);
+            opt.textContent = glyph + "  " + icon.code + (icon.name ? ` (${icon.name})` : "");
+            opt.style.fontFamily = "MDI, monospace, system-ui";
+            if (icon.code === currentCode) {
+                opt.selected = true;
+            }
+            pickerSelect.appendChild(opt);
+        });
+
+        pickerSelect.addEventListener("change", () => {
+            if (pickerSelect.value) {
+                manualInput.value = pickerSelect.value;
+                onSelect(pickerSelect.value);
+            }
+        });
+
+        wrap.appendChild(pickerSelect);
+
+        // Manual Input Row
+        const inputRow = document.createElement("div");
+        inputRow.style.display = "flex";
+        inputRow.style.gap = "4px";
+
+        const manualInput = document.createElement("input");
+        manualInput.className = "prop-input";
+        manualInput.type = "text";
+        manualInput.placeholder = "MDI Hex (Fxxxx)";
+        manualInput.value = currentCode;
+        manualInput.style.flex = "1";
+        manualInput.style.fontFamily = "monospace";
+
+        manualInput.addEventListener("input", () => {
+            const clean = (manualInput.value || "").trim().toUpperCase().replace(/^0X/, "").replace(/^MDI:/, "");
+            if (/^F[0-9A-F]{4}$/i.test(clean)) {
+                onSelect(clean);
+                // Try to sync the select if it exists in data
+                const opt = Array.from(pickerSelect.options).find(o => o.value === clean);
+                if (opt) pickerSelect.value = clean;
+                else pickerSelect.value = "";
+            } else if (clean === "") {
+                onSelect("");
+                pickerSelect.value = "";
+            }
+        });
+
+        inputRow.appendChild(manualInput);
+
+        // Add picker button if helper exists
+        if (typeof window.openIconPickerForWidget === "function") {
+            const pickerBtn = document.createElement("button");
+            pickerBtn.className = "btn btn-secondary";
+            pickerBtn.textContent = "★";
+            pickerBtn.style.padding = "4px 8px";
+            pickerBtn.style.fontSize = "14px";
+            pickerBtn.type = "button";
+            pickerBtn.title = "Open full icon browser";
+            pickerBtn.addEventListener("click", () => {
+                window.openIconPickerForWidget(widget, manualInput, (selectedIcon) => {
+                    const iconCode = selectedIcon.replace("mdi:", "").toUpperCase();
+                    manualInput.value = iconCode;
+                    onSelect(iconCode);
+                    // Sync select
+                    const opt = Array.from(pickerSelect.options).find(o => o.value === iconCode);
+                    if (opt) pickerSelect.value = iconCode;
+                    else pickerSelect.value = "";
+                });
+            });
+            inputRow.appendChild(pickerBtn);
+        }
+
+        wrap.appendChild(inputRow);
+
+        const hint = document.createElement("div");
+        hint.className = "prop-hint";
+        hint.innerHTML = 'Browse <a href="https://pictogrammers.com/library/mdi/icon/" target="_blank" style="color: #03a9f4; text-decoration: none;">Pictogrammers MDI</a>';
+        wrap.appendChild(hint);
+
         this.panel.appendChild(wrap);
     }
 

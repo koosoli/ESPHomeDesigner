@@ -364,110 +364,136 @@ function generateSensorSection(profile, widgetSensorLines = [], displayId = "my_
     return lines;
 }
 
-function generateBinarySensorSection(profile, numPages, displayId = "my_display") {
+function generateBinarySensorSection(profile, numPages, displayId = "my_display", touchAreaWidgets = []) {
     const lines = [];
-    if (!profile.features.buttons) return lines;
+    const hasButtons = profile.features.buttons;
+    const hasTouchAreas = touchAreaWidgets.length > 0;
 
-    // CoreInk uses activity_timer script for sleep management
-    const isCoreInk = profile.name && profile.name.includes("CoreInk");
+    if (!hasButtons && !hasTouchAreas) return lines;
 
     lines.push("binary_sensor:");
-    const b = profile.pins.buttons;
 
-    if (b.left) {
-        lines.push("  - platform: gpio"); // Left Button
-        lines.push(`    pin:`);
-        if (typeof b.left === 'object') {
-            lines.push(`      number: ${b.left.number}`);
-            lines.push(`      mode: ${b.left.mode || 'INPUT_PULLUP'}`);
-            lines.push(`      inverted: ${b.left.inverted !== undefined ? b.left.inverted : true}`);
-        } else {
-            lines.push(`      number: ${b.left}`);
-            lines.push(`      mode: INPUT_PULLUP`);
-            lines.push(`      inverted: true`);
+    // 1. Physical Buttons
+    if (hasButtons) {
+        // CoreInk uses activity_timer script for sleep management
+        const isCoreInk = profile.name && profile.name.includes("CoreInk");
+        const b = profile.pins.buttons;
+
+        if (b.left) {
+            lines.push("  - platform: gpio"); // Left Button
+            lines.push(`    pin:`);
+            if (typeof b.left === 'object') {
+                lines.push(`      number: ${b.left.number}`);
+                lines.push(`      mode: ${b.left.mode || 'INPUT_PULLUP'}`);
+                lines.push(`      inverted: ${b.left.inverted !== undefined ? b.left.inverted : true}`);
+            } else {
+                lines.push(`      number: ${b.left}`);
+                lines.push(`      mode: INPUT_PULLUP`);
+                lines.push(`      inverted: true`);
+            }
+            lines.push("    name: \"Left Button\"");
+            lines.push("    id: button_left");
+            lines.push("    on_press:");
+            lines.push("      then:");
+            if (isCoreInk) {
+                // CoreInk: Simple page change with activity timer reset
+                lines.push(`        - lambda: 'if (id(display_page) > 0) id(display_page) -= 1; else id(display_page) = ${numPages - 1};'`);
+                lines.push(`        - component.update: ${displayId}`);
+                lines.push("        - script.stop: activity_timer");
+                lines.push("        - script.execute: activity_timer");
+            } else {
+                lines.push("        - if:");
+                lines.push("            condition:");
+                lines.push("              lambda: 'return id(display_page) > 0;'");
+                lines.push("            then:");
+                lines.push("              - lambda: 'id(display_page) -= 1;'");
+                lines.push(`              - component.update: ${displayId}`);
+                lines.push("            else:");
+                lines.push(`              - lambda: 'id(display_page) = ${numPages - 1};'`);
+                lines.push(`              - component.update: ${displayId}`);
+            }
         }
-        lines.push("    name: \"Left Button\"");
-        lines.push("    id: button_left");
-        lines.push("    on_press:");
-        lines.push("      then:");
-        if (isCoreInk) {
-            // CoreInk: Simple page change with activity timer reset
-            lines.push(`        - lambda: 'if (id(display_page) > 0) id(display_page) -= 1; else id(display_page) = ${numPages - 1};'`);
+
+        if (b.right) {
+            lines.push("  - platform: gpio"); // Right Button
+            lines.push(`    pin:`);
+            if (typeof b.right === 'object') {
+                lines.push(`      number: ${b.right.number}`);
+                lines.push(`      mode: ${b.right.mode || 'INPUT_PULLUP'}`);
+                lines.push(`      inverted: ${b.right.inverted !== undefined ? b.right.inverted : true}`);
+            } else {
+                lines.push(`      number: ${b.right}`);
+                lines.push(`      mode: INPUT_PULLUP`);
+                lines.push(`      inverted: true`);
+            }
+            lines.push("    name: \"Right Button\"");
+            lines.push("    id: button_right");
+            lines.push("    on_press:");
+            lines.push("      then:");
+            if (isCoreInk) {
+                // CoreInk: Simple page change with activity timer reset
+                lines.push(`        - lambda: 'if (id(display_page) < ${numPages - 1}) id(display_page) += 1; else id(display_page) = 0;'`);
+                lines.push(`        - component.update: ${displayId}`);
+                lines.push("        - script.stop: activity_timer");
+                lines.push("        - script.execute: activity_timer");
+            } else {
+                lines.push("        - if:");
+                lines.push(`            condition:`);
+                lines.push(`              lambda: 'return id(display_page) < ${numPages - 1};'`);
+                lines.push("            then:");
+                lines.push("              - lambda: 'id(display_page) += 1;'");
+                lines.push(`              - component.update: ${displayId}`);
+                lines.push("            else:");
+                lines.push("              - lambda: 'id(display_page) = 0;'");
+                lines.push(`              - component.update: ${displayId}`);
+            }
+        }
+
+        if (b.refresh) {
+            lines.push("  - platform: gpio"); // Refresh Button
+            lines.push(`    pin:`);
+            if (typeof b.refresh === 'object') {
+                lines.push(`      number: ${b.refresh.number}`);
+                lines.push(`      mode: ${b.refresh.mode || 'INPUT_PULLUP'}`);
+                lines.push(`      inverted: ${b.refresh.inverted !== undefined ? b.refresh.inverted : true}`);
+            } else {
+                lines.push(`      number: ${b.refresh}`);
+                lines.push(`      mode: INPUT_PULLUP`);
+                lines.push(`      inverted: true`);
+            }
+            // CoreInk: Middle button is "Enter", others: "Refresh"
+            const buttonName = isCoreInk ? "Enter Button" : "Refresh Button";
+            const buttonId = isCoreInk ? "button_enter" : "button_refresh";
+            lines.push(`    name: "${buttonName}"`);
+            lines.push(`    id: ${buttonId}`);
+            lines.push("    on_press:");
+            lines.push("      then:");
             lines.push(`        - component.update: ${displayId}`);
-            lines.push("        - script.stop: activity_timer");
-            lines.push("        - script.execute: activity_timer");
-        } else {
-            lines.push("        - if:");
-            lines.push("            condition:");
-            lines.push("              lambda: 'return id(display_page) > 0;'");
-            lines.push("            then:");
-            lines.push("              - lambda: 'id(display_page) -= 1;'");
-            lines.push(`              - component.update: ${displayId}`);
-            lines.push("            else:");
-            lines.push(`              - lambda: 'id(display_page) = ${numPages - 1};'`);
-            lines.push(`              - component.update: ${displayId}`);
+            if (isCoreInk) {
+                lines.push("        - script.stop: activity_timer");
+                lines.push("        - script.execute: activity_timer");
+            }
         }
     }
 
-    if (b.right) {
-        lines.push("  - platform: gpio"); // Right Button
-        lines.push(`    pin:`);
-        if (typeof b.right === 'object') {
-            lines.push(`      number: ${b.right.number}`);
-            lines.push(`      mode: ${b.right.mode || 'INPUT_PULLUP'}`);
-            lines.push(`      inverted: ${b.right.inverted !== undefined ? b.right.inverted : true}`);
-        } else {
-            lines.push(`      number: ${b.right}`);
-            lines.push(`      mode: INPUT_PULLUP`);
-            lines.push(`      inverted: true`);
-        }
-        lines.push("    name: \"Right Button\"");
-        lines.push("    id: button_right");
-        lines.push("    on_press:");
-        lines.push("      then:");
-        if (isCoreInk) {
-            // CoreInk: Simple page change with activity timer reset
-            lines.push(`        - lambda: 'if (id(display_page) < ${numPages - 1}) id(display_page) += 1; else id(display_page) = 0;'`);
-            lines.push(`        - component.update: ${displayId}`);
-            lines.push("        - script.stop: activity_timer");
-            lines.push("        - script.execute: activity_timer");
-        } else {
-            lines.push("        - if:");
-            lines.push(`            condition:`);
-            lines.push(`              lambda: 'return id(display_page) < ${numPages - 1};'`);
-            lines.push("            then:");
-            lines.push("              - lambda: 'id(display_page) += 1;'");
-            lines.push(`              - component.update: ${displayId}`);
-            lines.push("            else:");
-            lines.push("              - lambda: 'id(display_page) = 0;'");
-            lines.push(`              - component.update: ${displayId}`);
-        }
-    }
+    // 2. Touch Area Buttons
+    if (hasTouchAreas) {
+        lines.push(`  # Touch Area Binary Sensors`);
+        touchAreaWidgets.forEach(w => {
+            const safeId = (w.entity_id || `touch_area_${w.id}`).replace(/[^a-zA-Z0-9_]/g, "_");
+            const xMin = w.x;
+            const xMax = w.x + w.width;
+            const yMin = w.y;
+            const yMax = w.y + w.height;
 
-    if (b.refresh) {
-        lines.push("  - platform: gpio"); // Refresh Button
-        lines.push(`    pin:`);
-        if (typeof b.refresh === 'object') {
-            lines.push(`      number: ${b.refresh.number}`);
-            lines.push(`      mode: ${b.refresh.mode || 'INPUT_PULLUP'}`);
-            lines.push(`      inverted: ${b.refresh.inverted !== undefined ? b.refresh.inverted : true}`);
-        } else {
-            lines.push(`      number: ${b.refresh}`);
-            lines.push(`      mode: INPUT_PULLUP`);
-            lines.push(`      inverted: true`);
-        }
-        // CoreInk: Middle button is "Enter", others: "Refresh"
-        const buttonName = isCoreInk ? "Enter Button" : "Refresh Button";
-        const buttonId = isCoreInk ? "button_enter" : "button_refresh";
-        lines.push(`    name: "${buttonName}"`);
-        lines.push(`    id: ${buttonId}`);
-        lines.push("    on_press:");
-        lines.push("      then:");
-        lines.push(`        - component.update: ${displayId}`);
-        if (isCoreInk) {
-            lines.push("        - script.stop: activity_timer");
-            lines.push("        - script.execute: activity_timer");
-        }
+            lines.push(`  - platform: touchscreen`);
+            lines.push(`    id: ${safeId}`);
+            lines.push(`    touchscreen_id: my_touchscreen`);
+            lines.push(`    x_min: ${xMin}`);
+            lines.push(`    x_max: ${xMax}`);
+            lines.push(`    y_min: ${yMin}`);
+            lines.push(`    y_max: ${yMax}`);
+        });
     }
 
     lines.push("");
