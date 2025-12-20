@@ -296,7 +296,7 @@ async function generateSnippetLocally() {
     lines.push("globals:");
     lines.push("  - id: display_page");
     lines.push("    type: int");
-    lines.push("    restore_value: false");
+    lines.push("    restore_value: true");
     lines.push("    initial_value: '0'");
 
     lines.push("  - id: page_refresh_default_s");
@@ -1225,6 +1225,14 @@ async function generateSnippetLocally() {
                         needsDither = true;
                     }
 
+                    // Check border color for shapes
+                    if (t === "shape_rect" || t === "shape_circle" || t === "rounded_rect") {
+                        const bc = (p.border_color ? p.border_color.toLowerCase() : "");
+                        if (bc === "gray" || bc === "grey") {
+                            needsDither = true;
+                        }
+                    }
+
                     // Calendar specific checks
                     if (t === "calendar") {
                         const bg = (p.background_color ? p.background_color.toLowerCase() : "");
@@ -1237,13 +1245,12 @@ async function generateSnippetLocally() {
             });
 
             if (needsDither) {
-                // Dither Helper - draws a checkerboard pattern (black and white alternating)
+                // Dither Helper - draws a checkerboard pattern by erashing alternating pixels
                 lines.push("      auto apply_grey_dither_mask = [&](int x, int y, int w, int h) {");
                 lines.push("          for (int i = 0; i < w; i++) {");
                 lines.push("              for (int j = 0; j < h; j++) {");
-                lines.push("                  if ((x + i + y + j) % 2 == 0) {");
-                lines.push("                      it.draw_pixel_at(x + i, y + j, COLOR_ON);");
-                lines.push("                  } else {");
+                lines.push("                  // Subtractive dither: Punch holes on alternating pixels");
+                lines.push("                  if ((x + i + y + j) % 2 != 0) {");
                 lines.push("                      it.draw_pixel_at(x + i, y + j, COLOR_OFF);");
                 lines.push("                  }");
                 lines.push("              }");
@@ -1358,6 +1365,9 @@ async function generateSnippetLocally() {
 
                             lines.push(`        // widget:text id:${w.id} type:text x:${w.x} y:${w.y} w:${w.width} h:${w.height} text:"${text}" font_family:"${family}" font_size:${size} font_weight:${weight} italic:${italic} color:${colorProp} text_align:${align} ${getCondProps(w)}`);
                             lines.push(`        it.printf(${alignX}, ${alignY}, id(${fontId}), ${color}, ${espAlign}, "${text}");`);
+                            if (colorProp.toLowerCase() === "gray" || colorProp.toLowerCase() === "grey") {
+                                lines.push(`        apply_grey_dither_mask(${w.x}, ${w.y + TEXT_Y_OFFSET}, ${w.width}, ${w.height});`);
+                            }
 
                         } else if (t === "sensor_text") {
                             // Read all properties correctly
@@ -1403,6 +1413,9 @@ async function generateSnippetLocally() {
 
                             if (!entity) {
                                 lines.push(`        it.printf(${alignX}, ${alignY}, id(${valueFontId}), ${color}, ${espAlign}, "No Entity");`);
+                                if (colorProp.toLowerCase() === "gray" || colorProp.toLowerCase() === "grey") {
+                                    lines.push(`        apply_grey_dither_mask(${w.x}, ${w.y + TEXT_Y_OFFSET}, ${w.width}, ${w.height});`);
+                                }
                             } else {
                                 // Handle entity ID for ESPHome - sanitize for use as C++ identifier
                                 const entityId = entity.replace(/[^a-zA-Z0-9_]/g, "_");
@@ -1462,6 +1475,9 @@ async function generateSnippetLocally() {
                                     // Use single printf to respect alignment logic simply
                                     lines.push(`          // label_value format: label and value on same line`);
                                     lines.push(`          it.printf(${alignX}, ${alignY}, id(${labelFontId}), ${color}, ${espAlign}, "${title}: %s", fullValue.c_str());`);
+                                    if (colorProp.toLowerCase() === "gray" || colorProp.toLowerCase() === "grey") {
+                                        lines.push(`          apply_grey_dither_mask(${w.x}, ${w.y + TEXT_Y_OFFSET}, ${w.width}, ${w.height});`);
+                                    }
 
                                 } else if (valueFormat === "label_newline_value" && title) {
                                     // Label on first line, value on second line  
@@ -1470,10 +1486,16 @@ async function generateSnippetLocally() {
                                     lines.push(`          // label_newline_value format: label on line 1, value on line 2`);
                                     lines.push(`          it.printf(${alignX}, ${alignY}, id(${labelFontId}), ${color}, ${espAlign}, "${title}");`);
                                     lines.push(`          it.printf(${alignX}, ${alignY} + ${lineSpacing}, id(${valueFontId}), ${color}, ${espAlign}, "%s", fullValue.c_str());`);
+                                    if (colorProp.toLowerCase() === "gray" || colorProp.toLowerCase() === "grey") {
+                                        lines.push(`          apply_grey_dither_mask(${w.x}, ${w.y + TEXT_Y_OFFSET}, ${w.width}, ${w.height});`);
+                                    }
 
                                 } else {
                                     // value_only or no title - just show the value
                                     lines.push(`          it.printf(${alignX}, ${alignY}, id(${valueFontId}), ${color}, ${espAlign}, "%s", fullValue.c_str());`);
+                                    if (colorProp.toLowerCase() === "gray" || colorProp.toLowerCase() === "grey") {
+                                        lines.push(`          apply_grey_dither_mask(${w.x}, ${w.y + TEXT_Y_OFFSET}, ${w.width}, ${w.height});`);
+                                    }
                                 }
 
                                 lines.push(`        }`);
@@ -1563,7 +1585,9 @@ async function generateSnippetLocally() {
 
                                 // Draw Border if enabled
                                 if (borderEnabled) {
-                                    lines.push(`        it.rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${color});`);
+                                    lines.push(`        for (int i = 0; i < ${lineThickness}; i++) {`);
+                                    lines.push(`          it.rectangle(${w.x} + i, ${w.y} + i, ${w.width} - 2 * i, ${w.height} - 2 * i, ${color});`);
+                                    lines.push(`        }`);
                                 }
 
                                 // Draw Grid Lines if configured
@@ -1812,7 +1836,9 @@ async function generateSnippetLocally() {
                             }
 
                             if (showBorder) {
-                                lines.push(`          it.rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${borderColor});`);
+                                lines.push(`          for (int i = 0; i < ${borderWidth}; i++) {`);
+                                lines.push(`            it.rectangle(${w.x} + i, ${w.y} + i, ${w.width} - 2 * i, ${w.height} - 2 * i, ${borderColor});`);
+                                lines.push(`          }`);
                                 if (borderColorProp.toLowerCase() === 'gray') {
                                     lines.push(`          // Apply dither to border`);
                                     lines.push(`          for (int i = 0; i < ${borderWidth}; i++) {`);
@@ -1872,18 +1898,39 @@ async function generateSnippetLocally() {
                             lines.push(`              JsonDocument doc;`);
                             lines.push(`              DeserializationError error = deserializeJson(doc, id(calendar_json_${safeWidgetId}).state.c_str());`);
                             lines.push(`              if (!error) {`);
-                            lines.push(`                  JsonArray entries = doc.as<JsonArray>();`);
+                            lines.push(`                  JsonArray days = doc.as<JsonArray>();`);
                             lines.push(`                  int y_cursor = calendar_y_pos + (7 * cell_height) + 20;`);
+                            lines.push(`                  int max_y = ${w.y} + ${w.height} - 40;`);
                             lines.push(`                  it.filled_rectangle(${w.x}, y_cursor - 10, ${w.width}, 2, ${color});`);
-                            lines.push(`                  for (JsonVariant entry : entries) {`);
-                            lines.push(`                      if (y_cursor > ${w.y} + ${w.height} - 40) break;`);
-                            lines.push(`                      const char* summary = entry["summary"];`);
-                            lines.push(`                      const char* start = entry["start"];`);
-                            lines.push(`                      it.printf(${w.x} + 20, y_cursor, id(${fontEventDay}), ${color}, TextAlign::TOP_LEFT, "%d", entry["day"].as<int>());`);
-                            lines.push(`                      it.printf(${w.x} + 60, y_cursor, id(${fontEvent}), ${color}, TextAlign::TOP_LEFT, "%.15s...", summary);`);
-                            lines.push(`                      std::string timeStr = extract_time(start);`);
-                            lines.push(`                      it.printf(${w.x} + ${w.width} - 10, y_cursor, id(${fontEvent}), ${color}, TextAlign::TOP_RIGHT, "%s", timeStr.c_str());`);
-                            lines.push(`                      y_cursor += 40;`);
+                            lines.push(`                  for (JsonVariant dayEntry : days) {`);
+                            lines.push(`                      if (y_cursor > max_y) break;`);
+                            lines.push(`                      int currentDayNum = dayEntry["day"].as<int>();`);
+                            lines.push(`                      auto draw_row = [&](JsonVariant event, bool is_all_day) {`);
+                            lines.push(`                          if (y_cursor > max_y) return;`);
+                            lines.push(`                          const char* summary = event["summary"];`);
+                            lines.push(`                          const char* start = event["start"];`);
+                            lines.push(`                          it.printf(${w.x} + 20, y_cursor, id(${fontEventDay}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
+                            lines.push(`                          it.printf(${w.x} + 60, y_cursor, id(${fontEvent}), ${color}, TextAlign::TOP_LEFT, "%.15s...", summary);`);
+                            lines.push(`                          if (is_all_day) {`);
+                            lines.push(`                              it.printf(${w.x} + ${w.width} - 10, y_cursor, id(${fontEvent}), ${color}, TextAlign::TOP_RIGHT, "All Day");`);
+                            lines.push(`                          } else {`);
+                            lines.push(`                              std::string timeStr = extract_time(start);`);
+                            lines.push(`                              it.printf(${w.x} + ${w.width} - 10, y_cursor, id(${fontEvent}), ${color}, TextAlign::TOP_RIGHT, "%s", timeStr.c_str());`);
+                            lines.push(`                          }`);
+                            lines.push(`                          y_cursor += 40;`);
+                            lines.push(`                      };`);
+                            lines.push(`                      if (dayEntry.containsKey("all_day")) {`);
+                            lines.push(`                          for (JsonVariant event : dayEntry["all_day"].as<JsonArray>()) {`);
+                            lines.push(`                              draw_row(event, true);`);
+                            lines.push(`                              if (y_cursor > max_y) break;`);
+                            lines.push(`                          }`);
+                            lines.push(`                      }`);
+                            lines.push(`                      if (dayEntry.containsKey("other")) {`);
+                            lines.push(`                          for (JsonVariant event : dayEntry["other"].as<JsonArray>()) {`);
+                            lines.push(`                              draw_row(event, false);`);
+                            lines.push(`                              if (y_cursor > max_y) break;`);
+                            lines.push(`                          }`);
+                            lines.push(`                      }`);
                             lines.push(`                  }`);
                             lines.push(`              }`);
                             lines.push(`              return true;`);
@@ -2022,6 +2069,9 @@ async function generateSnippetLocally() {
                                     lines.push(`          }`);
                                 }
                             }
+                            if (colorProp.toLowerCase() === "gray" || colorProp.toLowerCase() === "grey") {
+                                lines.push(`        apply_grey_dither_mask(${w.x}, ${w.y}, ${w.width}, ${w.height});`);
+                            }
                             lines.push(`        }`);
 
                         } else if (t === "weather_forecast") {
@@ -2088,6 +2138,9 @@ async function generateSnippetLocally() {
                                 }
                                 lines.push(`          }`);
                             }
+                            if (colorProp.toLowerCase() === "gray" || colorProp.toLowerCase() === "grey") {
+                                lines.push(`        apply_grey_dither_mask(${w.x}, ${w.y}, ${w.width}, ${w.height});`);
+                            }
                             lines.push(`        }`);
 
                         } else if (t === "rounded_rect") {
@@ -2096,25 +2149,27 @@ async function generateSnippetLocally() {
                             const r = parseInt(p.radius || 10, 10);
                             const thickness = parseInt(p.border_width || 4, 10);
                             const colorProp = p.color || "black";
+                            const borderColorProp = p.border_color || (fill ? "black" : colorProp);
                             const color = getColorConst(colorProp);
+                            const borderColor = getColorConst(borderColorProp);
                             const isGray = colorProp.toLowerCase() === "gray";
                             const rrectY = w.y + RECT_Y_OFFSET;
-                            lines.push(`        // widget:rounded_rect id:${w.id} type:rounded_rect x:${w.x} y:${w.y} w:${w.width} h:${w.height} fill:${fill} show_border:${showBorder} border:${thickness} radius:${r} color:${colorProp} ${getCondProps(w)}`);
+                            lines.push(`        // widget:rounded_rect id:${w.id} type:rounded_rect x:${w.x} y:${w.y} w:${w.width} h:${w.height} fill:${fill} show_border:${showBorder} border:${thickness} radius:${r} color:${colorProp} border_color:${borderColorProp} ${getCondProps(w)}`);
                             lines.push(`        {`);
                             lines.push(`          auto draw_rrect = [&](int x, int y, int w, int h, int r, auto c) {`);
                             lines.push(`            it.filled_rectangle(x + r, y, w - 2 * r, h, c);`);
                             lines.push(`            it.filled_rectangle(x, y + r, r, h - 2 * r, c);`);
                             lines.push(`            it.filled_rectangle(x + w - r, y + r, r, h - 2 * r, c);`);
                             lines.push(`            it.filled_circle(x + r, y + r, r, c);`);
-                            lines.push(`            it.filled_circle(x + w - r, y + r, r, c);`);
-                            lines.push(`            it.filled_circle(x + r, y + h - r, r, c);`);
-                            lines.push(`            it.filled_circle(x + w - r, y + h - r, r, c);`);
+                            lines.push(`            it.filled_circle(x + w - r - 1, y + r, r, c);`);
+                            lines.push(`            it.filled_circle(x + r, y + h - r - 1, r, c);`);
+                            lines.push(`            it.filled_circle(x + w - r - 1, y + h - r - 1, r, c);`);
                             lines.push(`          };`);
 
                             if (fill) {
                                 let fx = w.x, fy = rrectY, fw = w.width, fh = w.height, fr = r;
                                 if (showBorder) {
-                                    lines.push(`          draw_rrect(${w.x}, ${rrectY}, ${w.width}, ${w.height}, ${r}, ${color});`);
+                                    lines.push(`          draw_rrect(${w.x}, ${rrectY}, ${w.width}, ${w.height}, ${r}, ${borderColor});`);
                                     fx += thickness; fy += thickness; fw -= 2 * thickness; fh -= 2 * thickness; fr -= thickness;
                                     if (fr < 0) fr = 0;
                                 }
@@ -2131,7 +2186,7 @@ async function generateSnippetLocally() {
                                     if (fw > 0 && fh > 0) lines.push(`          draw_rrect(${fx}, ${fy}, ${fw}, ${fh}, ${fr}, ${color});`);
                                 }
                             } else {
-                                lines.push(`          draw_rrect(${w.x}, ${rrectY}, ${w.width}, ${w.height}, ${r}, ${color});`);
+                                lines.push(`          draw_rrect(${w.x}, ${rrectY}, ${w.width}, ${w.height}, ${r}, ${borderColor});`);
                                 // Erase center
                                 let t = thickness;
                                 let ir = r - t; if (ir < 0) ir = 0;
@@ -2139,16 +2194,21 @@ async function generateSnippetLocally() {
                                 // Backup used specific bg.
                                 lines.push(`          draw_rrect(${w.x + t}, ${rrectY + t}, ${w.width - 2 * t}, ${w.height - 2 * t}, ${ir}, COLOR_OFF);`);
                             }
+                            if (borderColorProp.toLowerCase() === "gray" && (showBorder || !fill)) {
+                                lines.push(`          apply_grey_dither_mask(${w.x}, ${rrectY}, ${w.width}, ${w.height});`);
+                            }
                             lines.push(`        }`);
 
                         } else if (t === "shape_rect") {
                             const fill = !!p.fill;
                             const borderWidth = parseInt(p.border_width || 1, 10);
                             const colorProp = p.color || "black";
+                            const borderColorProp = p.border_color || colorProp;
                             const color = getColorConst(colorProp);
+                            const borderColor = getColorConst(borderColorProp);
                             const isGray = colorProp.toLowerCase() === "gray";
                             const rectY = w.y + RECT_Y_OFFSET;
-                            lines.push(`        // widget:shape_rect id:${w.id} type:shape_rect x:${w.x} y:${w.y} w:${w.width} h:${w.height} fill:${fill} border:${borderWidth} color:${colorProp} ${getCondProps(w)}`);
+                            lines.push(`        // widget:shape_rect id:${w.id} type:shape_rect x:${w.x} y:${w.y} w:${w.width} h:${w.height} fill:${fill} border:${borderWidth} color:${colorProp} border_color:${borderColorProp} ${getCondProps(w)}`);
                             if (fill) {
                                 if (isGray) {
                                     lines.push(`        apply_grey_dither_mask(${w.x}, ${rectY}, ${w.width}, ${w.height});`);
@@ -2156,8 +2216,12 @@ async function generateSnippetLocally() {
                                     lines.push(`        it.filled_rectangle(${w.x}, ${rectY}, ${w.width}, ${w.height}, ${color});`);
                                 }
                             } else {
-                                for (let i = 0; i < borderWidth; i++)
-                                    lines.push(`        it.rectangle(${w.x}+${i}, ${rectY}+${i}, ${w.width}-2*${i}, ${w.height}-2*${i}, ${color});`);
+                                lines.push(`        for (int i = 0; i < ${borderWidth}; i++) {`);
+                                lines.push(`          it.rectangle(${w.x} + i, ${rectY} + i, ${w.width} - 2 * i, ${w.height} - 2 * i, ${borderColor});`);
+                                lines.push(`        }`);
+                            }
+                            if (borderColorProp.toLowerCase() === "gray" && !fill) {
+                                lines.push(`        apply_grey_dither_mask(${w.x}, ${rectY}, ${w.width}, ${w.height});`);
                             }
 
                         } else if (t === "shape_circle") {
@@ -2167,9 +2231,11 @@ async function generateSnippetLocally() {
                             const fill = !!p.fill;
                             const borderWidth = parseInt(p.border_width || 1, 10);
                             const colorProp = p.color || "black";
+                            const borderColorProp = p.border_color || colorProp;
                             const color = getColorConst(colorProp);
+                            const borderColor = getColorConst(borderColorProp);
                             const isGray = colorProp.toLowerCase() === "gray";
-                            lines.push(`        // widget:shape_circle id:${w.id} type:shape_circle x:${w.x} y:${w.y} w:${w.width} h:${w.height} fill:${fill} border:${borderWidth} color:${colorProp} ${getCondProps(w)}`);
+                            lines.push(`        // widget:shape_circle id:${w.id} type:shape_circle x:${w.x} y:${w.y} w:${w.width} h:${w.height} fill:${fill} border:${borderWidth} color:${colorProp} border_color:${borderColorProp} ${getCondProps(w)}`);
                             if (fill) {
                                 if (isGray) {
                                     // circle dither
@@ -2179,8 +2245,12 @@ async function generateSnippetLocally() {
                                     lines.push(`        it.filled_circle(${cx}, ${cy}, ${r}, ${color});`);
                                 }
                             } else {
-                                for (let i = 0; i < borderWidth; i++)
-                                    lines.push(`        it.circle(${cx}, ${cy}, ${r}-${i}, ${color});`);
+                                lines.push(`        for (int i = 0; i < ${borderWidth}; i++) {`);
+                                lines.push(`          it.circle(${cx}, ${cy}, ${r} - i, ${borderColor});`);
+                                lines.push(`        }`);
+                            }
+                            if (borderColorProp.toLowerCase() === "gray" && !fill) {
+                                lines.push(`        apply_grey_dither_mask(${w.x}, ${w.y + RECT_Y_OFFSET}, ${w.width}, ${w.height});`);
                             }
 
                         } else if (t === "datetime") {
@@ -2211,14 +2281,17 @@ async function generateSnippetLocally() {
                             if (format === "time_only") {
                                 lines.push(`          it.strftime(${xPos}, ${w.y}, id(${timeFontId}), ${color}, ${espAlign}, "%H:%M", now);`);
                             } else if (format === "date_only") {
-                                lines.push(`          it.strftime(${xPos}, ${w.y}, id(${dateFontId}), ${color}, ${espAlign}, "%a, %b %d", now);`);
+                                lines.push(`          it.strftime(${xPos}, ${w.y}, id(${dateFontId}), ${color}, ${espAlign}, "%d.%m.%Y", now);`);
                             } else if (format === "weekday_day_month") {
                                 lines.push(`          it.strftime(${xPos}, ${w.y}, id(${dateFontId}), ${color}, ${espAlign}, "%A %d %B", now);`);
                             } else {
                                 lines.push(`          it.strftime(${xPos}, ${w.y}, id(${timeFontId}), ${color}, ${espAlign}, "%H:%M", now);`);
-                                lines.push(`          it.strftime(${xPos}, ${w.y} + ${timeSize} + 4, id(${dateFontId}), ${color}, ${espAlign}, "%a, %b %d", now);`);
+                                lines.push(`          it.strftime(${xPos}, ${w.y} + ${timeSize} + 2, id(${dateFontId}), ${color}, ${espAlign}, "%d.%m.%Y", now);`);
                             }
                             lines.push(`        }`);
+                            if (colorProp.toLowerCase() === "gray" || colorProp.toLowerCase() === "grey") {
+                                lines.push(`        apply_grey_dither_mask(${w.x}, ${w.y + RECT_Y_OFFSET}, ${w.width}, ${w.height});`);
+                            }
 
                         } else if (t === "image" || t === "online_image" || t === "puppet") {
                             const path = (p.path || "").trim();
@@ -2559,6 +2632,7 @@ function generateScriptSection(payload, pagesLocal, profile = {}) {
 
     if (payload.deep_sleep_enabled || profile.model === "m5stack_coreink" || (profile.name && profile.name.includes("CoreInk"))) {
         lines.push("            - lambda: 'id(deep_sleep_1).set_sleep_duration(id(page_refresh_current_s) * 1000);'");
+        lines.push("            - delay: 8s # Ensure display refresh completes");
         lines.push("            - deep_sleep.enter: deep_sleep_1");
     } else {
         lines.push("            - delay: !lambda 'return id(page_refresh_current_s) * 1000;'");

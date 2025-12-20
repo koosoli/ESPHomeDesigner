@@ -6,7 +6,8 @@
         const color = props.color || "black";
 
         el.style.backgroundColor = props.fill ? getColorStyle(color) : "transparent";
-        const borderColor = (props.fill && (props.show_border || props.show_border === "true" || props.show_border === true)) ? "black" : getColorStyle(color);
+        const bCol = props.border_color || (props.fill ? "black" : color);
+        const borderColor = (props.fill && !(props.show_border || props.show_border === "true" || props.show_border === true)) ? getColorStyle(color) : getColorStyle(props.border_color || (props.fill ? "black" : color));
         el.style.border = `${borderWidth}px solid ${borderColor}`;
         el.style.borderRadius = `${radius}px`;
         el.style.boxSizing = "border-box";

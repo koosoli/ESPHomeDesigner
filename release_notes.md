@@ -4,20 +4,37 @@
 
 
 
-## v0.7.5 - Modular Profiles & Enhancements
+## v0.7.5 - Enhanced UI & Modular Profiles
 
-**Release Date:** December 19, 2025
+**Release Date:** December 20, 2025
 
 ### 🎉 New Features
+- **Modern Canvas Interaction**: Complete overhaul of canvas navigation. Now you can use the mouse wheel to zoom into the canvas or drag-move the canvas with the middle mouse button.
+- **Drag & Drop Workflow**: Widgets in the sidebar can now be dragged directly onto the canvas for intuitive placement, in addition to being clickable.
 - **RGB Color Picker**: Added a full RGB color picker for LVGL widgets, allowing for more precise UI design.
+- **New Widgets**: 
+    - Added several new **LVGL widgets** to the designer.
+    - Introduced a non-LVGL **Touch Area** widget for interactive regions (Note: remains currently untested).
+- **Border Styling**: Added the possibility to apply border colors for squares and circles.
 - **Modular Hardware Profiles**: Implemented support for loading hardware profiles from plain YAML files (package-based). This enables seamless profile sharing with the [esphome-modular-lvgl-buttons](https://github.com/agillis/esphome-modular-lvgl-buttons/) project. Big thank you to [agillis](https://github.com/agillis/) for these awesome profiles!
 
 ### 🐛 Bug Fixes
-- **Calendar Widget Compiler Error**: Fixed a critical issue where adding multiple calendar widgets would cause a C++ compiler error due to duplicate variable declarations.
+- **Date/Time Widget Improvements**:
+    - Fixed an issue where the widget would occasionally insert duplicate code into the YAML.
+    - Fixed font size property persistence so settings are correctly restored when updating layout from YAML.
+- **Fullscreen YAML Editor**: Fixed a bug where one could only click once on the full screen YAML and never again after opening it.
+- **Icon Rendering**: Fixed a bug where gray icons would result in solid squares when flashed on device due to dithering logic issues.
+- **Alignment Fixes**: Removed the legacy 15px vertical offset for shapes to ensure they render exactly where they appear on the canvas.
+- **Calendar Widget**: Various improvements to rendering, performance, and stability.
+- **Rounded Rectangles**: Improved the rendering of rounded rectangles to look much nicer when flashed to a physical device.
 - **TRMNL DIY Battery**: Fixed incorrect battery level and voltage readings for the TRMNL DIY (ESP32-S3) hardware by implementing a proper 12-point calibration curve.
 - **M5CoreInk Profile Refinement**: Fixed several issues in the M5CoreInk profile, including battery calibration and button logic.
 
 ### 🔧 Architectural Changes
+- **Live YAML Generation**: Removed the "Generate YAML" button as it has become redundant; YAML is now generated on the fly as you design.
+- **Optimized Device List**: Cleaned up the device list, regrouped by manufacturer with clearer device names.
+- **Efficient YAML Output**: Improved the gray dither logic to produce significantly less YAML code by using C++ `for` loops.
+- **Mobile Support**: Added support for smaller screens like mobile phones, with a more responsive UI (Note: drag and drop behavior on touch devices is not yet fully tested).
 - **Hybrid Profile Solution**: Implemented a hybrid loading system. While new LCD profiles are fetched as YAML packages, legacy E-Ink profiles (M5Paper, CoreInk, TRMNL) are still served via built-in JS definitions.
 - **Online/Standalone Warning**: Note that due to browser security restrictions, package-based profiles require the application to be served via a web server (like Home Assistant) and will show a warning in the standalone offline version (`file://`).
 

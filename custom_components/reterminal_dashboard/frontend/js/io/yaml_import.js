@@ -321,10 +321,16 @@ function parseSnippetYamlOffline(yamlText) {
                     };
                     widget.entity_id_2 = p.entity_2 || "";
                 } else if (widgetType === "datetime") {
+                    // Fix size persistence for datetime: use 200x60 defaults if missing, instead of generic 100x30
+                    widget.width = parseInt(p.w || 200, 10);
+                    widget.height = parseInt(p.h || 60, 10);
+
                     widget.props = {
                         format: p.format || "time_date",
-                        time_font_size: parseInt(p.time_font || 28, 10),
-                        date_font_size: parseInt(p.date_font || 16, 10),
+                        // Support both p.time_font (import) and p.time_size (export)
+                        time_font_size: parseInt(p.time_size || p.time_font || 28, 10),
+                        // Support both p.date_font (import) and p.date_size (export)
+                        date_font_size: parseInt(p.date_size || p.date_font || 16, 10),
                         color: p.color || "black",
                         italic: (p.italic === "true" || p.italic === true || p.font_style === "italic"),
                         font_family: p.font_family || "Roboto",
@@ -387,6 +393,7 @@ function parseSnippetYamlOffline(yamlText) {
                         fill: (p.fill === "true" || p.fill === "1"),
                         border_width: parseInt(p.border || 1, 10),
                         color: p.color || "black",
+                        border_color: p.border_color || p.color || "black",
                         opacity: parseInt(p.opacity || 100, 10)
                     };
                 } else if (widgetType === "touch_area") {
@@ -403,6 +410,7 @@ function parseSnippetYamlOffline(yamlText) {
                         border_width: parseInt(p.border || 4, 10),
                         radius: parseInt(p.radius || 10, 10),
                         color: p.color || "black",
+                        border_color: p.border_color || "black",
                         opacity: parseInt(p.opacity || 100, 10)
                     };
                 } else if (widgetType === "shape_circle") {
@@ -410,6 +418,7 @@ function parseSnippetYamlOffline(yamlText) {
                         fill: (p.fill === "true" || p.fill === "1"),
                         border_width: parseInt(p.border || 1, 10),
                         color: p.color || "black",
+                        border_color: p.border_color || p.color || "black",
                         opacity: parseInt(p.opacity || 100, 10)
                     };
                 } else if (widgetType === "line") {

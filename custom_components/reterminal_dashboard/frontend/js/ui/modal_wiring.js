@@ -5,58 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("[ModalWiring] Initializing modal buttons...");
 
     // === Fullscreen Snippet Modal ===
-    const fullscreenSnippetBtn = document.getElementById('fullscreenSnippetBtn');
-    const snippetFullscreenModal = document.getElementById('snippetFullscreenModal');
-    const snippetFullscreenContent = document.getElementById('snippetFullscreenContent');
-    const snippetFullscreenClose = document.getElementById('snippetFullscreenClose');
-    const snippetBox = document.getElementById('snippetBox');
-
-    if (fullscreenSnippetBtn) {
-        fullscreenSnippetBtn.onclick = () => {
-            console.log("[ModalWiring] Opening fullscreen snippet modal");
-
-            // Create or update textarea
-            let textarea = snippetFullscreenContent.querySelector("textarea");
-            if (!textarea) {
-                snippetFullscreenContent.innerHTML = "";
-                textarea = document.createElement("textarea");
-                textarea.style.width = "100%";
-                textarea.style.height = "calc(100vh - 150px)";
-                textarea.style.fontFamily = "monospace";
-                textarea.style.padding = "10px";
-                textarea.style.boxSizing = "border-box";
-                textarea.style.resize = "none";
-                textarea.value = snippetBox.value || "";
-                snippetFullscreenContent.appendChild(textarea);
-
-                // Add update button to modal footer
-                const footer = snippetFullscreenModal.querySelector(".modal-footer");
-                if (footer && !footer.querySelector("#fullscreenUpdateBtn")) {
-                    const updateBtn = document.createElement("button");
-                    updateBtn.id = "fullscreenUpdateBtn";
-                    updateBtn.className = "btn btn-primary";
-                    updateBtn.textContent = "Update Layout from YAML";
-                    updateBtn.onclick = () => {
-                        snippetBox.value = textarea.value;
-                        const updateLayoutBtn = document.getElementById('updateLayoutBtn');
-                        if (updateLayoutBtn) updateLayoutBtn.click();
-                        snippetFullscreenModal.classList.add("hidden");
-                    };
-                    footer.insertBefore(updateBtn, footer.firstChild);
-                }
-            } else {
-                textarea.value = snippetBox.value || "";
-            }
-
-            snippetFullscreenModal.classList.remove("hidden");
-        };
-    }
-
-    if (snippetFullscreenClose) {
-        snippetFullscreenClose.onclick = () => {
-            snippetFullscreenModal.classList.add("hidden");
-        };
-    }
+    // Note: Wiring for fullscreenSnippetBtn and snippetFullscreenClose is handled in main.js
+    // to avoid redundancy and conflicting styles.
 
     // === Device Settings Modal ===
     const deviceSettingsBtn = document.getElementById('deviceSettingsBtn');

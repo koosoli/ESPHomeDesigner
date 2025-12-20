@@ -96,13 +96,6 @@ class App {
             loadLayoutBtn.addEventListener('change', handleFileSelect);
         }
 
-        // Generate Snippet Button (Modal)
-        const generateSnippetBtn = document.getElementById('generateSnippetBtn');
-        if (generateSnippetBtn) {
-            generateSnippetBtn.addEventListener('click', () => {
-                this.openSnippetModal();
-            });
-        }
 
         const fullscreenSnippetBtn = document.getElementById('fullscreenSnippetBtn');
         if (fullscreenSnippetBtn) {
@@ -117,7 +110,6 @@ class App {
                 const modal = document.getElementById('snippetFullscreenModal');
                 if (modal) {
                     modal.classList.add('hidden');
-                    modal.style.display = 'none';
                 }
             });
         }
@@ -303,6 +295,7 @@ class App {
             }
         }
         textarea.value = snippetBox.value || "";
+        modal.style.display = ""; // Clear any inline display: none
         modal.classList.remove('hidden');
     }
 

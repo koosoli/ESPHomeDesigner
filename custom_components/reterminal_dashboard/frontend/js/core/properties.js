@@ -251,6 +251,7 @@ class PropertiesPanel {
             this.addCheckbox("Fill", props.fill || false, (v) => updateProp("fill", v));
             this.addLabeledInput("Border Width", "number", props.border_width || 1, (v) => updateProp("border_width", parseInt(v, 10)));
             this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addSelect("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
         }
         else if (type === "rounded_rect") {
             this.addCheckbox("Fill", props.fill || false, (v) => updateProp("fill", v));
@@ -260,6 +261,7 @@ class PropertiesPanel {
             this.addLabeledInput("Border Width", "number", props.border_width || 4, (v) => updateProp("border_width", parseInt(v, 10)));
             this.addLabeledInput("Corner Radius", "number", props.radius || 10, (v) => updateProp("radius", parseInt(v, 10)));
             this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addSelect("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
         }
         else if (type === "line") {
             this.addSelect("Orientation", props.orientation || "horizontal", ["horizontal", "vertical"], (v) => {

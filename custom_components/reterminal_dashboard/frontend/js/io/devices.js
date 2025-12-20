@@ -7,6 +7,9 @@
 // ============================================================================
 
 window.DEVICE_PROFILES = {
+  // ========================================================================
+  // SEEED STUDIO DEVICES
+  // ========================================================================
   reterminal_e1001: {
     name: "Seeedstudio reTerminal E1001 (Monochrome)",
     displayModel: "7.50inv2p",
@@ -63,33 +66,6 @@ window.DEVICE_PROFILES = {
       sht4x: true
     }
   },
-  trmnl: {
-    name: "TRMNL (ESP32-C3)",
-    displayModel: "7.50inv2",
-    displayPlatform: "waveshare_epaper",
-    resolution: { width: 800, height: 480 },
-    shape: "rect",
-    pins: {
-      display: { cs: "GPIO6", dc: "GPIO5", reset: { number: "GPIO10", inverted: false }, busy: { number: "GPIO4", inverted: true } },
-      i2c: { sda: "GPIO1", scl: "GPIO2" },
-      spi: { clk: "GPIO7", mosi: "GPIO8" },
-      batteryEnable: null,
-      batteryAdc: "GPIO0",
-      buzzer: null,
-      buttons: null
-    },
-    battery: {
-      attenuation: "11db",
-      multiplier: 2.0,
-      calibration: { min: 3.30, max: 4.15 }
-    },
-    features: {
-      psram: false,
-      buzzer: false,
-      buttons: false,
-      sht4x: false
-    }
-  },
   trmnl_diy_esp32s3: {
     name: "Seeed Studio Trmnl DIY Kit (ESP32-S3)",
     displayModel: "7.50inv2p",
@@ -132,6 +108,90 @@ window.DEVICE_PROFILES = {
       sht4x: false
     }
   },
+  trmnl: {
+    name: "TRMNL (ESP32-C3)",
+    displayModel: "7.50inv2",
+    displayPlatform: "waveshare_epaper",
+    resolution: { width: 800, height: 480 },
+    shape: "rect",
+    pins: {
+      display: { cs: "GPIO6", dc: "GPIO5", reset: { number: "GPIO10", inverted: false }, busy: { number: "GPIO4", inverted: true } },
+      i2c: { sda: "GPIO1", scl: "GPIO2" },
+      spi: { clk: "GPIO7", mosi: "GPIO8" },
+      batteryEnable: null,
+      batteryAdc: "GPIO0",
+      buzzer: null,
+      buttons: null
+    },
+    battery: {
+      attenuation: "11db",
+      multiplier: 2.0,
+      calibration: { min: 3.30, max: 4.15 }
+    },
+    features: {
+      psram: false,
+      buzzer: false,
+      buttons: false,
+      sht4x: false
+    }
+  },
+
+  // ========================================================================
+  // WAVESHARE DEVICES
+  // ========================================================================
+  esp32_s3_photopainter: {
+    name: "Waveshare PhotoPainter (6-Color)",
+    displayModel: "7.30in-f",
+    displayPlatform: "waveshare_epaper",
+    resolution: { width: 800, height: 480 },
+    shape: "rect",
+    psram_mode: "octal",
+    pins: {
+      display: { cs: "GPIO9", dc: "GPIO8", reset: "GPIO12", busy: { number: "GPIO13", inverted: true } },
+      i2c: { sda: "GPIO47", scl: "GPIO48" },
+      spi: { clk: "GPIO10", mosi: "GPIO11" },
+      batteryEnable: null,
+      batteryAdc: null,
+      buzzer: null,
+      buttons: { left: "GPIO0", right: "GPIO4", refresh: null }
+    },
+    battery: {
+      attenuation: "0db",
+      multiplier: 1.0,
+      calibration: { min: 3.30, max: 4.20 }
+    },
+    features: {
+      psram: true,
+      buzzer: false,
+      buttons: true,
+      sht4x: false,
+      axp2101: true,
+      manual_pmic: true,
+      shtc3: true
+    },
+    i2c_config: {
+      scan: false,
+      frequency: "10kHz"
+    }
+  },
+  waveshare_esp32_s3_touch_lcd_7: {
+    name: "Waveshare Touch LCD 7 7.0\" 800x480",
+    isPackageBased: true,
+    hardwarePackage: "hardware/waveshare-esp32-s3-touch-lcd-7.yaml",
+    resolution: { width: 800, height: 480 },
+    features: { psram: true, buzzer: false, buttons: false, lcd: true }
+  },
+  waveshare_esp32_s3_touch_lcd_4_3: {
+    name: "Waveshare Touch LCD 4.3 4.3\" 800x480",
+    isPackageBased: true,
+    hardwarePackage: "hardware/waveshare-esp32-s3-touch-lcd-4.3.yaml",
+    resolution: { width: 800, height: 480 },
+    features: { psram: true, buzzer: false, buttons: false, lcd: true }
+  },
+
+  // ========================================================================
+  // OTHER DEVICES
+  // ========================================================================
   m5stack_coreink: {
     name: "M5Stack CoreInk (200x200)",
     displayModel: "1.54inv2",
@@ -214,41 +274,7 @@ window.DEVICE_PROFILES = {
       "  - source: github://Passific/m5paper_esphome"
     ]
   },
-  esp32_s3_photopainter: {
-    name: "Waveshare PhotoPainter (6-Color)",
-    displayModel: "7.30in-f",
-    displayPlatform: "waveshare_epaper",
-    resolution: { width: 800, height: 480 },
-    shape: "rect",
-    psram_mode: "octal",
-    pins: {
-      display: { cs: "GPIO9", dc: "GPIO8", reset: "GPIO12", busy: { number: "GPIO13", inverted: true } },
-      i2c: { sda: "GPIO47", scl: "GPIO48" },
-      spi: { clk: "GPIO10", mosi: "GPIO11" },
-      batteryEnable: null,
-      batteryAdc: null,
-      buzzer: null,
-      buttons: { left: "GPIO0", right: "GPIO4", refresh: null }
-    },
-    battery: {
-      attenuation: "0db",
-      multiplier: 1.0,
-      calibration: { min: 3.30, max: 4.20 }
-    },
-    features: {
-      psram: true,
-      buzzer: false,
-      buttons: true,
-      sht4x: false,
-      axp2101: true,
-      manual_pmic: true,
-      shtc3: true
-    },
-    i2c_config: {
-      scan: false,
-      frequency: "10kHz"
-    }
-  },
+
   // ========================================================================
   // PACKAGE-BASED LCD DEVICES (Online Only - Runtime Fetch)
   // These profiles reference YAML files in frontend/hardware/*.yaml
@@ -319,22 +345,6 @@ window.DEVICE_PROFILES = {
     isPackageBased: true,
     hardwarePackage: "hardware/sunton-esp32-4827s032R.yaml",
     resolution: { width: 480, height: 272 },
-    features: { psram: true, buzzer: false, buttons: false, lcd: true }
-  },
-
-  // --- Waveshare Devices ---
-  waveshare_esp32_s3_touch_lcd_7: {
-    name: "Waveshare Touch LCD 7 7.0\" 800x480",
-    isPackageBased: true,
-    hardwarePackage: "hardware/waveshare-esp32-s3-touch-lcd-7.yaml",
-    resolution: { width: 800, height: 480 },
-    features: { psram: true, buzzer: false, buttons: false, lcd: true }
-  },
-  waveshare_esp32_s3_touch_lcd_4_3: {
-    name: "Waveshare Touch LCD 4.3 4.3\" 800x480",
-    isPackageBased: true,
-    hardwarePackage: "hardware/waveshare-esp32-s3-touch-lcd-4.3.yaml",
-    resolution: { width: 800, height: 480 },
     features: { psram: true, buzzer: false, buttons: false, lcd: true }
   },
 
