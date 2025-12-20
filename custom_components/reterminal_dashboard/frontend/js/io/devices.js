@@ -11,6 +11,8 @@ window.DEVICE_PROFILES = {
     name: "Seeedstudio reTerminal E1001 (Monochrome)",
     displayModel: "7.50inv2p",
     displayPlatform: "waveshare_epaper",
+    resolution: { width: 800, height: 480 },
+    shape: "rect",
     psram_mode: "octal",
     pins: {
       display: { cs: "GPIO10", dc: "GPIO11", reset: { number: "GPIO12", inverted: false }, busy: { number: "GPIO13", inverted: true } },
@@ -37,6 +39,8 @@ window.DEVICE_PROFILES = {
     name: "Seeedstudio reTerminal E1002 (6-Color)",
     displayModel: "Seeed-reTerminal-E1002",
     displayPlatform: "epaper_spi",
+    resolution: { width: 800, height: 480 },
+    shape: "rect",
     psram_mode: "octal",
     pins: {
       display: { cs: null, dc: null, reset: null, busy: null },
@@ -63,6 +67,8 @@ window.DEVICE_PROFILES = {
     name: "TRMNL (ESP32-C3)",
     displayModel: "7.50inv2",
     displayPlatform: "waveshare_epaper",
+    resolution: { width: 800, height: 480 },
+    shape: "rect",
     pins: {
       display: { cs: "GPIO6", dc: "GPIO5", reset: { number: "GPIO10", inverted: false }, busy: { number: "GPIO4", inverted: true } },
       i2c: { sda: "GPIO1", scl: "GPIO2" },
@@ -88,6 +94,8 @@ window.DEVICE_PROFILES = {
     name: "Seeed Studio Trmnl DIY Kit (ESP32-S3)",
     displayModel: "7.50inv2p",
     displayPlatform: "waveshare_epaper",
+    resolution: { width: 800, height: 480 },
+    shape: "rect",
     psram_mode: "octal",
     pins: {
       display: { cs: "GPIO44", dc: "GPIO10", reset: "GPIO38", busy: { number: "GPIO4", inverted: true } },
@@ -129,6 +137,7 @@ window.DEVICE_PROFILES = {
     displayModel: "1.54inv2",
     displayPlatform: "waveshare_epaper",
     resolution: { width: 200, height: 200 },
+    shape: "rect",
     features: {
       psram: false,
       buzzer: true,
@@ -162,6 +171,7 @@ window.DEVICE_PROFILES = {
     displayModel: "M5Paper",
     displayPlatform: "it8951e",
     resolution: { width: 540, height: 960 },
+    shape: "rect",
     features: {
       psram: true,
       buzzer: false,
@@ -208,6 +218,8 @@ window.DEVICE_PROFILES = {
     name: "Waveshare PhotoPainter (6-Color)",
     displayModel: "7.30in-f",
     displayPlatform: "waveshare_epaper",
+    resolution: { width: 800, height: 480 },
+    shape: "rect",
     psram_mode: "octal",
     pins: {
       display: { cs: "GPIO9", dc: "GPIO8", reset: "GPIO12", busy: { number: "GPIO13", inverted: true } },
@@ -247,24 +259,29 @@ window.DEVICE_PROFILES = {
     name: "Guition 4848s040 4.0\" 480x480",
     isPackageBased: true,
     hardwarePackage: "hardware/guition-esp32-s3-4848s040.yaml",
+    resolution: { width: 480, height: 480 },
+    shape: "round",
     features: { psram: true, buzzer: false, buttons: false, lcd: true }
   },
   guition_esp32_jc4827w543: {
     name: "Guition jc4827w543 4.3\" 480x272",
     isPackageBased: true,
     hardwarePackage: "hardware/guition-esp32-jc4827w543.yaml",
+    resolution: { width: 480, height: 272 },
     features: { psram: true, buzzer: false, buttons: false, lcd: true }
   },
   guition_esp32_jc8048w535: {
     name: "Guition jc8048w535 3.5\" 320x480",
     isPackageBased: true,
     hardwarePackage: "hardware/guition-esp32-jc8048w535.yaml",
+    resolution: { width: 320, height: 480 },
     features: { psram: true, buzzer: false, buttons: false, lcd: true }
   },
   guition_esp32_jc8048w550: {
     name: "Guition jc8048w550 5.0\" 800x480",
     isPackageBased: true,
     hardwarePackage: "hardware/guition-esp32-jc8048w550.yaml",
+    resolution: { width: 800, height: 480 },
     features: { psram: true, buzzer: false, buttons: false, lcd: true }
   },
 
@@ -273,30 +290,35 @@ window.DEVICE_PROFILES = {
     name: "Sunton 8048s070 7.0\" 800x480",
     isPackageBased: true,
     hardwarePackage: "hardware/sunton-esp32-8048s070.yaml",
+    resolution: { width: 800, height: 480 },
     features: { psram: true, buzzer: false, buttons: false, lcd: true }
   },
   sunton_esp32_8048s050: {
     name: "Sunton 8048s050 5.0\" 800x480",
     isPackageBased: true,
     hardwarePackage: "hardware/sunton-esp32-8048s050.yaml",
+    resolution: { width: 800, height: 480 },
     features: { psram: true, buzzer: false, buttons: false, lcd: true }
   },
   sunton_esp32_2432s028: {
     name: "Sunton 2432s028 2.8\" 240x320",
     isPackageBased: true,
     hardwarePackage: "hardware/sunton-esp32-2432s028.yaml",
+    resolution: { width: 240, height: 320 },
     features: { psram: false, buzzer: false, buttons: false, lcd: true }
   },
   sunton_esp32_2432s028R: {
     name: "Sunton 2432s028R 2.8\" 240x320 (Resistive)",
     isPackageBased: true,
     hardwarePackage: "hardware/sunton-esp32-2432s028R.yaml",
+    resolution: { width: 240, height: 320 },
     features: { psram: false, buzzer: false, buttons: false, lcd: true }
   },
   sunton_esp32_4827s032R: {
     name: "Sunton 4827s032R 4.3\" 480x272 (Resistive)",
     isPackageBased: true,
     hardwarePackage: "hardware/sunton-esp32-4827s032R.yaml",
+    resolution: { width: 480, height: 272 },
     features: { psram: true, buzzer: false, buttons: false, lcd: true }
   },
 
@@ -305,12 +327,14 @@ window.DEVICE_PROFILES = {
     name: "Waveshare Touch LCD 7 7.0\" 800x480",
     isPackageBased: true,
     hardwarePackage: "hardware/waveshare-esp32-s3-touch-lcd-7.yaml",
+    resolution: { width: 800, height: 480 },
     features: { psram: true, buzzer: false, buttons: false, lcd: true }
   },
   waveshare_esp32_s3_touch_lcd_4_3: {
     name: "Waveshare Touch LCD 4.3 4.3\" 800x480",
     isPackageBased: true,
     hardwarePackage: "hardware/waveshare-esp32-s3-touch-lcd-4.3.yaml",
+    resolution: { width: 800, height: 480 },
     features: { psram: true, buzzer: false, buttons: false, lcd: true }
   },
 
@@ -319,6 +343,7 @@ window.DEVICE_PROFILES = {
     name: "Elecrow 7.0\" HMI 800x480",
     isPackageBased: true,
     hardwarePackage: "hardware/elecrow-esp32-7inch.yaml",
+    resolution: { width: 800, height: 480 },
     features: { psram: true, buzzer: false, buttons: false, lcd: true }
   },
 
@@ -327,6 +352,7 @@ window.DEVICE_PROFILES = {
     name: "LilyGo T-Display S3 170x320",
     isPackageBased: true,
     hardwarePackage: "hardware/lilygo-tdisplays3.yaml",
+    resolution: { width: 170, height: 320 },
     features: { psram: true, buzzer: false, buttons: true, lcd: true }
   }
 };

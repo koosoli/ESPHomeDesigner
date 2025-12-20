@@ -42,7 +42,6 @@ class App {
 
         // Initialize UI components
         this.sidebar.init();
-        this.canvas.init();
         this.propertiesPanel.init();
         this.deviceSettings.init();
         this.editorSettings.init();

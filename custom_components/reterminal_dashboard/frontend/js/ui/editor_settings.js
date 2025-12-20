@@ -10,7 +10,7 @@ class EditorSettings {
         this.lightMode = document.getElementById('editorLightMode');
         this.refreshEntitiesBtn = document.getElementById('editorRefreshEntities');
         this.entityCountLabel = document.getElementById('editorEntityCount');
-        this.canvasSizeLabel = document.getElementById('editorCanvasSizeLabel');
+        this.gridOpacity = document.getElementById('editorGridOpacity');
     }
 
     init() {
@@ -28,13 +28,6 @@ class EditorSettings {
 
         const settings = AppState.settings;
 
-        // Update Canvas Size Label
-        if (this.canvasSizeLabel) {
-            const orientation = settings.orientation === 'portrait' ? 'Portrait' : 'Landscape';
-            const dims = settings.orientation === 'portrait' ? '480 x 800' : '800 x 480';
-            this.canvasSizeLabel.textContent = `${dims} px · reTerminal E-Ink (${orientation})`;
-        }
-
         // Snap to Grid
         if (this.snapToGrid) {
             // snapEnabled is at AppState root
@@ -50,6 +43,11 @@ class EditorSettings {
         // Light Mode
         if (this.lightMode) {
             this.lightMode.checked = !!settings.editor_light_mode;
+        }
+
+        // Grid Opacity
+        if (this.gridOpacity) {
+            this.gridOpacity.value = settings.grid_opacity !== undefined ? settings.grid_opacity : 20;
         }
 
         // Entity Count
@@ -101,6 +99,14 @@ class EditorSettings {
                 AppState.settings.editor_light_mode = isLight;
                 this.applyEditorTheme(isLight);
                 emit(EVENTS.STATE_CHANGED);
+            });
+        }
+
+        // Grid Opacity
+        if (this.gridOpacity) {
+            this.gridOpacity.addEventListener('input', () => {
+                const val = parseInt(this.gridOpacity.value, 10);
+                AppState.updateSettings({ grid_opacity: val });
             });
         }
 

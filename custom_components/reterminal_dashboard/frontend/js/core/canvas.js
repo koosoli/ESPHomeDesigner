@@ -9,7 +9,15 @@ class Canvas {
     constructor() {
         this.canvas = document.getElementById("canvas");
         this.canvasContainer = document.getElementById("canvasContainer");
+        this.viewport = document.querySelector(".canvas-viewport");
         this.dragState = null;
+        this.panX = 0;
+        this.panY = 0;
+
+        // Bind handlers once for proper removal
+        this._boundMouseMove = this._onMouseMove.bind(this);
+        this._boundMouseUp = this._onMouseUp.bind(this);
+
         this.init();
     }
 
@@ -18,11 +26,16 @@ class Canvas {
         on(EVENTS.STATE_CHANGED, () => this.render());
         on(EVENTS.PAGE_CHANGED, () => this.render());
         on(EVENTS.SELECTION_CHANGED, () => this.render());
-        on(EVENTS.SETTINGS_CHANGED, () => this.render());
+        on(EVENTS.SETTINGS_CHANGED, () => {
+            this.render();
+            this.applyZoom();
+        });
         on(EVENTS.ZOOM_CHANGED, () => this.applyZoom());
 
+        this.setupPanning();
         this.setupInteractions();
         this.setupZoomControls();
+        this.setupDragAndDrop();
         this.render();
         this.applyZoom();
 
@@ -45,7 +58,17 @@ class Canvas {
         const existingGuides = this.canvas.querySelectorAll(".snap-guide");
 
         this.canvas.innerHTML = "";
-        if (existingGrid) this.canvas.appendChild(existingGrid);
+
+        // Ensure grid exists if enabled
+        if (AppState.showGrid) {
+            let grid = existingGrid;
+            if (!grid) {
+                grid = document.createElement("div");
+                grid.className = "canvas-grid";
+            }
+            this.canvas.appendChild(grid);
+        }
+
         existingGuides.forEach((g) => this.canvas.appendChild(g));
 
         // Apply orientation/size
@@ -107,11 +130,19 @@ class Canvas {
                 this._addResizeHandle(el);
                 this.canvas.appendChild(el);
                 continue;
-            } else if (!window.FeatureRegistry) {
-                console.error(`[Canvas] FeatureRegistry not defined on window!`);
-            } else {
+            } else if (window.FeatureRegistry) {
+                // If not found, try to load it asynchronously
+                window.FeatureRegistry.load(type).then(loadedFeature => {
+                    if (loadedFeature) {
+                        console.log(`[Canvas] Feature '${type}' loaded, triggering re-render.`);
+                        this.render();
+                    }
+                });
+
                 // Debug: log when falling back to legacy
-                console.warn(`[Canvas] No FeatureRegistry render for type '${type}', using legacy.`);
+                console.warn(`[Canvas] No FeatureRegistry render for type '${type}', using legacy while loading...`);
+            } else {
+                console.error(`[Canvas] FeatureRegistry not defined on window!`);
             }
 
             // Legacy Rendering Logic
@@ -371,6 +402,7 @@ class Canvas {
 
     setupInteractions() {
         this.canvas.addEventListener("mousedown", (ev) => {
+            if (ev.button !== 0) return; // Only handle left-click for widgets
             const widgetEl = ev.target.closest(".widget");
             if (!widgetEl) return;
 
@@ -403,9 +435,51 @@ class Canvas {
                 };
             }
 
-            window.addEventListener("mousemove", this._onMouseMove.bind(this));
-            window.addEventListener("mouseup", this._onMouseUp.bind(this));
+            window.addEventListener("mousemove", this._boundMouseMove);
+            window.addEventListener("mouseup", this._boundMouseUp);
             ev.preventDefault();
+        });
+    }
+
+    setupPanning() {
+        if (!this.viewport) return;
+
+        this.viewport.addEventListener("mousedown", (ev) => {
+            if (ev.button === 1) { // Middle button
+                ev.preventDefault();
+                ev.stopPropagation();
+
+                this.panState = {
+                    startX: ev.clientX,
+                    startY: ev.clientY,
+                    startPanX: this.panX,
+                    startPanY: this.panY
+                };
+
+                this.viewport.style.cursor = "grabbing";
+                document.body.classList.add("panning-active");
+
+                const onPanningMove = (moveEv) => {
+                    if (this.panState) {
+                        const dx = moveEv.clientX - this.panState.startX;
+                        const dy = moveEv.clientY - this.panState.startY;
+                        this.panX = this.panState.startPanX + dx;
+                        this.panY = this.panState.startPanY + dy;
+                        this.applyZoom();
+                    }
+                };
+
+                const onPanningUp = () => {
+                    this.panState = null;
+                    this.viewport.style.cursor = "auto";
+                    document.body.classList.remove("panning-active");
+                    window.removeEventListener("mousemove", onPanningMove);
+                    window.removeEventListener("mouseup", onPanningUp);
+                };
+
+                window.addEventListener("mousemove", onPanningMove);
+                window.addEventListener("mouseup", onPanningUp);
+            }
         });
     }
 
@@ -414,6 +488,7 @@ class Canvas {
         const zoomInBtn = document.getElementById("zoomInBtn");
         const zoomOutBtn = document.getElementById("zoomOutBtn");
         const zoomResetBtn = document.getElementById("zoomResetBtn");
+        const gridOpacityInput = document.getElementById("editorGridOpacity");
 
         if (zoomInBtn) {
             zoomInBtn.addEventListener("click", () => this.zoomIn());
@@ -424,16 +499,19 @@ class Canvas {
         if (zoomResetBtn) {
             zoomResetBtn.addEventListener("click", () => this.zoomReset());
         }
+        if (gridOpacityInput) {
+            gridOpacityInput.addEventListener("input", (e) => {
+                AppState.updateSettings({ grid_opacity: parseInt(e.target.value, 10) });
+            });
+        }
 
         // Mouse wheel zoom on canvas container
         if (this.canvasContainer) {
             this.canvasContainer.addEventListener("wheel", (ev) => {
-                if (ev.ctrlKey) {
-                    ev.preventDefault();
-                    const delta = ev.deltaY > 0 ? -0.1 : 0.1;
-                    const newZoom = AppState.zoomLevel + delta;
-                    AppState.setZoomLevel(newZoom);
-                }
+                // Zoom on wheel
+                const delta = ev.deltaY > 0 ? -0.1 : 0.1;
+                const newZoom = AppState.zoomLevel + delta;
+                AppState.setZoomLevel(newZoom);
             }, { passive: false });
         }
 
@@ -452,6 +530,42 @@ class Canvas {
         });
     }
 
+    setupDragAndDrop() {
+        if (!this.canvas) return;
+
+        this.canvas.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+        });
+
+        this.canvas.addEventListener("drop", (e) => {
+            e.preventDefault();
+            const type = e.dataTransfer.getData("application/widget-type");
+            console.log("[Canvas] Drop detected type:", type);
+
+            if (type) {
+                const rect = this.canvas.getBoundingClientRect();
+                const zoom = AppState.zoomLevel;
+
+                // Calculate position relative to canvas, accounting for zoom
+                const x = (e.clientX - rect.left) / zoom;
+                const y = (e.clientY - rect.top) / zoom;
+
+                try {
+                    const widget = WidgetFactory.createWidget(type);
+                    // Center the widget on the drop point
+                    widget.x = Math.round(x - widget.width / 2);
+                    widget.y = Math.round(y - widget.height / 2);
+
+                    AppState.addWidget(widget);
+                    console.log("[Canvas] Widget added via drag & drop:", type);
+                } catch (err) {
+                    console.error("[Canvas] error creating widget from drop:", err);
+                }
+            }
+        });
+    }
+
     zoomIn() {
         AppState.setZoomLevel(AppState.zoomLevel + 0.1);
     }
@@ -462,21 +576,35 @@ class Canvas {
 
     zoomReset() {
         AppState.setZoomLevel(1.0);
-        // Center the canvas in the container
-        if (this.canvasContainer) {
-            this.canvasContainer.scrollTo({
-                left: (this.canvasContainer.scrollWidth - this.canvasContainer.clientWidth) / 2,
-                top: (this.canvasContainer.scrollHeight - this.canvasContainer.clientHeight) / 2,
-                behavior: "smooth"
-            });
-        }
+        this.panX = 0;
+        this.panY = 0;
+        this.applyZoom();
     }
 
     applyZoom() {
         const zoom = AppState.zoomLevel;
+        const dims = AppState.getCanvasDimensions();
+        const settings = AppState.settings;
+
         if (this.canvas) {
             this.canvas.style.transform = `scale(${zoom})`;
+            // Change transform origin to 0 0 for predictable scrolling container
+            this.canvas.style.transformOrigin = "0 0";
         }
+
+        if (this.canvasContainer) {
+            // Apply panning via transform on the container
+            this.canvasContainer.style.transform = `translate(${this.panX}px, ${this.panY}px)`;
+
+            // Force the container to match the scaled size so parents overflow correctly
+            this.canvasContainer.style.width = (dims.width * zoom) + "px";
+            this.canvasContainer.style.height = (dims.height * zoom) + "px";
+        }
+
+        // Apply grid opacity
+        const opacity = (settings.grid_opacity !== undefined ? settings.grid_opacity : 8) / 100;
+        document.documentElement.style.setProperty('--grid-opacity', opacity.toString());
+
         // Update zoom level display
         const zoomLevelEl = document.getElementById("zoomLevel");
         if (zoomLevelEl) {
@@ -489,13 +617,6 @@ class Canvas {
 
         const widget = AppState.getWidgetById(this.dragState.id);
         if (!widget) return;
-
-        // Ensure grid is visible during drag
-        if (!this.canvas.querySelector(".canvas-grid")) {
-            const grid = document.createElement("div");
-            grid.className = "canvas-grid";
-            this.canvas.insertBefore(grid, this.canvas.firstChild);
-        }
 
         const dims = AppState.getCanvasDimensions();
         const zoom = AppState.zoomLevel;
@@ -570,8 +691,8 @@ class Canvas {
         if (this.dragState) {
             this.dragState = null;
             this.clearSnapGuides();
-            window.removeEventListener("mousemove", this._onMouseMove.bind(this));
-            window.removeEventListener("mouseup", this._onMouseUp.bind(this));
+            window.removeEventListener("mousemove", this._boundMouseMove);
+            window.removeEventListener("mouseup", this._boundMouseUp);
 
             // Trigger state update to save history
             AppState.recordHistory();

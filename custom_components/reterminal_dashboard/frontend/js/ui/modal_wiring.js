@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("[ModalWiring] Opening fullscreen snippet modal");
 
             // Create or update textarea
-            let textarea = snippet FullscreenContent.querySelector("textarea");
+            let textarea = snippetFullscreenContent.querySelector("textarea");
             if (!textarea) {
                 snippetFullscreenContent.innerHTML = "";
                 textarea = document.createElement("textarea");
