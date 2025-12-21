@@ -4,7 +4,7 @@
   "documentation": "https://github.com/koosoli/ESPHomeDesigner",
   "issue_tracker": "https://github.com/koosoli/ESPHomeDesigner/issues",
   "configuration_url": "/reterminal-dashboard",
-  "version": "0.7.5",
+  "version": "0.8.0",
   "after_dependencies": [
     "http",
     "frontend",

@@ -157,11 +157,37 @@ class DeviceSettings {
         if (this.deepSleepRow) this.deepSleepRow.style.display = isDeepSleep ? 'block' : 'none';
     }
 
+    persistToBackend() {
+        if (this.saveDebounceTimer) clearTimeout(this.saveDebounceTimer);
+        this.saveDebounceTimer = setTimeout(async () => {
+            if (hasHaBackend() && typeof saveLayoutToBackend === "function") {
+                try {
+                    await saveLayoutToBackend();
+                    console.log("[DeviceSettings] All settings persisted to backend");
+                } catch (err) {
+                    console.warn("[DeviceSettings] Failed to auto-save settings:", err);
+                }
+            } else {
+                // Offline fallback: Save to localStorage
+                try {
+                    const payload = AppState.getPagesPayload();
+                    payload.deviceName = AppState.deviceName;
+                    payload.deviceModel = AppState.deviceModel;
+                    localStorage.setItem("esphome_designer_layout", JSON.stringify(payload));
+                    console.log("[DeviceSettings] Settings persisted to localStorage (offline mode)");
+                } catch (err) {
+                    console.warn("[DeviceSettings] Failed to save to localStorage:", err);
+                }
+            }
+        }, 1000); // 1s debounce to allow multiple quick changes
+    }
+
     setupAutoSaveListeners() {
         const updateSetting = (key, value) => {
             AppState.settings[key] = value;
             console.log(`Auto-saved ${key}:`, value);
             emit(EVENTS.STATE_CHANGED); // Trigger snippet update
+            this.persistToBackend();
         };
 
         // Device Name - debounced save to backend
@@ -195,16 +221,6 @@ class DeviceSettings {
                 AppState.setDeviceModel(newModel); // Update top-level deviceModel
                 updateSetting('device_model', newModel); // Also persist to settings
                 console.log("Device model changed to:", newModel);
-
-                // Persist to backend immediately so change survives reload
-                if (typeof saveLayoutToBackend === "function") {
-                    try {
-                        await saveLayoutToBackend();
-                        console.log("[DeviceSettings] Device model change saved to backend");
-                    } catch (err) {
-                        console.warn("[DeviceSettings] Failed to auto-save device model:", err);
-                    }
-                }
             });
         }
 

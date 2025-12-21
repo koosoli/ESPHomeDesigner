@@ -259,6 +259,10 @@ class DeviceConfig:
     manual_refresh_only: bool = False
     no_refresh_start_hour: int | None = None
     no_refresh_end_hour: int | None = None
+    
+    # Daily Scheduled Refresh
+    daily_refresh_enabled: bool = False
+    daily_refresh_time: str = "08:00"
 
     def ensure_pages(self, min_pages: int = DEFAULT_PAGES) -> None:
         """Ensure at least min_pages exist; add simple default pages if missing."""
@@ -322,6 +326,8 @@ class DeviceConfig:
             "manual_refresh_only": self.manual_refresh_only,
             "no_refresh_start_hour": self.no_refresh_start_hour,
             "no_refresh_end_hour": self.no_refresh_end_hour,
+            "daily_refresh_enabled": self.daily_refresh_enabled,
+            "daily_refresh_time": self.daily_refresh_time,
             "pages": [p.to_dict() for p in self.pages],
         }
 
@@ -390,6 +396,8 @@ class DeviceConfig:
             manual_refresh_only=manual_refresh_only,
             no_refresh_start_hour=no_refresh_start_hour,
             no_refresh_end_hour=no_refresh_end_hour,
+            daily_refresh_enabled=bool(data.get("daily_refresh_enabled", False)),
+            daily_refresh_time=str(data.get("daily_refresh_time", "08:00")),
         )
         cfg.ensure_pages()
         return cfg

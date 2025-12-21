@@ -256,7 +256,12 @@ async function saveLayoutToBackend() {
         console.log(`[saveLayoutToBackend] Saving to layout '${layoutId}':`, {
             device_model: deviceModel,
             pages: layoutData.pages?.length,
-            widgets: layoutData.pages?.reduce((sum, p) => sum + (p.widgets?.length || 0), 0)
+            widgets: layoutData.pages?.reduce((sum, p) => sum + (p.widgets?.length || 0), 0),
+            // Debug: Power strategy settings
+            daily_refresh_enabled: layoutData.daily_refresh_enabled,
+            daily_refresh_time: layoutData.daily_refresh_time,
+            deep_sleep_enabled: layoutData.deep_sleep_enabled,
+            sleep_enabled: layoutData.sleep_enabled
         });
 
         // Use the layouts/{id} endpoint to save to the specific layout

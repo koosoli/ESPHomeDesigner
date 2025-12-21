@@ -1279,8 +1279,26 @@ function loadLayoutIntoState(layout) {
     }
 
     // Merge imported settings with existing settings
+    // IMPORTANT: Settings might be at the root (flattened by saveLayoutToBackend) 
+    // or in a nested .settings object.
     const currentSettings = AppState.getSettings();
-    const newSettings = { ...currentSettings, ...(layout.settings || {}) };
+    const importedSettings = layout.settings || {};
+
+    // Extract root settings that we know about
+    const rootSettings = {};
+    const settingKeys = [
+        "orientation", "dark_mode", "sleep_enabled", "sleep_start_hour", "sleep_end_hour",
+        "manual_refresh_only", "deep_sleep_enabled", "deep_sleep_interval",
+        "daily_refresh_enabled", "daily_refresh_time", "no_refresh_start_hour", "no_refresh_end_hour"
+    ];
+
+    settingKeys.forEach(key => {
+        if (layout[key] !== undefined) {
+            rootSettings[key] = layout[key];
+        }
+    });
+
+    const newSettings = { ...currentSettings, ...importedSettings, ...rootSettings };
 
     // Ensure device_name is in settings too (for Device Settings modal)
     if (layout.name) {
@@ -1292,13 +1310,15 @@ function loadLayoutIntoState(layout) {
         newSettings.device_model = deviceModel;
     }
 
-    // Ensure defaults for new settings
+    // Ensure defaults for new or missing settings
     if (newSettings.sleep_enabled === undefined) newSettings.sleep_enabled = false;
     if (newSettings.sleep_start_hour === undefined) newSettings.sleep_start_hour = 0;
     if (newSettings.sleep_end_hour === undefined) newSettings.sleep_end_hour = 5;
     if (newSettings.manual_refresh_only === undefined) newSettings.manual_refresh_only = false;
     if (newSettings.deep_sleep_enabled === undefined) newSettings.deep_sleep_enabled = false;
     if (newSettings.deep_sleep_interval === undefined) newSettings.deep_sleep_interval = 600;
+    if (newSettings.daily_refresh_enabled === undefined) newSettings.daily_refresh_enabled = false;
+    if (newSettings.daily_refresh_time === undefined) newSettings.daily_refresh_time = "08:00";
 
     // Update State
     AppState.setPages(pages);
@@ -1316,4 +1336,10 @@ function loadLayoutIntoState(layout) {
     // The legacy editor.js has a sync mechanism that listens for these events
     // to update its own 'pages' array for renderCanvas() compatibility.
     console.log(`[loadLayoutIntoState] Layout loaded with ${pages.length} pages. Current Layout ID: ${AppState.currentLayoutId}`);
+    console.log(`[loadLayoutIntoState] Power settings after merge:`, {
+        daily_refresh_enabled: newSettings.daily_refresh_enabled,
+        daily_refresh_time: newSettings.daily_refresh_time,
+        deep_sleep_enabled: newSettings.deep_sleep_enabled,
+        sleep_enabled: newSettings.sleep_enabled
+    });
 }

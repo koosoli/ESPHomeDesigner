@@ -26,6 +26,8 @@ class StateStore {
                 manual_refresh_only: false,
                 deep_sleep_enabled: false,
                 deep_sleep_interval: 600,
+                daily_refresh_enabled: false,
+                daily_refresh_time: "08:00",
                 no_refresh_start_hour: null,
                 no_refresh_end_hour: null,
                 editor_light_mode: false,

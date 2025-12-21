@@ -91,6 +91,14 @@ class PageSettings {
         page.dark_mode = darkMode;
 
         AppState.setPages(AppState.pages); // Trigger update
+
+        // Persist to backend
+        if (hasHaBackend() && typeof saveLayoutToBackend === "function") {
+            saveLayoutToBackend()
+                .then(() => console.log("[PageSettings] Pages persisted to backend"))
+                .catch(err => console.warn("[PageSettings] Failed to save pages to backend:", err));
+        }
+
         this.close();
     }
 }

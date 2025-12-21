@@ -4,7 +4,7 @@
 
 
 
-## v0.7.5 - Enhanced UI & Modular Profiles
+## v0.8.0 - Enhanced UI & Modular Profiles
 
 **Release Date:** December 20, 2025
 

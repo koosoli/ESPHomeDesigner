@@ -167,7 +167,7 @@ async function generateSnippetLocally() {
         lines.push("# SETUP INSTRUCTIONS:");
         lines.push("#");
         lines.push("# STEP 1: Copy the Material Design Icons font file");
-        lines.push("#         - From this repo: resources/fonts/materialdesignicons-webfont.ttf");
+        lines.push("#         - From this repo: font_ttf/font_ttf/materialdesignicons-webfont.ttf");
         lines.push("#         - To ESPHome: /config/esphome/fonts/materialdesignicons-webfont.ttf");
         lines.push("#         (Create the fonts folder if it doesn't exist)");
         lines.push("#");
@@ -245,7 +245,6 @@ async function generateSnippetLocally() {
             lines.push("#           gpio_hold_en(GPIO_NUM_12);");
             lines.push("#           gpio_deep_sleep_hold_en();");
             lines.push("#       - script.execute: activity_timer");
-            lines.push("#       - component.update: epaper_display");
             lines.push("#");
         } else {
             lines.push("#         Paste this under 'esphome:' in your YAML:");
@@ -256,8 +255,6 @@ async function generateSnippetLocally() {
             if (getDeviceModel() !== "trmnl") {
                 lines.push("#       - output.turn_on: bsp_battery_enable");
             }
-            lines.push("#       - delay: 2s");
-            lines.push("#       - component.update: epaper_display");
             lines.push("#       - script.execute: manage_run_and_sleep");
             lines.push("#");
         }
@@ -2439,36 +2436,67 @@ function generateScriptSection(payload, pagesLocal, profile = {}) {
     }
 
     // CoreInk: Use activity_timer script with stay_awake_mode logic
+    // CoreInk has its own complete script block, so we return early
     if (profile.name && profile.name.includes("CoreInk")) {
         lines.push("script:");
         lines.push("  - id: activity_timer");
         lines.push("    mode: restart");
         lines.push("    then:");
-        lines.push("      - delay: 15s");
+        lines.push("      - logger.log: \"Waiting for sync (CoreInk)...\"");
+        lines.push("      - wait_until:");
+        lines.push("          condition:");
+        lines.push("            lambda: 'return id(ha_time).now().is_valid() && api_is_connected();'");
+        lines.push("          timeout: 60s");
+        lines.push("      - delay: 5s # Grace period for data propagation");
+        lines.push("      ");
         lines.push("      # Check if Prevent Sleep mode is enabled");
         lines.push("      - if:");
         lines.push("          condition:");
         lines.push("            lambda: 'return id(stay_awake_mode);'");
         lines.push("          then:");
         lines.push("            # Stay Awake: Loop forever with periodic display refresh");
-        lines.push("            - delay: 60s");
         lines.push("            - component.update: epaper_display");
+        lines.push("            - delay: 60s");
         lines.push("            - script.execute: activity_timer");
         lines.push("          else:");
-        lines.push("            # Deep Sleep: Calculate time until next hour boundary");
+        lines.push("            # Deep Sleep: Calculate sleep duration");
         lines.push("            - lambda: |-");
         lines.push("                int seconds_to_sleep = 3600;");
-        lines.push("                if (id(ha_time).now().is_valid()) {");
-        lines.push("                    auto now = id(ha_time).now();");
-        lines.push("                    int current_s = now.hour * 3600 + now.minute * 60 + now.second;");
-        lines.push("                    seconds_to_sleep = 3600 - (current_s % 3600);");
-        lines.push("                    if (seconds_to_sleep < 60) seconds_to_sleep = 60;");
-        lines.push("                }");
-        lines.push("                id(deep_sleep_1).set_sleep_duration(seconds_to_sleep * 1000);");
+        if (payload.daily_refresh_enabled) {
+            const [h, m] = (payload.daily_refresh_time || "08:00").split(':').map(Number);
+            lines.push(`                int target_s = ${h} * 3600 + ${m} * 60;`);
+            lines.push("                if (id(ha_time).now().is_valid()) {");
+            lines.push("                    auto now = id(ha_time).now();");
+            lines.push("                    int current_s = now.hour * 3600 + now.minute * 60 + now.second;");
+            lines.push("                    if (current_s >= target_s) target_s += 86400;");
+            lines.push("                    seconds_to_sleep = target_s - current_s;");
+            lines.push("                    if (seconds_to_sleep < 60) seconds_to_sleep = 60;");
+            lines.push("                }");
+        } else {
+            lines.push("                if (id(ha_time).now().is_valid()) {");
+            lines.push("                    auto now = id(ha_time).now();");
+            lines.push("                    int current_s = now.hour * 3600 + now.minute * 60 + now.second;");
+            lines.push("                    seconds_to_sleep = 3600 - (current_s % 3600);");
+            lines.push("                    if (seconds_to_sleep < 60) seconds_to_sleep = 60;");
+            lines.push("                }");
+        }
+        lines.push("                id(page_refresh_current_s) = seconds_to_sleep;");
         lines.push("                esp_sleep_enable_ext0_wakeup(GPIO_NUM_38, 0);");
         lines.push("                gpio_hold_en((gpio_num_t)12);");
         lines.push("                gpio_deep_sleep_hold_en();");
-        lines.push("            - deep_sleep.enter: deep_sleep_1");
+        lines.push("            - component.update: epaper_display");
+        lines.push("            - script.execute: enter_deep_sleep");
+
+        // Add enter_deep_sleep helper script for CoreInk
+        lines.push("");
+        lines.push("  - id: enter_deep_sleep");
+        lines.push("    then:");
+        lines.push("      - logger.log: \"Entering deep sleep...\"");
+        lines.push("      - lambda: 'id(deep_sleep_1).set_sleep_duration(id(page_refresh_current_s) * 1000);'");
+        lines.push("      - delay: 8s # Ensure display refresh completes");
+        lines.push("      - deep_sleep.enter: deep_sleep_1");
+
+        // Return early - CoreInk has its own complete script section
         return lines.join("\n");
     }
 
@@ -2654,10 +2682,12 @@ function generateScriptSection(payload, pagesLocal, profile = {}) {
     lines.push("  - id: manage_run_and_sleep");
     lines.push("    mode: restart");
     lines.push("    then:");
+    lines.push("      - logger.log: \"Waiting for sync (Generic/E1001)...\"");
     lines.push("      - wait_until:");
     lines.push("          condition:");
-    lines.push("            lambda: 'return id(ha_time).now().is_valid();'");
-    lines.push("          timeout: 60s"); // Adjusted to 60s as compromise
+    lines.push("            lambda: 'return id(ha_time).now().is_valid() && api_is_connected();'");
+    lines.push("          timeout: 60s");
+    lines.push("      - delay: 5s # Grace period for data propagation");
 
     // Safety Fallback for Time Sync failure (prevent boot loops)
     lines.push("      - lambda: |-");
