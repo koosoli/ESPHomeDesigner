@@ -14,12 +14,6 @@
 
 ---
 
-### 📺 Feature Walkthroughs
-
-| | | | |
-| :---: | :---: | :---: | :---: |
-| ![Drag & Drop](screenshots/draganddrop.gif)<br>Drag & Drop | ![Modern Canvas](screenshots/modern_canvas.gif)<br>Modern Canvas | ![RGB Picker](screenshots/rgb_picker.gif)<br>RGB Picker | ![Touch Icons](screenshots/touch_icons.gif)<br>Touch Areas |
-| ![Icon Picker](screenshots/icon_picker.gif)<br>Icon Picker | ![YAML Round-trip](screenshots/yaml_parsing.gif)<br>Round-trip Parser | ![Text Styling](screenshots/text_formatting.gif)<br>Rich Typography | |
 
 ---
 
@@ -33,6 +27,7 @@ It enables you to build premium, touch-interactive dashboards for various ESP32-
 ## What Does It Do?
 
 - **Visual drag-and-drop editor** - Design layouts in your browser, see your actual HA entities update live on the canvas
+  <p align="center"><img src="screenshots/draganddrop.gif" width="800" alt="Drag & Drop Editor"></p>
 - **Multiple pages** - Navigate with hardware buttons, set different refresh rates per page
 - **Auto-generates ESPHome config** - Clean, readable YAML that you can paste into your existing ESPHome setup
 - **Round-trip editing** - Import existing ESPHome configs back into the editor
@@ -80,6 +75,7 @@ Then create a new ESPHome device:
 4. Add your sensors, weather entities, icons, shapes
 5. Create multiple pages with different refresh rates
 6. **Live Preview**: Your YAML is generated on the fly as you design! Just look at the YAML snippet box.
+   <p align="center"><img src="screenshots/modern_canvas.gif" width="800" alt="Modern Canvas Interaction"></p>
 
 ### 5. Flash It
 
@@ -109,7 +105,9 @@ We expose everything (buttons, sensors, battery) back to Home Assistant. Does a 
 ## Widget Types
 
 - **Text & Sensor Text** - Static labels or live HA entity values with smart type detection and multiple formatting options
+  <p align="center"><img src="screenshots/text_formatting.gif" width="700" alt="Rich Text Formatting"></p>
 - **Icon & Weather Icon** - 360+ Material Design Icons or dynamic weather-state icons with full size/color control
+  <p align="center"><img src="screenshots/icon_picker.gif" width="700" alt="Icon Picker System"></p>
 - **Date, Time & Calendar** - Customizable clock, date, and full monthly calendar views
 - **Progress Bar & Battery** - Visual indicators for percentages and dynamic battery level tracking
 - **Shapes & Rounded Rects** - Rectangles, circles, lines, and rounded rects with gray/dither support
@@ -118,6 +116,7 @@ We expose everything (buttons, sensors, battery) back to Home Assistant. Does a 
 - **Quote / RSS Feed** - Inspirational quotes or external RSS feeds with auto-scaling and refresh logic
 - **QR Code** - Dynamic QR generation for URLs or text with adjustable error correction
 - **Touch Area** - Invisible or icon-labeled interactive zones to trigger HA actions (supports dual-state feedback)
+  <p align="center"><img src="screenshots/touch_icons.gif" width="700" alt="Touch Interactive Icons"></p>
 - **Weather Forecast** - Multi-day forecast display integrated with HA weather entities
 
 ## LVGL Support (Experimental)
@@ -155,7 +154,10 @@ For stable results, stick to **Native Mode** (standard widgets without LVGL pref
 - **Smart Generator** - Produces clean, additive YAML that doesn't conflict with your base config
 - **Template-Free Workflow** - No more manual template merging, just paste and go
 - **Live YAML Generation** - Your YAML is generated on the fly as you design; no more "Generate" buttons
+- **RGB Color Picker** - Precise color control for e-paper and LCD widgets
+  <p align="center"><img src="screenshots/rgb_picker.gif" width="700" alt="RGB Color Picker"></p>
 - **Round-Trip Editing** - Import existing ESPHome code back into the editor (now supports LVGL widgets!)
+  <p align="center"><img src="screenshots/yaml_parsing.gif" width="700" alt="YAML Round-Trip Import"></p>
 - **Power & Battery Management** - Monitoring, deep sleep support, and configurable refresh intervals
 - **Modern Canvas Interaction** - Zoom with the mouse wheel and pan with the middle mouse button
 - **Drag & Drop Workflow** - Drag widgets directly from the sidebar onto the canvas
