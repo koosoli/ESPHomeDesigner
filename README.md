@@ -7,7 +7,11 @@
     <img src="https://img.youtube.com/vi/3AVGze6F_5o/maxresdefault.jpg" alt="Watch the v0.8.0 Feature Walkthrough" width="600">
   </a>
   <br>
-  <strong>🎬 Watch the v0.8.0 Release Overview</strong>
+  <a href="https://youtu.be/3AVGze6F_5o">
+    <img src="https://img.shields.io/badge/YouTube-Watch%20v0.8.0%20Overview-red?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch Video">
+  </a>
+  <br>
+  <strong>▶️ Click to watch the latest feature walkthrough</strong>
 </div>
 
 **No more hand-coding ESPHome display lambdas! 🎉**
