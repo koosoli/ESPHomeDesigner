@@ -16,23 +16,10 @@
 
 ### 📺 Feature Walkthroughs
 
-````carousel
-![Drag and Drop Widgets](screenshots/draganddrop.gif)
-<!-- slide -->
-![Modern Canvas Navigation (Zoom/Pan)](screenshots/modern_canvas.gif)
-<!-- slide -->
-![RGB Color Picker](screenshots/rgb_picker.gif)
-<!-- slide -->
-![Modular Hardware Profiles](screenshots/modular_profiles.gif)
-<!-- slide -->
-![Interactive Touch Icons](screenshots/touch_icons.gif)
-<!-- slide -->
-![Advanced Icon Picker](screenshots/icon_picker.gif)
-<!-- slide -->
-![YAML Parsing & Preview (Round-trip Editing)](screenshots/yaml_parsing.gif)
-<!-- slide -->
-![Rich Text & Typography (Fonts, Sizes, Colors)](screenshots/text_formatting.gif)
-````
+| | | | |
+| :---: | :---: | :---: | :---: |
+| ![Drag & Drop](screenshots/draganddrop.gif)<br>Drag & Drop | ![Modern Canvas](screenshots/modern_canvas.gif)<br>Modern Canvas | ![RGB Picker](screenshots/rgb_picker.gif)<br>RGB Picker | ![Hardware Profiles](screenshots/modular_profiles.gif)<br>Recipes & Profiles |
+| ![Touch Icons](screenshots/touch_icons.gif)<br>Touch Areas | ![Icon Picker](screenshots/icon_picker.gif)<br>Icon Picker | ![YAML Round-trip](screenshots/yaml_parsing.gif)<br>Round-trip Parser | ![Text Styling](screenshots/text_formatting.gif)<br>Rich Typography |
 
 ---
 
