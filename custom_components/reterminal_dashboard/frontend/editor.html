@@ -20,7 +20,7 @@
   <header class="main-header">
     <div class="main-header-title">
       <h2><span class="logo-dot"></span> ESPHome Designer</h2>
-      <span>Visual YAML Editor <small style="opacity: 0.5; margin-left: 8px;">v0.7.5RC43</small> <span
+      <span>Visual YAML Editor <small style="opacity: 0.5; margin-left: 8px;">v0.7.5RC45</small> <span
           id="currentLayoutDevice" style="margin-left:8px; color:var(--accent);"></span></span>
     </div>
     <div class="main-header-actions desktop-only">
@@ -311,6 +311,12 @@
                     font-weight="bold" fill="currentColor">Aa</text></svg>
                 <span class="label">Label</span>
               </div>
+              <div class="item" draggable="true" data-widget-type="lvgl_line">
+                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
+                  <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                <span class="label">LVGL Line</span>
+              </div>
               <div class="item" draggable="true" data-widget-type="lvgl_button">
                 <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
                   <rect x="4" y="8" width="16" height="8" rx="2" fill="currentColor" fill-opacity="0.2"
@@ -353,6 +359,14 @@
                     stroke-linecap="round" />
                 </svg>
                 <span class="label">Arc</span>
+              </div>
+              <div class="item" draggable="true" data-widget-type="lvgl_meter">
+                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
+                  <path d="M4 18 A 10 10 0 1 1 20 18" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" />
+                  <line x1="12" y1="18" x2="16" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                <span class="label">Meter</span>
               </div>
               <div class="item" draggable="true" data-widget-type="lvgl_spinner">
                 <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
