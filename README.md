@@ -18,8 +18,8 @@
 
 | | | | |
 | :---: | :---: | :---: | :---: |
-| ![Drag & Drop](screenshots/draganddrop.gif)<br>Drag & Drop | ![Modern Canvas](screenshots/modern_canvas.gif)<br>Modern Canvas | ![RGB Picker](screenshots/rgb_picker.gif)<br>RGB Picker | ![Hardware Profiles](screenshots/modular_profiles.gif)<br>Recipes & Profiles |
-| ![Touch Icons](screenshots/touch_icons.gif)<br>Touch Areas | ![Icon Picker](screenshots/icon_picker.gif)<br>Icon Picker | ![YAML Round-trip](screenshots/yaml_parsing.gif)<br>Round-trip Parser | ![Text Styling](screenshots/text_formatting.gif)<br>Rich Typography |
+| ![Drag & Drop](screenshots/draganddrop.gif)<br>Drag & Drop | ![Modern Canvas](screenshots/modern_canvas.gif)<br>Modern Canvas | ![RGB Picker](screenshots/rgb_picker.gif)<br>RGB Picker | ![Touch Icons](screenshots/touch_icons.gif)<br>Touch Areas |
+| ![Icon Picker](screenshots/icon_picker.gif)<br>Icon Picker | ![YAML Round-trip](screenshots/yaml_parsing.gif)<br>Round-trip Parser | ![Text Styling](screenshots/text_formatting.gif)<br>Rich Typography | |
 
 ---
 
@@ -187,7 +187,6 @@ The workflow is safe and deterministic - same layout always produces the same YA
 - **Waveshare**: PhotoPainter (7-Color), Touch LCD 4.3" & 7.0" (S3)
 - **M5Stack**: M5Paper (Touch), M5Stack CoreInk
 - **TRMNL**: Original ESP32-C3 e-paper device
-- **Any ESP32 Display**: Support for custom hardware via YAML Recipes/Templates
 
 **Hardware Features Exposed:**
 - 3 physical buttons (GPIO 3/4/5)
@@ -198,17 +197,6 @@ The workflow is safe and deterministic - same layout always produces the same YA
 
 All exposed as Home Assistant entities for use in automations.
 
-## Hardware Recipes (Custom Templates)
-
-Expand device support to virtually any ESP32-based display by importing your own YAML recipes. This makes the designer board-agnostic and community-ready.
-
-- **Board Agnostic**: Support any display (OLED, LCD, TFT, E-Paper) by providing its base ESPHome configuration.
-- **Three Ways to Import**:
-  - **Dynamic Discovery**: Drop a YAML file into `frontend/hardware/` to make it a built-in option.
-  - **GUI Upload**: Use the **"Import Recipe"** button in Device Settings to upload via your browser.
-  - **Offline Import**: Load and parse recipes locally for temporary standalone sessions.
-- **The Magic Placeholder**: Recipes use the `__LAMBDA_PLACEHOLDER__` string in their display lambda. This tells the designer exactly where to inject your pixel-perfect widget code.
-- **Complete Control**: Use recipes to handle complex hardware logic (PMIC management, custom SPI buses, or specialized drivers) that the designer doesn't need to know about.
 
 ## Repository Structure
 
