@@ -949,7 +949,16 @@
       document.getElementById('daily-refresh-row').style.display = isDaily ? 'flex' : 'none';
       document.getElementById('deep-sleep-interval-row').style.display = isDeepSleep ? 'block' : 'none';
     }
-    function toggleWidgetCategory(c) { document.querySelector(`.widget-category[data-category="${c}"]`).classList.toggle('expanded'); }
+    function toggleWidgetCategory(c) {
+      const cat = document.querySelector(`.widget-category[data-category="${c}"]`);
+      if (cat) {
+        cat.classList.toggle('expanded');
+        const icon = cat.querySelector('.category-icon');
+        if (icon) {
+          icon.textContent = cat.classList.contains('expanded') ? '▼' : '▶';
+        }
+      }
+    }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
