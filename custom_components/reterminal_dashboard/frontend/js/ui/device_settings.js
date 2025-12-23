@@ -130,8 +130,11 @@ class DeviceSettings {
             const currentVal = this.modelInput.value;
             this.modelInput.innerHTML = "";
 
+            console.log("[DeviceSettings] Populating dropdown with", Object.keys(window.DEVICE_PROFILES).length, "profiles");
+
             // Convert profiles to array and sort if possible, or just iterate
             Object.entries(window.DEVICE_PROFILES).forEach(([key, profile]) => {
+                console.log(`  - Adding: ${key} (${profile.name})`);
                 const opt = document.createElement("option");
                 opt.value = key;
                 opt.textContent = profile.name;

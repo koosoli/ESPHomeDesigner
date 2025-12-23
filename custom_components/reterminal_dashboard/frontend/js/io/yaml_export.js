@@ -75,11 +75,18 @@ async function generateSnippetLocally() {
     // Fetches YAML from server. If offline, returns a warning message.
     // =========================================================================================
     let packageContent = null;
-    if (profile.isPackageBased && profile.hardwarePackage) {
-        packageContent = await fetchHardwarePackage(profile.hardwarePackage);
-        // If the package content is actually an error message, return it immediately
-        if (packageContent.startsWith("# ============================================================================\n# ⚠️ PROFILE LOADING ERROR")) {
-            return packageContent;
+    if (profile.isPackageBased) {
+        if (profile.isOfflineImport && profile.content) {
+            // Use locally stored content for offline imports
+            packageContent = profile.content;
+            console.log("[YAML] Using offline recipe content for profile:", profile.id);
+        } else if (profile.hardwarePackage) {
+            // Fetch from server for online/dynamic profiles
+            packageContent = await fetchHardwarePackage(profile.hardwarePackage);
+            // If the package content is actually an error message, return it immediately
+            if (packageContent && packageContent.startsWith("# ============================================================================\n# ⚠️ PROFILE LOADING ERROR")) {
+                return packageContent;
+            }
         }
     }
 
@@ -258,9 +265,16 @@ async function generateSnippetLocally() {
             lines.push("#       - script.execute: manage_run_and_sleep");
             lines.push("#");
         }
-        lines.push("# STEP 4: Paste this ENTIRE snippet after the captive_portal: line");
-        lines.push("#");
         lines.push("# ============================================================================");
+        lines.push("");
+    }
+
+    // --- PACKAGE CONTENT ---
+    if (packageContent) {
+        lines.push("# ------------------------------------");
+        lines.push("# Hardware Recipe / Package Content");
+        lines.push("# ------------------------------------");
+        lines.push(packageContent);
         lines.push("");
     }
 
@@ -511,13 +525,6 @@ async function generateSnippetLocally() {
     // Call generic sensor generator
     lines.push(...generateSensorSection(profile, widgetSensorLines, displayId));
 
-    // Add text_sensor section if we have HA text sensors
-    if (haTextSensorLines.length > 0) {
-        lines.push("");
-        lines.push("text_sensor:");
-        lines.push(...haTextSensorLines);
-        lines.push("");
-    }
 
 
     // 7. Binary Sensors (Buttons + Touch Areas)
@@ -805,11 +812,18 @@ async function generateSnippetLocally() {
         }
     }
 
-    // Check if we need text_sensor block (secondary block for extras)
-    const needsTextSensors = quoteRssWidgets.length > 0 || weatherForecastWidgets.length > 0 || weatherEntitiesUsed.size > 0 || calendarWidgets.length > 0;
+    // Check if we need text_sensor block (consolidated for HA sensors and feature extras)
+    const needsTextSensors = haTextSensorLines.length > 0 || quoteRssWidgets.length > 0 || weatherForecastWidgets.length > 0 || weatherEntitiesUsed.size > 0 || calendarWidgets.length > 0;
 
     if (needsTextSensors) {
         lines.push("text_sensor:");
+
+        // Add standard Home Assistant text sensors
+        if (haTextSensorLines.length > 0) {
+            lines.push("  # Home Assistant Text Sensors");
+            lines.push(...haTextSensorLines);
+            lines.push("");
+        }
 
         // Add quote widget sensors - using local template sensors (not HA-dependent)
         // These will be populated via http_request from HA's RSS proxy
@@ -1008,6 +1022,37 @@ async function generateSnippetLocally() {
     // manually download and place .ttf files. The only exception is MDI icons
     // which are not available on Google Fonts and require a local file.
     // ============================================================================
+    // Common glyphs to ensure units like µ, ³, °, etc are available
+    // Includes:
+    // - ASCII (32-126)
+    // - Degree: ° (U+00B0)
+    // - Micro: µ (U+00B5), μ (U+03BC)
+    // - Squares/Cubes: ² (U+00B2), ³ (U+00B3)
+    // - Math: ± (U+00B1), × (U+00D7), ÷ (U+00F7)
+    // - Currency: € (U+20AC), £ (U+00A3), ¥ (U+00A5)
+    // - General: © (U+00A9), ® (U+00AE), ™ (U+2122)
+    // - Arrows: ←↑→↓ (U+2190-2193)
+    const EXTENDED_GLYPHS = [
+        // Basic Latin (ASCII)
+        ...Array.from({ length: 95 }, (_, i) => `\\U000000${(i + 32).toString(16).padStart(2, '0')}`), // 0x20-0x7E
+        "\\U000000B0", // Degree °
+        "\\U000000B1", // Plus-Minus ±
+        "\\U000000B2", // Superscript 2 ²
+        "\\U000000B3", // Superscript 3 ³
+        "\\U000000B5", // Micro Sign µ
+        "\\U000000A3", // Pound Sterling £
+        "\\U000000A5", // Yen ¥
+        "\\U000000A9", // Copyright ©
+        "\\U000000AE", // Registered ®
+        "\\U000000D7", // Multiplication ×
+        "\\U000000F7", // Division ÷
+        "\\U000003BC", // Greek Mu μ (often used for micro)
+        "\\U000003A9", // Greek Omega Ω
+        "\\U000020AC", // Euro €
+        "\\U00002122", // Trademark ™
+        // Arrows removed as they are missing in Roboto (U+2190-U+2193)
+    ].map(g => `"${g}"`).join(", "); // Quote each glyph properly
+
     const addFont = (family, weight, size, italic = false) => {
         const safeFamily = family.replace(/\s+/g, "_").toLowerCase();
         const italicSuffix = italic ? "_italic" : "";
@@ -1046,6 +1091,9 @@ async function generateSnippetLocally() {
                 }
                 fontLines.push(`    id: ${id}`);
                 fontLines.push(`    size: ${size}`);
+                // Add extended glyphs to ensure units and standard symbols work
+                // Note: We inject raw string list directly, assuming ESPHome parser handles it
+                fontLines.push(`    glyphs: [${EXTENDED_GLYPHS}]`);
             }
         }
         return id;
@@ -2608,7 +2656,8 @@ function generateScriptSection(payload, pagesLocal, profile = {}) {
           condition:
             lambda: 'return !id(ha_time).now().is_valid();'
           then:
-            - delay: 100ms
+            - delay: 2000ms
+            - script.execute: manage_run_and_sleep
           else:`;
     }
 

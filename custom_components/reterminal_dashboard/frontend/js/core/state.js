@@ -54,12 +54,20 @@ class StateStore {
         if (this.state.settings.device_model) {
             window.currentDeviceModel = this.state.settings.device_model;
         }
+
+        // Listen for internal state changes to trigger local storage save
+        on(EVENTS.STATE_CHANGED, () => {
+            if (!hasHaBackend()) {
+                this.saveToLocalStorage();
+            }
+        });
     }
 
     reset() {
         this.state.pages = [{
             id: "page_0",
             name: "Overview",
+            layout: null,  // null = absolute positioning, "4x4" = grid shorthand
             widgets: []
         }];
         this.state.currentPageIndex = 0;
@@ -161,6 +169,37 @@ class StateStore {
 
     setSettings(newSettings) {
         this.updateSettings(newSettings);
+    }
+
+    /**
+     * Saves the current layout state to browser localStorage.
+     */
+    saveToLocalStorage() {
+        try {
+            const payload = this.getPagesPayload();
+            localStorage.setItem('esphome-designer-layout', JSON.stringify(payload));
+            // console.log("[StateStore] State saved to localStorage");
+        } catch (e) {
+            console.warn("[StateStore] Failed to save to localStorage:", e);
+        }
+    }
+
+    /**
+     * Loads the layout state from browser localStorage.
+     * @returns {Object|null} The loaded layout or null if not found.
+     */
+    loadFromLocalStorage() {
+        try {
+            const data = localStorage.getItem('esphome-designer-layout');
+            if (data) {
+                const layout = JSON.parse(data);
+                console.log("[StateStore] State loaded from localStorage");
+                return layout;
+            }
+        } catch (e) {
+            console.warn("[StateStore] Failed to load from localStorage:", e);
+        }
+        return null;
     }
 
     // --- Actions ---

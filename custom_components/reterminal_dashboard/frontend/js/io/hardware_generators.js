@@ -286,8 +286,11 @@ function generateSensorSection(profile, widgetSensorLines = [], displayId = "my_
     if (hasBattery) {
         lines.push("  - platform: adc");
         lines.push(`    pin: ${pins.batteryAdc}`);
-        lines.push("    id: battery_voltage");
         lines.push("    name: \"Battery Voltage\"");
+        lines.push("    unit_of_measurement: \"V\"");
+        lines.push("    device_class: voltage");
+        lines.push("    state_class: measurement");
+        lines.push("    id: battery_voltage");
         lines.push("    update_interval: 60s");
         lines.push("    attenuation: " + profile.battery.attenuation);
         lines.push("    filters:");

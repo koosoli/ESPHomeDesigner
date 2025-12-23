@@ -4,6 +4,34 @@
 
 
 
+## v0.8.1 - Standalone Mode & LVGL Grid
+
+**Release Date:** December 22, 2025
+
+### 🎉 New Features
+- **Standalone & Offline Mode**: The Designer can now be used completely offline or deployed to static hosting platforms like GitHub Pages.
+- **Externally Hosted HA Connection**: Users can now manually configure a Home Assistant URL and Long-Lived Access Token (LLAT) in Editor Preferences. This enables the GitHub-hosted or externally deployed versions of the editor to connect to local HA instances for fetching entities and managing layouts without needing the integration installed.
+- **Import/Export Projects**: Added a visible "Import Project" button to the sidebar to complement the "Save Project" button. This enables a complete offline workflow where you can save and load your dashboard designs as local JSON files.
+- **GitHub Pages Deployment**: A standalone version of the designer is now available at [koosoli.github.io/ESPHomeDesigner/](https://koosoli.github.io/ESPHomeDesigner/).
+- **LVGL Grid Support (Phase 1)**: Initial support for LVGL grid layouts on a per-page basis using the `layout: NxM` shorthand.
+- **Bidirectional Grid Sync**: A seamless workflow where dragging or resizing widgets on the canvas auto-detects their grid cell, row, and column span.
+- **Snap-to-Grid**: Widgets now intelligently snap to grid boundaries during drag and drop for pixel-perfect alignment.
+- **Auto-Positioning for All Widgets**: Both LVGL and non-LVGL widgets (Text, Icons, Shapes) now support grid-based positioning. For non-LVGL widgets, the Designer automatically calculates the required absolute X/Y coordinates based on their grid cell.
+- **Grid Visualization Overlay**: Added a visual dashed grid overlay with cell coordinate labels (`0,0`, `0,1`, etc.) that automatically adapts to dark/light mode for easier layout design.
+- **Smart YAML Export**: 
+  - Generates clean `layout: NxM` definitions for pages.
+  - Includes `grid_cell_*` properties for LVGL widgets.
+  - Automatically omits redundant `x:` and `y:` coordinates when native grid positioning is in use.
+- **Round-Trip Import**: Full support for importing grid layouts and cell properties from existing YAML files.
+
+### 🐛 Bug Fixes
+- **Display Refresh Loop**: Fixed an issue where the display auto-refresh loop would terminate permanently if time synchronization failed momentarily during the update cycle.
+- **YAML Generation**: Fixed a bug where the `text_sensor:` key was duplicated in the generated YAML when using both Home Assistant text sensors and complex widgets (Quotes, Weather Forecast, or Calendar).
+- **reTerminal Battery Calibration**: Fixed an issue where the `battery_voltage` sensor incorrectly included a calibration filter, causing it to always display 100%. Raw voltage is now correctly reported in Volts with proper Home Assistant metadata.
+- **Missing Glyphs**: Fixed missing unit characters (μ, ³, °, etc.) in generated fonts by explicitly including extended glyphs.
+
+---
+
 ## v0.8.0 - Enhanced UI & Modular Profiles
 
 **Release Date:** December 20, 2025

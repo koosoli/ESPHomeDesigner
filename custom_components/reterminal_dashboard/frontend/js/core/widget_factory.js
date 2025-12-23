@@ -39,6 +39,28 @@ class WidgetFactory {
         return WidgetFactory.getEffectiveDarkMode() ? "black" : "white";
     }
 
+    /**
+     * Returns default grid cell properties for LVGL widgets.
+     * These are applied when a page uses grid layout.
+     */
+    static getGridCellDefaults() {
+        return {
+            grid_cell_row_pos: null,      // null = auto-place
+            grid_cell_column_pos: null,
+            grid_cell_row_span: 1,
+            grid_cell_column_span: 1,
+            grid_cell_x_align: "STRETCH",
+            grid_cell_y_align: "STRETCH"
+        };
+    }
+
+    /**
+     * Checks if a widget type is an LVGL widget.
+     */
+    static isLvglWidget(type) {
+        return type && type.startsWith("lvgl_");
+    }
+
 
     static createWidget(type) {
         const id = generateId();
@@ -601,6 +623,14 @@ class WidgetFactory {
                     radius: 0
                 };
                 break;
+        }
+
+        // Apply grid cell defaults to all LVGL widgets
+        if (WidgetFactory.isLvglWidget(type)) {
+            widget.props = {
+                ...WidgetFactory.getGridCellDefaults(),
+                ...widget.props
+            };
         }
 
         return widget;

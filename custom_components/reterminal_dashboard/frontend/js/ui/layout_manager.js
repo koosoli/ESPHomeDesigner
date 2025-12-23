@@ -127,7 +127,9 @@ class LayoutManager {
         }
 
         try {
-            const resp = await fetch(`${HA_API_BASE}/layouts`);
+            const resp = await fetch(`${HA_API_BASE}/layouts`, {
+                headers: getHaHeaders()
+            });
             if (!resp.ok) throw new Error(`Failed to load layouts: ${resp.status}`);
 
             const data = await resp.json();
@@ -233,7 +235,9 @@ class LayoutManager {
         try {
             this.setStatus("Loading layout...", "info");
 
-            const resp = await fetch(`${HA_API_BASE}/layouts/${layoutId}`);
+            const resp = await fetch(`${HA_API_BASE}/layouts/${layoutId}`, {
+                headers: getHaHeaders()
+            });
             if (!resp.ok) throw new Error(`Failed to load layout: ${resp.status}`);
 
             const layout = await resp.json();
@@ -323,7 +327,8 @@ class LayoutManager {
 
         try {
             const resp = await fetch(`${HA_API_BASE}/layouts/${layoutId}`, {
-                method: "DELETE"
+                method: "DELETE",
+                headers: getHaHeaders()
             });
 
             if (!resp.ok) {
@@ -438,7 +443,7 @@ class LayoutManager {
         try {
             const resp = await fetch(`${HA_API_BASE}/layouts`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: getHaHeaders(),
                 body: JSON.stringify({ id, name, device_type: deviceModel, device_model: deviceModel })
             });
 
@@ -521,7 +526,7 @@ class LayoutManager {
             const url = `${HA_API_BASE}/layouts/import${overwrite ? "?overwrite=true" : ""}`;
             const resp = await fetch(url, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: getHaHeaders(),
                 body: JSON.stringify(data)
             });
 

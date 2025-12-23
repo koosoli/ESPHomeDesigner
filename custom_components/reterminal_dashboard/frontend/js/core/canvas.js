@@ -105,6 +105,10 @@ class Canvas {
             this.canvas.classList.remove("dark");
         }
 
+        // Render LVGL grid overlay if page has grid layout
+        if (page && page.layout && /^\d+x\d+$/.test(page.layout)) {
+            this._renderLvglGridOverlay(page.layout, dims, effectiveDarkMode);
+        }
 
         if (!page) return;
 
@@ -168,6 +172,66 @@ class Canvas {
         if (pageDarkMode === "dark") return true;
         if (pageDarkMode === "light") return false;
         return !!AppState.settings.dark_mode;
+    }
+
+    /**
+     * Renders LVGL grid overlay on canvas when page has grid layout.
+     * @param {string} layout - Grid layout string like "4x4"
+     * @param {Object} dims - Canvas dimensions {width, height}
+     * @param {boolean} isDark - Whether dark mode is active
+     */
+    _renderLvglGridOverlay(layout, dims, isDark) {
+        const match = layout.match(/^(\d+)x(\d+)$/);
+        if (!match) return;
+
+        const rows = parseInt(match[1], 10);
+        const cols = parseInt(match[2], 10);
+        const cellWidth = dims.width / cols;
+        const cellHeight = dims.height / rows;
+
+        // Create grid container
+        const gridOverlay = document.createElement("div");
+        gridOverlay.className = "lvgl-grid-overlay";
+        gridOverlay.style.cssText = `
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: grid;
+            grid-template-rows: repeat(${rows}, 1fr);
+            grid-template-columns: repeat(${cols}, 1fr);
+            pointer-events: none;
+            z-index: 1;
+        `;
+
+        const lineColor = isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)";
+        const labelColor = isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)";
+
+        // Create grid cells with labels
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                const cell = document.createElement("div");
+                cell.style.cssText = `
+                    border: 1px dashed ${lineColor};
+                    position: relative;
+                    box-sizing: border-box;
+                `;
+
+                // Add label in top-left corner
+                const label = document.createElement("span");
+                label.textContent = `${r},${c}`;
+                label.style.cssText = `
+                    position: absolute;
+                    top: 2px; left: 4px;
+                    font-size: 10px;
+                    color: ${labelColor};
+                    font-family: monospace;
+                    pointer-events: none;
+                `;
+                cell.appendChild(label);
+                gridOverlay.appendChild(cell);
+            }
+        }
+
+        this.canvas.appendChild(gridOverlay);
     }
 
     _addResizeHandle(el) {
@@ -559,9 +623,20 @@ class Canvas {
             x = Math.max(0, Math.min(dims.width - widget.width, x));
             y = Math.max(0, Math.min(dims.height - widget.height, y));
 
-            const snapped = this.applySnapToPosition(widget, x, y, ev.altKey, dims);
-            widget.x = snapped.x;
-            widget.y = snapped.y;
+            // Snap to grid cells if page has grid layout (unless Alt held)
+            const page = AppState.getCurrentPage();
+            if (page?.layout && !ev.altKey) {
+                const snappedToGrid = this._snapToGridCell(x, y, widget.width, widget.height, page.layout, dims);
+                x = snappedToGrid.x;
+                y = snappedToGrid.y;
+            } else {
+                const snapped = this.applySnapToPosition(widget, x, y, ev.altKey, dims);
+                x = snapped.x;
+                y = snapped.y;
+            }
+
+            widget.x = x;
+            widget.y = y;
         } else if (this.dragState.mode === "resize") {
             // Account for zoom when calculating resize delta
             let w = this.dragState.startW + (ev.clientX - this.dragState.startX) / zoom;
@@ -618,16 +693,97 @@ class Canvas {
 
     _onMouseUp() {
         if (this.dragState) {
+            const widgetId = this.dragState.id;  // Property is named 'id' in dragState
             this.dragState = null;
             this.clearSnapGuides();
             window.removeEventListener("mousemove", this._boundMouseMove);
             window.removeEventListener("mouseup", this._boundMouseUp);
+
+            // Auto-detect grid cell position if page has grid layout
+            this._updateWidgetGridCell(widgetId);
 
             // Trigger state update to save history
             AppState.recordHistory();
             emit(EVENTS.STATE_CHANGED);
             this.render();
         }
+    }
+
+    /**
+     * Auto-detects which grid cell a widget is in based on its position.
+     * Updates grid_cell_row_pos and grid_cell_column_pos in widget props.
+     */
+    _updateWidgetGridCell(widgetId) {
+        const page = AppState.getCurrentPage();
+        if (!page || !page.layout) return;
+
+        const match = page.layout.match(/^(\d+)x(\d+)$/);
+        if (!match) return;
+
+        const widget = AppState.getWidgetById(widgetId);
+        if (!widget) return;
+
+        const rows = parseInt(match[1], 10);
+        const cols = parseInt(match[2], 10);
+        const dims = AppState.getCanvasDimensions();
+        const cellWidth = dims.width / cols;
+        const cellHeight = dims.height / rows;
+
+        // Calculate cell based on widget center
+        const centerX = widget.x + widget.width / 2;
+        const centerY = widget.y + widget.height / 2;
+
+        const col = Math.floor(centerX / cellWidth);
+        const row = Math.floor(centerY / cellHeight);
+
+        // Clamp to valid range
+        const clampedRow = Math.max(0, Math.min(rows - 1, row));
+        const clampedCol = Math.max(0, Math.min(cols - 1, col));
+
+        // Update widget props with detected grid position
+        const newProps = {
+            ...widget.props,
+            grid_cell_row_pos: clampedRow,
+            grid_cell_column_pos: clampedCol
+        };
+
+        // Also detect span based on widget size
+        const rowSpan = Math.max(1, Math.round(widget.height / cellHeight));
+        const colSpan = Math.max(1, Math.round(widget.width / cellWidth));
+        newProps.grid_cell_row_span = rowSpan;
+        newProps.grid_cell_column_span = colSpan;
+
+        AppState.updateWidget(widgetId, { props: newProps });
+    }
+
+    /**
+     * Snaps x/y position to the nearest grid cell boundary.
+     * @returns {{x: number, y: number}} Snapped position
+     */
+    _snapToGridCell(x, y, widgetWidth, widgetHeight, layout, dims) {
+        const match = layout.match(/^(\d+)x(\d+)$/);
+        if (!match) return { x, y };
+
+        const rows = parseInt(match[1], 10);
+        const cols = parseInt(match[2], 10);
+        const cellWidth = dims.width / cols;
+        const cellHeight = dims.height / rows;
+
+        // Snap to nearest cell boundary based on widget center
+        const centerX = x + widgetWidth / 2;
+        const centerY = y + widgetHeight / 2;
+
+        const col = Math.round(centerX / cellWidth - 0.5);
+        const row = Math.round(centerY / cellHeight - 0.5);
+
+        // Clamp to valid range
+        const clampedCol = Math.max(0, Math.min(cols - 1, col));
+        const clampedRow = Math.max(0, Math.min(rows - 1, row));
+
+        return {
+            x: Math.round(clampedCol * cellWidth),
+            y: Math.round(clampedRow * cellHeight)
+        };
     }
 
     // --- Snapping ---

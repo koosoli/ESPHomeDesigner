@@ -11,7 +11,9 @@ async function fetchDynamicHardwareProfiles() {
     try {
         const url = `${HA_API_BASE}/hardware/templates`;
         console.log("[HardwareDiscovery] Fetching from:", url);
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            headers: getHaHeaders()
+        });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         return data.templates || [];
@@ -32,8 +34,15 @@ async function uploadHardwareTemplate(file) {
 
     try {
         const url = `${HA_API_BASE}/hardware/upload`;
+
+        // FIX: FormData requires the browser to set the Content-Type with the boundary.
+        // getHaHeaders() adds "Content-Type": "application/json", which breaks this.
+        const headers = getHaHeaders();
+        delete headers["Content-Type"];
+
         const response = await fetch(url, {
             method: "POST",
+            headers: headers,
             body: formData
         });
 

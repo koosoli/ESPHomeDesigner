@@ -11,6 +11,12 @@ class EditorSettings {
         this.refreshEntitiesBtn = document.getElementById('editorRefreshEntities');
         this.entityCountLabel = document.getElementById('editorEntityCount');
         this.gridOpacity = document.getElementById('editorGridOpacity');
+
+        // HA Connection
+        this.haManualUrl = document.getElementById('haManualUrl');
+        this.haLlatToken = document.getElementById('haLlatToken');
+        this.testHaBtn = document.getElementById('editorTestHaBtn');
+        this.haTestResult = document.getElementById('haTestResult');
     }
 
     init() {
@@ -48,6 +54,17 @@ class EditorSettings {
         // Grid Opacity
         if (this.gridOpacity) {
             this.gridOpacity.value = settings.grid_opacity !== undefined ? settings.grid_opacity : 20;
+        }
+
+        // HA Connection
+        if (this.haManualUrl) this.haManualUrl.value = getHaManualUrl() || "";
+        if (this.haLlatToken) this.haLlatToken.value = getHaToken() || "";
+        if (this.haTestResult) this.haTestResult.textContent = "";
+
+        // Dynamically show current origin for CORS tip
+        const originPlaceholder = document.getElementById('haOriginPlaceholder');
+        if (originPlaceholder) {
+            originPlaceholder.textContent = window.location.origin;
         }
 
         // Entity Count
@@ -124,6 +141,48 @@ class EditorSettings {
                 this.updateEntityCount();
                 this.refreshEntitiesBtn.disabled = false;
                 this.refreshEntitiesBtn.textContent = "↻ Refresh Entity List";
+            });
+        }
+
+        // HA Connection Changes
+        if (this.haManualUrl) {
+            this.haManualUrl.addEventListener('change', () => {
+                setHaManualUrl(this.haManualUrl.value.trim());
+                refreshHaBaseUrl();
+            });
+        }
+
+        if (this.haLlatToken) {
+            this.haLlatToken.addEventListener('change', () => {
+                setHaToken(this.haLlatToken.value.trim());
+            });
+        }
+
+        if (this.testHaBtn) {
+            this.testHaBtn.addEventListener('click', async () => {
+                this.testHaBtn.disabled = true;
+                this.haTestResult.textContent = "Testing...";
+                this.haTestResult.style.color = "var(--muted)";
+
+                try {
+                    // Force refresh base URL in case it was just changed
+                    refreshHaBaseUrl();
+                    const entities = await fetchEntityStates();
+                    if (entities && entities.length > 0) {
+                        this.haTestResult.textContent = "✅ Success!";
+                        this.haTestResult.style.color = "var(--success)";
+                        this.updateEntityCount();
+                    } else {
+                        // Detailed failure help
+                        this.haTestResult.innerHTML = "❌ Failed.<br>Did you add <strong>cors_allowed_origins</strong> to HA and <strong>restart</strong> it?";
+                        this.haTestResult.style.color = "var(--danger)";
+                    }
+                } catch (e) {
+                    this.haTestResult.innerHTML = "❌ Connection Error.<br>Check browser console.";
+                    this.haTestResult.style.color = "var(--danger)";
+                } finally {
+                    this.testHaBtn.disabled = false;
+                }
             });
         }
     }

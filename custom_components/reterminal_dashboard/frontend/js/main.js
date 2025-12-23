@@ -63,7 +63,15 @@ class App {
             await fetchEntityStates();
         } else {
             console.log("Running in standalone/offline mode.");
-            // State initializes with default layout automatically
+            // Try to load from localStorage
+            const savedLayout = AppState.loadFromLocalStorage();
+            if (savedLayout) {
+                console.log("[App] Found saved layout in localStorage, loading...");
+                loadLayoutIntoState(savedLayout);
+            } else {
+                console.log("[App] No saved layout in localStorage, starting fresh.");
+                // State initializes with default layout automatically
+            }
         }
 
         // Update the layout indicator after loading
@@ -95,6 +103,13 @@ class App {
         const loadLayoutBtn = document.getElementById('loadLayoutBtn'); // Hidden file input
         if (loadLayoutBtn) {
             loadLayoutBtn.addEventListener('change', handleFileSelect);
+        }
+
+        const importProjectBtn = document.getElementById('importProjectBtn');
+        if (importProjectBtn && loadLayoutBtn) {
+            importProjectBtn.addEventListener('click', () => {
+                loadLayoutBtn.click();
+            });
         }
 
 

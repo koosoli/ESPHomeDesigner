@@ -227,9 +227,130 @@ class PropertiesPanel {
         // Legacy Widget Specific Logic
         this.renderLegacyProperties(widget, type);
 
+        // === GRID CELL PROPERTIES (for LVGL widgets in grid layout) ===
+        this.renderGridCellProperties(widget, type);
+
         // === VISIBILITY CONDITIONS SECTION (BOTTOM) ===
         this.addSectionLabel("Visibility Conditions");
         this.addVisibilityConditions(widget);
+    }
+
+    /**
+     * Renders grid cell position properties for widgets when page uses grid layout.
+     * For LVGL widgets: uses native grid_cell_* properties
+     * For non-LVGL widgets: auto-calculates x/y from grid position
+     */
+    renderGridCellProperties(widget, type) {
+        const page = AppState.getCurrentPage();
+        if (!page || !page.layout) return;  // Only show if page has grid layout
+
+        const isLvgl = WidgetFactory.isLvglWidget(type);
+        const props = widget.props || {};
+
+        const updateProp = (key, value) => {
+            const newProps = { ...widget.props, [key]: value };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        // Helper to calculate x/y from grid position for non-LVGL widgets
+        const calculateGridPosition = (row, col, rowSpan, colSpan) => {
+            const match = page.layout.match(/^(\d+)x(\d+)$/);
+            if (!match) return null;
+
+            const rows = parseInt(match[1], 10);
+            const cols = parseInt(match[2], 10);
+            const dims = AppState.getCanvasDimensions();
+            const cellWidth = dims.width / cols;
+            const cellHeight = dims.height / rows;
+
+            return {
+                x: Math.round(col * cellWidth),
+                y: Math.round(row * cellHeight),
+                width: Math.round(cellWidth * colSpan),
+                height: Math.round(cellHeight * rowSpan)
+            };
+        };
+
+        this.addSectionLabel(isLvgl ? "Grid Cell Position" : "Grid Cell Position (Auto X/Y)");
+
+        // Row Position
+        this.addLabeledInput("Row (0-indexed)", "number", props.grid_cell_row_pos ?? "", (v) => {
+            const val = v === "" ? null : parseInt(v, 10);
+            updateProp("grid_cell_row_pos", isNaN(val) ? null : val);
+
+            // Auto-calculate x/y for canvas preview (all widgets)
+            const freshWidget = AppState.getWidgetById(widget.id);
+            const fp = freshWidget?.props || {};
+            if (val != null && fp.grid_cell_column_pos != null) {
+                const pos = calculateGridPosition(val, fp.grid_cell_column_pos,
+                    fp.grid_cell_row_span || 1, fp.grid_cell_column_span || 1);
+                if (pos) {
+                    AppState.updateWidget(widget.id, { x: pos.x, y: pos.y, width: pos.width, height: pos.height });
+                }
+            }
+        });
+
+        // Column Position
+        this.addLabeledInput("Column (0-indexed)", "number", props.grid_cell_column_pos ?? "", (v) => {
+            const val = v === "" ? null : parseInt(v, 10);
+            updateProp("grid_cell_column_pos", isNaN(val) ? null : val);
+
+            // Auto-calculate x/y for canvas preview (all widgets)
+            const freshWidget = AppState.getWidgetById(widget.id);
+            const fp = freshWidget?.props || {};
+            if (val != null && fp.grid_cell_row_pos != null) {
+                const pos = calculateGridPosition(fp.grid_cell_row_pos, val,
+                    fp.grid_cell_row_span || 1, fp.grid_cell_column_span || 1);
+                if (pos) {
+                    AppState.updateWidget(widget.id, { x: pos.x, y: pos.y, width: pos.width, height: pos.height });
+                }
+            }
+        });
+
+        // Row Span
+        this.addLabeledInput("Row Span", "number", props.grid_cell_row_span || 1, (v) => {
+            const span = Math.max(1, parseInt(v, 10) || 1);
+            updateProp("grid_cell_row_span", span);
+
+            // Recalculate size for canvas preview (all widgets)
+            const freshWidget = AppState.getWidgetById(widget.id);
+            const fp = freshWidget?.props || {};
+            if (fp.grid_cell_row_pos != null && fp.grid_cell_column_pos != null) {
+                const pos = calculateGridPosition(fp.grid_cell_row_pos, fp.grid_cell_column_pos,
+                    span, fp.grid_cell_column_span || 1);
+                if (pos) {
+                    AppState.updateWidget(widget.id, { x: pos.x, y: pos.y, width: pos.width, height: pos.height });
+                }
+            }
+        });
+
+        // Column Span
+        this.addLabeledInput("Column Span", "number", props.grid_cell_column_span || 1, (v) => {
+            const span = Math.max(1, parseInt(v, 10) || 1);
+            updateProp("grid_cell_column_span", span);
+
+            // Recalculate size for canvas preview (all widgets)
+            const freshWidget = AppState.getWidgetById(widget.id);
+            const fp = freshWidget?.props || {};
+            if (fp.grid_cell_row_pos != null && fp.grid_cell_column_pos != null) {
+                const pos = calculateGridPosition(fp.grid_cell_row_pos, fp.grid_cell_column_pos,
+                    fp.grid_cell_row_span || 1, span);
+                if (pos) {
+                    AppState.updateWidget(widget.id, { x: pos.x, y: pos.y, width: pos.width, height: pos.height });
+                }
+            }
+        });
+
+        // Alignment options (only for LVGL widgets that support it natively)
+        if (isLvgl) {
+            const alignOptions = ["START", "END", "CENTER", "STRETCH"];
+            this.addSelect("X Align", props.grid_cell_x_align || "STRETCH", alignOptions, (v) => {
+                updateProp("grid_cell_x_align", v);
+            });
+            this.addSelect("Y Align", props.grid_cell_y_align || "STRETCH", alignOptions, (v) => {
+                updateProp("grid_cell_y_align", v);
+            });
+        }
     }
 
     renderLegacyProperties(widget, type) {

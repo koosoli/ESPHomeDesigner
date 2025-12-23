@@ -97,6 +97,7 @@ function parseSnippetYamlOffline(yamlText) {
     const refreshTypeMap = new Map();
     const refreshTimeMap = new Map();
     const pagePropsMap = new Map(); // Store page-level properties (bg_color, etc)
+    const layoutMap = new Map(); // Grid layout (e.g., "4x4")
 
     const parseYamlRecursive = (lines, startJ, baseInd) => {
         const firstLine = lines[startJ];
@@ -274,6 +275,13 @@ function parseSnippetYamlOffline(yamlText) {
             console.log(`[parseSnippetYamlOffline] Detected LVGL Page: ${pageIdStr} (mapped to idx ${idx})`);
         }
 
+        // Parse grid layout (e.g., "layout: 4x4")
+        const layoutMatch = line.match(/^\s*layout:\s*(\d+x\d+)/);
+        if (layoutMatch && currentPageIndex !== null) {
+            layoutMap.set(currentPageIndex, layoutMatch[1]);
+            console.log(`[parseSnippetYamlOffline] Detected layout: ${layoutMatch[1]} for page ${currentPageIndex}`);
+        }
+
         if (trimmedLine.startsWith("widgets:")) {
             inWidgetsBlockLookahead = true;
             continue;
@@ -410,6 +418,7 @@ function parseSnippetYamlOffline(yamlText) {
             refresh_type: refreshTypeMap.has(idx) ? refreshTypeMap.get(idx) : "interval",
             refresh_time: refreshTimeMap.has(idx) ? refreshTimeMap.get(idx) : "",
             dark_mode: darkModeMap.has(idx) ? darkModeMap.get(idx) : "inherit",
+            layout: layoutMap.has(idx) ? layoutMap.get(idx) : null,
             bg_color: pagePropsMap.has(idx) ? pagePropsMap.get(idx).bg_color : null,
             bg_opa: pagePropsMap.has(idx) ? pagePropsMap.get(idx).bg_opa : null,
             widgets: []
@@ -535,6 +544,16 @@ function parseSnippetYamlOffline(yamlText) {
                     widget.props.ignore_layout = (p.ignore_layout === "true");
                     widget.props.scrollbar_mode = p.scrollbar_mode || "AUTO";
                     widget.props.opa = parseInt(p.opa || 255, 10);
+
+                    // Grid cell properties (accept both short and full names)
+                    const rowPos = p.grid_cell_row_pos ?? p.grid_row;
+                    const colPos = p.grid_cell_column_pos ?? p.grid_col;
+                    widget.props.grid_cell_row_pos = rowPos != null ? parseInt(rowPos, 10) : null;
+                    widget.props.grid_cell_column_pos = colPos != null ? parseInt(colPos, 10) : null;
+                    widget.props.grid_cell_row_span = parseInt(p.grid_cell_row_span || p.grid_row_span || 1, 10);
+                    widget.props.grid_cell_column_span = parseInt(p.grid_cell_column_span || p.grid_col_span || 1, 10);
+                    widget.props.grid_cell_x_align = p.grid_cell_x_align || p.grid_x_align || "STRETCH";
+                    widget.props.grid_cell_y_align = p.grid_cell_y_align || p.grid_y_align || "STRETCH";
                 }
 
                 if (widgetType === "icon") {

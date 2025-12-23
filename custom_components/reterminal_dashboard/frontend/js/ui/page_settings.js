@@ -10,6 +10,10 @@ class PageSettings {
         this.fieldInterval = document.getElementById('field-refresh-interval');
         this.fieldTime = document.getElementById('field-refresh-time');
         this.darkModeInput = document.getElementById('pageSettingsDarkMode');
+        // Grid layout fields
+        this.layoutModeInput = document.getElementById('pageSettingsLayoutMode');
+        this.gridSizeInput = document.getElementById('pageSettingsGridSize');
+        this.fieldGridSize = document.getElementById('field-grid-size');
         this.pageIndex = -1;
     }
 
@@ -20,6 +24,10 @@ class PageSettings {
         if (this.refreshModeInput) {
             this.refreshModeInput.addEventListener('change', () => this.updateVisibility());
         }
+        // Grid layout mode toggle
+        if (this.layoutModeInput) {
+            this.layoutModeInput.addEventListener('change', () => this.updateGridVisibility());
+        }
     }
 
     updateVisibility() {
@@ -27,6 +35,12 @@ class PageSettings {
         const mode = this.refreshModeInput.value;
         if (this.fieldInterval) this.fieldInterval.style.display = (mode === 'interval') ? 'block' : 'none';
         if (this.fieldTime) this.fieldTime.style.display = (mode === 'daily') ? 'block' : 'none';
+    }
+
+    updateGridVisibility() {
+        if (!this.layoutModeInput || !this.fieldGridSize) return;
+        const mode = this.layoutModeInput.value;
+        this.fieldGridSize.style.display = (mode === 'grid') ? 'block' : 'none';
     }
 
     open(index) {
@@ -48,7 +62,16 @@ class PageSettings {
             this.darkModeInput.value = page.dark_mode || "inherit";
         }
 
+        // Grid Layout
+        if (this.layoutModeInput) {
+            this.layoutModeInput.value = page.layout ? 'grid' : 'absolute';
+        }
+        if (this.gridSizeInput) {
+            this.gridSizeInput.value = page.layout || "4x4";
+        }
+
         this.updateVisibility();
+        this.updateGridVisibility();
         this.modal.classList.remove('hidden');
         this.modal.style.display = 'flex';
     }
@@ -71,6 +94,10 @@ class PageSettings {
         const time = this.refreshTimeInput ? this.refreshTimeInput.value : "08:00";
         const darkMode = this.darkModeInput ? this.darkModeInput.value : "inherit";
 
+        // Grid Layout
+        const layoutMode = this.layoutModeInput ? this.layoutModeInput.value : 'absolute';
+        const gridSize = this.gridSizeInput ? this.gridSizeInput.value.trim() : "";
+
         page.name = name;
         page.refresh_type = mode;
 
@@ -89,6 +116,13 @@ class PageSettings {
         }
 
         page.dark_mode = darkMode;
+
+        // Grid Layout - validate and save
+        if (layoutMode === 'grid' && /^\d+x\d+$/.test(gridSize)) {
+            page.layout = gridSize;
+        } else {
+            page.layout = null;
+        }
 
         AppState.setPages(AppState.pages); // Trigger update
 

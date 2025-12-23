@@ -14,13 +14,14 @@
     rel="stylesheet">
 
   <link rel="stylesheet" href="editor.css">
+  <link rel="icon" href="data:,">
 </head>
 
 <body>
   <header class="main-header">
     <div class="main-header-title">
       <h2><span class="logo-dot"></span> ESPHome Designer</h2>
-      <span>Visual YAML Editor <small style="opacity: 0.5; margin-left: 8px;">v0.8</small> <span
+      <span>Visual YAML Editor <small style="opacity: 0.5; margin-left: 8px;">v0.8.1</small> <span
           id="currentLayoutDevice" style="margin-left:8px; color:var(--accent);"></span></span>
     </div>
     <div class="main-header-actions desktop-only">
@@ -484,7 +485,11 @@
           </div>
           <strong id="currentLayoutName">Loading...</strong>
         </div>
-        <button id="saveLayoutBtn" class="btn btn-secondary btn-full">Save Project</button>
+        <div style="display: flex; gap: 4px;">
+          <button id="saveLayoutBtn" class="btn btn-secondary" style="flex: 1;">Save Project</button>
+          <button id="importProjectBtn" class="btn btn-secondary" style="flex: 1;">Import Project</button>
+        </div>
+        <input type="file" id="loadLayoutBtn" accept=".json" style="display:none;" />
         <button id="manageLayoutsBtn" class="btn btn-secondary btn-full" style="margin-top: 4px;">📁 Layout
           Manager</button>
       </div>
@@ -616,6 +621,18 @@
             <option value="light">Always Light</option>
             <option value="dark">Always Dark</option>
           </select>
+        </div>
+        <div class="field">
+          <div class="prop-label">Layout Mode (LVGL)</div>
+          <select id="pageSettingsLayoutMode" class="prop-input">
+            <option value="absolute">Absolute Positioning</option>
+            <option value="grid">Grid Layout</option>
+          </select>
+          <div id="field-grid-size" style="display:none; margin-top:8px;">
+            <div class="prop-label">Grid Size (RxC)</div>
+            <input id="pageSettingsGridSize" class="prop-input" type="text" placeholder="4x4" pattern="[0-9]+x[0-9]+" />
+            <div style="font-size:10px; color:var(--muted); margin-top:4px;">Format: rows×columns, e.g. 2x3, 4x4</div>
+          </div>
         </div>
       </div>
       <div class="modal-actions">
@@ -910,33 +927,60 @@
           <span id="editorEntityCount" style="font-size:var(--fs-xs); opacity:0.6; margin-left:8px;"></span>
         </div>
         <div class="field" style="border-top:1px solid var(--border-subtle); padding-top:12px; margin-top:12px;">
-          <div class="prop-label">Keyboard Shortcuts</div>
-          <div style="font-size: var(--fs-xs); color: var(--muted); line-height: 2;">
-            <div><kbd
-                style="background:var(--bg-input); padding:2px 6px; border-radius:3px; border:1px solid var(--border-subtle);">Ctrl+Z</kbd>
-              Undo</div>
-            <div><kbd
-                style="background:var(--bg-input); padding:2px 6px; border-radius:3px; border:1px solid var(--border-subtle);">Ctrl+Y</kbd>
-              Redo</div>
-            <div><kbd
-                style="background:var(--bg-input); padding:2px 6px; border-radius:3px; border:1px solid var(--border-subtle);">Ctrl+C</kbd>
-              Copy widget</div>
-            <div><kbd
-                style="background:var(--bg-input); padding:2px 6px; border-radius:3px; border:1px solid var(--border-subtle);">Ctrl+V</kbd>
-              Paste widget</div>
-            <div><kbd
-                style="background:var(--bg-input); padding:2px 6px; border-radius:3px; border:1px solid var(--border-subtle);">Delete</kbd>
-              Remove selected widget</div>
-            <div><kbd
-                style="background:var(--bg-input); padding:2px 6px; border-radius:3px; border:1px solid var(--border-subtle);">Alt
-                + Drag</kbd> Disable snap guides</div>
+          <span>Home Assistant Connection</span>
+        </div>
+        <div style="font-size:10px; opacity:0.6; margin-bottom:8px;">Configure this if you are using the GitHub-hosted
+          version or an external URL.</div>
+        <div class="field" style="display:flex; flex-direction:column; gap:8px;">
+          <div id="haCorsTip"
+            style="background: rgba(82, 199, 234, 0.1); border-left: 3px solid var(--accent); padding: 10px; border-radius: 4px; font-size: 10px; line-height: 1.4;">
+            <strong>💡 Connection Tip:</strong><br>
+            If requests are blocked, you may need to add <code id="haOriginPlaceholder">http://localhost:8000</code> to
+            <code>cors_allowed_origins</code> in your Home Assistant <code>configuration.yaml</code> and
+            <strong>restart HA</strong>.
+          </div>
+          <div>
+            <div class="prop-label" style="font-size: 10px;">Base URL</div>
+            <input type="text" id="haManualUrl" class="prop-input" placeholder="https://your-ha.duckdns.org:8123" />
+          </div>
+          <div>
+            <div class="prop-label" style="font-size: 10px;">Long-Lived Access Token</div>
+            <input type="password" id="haLlatToken" class="prop-input" placeholder="Paste your token here..." />
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button id="editorTestHaBtn" class="btn btn-secondary btn-xs" style="flex:1;">Test Connection</button>
+            <div id="haTestResult" style="font-size:10px; line-height: 1.2;"></div>
           </div>
         </div>
       </div>
-      <div class="modal-actions">
-        <button id="editorSettingsDone" class="btn btn-secondary">Done</button>
+      <div class="field" style="border-top:1px solid var(--border-subtle); padding-top:12px; margin-top:12px;">
+        <div class="prop-label">Keyboard Shortcuts</div>
+        <div style="font-size: var(--fs-xs); color: var(--muted); line-height: 2;">
+          <div><kbd
+              style="background:var(--bg-input); padding:2px 6px; border-radius:3px; border:1px solid var(--border-subtle);">Ctrl+Z</kbd>
+            Undo</div>
+          <div><kbd
+              style="background:var(--bg-input); padding:2px 6px; border-radius:3px; border:1px solid var(--border-subtle);">Ctrl+Y</kbd>
+            Redo</div>
+          <div><kbd
+              style="background:var(--bg-input); padding:2px 6px; border-radius:3px; border:1px solid var(--border-subtle);">Ctrl+C</kbd>
+            Copy widget</div>
+          <div><kbd
+              style="background:var(--bg-input); padding:2px 6px; border-radius:3px; border:1px solid var(--border-subtle);">Ctrl+V</kbd>
+            Paste widget</div>
+          <div><kbd
+              style="background:var(--bg-input); padding:2px 6px; border-radius:3px; border:1px solid var(--border-subtle);">Delete</kbd>
+            Remove selected widget</div>
+          <div><kbd
+              style="background:var(--bg-input); padding:2px 6px; border-radius:3px; border:1px solid var(--border-subtle);">Alt
+              + Drag</kbd> Disable snap guides</div>
+        </div>
       </div>
     </div>
+    <div class="modal-actions">
+      <button id="editorSettingsDone" class="btn btn-secondary">Done</button>
+    </div>
+  </div>
   </div>
 
   <!-- Scripts -->

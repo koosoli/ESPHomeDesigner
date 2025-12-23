@@ -37,6 +37,12 @@ function generateLVGLSnippet(pages, deviceModel) {
 
     pages.forEach((page, pageIndex) => {
         lines.push(`    - id: page_${pageIndex}`);
+
+        // Add grid layout if page has one
+        if (page.layout && /^\d+x\d+$/.test(page.layout)) {
+            lines.push(`      layout: ${page.layout}`);
+        }
+
         lines.push(`      widgets:`);
 
         const widgets = page.widgets || [];
@@ -160,11 +166,36 @@ function transpileToLVGL(w, profile) {
     const w_h = Math.round(w.height);
     const hasTouch = profile && profile.touch;
 
+    // Grid cell properties (only include when explicitly set)
+    const gridCellProps = {};
+    if (p.grid_cell_row_pos != null) {
+        gridCellProps.grid_cell_row_pos = p.grid_cell_row_pos;
+    }
+    if (p.grid_cell_column_pos != null) {
+        gridCellProps.grid_cell_column_pos = p.grid_cell_column_pos;
+    }
+    if (p.grid_cell_row_span && p.grid_cell_row_span > 1) {
+        gridCellProps.grid_cell_row_span = p.grid_cell_row_span;
+    }
+    if (p.grid_cell_column_span && p.grid_cell_column_span > 1) {
+        gridCellProps.grid_cell_column_span = p.grid_cell_column_span;
+    }
+    if (p.grid_cell_x_align && p.grid_cell_x_align !== "STRETCH") {
+        gridCellProps.grid_cell_x_align = p.grid_cell_x_align;
+    }
+    if (p.grid_cell_y_align && p.grid_cell_y_align !== "STRETCH") {
+        gridCellProps.grid_cell_y_align = p.grid_cell_y_align;
+    }
+
+    // Only include x/y if grid position is NOT explicitly set
+    const hasGridPosition = p.grid_cell_row_pos != null && p.grid_cell_column_pos != null;
+
     const common = {
-        x: x,
-        y: y,
+        x: hasGridPosition ? undefined : x,
+        y: hasGridPosition ? undefined : y,
         width: w_w,
         height: w_h,
+        ...gridCellProps,  // Spread grid cell properties
         hidden: p.hidden || undefined,
         clickable: p.clickable === false ? false : undefined,
         checkable: p.checkable || undefined,

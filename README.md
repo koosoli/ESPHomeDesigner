@@ -1,6 +1,14 @@
 # ESPHome Designer
 
-**A visual drag-and-drop editor for ESPHome displays (E-Ink, OLED, LCD, Touch), running right inside Home Assistant.**
+**A visual drag-and-drop editor for ESPHome displays (E-Ink, OLED, LCD, Touch), running as a Home Assistant integration or a standalone web app.**
+
+<div align="center">
+  <a href="https://github.com/sponsors/koosoli">
+    <img src="https://img.shields.io/badge/Sponsor-❤️-ff69b4?style=for-the-badge&logo=github-sponsors" alt="Sponsor Project">
+  </a>
+  <br>
+  <strong>If you find this project useful, consider <a href="https://github.com/sponsors/koosoli">supporting its development!</a></strong>
+</div>
 
 <div align="center">
   <a href="https://youtu.be/3AVGze6F_5o">
@@ -10,8 +18,11 @@
   <a href="https://youtu.be/3AVGze6F_5o">
     <img src="https://img.shields.io/badge/YouTube-Watch%20v0.8.0%20Overview-red?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch Video">
   </a>
+  <a href="https://koosoli.github.io/ESPHomeDesigner/">
+    <img src="https://img.shields.io/badge/Live%20Demo-Try%20it%20now-blue?style=for-the-badge&logo=google-chrome&logoColor=white" alt="Live Demo">
+  </a>
   <br>
-  <strong>▶️ Click to watch the latest feature walkthrough</strong>
+  <strong>▶️ Click to watch the latest feature walkthrough or try the demo!</strong>
 </div>
 
 **No more hand-coding ESPHome display lambdas! 🎉**
@@ -24,7 +35,7 @@
 
 Building a custom smart display for Home Assistant? Frustrated with manually writing C++ lambdas and guessing coordinates?
 
-Design ESPHome displays right inside Home Assistant. This HACS integration offers a drag-and-drop editor with direct access to your sensor library via an intuitive entity picker.
+Design ESPHome displays right inside Home Assistant or via a standalone web browser. While available as a HACS integration, you can also use the [GitHub-hosted version](https://koosoli.github.io/ESPHomeDesigner/) with a Long-Lived Access Token to access your entities.
 
 It enables you to build premium, touch-interactive dashboards for various ESP32-based devices (like the Seeed reTerminal, TRMNL, standard touch screens, and more) without writing a single line of display code.
 
@@ -42,7 +53,16 @@ It enables you to build premium, touch-interactive dashboards for various ESP32-
 
 ## Quick Start
 
-### 1. Install via HACS (Recommended)
+### 1. Try the Live Web Version (Easiest)
+
+You can use the designer without installing anything! 
+
+1. Go to [koosoli.github.io/ESPHomeDesigner/](https://koosoli.github.io/ESPHomeDesigner/)
+2. Open **Editor Settings** (gear icon)
+3. Enter your Home Assistant URL and a **Long-Lived Access Token** (created in your HA profile)
+4. Add the designer URL to your HA `cors_allowed_origins` (see below)
+
+### 2. Install via HACS (Recommended for Local Access)
 
 1. Add `https://github.com/koosoli/ESPHomeDesigner` to HACS as a custom repository
 2. Search for "ESPHome Designer" and install
@@ -96,6 +116,17 @@ Once flashed, your device will come online.
 1. Go to **Settings** → **Devices & Services** in Home Assistant.
 2. Your device should be discovered (or you can add it via the ESPHome integration).
 3. **Configure it** to ensure Home Assistant connects to its API.
+
+### 🌐 Standalone / GitHub Hosting & CORS
+If you are using the GitHub-hosted version or any URL that is not your local Home Assistant IP, you **must** allow cross-origin requests.
+
+Add this to your Home Assistant `configuration.yaml` and **restart**:
+
+```yaml
+http:
+  cors_allowed_origins:
+    - https://koosoli.github.io
+```
 
 ### Philosophy: Design here, Automate there.
 
@@ -165,7 +196,7 @@ For stable results, stick to **Native Mode** (standard widgets without LVGL pref
 - **Power & Battery Management** - Monitoring, deep sleep support, and configurable refresh intervals
 - **Modern Canvas Interaction** - Zoom with the mouse wheel and pan with the middle mouse button
 - **Drag & Drop Workflow** - Drag widgets directly from the sidebar onto the canvas
-- **Modular Hardware Profiles** - Support for loading hardware profiles from external YAML packages
+- **Modular Hardware Profiles** - Support for loading hardware profiles from external YAML packages ([Learn how to write your own](hardware_recipes_guide.md))
 - **Experimental LVGL Support** - (Beta) Support for interactive LVGL widgets on capable devices
 - **Mobile Support** - Responsive UI designed to work on smaller screens and touch devices
 
@@ -212,6 +243,7 @@ All exposed as Home Assistant entities for use in automations.
   - `frontend/editor.html` - Visual drag-and-drop editor UI
 - `esphome/reterminal_e1001_lambda.yaml` - Hardware template with step-by-step instructions
 - `font_ttf/font_ttf/materialdesignicons-webfont.ttf` - Icon font for widgets
+- `hardware_recipes_guide.md` - Guide for creating custom hardware profiles
 - `screenshots/` - Editor screenshots
 
 ## Troubleshooting
