@@ -87,7 +87,27 @@ psram:
 preferences:
   flash_write_interval: 5min
 
+# Enable logging
 logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret encryption_key
+
+ota:
+  - platform: esphome
+    id: my_ota
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+# Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "${name}"
+    password: !secret wifi_fallback_password
 
 spi:
   mosi_pin: $mosipin
