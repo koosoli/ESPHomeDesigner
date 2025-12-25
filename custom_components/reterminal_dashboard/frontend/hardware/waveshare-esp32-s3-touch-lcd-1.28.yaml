@@ -33,6 +33,11 @@
 # ============================================================================
 
 substitutions:
+  name: "waveshare_esp32s3_touch_round_lcd_128"
+  friendly_name: "Waveshare Touch Round LCD 1.28\""
+  device_description: "Waveshare ESP32-S3 Touch Round LCD 1.28 inch"
+  project_name: "ESPHomeDesigner_Waveshare_Touch_Round_LCD_1.28"
+  project_version: "1.0.0"
   #GPIO pins for the LCD screen
   rstpin:  GPIO14
   dcpin:   GPIO8
@@ -55,8 +60,11 @@ substitutions:
 
 esphome:
   min_version: 2025.12.0
-  name: waveshare-round-lcd-128
-  friendly_name: WaveShare Round LCD 1.28"
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  project:
+    name: "${project_name}"
+    version: "${project_version}"
 
 esp32:
   board: waveshare_esp32s3_touch_lcd_128
