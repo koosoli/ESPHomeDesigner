@@ -418,6 +418,8 @@ textarea:focus {
   padding: 40px;
   overflow: auto;
   position: relative;
+  touch-action: none;
+  /* Prevent browser gesture handling for canvas zoom/pan */
 }
 
 .canvas-controls {
@@ -478,6 +480,8 @@ textarea:focus {
   flex-shrink: 0;
   will-change: transform;
   transform-style: preserve-3d;
+  touch-action: none;
+  /* Prevent browser gesture handling */
 }
 
 .canvas {
@@ -487,6 +491,8 @@ textarea:focus {
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 20px 50px rgba(0, 0, 0, 0.3);
   overflow: hidden;
   transform-origin: center center;
+  touch-action: none;
+  /* Prevent browser gesture handling */
 }
 
 .canvas.dark {
@@ -951,6 +957,24 @@ textarea:focus {
 
   .code-panel {
     max-height: 50vh;
+  }
+
+  /* Larger touch targets for widget resize handles on mobile */
+  .widget-resize-handle {
+    width: 24px;
+    height: 24px;
+    bottom: -4px;
+    right: -4px;
+  }
+}
+
+/* Touch device improvements - larger targets for coarse pointers */
+@media (pointer: coarse) {
+  .widget-resize-handle {
+    width: 28px;
+    height: 28px;
+    bottom: -6px;
+    right: -6px;
   }
 }
 

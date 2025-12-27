@@ -1125,7 +1125,7 @@ class PropertiesPanel {
                 this.addSelect("Align", props.text_align || "CENTER", alignOptions, (v) => updateProp("text_align", v));
             }
             else if (type === "lvgl_line") {
-                // "Like non-LVGL widget": Simple Horizontal/Vertical orientation
+                // "Like non-LVGL widget": Simple Horizontal/Vertical orientation with fill options
                 const orientation = props.orientation || "horizontal";
                 this.addSelect("Orientation", orientation, ["horizontal", "vertical"], (v) => {
                     // When changing orientation, swap width/height to preserve 'length' feel
@@ -1143,9 +1143,50 @@ class PropertiesPanel {
                 this.addCheckbox("Rounded Ends", props.line_rounded !== false, (v) => updateProp("line_rounded", v));
                 this.addLabeledInput("Opacity (0-255)", "number", props.opa || 255, (v) => updateProp("opa", parseInt(v, 10)));
 
-                // Advanced: Allow manual points? 
-                // The user wants it to behave like the simple line widget, so we hide manual points 
-                // and generate them from width/height in export/render.
+                // Fill Horizontal / Fill Vertical buttons
+                this.addSectionLabel("Quick Size");
+                const fillBtnContainer = document.createElement("div");
+                fillBtnContainer.style.display = "flex";
+                fillBtnContainer.style.gap = "8px";
+                fillBtnContainer.style.marginBottom = "8px";
+
+                const resolution = getDeviceResolution ? getDeviceResolution() : { width: 800, height: 480 };
+                const canvasW = resolution.width;
+                const canvasH = resolution.height;
+
+                const fillHBtn = document.createElement("button");
+                fillHBtn.className = "btn btn-secondary";
+                fillHBtn.style.flex = "1";
+                fillHBtn.textContent = "↔ Fill Horizontal";
+                fillHBtn.addEventListener("click", () => {
+                    const lw = props.line_width || 3;
+                    AppState.updateWidget(widget.id, {
+                        x: 0,
+                        y: widget.y,
+                        width: canvasW,
+                        height: lw,
+                        props: { ...props, orientation: "horizontal" }
+                    });
+                });
+
+                const fillVBtn = document.createElement("button");
+                fillVBtn.className = "btn btn-secondary";
+                fillVBtn.style.flex = "1";
+                fillVBtn.textContent = "↕ Fill Vertical";
+                fillVBtn.addEventListener("click", () => {
+                    const lw = props.line_width || 3;
+                    AppState.updateWidget(widget.id, {
+                        x: widget.x,
+                        y: 0,
+                        width: lw,
+                        height: canvasH,
+                        props: { ...props, orientation: "vertical" }
+                    });
+                });
+
+                fillBtnContainer.appendChild(fillHBtn);
+                fillBtnContainer.appendChild(fillVBtn);
+                this.panel.appendChild(fillBtnContainer);
             }
             else if (type === "lvgl_meter") {
                 this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {

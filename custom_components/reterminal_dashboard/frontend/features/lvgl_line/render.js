@@ -4,11 +4,12 @@
         const color = getColorStyle(props.line_color || props.color || "black");
         const strokeWidth = props.line_width || 3;
         const opacity = (props.opa !== undefined ? props.opa : 255) / 255;
+        const orientation = props.orientation || "horizontal";
 
         el.innerHTML = "";
 
-        // If we have points, use SVG
-        if (props.points) {
+        // Legacy: If we have manually specified points (old style), use SVG
+        if (props.points && typeof props.points === 'string' && props.points.includes(',')) {
             let pointsArr = [];
             if (typeof props.points === 'string') {
                 pointsArr = props.points.split(" ").map(pt => pt.split(",").map(Number));
@@ -43,13 +44,12 @@
             }
         }
 
-        // Fallback to simple line (horizontal/vertical) if no points
-        const orientation = props.orientation || "horizontal";
+        // Simple line (horizontal/vertical) - like non-LVGL line widget
         if (orientation === "vertical") {
             el.style.width = `${strokeWidth}px`;
-            el.style.height = "100%";
+            el.style.height = `${widget.height}px`;
         } else {
-            el.style.width = "100%";
+            el.style.width = `${widget.width}px`;
             el.style.height = `${strokeWidth}px`;
         }
         el.style.backgroundColor = color;

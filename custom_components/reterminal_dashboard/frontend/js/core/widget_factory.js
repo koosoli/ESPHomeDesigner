@@ -636,12 +636,13 @@ class WidgetFactory {
 
             case "lvgl_line":
                 widget.width = 100;
-                widget.height = 50;
+                widget.height = 3;
                 widget.props = {
-                    points: "0,25 50,10 100,25", // Format: x1,y1 x2,y2 x3,y3 ...
+                    orientation: "horizontal",
                     line_width: 3,
                     line_color: defaultColor,
-                    line_rounded: true
+                    line_rounded: true,
+                    opa: 255
                 };
                 break;
 
