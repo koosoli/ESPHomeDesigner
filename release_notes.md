@@ -28,6 +28,8 @@
 - **Trmnl Device Fixes**: Fixed compilation errors for "Trmnl DIY" devices where local temperature/humidity sensors were incorrectly referenced. The system now safely handles cases where local sensors are requested but not supported by the hardware, and correctly sanitizes custom sensor IDs to prevent "Couldn't find ID" errors.
 - **Display Lambda Header Injection**: Fixed a critical bug where the `lambda: |-` header was incorrectly omitted if the string was found anywhere else in the file (e.g. in comments or other components). The generator now strictly checks for the header specifically preceding the lambda placeholder, ensuring valid YAML syntax for all display configurations.
 - **Widget Visibility Logic Fix**: Resolved a long-standing issue where conditional visibility rules were ignored during YAML export. The implementation now correctly generates re-import metadata (shorthand keys) and ensures sanitized sensor IDs are used throughout the C++ rendering logic.
+- **Waveshare 7" LCD Orientation Fix**: Implemented a dynamic package override mechanism to allow rotating the Waveshare 7" LCD (Landscape, Portrait, Inverted). Also added automatic touchscreen `transform` mapping to ensure touch inputs align with the rotated display.
+- **Calendar Widget**: Fixed event display issues by implementing robust JSON parsing that supports both nested  `{"days": [...]}` and legacy flat array formats. Added extensive debug logging and null safety checks to preventing crashes with malformed data.
 
 ---
 
@@ -59,7 +61,6 @@
 - **E-Paper Page Cycling Fix**: Fixed a regression in the `auto_cycle_timer` script generation where the missing `mode: restart` attribute prevented recursive execution, causing auto-cycling to stop after the first page change.
 - **Global Variable YAML Compliance**: Refactored the generation of numeric and boolean global variables (e.g., `display_page`, `page_refresh_default_s`) to remove redundant single quotes, improving compliance with strict YAML parsers and ensuring correct type inference in ESPHome.
 - **Hardware Profile & PSRAM Safety**: Improved analysis and documentation for hardware profiles. Identified that selecting mismatched profiles (e.g., reTerminal E1001 for generic ESP32-S3 boards) can cause boot loops due to incorrect PSRAM mode settings (`octal` vs `quad`). Added recommendations for the `update_interval: never` setting to prevent display update conflicts.
-
 ---
 
 ## v0.8.3 - Mobile Touch & Hardware Fixes

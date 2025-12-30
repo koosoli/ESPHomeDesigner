@@ -2754,21 +2754,47 @@ async function generateSnippetLocally() {
                             }
 
                             // Events
-                            lines.push(`          if (id(calendar_json_${safeWidgetId}).state != "unknown" && id(calendar_json_${safeWidgetId}).state.length() > 2) {`);
-                            lines.push(`             json::parse_json(id(calendar_json_${safeWidgetId}).state, [&](JsonObject root) -> bool {`);
-                            lines.push(`                  JsonArray days = root["days"].as<JsonArray>();`);
+                            lines.push(`          // Events`);
+                            lines.push(`          ESP_LOGD("calendar", "Raw JSON: %s", id(calendar_json_${safeWidgetId}).state.c_str());`);
+                            lines.push(`          if (id(calendar_json_${safeWidgetId}).state.length() > 5 && id(calendar_json_${safeWidgetId}).state != "unknown") {`);
+                            lines.push(`             // Parse as JsonVariant to handle both Object (new) and Array (old) formats`);
+                            lines.push(`             json::parse_json(id(calendar_json_${safeWidgetId}).state, [&](JsonVariant root) -> bool {`);
+                            lines.push(`                  JsonArray days;`);
+                            lines.push(`                  if (root.is<JsonObject>() && root.containsKey("days")) {`);
+                            lines.push(`                      days = root["days"];`);
+                            lines.push(`                  } else if (root.is<JsonArray>()) {`);
+                            lines.push(`                      days = root;`);
+                            lines.push(`                  } else {`);
+                            lines.push(`                      ESP_LOGW("calendar", "Invalid JSON structure: neither object with 'days' nor array");`);
+                            lines.push(`                      return false;`);
+                            lines.push(`                  }`);
+                            lines.push(``);
+                            lines.push(`                  if (days.isNull() || days.size() == 0) {`);
+                            lines.push(`                       ESP_LOGD("calendar", "No days found in JSON");`);
+                            lines.push(`                       return true; `);
+                            lines.push(`                  }`);
+                            lines.push(`                  ESP_LOGD("calendar", "Processing %d days", days.size());`);
+                            lines.push(``);
                             lines.push(`                  int y_cursor = calendar_y_pos + (7 * cell_height) + 15;`);
                             lines.push(`                  int max_y = ${w.y} + ${w.height} - 30;`);
+                            lines.push(``);
+                            lines.push(`                  // Safety: Ensure we have enough space for at least one event`);
+                            lines.push(`                  if (y_cursor >= max_y) { ESP_LOGW("calendar", "Widget too small for events"); return true; }`);
+                            lines.push(``);
                             lines.push(`                  it.filled_rectangle(${w.x} + 20, y_cursor - 5, ${w.width} - 40, 2, ${color});`);
+                            lines.push(``);
                             lines.push(`                  for (JsonVariant dayEntry : days) {`);
                             lines.push(`                      if (y_cursor > max_y) break;`);
                             lines.push(`                      int currentDayNum = dayEntry["day"].as<int>();`);
+                            lines.push(``);
                             lines.push(`                      auto draw_row = [&](JsonVariant event, bool is_all_day) {`);
                             lines.push(`                          if (y_cursor > max_y) return;`);
-                            lines.push(`                          const char* summary = event["summary"];`);
-                            lines.push(`                          const char* start = event["start"];`);
+                            lines.push(`                          const char* summary = event["summary"] | "No Title";`);
+                            lines.push(`                          const char* start = event["start"] | "";`);
+                            lines.push(``);
                             lines.push(`                          it.printf(${w.x} + 20, y_cursor, id(${fontEventDay}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
                             lines.push(`                          it.printf(${w.x} + 60, y_cursor + 4, id(${fontEvent}), ${color}, TextAlign::TOP_LEFT, "%.15s...", summary);`);
+                            lines.push(``);
                             lines.push(`                          if (is_all_day) {`);
                             lines.push(`                              it.printf(${w.x} + ${w.width} - 20, y_cursor + 4, id(${fontEvent}), ${color}, TextAlign::TOP_RIGHT, "All Day");`);
                             lines.push(`                          } else {`);
@@ -2777,6 +2803,7 @@ async function generateSnippetLocally() {
                             lines.push(`                          }`);
                             lines.push(`                          y_cursor += 30;`);
                             lines.push(`                      };`);
+                            lines.push(``);
                             lines.push(`                      if (dayEntry.containsKey("all_day")) {`);
                             lines.push(`                          for (JsonVariant event : dayEntry["all_day"].as<JsonArray>()) {`);
                             lines.push(`                              draw_row(event, true);`);
@@ -2790,7 +2817,7 @@ async function generateSnippetLocally() {
                             lines.push(`                          }`);
                             lines.push(`                      }`);
                             lines.push(`                  }`);
-                            lines.push(`              return true;`);
+                            lines.push(`                  return true;`);
                             lines.push(`             });`);
                             lines.push(`          }`);
                             lines.push(`        }`);
@@ -3317,6 +3344,7 @@ async function generateSnippetLocally() {
     // If package-based, we prepend the package content to our dynamic software sections.
     // ==========================================================================
     if (packageContent && profile.isPackageBased) {
+        packageContent = applyPackageOverrides(packageContent, profile, payload.orientation || 'landscape');
         return packageContent + "\n\n" + finalYaml;
     }
 
@@ -3621,4 +3649,94 @@ document.addEventListener("DOMContentLoaded", () => {
 // Expose globally
 window.generateSnippetLocally = generateSnippetLocally;
 window.highlightWidgetInSnippet = highlightWidgetInSnippet;
+
+/**
+ * Applies dynamic overrides to static package content (e.g. Orientation)
+ */
+function applyPackageOverrides(packageContent, profile, orientation) {
+    // Target specific package-based devices
+    // Currently only Waveshare 7" is confirmed to need this
+    if (profile.name && profile.name.includes("Waveshare Touch LCD 7")) {
+        let rotation = 90; // Default Landscape
+
+        // Map orientation to rotation degrees
+        // Assuming Native Portrait (0=Portrait, 90=Landscape) based on default config
+        if (orientation === "portrait") rotation = 0;
+        else if (orientation === "landscape") rotation = 90;
+        else if (orientation === "portrait_inverted") rotation = 180;
+        else if (orientation === "landscape_inverted") rotation = 270;
+
+        // Replace rotation
+        packageContent = packageContent.replace(/rotation:\s*\d+/g, `rotation: ${rotation}`);
+
+        // Add Touchscreen Transform
+        // GT911 supports 'transform' with swap_xy, mirror_x, mirror_y
+        let transformVals = "";
+
+        // Logic: 
+        // 0 (Portrait) -> swap_xy: true
+        // 90 (Landscape) -> swap_xy: false
+        // Mirrors depend on driver defaults, guessing standard behavior:
+
+        if (rotation === 0) { // Portrait
+            transformVals = `
+    transform:
+      swap_xy: true
+      mirror_x: false
+      mirror_y: true`;
+        } else if (rotation === 90) { // Landscape (Default)
+            // No transform needed usually, but explicit set prevents issues
+            transformVals = `
+    transform:
+      swap_xy: false
+      mirror_x: false
+      mirror_y: false`;
+        } else if (rotation === 180) { // Portrait Inverted
+            transformVals = `
+    transform:
+      swap_xy: true
+      mirror_x: true
+      mirror_y: false`;
+        } else if (rotation === 270) { // Landscape Inverted
+            transformVals = `
+    transform:
+      swap_xy: false
+      mirror_x: true
+      mirror_y: true`;
+        }
+
+        // Inject transform into touchscreen section
+        // Look for 'id: my_touchscreen'
+        if (transformVals) {
+            const touchRegex = /(id:\s*my_touchscreen\s*\n)/;
+            if (touchRegex.test(packageContent)) {
+                packageContent = packageContent.replace(touchRegex, `$1${transformVals}\n`);
+            }
+        }
+
+        // Fix Display Dimensions if rotated
+        // Package has: 
+        // dimensions:
+        //   width: 800
+        //   height: 480
+        // If portrait, this should be swapped?
+        // Actually, mipi_rgb usually takes physical dims. 
+        // But if we rotate via software 'rotation', we usually keep physical dims.
+        // However, if we change 'rotation' to 0 (native), does it expect 480x800?
+        // Use regex to swap if needed.
+        /*
+        if (rotation === 0 || rotation === 180) {
+            packageContent = packageContent.replace(/width:\s*800/, "width: 480");
+            packageContent = packageContent.replace(/height:\s*480/, "height: 800");
+        } else {
+            // Ensure landscape dims
+            packageContent = packageContent.replace(/width:\s*480/, "width: 800");
+            packageContent = packageContent.replace(/height:\s*800/, "height: 480");
+        }
+        */
+
+    }
+
+    return packageContent;
+}
 
