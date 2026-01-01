@@ -21,7 +21,7 @@
   <header class="main-header">
     <div class="main-header-title">
       <h2><span class="logo-dot"></span> ESPHome Designer</h2>
-      <span>Visual YAML Editor <small style="opacity: 0.5; margin-left: 8px;">v0.8.5.1</small> <span
+      <span>Visual YAML Editor <small style="opacity: 0.5; margin-left: 8px;">v0.8.6</small> <span
           id="currentLayoutDevice" style="margin-left:8px; color:var(--accent);"></span></span>
     </div>
     <div class="main-header-actions desktop-only">
@@ -747,8 +747,146 @@
             <button id="importHardwareBtn" class="btn btn-secondary btn-xs"
               style="font-size: 10px; padding: 2px 6px;">Import Recipe</button>
           </div>
-          <select id="deviceModel" class="prop-input"></select>
+          <select id="deviceModel" class="prop-input">
+            <option value="custom">Custom Profile...</option>
+          </select>
           <input type="file" id="hardwareFileInput" accept=".yaml" style="display:none;" />
+        </div>
+
+        <!-- Custom Hardware Section (Hidden by default) -->
+        <div id="customHardwareSection"
+          style="display:none; border:1px solid var(--accent); border-radius:8px; padding:12px; margin-top:12px; background: rgba(82, 199, 234, 0.03);">
+          <div
+            style="font-size:12px; font-weight:bold; color:var(--accent); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z">
+              </path>
+            </svg>
+            Custom Hardware Configuration
+          </div>
+
+          <div class="hardware-group">
+            <div class="prop-label">General</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div class="field">
+                <div class="prop-label" style="font-size:10px;">Chip Type</div>
+                <select id="customChip" class="prop-input-sm">
+                  <option value="esp32-s3">ESP32-S3</option>
+                  <option value="esp32">ESP32</option>
+                  <option value="esp32-c3">ESP32-C3</option>
+                  <option value="esp32-c6">ESP32-C6</option>
+                </select>
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:10px;">Tech</div>
+                <select id="customTech" class="prop-input-sm">
+                  <option value="lcd">LCD / OLED</option>
+                  <option value="epaper">E-Paper</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div class="field">
+                <div class="prop-label" style="font-size:10px;">Resolution</div>
+                <input id="customRes" class="prop-input-sm" type="text" placeholder="800x480" value="800x480" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:10px;">Shape</div>
+                <select id="customShape" class="prop-input-sm">
+                  <option value="rect">Rectangle</option>
+                  <option value="round">Round</option>
+                </select>
+              </div>
+            </div>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin-top:4px;">
+              <input id="customPsram" type="checkbox" checked />
+              <span style="font-size:10px;">Enable PSRAM</span>
+            </label>
+          </div>
+
+          <div class="hardware-group" style="margin-top:12px;">
+            <div class="prop-label">Display (SPI)</div>
+            <div class="field">
+              <div class="prop-label" style="font-size:10px;">Driver / Platform</div>
+              <select id="customDisplayDriver" class="prop-input-sm">
+                <option value="st7789v">ST7789 (LCD)</option>
+                <option value="ili9341">ILI9341 (LCD)</option>
+                <option value="waveshare_epaper">Waveshare E-Paper</option>
+                <option value="epaper_spi">Generic SPI E-Paper</option>
+                <option value="custom">Other (Custom YAML)</option>
+              </select>
+            </div>
+            <div id="spiPinsGrid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:8px;">
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">CS</div>
+                <input id="pin_cs" class="prop-input-sm" type="text" placeholder="GPIO10" value="GPIO10" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">DC</div>
+                <input id="pin_dc" class="prop-input-sm" type="text" placeholder="GPIO11" value="GPIO11" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">RST</div>
+                <input id="pin_rst" class="prop-input-sm" type="text" placeholder="GPIO12" value="GPIO12" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">BUSY</div>
+                <input id="pin_busy" class="prop-input-sm" type="text" placeholder="GPIO13" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">CLK</div>
+                <input id="pin_clk" class="prop-input-sm" type="text" placeholder="GPIO7" value="GPIO7" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">MOSI</div>
+                <input id="pin_mosi" class="prop-input-sm" type="text" placeholder="GPIO9" value="GPIO9" />
+              </div>
+            </div>
+          </div>
+
+          <div class="hardware-group" style="margin-top:12px;">
+            <div class="prop-label">Backlight & Touch</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div class="field">
+                <div class="prop-label" style="font-size:10px;">Backlight Pin</div>
+                <input id="pin_backlight" class="prop-input-sm" type="text" placeholder="GPIO45" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:10px;">Touch Tech</div>
+                <select id="customTouchTech" class="prop-input-sm">
+                  <option value="none">None</option>
+                  <option value="gt911">GT911 (I2C)</option>
+                  <option value="ft6x36">FT6x36 (I2C)</option>
+                  <option value="cst816">CST816 (I2C)</option>
+                </select>
+              </div>
+            </div>
+            <div id="touchPinsGrid"
+              style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; display:none;">
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">SDA</div>
+                <input id="pin_sda" class="prop-input-sm" type="text" placeholder="GPIO17" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">SCL</div>
+                <input id="pin_scl" class="prop-input-sm" type="text" placeholder="GPIO18" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">INT</div>
+                <input id="pin_touch_int" class="prop-input-sm" type="text" placeholder="GPIO16" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">RST</div>
+                <input id="pin_touch_rst" class="prop-input-sm" type="text" placeholder="GPIO15" />
+              </div>
+            </div>
+          </div>
+
+          <button id="saveCustomProfileBtn" class="btn btn-secondary btn-full"
+            style="margin-top:16px; background:var(--accent); color:white; border:none;">
+            🚀 Create & Save Profile
+          </button>
         </div>
         <div class="field">
           <div class="prop-label">Screen Orientation</div>
@@ -1286,6 +1424,7 @@
   <script src="js/io/ai_service.js"></script>
   <script src="js/io/devices.js"></script>
   <script src="js/io/hardware_generators.js"></script>
+  <script src="js/io/hardware_generator.js"></script>
   <script src="js/io/yaml_export.js"></script>
   <script src="js/io/yaml_export_lvgl.js"></script>
   <script src="js/ui/device_settings.js"></script>

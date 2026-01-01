@@ -1,11 +1,30 @@
 # Release Notes
 
 
+## v0.8.6 - Experimental: Custom Hardware Profiles
+
+**Release Date:** January 1, 2026
+
+### 🚀 New Features
+- **[Experimental] Custom Hardware Profiles**: A major new capability allowing you to define your own hardware characteristics (Chip, Display, Touch, Pins) directly within the designer.
+  - **Visual Configuration**: No more manual YAML hacking to get a new display working. Configure your Chip (ESP32-S3/C3/C6), Tech (LCD or E-Ink), Resolution, and Pin assignments via a new UI.
+  - **Browser Persistence**: In offline mode, your custom profiles are now automatically saved to your browser's `localStorage`, ensuring they survive page refreshes.
+  - **Snippet-First Philosophy**: The generated hardware YAML is intelligently commented out for infrastructure sections (`esphome`, `esp32`, etc.), allowing you to safely paste the hardware definitions into your existing configuration.
+  - **Auto-Selection**: Newly created profiles are automatically selected and applied to the current session.
+
+### 🐛 Bug Fixes
+- **Pin Input Crash**: Fixed a critical `TypeError` when saving custom profiles caused by a missing Touch Reset pin element in the HTML.
+- **Improved Dropdown Stability**: Fixed industrial-strength race conditions where the "Custom Profile..." option would disappear or fail to select after a save. Added a robust retry mechanism for profile loading.
+- **Safe Input Retrieval**: Implemented a global helper for safe UI value retrieval to prevent crashes if certain hardware elements are missing from the DOM.
+
 ## v0.8.5.1 - Hotfix: Calendar & Build Environment
 
 **Release Date:** January 1, 2026
 
-### 🐛 Bug Fixes
+### � New Features
+- **RGB Color Selectors for LCD/OLED**: The designer now intelligently switches between a limited color palette (for E-Ink) and a full RGB color mixer for LCD and OLED devices. This is automatically determined based on the hardware profile features.
+
+### �🐛 Bug Fixes
 - **Calendar Widget Compiler Errors**: Fixed C++ compilation errors (`return-statement with a value`) and deprecated warnings (`containsKey`) in the Calendar widget. The generation logic was corrected in both the modular feature file and the main `yaml_export.js`.
 - **ESP-IDF Environment Tip**: Added a helpful tip to the generated YAML header recommending `framework: version: 5.4.2` for ESP32-S3 devices. This prevents build failures caused by auto-updates to bleeding-edge ESP-IDF versions (like 5.5.1) which may have broken Python environments.
 

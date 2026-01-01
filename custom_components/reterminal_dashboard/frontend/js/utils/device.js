@@ -27,10 +27,33 @@ function getDeviceDisplayName(model) {
 }
 
 /**
+ * Checks if the current device supports full RGB color.
+ * @returns {boolean}
+ */
+function isRGBDevice() {
+    const model = getDeviceModel();
+    if (window.DEVICE_PROFILES && window.DEVICE_PROFILES[model]) {
+        // Explicit LCD flag or OLED flag (future proofing)
+        if (window.DEVICE_PROFILES[model].features?.lcd) return true;
+        if (window.DEVICE_PROFILES[model].features?.oled) return true;
+
+        // If it's not explicitly e-paper and not the default monochrome
+        // (though default falls through to false usually)
+    }
+    return false;
+}
+
+/**
  * Gets available colors for the current device model.
  * @returns {string[]}
  */
 function getAvailableColors() {
+    // If it's an RGB device, we still return a base palette for dropdowns that force it,
+    // but the UI should prefer RGB pickers.
+    if (isRGBDevice()) {
+        return ["black", "white", "red", "green", "blue", "yellow", "orange", "gray", "purple", "cyan", "magenta"];
+    }
+
     const model = getDeviceModel();
     if (model === "reterminal_e1002") {
         return ["black", "white", "gray", "red", "green", "blue", "yellow"];

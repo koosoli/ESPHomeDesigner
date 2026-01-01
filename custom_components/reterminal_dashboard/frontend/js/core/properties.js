@@ -413,8 +413,8 @@ class PropertiesPanel {
         if (type === "shape_rect" || type === "shape_circle") {
             this.addCheckbox("Fill", props.fill || false, (v) => updateProp("fill", v));
             this.addLabeledInput("Border Width", "number", props.border_width || 1, (v) => updateProp("border_width", parseInt(v, 10)));
-            this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
-            this.addSelect("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
         }
         else if (type === "rounded_rect") {
             this.addCheckbox("Fill", props.fill || false, (v) => updateProp("fill", v));
@@ -423,8 +423,8 @@ class PropertiesPanel {
             }
             this.addLabeledInput("Border Width", "number", props.border_width || 4, (v) => updateProp("border_width", parseInt(v, 10)));
             this.addLabeledInput("Corner Radius", "number", props.radius || 10, (v) => updateProp("radius", parseInt(v, 10)));
-            this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
-            this.addSelect("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
         }
         else if (type === "line") {
             this.addSelect("Orientation", props.orientation || "horizontal", ["horizontal", "vertical"], (v) => {
@@ -490,12 +490,12 @@ class PropertiesPanel {
             };
             this.panel.appendChild(fillBtn);
 
-            this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
         }
         else if (type === "text" || type === "label") {
             this.addLabeledInput("Text", "text", props.text || "", (v) => updateProp("text", v));
             this.addLabeledInput("Font Size", "number", props.font_size || 20, (v) => updateProp("font_size", parseInt(v, 10)));
-            this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
 
             // Font Family with Custom Support
             const fontOptions = ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand", "Custom..."];
@@ -567,7 +567,7 @@ class PropertiesPanel {
             this.addCheckbox("Hide default unit", props.hide_unit || false, (v) => updateProp("hide_unit", v));
             this.addLabeledInput("Label Size", "number", props.label_font_size || 14, (v) => updateProp("label_font_size", parseInt(v, 10)));
             this.addLabeledInput("Value Size", "number", props.value_font_size || 20, (v) => updateProp("value_font_size", parseInt(v, 10)));
-            this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
 
             // Font Family with Custom Support
             const fontOptions = ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand", "Custom..."];
@@ -610,7 +610,7 @@ class PropertiesPanel {
             this.addSelect("Display Format", props.format || "time_date", ["time_date", "time_only", "date_only", "weekday_day_month"], (v) => updateProp("format", v));
             this.addLabeledInput("Time Font Size", "number", props.time_font_size || 28, (v) => updateProp("time_font_size", parseInt(v, 10)));
             this.addLabeledInput("Date Font Size", "number", props.date_font_size || 16, (v) => updateProp("date_font_size", parseInt(v, 10)));
-            this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
 
             // Font Family with Custom Support
             const fontOptions = ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand", "Custom..."];
@@ -669,7 +669,7 @@ class PropertiesPanel {
                 updateProp("border_width", isNaN(val) ? 1 : val);
             });
 
-            this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
         }
         else if (type === "graph") {
             this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
@@ -679,7 +679,7 @@ class PropertiesPanel {
                 AppState.updateWidget(widget.id, { title: v });
             });
             this.addLabeledInput("Duration", "text", props.duration || "1h", (v) => updateProp("duration", v));
-            this.addSelect("Line Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Line Color", props.color || "black", colors, (v) => updateProp("color", v));
             this.addSelect("Line Type", props.line_type || "SOLID", ["SOLID", "DASHED", "DOTTED"], (v) => updateProp("line_type", v));
             this.addLabeledInput("Line Thickness", "number", props.line_thickness || 3, (v) => updateProp("line_thickness", parseInt(v, 10)));
             this.addCheckbox("Show Border", props.border !== false, (v) => updateProp("border", v));
@@ -703,7 +703,7 @@ class PropertiesPanel {
             });
 
             this.addSelect("Font Reference", props.font_ref || "font_mdi_medium", ["font_mdi_medium", "font_mdi_large"], (v) => updateProp("font_ref", v));
-            this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
         }
         else if (type === "battery_icon") {
             // Entity ID with built-in picker
@@ -728,7 +728,7 @@ class PropertiesPanel {
                 updateProp("font_size", n);
             });
 
-            this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
         }
         else if (type === "wifi_signal") {
             // WiFi Signal Strength Widget
@@ -755,7 +755,7 @@ class PropertiesPanel {
                 updateProp("font_size", n);
             });
 
-            this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
         }
         else if (type === "ondevice_temperature") {
             // On-Device Temperature Widget (SHT4x sensor)
@@ -790,7 +790,7 @@ class PropertiesPanel {
 
             this.addLabeledInput("Unit", "text", props.unit || "°C", (v) => updateProp("unit", v));
             this.addLabeledInput("Precision", "number", props.precision ?? 1, (v) => updateProp("precision", parseInt(v, 10)));
-            this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
         }
         else if (type === "ondevice_humidity") {
             // On-Device Humidity Widget (SHT4x sensor)
@@ -825,7 +825,7 @@ class PropertiesPanel {
 
             this.addLabeledInput("Unit", "text", props.unit || "%", (v) => updateProp("unit", v));
             this.addLabeledInput("Precision", "number", props.precision ?? 0, (v) => updateProp("precision", parseInt(v, 10)));
-            this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
         }
 
         else if (type === "weather_icon") {
@@ -844,7 +844,7 @@ class PropertiesPanel {
                 updateProp("size", n);
             });
 
-            this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
         }
         else if (type === "weather_forecast") {
             this.addLabeledInputWithPicker("Weather Entity ID", "text", widget.entity_id || "", (v) => {
@@ -882,7 +882,7 @@ class PropertiesPanel {
                 this.addHint('Browse <a href="https://fonts.google.com" target="_blank">fonts.google.com</a>');
             }
 
-            this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
         }
         else if (type === "template_sensor_bar") {
             this.addSectionLabel("Sensor Visibility");
@@ -894,14 +894,14 @@ class PropertiesPanel {
             this.addSectionLabel("Appearance");
             this.addCheckbox("Show Background", props.show_background !== false, (v) => updateProp("show_background", v));
             if (props.show_background !== false) {
-                this.addSelect("Background Color", props.background_color || "black", colors, (v) => updateProp("background_color", v));
+                this.addColorSelector("Background Color", props.background_color || "black", colors, (v) => updateProp("background_color", v));
                 this.addLabeledInput("Border Radius", "number", props.border_radius || 8, (v) => updateProp("border_radius", parseInt(v, 10)));
             }
 
             this.addSectionLabel("Sizes & Color");
             this.addLabeledInput("Icon Size", "number", props.icon_size || 20, (v) => updateProp("icon_size", parseInt(v, 10)));
             this.addLabeledInput("Font Size", "number", props.font_size || 14, (v) => updateProp("font_size", parseInt(v, 10)));
-            this.addSelect("Foreground Color", props.color || "white", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Foreground Color", props.color || "white", colors, (v) => updateProp("color", v));
         }
         else if (type === "template_nav_bar") {
             this.addSectionLabel("Button Visibility");
@@ -912,13 +912,13 @@ class PropertiesPanel {
             this.addSectionLabel("Appearance");
             this.addCheckbox("Show Background", props.show_background !== false, (v) => updateProp("show_background", v));
             if (props.show_background !== false) {
-                this.addSelect("Background Color", props.background_color || "black", colors, (v) => updateProp("background_color", v));
+                this.addColorSelector("Background Color", props.background_color || "black", colors, (v) => updateProp("background_color", v));
                 this.addLabeledInput("Border Radius", "number", props.border_radius || 8, (v) => updateProp("border_radius", parseInt(v, 10)));
             }
 
             this.addSectionLabel("Sizes & Color");
             this.addLabeledInput("Icon Size", "number", props.icon_size || 24, (v) => updateProp("icon_size", parseInt(v, 10)));
-            this.addSelect("Foreground Color", props.color || "white", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Foreground Color", props.color || "white", colors, (v) => updateProp("color", v));
         }
         else if (type === "touch_area") {
 
@@ -949,9 +949,9 @@ class PropertiesPanel {
             this.addLabeledInput("Title", "text", props.title || "", (v) => updateProp("title", v));
             this.addIconPicker("Icon", props.icon || "", (v) => updateProp("icon", v), widget);
             this.addLabeledInput("Icon Size", "number", props.icon_size || 40, (v) => updateProp("icon_size", parseInt(v, 10)));
-            this.addSelect("Icon Color", props.icon_color || "black", colors, (v) => updateProp("icon_color", v));
-            this.addSelect("Background Color", props.color || "rgba(0, 0, 255, 0.2)", colors, (v) => updateProp("color", v));
-            this.addSelect("Border Color", props.border_color || "#0000ff", colors, (v) => updateProp("border_color", v));
+            this.addColorSelector("Icon Color", props.icon_color || "black", colors, (v) => updateProp("icon_color", v));
+            this.addColorSelector("Background Color", props.color || "rgba(0, 0, 255, 0.2)", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Border Color", props.border_color || "#0000ff", colors, (v) => updateProp("border_color", v));
         }
         else if (type === "image") {
             this.addHint("🖼️ Static image from ESPHome:<br/><code style='background:#f0f0f0;padding:2px 4px;border-radius:2px;'>/config/esphome/images/logo.png</code><br/><span style='color:#4a9eff;'>ℹ️ Place images in /config/esphome/images/ folder</span>");
@@ -1084,7 +1084,7 @@ class PropertiesPanel {
             ];
             this.addSelect("Align", props.text_align || "TOP_LEFT", alignOptions, (v) => updateProp("text_align", v));
 
-            this.addSelect("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
 
             this.addSectionLabel("Display Options");
 
@@ -1095,9 +1095,9 @@ class PropertiesPanel {
         }
         else if (type === "calendar") {
             this.addSectionLabel("Appearance");
-            this.addSelect("Text Color", props.text_color || "black", colors, (v) => updateProp("text_color", v));
-            this.addSelect("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
-            this.addSelect("Background", props.background_color || "white", colors, (v) => updateProp("background_color", v));
+            this.addColorSelector("Text Color", props.text_color || "black", colors, (v) => updateProp("text_color", v));
+            this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
+            this.addColorSelector("Background", props.background_color || "white", colors, (v) => updateProp("background_color", v));
 
             this.addLabeledInput("Border Width", "number", props.border_width || 2, (v) => updateProp("border_width", parseInt(v, 10)));
             this.addCheckbox("Show Border", props.show_border !== false, (v) => updateProp("show_border", v));
@@ -1202,7 +1202,7 @@ class PropertiesPanel {
                 updateProp("icon_size", n);
             });
 
-            this.addSelect("Icon Color", props.icon_color || "black", colors, (v) => updateProp("icon_color", v));
+            this.addColorSelector("Icon Color", props.icon_color || "black", colors, (v) => updateProp("icon_color", v));
         }
         else if (type === "lvgl_label" || type.startsWith("lvgl_")) {
             // Apply common LVGL properties to all lvgl_* widgets
@@ -1438,9 +1438,9 @@ class PropertiesPanel {
                 this.addSectionLabel("Appearance");
                 this.addCheckbox("Show Border", props.show_border !== false, (v) => updateProp("show_border", v));
                 this.addLabeledInput("Border Width", "number", props.border_width || 2, (v) => updateProp("border_width", parseInt(v, 10)));
-                this.addSelect("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
-                this.addSelect("Background Color", props.background_color || "white", colors, (v) => updateProp("background_color", v));
-                this.addSelect("Text Color", props.text_color || "black", colors, (v) => updateProp("text_color", v));
+                this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
+                this.addColorSelector("Background Color", props.background_color || "white", colors, (v) => updateProp("background_color", v));
+                this.addColorSelector("Text Color", props.text_color || "black", colors, (v) => updateProp("text_color", v));
 
                 this.addSectionLabel("Font Sizes");
                 this.addLabeledInput("Big Date Size", "number", props.font_size_date || 100, (v) => updateProp("font_size_date", parseInt(v, 10)));
@@ -2102,6 +2102,14 @@ class PropertiesPanel {
         wrap.appendChild(lbl);
         wrap.appendChild(inputRow);
         this.panel.appendChild(wrap);
+    }
+
+    addColorSelector(label, value, options, onChange) {
+        if (typeof isRGBDevice === 'function' && isRGBDevice()) {
+            this.addColorMixer(label, value, onChange);
+        } else {
+            this.addSelect(label, value, options, onChange);
+        }
     }
 
     addColorMixer(label, value, onChange) {

@@ -40,6 +40,18 @@ class DeviceSettings {
         this.autoCycleEnabled = document.getElementById('setting-auto-cycle');
         this.autoCycleInterval = document.getElementById('setting-auto-cycle-interval');
         this.autoCycleRow = document.getElementById('field-auto-cycle-interval');
+
+        // Custom Hardware
+        this.customHardwareSection = document.getElementById('customHardwareSection');
+        this.customChip = document.getElementById('customChip');
+        this.customTech = document.getElementById('customTech');
+        this.customRes = document.getElementById('customRes');
+        this.customShape = document.getElementById('customShape');
+        this.customPsram = document.getElementById('customPsram');
+        this.customDisplayDriver = document.getElementById('customDisplayDriver');
+        this.customTouchTech = document.getElementById('customTouchTech');
+        this.touchPinsGrid = document.getElementById('touchPinsGrid');
+        this.saveCustomBtn = document.getElementById('saveCustomProfileBtn');
     }
 
     init() {
@@ -79,6 +91,126 @@ class DeviceSettings {
         }
 
         this.setupAutoSaveListeners();
+        this.setupCustomHardwareListeners();
+    }
+
+    setupCustomHardwareListeners() {
+        if (!this.modelInput) return;
+
+        this.modelInput.addEventListener('change', () => {
+            this.updateCustomSectionVisibility();
+        });
+
+        if (this.customTouchTech) {
+            this.customTouchTech.addEventListener('change', () => {
+                if (this.touchPinsGrid) {
+                    this.touchPinsGrid.style.display = this.customTouchTech.value === 'none' ? 'none' : 'grid';
+                }
+            });
+        }
+
+        if (this.saveCustomBtn) {
+            this.saveCustomBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await this.handleSaveCustomProfile();
+            });
+        }
+    }
+
+    updateCustomSectionVisibility() {
+        if (this.customHardwareSection) {
+            this.customHardwareSection.style.display = this.modelInput.value === 'custom' ? 'block' : 'none';
+        }
+    }
+
+    async handleSaveCustomProfile() {
+        const name = prompt("Enter a name for this hardware profile:", "My Custom Device");
+        if (!name) return;
+
+        const res = (this.customRes.value || "800x480").split('x');
+        const getVal = (id) => {
+            const el = document.getElementById(id);
+            return el ? el.value : "";
+        };
+
+        const config = {
+            name: name,
+            chip: this.customChip.value,
+            tech: this.customTech.value,
+            resWidth: parseInt(res[0]) || 800,
+            resHeight: parseInt(res[1]) || 480,
+            shape: this.customShape.value,
+            psram: this.customPsram.checked,
+            displayDriver: this.customDisplayDriver.value,
+            touchTech: this.customTouchTech.value,
+            pins: {
+                cs: getVal('pin_cs'),
+                dc: getVal('pin_dc'),
+                rst: getVal('pin_rst'),
+                busy: getVal('pin_busy'),
+                clk: getVal('pin_clk'),
+                mosi: getVal('pin_mosi'),
+                backlight: getVal('pin_backlight'),
+                sda: getVal('pin_sda'),
+                scl: getVal('pin_scl'),
+                touch_int: getVal('pin_touch_int'),
+                touch_rst: getVal('pin_touch_rst')
+            }
+        };
+
+        try {
+            const yaml = generateCustomHardwareYaml(config);
+            const blob = new Blob([yaml], { type: 'text/yaml' });
+            const fileName = `${name.toLowerCase().replace(/\s+/g, '_')}.yaml`;
+            const file = new File([blob], fileName);
+
+            showToast("Generating hardware recipe...", "info");
+
+            // uploadHardwareTemplate will trigger loadExternalProfiles() and then populateDeviceSelect()
+            const result = await uploadHardwareTemplate(file);
+            console.log("[DeviceSettings] Custom profile uploaded:", result);
+
+            // Give the backend/refresh a moment to settle if needed
+            let attempts = 0;
+            const findAndSelect = () => {
+                const profiles = Object.values(window.DEVICE_PROFILES);
+                const newProfile = profiles.find(p =>
+                    p.name === name ||
+                    p.name === name + " (Local)" ||
+                    (p.name && p.name.includes(name))
+                );
+
+                if (newProfile) {
+                    const newId = newProfile.id || Object.keys(window.DEVICE_PROFILES).find(k => window.DEVICE_PROFILES[k] === newProfile);
+                    console.log("[DeviceSettings] Auto-selecting new profile:", newId);
+
+                    this.modelInput.value = newId;
+                    this.modelInput.dispatchEvent(new Event('change'));
+
+                    // Force update AppState
+                    AppState.setDeviceModel(newId);
+                    if (typeof saveLayoutToBackend === "function") saveLayoutToBackend();
+
+                    // Hide the custom section now that we've switched to the new profile
+                    this.updateCustomSectionVisibility();
+
+                    showToast(`Profile "${name}" created and loaded!`, "success");
+                } else if (attempts < 8) {
+                    attempts++;
+                    console.log(`[DeviceSettings] New profile not found yet (attempt ${attempts}), retrying...`);
+                    setTimeout(findAndSelect, 400);
+                } else {
+                    console.error("[DeviceSettings] Failed to find the newly created profile in the list.");
+                    showToast("Profile created, but could not be auto-selected. Please find it in the list.", "warning");
+                }
+            };
+
+            setTimeout(findAndSelect, 600);
+
+        } catch (err) {
+            console.error("Failed to save custom profile:", err);
+            showToast("Failed to create profile: " + err.message, "error");
+        }
     }
 
     open() {
@@ -129,6 +261,7 @@ class DeviceSettings {
 
         // Show/hide sub-settings
         this.updateVisibility();
+        this.updateCustomSectionVisibility();
 
         this.modal.classList.remove('hidden');
         this.modal.style.display = 'flex';
@@ -166,8 +299,16 @@ class DeviceSettings {
                 this.modelInput.appendChild(opt);
             });
 
+            // Add Custom Profile option at the end
+            const customOpt = document.createElement("option");
+            customOpt.value = "custom";
+            customOpt.textContent = "Custom Profile...";
+            customOpt.style.fontWeight = "bold";
+            customOpt.style.color = "var(--accent)";
+            this.modelInput.appendChild(customOpt);
+
             // Restore selection or default
-            if (currentVal && window.DEVICE_PROFILES[currentVal]) {
+            if (currentVal && (window.DEVICE_PROFILES[currentVal] || currentVal === 'custom')) {
                 this.modelInput.value = currentVal;
             } else if (!this.modelInput.value) {
                 this.modelInput.value = "reterminal_e1001";

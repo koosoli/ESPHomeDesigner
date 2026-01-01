@@ -327,6 +327,18 @@ async function loadExternalProfiles() {
       window.DEVICE_PROFILES[template.id] = template;
     });
 
+    // Handle offline persistence
+    if (typeof getOfflineProfilesFromStorage === 'function') {
+      const offlineProfiles = getOfflineProfilesFromStorage();
+      const offlineIds = Object.keys(offlineProfiles);
+      if (offlineIds.length > 0) {
+        console.log(`[Devices] Restoring ${offlineIds.length} offline profiles from localStorage.`);
+        Object.entries(offlineProfiles).forEach(([id, profile]) => {
+          window.DEVICE_PROFILES[id] = profile;
+        });
+      }
+    }
+
     // Trigger UI update if necessary (e.g., refresh device settings modal)
     if (window.app && window.app.deviceSettings && typeof window.app.deviceSettings.populateDeviceSelect === 'function') {
       window.app.deviceSettings.populateDeviceSelect();

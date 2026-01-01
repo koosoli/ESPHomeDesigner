@@ -724,6 +724,27 @@ textarea:focus {
   box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
+.prop-input-sm {
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+}
+
+.prop-input-sm:focus {
+  border-color: var(--accent);
+}
+
+.hardware-group {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 8px;
+  margin-top: 8px;
+}
+
 .snippet-area {
   flex: 1 1 auto;
   min-height: 180px;

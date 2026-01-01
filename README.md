@@ -204,6 +204,7 @@ For stable results, stick to **Native Mode** (standard widgets without LVGL pref
 - **Modern Canvas Interaction** - Zoom with the mouse wheel and pan with the middle mouse button
 - **Drag & Drop Workflow** - Drag widgets directly from the sidebar onto the canvas
 - **Modular Hardware Profiles** - Support for loading hardware profiles from external YAML packages ([Learn how to write your own](hardware_recipes_guide.md))
+- **[New] Experimental: Custom Hardware Profiles** - Create and save your own hardware definitions (Chip, LCD/E-Ink, Pins) directly in the UI. No coding required to support new displays!
 - **Experimental LVGL Support** - (Beta) Support for interactive LVGL widgets on capable devices
 - **Mobile Support** - Responsive UI designed to work on smaller screens and touch devices
 
