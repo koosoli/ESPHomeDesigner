@@ -125,7 +125,6 @@ display:
       width: 240
       height: 240
     reset_pin: $rstpin
-    dc_pin:
-      number: $dcpin
+    dc_pin: $dcpin
     lambda: |-
       # __LAMBDA_PLACEHOLDER__
