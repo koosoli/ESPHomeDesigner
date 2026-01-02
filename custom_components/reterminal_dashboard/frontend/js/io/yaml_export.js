@@ -3275,6 +3275,16 @@ function generateScriptSection(payload, pagesLocal, profile = {}) {
 
     lines.push(`      - component.update: ${displayId}`);
 
+    // Start auto-cycle timer if enabled and not already running (Issue #125 fix)
+    if (payload.auto_cycle_enabled && pagesLocal.length > 1 && !payload.deep_sleep_enabled) {
+        lines.push("      # Start auto-cycling if enabled and not already running");
+        lines.push("      - if:");
+        lines.push("          condition:");
+        lines.push("            lambda: 'return !id(auto_cycle_timer).is_running();'");
+        lines.push("          then:");
+        lines.push("            - script.execute: auto_cycle_timer");
+    }
+
     if (payload.deep_sleep_enabled) {
         lines.push("      - script.execute: enter_deep_sleep");
     } else {
