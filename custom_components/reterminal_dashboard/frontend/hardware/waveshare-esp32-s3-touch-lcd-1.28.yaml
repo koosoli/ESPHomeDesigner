@@ -137,7 +137,7 @@ light:
 display:
   - platform: ili9xxx
     model: GC9A01A
-    id: waveshare_round_128
+    id: my_display
     invert_colors: true
     cs_pin: $cspin
     update_interval: never
