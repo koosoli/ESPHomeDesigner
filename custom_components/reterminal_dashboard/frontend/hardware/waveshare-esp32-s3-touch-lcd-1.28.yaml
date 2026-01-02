@@ -118,8 +118,6 @@ display:
     id: my_display
     invert_colors: true
     cs_pin: $cspin
-    update_interval: never
-    auto_clear_enabled: false
     color_order: RGB
     dimensions:
       width: 240
