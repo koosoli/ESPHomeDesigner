@@ -17,6 +17,7 @@
 
         // Dynamic Date Data
         const now = new Date();
+        const eventsTop = 122 + (7 * 18) + 15;
         const date = now.getDate();
         const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -24,45 +25,51 @@
         const dayNameText = dayNames[now.getDay()];
         const monthYearText = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
 
-        // Header
-        const header = document.createElement("div");
-        header.style.textAlign = "center";
-        header.style.padding = "2px";
-        header.style.borderBottom = "1px solid " + (props.text_color || "black");
-        // Ensure header doesn't grow too large
-        header.style.flexShrink = "0";
-
+        // Create header elements with absolute positioning to match C++ lambda coordinates
         const bigDate = document.createElement("div");
-        bigDate.style.fontSize = Math.min((props.font_size_date || 100) / 2, 80) + "px";
+        bigDate.style.position = "absolute";
+        bigDate.style.top = "0px";
+        bigDate.style.left = "0";
+        bigDate.style.right = "0";
+        bigDate.style.textAlign = "center";
+        bigDate.style.fontSize = Math.min((props.font_size_date || 100) * 0.7, 80) + "px"; // Slight scaling for web view
         bigDate.style.fontWeight = "100";
-        bigDate.style.lineHeight = "0.8";
+        bigDate.style.lineHeight = "1";
         bigDate.innerText = date;
-        header.appendChild(bigDate);
+        el.appendChild(bigDate);
 
         const dayName = document.createElement("div");
+        dayName.style.position = "absolute";
+        dayName.style.top = "75px";
+        dayName.style.left = "0";
+        dayName.style.right = "0";
+        dayName.style.textAlign = "center";
         dayName.style.fontSize = (props.font_size_day || 24) + "px";
         dayName.style.fontWeight = "bold";
         dayName.innerText = dayNameText;
-        header.appendChild(dayName);
+        el.appendChild(dayName);
 
         const dateLine = document.createElement("div");
+        dateLine.style.position = "absolute";
+        dateLine.style.top = "102px";
+        dateLine.style.left = "0";
+        dateLine.style.right = "0";
+        dateLine.style.textAlign = "center";
         dateLine.style.fontSize = (props.font_size_grid || 14) + "px";
         dateLine.innerText = monthYearText;
-        header.appendChild(dateLine);
+        el.appendChild(dateLine);
 
-        // Flex layout for the main container to push events to bottom if space permits
-        el.style.display = "flex";
-        el.style.flexDirection = "column";
-
-        el.appendChild(header);
-
-        // Grid Logic
+        // Grid Logic - positioned at y + 140
         const grid = document.createElement("div");
+        grid.style.position = "absolute";
+        grid.style.top = "122px";
+        grid.style.left = "20px";
+        grid.style.right = "20px";
         grid.style.display = "grid";
         grid.style.gridTemplateColumns = "repeat(7, 1fr)";
-        grid.style.padding = "2px";
         grid.style.gap = "1px";
-        grid.style.flexShrink = "0";
+        grid.style.borderTop = "1px solid " + (props.text_color || "black");
+        grid.style.paddingTop = "5px";
 
         const gridFontSize = (props.font_size_grid || 14) + "px";
 
@@ -77,24 +84,18 @@
         });
 
         // Days of Month
-        // Calculate correctly:
-        // 1. First day of current month
         const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-        // 2. Days in month
         const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
         const daysInMonth = lastDay.getDate();
 
-        // 3. Offset (JS getDay: Sun=0, Mon=1... but we want Mon=0...Sun=6)
-        let startDay = firstDay.getDay(); // 0=Sun, 1=Mon
-        if (startDay === 0) startDay = 7; // Make Sunday 7 temporarily
-        startDay -= 1; // Now 0=Mon, ... 6=Sun
+        let startDay = firstDay.getDay();
+        if (startDay === 0) startDay = 7;
+        startDay -= 1;
 
-        // Empty slots for start offset
         for (let i = 0; i < startDay; i++) {
             grid.appendChild(document.createElement("div"));
         }
 
-        // Day numbers
         for (let i = 1; i <= daysInMonth; i++) {
             const d = document.createElement("div");
             d.innerText = i;
@@ -102,7 +103,6 @@
             d.style.fontSize = gridFontSize;
 
             if (i === date) {
-                // Highlight today
                 d.style.backgroundColor = props.text_color || "black";
                 d.style.color = props.background_color || "white";
                 d.style.borderRadius = "50%";
@@ -115,18 +115,31 @@
         }
         el.appendChild(grid);
 
-        // Mock Events
+        // Mock Events - positioned after the grid
+        // Approx height of calendar grid: 7 rows of ~18px = 126px
+        // Events start around y = 140 + 126 + 25 = 291
         const events = document.createElement("div");
-        events.style.padding = "5px";
+        events.style.position = "absolute";
+        events.style.top = "263px";
+        events.style.left = "20px";
+        events.style.right = "20px";
         events.style.fontSize = (props.font_size_event || 18) + "px";
-        events.style.flexGrow = "1"; // Allow events area to fill remaining space
-        events.style.overflow = "hidden"; // Clip if too small
+        events.style.overflow = "hidden";
 
-        // Generate a few mock events based on 'today'
-        events.innerHTML = `
-            <div style="margin-bottom:4px;"><b>${date}</b> Meeting with Team</div>
-            <div><b>${Math.min(date + 2, daysInMonth)}</b> Dentist Appointment</div>
-        `;
+        const limit = props.event_limit !== undefined ? props.event_limit : 2;
+        const mockData = [
+            { day: date, text: "Meeting with Team" },
+            { day: Math.min(date + 2, daysInMonth), text: "Dentist Appointment" },
+            { day: Math.min(date + 5, daysInMonth), text: "Dinner with Friends" },
+            { day: Math.min(date + 7, daysInMonth), text: "Project Deadline" },
+            { day: Math.min(date + 10, daysInMonth), text: "Weekend Trip" }
+        ];
+
+        let eventsHtml = "";
+        for (let i = 0; i < Math.min(limit, mockData.length); i++) {
+            eventsHtml += `<div style="margin-bottom:4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><b>${mockData[i].day}</b> ${mockData[i].text}</div>`;
+        }
+        events.innerHTML = eventsHtml;
         el.appendChild(events);
     };
 

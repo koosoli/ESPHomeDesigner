@@ -788,7 +788,7 @@ class PropertiesPanel {
                 updateProp("label_font_size", n);
             });
 
-            this.addLabeledInput("Unit", "text", props.unit || "°C", (v) => updateProp("unit", v));
+            this.addSelect("Unit", props.unit || "°C", ["°C", "°F"], (v) => updateProp("unit", v));
             this.addLabeledInput("Precision", "number", props.precision ?? 1, (v) => updateProp("precision", parseInt(v, 10)));
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
         }
@@ -901,6 +901,7 @@ class PropertiesPanel {
             this.addSectionLabel("Sizes & Color");
             this.addLabeledInput("Icon Size", "number", props.icon_size || 20, (v) => updateProp("icon_size", parseInt(v, 10)));
             this.addLabeledInput("Font Size", "number", props.font_size || 14, (v) => updateProp("font_size", parseInt(v, 10)));
+            this.addSelect("Temperature Unit", props.temperature_unit || "°C", ["°C", "°F"], (v) => updateProp("temperature_unit", v));
             this.addColorSelector("Foreground Color", props.color || "white", colors, (v) => updateProp("color", v));
         }
         else if (type === "template_nav_bar") {
@@ -1107,6 +1108,7 @@ class PropertiesPanel {
             this.addLabeledInput("Day Name Size", "number", props.font_size_day || 24, (v) => updateProp("font_size_day", parseInt(v, 10)));
             this.addLabeledInput("Grid Text Size", "number", props.font_size_grid || 14, (v) => updateProp("font_size_grid", parseInt(v, 10)));
             this.addLabeledInput("Event Text Size", "number", props.font_size_event || 18, (v) => updateProp("font_size_event", parseInt(v, 10)));
+            this.addLabeledInput("Event Limit", "number", props.event_limit !== undefined ? props.event_limit : 2, (v) => updateProp("event_limit", parseInt(v, 10)));
 
             this.addSectionLabel("Data");
             this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "sensor.esp_calendar_data", (v) => {

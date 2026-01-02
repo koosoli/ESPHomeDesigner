@@ -65,7 +65,13 @@
         valueEl.style.fontSize = `${fontSize}px`;
         valueEl.style.fontWeight = "500";
         valueEl.style.marginTop = "2px";
-        valueEl.textContent = temperature.toFixed(precision) + unit;
+
+        let displayTemp = temperature;
+        if (unit === "°F") {
+            displayTemp = (temperature * 9 / 5) + 32;
+        }
+
+        valueEl.textContent = displayTemp.toFixed(precision) + unit;
         el.appendChild(valueEl);
 
         // Label

@@ -628,6 +628,30 @@ function parseSnippetYamlOffline(yamlText) {
                         separator: p.separator || " ~ "
                     };
                     widget.entity_id_2 = p.entity_2 || "";
+                } else if (widgetType === "ondevice_temperature") {
+                    widget.props = {
+                        size: parseInt(p.icon_size || 32, 10),
+                        font_size: parseInt(p.font_size || 16, 10),
+                        label_font_size: parseInt(p.label_font_size || 10, 10),
+                        color: p.color || "black",
+                        unit: p.unit || "°C",
+                        show_label: (p.show_label !== "false"),
+                        precision: parseInt(p.precision || 1, 10),
+                        fit_icon_to_frame: (p.fit === "true"),
+                        is_local_sensor: (p.local !== "false")
+                    };
+                } else if (widgetType === "ondevice_humidity") {
+                    widget.props = {
+                        size: parseInt(p.icon_size || 32, 10),
+                        font_size: parseInt(p.font_size || 16, 10),
+                        label_font_size: parseInt(p.label_font_size || 10, 10),
+                        color: p.color || "black",
+                        unit: p.unit || "%",
+                        show_label: (p.show_label !== "false"),
+                        precision: parseInt(p.precision || 0, 10),
+                        fit_icon_to_frame: (p.fit === "true"),
+                        is_local_sensor: (p.local !== "false")
+                    };
                 } else if (widgetType === "datetime") {
                     // Fix size persistence for datetime: use 200x60 defaults if missing, instead of generic 100x30
                     widget.width = parseInt(p.w || 200, 10);
@@ -795,7 +819,8 @@ function parseSnippetYamlOffline(yamlText) {
                         border_radius: parseInt(p.radius || 8, 10),
                         icon_size: parseInt(p.icon_size || 20, 10),
                         font_size: parseInt(p.font_size || 14, 10),
-                        color: p.color || "black"
+                        color: p.color || "black",
+                        temperature_unit: p.temp_unit || p.temperature_unit || "°C"
                     };
                 } else if (widgetType === "template_nav_bar") {
                     widget.props = {
@@ -1057,7 +1082,8 @@ function parseSnippetYamlOffline(yamlText) {
                         font_size_date: parseInt(p.font_size_date || 100, 10),
                         font_size_day: parseInt(p.font_size_day || 24, 10),
                         font_size_grid: parseInt(p.font_size_grid || 14, 10),
-                        font_size_event: parseInt(p.font_size_event || 18, 10)
+                        font_size_event: parseInt(p.font_size_event || 18, 10),
+                        event_limit: parseInt(p.event_limit || 2, 10)
                     };
                 }
 

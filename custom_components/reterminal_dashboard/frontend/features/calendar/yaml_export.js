@@ -161,18 +161,18 @@ text_sensor:
           
           // Date
           it.printf(cx, ${y} + 0, id(font_roboto_100), color_content, TextAlign::TOP_CENTER, "%d", time.day_of_month);
-          it.printf(cx, ${y} + 70, id(font_roboto_24), color_content, TextAlign::TOP_CENTER, "%s", id(todays_day_name_${id}).state.c_str());
-          it.printf(cx, ${y} + 92, id(font_roboto_14), color_content, TextAlign::TOP_CENTER, "%s", id(todays_date_month_year_${id}).state.c_str());
+          it.printf(cx, ${y} + 75, id(font_roboto_24), color_content, TextAlign::TOP_CENTER, "%s", id(todays_day_name_${id}).state.c_str());
+          it.printf(cx, ${y} + 102, id(font_roboto_14), color_content, TextAlign::TOP_CENTER, "%s", id(todays_date_month_year_${id}).state.c_str());
           
           // Calendar Grid
-          int calendar_y_pos = ${y} + 115;
+          int calendar_y_pos = ${y} + 122;
           
           // 2. Mock-ish Calendar Rendering for ESPHome (simplified from reference)
           char cal[7][7][3];
           get_calendar_matrix(time.year, time.month, cal);
           
           int cell_width = (${w} - 40) / 7;
-          int cell_height = 17;
+          int cell_height = 18;
           int start_x = ${x} + 20;
           
           for (int i = 0; i < 7; i++) {
@@ -224,48 +224,52 @@ text_sensor:
                   }
                   ESP_LOGD("calendar", "Processing %d days", days.size());
 
-                  int y_cursor = calendar_y_pos + (7 * cell_height) + 10;
+                  int y_cursor = calendar_y_pos + (7 * cell_height) + 15;
                   int max_y = ${y} + ${h} - 5;
 
                   // Safety: Ensure we have enough space for at least one event
                   if (y_cursor >= max_y) { ESP_LOGW("calendar", "Widget too small for events"); return; }
 
                   it.filled_rectangle(${x} + 20, y_cursor - 5, ${w} - 40, 2, color_content);
-
-                  for (JsonVariant dayEntry : days) {
-                      if (y_cursor > max_y) break;
-                      int currentDayNum = dayEntry["day"].as<int>();
-
-                      auto draw_row = [&](JsonVariant event, bool is_all_day) {
-                          if (y_cursor > max_y) return;
-                          const char* summary = event["summary"] | "No Title";
-                          const char* start = event["start"] | "";
-
-                          it.printf(${x} + 20, y_cursor, id(font_event_day), color_content, TextAlign::TOP_LEFT, "%d", currentDayNum);
-                          it.printf(${x} + 60, y_cursor + 4, id(font_event), color_content, TextAlign::TOP_LEFT, "%.25s", summary);
-
-                          if (is_all_day) {
-                              it.printf(${x} + ${w} - 20, y_cursor + 4, id(font_event), color_content, TextAlign::TOP_RIGHT, "All Day");
-                          } else {
-                              std::string timeStr = extract_time(start);
-                              it.printf(${x} + ${w} - 20, y_cursor + 4, id(font_event), color_content, TextAlign::TOP_RIGHT, "%s", timeStr.c_str());
-                          }
-                          y_cursor += 25;
-                      };
-
-                      if (dayEntry["all_day"].is<JsonArray>()) {
-                          for (JsonVariant event : dayEntry["all_day"].as<JsonArray>()) {
-                              draw_row(event, true);
-                              if (y_cursor > max_y) break;
-                          }
-                      }
-                      if (dayEntry["other"].is<JsonArray>()) {
-                          for (JsonVariant event : dayEntry["other"].as<JsonArray>()) {
-                              draw_row(event, false);
-                              if (y_cursor > max_y) break;
-                          }
-                      }
-                  }
+ 
+                   int event_count = 0;
+                   int event_limit = ${props.event_limit !== undefined ? props.event_limit : 2};
+ 
+                   for (JsonVariant dayEntry : days) {
+                       if (y_cursor > max_y || event_count >= event_limit) break;
+                       int currentDayNum = dayEntry["day"].as<int>();
+ 
+                       auto draw_row = [&](JsonVariant event, bool is_all_day) {
+                           if (y_cursor > max_y || event_count >= event_limit) return;
+                           const char* summary = event["summary"] | "No Title";
+                           const char* start = event["start"] | "";
+ 
+                           it.printf(${x} + 20, y_cursor, id(font_event_day), color_content, TextAlign::TOP_LEFT, "%d", currentDayNum);
+                           it.printf(${x} + 60, y_cursor + 4, id(font_event), color_content, TextAlign::TOP_LEFT, "%.25s", summary);
+ 
+                           if (is_all_day) {
+                               it.printf(${x} + ${w} - 20, y_cursor + 4, id(font_event), color_content, TextAlign::TOP_RIGHT, "All Day");
+                           } else {
+                               std::string timeStr = extract_time(start);
+                               it.printf(${x} + ${w} - 20, y_cursor + 4, id(font_event), color_content, TextAlign::TOP_RIGHT, "%s", timeStr.c_str());
+                           }
+                           y_cursor += 25;
+                           event_count++;
+                       };
+ 
+                       if (dayEntry["all_day"].is<JsonArray>()) {
+                           for (JsonVariant event : dayEntry["all_day"].as<JsonArray>()) {
+                               draw_row(event, true);
+                               if (y_cursor > max_y || event_count >= event_limit) break;
+                           }
+                       }
+                       if (dayEntry["other"].is<JsonArray>()) {
+                           for (JsonVariant event : dayEntry["other"].as<JsonArray>()) {
+                               draw_row(event, false);
+                               if (y_cursor > max_y || event_count >= event_limit) break;
+                           }
+                       }
+                   }
               } else {
                    ESP_LOGW("calendar", "JSON Parse Error: %s", error.c_str());
               }

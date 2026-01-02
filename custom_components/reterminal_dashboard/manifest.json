@@ -4,7 +4,11 @@
   "documentation": "https://github.com/koosoli/ESPHomeDesigner",
   "issue_tracker": "https://github.com/koosoli/ESPHomeDesigner/issues",
   "configuration_url": "/reterminal-dashboard",
+<<<<<<< Updated upstream
   "version": "0.8.6",
+=======
+  "version": "0.8.6.2",
+>>>>>>> Stashed changes
   "after_dependencies": [
     "http",
     "frontend",

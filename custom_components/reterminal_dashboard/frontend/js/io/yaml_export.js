@@ -67,7 +67,7 @@ function sanitizePackageContent(yamlContent) {
     const lines = yamlContent.split('\n');
     const sanitizedLines = [];
     const systemKeys = [
-        "esphome:", "esp32:", "wifi:", "api:", "ota:", "logger:",
+        "esphome:", "esp32:", "esp8266:", "rp2040:", "libretiny:", "wifi:", "api:", "ota:", "logger:",
         "web_server:", "captive_portal:", "platformio_options:", "preferences:",
         "substitutions:" // Often handled in main config
     ];
@@ -2063,7 +2063,12 @@ async function generateSnippetLocally() {
                                 }
 
                                 // Build full display value with prefix, unit, postfix
-                                lines.push(`          std::string fullValue = "${prefix}" + sensorValue + "${displayUnit}" + "${postfix}";`);
+                                lines.push(`          // Ensure space before unit if unit is not empty and doesn't already start with a space`);
+                                let unitWithSpace = displayUnit;
+                                if (unitWithSpace && !unitWithSpace.startsWith(" ")) {
+                                    unitWithSpace = " " + unitWithSpace;
+                                }
+                                lines.push(`          std::string fullValue = "${prefix}" + sensorValue + "${unitWithSpace}" + "${postfix}";`);
 
                                 // Render based on value_format
                                 if ((valueFormat === "label_value" || valueFormat === "label_value_no_unit") && title) {
@@ -2320,12 +2325,9 @@ async function generateSnippetLocally() {
                             if (p.is_local_sensor) {
                                 sensorId = "battery_level";
                             } else {
-                                // Fix for legacy/broken default ID
-                                if (entityId === "sensor.reterminal_e1001_battery_level") {
-                                    sensorId = "battery_level";
-                                } else {
-                                    sensorId = entityId ? entityId.replace(/^sensor\./, "").replace(/\./g, "_").replace(/-/g, "_") : "battery_level";
-                                }
+                                // Fix for Issue #120: Use consistent ID sanitization for HA entities
+                                // This matches the logic used in sensor generation (sanitizing entity_id)
+                                sensorId = entityId ? entityId.replace(/[^a-zA-Z0-9_]/g, "_") : "battery_level";
                             }
 
                             lines.push(`        // widget:battery_icon id:${w.id} type:battery_icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId || "battery_level"} size:${size} font_size:${fontSize} color:${colorProp} local:${!!p.is_local_sensor} ${getCondProps(w)}`);
@@ -2374,7 +2376,8 @@ async function generateSnippetLocally() {
                             if (isLocal) {
                                 sensorId = "wifi_signal_dbm";
                             } else {
-                                sensorId = entityId ? entityId.replace(/^sensor\./, "").replace(/\./g, "_").replace(/-/g, "_") : "wifi_signal_dbm";
+                                // Fix for Issue #120: Use consistent ID sanitization for HA entities
+                                sensorId = entityId ? entityId.replace(/[^a-zA-Z0-9_]/g, "_") : "wifi_signal_dbm";
                             }
 
                             lines.push(`        // widget:wifi_signal id:${w.id} type:wifi_signal x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId || "wifi_signal_dbm"} size:${size} font_size:${fontSize} color:${colorProp} show_dbm:${showDbm} local:${isLocal} ${getCondProps(w)}`);
@@ -2432,7 +2435,7 @@ async function generateSnippetLocally() {
                                 sensorId = entityId ? entityId.replace(/[^a-zA-Z0-9_]/g, "_") : null;
                             }
 
-                            lines.push(`        // widget:ondevice_temperature id:${w.id} x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId || sensorId} icon_size:${iconSize} font_size:${fontSize} color:${colorProp} local:${isLocal} ${getCondProps(w)}`);
+                            lines.push(`        // widget:ondevice_temperature id:${w.id} x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId || sensorId} icon_size:${iconSize} font_size:${fontSize} color:${colorProp} local:${isLocal} unit:${unit} precision:${precision} ${getCondProps(w)}`);
                             const cond = getConditionCheck(w);
                             if (cond) lines.push(`        ${cond}`);
                             lines.push(`        {`);
@@ -2441,9 +2444,13 @@ async function generateSnippetLocally() {
 
                             if (sensorId) {
                                 lines.push(`          if (id(${sensorId}).has_state()) {`);
-                                lines.push(`            temp_val = id(${sensorId}).state;`);
-                                lines.push(`            if (temp_val <= 10) temp_icon = "\\U000F0E4C";      // thermometer-low`);
-                                lines.push(`            else if (temp_val > 25) temp_icon = "\\U000F10C2"; // thermometer-high`);
+                                lines.push(`            float raw_val = id(${sensorId}).state;`);
+                                lines.push(`            temp_val = raw_val;`);
+                                if (unit === "°F") {
+                                    lines.push(`            temp_val = temp_val * 9.0 / 5.0 + 32.0;`);
+                                }
+                                lines.push(`            if (raw_val <= 10) temp_icon = "\\U000F0E4C";      // thermometer-low`);
+                                lines.push(`            else if (raw_val > 25) temp_icon = "\\U000F10C2"; // thermometer-high`);
                                 lines.push(`          }`);
                             }
 
@@ -2452,7 +2459,7 @@ async function generateSnippetLocally() {
                             // Value below icon
                             if (sensorId) {
                                 lines.push(`          if (id(${sensorId}).has_state()) {`);
-                                lines.push(`            it.printf(${Math.round(w.x + w.width / 2)}, ${w.y + iconSize + 2}, id(${valueFontRef}), ${color}, TextAlign::TOP_CENTER, "%.${precision}f${unit}", id(${sensorId}).state);`);
+                                lines.push(`            it.printf(${Math.round(w.x + w.width / 2)}, ${w.y + iconSize + 2}, id(${valueFontRef}), ${color}, TextAlign::TOP_CENTER, "%.${precision}f${unit}", temp_val);`);
                                 lines.push(`          } else {`);
                                 lines.push(`            it.printf(${Math.round(w.x + w.width / 2)}, ${w.y + iconSize + 2}, id(${valueFontRef}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
                                 lines.push(`          }`);
@@ -2554,7 +2561,7 @@ async function generateSnippetLocally() {
                             const iconFontRef = addFont("Material Design Icons", 400, iconSize);
                             const textFontRef = addFont("Roboto", 500, fontSize);
 
-                            lines.push(`        // widget:template_sensor_bar id:${w.id} type:template_sensor_bar x:${w.x} y:${w.y} w:${w.width} h:${w.height} wifi:${showWifi} temp:${showTemp} hum:${showHum} bat:${showBat} bg:${showBg} bg_color:${p.background_color || "black"} radius:${radius} icon_size:${iconSize} font_size:${fontSize} color:${colorProp} ${getCondProps(w)}`);
+                            lines.push(`        // widget:template_sensor_bar id:${w.id} type:template_sensor_bar x:${w.x} y:${w.y} w:${w.width} h:${w.height} wifi:${showWifi} temp:${showTemp} hum:${showHum} bat:${showBat} bg:${showBg} bg_color:${p.background_color || "black"} radius:${radius} icon_size:${iconSize} font_size:${fontSize} color:${colorProp} temp_unit:${p.temperature_unit || "°C"} ${getCondProps(w)}`);
                             const condSens = getConditionCheck(w);
                             if (condSens) lines.push(`        ${condSens}`);
                             lines.push(`        {`);
@@ -2602,10 +2609,20 @@ async function generateSnippetLocally() {
 
                                 if (showTemp) {
                                     const tempId = profile.features.sht4x ? "sht4x_temperature" : (profile.features.sht3x ? "sht3x_temperature" : "shtc3_temperature");
+                                    const tUnit = p.temperature_unit || "°C";
                                     lines.push(`          {`);
                                     lines.push(`            it.printf(${Math.round(currentX)} - 12, ${centerY}, id(${iconFontRef}), ${color}, TextAlign::CENTER_LEFT, "\\U000F050F");`);
-                                    lines.push(`            if (id(${tempId}).has_state()) it.printf(${Math.round(currentX)} + 8, ${centerY}, id(${textFontRef}), ${color}, TextAlign::CENTER_LEFT, "%.1f°C", id(${tempId}).state);`);
-                                    lines.push(`            else it.printf(${Math.round(currentX)} + 8, ${centerY}, id(${textFontRef}), ${color}, TextAlign::CENTER_LEFT, "--°C");`);
+
+                                    lines.push(`            if (id(${tempId}).has_state()) {`);
+                                    lines.push(`              float val = id(${tempId}).state;`);
+                                    if (tUnit === "°F") {
+                                        lines.push(`              val = val * 9.0/5.0 + 32.0;`);
+                                    }
+                                    lines.push(`              it.printf(${Math.round(currentX)} + 8, ${centerY}, id(${textFontRef}), ${color}, TextAlign::CENTER_LEFT, "%.1f${tUnit}", val);`);
+                                    lines.push(`            } else {`);
+                                    lines.push(`              it.printf(${Math.round(currentX)} + 8, ${centerY}, id(${textFontRef}), ${color}, TextAlign::CENTER_LEFT, "--${tUnit}");`);
+                                    lines.push(`            }`);
+
                                     lines.push(`          }`);
                                     currentX += spacing;
                                 }
@@ -2622,12 +2639,16 @@ async function generateSnippetLocally() {
 
                                 if (showBat) {
                                     lines.push(`          {`);
-                                    lines.push(`            const char* bat_icon = "\\U000F0082";`);
-                                    lines.push(`            float lvl = id(battery_level).state;`);
-                                    lines.push(`            if (lvl >= 90) bat_icon = "\\U000F0079";`);
-                                    lines.push(`            else if (lvl >= 50) bat_icon = "\\U000F007E";`);
-                                    lines.push(`            else if (lvl >= 20) bat_icon = "\\U000F007B";`);
-                                    lines.push(`            else bat_icon = "\\U000F0083";`);
+                                    lines.push(`            const char* bat_icon = "\\\\U000F0082";`);
+                                    lines.push(`            float lvl = 0;`);
+                                    lines.push(`            if (id(battery_level).has_state()) {`);
+                                    lines.push(`              lvl = id(battery_level).state;`);
+                                    lines.push(`              if (std::isnan(lvl)) lvl = 0;`);
+                                    lines.push(`            }`);
+                                    lines.push(`            if (lvl >= 90) bat_icon = "\\\\U000F0079";`);
+                                    lines.push(`            else if (lvl >= 50) bat_icon = "\\\\U000F007E";`);
+                                    lines.push(`            else if (lvl >= 20) bat_icon = "\\\\U000F007B";`);
+                                    lines.push(`            else bat_icon = "\\\\U000F0083";`);
                                     lines.push(`            it.printf(${Math.round(currentX)} - 12, ${centerY}, id(${iconFontRef}), ${color}, TextAlign::CENTER_LEFT, "%s", bat_icon);`);
                                     lines.push(`            if (id(battery_level).has_state()) it.printf(${Math.round(currentX)} + 8, ${centerY}, id(${textFontRef}), ${color}, TextAlign::CENTER_LEFT, "%.0f%%", id(battery_level).state);`);
                                     lines.push(`            else it.printf(${Math.round(currentX)} + 8, ${centerY}, id(${textFontRef}), ${color}, TextAlign::CENTER_LEFT, "--%%");`);
@@ -2782,7 +2803,7 @@ async function generateSnippetLocally() {
                             const fontEventDay = addFont(fFamily, 400, 24);
                             const fontEvent = addFont(fFamily, 400, szEvent); // summary
 
-                            lines.push(`        // widget:calendar id:${w.id} type:calendar x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} border_width:${borderWidth} show_border:${showBorder} border_color:${borderColorProp} background_color:${bgColorProp} text_color:${colorProp} font_size_date:${szDate} font_size_day:${szDay} font_size_grid:${szGrid} font_size_event:${szEvent} ${getCondProps(w)}`);
+                            lines.push(`        // widget:calendar id:${w.id} type:calendar x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} border_width:${borderWidth} show_border:${showBorder} border_color:${borderColorProp} background_color:${bgColorProp} text_color:${colorProp} font_size_date:${szDate} font_size_day:${szDay} font_size_grid:${szGrid} font_size_event:${szEvent} event_limit:${p.event_limit || 2} ${getCondProps(w)}`);
                             const condCal = getConditionCheck(w);
                             if (condCal) lines.push(`        ${condCal}`);
                             lines.push(`        {`);
@@ -2817,16 +2838,16 @@ async function generateSnippetLocally() {
 
                             // Header: Date
                             lines.push(`          it.printf(cx, ${w.y} + 0, id(${fontBig}), ${color}, TextAlign::TOP_CENTER, "%d", time.day_of_month);`);
-                            lines.push(`          it.printf(cx, ${w.y} + 70, id(${fontDay}), ${color}, TextAlign::TOP_CENTER, "%s", id(todays_day_name_${safeWidgetId}).state.c_str());`);
-                            lines.push(`          it.printf(cx, ${w.y} + 92, id(${fontDate}), ${color}, TextAlign::TOP_CENTER, "%s", id(todays_date_month_year_${safeWidgetId}).state.c_str());`);
+                            lines.push(`          it.printf(cx, ${w.y} + 75, id(${fontDay}), ${color}, TextAlign::TOP_CENTER, "%s", id(todays_day_name_${safeWidgetId}).state.c_str());`);
+                            lines.push(`          it.printf(cx, ${w.y} + 102, id(${fontDate}), ${color}, TextAlign::TOP_CENTER, "%s", id(todays_date_month_year_${safeWidgetId}).state.c_str());`);
 
                             // Calendar Grid
-                            lines.push(`          int calendar_y_pos = ${w.y} + 115;`);
+                            lines.push(`          int calendar_y_pos = ${w.y} + 122;`);
                             lines.push(`          char cal[7][7][3];`);
                             lines.push(`          get_calendar_matrix(time.year, time.month, cal);`);
 
                             lines.push(`          int cell_width = (${w.width} - 40) / 7;`);
-                            lines.push(`          int cell_height = 17;`);
+                            lines.push(`          int cell_height = 18;`);
                             lines.push(`          int start_x = ${w.x} + 20;`);
 
                             lines.push(`          for (int i = 0; i < 7; i++) {`);
@@ -2879,7 +2900,7 @@ async function generateSnippetLocally() {
                             lines.push(`                 }`);
                             lines.push(`                 ESP_LOGD("calendar", "Processing %d days", days.size());`);
                             lines.push(``);
-                            lines.push(`                 int y_cursor = calendar_y_pos + (7 * cell_height) + 10;`);
+                            lines.push(`                 int y_cursor = calendar_y_pos + (7 * cell_height) + 15;`);
                             lines.push(`                 int max_y = ${w.y} + ${w.height} - 5;`);
                             lines.push(``);
                             lines.push(`                 // Safety: Ensure we have enough space for at least one event`);
@@ -2887,12 +2908,15 @@ async function generateSnippetLocally() {
                             lines.push(``);
                             lines.push(`                 it.filled_rectangle(${w.x} + 20, y_cursor - 5, ${w.width} - 40, 2, ${color});`);
                             lines.push(``);
+                            lines.push(`                 int event_count = 0;`);
+                            lines.push(`                 int event_limit = ${p.event_limit !== undefined ? p.event_limit : 2};`);
+                            lines.push(``);
                             lines.push(`                 for (JsonVariant dayEntry : days) {`);
-                            lines.push(`                     if (y_cursor > max_y) break;`);
+                            lines.push(`                     if (y_cursor > max_y || event_count >= event_limit) break;`);
                             lines.push(`                     int currentDayNum = dayEntry["day"].as<int>();`);
                             lines.push(``);
                             lines.push(`                     auto draw_row = [&](JsonVariant event, bool is_all_day) {`);
-                            lines.push(`                         if (y_cursor > max_y) return;`);
+                            lines.push(`                         if (y_cursor > max_y || event_count >= event_limit) return;`);
                             lines.push(`                         const char* summary = event["summary"] | "No Title";`);
                             lines.push(`                         const char* start = event["start"] | "";`);
                             lines.push(``);
@@ -2906,18 +2930,19 @@ async function generateSnippetLocally() {
                             lines.push(`                             it.printf(${w.x} + ${w.width} - 20, y_cursor + 4, id(${fontEvent}), ${color}, TextAlign::TOP_RIGHT, "%s", timeStr.c_str());`);
                             lines.push(`                         }`);
                             lines.push(`                         y_cursor += 25;`);
+                            lines.push(`                         event_count++;`);
                             lines.push(`                     };`);
                             lines.push(``);
                             lines.push(`                     if (dayEntry["all_day"].is<JsonArray>()) {`);
                             lines.push(`                         for (JsonVariant event : dayEntry["all_day"].as<JsonArray>()) {`);
                             lines.push(`                             draw_row(event, true);`);
-                            lines.push(`                             if (y_cursor > max_y) break;`);
+                            lines.push(`                             if (y_cursor > max_y || event_count >= event_limit) break;`);
                             lines.push(`                         }`);
                             lines.push(`                     }`);
                             lines.push(`                     if (dayEntry["other"].is<JsonArray>()) {`);
                             lines.push(`                         for (JsonVariant event : dayEntry["other"].as<JsonArray>()) {`);
                             lines.push(`                             draw_row(event, false);`);
-                            lines.push(`                             if (y_cursor > max_y) break;`);
+                            lines.push(`                             if (y_cursor > max_y || event_count >= event_limit) break;`);
                             lines.push(`                         }`);
                             lines.push(`                     }`);
                             lines.push(`                 }`);
@@ -3449,6 +3474,8 @@ async function generateSnippetLocally() {
     // If package-based, we prepend the package content to our dynamic software sections.
     // ==========================================================================
     if (packageContent && profile.isPackageBased) {
+        // Sanitize first to remove system boilerplate (Philosophy Alignment)
+        packageContent = sanitizePackageContent(packageContent);
         packageContent = applyPackageOverrides(packageContent, profile, payload.orientation || 'landscape');
         return packageContent + "\n\n" + finalYaml;
     }
@@ -3784,30 +3811,26 @@ function applyPackageOverrides(packageContent, profile, orientation) {
         // Mirrors depend on driver defaults, guessing standard behavior:
 
         if (rotation === 0) { // Portrait
-            transformVals = `
-    transform:
-      swap_xy: true
-      mirror_x: false
-      mirror_y: true`;
+            transformVals = `  transform:
+    swap_xy: true
+    mirror_x: false
+    mirror_y: true`;
         } else if (rotation === 90) { // Landscape (Default)
             // No transform needed usually, but explicit set prevents issues
-            transformVals = `
-    transform:
-      swap_xy: false
-      mirror_x: false
-      mirror_y: false`;
+            transformVals = `  transform:
+    swap_xy: false
+    mirror_x: false
+    mirror_y: false`;
         } else if (rotation === 180) { // Portrait Inverted
-            transformVals = `
-    transform:
-      swap_xy: true
-      mirror_x: true
-      mirror_y: false`;
+            transformVals = `  transform:
+    swap_xy: true
+    mirror_x: true
+    mirror_y: false`;
         } else if (rotation === 270) { // Landscape Inverted
-            transformVals = `
-    transform:
-      swap_xy: false
-      mirror_x: true
-      mirror_y: true`;
+            transformVals = `  transform:
+    swap_xy: false
+    mirror_x: true
+    mirror_y: true`;
         }
 
         // Inject transform into touchscreen section

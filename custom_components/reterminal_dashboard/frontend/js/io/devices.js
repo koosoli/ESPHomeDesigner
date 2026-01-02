@@ -340,8 +340,18 @@ async function loadExternalProfiles() {
     }
 
     // Trigger UI update if necessary (e.g., refresh device settings modal)
-    if (window.app && window.app.deviceSettings && typeof window.app.deviceSettings.populateDeviceSelect === 'function') {
-      window.app.deviceSettings.populateDeviceSelect();
+    const deviceSettings = window.app && window.app.deviceSettings;
+    if (deviceSettings && typeof deviceSettings.populateDeviceSelect === 'function') {
+      deviceSettings.populateDeviceSelect();
+    }
+
+    // NEW: If the currently selected model was updated, refresh AppState to pick up changes
+    if (window.AppState && AppState.deviceModel) {
+      const currentModel = AppState.deviceModel;
+      if (dynamicTemplates.some(t => t.id === currentModel)) {
+        console.log(`[Devices] Currently active model "${currentModel}" was updated, refreshing AppState...`);
+        AppState.setDeviceModel(currentModel);
+      }
     }
   } catch (e) {
     console.error("Failed to load external hardware profiles:", e);

@@ -1,6 +1,32 @@
 # Release Notes
 
 
+<<<<<<< Updated upstream
+=======
+## v0.8.6.2 - Battery, WiFi & Waveshare Fixes
+
+**Release Date:** January 2, 2026
+
+### ✨ Improvements
+- **Philosophy-Aware Hardware Recipes**: The YAML generator is now "philosophy-aware." When importing custom hardware recipes (package-based profiles), it automatically comments out system-level configurations (like `esphome:`, `wifi:`, `api:`, etc.). This ensures that produced snippets contain only the necessary hardware and UI definitions, preventing duplicate header errors when copy-pasting into existing ESPHome configurations.
+- **Automatic Unit Spacing**: Updated the `sensor_text` export logic to automatically prepend a space to sensor units if missing. This ensures the uploaded display matches the spaced-out look of the designer preview.
+- **Calendar Header Spacing**: Optimized the vertical alignment of the calendar widget's header elements. The day number, day name, and date/month string are now better spaced to prevent visual crowding on the actual display.
+- **Configurable Calendar Event Limit**: Added a new "Event Limit" setting to the calendar widget (defaulting to 2). This allows users to control exactly how many upcoming events are displayed, helping to manage vertical space and readability.
+- **Temperature Unit Toggle**: Added a choice between Celsius and Fahrenheit for `template_sensor_bar` and `ondevice_temperature` widgets. The canvas preview and exported ESPHome YAML now automatically handle the conversion formula `(C * 9/5) + 32` when Fahrenheit is selected.
+
+### 🐛 Bug Fixes
+- **Waveshare 7" Touchscreen YAML Fix**: Resolved a critical "mapping values are not allowed here" error in exported YAML for Waveshare 7" LCD devices. The indentation of the touchscreen `transform` block was corrected from 4 spaces to 2 and an extra newline was removed, ensuring valid YAML syntax and successful ESPHome compilation.
+- **Unified ID Sanitization**: Standardized the ESPHome ID generation for all widgets to ensure consistent naming between sensors and display logic. This resolves an issue where the `battery_icon` and `wifi_signal` widgets would incorrectly strip the `sensor.` prefix, causing "Couldn't find ID" or `nan%` errors.
+- **Improved Sensor Robustness**: Enhanced C++ rendering logic for `battery_icon`, `wifi_signal`, and `template_sensor_bar` with explicit `has_state()` and `isnan()` checks. Invalid or missing sensor data now defaults gracefully to `0` or `--` instead of resulting in visual artifacts like `nan%`.
+- **Custom Hardware Profile Generation**: Fixed missing `id: my_display`, `offset_height: 0`, and `offset_width: 0` properties in the generated YAML for ST7789V displays.
+- **YAML Color Export**: Fixed an issue where custom colors selected via the RGB picker always exported as `COLOR_BLACK`. The exporter now correctly parses hex color codes and generates the appropriate `Color(r, g, b)` constructors in the C++ lambda.
+- **Hardware Recipe Import Refresh**: Resolved an issue where updating a hardware recipe required switching devices back and forth for changes to appear. The system now automatically refreshes the active configuration and canvas when a profile is updated.
+- **Hotfix: Custom Recipe Caching**: Fixed a critical issue where updating a custom hardware recipe (YAML file) and re-importing it would not reflect changes due to browser caching. The system now bypasses caching when fetching hardware packages.
+- **Calendar Event Limit Persistence**: Fixed an issue where the "Event Limit" setting for the calendar widget would revert to its default value after updating the YAML configuration. The property is now correctly saved to and loaded from the ESPHome YAML.
+- **Temperature Unit Persistence**: Resolved an issue where the selected temperature unit would revert to Celsius after a YAML update. Added metadata comments and import parsing for `temperature_unit`, `unit`, and `precision` properties to ensure widget states are correctly restored.
+
+
+>>>>>>> Stashed changes
 ## v0.8.6 - Experimental: Custom Hardware Profiles
 
 **Release Date:** January 1, 2026

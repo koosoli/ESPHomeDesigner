@@ -545,7 +545,8 @@ class WidgetFactory {
                     border_radius: 8,
                     icon_size: 20,
                     font_size: 14,
-                    color: "white"
+                    color: "white",
+                    temperature_unit: "°C"
                 };
                 break;
 

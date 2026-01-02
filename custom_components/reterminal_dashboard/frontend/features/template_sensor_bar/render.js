@@ -41,11 +41,32 @@
         }
 
         if (props.show_temperature) {
+            // Note: 'profile' is not defined in this scope. Assuming it's meant to be passed or globally available.
+            // For now, using the original list of temperature sensors.
             const state = getEntityState(['sht4x_temperature', 'sht3x_temperature', 'shtc3_temperature', 'sensor.temperature']);
+
+            let valStr = "--";
+            const unit = props.temperature_unit || "°C";
+
+            if (state !== null) {
+                let val = parseFloat(state);
+                if (unit === "°F") {
+                    val = (val * 9 / 5) + 32;
+                }
+                valStr = val.toFixed(1);
+            } else {
+                // Default preview value
+                let val = 23.5;
+                if (unit === "°F") {
+                    val = (val * 9 / 5) + 32;
+                }
+                valStr = val.toFixed(1);
+            }
+
             sensors.push({
                 type: 'temp',
                 icon: 'F050F',
-                val: state !== null ? parseFloat(state).toFixed(1) + '°C' : '23.5°C'
+                val: valStr + unit
             });
         }
 
