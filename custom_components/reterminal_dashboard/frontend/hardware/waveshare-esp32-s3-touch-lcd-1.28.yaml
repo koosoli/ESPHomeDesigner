@@ -111,6 +111,7 @@ light:
     output: backlight_pwm
     name: "Display Backlight"
     id: back_light
+    restore_mode: RESTORE_AND_ON
 
 display:
   - platform: ili9xxx
