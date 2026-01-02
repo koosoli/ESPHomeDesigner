@@ -146,7 +146,7 @@ We expose everything (buttons, sensors, battery) back to Home Assistant. Does a 
 - **Text & Sensor Text** - Static labels or live HA entity values with smart type detection and multiple formatting options
   <p align="center"><img src="screenshots/text_formatting.gif" width="700" alt="Rich Text Formatting"></p>
 - **Icon & Weather Icon** - 360+ Material Design Icons or dynamic weather-state icons with full size/color control
-  <p align="center"><img src="screenshots/icon_picker.gif" width="700" alt="Icon Picker System"></p>
+  <p align="center"><img src="screenshots/icon_picker2.gif" width="700" alt="Icon Picker System"></p>
 - **Date, Time & Calendar** - Customizable clock, date, and full monthly calendar views
 - **Progress Bar & Battery** - Visual indicators for percentages and dynamic battery level tracking
 - **Shapes & Rounded Rects** - Rectangles, circles, lines, and rounded rects with gray/dither support
