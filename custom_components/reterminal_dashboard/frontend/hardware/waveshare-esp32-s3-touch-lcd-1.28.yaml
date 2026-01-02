@@ -126,4 +126,4 @@ display:
     reset_pin: $rstpin
     dc_pin: $dcpin
     lambda: |-
-      # __LAMBDA_PLACEHOLDER__
+    # __LAMBDA_PLACEHOLDER__
