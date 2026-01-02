@@ -14,12 +14,12 @@
 </div>
 
 <div align="center">
-  <a href="https://youtu.be/3AVGze6F_5o">
-    <img src="https://img.youtube.com/vi/3AVGze6F_5o/maxresdefault.jpg" alt="Watch the v0.8.0 Feature Walkthrough" width="600">
+  <a href="https://youtu.be/BLkzDYYQJcQ">
+    <img src="https://img.youtube.com/vi/BLkzDYYQJcQ/maxresdefault.jpg" alt="Watch the v0.8.6 Feature Walkthrough" width="600">
   </a>
   <br>
-  <a href="https://youtu.be/3AVGze6F_5o">
-    <img src="https://img.shields.io/badge/YouTube-Watch%20v0.8.0%20Overview-red?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch Video">
+  <a href="https://youtu.be/BLkzDYYQJcQ">
+    <img src="https://img.shields.io/badge/YouTube-Watch%20v0.8.6%20Overview-red?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch Video">
   </a>
   <a href="https://koosoli.github.io/ESPHomeDesigner/">
     <img src="https://img.shields.io/badge/Live%20Demo-Try%20it%20now-blue?style=for-the-badge&logo=google-chrome&logoColor=white" alt="Live Demo">
@@ -286,11 +286,6 @@ Add `compile_process_limit: 1` to your `esphome:` section in the YAML. This redu
    ```powershell
    python -m esphome compile C:\esphome_build\reterminal.yaml
 Upload: Take the generated .bin file and upload it via the Home Assistant ESPHome dashboard (Install → Manual Download).
-
-
-## Video Overview (Legacy)
-
-Looking for a deep dive? While some UI elements have evolved, you can watch an **[explanation video of an older version here](https://youtu.be/bzCbiUypN_4)** to understand the core concepts.
 
 ## License
 
