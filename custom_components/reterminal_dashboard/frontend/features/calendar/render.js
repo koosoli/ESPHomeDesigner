@@ -28,7 +28,7 @@
         // Create header elements with absolute positioning to match C++ lambda coordinates
         const bigDate = document.createElement("div");
         bigDate.style.position = "absolute";
-        bigDate.style.top = "0px";
+        bigDate.style.top = "10px";
         bigDate.style.left = "0";
         bigDate.style.right = "0";
         bigDate.style.textAlign = "center";

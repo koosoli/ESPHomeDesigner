@@ -2547,12 +2547,12 @@ async function generateSnippetLocally() {
                             lines.push(`          int cx = ${w.x} + (${w.width} / 2);`);
 
                             // Header: Date
-                            lines.push(`          it.printf(cx, ${w.y} + 5, id(${fontBig}), ${color}, TextAlign::TOP_CENTER, "%d", time.day_of_month);`);
-                            lines.push(`          it.printf(cx, ${w.y} + 85, id(${fontDay}), ${color}, TextAlign::TOP_CENTER, "%s", id(todays_day_name_${safeWidgetId}).state.c_str());`);
-                            lines.push(`          it.printf(cx, ${w.y} + 110, id(${fontDate}), ${color}, TextAlign::TOP_CENTER, "%s", id(todays_date_month_year_${safeWidgetId}).state.c_str());`);
+                            lines.push(`          it.printf(cx, ${w.y} + 10, id(${fontBig}), ${color}, TextAlign::TOP_CENTER, "%d", time.day_of_month);`);
+                            lines.push(`          it.printf(cx, ${w.y} + 75, id(${fontDay}), ${color}, TextAlign::TOP_CENTER, "%s", id(todays_day_name_${safeWidgetId}).state.c_str());`);
+                            lines.push(`          it.printf(cx, ${w.y} + 102, id(${fontDate}), ${color}, TextAlign::TOP_CENTER, "%s", id(todays_date_month_year_${safeWidgetId}).state.c_str());`);
 
                             // Calendar Grid
-                            lines.push(`          int calendar_y_pos = ${w.y} + 135;`);
+                            lines.push(`          int calendar_y_pos = ${w.y} + 122;`);
                             lines.push(`          char cal[7][7][3];`);
                             lines.push(`          get_calendar_matrix(time.year, time.month, cal);`);
 
@@ -3117,7 +3117,10 @@ async function generateSnippetLocally() {
     // If package-based, we prepend the package content to our dynamic software sections.
     // ==========================================================================
     if (packageContent && profile.isPackageBased) {
-        return packageContent + "\n\n" + finalYaml;
+        // Sanitize the package content to ensure partial-YAML compliance
+        // This comments out system-level configuration (WiFi, API, etc.)
+        const sanitized = sanitizePackageContent(packageContent);
+        return sanitized + "\n\n" + finalYaml;
     }
 
     return finalYaml;
