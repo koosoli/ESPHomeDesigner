@@ -2545,6 +2545,7 @@ async function generateSnippetLocally() {
                             const colorProp = p.text_color || "black";
                             const borderColorProp = p.border_color || "black";
                             const bgColorProp = p.background_color || "white";
+                            const eventLimit = parseInt(p.event_limit || 2, 10);
 
                             const color = getColorConst(colorProp);
                             const borderColor = getColorConst(borderColorProp);
@@ -2568,7 +2569,7 @@ async function generateSnippetLocally() {
                             const fontEventDay = addFont(fFamily, 400, 24);
                             const fontEvent = addFont(fFamily, 400, szEvent); // summary
 
-                            lines.push(`        // widget:calendar id:${w.id} type:calendar x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} border_width:${borderWidth} show_border:${showBorder} border_color:${borderColorProp} background_color:${bgColorProp} text_color:${colorProp} font_size_date:${szDate} font_size_day:${szDay} font_size_grid:${szGrid} font_size_event:${szEvent} ${getCondProps(w)}`);
+                            lines.push(`        // widget:calendar id:${w.id} type:calendar x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} event_limit:${eventLimit} border_width:${borderWidth} show_border:${showBorder} border_color:${borderColorProp} background_color:${bgColorProp} text_color:${colorProp} font_size_date:${szDate} font_size_day:${szDay} font_size_grid:${szGrid} font_size_event:${szEvent} ${getCondProps(w)}`);
                             lines.push(`        {`);
                             lines.push(`          auto time = id(ha_time).now();`);
 
@@ -2644,13 +2645,15 @@ async function generateSnippetLocally() {
                             lines.push(`                 else if (root.is<JsonArray>()) { days = root; }`);
                             lines.push(`                 if (!days.isNull() && days.size() > 0) {`);
                             lines.push(`                     int y_cursor = calendar_y_pos + (7 * cell_height) + 15;`);
-                            lines.push(`                     int max_y = ${w.y} + ${w.height} - 30;`);
+                            lines.push(`                     int max_y = ${w.y} + ${w.height} - 10;`);
+                            lines.push(`                     int event_count = 0;`);
+                            lines.push(`                     int event_limit = ${eventLimit};`);
                             lines.push(`                     it.filled_rectangle(${w.x} + 20, y_cursor - 5, ${w.width} - 40, 2, ${color});`);
                             lines.push(`                     for (JsonVariant dayEntry : days) {`);
-                            lines.push(`                         if (y_cursor > max_y) break;`);
+                            lines.push(`                         if (y_cursor > max_y || event_count >= event_limit) break;`);
                             lines.push(`                         int currentDayNum = dayEntry["day"].as<int>();`);
                             lines.push(`                         auto draw_row = [&](JsonVariant event, bool is_all_day) {`);
-                            lines.push(`                             if (y_cursor > max_y) return;`);
+                            lines.push(`                             if (y_cursor > max_y || event_count >= event_limit) return;`);
                             lines.push(`                             const char* summary = event["summary"] | "No Title";`);
                             lines.push(`                             const char* start = event["start"] | "";`);
                             lines.push(`                             it.printf(${w.x} + 20, y_cursor, id(${fontEventDay}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
@@ -2662,17 +2665,18 @@ async function generateSnippetLocally() {
                             lines.push(`                                 it.printf(${w.x} + ${w.width} - 20, y_cursor + 4, id(${fontEvent}), ${color}, TextAlign::TOP_RIGHT, "%s", timeStr.c_str());`);
                             lines.push(`                             }`);
                             lines.push(`                             y_cursor += 30;`);
+                            lines.push(`                             event_count++;`);
                             lines.push(`                         };`);
                             lines.push(`                         if (dayEntry["all_day"].is<JsonArray>()) {`);
                             lines.push(`                             for (JsonVariant event : dayEntry["all_day"].as<JsonArray>()) {`);
                             lines.push(`                                 draw_row(event, true);`);
-                            lines.push(`                                 if (y_cursor > max_y) break;`);
+                            lines.push(`                                 if (y_cursor > max_y || event_count >= event_limit) break;`);
                             lines.push(`                             }`);
                             lines.push(`                         }`);
                             lines.push(`                         if (dayEntry["other"].is<JsonArray>()) {`);
                             lines.push(`                             for (JsonVariant event : dayEntry["other"].as<JsonArray>()) {`);
                             lines.push(`                                 draw_row(event, false);`);
-                            lines.push(`                                 if (y_cursor > max_y) break;`);
+                            lines.push(`                                 if (y_cursor > max_y || event_count >= event_limit) break;`);
                             lines.push(`                             }`);
                             lines.push(`                         }`);
                             lines.push(`                     }`);
