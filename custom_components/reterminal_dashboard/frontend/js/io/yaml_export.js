@@ -2335,7 +2335,7 @@ async function generateSnippetLocally() {
                             const iconFontRef = addFont("Material Design Icons", 400, iconSize);
                             const textFontRef = addFont("Roboto", 500, fontSize);
 
-                            lines.push(`        // widget:template_sensor_bar id:${w.id} type:template_sensor_bar x:${w.x} y:${w.y} w:${w.width} h:${w.height} wifi:${showWifi} temp:${showTemp} hum:${showHum} bat:${showBat} bg:${showBg} bg_color:${p.background_color || "black"} radius:${radius} icon_size:${iconSize} font_size:${fontSize} color:${colorProp} ${getCondProps(w)}`);
+                            lines.push(`        // widget:template_sensor_bar id:${w.id} type:template_sensor_bar x:${w.x} y:${w.y} w:${w.width} h:${w.height} wifi:${showWifi} temp:${showTemp} hum:${showHum} bat:${showBat} bg:${showBg} bg_color:${p.background_color || "black"} radius:${radius} icon_size:${iconSize} font_size:${fontSize} color:${colorProp} temp_unit:"${p.temperature_unit || "°C"}" ${getCondProps(w)}`);
 
                             lines.push(`        {`);
                             if (showBg) {
@@ -2384,7 +2384,7 @@ async function generateSnippetLocally() {
                                     const tempId = profile.features.sht4x ? "sht4x_temperature" : (profile.features.sht3x ? "sht3x_temperature" : "shtc3_temperature");
                                     lines.push(`          {`);
                                     lines.push(`            it.printf(${Math.round(currentX)} - 12, ${centerY}, id(${iconFontRef}), ${color}, TextAlign::CENTER_LEFT, "\\U000F050F");`);
-                                    if ((p.temperature_unit === "F")) {
+                                    if ((p.temperature_unit === "°F")) {
                                         lines.push(`            if (id(${tempId}).has_state()) {`);
                                         lines.push(`              float t_c = id(${tempId}).state;`);
                                         lines.push(`              float t_f = (t_c * 9.0/5.0) + 32.0;`);
