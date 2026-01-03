@@ -1486,6 +1486,9 @@ async function generateSnippetLocally() {
             // Helper to get color constant
             const getColorConst = (c) => {
                 if (!c) return "COLOR_BLACK";
+                if (c.startsWith("#")) {
+                    return `Color(0x${c.substring(1)})`;
+                }
                 const cl = c.toLowerCase();
                 if (cl === "white") return "COLOR_WHITE";
                 if (cl === "black") return "COLOR_BLACK";
@@ -1889,15 +1892,20 @@ async function generateSnippetLocally() {
 
                         } else if (t === "icon") {
                             const code = (p.code || "F0595").replace(/^0x/i, "");
-                            const size = parseInt(p.size || 48, 10);
+                            let size = parseInt(p.size || 48, 10);
+                            if (p.fit_icon_to_frame) {
+                                const padding = 4;
+                                const maxDim = Math.max(8, Math.min((w.width || 0) - padding * 2, (w.height || 0) - padding * 2));
+                                size = Math.round(maxDim);
+                            }
                             // FIX: Default color should respect page dark mode (like text widget)
                             const colorProp = p.color || (effectiveDarkMode ? "white" : "black");
                             const color = getColorConst(colorProp);
                             const fontRef = addFont("Material Design Icons", 400, size);
 
-                            lines.push(`        // widget:icon id:${w.id} type:icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} code:${code} size:${size} color:${colorProp} ${getCondProps(w)}`);
+                            lines.push(`        // widget:icon id:${w.id} type:icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} code:${code} size:${size} color:${colorProp} fit:${p.fit_icon_to_frame ? "true" : "false"} ${getCondProps(w)}`);
                             // FIX: Use simple coordinates without TextAlign to match 0.8.6 behavior
-                            lines.push(`        it.printf(${w.x}, ${w.y}, id(${fontRef}), ${color}, "\\U000${code}");`);
+                            lines.push(`        it.printf(${w.x}, ${w.y}, id(${fontRef}), ${color}, "%s", "\\U000${code}");`);
                             // Apply grey dithering if color is gray
                             if (colorProp.toLowerCase() === "gray" || colorProp.toLowerCase() === "grey") {
                                 lines.push(`        apply_grey_dither_mask(${w.x}, ${w.y}, ${size}, ${size});`);
@@ -2138,7 +2146,12 @@ async function generateSnippetLocally() {
 
                         } else if (t === "wifi_signal") {
                             const entityId = (w.entity_id || "").trim();
-                            const size = parseInt(p.size || 24, 10);
+                            let size = parseInt(p.size || 24, 10);
+                            if (p.fit_icon_to_frame) {
+                                const padding = 4;
+                                const maxDim = Math.max(8, Math.min((w.width || 0) - padding * 2, (w.height || 0) - padding * 2));
+                                size = Math.round(maxDim);
+                            }
                             const fontSize = parseInt(p.font_size || 12, 10);
                             const colorProp = p.color || "black";
                             const color = getColorConst(colorProp);
@@ -2155,7 +2168,7 @@ async function generateSnippetLocally() {
                                 sensorId = entityId ? entityId.replace(/^sensor\./, "").replace(/\./g, "_").replace(/-/g, "_") : "wifi_signal_dbm";
                             }
 
-                            lines.push(`        // widget:wifi_signal id:${w.id} type:wifi_signal x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId || "wifi_signal_dbm"} size:${size} font_size:${fontSize} color:${colorProp} show_dbm:${showDbm} local:${isLocal} ${getCondProps(w)}`);
+                            lines.push(`        // widget:wifi_signal id:${w.id} type:wifi_signal x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId || "wifi_signal_dbm"} size:${size} font_size:${fontSize} color:${colorProp} show_dbm:${showDbm} local:${isLocal} fit:${p.fit_icon_to_frame ? "true" : "false"} ${getCondProps(w)}`);
                             lines.push(`        {`);
                             lines.push(`          const char* wifi_icon = "\\U000F092B"; // Default: wifi-strength-alert-outline`);
                             lines.push(`          if (id(${sensorId}).has_state()) {`);
@@ -2182,7 +2195,12 @@ async function generateSnippetLocally() {
 
                         } else if (t === "ondevice_temperature") {
                             const entityId = (w.entity_id || "").trim();
-                            const iconSize = parseInt(p.size || 32, 10);
+                            let iconSize = parseInt(p.size || 32, 10);
+                            if (p.fit_icon_to_frame) {
+                                const padding = 4;
+                                const maxDim = Math.max(8, Math.min((w.width || 0) - padding * 2, (w.height || 0) - padding * 2));
+                                iconSize = Math.round(maxDim);
+                            }
                             const fontSize = parseInt(p.font_size || 16, 10);
                             const labelFontSize = parseInt(p.label_font_size || 10, 10);
                             const colorProp = p.color || "black";
@@ -2206,7 +2224,7 @@ async function generateSnippetLocally() {
                                 sensorId = entityId ? entityId.replace(/^sensor\./, "").replace(/\./g, "_").replace(/-/g, "_") : "sht4x_temperature";
                             }
 
-                            lines.push(`        // widget:ondevice_temperature id:${w.id} x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId || sensorId} icon_size:${iconSize} font_size:${fontSize} color:${colorProp} local:${isLocal} ${getCondProps(w)}`);
+                            lines.push(`        // widget:ondevice_temperature id:${w.id} x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId || sensorId} icon_size:${iconSize} font_size:${fontSize} color:${colorProp} local:${isLocal} fit:${p.fit_icon_to_frame ? "true" : "false"} ${getCondProps(w)}`);
                             lines.push(`        {`);
                             lines.push(`          const char* temp_icon = "\\U000F050F"; // Default: thermometer`);
                             lines.push(`          float temp_val = NAN;`);
@@ -2235,7 +2253,12 @@ async function generateSnippetLocally() {
 
                         } else if (t === "ondevice_humidity") {
                             const entityId = (w.entity_id || "").trim();
-                            const iconSize = parseInt(p.size || 32, 10);
+                            let iconSize = parseInt(p.size || 32, 10);
+                            if (p.fit_icon_to_frame) {
+                                const padding = 4;
+                                const maxDim = Math.max(8, Math.min((w.width || 0) - padding * 2, (w.height || 0) - padding * 2));
+                                iconSize = Math.round(maxDim);
+                            }
                             const fontSize = parseInt(p.font_size || 16, 10);
                             const labelFontSize = parseInt(p.label_font_size || 10, 10);
                             const colorProp = p.color || "black";
@@ -2259,7 +2282,7 @@ async function generateSnippetLocally() {
                                 sensorId = entityId ? entityId.replace(/^sensor\./, "").replace(/\./g, "_").replace(/-/g, "_") : "sht4x_humidity";
                             }
 
-                            lines.push(`        // widget:ondevice_humidity id:${w.id} x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId || sensorId} icon_size:${iconSize} font_size:${fontSize} color:${colorProp} local:${isLocal} ${getCondProps(w)}`);
+                            lines.push(`        // widget:ondevice_humidity id:${w.id} x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId || sensorId} icon_size:${iconSize} font_size:${fontSize} color:${colorProp} local:${isLocal} fit:${p.fit_icon_to_frame ? "true" : "false"} ${getCondProps(w)}`);
                             lines.push(`        {`);
                             lines.push(`          const char* hum_icon = "\\U000F058E"; // Default: water-percent`);
                             lines.push(`          float hum_val = NAN;`);
