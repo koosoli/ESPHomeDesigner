@@ -119,7 +119,7 @@ display:
     id: my_display
     invert_colors: true
     cs_pin: $cspin
-    color_order: RGB
+    color_order: BGR
     dimensions:
       width: 240
       height: 240
