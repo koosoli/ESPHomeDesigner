@@ -111,7 +111,7 @@ display:
   - platform: mipi_rgb
     model: ESP32-S3-TOUCH-LCD-7-800X480
     id: my_display
-    rotation: 90
+    rotation: 0
     update_interval: never
     auto_clear_enabled: false
     color_order: RGB
