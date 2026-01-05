@@ -38,12 +38,6 @@ esphome:
     version: "1.0"
   platformio_options:
     board_build.flash_mode: dio
-  # Fix Issue #80: Call display refresh script on boot to prevent black screen
-  on_boot:
-    priority: 600
-    then:
-      - delay: 2s
-      - script.execute: manage_run_and_sleep
 
 esp32:
   board: esp32dev
@@ -54,15 +48,6 @@ i2c:
   - sda: 27
     scl: 22
 
-# sensor:
-#   - platform: adc
-#     pin: 34
-#     name: "Brightness"
-#     update_interval: 60s
-
-#-------------------------------------------
-# Backlight
-#-------------------------------------------
 output:
   - platform: ledc
     pin: 21
@@ -122,6 +107,13 @@ touchscreen:
     cs_pin: 33
     interrupt_pin: 36
     threshold: 400
+    calibration:
+      x_min: 280
+      x_max: 3860
+      y_min: 340
+      y_max: 3860
+    transform:
+      mirror_x: true
     on_touch:
       - lambda: |-
             ESP_LOGI("cal", "x=%d, y=%d, x_raw=%d, y_raw=%0d",
