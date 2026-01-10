@@ -6,6 +6,88 @@ import { registry as PluginRegistry } from './plugin_registry.js';
 import { snapToGridCell, applySnapToPosition, clearSnapGuides, updateWidgetGridCell } from './canvas_snap.js';
 import { render, applyZoom, updateWidgetDOM } from './canvas_renderer.js';
 
+// Helper for manual double-click detection
+let lastClickTime = 0;
+let lastClickWidgetId = null;
+
+function startInlineEdit(canvasInstance, widgetId) {
+    const widget = AppState.getWidgetById(widgetId);
+    if (!widget) return;
+
+    // Only allow inline editing for text-based widgets
+    const type = (widget.type || "").toLowerCase();
+    if (type !== "text" && type !== "label") return;
+
+    // Find widget element again for fresh rect
+    const widgetEl = canvasInstance.canvas.querySelector(`.widget[data-id="${widgetId}"]`);
+    if (!widgetEl) return;
+
+    const zoom = AppState.zoomLevel;
+    const rect = widgetEl.getBoundingClientRect();
+
+    // Create overlay textarea
+    const textarea = document.createElement("textarea");
+    textarea.value = widget.props.text || widget.title || "";
+
+    // Style it to match the widget
+    textarea.style.position = "absolute";
+    // Append to body to ensure it's on top of everything
+    textarea.style.left = (rect.left + window.scrollX) + "px";
+    textarea.style.top = (rect.top + window.scrollY) + "px";
+    textarea.style.width = Math.max(50, rect.width) + "px";
+    textarea.style.height = Math.max(30, rect.height) + "px";
+    textarea.style.zIndex = "99999";
+
+    // Font styles
+    const props = widget.props || {};
+    const fontSize = (props.font_size || 20) * zoom;
+    textarea.style.fontSize = fontSize + "px";
+    textarea.style.fontFamily = (props.font_family || "Roboto") + ", sans-serif";
+    textarea.style.fontWeight = props.font_weight || 400;
+    textarea.style.fontStyle = props.italic ? "italic" : "normal";
+    textarea.style.textAlign = (props.text_align || "LEFT").split("_").pop().toLowerCase();
+    textarea.style.color = props.color || "black";
+
+    // Reset styles
+    textarea.style.background = "rgba(255, 255, 255, 0.9)";
+    textarea.style.border = "1px solid #1a73e8";
+    textarea.style.padding = "0px";
+    textarea.style.resize = "both";
+    textarea.style.outline = "none";
+    textarea.style.overflow = "hidden";
+    textarea.style.lineHeight = "1.2"; // Approximate default
+
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    const finishEdit = () => {
+        const newText = textarea.value;
+        if (newText !== (widget.props.text || widget.title)) {
+            AppState.updateWidget(widgetId, {
+                props: { ...widget.props, text: newText }
+            });
+        }
+        textarea.remove();
+    };
+
+    const onBlur = () => finishEdit();
+    const onKeyDown = (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            finishEdit();
+        }
+        if (e.key === "Escape") {
+            textarea.remove(); // Cancel
+        }
+        // Auto-resize height
+        textarea.style.height = textarea.scrollHeight + "px";
+    };
+
+    textarea.addEventListener("blur", onBlur);
+    textarea.addEventListener("keydown", onKeyDown);
+}
+
 export function setupInteractions(canvasInstance) {
     canvasInstance.canvas.addEventListener("mousedown", (ev) => {
         if (ev.button !== 0) return; // Only handle left-click for widgets
@@ -17,6 +99,21 @@ export function setupInteractions(canvasInstance) {
         if (widgetEl) {
             const widgetId = widgetEl.dataset.id;
             const isMulti = ev.shiftKey || ev.ctrlKey;
+
+            // Manual Double Click Detection
+            const now = Date.now();
+            if (widgetId === lastClickWidgetId && (now - lastClickTime < 300)) {
+                // Double click detected!
+                startInlineEdit(canvasInstance, widgetId);
+                // Reset to prevent dragging immediately after
+                lastClickTime = 0;
+                lastClickWidgetId = null;
+                ev.preventDefault();
+                ev.stopPropagation();
+                return;
+            }
+            lastClickTime = now;
+            lastClickWidgetId = widgetId;
 
             // If shift/ctrl is held, toggle selection. Otherwise, if the clicked widget isn't already 
             // part of the selection, make it the sole selection.

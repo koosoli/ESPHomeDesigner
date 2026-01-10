@@ -43,6 +43,7 @@
 - **Enhanced Deployment Pattern:** The project structure is now optimized for both **HACS** (Home Assistant) and **GitHub Pages** (Standalone) dual-deployment.
 
 ### ✨ Improvements & UI Polish
+- **Inline Text Editing**: Double-click any text widget on the canvas to edit it instantly. No more hunting through the properties panel for simple text changes.
 - **Advanced Multi-Selection**: 
   - **Full Synchronization**: Selection state is now perfectly synced between Canvas, Hierarchy View, and YAML Editor.
   - **YAML Snippet Highlighting**: The YAML editor now highlights the code for *all* selected widgets simultaneously, enabling easy bulk-copying.
