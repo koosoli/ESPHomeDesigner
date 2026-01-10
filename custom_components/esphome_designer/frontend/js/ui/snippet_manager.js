@@ -78,10 +78,10 @@ export class SnippetManager {
         });
 
         on(EVENTS.SELECTION_CHANGED, (data) => {
-            // StateStore emits { widgetIds: [...] }
-            const widgetId = data && data.widgetIds && data.widgetIds.length > 0 ? data.widgetIds[data.widgetIds.length - 1] : null;
-            if (widgetId && typeof highlightWidgetInSnippet === 'function') {
-                highlightWidgetInSnippet(widgetId);
+            // Updated to pass all selected IDs to support multi-select highlighting
+            const widgetIds = (data && data.widgetIds) ? data.widgetIds : [];
+            if (widgetIds.length > 0 && typeof highlightWidgetInSnippet === 'function') {
+                highlightWidgetInSnippet(widgetIds);
             }
         });
     }
@@ -104,12 +104,11 @@ export class SnippetManager {
                         this.lastGeneratedYaml = yaml;
                         snippetBox.value = yaml;
 
-                        // Re-highlight the selected widget if any
+                        // Re-highlight the selected widgets if any
                         const selectedIds = window.AppState ? window.AppState.selectedWidgetIds : [];
-                        const widgetId = selectedIds.length > 0 ? selectedIds[selectedIds.length - 1] : null;
 
-                        if (widgetId && typeof highlightWidgetInSnippet === 'function') {
-                            highlightWidgetInSnippet(widgetId);
+                        if (selectedIds.length > 0 && typeof highlightWidgetInSnippet === 'function') {
+                            highlightWidgetInSnippet(selectedIds);
                         }
                     }).catch(e => {
                         Logger.error("Error generating snippet via adapter:", e);

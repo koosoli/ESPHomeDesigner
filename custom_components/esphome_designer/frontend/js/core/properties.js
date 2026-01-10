@@ -142,6 +142,18 @@ export class PropertiesPanel {
         this.addSectionLabel("Layer Order");
         this.addLayerOrderButtons(widget);
 
+        // === ACTIONS ===
+        const shapeTypes = ["shape_rect", "rounded_rect", "shape_circle", "rectangle", "rrect", "circle"];
+        if (shapeTypes.includes(widget.type)) {
+            const shadowBtn = document.createElement("button");
+            shadowBtn.className = "btn btn-secondary";
+            shadowBtn.style.marginBottom = "16px";
+            shadowBtn.style.width = "100%";
+            shadowBtn.innerHTML = `<span class="mdi mdi-box-shadow"></span> Create Drop Shadow`;
+            shadowBtn.onclick = () => AppState.createDropShadow(widget.id);
+            this.panel.appendChild(shadowBtn);
+        }
+
         // === COMMON PROPERTIES ===
         this.addSectionLabel("Position & Size");
         this.addLabeledInput("Position X", "number", widget.x, (v) => {

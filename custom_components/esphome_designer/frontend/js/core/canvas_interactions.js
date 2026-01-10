@@ -16,11 +16,11 @@ export function setupInteractions(canvasInstance) {
 
         if (widgetEl) {
             const widgetId = widgetEl.dataset.id;
-            const isShift = ev.shiftKey;
+            const isMulti = ev.shiftKey || ev.ctrlKey;
 
-            // If shift is held, toggle selection. Otherwise, if the clicked widget isn't already 
+            // If shift/ctrl is held, toggle selection. Otherwise, if the clicked widget isn't already 
             // part of the selection, make it the sole selection.
-            if (isShift) {
+            if (isMulti) {
                 AppState.selectWidget(widgetId, true);
             } else if (!AppState.selectedWidgetIds.includes(widgetId)) {
                 AppState.selectWidget(widgetId, false);
@@ -78,7 +78,8 @@ export function setupInteractions(canvasInstance) {
             canvasInstance.lassoState = {
                 startX,
                 startY,
-                rect: null
+                rect: null,
+                isAdditive: ev.shiftKey || ev.ctrlKey
             };
 
             // Create lasso element
@@ -270,10 +271,19 @@ export function onMouseUp(ev, canvasInstance) {
                 }
             }
 
-            AppState.selectWidgets(selectedIds);
+            if (canvasInstance.lassoState.isAdditive) {
+                // Add new selections to existing ones, making sure we don't have duplicates
+                const currentSelection = AppState.selectedWidgetIds || [];
+                const combined = [...new Set([...currentSelection, ...selectedIds])];
+                AppState.selectWidgets(combined);
+            } else {
+                AppState.selectWidgets(selectedIds);
+            }
         } else {
             // Clicked without dragging - clear selection
-            AppState.selectWidgets([]);
+            if (!canvasInstance.lassoState.isAdditive) {
+                AppState.selectWidgets([]);
+            }
         }
 
         canvasInstance.lassoState = null;

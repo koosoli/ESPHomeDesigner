@@ -95,6 +95,10 @@ export class WidgetFactory {
             if (widget.props.background_color === "black" || widget.props.background_color === "white") {
                 widget.props.background_color = defaultBgColor;
             }
+            // Also adjust border_color (used by shapes)
+            if (widget.props.border_color === "black" || widget.props.border_color === "white") {
+                widget.props.border_color = defaultColor;
+            }
 
             // Some plugins have specific size defaults in the plugin object
             if (plugin.width) widget.width = plugin.width;

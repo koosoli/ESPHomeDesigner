@@ -43,6 +43,12 @@
 - **Enhanced Deployment Pattern:** The project structure is now optimized for both **HACS** (Home Assistant) and **GitHub Pages** (Standalone) dual-deployment.
 
 ### ✨ Improvements & UI Polish
+- **Advanced Multi-Selection**: 
+  - **Full Synchronization**: Selection state is now perfectly synced between Canvas, Hierarchy View, and YAML Editor.
+  - **YAML Snippet Highlighting**: The YAML editor now highlights the code for *all* selected widgets simultaneously, enabling easy bulk-copying.
+  - **Canvas Interactions**: Reliable `Shift+Click` and `Ctrl+Click` support for toggling widget selection.
+  - **Hierarchy View**: Multi-select support (Ctrl/Shift) with visual highlighting for all active items.
+- **Drop Shadow Tool**: Added a one-click "Create Drop Shadow" feature for shapes. Automatically generates a theme-aware shadow (White in Dark Mode, Black in Light Mode) directly behind the selected widget.
 - **Dismissible Warning Banner:** The "Local File" warning is now softer and can be dismissed for the current session.
 - **Developer Experience:** 
   - Added strict **JSDoc Type Definitions** for the Plugin API, providing built-in intelligence for contributors.

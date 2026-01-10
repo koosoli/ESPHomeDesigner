@@ -35,7 +35,7 @@ export class HierarchyView {
 
         on(EVENTS.STATE_CHANGED, this.render);
         on(EVENTS.PAGE_CHANGED, this.render);
-        on(EVENTS.WIDGET_SELECTED, this.highlightSelected);
+        on(EVENTS.SELECTION_CHANGED, this.highlightSelected);
     }
 
     toggleCollapse() {
@@ -47,13 +47,11 @@ export class HierarchyView {
     }
 
     highlightSelected() {
-        const selectedId = AppState.selectedWidgetId;
+        const selectedIds = AppState.selectedWidgetIds || [];
         const items = this.listContainer.querySelectorAll('.hierarchy-item');
         items.forEach(item => {
-            if (item.dataset.id === selectedId) {
+            if (selectedIds.includes(item.dataset.id)) {
                 item.classList.add('selected');
-                // Don't scroll every time to avoid jumpy UI, but maybe when it changes?
-                // For now, let's just highlight.
             } else {
                 item.classList.remove('selected');
             }
@@ -87,7 +85,8 @@ export class HierarchyView {
     createItem(widget, actualIndex) {
         const div = document.createElement('div');
         div.className = `hierarchy-item ${widget.hidden ? 'hidden-widget' : ''}`;
-        if (AppState.selectedWidgetId === widget.id) div.classList.add('selected');
+        const selectedIds = AppState.selectedWidgetIds || [];
+        if (selectedIds.includes(widget.id)) div.classList.add('selected');
 
         div.dataset.id = widget.id;
         div.dataset.index = actualIndex;
@@ -133,7 +132,8 @@ export class HierarchyView {
 
         // Selection
         div.addEventListener('click', (e) => {
-            AppState.selectWidget(widget.id);
+            const multi = e.ctrlKey || e.shiftKey;
+            AppState.selectWidget(widget.id, multi);
             e.stopPropagation();
         });
 
