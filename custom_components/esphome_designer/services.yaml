@@ -1,0 +1,45 @@
+set_page:
+  name: Set Page
+  description: Set the current page for a reTerminal device
+  fields:
+    device_id:
+      name: Device ID
+      description: The ID of the reTerminal device
+      required: true
+      example: "reterminal_e1001"
+      selector:
+        text:
+    page_index:
+      name: Page Index
+      description: The index of the page to display (0-based)
+      required: true
+      example: 0
+      selector:
+        number:
+          min: 0
+          max: 99
+          mode: box
+
+next_page:
+  name: Next Page
+  description: Switch to the next page on a reTerminal device
+  fields:
+    device_id:
+      name: Device ID
+      description: The ID of the reTerminal device
+      required: true
+      example: "reterminal_e1001"
+      selector:
+        text:
+
+prev_page:
+  name: Previous Page
+  description: Switch to the previous page on a reTerminal device
+  fields:
+    device_id:
+      name: Device ID
+      description: The ID of the reTerminal device
+      required: true
+      example: "reterminal_e1001"
+      selector:
+        text:

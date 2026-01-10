@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'custom_components/reterminal_dashboard/manifest.json'
+      - 'custom_components/esphome_designer/manifest.json'
 
 jobs:
   release:
@@ -18,7 +18,7 @@ jobs:
       - name: Read version from manifest.json
         id: version
         run: |
-          VERSION=$(jq -r .version custom_components/reterminal_dashboard/manifest.json)
+          VERSION=$(jq -r .version custom_components/esphome_designer/manifest.json)
           echo "version=v$VERSION" >> $GITHUB_OUTPUT
           
       - name: Create Release

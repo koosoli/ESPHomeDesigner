@@ -1,0 +1,61 @@
+﻿
+[7m[1m[36m RUN [39m[22m[27m [36mv1.6.1[39m [90mC:/Users/mail/Downloads/ESPHome_desinger/Codebasecleanup/0.8.6.1/custom_components/esphome_designer/frontend[39m
+
+[90mstdout[2m | PluginRegistry.register (C:\Users\mail\Downloads\ESPHome_desinger\Codebasecleanup\0.8.6.1\custom_components\esphome_designer\frontend\js\core\plugin_registry.js:32:17)[22m[39m
+[Registry] Registered plugin: icon
+[Registry] Registered plugin: graph
+[Registry] Registered plugin: image
+[Registry] Registered plugin: shape_rect
+[Registry] Registered plugin: rounded_rect
+[Registry] Registered plugin: shape_circle
+[Registry] Registered plugin: line
+[Registry] Registered plugin: battery_icon
+[Registry] Registered plugin: progress_bar
+
+[90mstdout[2m | PluginRegistry.register (C:\Users\mail\Downloads\ESPHome_desinger\Codebasecleanup\0.8.6.1\custom_components\esphome_designer\frontend\js\core\plugin_registry.js:32:17)[22m[39m
+[Registry] Registered plugin: wifi_signal
+[Registry] Registered plugin: sensor_text
+
+[90mstdout[2m | PluginRegistry.register (C:\Users\mail\Downloads\ESPHome_desinger\Codebasecleanup\0.8.6.1\custom_components\esphome_designer\frontend\js\core\plugin_registry.js:32:17)[22m[39m
+[Registry] Registered plugin: datetime
+
+[90mstdout[2m | PluginRegistry.register (C:\Users\mail\Downloads\ESPHome_desinger\Codebasecleanup\0.8.6.1\custom_components\esphome_designer\frontend\js\core\plugin_registry.js:32:17)[22m[39m
+[Registry] Registered plugin: quote_rss
+[Registry] Registered plugin: weather_forecast
+[Registry] Registered plugin: label
+[Registry] Registered plugin: text
+[Registry] Registered plugin: qr_code
+[Registry] Registered plugin: online_image
+[Registry] Registered plugin: puppet
+[Registry] Registered plugin: touch_area
+
+[90mstdout[2m | tests/golden_master.test.js[2m > [22m[2mGolden Master YAML Generation[22m[39m
+[YAML Export] Script started loading...
+[YAML Export] Script finished loading.
+
+[90mstdout[2m | tests/golden_master.test.js[2m > [22m[2mGolden Master YAML Generation[2m > [22m[2mgenerates consistent YAML output[22m[39m
+Plugins registered: [
+  [32m'icon'[39m,         [32m'graph'[39m,
+  [32m'image'[39m,        [32m'shape_rect'[39m,
+  [32m'rounded_rect'[39m, [32m'shape_circle'[39m,
+  [32m'line'[39m,         [32m'battery_icon'[39m,
+  [32m'progress_bar'[39m, [32m'wifi_signal'[39m,
+  [32m'sensor_text'[39m,  [32m'datetime'[39m,
+  [32m'quote_rss'[39m,    [32m'weather_forecast'[39m,
+  [32m'label'[39m,        [32m'text'[39m,
+  [32m'qr_code'[39m,      [32m'online_image'[39m,
+  [32m'puppet'[39m,       [32m'touch_area'[39m
+]
+Starting YAML generation...
+YAML generation successful. Length: [33m27657[39m
+
+ [33mÔØ»[39m tests/golden_master.test.js [2m ([22m[2m1 test[22m [2m|[22m [31m1 failed[39m[2m)[22m[90m 18[2mms[22m[39m
+[31m   [33mÔØ»[31m tests/golden_master.test.js[2m > [22mGolden Master YAML Generation[2m > [22mgenerates consistent YAML output[39m
+[31m     ÔåÆ Snapshot `Golden Master YAML Generation > generates consistent YAML output 1` mismatched[39m
+
+[2m  Snapshots [22m [1m[31m1 failed[39m[22m
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m   Start at [22m 09:16:30
+[2m   Duration [22m 1.20s[2m (transform 76ms, setup 17ms, collect 112ms, tests 18ms, environment 561ms, prepare 168ms)[22m
+

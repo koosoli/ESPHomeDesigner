@@ -1,8 +1,8 @@
 {
   "name": "ESPHome Designer",
   "render_readme": true,
-  "filename": "reterminal_dashboard.zip",
-  "domain": "reterminal_dashboard",
+  "filename": "esphome_designer.zip",
+  "domain": "esphome_designer",
   "country": "GLOBAL",
   "homeassistant": "2024.6.0",
   "hide_default_branch": false,

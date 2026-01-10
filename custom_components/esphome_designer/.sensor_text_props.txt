@@ -1,0 +1,89 @@
+
+    if (type === "sensor_text") {
+        // Entity ID with picker
+        const entityWrap = document.createElement("div");
+        entityWrap.className = "field";
+        const entityLbl = document.createElement("div");
+        entityLbl.className = "prop-label";
+        entityLbl.textContent = "Sensor Entity ID";
+
+        const entityRow = document.createElement("div");
+        entityRow.style.display = "flex";
+        entityRow.style.gap = "4px";
+
+        const entityInput = document.createElement("input");
+        entityInput.className = "prop-input";
+        entityInput.type = "text";
+        entityInput.value = widget.entity_id || "";
+        entityInput.style.flex = "1";
+        entityInput.addEventListener("input", () => {
+            widget.entity_id = entityInput.value;
+            if (hasHaBackend() && Object.keys(entityStatesCache).length === 0) {
+                fetchEntityStates();
+            }
+            renderCanvas();
+            scheduleSnippetUpdate();
+        });
+
+        const pickerBtn = document.createElement("button");
+        pickerBtn.className = "btn btn-secondary";
+        pickerBtn.textContent = "⋮⋮⋮";
+        pickerBtn.style.padding = "5px 8px";
+        pickerBtn.style.fontSize = "10px";
+        pickerBtn.type = "button";
+        pickerBtn.title = "Pick from Home Assistant entities";
+        pickerBtn.addEventListener("click", () => {
+            openEntityPickerForWidget(widget, entityInput);
+        });
+
+        entityRow.appendChild(entityInput);
+        entityRow.appendChild(pickerBtn);
+        entityWrap.appendChild(entityLbl);
+        entityWrap.appendChild(entityRow);
+        panel.appendChild(entityWrap);
+
+        // Local sensor checkbox
+        const localWrap = document.createElement("div");
+        localWrap.className = "field";
+        const localLbl = document.createElement("div");
+        localLbl.className = "prop-label";
+        localLbl.textContent = "Local / On-Device Sensor";
+        const localCb = document.createElement("input");
+        localCb.type = "checkbox";
+        localCb.checked = !!widget.props.is_local_sensor;
+        localCb.addEventListener("change", () => {
+            widget.props.is_local_sensor = localCb.checked;
+            scheduleSnippetUpdate();
+        });
+        localWrap.appendChild(localLbl);
+        localWrap.appendChild(localCb);
+        panel.appendChild(localWrap);
+
+        // Label
+        addLabeledInput("Label (optional)", "text", widget.title || "", (v) => {
+            widget.title = v;
+            renderCanvas();
+            scheduleSnippetUpdate();
+        });
+
+        // Alignment dropdown
+        addSelect("Text Alignment", widget.props.text_align || "TOP_LEFT",
+            ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT"], (val) => {
+                widget.props.text_align = val;
+                renderCanvas();
+                scheduleSnippetUpdate();
+            });
+
+        // Unit
+        addLabeledInput("Unit (e.g., °C)", "text", widget.props.unit || "", (v) => {
+            widget.props.unit = v;
+            renderCanvas();
+            scheduleSnippetUpdate();
+        });
+
+        addSelect("Color", widget.props.color || "black", ["black", "white", "gray"], (val) => {
+            widget.props.color = val;
+            renderCanvas();
+            scheduleSnippetUpdate();
+        });
+    }

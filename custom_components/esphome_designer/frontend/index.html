@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>ESPHome Designer · YAML Snippet Editor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Google Fonts for live preview -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Inter:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700;1,800&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&family=Nunito:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Work+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Source+Sans+Pro:ital,wght@0,200;0,300;0,400;0,600;0,700;0,900;1,200;1,300;1,400;1,600;1,700;1,900&family=Quicksand:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
+  <link rel="stylesheet" href="editor.css">
+  <link rel="icon" href="data:,">
+</head>
+
+<body>
+  <header class="main-header" role="banner">
+    <div class="main-header-title">
+      <h2><span class="logo-dot"></span> ESPHome Designer</h2>
+      <span>Visual YAML Editor <small style="opacity: 0.5; margin-left: 8px;">pre0.9.0b23</small> <span
+          id="currentLayoutDevice" style="margin-left:8px; color:var(--accent);"></span></span>
+    </div>
+    <div class="main-header-actions desktop-only">
+      <a href="https://github.com/koosoli/ESPHomeDesigner" target="_blank" class="btn btn-secondary"
+        style="font-size: 11px;">
+        <svg height="14" width="14" viewBox="0 0 16 16" fill="currentColor"
+          style="vertical-align: middle; margin-right: 4px;">
+          <path
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
+          </path>
+        </svg>
+        GitHub
+      </a>
+      <button id="deviceSettingsBtn" class="btn btn-secondary">📱 Device Settings</button>
+      <button id="editorSettingsBtn" class="btn btn-secondary">⚙ Editor Settings</button>
+    </div>
+    <div class="main-header-actions mobile-only">
+      <button id="mobileWidgetsBtn" class="btn btn-secondary"><svg viewBox="0 0 24 24" width="18" height="18"
+          fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg></button>
+      <button id="mobileDeviceBtn" class="btn btn-secondary">📱</button>
+      <button id="mobilePropsBtn" class="btn btn-secondary"><svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+          stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+          </path>
+        </svg></button>
+    </div>
+  </header>
+
+  <div id="mobileBackdrop" class="mobile-backdrop"></div>
+
+  <div class="app-content">
+    <aside class="sidebar" role="complementary" aria-label="Editor Sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+          </svg>
+          Pages
+        </div>
+        <div id="pageList" class="page-list"></div>
+        <button id="addPageBtn" class="btn btn-secondary btn-full" style="margin-top: 8px;">+ Add page</button>
+        <button id="clearAllBtn" class="btn btn-secondary btn-full" style="margin-top: 4px;"
+          title="Remove all widgets from current page">Clear Current Page</button>
+      </div>
+
+      <div class="sidebar-section" style="flex: 1; overflow-y: auto;">
+        <div class="sidebar-section-label">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+          </svg>
+          Widgets
+        </div>
+        <div id="widgetPalette" class="widget-list"></div>
+      </div>
+
+      <div class="sidebar-section">
+        <div id="currentLayoutIndicator"
+          style="background: rgba(255,255,255,0.03); padding: 6px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 10px;">
+          <div style="color: var(--muted); margin-bottom: 4px; display: flex; justify-content: space-between;">
+            <span>PROJECT</span>
+            <span id="sidebarStatus" style="font-size: 10px; opacity: 0.6;">Ready</span>
+          </div>
+          <strong id="currentLayoutName">Loading...</strong>
+        </div>
+        <div style="display: flex; gap: 4px;">
+          <button id="saveLayoutBtn" class="btn btn-secondary" style="flex: 1;">Save Project</button>
+          <button id="importProjectBtn" class="btn btn-secondary" style="flex: 1;">Import Project</button>
+        </div>
+        <input type="file" id="loadLayoutBtn" accept=".json" style="display:none;" />
+        <button id="manageLayoutsBtn" class="btn btn-secondary btn-full" style="margin-top: 4px;">📁 Layout
+          Manager</button>
+      </div>
+    </aside>
+
+    <div class="resizer" id="resizer-left"></div>
+
+    <main class="main" role="main">
+      <div class="canvas-viewport">
+        <div class="canvas-controls">
+          <div class="canvas-info">
+            <span id="currentPageName">Loading...</span>
+            <span class="separator">/</span>
+            <span id="zoomLevel">100%</span>
+          </div>
+          <div class="zoom-actions">
+            <button id="zoomOutBtn" class="btn-icon" title="Zoom Out">−</button>
+            <button id="zoomResetBtn" class="btn-icon" title="Reset View">⌂</button>
+            <button id="zoomInBtn" class="btn-icon" title="Zoom In">+</button>
+          </div>
+        </div>
+
+        <div id="canvasContainer" class="canvas-container">
+          <div id="canvas" class="canvas">
+            <div class="canvas-grid"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="resizer-h" id="resizer-bottom"></div>
+      <div class="code-panel">
+        <div class="code-panel-header">
+          <div class="code-panel-title">ESPHome YAML</div>
+          <div class="code-panel-actions">
+            <button id="aiPromptBtn" class="btn btn-secondary btn-xs btn-ai-sparkle">✨ AI Assistant</button>
+            <button id="copySnippetBtn" class="btn btn-secondary btn-xs">Copy</button>
+            <button id="fullscreenSnippetBtn" class="btn btn-secondary btn-xs">Full</button>
+            <button id="updateLayoutBtn" class="btn btn-secondary btn-xs"
+              title="Import YAML back to canvas">Update</button>
+          </div>
+        </div>
+        <textarea id="snippetBox" class="snippet-box" spellcheck="false"
+          placeholder="# Click 'Generate' to see the ESPHome configuration..."></textarea>
+      </div>
+    </main>
+
+    <div class="resizer" id="resizer-right"></div>
+
+    <aside class="right-panel" role="complementary" aria-label="Widget Properties">
+      <!-- Hierarchy Panel -->
+      <div class="sidebar-section" style="border-bottom: 1px solid var(--border-subtle);">
+        <div class="sidebar-section-label"
+          style="padding: 12px 16px 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;"
+          id="hierarchyHeader">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="2" width="18" height="18" rx="2"></rect>
+              <line x1="7" y1="8" x2="17" y2="8"></line>
+              <line x1="7" y1="12" x2="17" y2="12"></line>
+              <line x1="7" y1="16" x2="17" y2="16"></line>
+            </svg>
+            <span>Hierarchy</span>
+          </div>
+          <svg class="chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor"
+            stroke-width="3" style="transition: transform 0.2s; transform: rotate(0deg);">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <div id="hierarchyPanel" class="hierarchy-content"
+          style="max-height: 250px; overflow-y: auto; padding: 0 8px 8px;">
+          <div id="hierarchyList" class="hierarchy-list"></div>
+        </div>
+      </div>
+
+      <div class="sidebar-section-label"
+        style="padding: 12px 16px 0; display: flex; justify-content: space-between; align-items: center;">
+        <span>Properties</span>
+        <label style="display:flex; align-items:center; gap:4px; font-size:10px; cursor:pointer;" title="Snap to grid">
+          <input id="snapToggle" type="checkbox" checked style="width:12px; height:12px;" />
+          <span>Snap</span>
+        </label>
+        <label style="display:flex; align-items:center; gap:4px; font-size:10px; cursor:pointer;" title="Lock position">
+          <input id="lockPositionToggle" type="checkbox" style="width:12px; height:12px;" />
+          <span>Lock</span>
+        </label>
+      </div>
+      <div id="propertiesPanel" class="properties-content">
+        <div class="empty-state">
+          Select a widget on the canvas to edit its properties.
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Modals -->
+  <!-- Fullscreen Modal -->
+  <div id="snippetFullscreenModal" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <div>ESPHome YAML (Fullscreen)</div>
+        <button id="snippetFullscreenClose" class="btn btn-secondary">Close</button>
+      </div>
+      <div class="modal-body">
+        <pre id="snippetFullscreenContent"
+          style="background:var(--bg); padding:16px; border-radius:8px; border:1px solid var(--border-subtle); overflow:auto;"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Modal -->
+  <div id="importSnippetModal" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <div>Import Layout from YAML</div>
+        <button id="importSnippetCancel" class="btn btn-secondary">Cancel</button>
+      </div>
+      <div class="modal-body">
+        <textarea id="importSnippetTextarea" class="prop-input" style="height:400px; font-family:monospace;"
+          placeholder="# Paste ESPHome YAML here..."></textarea>
+        <div id="importSnippetError" style="color:var(--danger); font-size:11px; margin-top:8px;"></div>
+      </div>
+      <div class="modal-actions">
+        <button id="importSnippetConfirm" class="btn btn-secondary">Import</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page Settings Modal -->
+  <div id="pageSettingsModal" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <div>Page Configuration</div>
+        <button id="pageSettingsClose" class="btn btn-secondary">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <div class="prop-label">Page Name</div>
+          <input id="pageSettingsName" class="prop-input" type="text" />
+        </div>
+        <div class="field">
+          <div class="prop-label">Refresh Mode</div>
+          <select id="pageSettingsRefreshMode" class="prop-input">
+            <option value="interval">Periodic Interval</option>
+            <option value="daily">Daily at specific time</option>
+          </select>
+        </div>
+        <div class="field" id="field-refresh-interval">
+          <div class="prop-label">Interval (seconds)</div>
+          <input id="pageSettingsRefresh" class="prop-input" type="number" min="0" placeholder="60" />
+        </div>
+        <div class="field" id="field-refresh-time" style="display:none;">
+          <div class="prop-label">Wake-up Time (HH:MM)</div>
+          <input id="pageSettingsRefreshTime" class="prop-input" type="time" />
+        </div>
+        <div class="field">
+          <div class="prop-label">Visual Style</div>
+          <select id="pageSettingsDarkMode" class="prop-input">
+            <option value="inherit">Inherit Global</option>
+            <option value="light">Always Light</option>
+            <option value="dark">Always Dark</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="prop-label">Layout Mode (LVGL)</div>
+          <select id="pageSettingsLayoutMode" class="prop-input">
+            <option value="absolute">Absolute Positioning</option>
+            <option value="grid">Grid Layout</option>
+          </select>
+          <div id="field-grid-size" style="display:none; margin-top:8px;">
+            <div class="prop-label">Grid Size (RxC)</div>
+            <input id="pageSettingsGridSize" class="prop-input" type="text" placeholder="4x4" pattern="[0-9]+x[0-9]+" />
+            <div style="font-size:10px; color:var(--muted); margin-top:4px;">Format: rows×columns, e.g. 2x3, 4x4</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="pageSettingsSave" class="btn btn-secondary">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Device Settings Modal -->
+  <div id="deviceSettingsModal" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <div>Device Configuration</div>
+        <button id="deviceSettingsClose" class="btn btn-secondary">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <div class="prop-label">Friendly Name</div>
+          <input id="deviceName" class="prop-input" type="text" placeholder="My E-Ink Device" />
+        </div>
+        <div class="field">
+          <div class="prop-label" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Hardware Profile</span>
+            <button id="importHardwareBtn" class="btn btn-secondary btn-xs"
+              style="font-size: 10px; padding: 2px 6px;">Import Recipe</button>
+          </div>
+          <select id="deviceModel" class="prop-input">
+            <option value="custom">Custom Profile...</option>
+          </select>
+          <input type="file" id="hardwareFileInput" accept=".yaml" style="display:none;" />
+        </div>
+
+        <!-- Custom Hardware Section (Hidden by default) -->
+        <div id="customHardwareSection"
+          style="display:none; border:1px solid var(--accent); border-radius:8px; padding:12px; margin-top:12px; background: rgba(82, 199, 234, 0.03);">
+          <div
+            style="font-size:12px; font-weight:bold; color:var(--accent); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z">
+              </path>
+            </svg>
+            Custom Hardware Configuration
+          </div>
+
+          <div class="hardware-group">
+            <div class="prop-label">General</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div class="field">
+                <div class="prop-label" style="font-size:10px;">Chip Type</div>
+                <select id="customChip" class="prop-input-sm">
+                  <option value="esp32-s3">ESP32-S3</option>
+                  <option value="esp32">ESP32</option>
+                  <option value="esp32-c3">ESP32-C3</option>
+                  <option value="esp32-c6">ESP32-C6</option>
+                </select>
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:10px;">Tech</div>
+                <select id="customTech" class="prop-input-sm">
+                  <option value="lcd">LCD / OLED</option>
+                  <option value="epaper">E-Paper</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div class="field">
+                <div class="prop-label" style="font-size:10px;">Resolution</div>
+                <input id="customRes" class="prop-input-sm" type="text" placeholder="800x480" value="800x480" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:10px;">Shape</div>
+                <select id="customShape" class="prop-input-sm">
+                  <option value="rect">Rectangle</option>
+                  <option value="round">Round</option>
+                </select>
+              </div>
+            </div>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin-top:4px;">
+              <input id="customPsram" type="checkbox" checked />
+              <span style="font-size:10px;">Enable PSRAM</span>
+            </label>
+          </div>
+
+          <div class="hardware-group" style="margin-top:12px;">
+            <div class="prop-label">Display (SPI)</div>
+            <div class="field">
+              <div class="prop-label" style="font-size:10px;">Driver / Platform</div>
+              <select id="customDisplayDriver" class="prop-input-sm">
+                <option value="st7789v">ST7789 (LCD)</option>
+                <option value="ili9341">ILI9341 (LCD)</option>
+                <option value="waveshare_epaper">Waveshare E-Paper</option>
+                <option value="epaper_spi">Generic SPI E-Paper</option>
+                <option value="custom">Other (Custom YAML)</option>
+              </select>
+            </div>
+            <div id="spiPinsGrid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:8px;">
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">CS</div>
+                <input id="pin_cs" class="prop-input-sm" type="text" placeholder="GPIO10" value="GPIO10" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">DC</div>
+                <input id="pin_dc" class="prop-input-sm" type="text" placeholder="GPIO11" value="GPIO11" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">RST</div>
+                <input id="pin_rst" class="prop-input-sm" type="text" placeholder="GPIO12" value="GPIO12" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">BUSY</div>
+                <input id="pin_busy" class="prop-input-sm" type="text" placeholder="GPIO13" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">CLK</div>
+                <input id="pin_clk" class="prop-input-sm" type="text" placeholder="GPIO7" value="GPIO7" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">MOSI</div>
+                <input id="pin_mosi" class="prop-input-sm" type="text" placeholder="GPIO9" value="GPIO9" />
+              </div>
+            </div>
+          </div>
+
+          <div class="hardware-group" style="margin-top:12px;">
+            <div class="prop-label">Backlight & Touch</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div class="field">
+                <div class="prop-label" style="font-size:10px;">Backlight Pin</div>
+                <input id="pin_backlight" class="prop-input-sm" type="text" placeholder="GPIO45" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:10px;">Touch Tech</div>
+                <select id="customTouchTech" class="prop-input-sm">
+                  <option value="none">None</option>
+                  <option value="gt911">GT911 (I2C)</option>
+                  <option value="ft6x36">FT6x36 (I2C)</option>
+                  <option value="cst816">CST816 (I2C)</option>
+                </select>
+              </div>
+            </div>
+            <div id="touchPinsGrid"
+              style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; display:none;">
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">SDA</div>
+                <input id="pin_sda" class="prop-input-sm" type="text" placeholder="GPIO17" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">SCL</div>
+                <input id="pin_scl" class="prop-input-sm" type="text" placeholder="GPIO18" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">INT</div>
+                <input id="pin_touch_int" class="prop-input-sm" type="text" placeholder="GPIO16" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:9px;">RST</div>
+                <input id="pin_touch_rst" class="prop-input-sm" type="text" placeholder="GPIO15" />
+              </div>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:16px; border-top:1px solid var(--border-subtle); padding-top:12px;">
+            <div class="prop-label">Profile Name</div>
+            <div style="font-size:10px; color:var(--muted); margin-bottom:4px;">Give your custom hardware a unique name
+              to save it as a reused recipe.</div>
+            <input id="customProfileName" class="prop-input" type="text" placeholder="e.g. Living Room Alert Display" />
+          </div>
+
+          <button id="saveCustomProfileBtn" class="btn btn-secondary btn-full" type="button"
+            style="margin-top:16px; background:var(--accent); color:white; border:none;">
+            🚀 Create & Save Profile
+          </button>
+        </div>
+        <div class="field">
+          <div class="prop-label">Screen Orientation</div>
+          <select id="deviceOrientation" class="prop-input">
+            <option value="landscape">Landscape</option>
+            <option value="portrait">Portrait</option>
+          </select>
+        </div>
+        <div class="field">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input id="deviceDarkMode" type="checkbox" />
+            <span style="font-size:var(--fs-sm); font-weight:600;">Dark mode (white elements on black background)</span>
+          </label>
+          <div style="font-size:var(--fs-xs); color:var(--muted); margin-top:4px; margin-left:24px;">
+            Toggle the canvas preview between white and black background. This is a global dark mode setting.
+          </div>
+        </div>
+        <div class="field">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input id="deviceExtendedLatinGlyphs" type="checkbox" />
+            <span style="font-size:var(--fs-sm); font-weight:600;">Extended Latin characters (diacritics)</span>
+          </label>
+          <div style="font-size:var(--fs-xs); color:var(--muted); margin-top:4px; margin-left:24px;">
+            Enable GF_Latin_Core glyphset for fonts to render characters like ľ, š, č, ť, ž. Increases firmware size.
+          </div>
+        </div>
+        <div class="field">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input id="deviceInvertedColors" type="checkbox" />
+            <span style="font-size:var(--fs-sm); font-weight:600;">Inverted Colors (for some e-paper displays)</span>
+          </label>
+          <div style="font-size:var(--fs-xs); color:var(--muted); margin-top:4px; margin-left:24px;">
+            Swap black and white in the generated YAML. Use this if your e-paper display shows inverted colors.
+          </div>
+        </div>
+
+        <div style="border-top:1px solid var(--border-subtle); margin-top:16px; padding-top:16px;">
+          <div class="prop-label">Power & Refresh Strategy</div>
+
+          <div id="global-refresh-row"
+            style="margin-top: 12px; margin-bottom: 16px; background: rgba(82, 199, 234, 0.05); padding: 10px; border-radius: 6px; border-left: 3px solid var(--accent);">
+            <div class="prop-label" style="font-size: 11px; margin-bottom: 4px;">Global Refresh Interval</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <input type="number" id="setting-refresh-interval" class="prop-input" placeholder="600"
+                style="width: 80px;" min="5">
+              <span style="font-size: 11px; opacity: 0.7;">seconds</span>
+            </div>
+            <div style="font-size: 10px; opacity: 0.6; margin-top: 4px;">Default time between updates. Can be
+              overridden
+              on individual pages.</div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:12px; margin-top:8px;">
+
+            <!-- Standard -->
+            <div>
+              <label
+                style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
+                <input type="radio" id="mode-standard" name="powerStrategy" value="standard"
+                  onchange="togglePowerSettings()">
+                Full Power (Always On)
+              </label>
+              <div style="font-size:10px; opacity:0.6; margin-left:24px;">Device stays connected to Wi-Fi. Fast
+                response, but high battery drain.</div>
+            </div>
+
+            <!-- Night Mode -->
+            <div>
+              <label
+                style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
+                <input type="radio" id="setting-sleep-enabled" name="powerStrategy" value="night"
+                  onchange="togglePowerSettings()">
+                Eco (Scheduled Night Sleep)
+              </label>
+              <div style="font-size:10px; opacity:0.6; margin-left:24px; margin-bottom:4px;">Stops refreshing
+                during
+                these hours to save energy.</div>
+              <div id="sleep-times-row"
+                style="display:none; align-items:center; gap:8px; margin-left:24px; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px;">
+                <span style="font-size: 11px; opacity: 0.7;">Sleep from</span>
+                <select id="setting-sleep-start" class="prop-input" style="width:70px;">
+                  <option value="0">00:00</option>
+                  <option value="1">01:00</option>
+                  <option value="2">02:00</option>
+                  <option value="3">03:00</option>
+                  <option value="4">04:00</option>
+                  <option value="5">05:00</option>
+                  <option value="6">06:00</option>
+                  <option value="7">07:00</option>
+                  <option value="8">08:00</option>
+                  <option value="9">09:00</option>
+                  <option value="10">10:00</option>
+                  <option value="11">11:00</option>
+                  <option value="12">12:00</option>
+                  <option value="13">13:00</option>
+                  <option value="14">14:00</option>
+                  <option value="15">15:00</option>
+                  <option value="16">16:00</option>
+                  <option value="17">17:00</option>
+                  <option value="18">18:00</option>
+                  <option value="19">19:00</option>
+                  <option value="20">20:00</option>
+                  <option value="21">21:00</option>
+                  <option value="22">22:00</option>
+                  <option value="23">23:00</option>
+                </select>
+                <span style="font-size: 11px; opacity: 0.7;">to</span>
+                <select id="setting-sleep-end" class="prop-input" style="width:70px;">
+                  <option value="0">00:00</option>
+                  <option value="1">01:00</option>
+                  <option value="2">02:00</option>
+                  <option value="3">03:00</option>
+                  <option value="4">04:00</option>
+                  <option value="5">05:00</option>
+                  <option value="6">06:00</option>
+                  <option value="7">07:00</option>
+                  <option value="8">08:00</option>
+                  <option value="9">09:00</option>
+                  <option value="10">10:00</option>
+                  <option value="11">11:00</option>
+                  <option value="12">12:00</option>
+                  <option value="13">13:00</option>
+                  <option value="14">14:00</option>
+                  <option value="15">15:00</option>
+                  <option value="16">16:00</option>
+                  <option value="17">17:00</option>
+                  <option value="18">18:00</option>
+                  <option value="19">19:00</option>
+                  <option value="20">20:00</option>
+                  <option value="21">21:00</option>
+                  <option value="22">22:00</option>
+                  <option value="23">23:00</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Daily Refresh -->
+            <div>
+              <label
+                style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
+                <input type="radio" id="setting-daily-refresh-enabled" name="powerStrategy" value="daily"
+                  onchange="togglePowerSettings()">
+                Daily Scheduled Refresh
+              </label>
+              <div style="font-size:10px; opacity:0.6; margin-left:24px; margin-bottom:4px;">Wakes up once per day
+                at a
+                specific time.</div>
+              <div id="daily-refresh-row"
+                style="display:none; align-items:center; gap:8px; margin-left:24px; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px;">
+                <span style="font-size: 11px; opacity: 0.7;">Refresh at</span>
+                <input type="time" id="setting-daily-refresh-time" class="prop-input" value="08:00"
+                  style="width:100px;">
+              </div>
+            </div>
+
+            <!-- Manual Only -->
+            <div>
+              <label
+                style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
+                <input type="radio" id="setting-manual-refresh" name="powerStrategy" value="manual"
+                  onchange="togglePowerSettings()">
+                Manual Refresh Only
+              </label>
+              <div style="font-size:10px; opacity:0.6; margin-left:24px;">Never updates automatically. Only
+                refreshes
+                when a button is pressed.</div>
+            </div>
+
+            <!-- Deep Sleep -->
+            <div>
+              <label
+                style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
+                <input type="radio" id="setting-deep-sleep-enabled" name="powerStrategy" value="deepsleep"
+                  onchange="togglePowerSettings()">
+                Ultra Eco (Deep Sleep)
+              </label>
+              <div style="font-size:10px; opacity:0.6; margin-left:24px; margin-bottom:4px;">Shuts down completely
+                between updates. Best for battery life.</div>
+              <div id="deep-sleep-interval-row"
+                style="display:none; align-items:center; gap:8px; margin-left:24px; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px;">
+                <span style="font-size: 11px; opacity: 0.7;">Update every</span>
+                <input type="number" id="setting-deep-sleep-interval" class="prop-input" placeholder="Seconds"
+                  style="width:80px;">
+                <span style="font-size: 11px; opacity: 0.7;">sec</span>
+              </div>
+            </div>
+
+            <!-- Silent Hours -->
+            <div style="border-top:1px solid var(--border-subtle); margin-top:8px; padding-top:12px;">
+              <div
+                style="display:flex; align-items:center; gap:8px; font-size:var(--fs-sm); font-weight: 500; color: var(--accent);">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <path
+                    d="M17.22 17.22L2 2M12 2v2M4.93 4.93l1.41 1.41M2 12h2M6.34 17.66l-1.41 1.41M12 22v-2m7.07-2.93l-1.41-1.41M22 12h-2m-3.34-5.66l1.41-1.41M12 7a5 5 0 015 5 4.94 4.94 0 01-.46 2.06M12 17a5 5 0 01-5-5 4.94 4.94 0 01.46-2.06">
+                  </path>
+                </svg>
+                Silent Hours (No Refresh Window)
+              </div>
+              <div style="font-size:10px; opacity:0.6; margin-left:24px; margin-bottom:8px;">Prevent all display
+                updates
+                during this time window. Used to avoid night-time ghosts/noise.</div>
+              <div
+                style="display:flex; align-items:center; gap:8px; margin-left:24px; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px;">
+                <span style="font-size: 11px; opacity: 0.7;">Disable updates from</span>
+                <select id="setting-no-refresh-start" class="prop-input" style="width:70px;">
+                  <option value="">None</option>
+                  <option value="0">00:00</option>
+                  <option value="1">01:00</option>
+                  <option value="2">02:00</option>
+                  <option value="3">03:00</option>
+                  <option value="4">04:00</option>
+                  <option value="5">05:00</option>
+                  <option value="6">06:00</option>
+                  <option value="7">07:00</option>
+                  <option value="8">08:00</option>
+                  <option value="9">09:00</option>
+                  <option value="10">10:00</option>
+                  <option value="11">11:00</option>
+                  <option value="12">12:00</option>
+                  <option value="13">13:00</option>
+                  <option value="14">14:00</option>
+                  <option value="15">15:00</option>
+                  <option value="16">16:00</option>
+                  <option value="17">17:00</option>
+                  <option value="18">18:00</option>
+                  <option value="19">19:00</option>
+                  <option value="20">20:00</option>
+                  <option value="21">21:00</option>
+                  <option value="22">22:00</option>
+                  <option value="23">23:00</option>
+                </select>
+                <span style="font-size: 11px; opacity: 0.7;">to</span>
+                <select id="setting-no-refresh-end" class="prop-input" style="width:70px;">
+                  <option value="">None</option>
+                  <option value="0">00:00</option>
+                  <option value="1">01:00</option>
+                  <option value="2">02:00</option>
+                  <option value="3">03:00</option>
+                  <option value="4">04:00</option>
+                  <option value="5">05:00</option>
+                  <option value="6">06:00</option>
+                  <option value="7">07:00</option>
+                  <option value="8">08:00</option>
+                  <option value="9">09:00</option>
+                  <option value="10">10:00</option>
+                  <option value="11">11:00</option>
+                  <option value="12">12:00</option>
+                  <option value="13">13:00</option>
+                  <option value="14">14:00</option>
+                  <option value="15">15:00</option>
+                  <option value="16">16:00</option>
+                  <option value="17">17:00</option>
+                  <option value="18">18:00</option>
+                  <option value="19">19:00</option>
+                  <option value="20">20:00</option>
+                  <option value="21">21:00</option>
+                  <option value="22">22:00</option>
+                  <option value="23">23:00</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Page Auto-Cycling -->
+            <div style="border-top:1px solid var(--border-subtle); margin-top:8px; padding-top:12px;">
+              <div
+                style="display:flex; align-items:center; gap:8px; font-size:var(--fs-sm); font-weight: 600; color: var(--accent);">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <polyline points="1 20 1 14 7 14"></polyline>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                Page Auto-Cycling
+              </div>
+              <div style="font-size:10px; opacity:0.6; margin-left:24px; margin-bottom:8px;">Automatically cycle
+                through
+                pages on a timer.</div>
+              <div style="margin-left: 24px; display: flex; flex-direction: column; gap: 8px;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input id="setting-auto-cycle" type="checkbox" />
+                  <span style="font-size:var(--fs-xs); font-weight:500;">Enable Automatic Page Cycling</span>
+                </label>
+                <div id="field-auto-cycle-interval"
+                  style="display:none; align-items:center; gap:8px; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px;">
+                  <span style="font-size: 11px; opacity: 0.7;">Cycle every</span>
+                  <input type="number" id="setting-auto-cycle-interval" class="prop-input" min="5" placeholder="30"
+                    style="width:80px;">
+                  <span style="font-size: 11px; opacity: 0.7;">seconds</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="deviceSettingsSave" class="btn btn-secondary">Apply Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Save Profile Modal -->
+  <div id="saveProfileModal" class="modal-backdrop hidden" style="z-index: 2000;">
+    <div class="modal" style="max-width: 400px;">
+      <div class="modal-header">
+        <div>Save Hardware Profile</div>
+        <button id="saveProfileClose" class="btn btn-secondary">Cancel</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size: 11px; opacity: 0.7; margin-bottom: 12px;">
+          Give your custom hardware configuration a unique name. It will be saved as a reusable recipe.
+        </div>
+        <div class="field">
+          <div class="prop-label">Profile Name</div>
+          <input id="saveProfileName" class="prop-input" type="text" placeholder="e.g. Living Room Display" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="saveProfileConfirm" class="btn btn-secondary"
+          style="background: var(--accent); color: white; border: none;">Save Profile</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Editor Settings Modal -->
+  <div id="editorSettingsModal" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <div>Editor Preferences</div>
+        <button id="editorSettingsClose" class="btn btn-secondary">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="editorShowGrid" checked> <span>Show Grid</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="editorSnapToGrid" checked> <span>Enable Snapping</span>
+          </label>
+          <div style="margin-top:12px;">
+            <div class="prop-label">Grid Opacity</div>
+            <input type="range" id="editorGridOpacity" min="0" max="100" step="1" value="8" style="width:100%;">
+          </div>
+        </div>
+        <div class="field">
+          <div class="prop-label">Theme</div>
+          <label style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="editorLightMode"> <span>Use Light Mode interface</span>
+          </label>
+        </div>
+        <div class="field">
+          <div class="prop-label">Resources</div>
+          <button id="editorRefreshEntities" class="btn btn-secondary btn-xs">Refresh Entity List</button>
+          <span id="editorEntityCount" style="font-size:var(--fs-xs); opacity:0.6; margin-left:8px;"></span>
+        </div>
+        <div class="field" style="border-top:1px solid var(--border-subtle); padding-top:12px; margin-top:12px;">
+          <span>Home Assistant Connection</span>
+        </div>
+        <div style="font-size:10px; opacity:0.6; margin-bottom:8px;">Configure this if you are using the
+          GitHub-hosted
+          version or an external URL.</div>
+        <div class="field" style="display:flex; flex-direction:column; gap:8px;">
+          <div id="haCorsTip"
+            style="background: rgba(82, 199, 234, 0.1); border-left: 3px solid var(--accent); padding: 10px; border-radius: 4px; font-size: 10px; line-height: 1.4;">
+            <strong>💡 Connection Tip:</strong><br>
+            If requests are blocked, you may need to add <code id="haOriginPlaceholder">http://localhost:8000</code>
+            to
+            <code>cors_allowed_origins</code> in your Home Assistant <code>configuration.yaml</code> and
+            <strong>restart HA</strong>.
+          </div>
+          <div>
+            <div class="prop-label" style="font-size: 10px;">Base URL</div>
+            <input type="text" id="haManualUrl" class="prop-input" placeholder="https://your-ha.duckdns.org:8123" />
+          </div>
+          <div>
+            <div class="prop-label" style="font-size: 10px;">Long-Lived Access Token</div>
+            <input type="password" id="haLlatToken" class="prop-input" placeholder="Paste your token here..." />
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button id="editorTestHaBtn" class="btn btn-secondary btn-xs" style="flex:1;">Test Connection</button>
+            <div id="haTestResult" style="font-size:10px; line-height: 1.2;"></div>
+          </div>
+        </div>
+
+        <div class="field" style="border-top:1px solid var(--border-subtle); padding-top:12px; margin-top:12px;">
+          <span>AI Integration (LLM)</span>
+        </div>
+        <div style="font-size:10px; opacity:0.6; margin-bottom:8px;">Configure Gemini, OpenAI or OpenRouter to use
+          natural language prompts.</div>
+        <div class="field" style="display:flex; flex-direction:column; gap:8px;">
+          <div>
+            <div class="prop-label" style="font-size: 10px;">Provider</div>
+            <select id="aiProvider" class="prop-input">
+              <option value="gemini">Google Gemini</option>
+              <option value="openai">OpenAI</option>
+              <option value="openrouter">OpenRouter</option>
+            </select>
+          </div>
+          <div id="aiKeyGeminiRow">
+            <div class="prop-label" style="font-size: 10px;">Gemini API Key</div>
+            <input type="password" id="aiApiKeyGemini" class="prop-input" placeholder="Paste Gemini key..." />
+          </div>
+          <div id="aiKeyOpenaiRow" style="display:none;">
+            <div class="prop-label" style="font-size: 10px;">OpenAI API Key</div>
+            <input type="password" id="aiApiKeyOpenai" class="prop-input" placeholder="Paste OpenAI key..." />
+          </div>
+          <div id="aiKeyOpenrouterRow" style="display:none;">
+            <div class="prop-label" style="font-size: 10px;">OpenRouter API Key</div>
+            <input type="password" id="aiApiKeyOpenrouter" class="prop-input" placeholder="Paste OpenRouter key..." />
+          </div>
+          <div>
+            <div class="prop-label" style="font-size: 10px;">Model Filter (e.g. "free", "flash", "gpt-4")</div>
+            <div style="display:flex; gap:4px; align-items: center;">
+              <input type="text" id="aiModelFilter" class="prop-input" placeholder="Filter models..." style="flex:1;" />
+              <button id="aiRefreshModelsBtn" class="btn btn-secondary btn-xs">Test & Load Models</button>
+              <div id="aiTestResult" style="font-size:10px; line-height: 1.2;"></div>
+            </div>
+          </div>
+          <div>
+            <div class="prop-label" style="font-size: 10px;">Selected Model</div>
+            <select id="aiModelSelect" class="prop-input"></select>
+          </div>
+        </div>
+      </div>
+      <div class="field" style="border-top:1px solid var(--border-subtle); padding-top:12px; margin-top:12px;">
+        <div class="prop-label">Keyboard Shortcuts</div>
+        <div class="shortcuts-grid">
+          <div class="shortcut-item">
+            <span class="shortcut-label">Undo</span>
+            <span class="shortcut-key"><kbd>Ctrl+Z</kbd></span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-label">Redo</span>
+            <span class="shortcut-key"><kbd>Ctrl+Y</kbd></span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-label">Copy</span>
+            <span class="shortcut-key"><kbd>Ctrl+C</kbd></span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-label">Paste</span>
+            <span class="shortcut-key"><kbd>Ctrl+V</kbd></span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-label">Delete</span>
+            <span class="shortcut-key"><kbd>DEL</kbd></span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-label">Lock/Unlock</span>
+            <span class="shortcut-key"><kbd>Ctrl+L</kbd></span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-label">Search</span>
+            <span class="shortcut-key"><kbd>Shift+Space</kbd></span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-label">Zoom Reset</span>
+            <span class="shortcut-key"><kbd>Ctrl+R</kbd></span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-label">Snap Off</span>
+            <span class="shortcut-key"><kbd>ALT</kbd></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button id="editorSettingsDone" class="btn btn-secondary">Done</button>
+    </div>
+  </div>
+
+  <!-- AI Prompt Modal -->
+  <div id="aiPromptModal" class="modal-backdrop hidden">
+    <div class="modal" style="max-width: 600px;">
+      <div class="modal-header">
+        <div>AI Design Assistant</div>
+        <button id="aiPromptClose" class="btn btn-secondary">Close</button>
+      </div>
+      <div class="modal-body">
+        <div id="aiConfigWarning"
+          style="background: rgba(82, 199, 234, 0.1); border-left: 3px solid var(--accent); padding: 10px; border-radius: 4px; font-size: 11px; margin-bottom: 12px; line-height: 1.4;">
+          <strong>💡 Configuration Required:</strong><br>
+          An API provider and key must be configured in <strong>Editor Settings</strong> before using the AI
+          Assistant.
+          <button
+            onclick="window.openEditorSettingsModal(); document.getElementById('aiPromptModal').classList.add('hidden');"
+            class="btn btn-secondary btn-xs" style="margin-top:8px; display:block;">⚙ Open Editor
+            Settings</button>
+        </div>
+        <div style="font-size: 11px; color: var(--muted); margin-bottom: 12px;">
+          Describe what you want to change. Example: "Move the selected widget 50px right" or "Make a nice weather
+          layout with 4 days forecast".
+        </div>
+        <textarea id="aiPromptInput" class="prop-input"
+          style="height: 120px; font-size: 14px; line-height: 1.5; padding: 12px;"
+          placeholder="I want to..."></textarea>
+
+        <div id="aiPromptStatus" style="margin-top: 12px; font-size: 11px; min-height: 1.2em;"></div>
+
+        <div id="aiPreviewDiff"
+          style="display:none; margin-top:16px; border: 1px solid var(--border-subtle); border-radius: 8px; overflow: hidden;">
+          <div
+            style="background: rgba(255,255,255,0.03); padding: 8px 12px; font-size: 10px; font-weight: 600; border-bottom: 1px solid var(--border-subtle);">
+            PREVIEW CHANGES</div>
+          <div id="aiDiffContent"
+            style="padding: 12px; font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; background: var(--bg-input);">
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="aiPromptSubmit" class="btn btn-primary"
+          style="background: var(--accent); color: white; border: none;">Generate</button>
+        <button id="aiPromptApply" class="btn btn-success" style="display:none;">Apply</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    // Polyfill for crypto.randomUUID for non-secure contexts (HTTP/Ingress)
+    if (!window.crypto.randomUUID) {
+      window.crypto.randomUUID = function () {
+        return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
+          (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+        );
+      };
+    }
+
+    // Protocol Warning for file:// access
+    if (window.location.protocol === 'file:') {
+      document.addEventListener('DOMContentLoaded', () => {
+        const warning = document.createElement('div');
+        warning.style.cssText = `
+          position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+          background: #ff9f43; color: #333; padding: 12px 36px 12px 24px;
+          border-radius: 8px; z-index: 10000; font-weight: bold;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center;
+          line-height: 1.4; border: 1px solid rgba(0,0,0,0.1);
+          font-family: sans-serif; font-size: 14px;
+        `;
+        warning.innerHTML = `
+          <span>⚠️ Running from local file. Full functionality is not guaranteed.<br>
+          <small>For the best experience, install via HACS or use a local server.</small></span>
+          <button onclick="this.parentElement.remove()" style="
+            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; font-size: 18px; cursor: pointer; color: #333;
+            padding: 4px; line-height: 1;
+          ">&times;</button>
+        `;
+        document.body.appendChild(warning);
+        console.warn("[CORS] Running on file:// protocol. Some features may be limited.");
+      });
+    }
+
+    function togglePowerSettings() {
+      const isSleep = document.getElementById('setting-sleep-enabled').checked;
+      const isDaily = document.getElementById('setting-daily-refresh-enabled').checked;
+      const isDeepSleep = document.getElementById('setting-deep-sleep-enabled').checked;
+      document.getElementById('sleep-times-row').style.display = isSleep ? 'flex' : 'none';
+      document.getElementById('daily-refresh-row').style.display = isDaily ? 'flex' : 'none';
+      document.getElementById('deep-sleep-interval-row').style.display = isDeepSleep ? 'block' : 'none';
+    }
+    function toggleWidgetCategory(c) {
+      const cat = document.querySelector(`.widget-category[data-category="${c}"]`);
+      if (cat) {
+        cat.classList.toggle('expanded');
+        const icon = cat.querySelector('.category-icon');
+        if (icon) {
+          icon.textContent = cat.classList.contains('expanded') ? '▼' : '▶';
+        }
+      }
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  <script src="js/lib/js-yaml.min.js"></script>
+
+  <script type="module" src="js/utils/helpers.js"></script>
+  <script type="module" src="js/utils/env.js"></script>
+  <script type="module" src="js/utils/dom.js"></script>
+  <script type="module" src="js/utils/device.js"></script>
+  <script type="module" src="js/utils/graph_helpers.js"></script>
+  <script type="module" src="js/core/constants.js"></script>
+  <script type="module" src="js/core/utils.js"></script>
+  <script type="module" src="js/core/constants_icons.js"></script>
+  <script type="module" src="js/core/events.js"></script>
+  <script type="module" src="js/core/state.js"></script>
+  <script type="module" src="js/core/plugin_registry.js"></script>
+  <!-- Feature Plugins (Dynamic ESM Loading) -->
+  <script type="module" src="js/core/widget_factory.js"></script>
+  <script type="module" src="js/core/sidebar.js"></script>
+  <script type="module" src="js/core/canvas.js"></script>
+  <script type="module" src="js/core/properties.js"></script>
+  <script type="module" src="js/core/keyboard.js"></script>
+  <script type="module" src="js/core/layout_constants.js"></script>
+  <script type="module" src="js/io/file_ops.js"></script>
+  <script type="module" src="js/io/ha_api.js"></script>
+  <script type="module" src="js/io/yaml_import.js"></script>
+  <script type="module" src="js/io/hardware_import.js"></script>
+  <script type="module" src="js/io/ai_service.js"></script>
+  <script type="module" src="js/io/adapters/base_adapter.js"></script>
+  <script type="module" src="js/io/adapters/esphome_adapter.js"></script>
+  <script type="module" src="js/io/devices.js"></script>
+  <script type="module" src="js/io/hardware_generators.js"></script>
+  <script type="module" src="js/io/hardware_generator.js"></script>
+  <script type="module" src="js/io/yaml_export.js"></script>
+  <script type="module" src="js/io/yaml_export_lvgl.js"></script>
+  <script type="module" src="js/ui/device_settings.js"></script>
+  <script type="module" src="js/ui/editor_settings.js"></script>
+  <script type="module" src="js/ui/llm_prompt.js"></script>
+  <script type="module" src="js/ui/page_settings.js"></script>
+  <script type="module" src="js/ui/entity_picker.js"></script>
+  <script type="module" src="js/ui/layout_manager.js"></script>
+  <script type="module" src="js/ui/splitters.js"></script>
+  <script type="module" src="js/ui/modal_wiring.js"></script>
+  <script type="module" src="js/ui/icon_picker.js"></script>
+  <script type="module" src="js/ui/quick_search.js"></script>
+  <script type="module" src="js/ui/radial_menu.js"></script>
+
+  <!-- Global App Entry -->
+  <script type="module" src="js/main.js"></script>
+</body>
+
+</html>

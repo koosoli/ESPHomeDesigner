@@ -1,0 +1,97 @@
+import { AppState } from './state.js';
+import { on, EVENTS } from './events.js';
+import { render, applyZoom } from './canvas_renderer.js';
+import { setupInteractions, setupPanning, setupZoomControls, setupDragAndDrop, zoomIn, zoomOut, zoomReset, onMouseMove, onMouseUp } from './canvas_interactions.js';
+import { setupTouchInteractions } from './canvas_touch.js';
+import { clearSnapGuides, addSnapGuideVertical, addSnapGuideHorizontal, getSnapLines, applySnapToPosition } from './canvas_snap.js';
+
+export class Canvas {
+    constructor() {
+        this.canvas = document.getElementById("canvas");
+        this.canvasContainer = document.getElementById("canvasContainer");
+        this.viewport = document.querySelector(".canvas-viewport");
+        this.dragState = null;
+        this.panX = 0;
+        this.panY = 0;
+
+        // Touch state for mobile devices
+        this.touchState = null;    // Single-touch widget drag state
+        this.pinchState = null;    // Two-finger pinch/pan state
+        this.lastTapTime = 0;      // Double-tap detection
+
+        // Helper bindings for listeners that need removal reference
+        // (Though interactions module manages them via direct reference or stored props)
+        this._boundMouseMove = (ev) => onMouseMove(ev, this);
+        this._boundMouseUp = (ev) => onMouseUp(ev, this);
+
+        this.init();
+    }
+
+    init() {
+        // Subscribe to events
+        on(EVENTS.STATE_CHANGED, () => this.render());
+        on(EVENTS.PAGE_CHANGED, () => this.render());
+        on(EVENTS.SELECTION_CHANGED, () => this.render());
+        on(EVENTS.SETTINGS_CHANGED, () => {
+            this.render();
+            this.applyZoom();
+        });
+        on(EVENTS.ZOOM_CHANGED, () => this.applyZoom());
+
+        this.setupInteractions();
+        this.render();
+        this.applyZoom();
+
+        // Start a 1-second interval to update time-dependent widgets (like datetime)
+        if (this.updateInterval) clearInterval(this.updateInterval);
+        this.updateInterval = setInterval(() => {
+            // SKIP auto-render during active interaction to prevent DOM detachment
+            if (this.touchState || this.pinchState || this.dragState || this.panState) return;
+
+            // Only re-render if there is a datetime widget on the current page to avoid unnecessary overhead
+            const page = AppState.getCurrentPage();
+            if (page && page.widgets.some(w => w.type === 'datetime')) {
+                this.render();
+            }
+        }, 1000);
+    }
+
+    // --- Delegation Methods ---
+
+    render() {
+        render(this);
+    }
+
+    applyZoom() {
+        applyZoom(this);
+    }
+
+    setupInteractions() {
+        setupPanning(this);
+        setupInteractions(this);
+        setupZoomControls(this);
+        setupDragAndDrop(this);
+        setupTouchInteractions(this);
+    }
+
+    // Exposed methods for external callers (if any) or internal use
+    zoomIn() { zoomIn(); }
+    zoomOut() { zoomOut(); }
+    zoomReset() { zoomReset(this); }
+
+    /**
+     * Clean up resources when destroying the canvas.
+     */
+    destroy() {
+        // Stop the update interval
+        if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+            this.updateInterval = null;
+        }
+
+        // Remove event subscriptions if they were stored...
+        // Note: The current event system (mitt-like) might not return unsubscribe functions directly
+        // in the simple `on()` wrapper unless verified.
+        // Assuming we rely on page refresh for now, but good practice to clear timers.
+    }
+}

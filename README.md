@@ -75,7 +75,7 @@ You can use the designer without installing anything!
 
 ### 2. Manual Installation
 
-1. Download the `custom_components/reterminal_dashboard` folder from this repo
+1. Download the `custom_components/esphome_designer` folder from this repo
 2. Copy it to your Home Assistant `config/custom_components/` directory
 3. Restart Home Assistant
 4. Add the integration via **Settings** → **Devices & Services**
@@ -97,7 +97,7 @@ Then create a new ESPHome device:
 
 ### 4. Design Your Dashboard
 
-1. Open the integration at `/reterminal-dashboard` in Home Assistant
+1. Open the integration at `/esphome-designer` in Home Assistant
 2. Select your device type (E1001, E1002, TRMNL,...)
 3. Drag widgets onto the canvas
 4. Add your sensors, weather entities, icons, shapes
@@ -181,6 +181,8 @@ For stable results, stick to **Native Mode** (standard widgets without LVGL pref
 
 ## Features
 
+- **Hierarchy & Layer Management** - New panel to manage widget z-index, visibility, and locking with a drag-and-drop interface
+- **Radial Context Menu** - Modern right-click menu for rapid widget actions (Copy, Lock, Snap, Delete)
 - **Visual Editor** - Drag-and-drop canvas with snap-to-grid, live entity state updates
 - **AI-Powered Assistant** - Design entire dashboards using text prompts with support for Gemini, OpenAI, and OpenRouter
 - **Secure API Storage** - AI keys are stored locally in your browser and never sent to the backend or included in exports
@@ -200,6 +202,7 @@ For stable results, stick to **Native Mode** (standard widgets without LVGL pref
   <p align="center"><img src="screenshots/rgb_picker.gif" width="700" alt="RGB Color Picker"></p>
 - **Round-Trip Editing** - Import existing ESPHome code back into the editor (now supports LVGL widgets!)
   <p align="center"><img src="screenshots/yaml_parsing.gif" width="700" alt="YAML Round-Trip Import"></p>
+- **Modular Plugin Architecture (v0.9)** - A complete rewrite featuring a specialized plugin system with 50+ independent widget modules, making the core significantly faster and more maintainable
 - **Power & Battery Management** - Monitoring, deep sleep support, and configurable refresh intervals
 - **Modern Canvas Interaction** - Zoom with the mouse wheel and pan with the middle mouse button
 - **Drag & Drop Workflow** - Drag widgets directly from the sidebar onto the canvas
@@ -248,12 +251,15 @@ All exposed as Home Assistant entities for use in automations.
 
 ## Repository Structure
 
-- `custom_components/reterminal_dashboard/` - Home Assistant integration
-  - `yaml_generator.py` - Generates ESPHome snippets from layouts
-  - `yaml_parser.py` - Imports ESPHome code back into editor
-  - `frontend/editor.html` - Visual drag-and-drop editor UI
-- `esphome/reterminal_e1001_lambda.yaml` - Hardware template with step-by-step instructions
-- `font_ttf/font_ttf/materialdesignicons-webfont.ttf` - Icon font for widgets
+- `custom_components/esphome_designer/` - Home Assistant integration
+  - `api/` - Modular Python backend handlers for HA
+  - `yaml_parser/` - Modular engine for importing ESPHome code
+  - `frontend/` - Visual drag-and-drop editor (Vite-based)
+  - `renderer.py` - Core engine for generating ESPHome lambdas
+  - `models.py` - Shared data models for widgets and layouts
+  - `storage.py` - Persistence layer for layouts and settings
+- `release_notes.md` - Full changelog and version history
+- `font_ttf/` - Icon font for widgets (Material Design Icons)
 - `hardware_recipes_guide.md` - Guide for creating custom hardware profiles
 - `screenshots/` - Editor screenshots
 

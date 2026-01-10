@@ -1,0 +1,165 @@
+:root {
+    /* --- Core Palette (HSL for consistency) --- */
+    --h: 220;
+    --s: 15%;
+
+    --white: #ffffff;
+    --black: #000000;
+
+    /* --- Core Backgrounds --- */
+    --bg-base: #0f1115;
+    /* Deeper dark */
+    --bg-surface: #181b22;
+    /* Matching abandoned-0.8.6.2 */
+    --bg-elevated: #181b22;
+    --bg-canvas: #050608;
+    /* Very dark canvas background */
+
+    --accent-h: 195;
+    --accent: hsl(var(--accent-h), 85%, 65%);
+    --accent-hover: hsl(var(--accent-h), 85%, 55%);
+    --accent-soft: hsla(var(--accent-h), 85%, 65%, 0.15);
+
+    --text: #d1d5db;
+    /* Less white, more dimmed - like old version */
+    --text-muted: #9ca3af;
+    --text-dim: #6b7280;
+
+    --border: #2a2f3a;
+    --border-subtle: hsla(var(--h), 10%, 100%, 0.05);
+
+    --danger: hsl(350, 85%, 65%);
+    --success: hsl(150, 85%, 45%);
+    --warning: hsl(45, 85%, 55%);
+
+    --bg-overlay: rgba(0, 0, 0, 0.8);
+    --bg-modal: var(--bg-surface);
+    --color-on-accent: #ffffff;
+
+    /* --- Glassmorphism --- */
+    --glass-bg: hsla(var(--h), 20%, 8%, 0.8);
+    /* Darker glass */
+    --glass-border: hsla(var(--h), 10%, 100%, 0.06);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+    --glass-blur: blur(12px);
+
+    /* --- Spacing Scale --- */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-12: 48px;
+
+    /* --- Typography --- */
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --font-mdi: "Material Design Icons";
+
+    --fs-xs: 12px;
+    --fs-sm: 14px;
+    --fs-base: 15px;
+    --fs-md: 18px;
+    --fs-lg: 20px;
+    --fs-xl: 24px;
+
+    /* --- Transitions & Micro-animations --- */
+    --t-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --t-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    --t-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* --- Layout --- */
+    --sidebar-width: 260px;
+    --header-height: 48px;
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 20px;
+
+    /* Legacy compatibility for components not yet fully migrated */
+    --bg: var(--bg-base);
+    --bg-elevated: var(--bg-surface);
+    --accent-soft-legacy: rgba(82, 199, 234, 0.2);
+}
+
+/* Light Theme Override */
+[data-theme="light"] {
+    --bg-base: #f9fafb;
+    /* Clean white-gray */
+    --bg-surface: #f3f4f6;
+    /* Distinct surface */
+    --bg-elevated: #ffffff;
+    --bg-canvas: #d1d5db;
+
+    --accent: hsl(240, 80%, 60%);
+    --accent-hover: hsl(240, 80%, 50%);
+    --accent-soft: hsla(240, 80%, 60%, 0.1);
+
+    --text: #111827;
+    /* High contrast dark gray */
+    --text-muted: #374151;
+    --text-dim: #6b7280;
+
+    --border: #d1d5db;
+    --border-subtle: hsla(var(--h), 50%, 0%, 0.08);
+
+    --bg-overlay: rgba(0, 0, 0, 0.4);
+    --bg-modal: #ffffff;
+    --color-on-accent: #ffffff;
+
+    --glass-bg: hsla(var(--h), 15%, 100%, 0.9);
+    --glass-border: hsla(var(--h), 0%, 0%, 0.12);
+    --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Base Stylings */
+* {
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-family: var(--font-sans);
+    background-color: var(--bg-base);
+    background-image:
+        radial-gradient(at 0% 0%, hsla(var(--accent-h), 85%, 65%, 0.05) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, hsla(var(--accent-h), 85%, 65%, 0.03) 0px, transparent 50%);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+    font-size: var(--fs-base);
+    line-height: 1.4;
+}
+
+/* MDI Font Definitions */
+@font-face {
+    font-family: "Material Design Icons";
+    src: url("../materialdesignicons-webfont.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "MDI";
+    src: url("../materialdesignicons-webfont.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+}
+
+.mdi {
+    font-family: var(--font-mdi);
+    display: inline-block;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'liga';
+}

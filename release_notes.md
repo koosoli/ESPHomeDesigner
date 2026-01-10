@@ -1,38 +1,69 @@
-# Release Notes
 
+## v0.9.0 - Major Overhaul: Modular Architecture
 
-## v0.8.6.2 - Battery, WiFi, Waveshare & LVGL Fixes
+**Release Date:** January 7, 2026
 
-**Release Date:** January 2, 2026
+### 🚀 Major Architectural Modernization
+- **Plugin-Based System:** Migrated from a 3,800+ line monolithic `yaml_export.js` to a modular architecture with **50+ independent widget plugins**.
+- **Hierarchy / Layer View:** Introduced a complete Hierarchy panel to manage widget z-index, visibility, and locking with a drag-and-drop interface.
+- **Radial Context Menu:** New right-click context menu on the canvas for rapid actions (Lock, Copy, Snap, Delete).
+- **Integrated Bug Fixes & Improvements:** Ported critical fixes including lambda indentation, LVGL display conflicts, and shape border rendering.
+- **Strict YAML Parity:** Introduced the "Time Machine" regression suite for bit-for-bit parity.
+- **Shared Constants Engine:** Centralized layout "magic numbers" into `layout_constants.js`.
+- **Enhanced Deployment Pattern:** Optimized for HACS and GitHub Pages dual-deployment.
 
-### ✨ Improvements
-- **Philosophy-Aware Hardware Recipes**: The YAML generator is now "philosophy-aware." When importing custom hardware recipes (package-based profiles), it automatically comments out system-level configurations (like `esphome:`, `wifi:`, `api:`, etc.). This ensures that produced snippets contain only the necessary hardware and UI definitions, preventing duplicate header errors when copy-pasting into existing ESPHome configurations.
-- **Automatic Unit Spacing**: Updated the `sensor_text` export logic to automatically prepend a space to sensor units if missing. This ensures the uploaded display matches the spaced-out look of the designer preview.
-- **Calendar Header Spacing**: Optimized the vertical alignment of the calendar widget's header elements. The day number, day name, and date/month string are now better spaced to prevent visual crowding on the actual display.
-- **Configurable Calendar Event Limit**: Added a new "Event Limit" setting to the calendar widget (defaulting to 2). This allows users to control exactly how many upcoming events are displayed, helping to manage vertical space and readability.
-- **Temperature Unit Toggle**: Added a choice between Celsius and Fahrenheit for `template_sensor_bar` and `ondevice_temperature` widgets. The canvas preview and exported ESPHome YAML now automatically handle the conversion formula `(C * 9/5) + 32` when Fahrenheit is selected.
+### 🐛 Bug Fixes & Improvements
+- **Core Adapter Fixes**:
+  - Fixed lambda indentation issues in exported YAML.
+  - Resolved conflicts between LVGL and generic display hardware configurations.
+  - Ensured rotation and touch transformation are correctly applied for specific hardware (e.g., Waveshare 7").
+- **Widget Plugin Fixes**:
+  - **Progress Bar**: Fixed missing entity prefix (GitHub #154) and added consistent ID sanitization.
+  - **Shapes (Rect/Circle)**: Fixed border rendering when fill is enabled and ensured rounded integer coordinates to prevent artifacts.
+  - **Calendar**: Fixed event display overlapping and added `max_events` property to limit displayed items.
+  - **Sensor Text**: Fixed label rendering for "Value Only" mode (GitHub #128) and added robust friendly name fallback for empty titles. Improved automatic unit spacing.
+  - **Template Sensor Bar**: Standardized temperature unit handling.
+- **Improved Robustness**: 
+  - Added presence checks (`has_state()`, `isnan()`) for sensor values across multiple widgets.
+  - Implemented auto-registration for Home Assistant entities in the YAML sensor section to prevent missing ID errors.
+
+**Release Date:** January 7, 2026
+
+> [!WARNING]
+> **BREAKING CHANGES**
+> - **Project Compatibility:** Saved projects from versions prior to 0.9.0 will **not be automatically imported**. We strongly recommend backing up your old project JSON files or YAML snippets before updating. You may need to manually re-import your YAML via the "Import project from YAML" feature once in v0.9.0.
+> - **Branding Rename:** The legacy `reterminal_dashboard` domain has been retired. The integration is now officially **`esphome_designer`**. You may need to re-add the integration if updating from a very old version.
+> - **Entry Point Changed:** Access the designer via `/esphome-designer/index.html` (previously `editor.html`). 
+> - **Folder Structure:** The custom component folder is now `esphome_designer`.
+
+### 🚀 Major Architectural Modernization
+- **Plugin-Based System:** Migrated from a 3,800+ line monolithic `yaml_export.js` to a modular architecture with **50+ independent widget plugins**. This makes the project significantly faster, cleaner, and easier to scale.
+- **Strict YAML Parity:** Introduced the "Time Machine" regression suite. Every single character of generated YAML now matches the legacy system bit-for-bit, ensuring zero regressions for existing users.
+- **Shared Constants Engine:** Centralized layout "magic numbers" (widget sizes, font IDs) into `layout_constants.js`, ensuring pixel-perfect consistency between the canvas preview and the final device output.
+- **Enhanced Deployment Pattern:** The project structure is now optimized for both **HACS** (Home Assistant) and **GitHub Pages** (Standalone) dual-deployment.
+
+### ✨ Improvements & UI Polish
+- **Dismissible Warning Banner:** The "Local File" warning is now softer and can be dismissed for the current session.
+- **Developer Experience:** 
+  - Added strict **JSDoc Type Definitions** for the Plugin API, providing built-in intelligence for contributors.
+  - Moved build tooling to root for standard `npm` workflows.
+  - Comprehensive `CONTRIBUTING.md` guide for new developers.
+
+### 🔧 Performance & Stability
+- **Sub-Second YAML Generation:** The new adapter orchestrator is significantly more efficient than the legacy string-concatenation approach.
+- **Reduced Memory Footprint:** Modular loading ensures only the necessary features are processed during export.
+- **Production-Ready Builds:** Integrated Vite for optimized asset bundling and faster load times.
+
+---
+
+## v0.8.6.1 - Hotfix: Custom Recipe Caching
+
+**Release Date:** January 1, 2026
 
 ### 🐛 Bug Fixes
-- **LVGL Lambda Conflict (#129)**: Resolved a critical issue where the generic display lambda was being injected into LVGL configurations, causing "Using lambda: or pages: in display config is not compatible with LVGL" errors. The system now correctly conditionally applies the lambda only for non-LVGL setups.
-- **Empty Touchscreens List**: Fixed an issue where `touchscreens: []` was generated when no touchscreens were present, causing YAML validation errors.
-- **Lambda Indentation (#122)**: Fixed a YAML syntax error where the first line of the display lambda in package-based hardware recipes had extra indentation, causing ESPHome compilation failures.
-- **Sensor Text Label Rendering**: Fixed an issue where the widget's label would not display in the web UI when using "Value Only" display formats (e.g., Label: Value Only). The rendering logic now correctly handles all format variants for the canvas preview.
-- **Waveshare 7" Touchscreen YAML Fix**: Resolved a critical "mapping values are not allowed here" error in exported YAML for Waveshare 7" LCD devices. The indentation of the touchscreen `transform` block was corrected from 4 spaces to 2 and an extra newline was removed, ensuring valid YAML syntax and successful ESPHome compilation.
-- **Unified ID Sanitization**: Standardized the ESPHome ID generation for all widgets to ensure consistent naming between sensors and display logic. This resolves an issue where the `battery_icon` and `wifi_signal` widgets would incorrectly strip the `sensor.` prefix, causing "Couldn't find ID" or `nan%` errors.
-- **Improved Sensor Robustness**: Enhanced C++ rendering logic for `battery_icon`, `wifi_signal`, and `template_sensor_bar` with explicit `has_state()` and `isnan()` checks. Invalid or missing sensor data now defaults gracefully to `0` or `--` instead of resulting in visual artifacts like `nan%`.
+- **Custom Hardware Recipe Updates**: Fixed a critical issue where updating a custom hardware recipe (YAML file) and re-importing it would not reflect changes in the generated output. The system now bypasses browser caching when fetching hardware packages and templates, ensuring edits are immediately applied.
 - **Custom Hardware Profile Generation**: Fixed missing `id: my_display`, `offset_height: 0`, and `offset_width: 0` properties in the generated YAML for ST7789V displays.
 - **YAML Color Export**: Fixed an issue where custom colors selected via the RGB picker always exported as `COLOR_BLACK`. The exporter now correctly parses hex color codes and generates the appropriate `Color(r, g, b)` constructors in the C++ lambda.
-- **Hardware Recipe Import Refresh**: Resolved an issue where updating a hardware recipe required switching devices back and forth for changes to appear. The system now automatically refreshes the active configuration and canvas when a profile is updated.
-- **Hotfix: Custom Recipe Caching**: Fixed a critical issue where updating a custom hardware recipe (YAML file) and re-importing it would not reflect changes due to browser caching. The system now bypasses caching when fetching hardware packages.
-- **Calendar Event Limit Persistence**: Fixed an issue where the "Event Limit" setting for the calendar widget would revert to its default value after updating the YAML configuration. The property is now correctly saved to and loaded from the ESPHome YAML.
-- **Temperature Unit Persistence**: Resolved an issue where the selected temperature unit would revert to Celsius after a YAML update. Added metadata comments and import parsing for `temperature_unit`, `unit`, and `precision` properties to ensure widget states are correctly restored.
-- **Missing Shape Borders**: Fixed a bug where `shape_circle` and `shape_rect` widgets would omit the border if a fill color was also applied. The generated C++ now correctly separates fill and border drawing operations.
-- **Integer Drawing Coordinates**: Updated shape rendering to use rounded integer coordinates (via `Math.floor`). This ensures valid C++ code for drawing functions and prevents visual artifacts or compilation warnings.
-- **reTerminal E1001 Dithering Fix**: Corrected the `reterminal_e1001` device profile to accurately flag it as an e-paper display. This fix enables the automatic gray dithering mask for icons and shapes, which was previously skipped for this device.
-- **Auto-Cycle Pages Fix**: Resolved an issue where auto-cycling pages would fail for package-based devices (like Waveshare e-paper) due to a display ID mismatch in generated scripts. Also updated e-paper hardware recipes to correctly initialize the cycling timer on boot.
-- **Waveshare 7" LCD Rotation**: Fixed the default `rotation` for the "Waveshare Touch LCD 7" profile. Changed from `90` to `0` to correctly align with the device's native landscape orientation.
-- **Component Alignment (#123)**: Fixed alignment issues for Icon, Datetime, and Sensor Text widgets. Icons now respect `text_align` property. Datetime and multi-line Sensor Text widgets now correctly center the entire text block vertically within widget bounds.
-- **Sensor Text Unit Logic**: Fixed an issue where the unit was displayed twice in the preview (e.g., "123 W W") and added intelligent fallback logic to display the entity's friendly name if the label field is left empty.
 
 
 ## v0.8.6 - Experimental: Custom Hardware Profiles

@@ -33,13 +33,12 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v4
-      - name: Create index.html from editor.html
-        run: cp ./custom_components/reterminal_dashboard/frontend/editor.html ./custom_components/reterminal_dashboard/frontend/index.html
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           # Point to the frontend directory
-          path: './custom_components/reterminal_dashboard/frontend'
+          path: './custom_components/esphome_designer/frontend'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
