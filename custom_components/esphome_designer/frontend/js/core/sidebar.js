@@ -8,6 +8,8 @@ export class Sidebar {
     constructor() {
         Logger.log("Sidebar: Constructor called");
         this.pageListEl = document.getElementById("pageList");
+        this.pagesHeader = document.getElementById("pagesHeader");
+        this.pagesContent = document.getElementById("pagesContent");
         this.widgetPaletteEl = document.getElementById("widgetPalette");
         Logger.log("Sidebar: widgetPaletteEl found?", !!this.widgetPaletteEl);
         if (!this.widgetPaletteEl) Logger.error("Sidebar: widgetPalette element not found!");
@@ -22,6 +24,17 @@ export class Sidebar {
         // Subscribe to state changes
         on(EVENTS.STATE_CHANGED, () => this.render());
         on(EVENTS.PAGE_CHANGED, () => this.render());
+
+        // Pages section toggle
+        if (this.pagesHeader && this.pagesContent) {
+            this.pagesHeader.addEventListener("click", () => {
+                const isHidden = this.pagesContent.classList.toggle("hidden");
+                const chevron = this.pagesHeader.querySelector(".chevron");
+                if (chevron) {
+                    chevron.style.transform = isHidden ? "rotate(-90deg)" : "rotate(0deg)";
+                }
+            });
+        }
 
         // Bind UI events
         if (this.addPageBtn) {
@@ -119,16 +132,19 @@ export class Sidebar {
             };
 
             // Content
+            const icon = document.createElement("span");
+            icon.className = "item-icon";
+            icon.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+                <line x1="9" y1="21" x2="9" y2="9"></line>
+            </svg>`;
+            item.appendChild(icon);
+
             const label = document.createElement("span");
             label.className = "label";
             label.textContent = page.name;
-
-            const tag = document.createElement("span");
-            tag.className = "tag";
-            tag.textContent = page.id;
-
             item.appendChild(label);
-            item.appendChild(tag);
 
             // Actions
             const actions = document.createElement("div");
@@ -206,26 +222,8 @@ export class Sidebar {
             insertIndex--;
         }
 
-        const pages = [...AppState.pages];
-        const [movedPage] = pages.splice(fromIndex, 1);
-        pages.splice(insertIndex, 0, movedPage);
-
-        // Renumber IDs? The original code did this.
-        // It might be better to keep stable IDs, but for now let's stick to the original behavior
-        // to avoid breaking backend expectations if any.
-        pages.forEach((p, i) => {
-            p.id = `page_${i}`;
-        });
-
-        AppState.setPages(pages);
-
-        // Update selection
-        if (AppState.currentPageIndex === fromIndex) {
-            AppState.setCurrentPageIndex(insertIndex);
-        } else if (AppState.currentPageIndex > fromIndex && AppState.currentPageIndex <= insertIndex) {
-            AppState.setCurrentPageIndex(AppState.currentPageIndex - 1);
-        } else if (AppState.currentPageIndex < fromIndex && AppState.currentPageIndex >= insertIndex) {
-            AppState.setCurrentPageIndex(AppState.currentPageIndex + 1);
+        if (fromIndex !== insertIndex) {
+            AppState.reorderPage(fromIndex, insertIndex);
         }
     }
 

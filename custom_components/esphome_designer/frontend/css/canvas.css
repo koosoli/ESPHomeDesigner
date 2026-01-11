@@ -2,12 +2,14 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-    overflow: auto;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 0;
+    overflow: hidden;
+    /* Disable native scrollbars to avoid transform conflict */
     position: relative;
     touch-action: none;
+    background: var(--bg-surface);
 }
 
 .canvas-controls {
@@ -54,25 +56,103 @@
     touch-action: none;
 }
 
-.canvas {
-    background: var(--white);
-    border-radius: 2px;
+.canvas-stage {
+    display: flex;
+    flex-direction: row;
+    gap: 150px;
+    padding: 1000px;
+    /* Large padding to allow centering first/last objects */
+    min-width: max-content;
+}
+
+.artboard-wrapper {
     position: relative;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 20px 50px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: all 0.3s var(--t-base);
+}
+
+.artboard-wrapper:not(.active-page) {
+    opacity: 0.5;
+    filter: grayscale(0.5);
+}
+
+.artboard-wrapper.active-page {
+    opacity: 1;
+    filter: none;
+}
+
+.artboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    color: var(--text-dim);
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.artboard-name {
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.artboard-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.artboard-btn {
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 14px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.artboard-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+}
+
+.artboard {
+    background: var(--white);
+    position: relative;
+    /* Premium deep elevation shadow */
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.05),
+        0 20px 50px rgba(0, 0, 0, 0.3),
+        0 50px 100px rgba(0, 0, 0, 0.4);
     overflow: hidden;
-    transform-origin: center center;
-    touch-action: none;
+    flex-shrink: 0;
+    cursor: crosshair;
+    transition: box-shadow 0.4s var(--t-base), transform 0.4s var(--t-base);
 }
 
-.canvas.dark {
+.active-page .artboard {
+    /* Active artboard glow and slight lift */
+    box-shadow:
+        0 0 0 2px var(--accent),
+        0 30px 70px rgba(0, 0, 0, 0.4),
+        0 60px 120px rgba(0, 0, 0, 0.5);
+    transform: translateY(-4px);
+}
+
+.artboard.dark {
     background: var(--black);
-    /* Real device black */
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 20px 50px rgba(0, 0, 0, 0.5);
-}
-
-.canvas-viewport.device-dark-mode {
-    background: var(--bg-surface);
-    /* Darker gray than editor background for contrast */
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 30px 60px rgba(0, 0, 0, 0.6);
 }
 
 .canvas-grid {
@@ -85,7 +165,7 @@
     pointer-events: none;
 }
 
-.canvas.dark .canvas-grid {
+.artboard.dark .canvas-grid {
     background-image:
         linear-gradient(to right, rgba(255, 255, 255, var(--grid-opacity, 0.03)) 1px, transparent 1px),
         linear-gradient(to bottom, rgba(255, 255, 255, var(--grid-opacity, 0.03)) 1px, transparent 1px);

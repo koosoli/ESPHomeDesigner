@@ -4,20 +4,27 @@
 
 ### 🚀 Major Architectural Modernization
 - **Plugin-Based System:** Migrated from a 3,800+ line monolithic `yaml_export.js` to a modular architecture with **50+ independent widget plugins**.
+- **Multi-Page "World View":** All project pages are now rendered side-by-side as distinct artboards on a unified canvas stage, allowing for easy cross-page visual reference.
+- **Precision Page Centering:** Implemented a custom panning algorithm (`focusPage`) that instantly centers the active artboard in the viewport.
+- **Improved Zoom-to-Cursor:** Refactored the coordinate transformation math for perfect focal-point zooming without offset bias.
 - **Shared Constants Engine:** Centralized layout "magic numbers" into `layout_constants.js`, ensuring pixel-perfect consistency.
 - **Strict YAML Parity:** Introduced the "Time Machine" regression suite for bit-for-bit parity with legacy exports.
 - **Enhanced Deployment Pattern:** Optimized for HACS (Home Assistant) and GitHub Pages (Standalone) dual-deployment.
 
 ### 🎨 GUI Overhaul & User Experience
-- **Responsive Widget Palette**: Redesigned the widget selector into a modern grid layout with large, high-fidelity icons and clear labeling, optimizing space and accessibility.
-- **Accordion Properties Panel**: Organized widget settings into collapsible semantic sections (Transform, Appearance, Data Source, Common LVGL, etc.), significantly reducing cognitive load and scrolling.
-- **Theme-Aware Visual Hierarchy**: Implemented a refined contrast system for both Light and Dark modes. Property headers and input fields now use adaptive backgrounds for better clarity and distinction.
-- **Relocated Layer Controls**: Moved "Layer Order" buttons (Front/Back/Up/Down) to the Hierarchy panel, aligning spatial management with the visual object list.
+- **Collapsible Page Selector:** Redesigned the "Pages" sidebar section into a collapsible accordion with bespoke icons and cleaner labeling.
+- **Premium Canvas Depth**: Added high-fidelity triple-elevation drop shadows to all artboards with a subtle "lift" effect for the active page.
+- **Responsive Widget Palette**: Redesigned the widget selector into a modern grid layout with large, high-fidelity icons and clear labeling.
+- **Accordion Properties Panel**: Organized widget settings into collapsible semantic sections (Transform, Appearance, Data Source, Common LVGL, etc.).
+- **Theme-Aware Visual Hierarchy**: Implemented a refined contrast system for both Light and Dark modes.
+- **Relocated Layer Controls**: Moved "Layer Order" buttons (Front/Back/Up/Down) to the Hierarchy panel.
 - **Inline Text Editing**: Double-click any text widget on the canvas to edit it instantly.
-- **Advanced Multi-Selection**: Full synchronization between Canvas, Hierarchy View, and YAML Editor, including bulk property updates.
-- **Drop Shadow Tool**: One-click "Create Drop Shadow" for shapes, generating theme-aware shadows based on active interface mode.
+- **Advanced Multi-Selection**: Full synchronization between Canvas, Hierarchy View, and YAML Editor.
+- **Drop Shadow Tool**: One-click "Create Drop Shadow" for shapes.
 
 ### 🐛 Bug Fixes & Improvements
+- **Viewport Scrollbar Cleanup:** Disabled conflicting native scrollbars in favor of 100% transform-based panning for smoother navigation.
+- **Redesigned Page Items:** Replaced technical ID tags with bespoke icons for a cleaner, professional sidebar experience.
 - **Touch Area Consolidation**: Unified duplicate touch logic into a single robust implementation with Normal/Pressed icon pickers and RGBA color support.
 - **Core Adapter Fixes**: Fixed lambda indentation, resolved LVGL display conflicts, and improved rotation/touch mapping for Waveshare 7" displays.
 - **Widget Specific Fixes**: Resolved rendering bugs for Progress Bars (sanitization), Shapes (border/fill), and Calendars (event overlapping).

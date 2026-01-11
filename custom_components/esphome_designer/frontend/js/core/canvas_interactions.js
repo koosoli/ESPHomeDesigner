@@ -92,8 +92,20 @@ export function setupInteractions(canvasInstance) {
     canvasInstance.canvas.addEventListener("mousedown", (ev) => {
         if (ev.button !== 0) return; // Only handle left-click for widgets
 
+        const artboardEl = ev.target.closest(".artboard");
+        if (!artboardEl) {
+            // Clicked on stage background - release focus from inputs (e.g. YAML box)
+            if (document.activeElement) document.activeElement.blur();
+            return;
+        }
+
+        const pageIndex = parseInt(artboardEl.dataset.index, 10);
+        if (AppState.currentPageIndex !== pageIndex) {
+            AppState.setCurrentPageIndex(pageIndex);
+        }
+
         const widgetEl = ev.target.closest(".widget");
-        const rect = canvasInstance.canvas.getBoundingClientRect();
+        const rect = artboardEl.getBoundingClientRect();
         const zoom = AppState.zoomLevel;
 
         if (widgetEl) {
@@ -103,9 +115,7 @@ export function setupInteractions(canvasInstance) {
             // Manual Double Click Detection
             const now = Date.now();
             if (widgetId === lastClickWidgetId && (now - lastClickTime < 300)) {
-                // Double click detected!
                 startInlineEdit(canvasInstance, widgetId);
-                // Reset to prevent dragging immediately after
                 lastClickTime = 0;
                 lastClickWidgetId = null;
                 ev.preventDefault();
@@ -115,8 +125,6 @@ export function setupInteractions(canvasInstance) {
             lastClickTime = now;
             lastClickWidgetId = widgetId;
 
-            // If shift/ctrl is held, toggle selection. Otherwise, if the clicked widget isn't already 
-            // part of the selection, make it the sole selection.
             if (isMulti) {
                 AppState.selectWidget(widgetId, true);
             } else if (!AppState.selectedWidgetIds.includes(widgetId)) {
@@ -129,25 +137,24 @@ export function setupInteractions(canvasInstance) {
             const isResizeHandle = ev.target.classList.contains("widget-resize-handle");
 
             if (isResizeHandle) {
-                if (widget.locked) return; // Prevent resize if locked
+                if (widget.locked) return;
                 canvasInstance.dragState = {
                     mode: "resize",
                     id: widgetId,
                     startX: ev.clientX,
                     startY: ev.clientY,
                     startW: widget.width,
-                    startH: widget.height
+                    startH: widget.height,
+                    artboardEl // Store for coordinate calc
                 };
             } else {
-                if (widget.locked) return; // Prevent move if locked
+                if (widget.locked) return;
 
-                // Capture start positions for all selected widgets
                 const selectedWidgets = AppState.getSelectedWidgets();
                 const widgetOffsets = selectedWidgets.map(w => ({
                     id: w.id,
                     startX: w.x,
                     startY: w.y,
-                    // Offset relative to the initial click point
                     clickOffsetX: (ev.clientX - rect.left) / zoom - w.x,
                     clickOffsetY: (ev.clientY - rect.top) / zoom - w.y
                 }));
@@ -155,7 +162,8 @@ export function setupInteractions(canvasInstance) {
                 canvasInstance.dragState = {
                     mode: "move",
                     id: widgetId,
-                    widgets: widgetOffsets
+                    widgets: widgetOffsets,
+                    artboardEl
                 };
             }
 
@@ -163,12 +171,7 @@ export function setupInteractions(canvasInstance) {
             window.addEventListener("mouseup", canvasInstance._boundMouseUp);
             ev.preventDefault();
         } else {
-            // Clicked on canvas background - release focus from inputs (e.g. YAML box)
-            if (document.activeElement) {
-                document.activeElement.blur();
-            }
-
-            // Clicked on canvas background - start lasso
+            // Clicked on artboard background - start lasso
             const startX = (ev.clientX - rect.left) / zoom;
             const startY = (ev.clientY - rect.top) / zoom;
 
@@ -176,13 +179,13 @@ export function setupInteractions(canvasInstance) {
                 startX,
                 startY,
                 rect: null,
-                isAdditive: ev.shiftKey || ev.ctrlKey
+                isAdditive: ev.shiftKey || ev.ctrlKey,
+                artboardEl
             };
 
-            // Create lasso element
             canvasInstance.lassoEl = document.createElement("div");
             canvasInstance.lassoEl.className = "lasso-selection";
-            canvasInstance.canvas.appendChild(canvasInstance.lassoEl);
+            artboardEl.appendChild(canvasInstance.lassoEl);
 
             window.addEventListener("mousemove", canvasInstance._boundMouseMove);
             window.addEventListener("mouseup", canvasInstance._boundMouseUp);
@@ -190,7 +193,6 @@ export function setupInteractions(canvasInstance) {
         }
     });
 
-    // Right-click context menu for PC
     canvasInstance.canvas.addEventListener("contextmenu", (ev) => {
         ev.preventDefault();
         const widgetEl = ev.target.closest(".widget");
@@ -208,7 +210,9 @@ export function onMouseMove(ev, canvasInstance) {
 
     if (canvasInstance.dragState) {
         if (canvasInstance.dragState.mode === "move") {
-            const rect = canvasInstance.canvas.getBoundingClientRect();
+            const artboardEl = canvasInstance.dragState.artboardEl;
+            if (!artboardEl) return;
+            const rect = artboardEl.getBoundingClientRect();
 
             // Primary widget delta for snapping
             const primaryWidget = AppState.getWidgetById(canvasInstance.dragState.id);
@@ -293,7 +297,9 @@ export function onMouseMove(ev, canvasInstance) {
         }
         // render calls skipped for perf
     } else if (canvasInstance.lassoState) {
-        const rect = canvasInstance.canvas.getBoundingClientRect();
+        const artboardEl = canvasInstance.lassoState.artboardEl;
+        if (!artboardEl) return;
+        const rect = artboardEl.getBoundingClientRect();
         const currentX = (ev.clientX - rect.left) / zoom;
         const currentY = (ev.clientY - rect.top) / zoom;
 
@@ -487,27 +493,50 @@ export function setupZoomControls(canvasInstance) {
 }
 
 function handleWheelZoom(ev, canvasInstance) {
+    const oldZoom = AppState.zoomLevel;
+    let delta = 0;
+
     // Detect pinch-to-zoom (Ctrl+wheel on trackpads or Ctrl+scroll on mouse)
     if (ev.ctrlKey) {
-        // Pinch zoom: deltaY is inverted, scale more smoothly
-        const delta = ev.deltaY > 0 ? -0.02 : 0.02;
-        const newZoom = AppState.zoomLevel + delta;
-        AppState.setZoomLevel(newZoom);
+        delta = ev.deltaY > 0 ? -0.02 : 0.02;
     } else {
         // Detect if this is a mouse wheel vs touchpad scroll
         const isMouse = ev.deltaMode === 0 && ev.deltaX === 0 && Math.abs(ev.deltaY) >= 50;
 
         if (isMouse) {
-            // Mouse wheel: zoom in/out
-            const delta = ev.deltaY > 0 ? -0.05 : 0.05;
-            AppState.setZoomLevel(AppState.zoomLevel + delta);
+            delta = ev.deltaY > 0 ? -0.05 : 0.05;
         } else {
             // Touchpad two-finger scroll: pan the canvas
             canvasInstance.panX -= ev.deltaX;
             canvasInstance.panY -= ev.deltaY;
             applyZoom(canvasInstance);
+            return;
         }
     }
+
+    if (delta === 0) return;
+
+    const newZoom = Math.min(Math.max(oldZoom + delta, 0.1), 5.0);
+    if (newZoom === oldZoom) return;
+
+    // Get the mouse position relative to the viewport
+    const viewportRect = canvasInstance.viewport.getBoundingClientRect();
+    const mouseX = ev.clientX - viewportRect.left;
+    const mouseY = ev.clientY - viewportRect.top;
+
+    // Convert mouse position to canvas-space (before transformation)
+    // CanvasPos = (MousePos - Pan) / Zoom
+    const canvasX = (mouseX - canvasInstance.panX) / oldZoom;
+    const canvasY = (mouseY - canvasInstance.panY) / oldZoom;
+
+    // Calculate new pan so that the same canvas position stays under the mouse
+    // MousePos = NewPan + CanvasPos * NewZoom
+    // NewPan = MousePos - CanvasPos * NewZoom
+    canvasInstance.panX = mouseX - canvasX * newZoom;
+    canvasInstance.panY = mouseY - canvasY * newZoom;
+
+    AppState.setZoomLevel(newZoom);
+    applyZoom(canvasInstance);
 }
 
 export function zoomIn() {
@@ -520,9 +549,8 @@ export function zoomOut() {
 
 export function zoomReset(canvasInstance) {
     AppState.setZoomLevel(1.0);
-    canvasInstance.panX = 0;
-    canvasInstance.panY = 0;
-    applyZoom(canvasInstance);
+    // Focus the first page (Overview) to reset the view completely
+    canvasInstance.focusPage(0, true);
 }
 
 export function setupDragAndDrop(canvasInstance) {
@@ -538,25 +566,32 @@ export function setupDragAndDrop(canvasInstance) {
         const type = e.dataTransfer.getData("application/widget-type");
         Logger.log("[Canvas] Drop detected type:", type);
 
+        const artboardEl = e.target.closest(".artboard");
+        if (!artboardEl) {
+            Logger.warn("[Canvas] Drop outside of any artboard");
+            return;
+        }
+
+        const pageIndex = parseInt(artboardEl.dataset.index, 10);
+        if (AppState.currentPageIndex !== pageIndex) {
+            AppState.setCurrentPageIndex(pageIndex);
+        }
+
         if (type) {
-            const rect = canvasInstance.canvas.getBoundingClientRect();
+            const rect = artboardEl.getBoundingClientRect();
             const zoom = AppState.zoomLevel;
 
-            // Calculate position relative to canvas, accounting for zoom
+            // Calculate position relative to the target artboard
             const x = (e.clientX - rect.left) / zoom;
             const y = (e.clientY - rect.top) / zoom;
 
             try {
-                // Ensure the plugin is loaded first so WidgetFactory can access its defaults
                 await PluginRegistry.load(type);
-
                 const widget = WidgetFactory.createWidget(type);
-                // Center the widget on the drop point
                 widget.x = Math.round(x - widget.width / 2);
                 widget.y = Math.round(y - widget.height / 2);
 
                 AppState.addWidget(widget);
-                Logger.log("[Canvas] Widget added via drag & drop:", type);
             } catch (err) {
                 Logger.error("[Canvas] error creating widget from drop:", err);
             }

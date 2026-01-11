@@ -30,7 +30,11 @@ export class Canvas {
     init() {
         // Subscribe to events
         on(EVENTS.STATE_CHANGED, () => this.render());
-        on(EVENTS.PAGE_CHANGED, () => this.render());
+        on(EVENTS.PAGE_CHANGED, (e) => {
+            this.render();
+            // Focus the new page after render
+            this.focusPage(e.index);
+        });
         on(EVENTS.SELECTION_CHANGED, () => this.render());
         on(EVENTS.SETTINGS_CHANGED, () => {
             this.render();
@@ -78,6 +82,9 @@ export class Canvas {
     zoomIn() { zoomIn(); }
     zoomOut() { zoomOut(); }
     zoomReset() { zoomReset(this); }
+    focusPage(index, smooth = true) {
+        import('./canvas_renderer.js').then(m => m.focusPage(this, index, smooth));
+    }
 
     /**
      * Clean up resources when destroying the canvas.

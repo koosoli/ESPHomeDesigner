@@ -251,6 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Exposed globals for legacy/external compatibility
     window.openDeviceSettings = () => app.deviceSettings?.open();
     window.openEditorSettingsModal = () => app.editorSettings?.open();
+    window.pageSettings = app.pageSettings;
 
     // Attach to unified namespace
     window.ESPHomeDesigner = window.ESPHomeDesigner || {};

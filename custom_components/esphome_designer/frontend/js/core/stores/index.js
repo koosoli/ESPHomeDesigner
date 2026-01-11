@@ -101,6 +101,11 @@ class AppStateFacade {
         emit(EVENTS.STATE_CHANGED);
     }
 
+    reorderPage(fromIndex, toIndex) {
+        this.project.reorderPage(fromIndex, toIndex);
+        this.recordHistory();
+    }
+
     selectWidget(id, multi) { this.editor.selectWidget(id, multi); }
     selectWidgets(ids) { this.editor.setSelectedWidgetIds(ids); }
 

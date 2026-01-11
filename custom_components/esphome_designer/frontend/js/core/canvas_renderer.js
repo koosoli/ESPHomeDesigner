@@ -6,184 +6,214 @@ import { getColorStyle } from '../utils/device.js';
 export function render(canvasInstance) {
     if (!canvasInstance.canvas) return;
 
-    const page = AppState.getCurrentPage();
-    const existingGrid = canvasInstance.canvas.querySelector(".canvas-grid");
+    const pages = AppState.pages;
+    const dims = AppState.getCanvasDimensions();
+
+    // Maintain lasso and snap guides if they existed (though they might need artboard-specific logic)
     const existingGuides = canvasInstance.canvas.querySelectorAll(".snap-guide");
     const existingLasso = canvasInstance.canvas.querySelector(".lasso-selection");
 
     canvasInstance.canvas.innerHTML = "";
 
-    // Ensure grid exists if enabled
-    if (AppState.showGrid) {
-        let grid = existingGrid;
-        if (!grid) {
-            grid = document.createElement("div");
-            grid.className = "canvas-grid";
-        }
-        canvasInstance.canvas.appendChild(grid);
-    }
-
-    existingGuides.forEach((g) => canvasInstance.canvas.appendChild(g));
-    if (existingLasso) canvasInstance.canvas.appendChild(existingLasso);
-
-    // Apply orientation/size
-    const dims = AppState.getCanvasDimensions();
-    canvasInstance.canvas.style.width = `${dims.width}px`;
-    canvasInstance.canvas.style.height = `${dims.height}px`;
-
-    // Apply device shape (e.g. round)
-    const shape = AppState.getCanvasShape();
-
-    if (shape === "round") {
-        canvasInstance.canvas.style.borderRadius = "50%";
-        canvasInstance.canvas.style.overflow = "hidden";
-        canvasInstance.canvas.style.boxShadow = "0 0 0 10px rgba(0,0,0,0.1)"; // Optional: hint at the bezel
-    } else {
-        canvasInstance.canvas.style.borderRadius = "0";
-        canvasInstance.canvas.style.overflow = "visible";
-        canvasInstance.canvas.style.boxShadow = "none";
-    }
-
-    // Apply dark mode/theme
+    // Apply global editor theme to the stage
     if (AppState.settings.editor_light_mode) {
         canvasInstance.canvas.classList.add("light-mode");
     } else {
         canvasInstance.canvas.classList.remove("light-mode");
     }
 
-    // Apply black background mode for canvas preview (per-page overrides global)
-    const effectiveDarkMode = getEffectiveDarkMode();
-    if (effectiveDarkMode) {
-        canvasInstance.canvas.classList.add("dark");
+    // Apply viewport contrast based on the active page
+    const activePage = AppState.getCurrentPage();
+    if (activePage && getPageEffectiveDarkMode(activePage)) {
         if (canvasInstance.viewport) canvasInstance.viewport.classList.add("device-dark-mode");
     } else {
-        canvasInstance.canvas.classList.remove("dark");
         if (canvasInstance.viewport) canvasInstance.viewport.classList.remove("device-dark-mode");
     }
 
-    // Render LVGL grid overlay if page has grid layout
-    if (page && page.layout && /^\d+x\d+$/.test(page.layout)) {
-        renderLvglGridOverlay(canvasInstance, page.layout, dims, effectiveDarkMode);
-    }
-
-    if (!page) return;
-
-    for (const widget of page.widgets) {
-        const el = document.createElement("div");
-        el.className = "widget";
-        el.style.left = widget.x + "px";
-        el.style.top = widget.y + "px";
-        el.style.width = widget.width + "px";
-        el.style.height = widget.height + "px";
-        el.dataset.id = widget.id;
-
-        // Accessibility
-        el.role = "region";
-        const widgetLabel = widget.title || widget.id;
-        el.setAttribute("aria-label", `${widget.type} widget: ${widgetLabel}`);
-        el.title = `${widget.type} (${widgetLabel})`;
-
-        if (AppState.selectedWidgetIds.includes(widget.id)) {
-            el.classList.add("active");
+    // Render each page as an artboard
+    pages.forEach((page, index) => {
+        const artboardWrapper = document.createElement("div");
+        artboardWrapper.className = "artboard-wrapper";
+        if (index === AppState.currentPageIndex) {
+            artboardWrapper.classList.add("active-page");
         }
 
-        if (widget.locked) {
-            el.classList.add("locked");
-        }
+        // 1. Render Artboard Header
+        const header = document.createElement("div");
+        header.className = "artboard-header";
 
-        if (widget.hidden) {
-            el.classList.add("hidden-widget");
-        }
+        const nameLabel = document.createElement("span");
+        nameLabel.className = "artboard-name";
+        nameLabel.textContent = page.name || `Page ${index + 1}`;
+        header.appendChild(nameLabel);
 
-        const type = (widget.type || "").toLowerCase();
+        const actions = document.createElement("div");
+        actions.className = "artboard-actions";
 
-        // Feature Registry Integration
-        const feature = FeatureRegistry ? FeatureRegistry.get(type) : null;
-        if (feature && feature.render) {
-            try {
-                // Wrap getColorStyle to be theme-aware
-                const wrappedGetColorStyle = (color) => {
-                    const pageTheme = getEffectiveDarkMode() ? 'dark' : 'light';
-                    if (!color) {
-                        return pageTheme === 'dark' ? '#ffffff' : '#000000';
-                    }
-                    return getColorStyle(color);
-                };
-                feature.render(el, widget, { getColorStyle: wrappedGetColorStyle });
-            } catch (err) {
-                Logger.error(`[Canvas] Error rendering widget '${widget.id}' (${type}):`, err);
-                el.textContent = `Error: ${type}`;
-                el.style.border = "2px solid red";
-                el.style.backgroundColor = "rgba(255,0,0,0.1)";
-                el.style.display = "flex";
-                el.style.alignItems = "center";
-                el.style.justifyContent = "center";
-            }
-            addResizeHandle(el);
-            canvasInstance.canvas.appendChild(el);
-            continue;
-        } else if (FeatureRegistry) {
-            // If not found, try to load it asynchronously
-            FeatureRegistry.load(type).then(loadedFeature => {
-                if (loadedFeature) {
-                    Logger.log(`[Canvas] Feature '${type}' loaded, triggering re-render.`);
-                    // Ideally we call render again, but we need access to the instance method or pass the instance
-                    // Since we have canvasInstance passed in, we can call the main render method on it 
-                    // IF canvasInstance has a render method delegating to this, OR we recurse.
-                    // To avoid infinite loops or complexity, we'll try to call a method on the instance if it exists, 
-                    // or just re-run this export.
-                    if (typeof canvasInstance.render === 'function') {
-                        canvasInstance.render();
-                    } else {
-                        render(canvasInstance);
-                    }
-                }
+        // Reorder buttons
+        if (index > 0) {
+            const moveLeft = createIconButton("‹", "Move Left", () => {
+                AppState.reorderPage(index, index - 1);
             });
-
-            // Debug: log when falling back to legacy
-            Logger.warn(`[Canvas] No FeatureRegistry render for type '${type}', using legacy while loading...`);
-        } else {
-            Logger.error(`[Canvas] FeatureRegistry not defined!`);
+            actions.appendChild(moveLeft);
+        }
+        if (index < pages.length - 1) {
+            const moveRight = createIconButton("›", "Move Right", () => {
+                AppState.reorderPage(index, index + 1);
+            });
+            actions.appendChild(moveRight);
         }
 
-        // Fallback for missing or failing features
-        if (!feature || (feature && !feature.render)) {
-            // Display Missing Plugin Error
-            el.innerText = `Missing Plugin: ${type}`;
-            el.style.display = "flex";
-            el.style.alignItems = "center";
-            el.style.justifyContent = "center";
-            el.style.fontSize = "10px";
-            el.style.color = "red";
-            el.style.border = "1px dashed red";
-            el.style.backgroundColor = "rgba(255, 0, 0, 0.05)";
-            el.style.overflow = "hidden";
-            el.style.textAlign = "center";
+        // Settings button
+        const settingsBtn = createIconButton("⚙", "Page Settings", () => {
+            if (window.pageSettings) window.pageSettings.open(index);
+        });
+        actions.appendChild(settingsBtn);
+
+        header.appendChild(actions);
+        artboardWrapper.appendChild(header);
+
+        // 2. Render Artboard Content
+        const artboard = document.createElement("div");
+        artboard.className = "artboard";
+        artboard.dataset.index = index;
+        artboard.style.width = `${dims.width}px`;
+        artboard.style.height = `${dims.height}px`;
+
+        // Apply page-specific theme
+        const isDark = getPageEffectiveDarkMode(page);
+        if (isDark) {
+            artboard.classList.add("dark");
+        } else {
+            artboard.classList.remove("dark");
+        }
+
+        // Apply grid if enabled
+        if (AppState.showGrid) {
+            const grid = document.createElement("div");
+            grid.className = "canvas-grid";
+            artboard.appendChild(grid);
+        }
+
+        // Render LVGL grid overlay if page has grid layout
+        if (page.layout && /^\d+x\d+$/.test(page.layout)) {
+            renderLvglGridOverlayToElement(artboard, page.layout, dims, isDark);
+        }
+
+        // Render widgets
+        for (const widget of page.widgets) {
+            const el = document.createElement("div");
+            el.className = "widget";
+            el.style.left = widget.x + "px";
+            el.style.top = widget.y + "px";
+            el.style.width = widget.width + "px";
+            el.style.height = widget.height + "px";
+            el.dataset.id = widget.id;
+            el.dataset.pageIndex = index;
+
+            if (AppState.selectedWidgetIds.includes(widget.id)) {
+                el.classList.add("active");
+            }
+            if (widget.locked) el.classList.add("locked");
+            if (widget.hidden) el.classList.add("hidden-widget");
+
+            const type = (widget.type || "").toLowerCase();
+            const feature = FeatureRegistry ? FeatureRegistry.get(type) : null;
+
+            if (feature && feature.render) {
+                try {
+                    const wrappedGetColorStyle = (color) => {
+                        if (!color) return isDark ? '#ffffff' : '#000000';
+                        return getColorStyle(color);
+                    };
+                    feature.render(el, widget, { getColorStyle: wrappedGetColorStyle });
+                } catch (err) {
+                    el.textContent = `Error: ${type}`;
+                    el.style.border = "2px solid red";
+                }
+            } else {
+                el.innerText = `Missing: ${type}`;
+                el.style.color = "red";
+                el.style.border = "1px dashed red";
+            }
 
             addResizeHandle(el);
-            canvasInstance.canvas.appendChild(el);
+            artboard.appendChild(el);
+        }
+
+        artboardWrapper.appendChild(artboard);
+        canvasInstance.canvas.appendChild(artboardWrapper);
+    });
+
+    // Re-add selection helpers if they existed
+    existingGuides.forEach((g) => canvasInstance.canvas.appendChild(g));
+    if (existingLasso) canvasInstance.canvas.appendChild(existingLasso);
+}
+
+function createIconButton(text, title, onClick) {
+    const btn = document.createElement("button");
+    btn.className = "artboard-btn";
+    btn.innerHTML = text;
+    btn.title = title;
+    btn.onclick = (e) => {
+        e.stopPropagation();
+        onClick();
+    };
+    return btn;
+}
+
+function getPageEffectiveDarkMode(page) {
+    const pageDarkMode = page?.dark_mode;
+    if (pageDarkMode === "dark") return true;
+    if (pageDarkMode === "light") return false;
+    return !!AppState.settings.dark_mode;
+}
+
+function renderLvglGridOverlayToElement(element, layout, dims, isDark) {
+    const match = layout.match(/^(\d+)x(\d+)$/);
+    if (!match) return;
+
+    const rows = parseInt(match[1], 10);
+    const cols = parseInt(match[2], 10);
+
+    const gridOverlay = document.createElement("div");
+    gridOverlay.className = "lvgl-grid-overlay";
+    gridOverlay.style.cssText = `
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        display: grid;
+        grid-template-rows: repeat(${rows}, 1fr);
+        grid-template-columns: repeat(${cols}, 1fr);
+        pointer-events: none;
+        z-index: 1;
+    `;
+
+    const lineColor = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
+    const labelColor = isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.25)";
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const cell = document.createElement("div");
+            cell.style.cssText = `border: 1px dashed ${lineColor}; position: relative; box-sizing: border-box;`;
+            const label = document.createElement("span");
+            label.textContent = `${r},${c}`;
+            label.style.cssText = `position: absolute; top: 2px; left: 4px; font-size: 8px; color: ${labelColor}; pointer-events: none;`;
+            cell.appendChild(label);
+            gridOverlay.appendChild(cell);
         }
     }
+    element.appendChild(gridOverlay);
 }
 
 export function applyZoom(canvasInstance) {
     const zoom = AppState.zoomLevel;
-    const dims = AppState.getCanvasDimensions();
     const settings = AppState.settings;
 
-    if (canvasInstance.canvas) {
-        canvasInstance.canvas.style.transform = `scale(${zoom})`;
-        // Change transform origin to 0 0 for predictable scrolling container
-        canvasInstance.canvas.style.transformOrigin = "0 0";
-    }
-
     if (canvasInstance.canvasContainer) {
-        // Apply panning via transform on the container
-        canvasInstance.canvasContainer.style.transform = `translate(${canvasInstance.panX}px, ${canvasInstance.panY}px)`;
-
-        // Force the container to match the scaled size so parents overflow correctly
-        canvasInstance.canvasContainer.style.width = (dims.width * zoom) + "px";
-        canvasInstance.canvasContainer.style.height = (dims.height * zoom) + "px";
+        // Use a single transform for both pan and zoom for predictable focal point math
+        canvasInstance.canvasContainer.style.transform =
+            `translate(${canvasInstance.panX}px, ${canvasInstance.panY}px) scale(${zoom})`;
+        canvasInstance.canvasContainer.style.transformOrigin = "0 0";
     }
 
     // Apply grid opacity
@@ -194,6 +224,31 @@ export function applyZoom(canvasInstance) {
     const zoomLevelEl = document.getElementById("zoomLevel");
     if (zoomLevelEl) {
         zoomLevelEl.textContent = Math.round(zoom * 100) + "%";
+    }
+}
+
+/**
+ * Centrally focuses an artboard in the viewport by adjusting panX/panY.
+ */
+export function focusPage(canvasInstance, index, smooth = true) {
+    const wrappers = canvasInstance.canvas.querySelectorAll('.artboard-wrapper');
+    const target = wrappers[index];
+    if (target) {
+        const viewportRect = canvasInstance.viewport.getBoundingClientRect();
+        const vw = viewportRect.width;
+        const vh = viewportRect.height;
+
+        const zoom = AppState.zoomLevel;
+
+        // Offset relative to the canvas-stage (which has 1000px padding)
+        const targetX = target.offsetLeft + (target.offsetWidth / 2);
+        const targetY = target.offsetTop + (target.offsetHeight / 2);
+
+        // Calculate the pan required to center this target point in the viewport
+        canvasInstance.panX = (vw / 2) - (targetX * zoom);
+        canvasInstance.panY = (vh / 2) - (targetY * zoom);
+
+        applyZoom(canvasInstance);
     }
 }
 

@@ -144,6 +144,41 @@ textarea {
     gap: 2px;
 }
 
+.page-list .item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all var(--t-fast);
+    color: var(--text-dim);
+    border: 1px solid transparent;
+}
+
+.page-list .item:hover {
+    background: var(--bg-surface);
+    border-color: var(--border-subtle);
+    color: var(--text);
+}
+
+.page-list .item.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: var(--accent-soft);
+    font-weight: 600;
+}
+
+.page-list .item .item-icon {
+    display: flex;
+    align-items: center;
+    opacity: 0.6;
+}
+
+.page-list .item.active .item-icon {
+    opacity: 1;
+}
+
 /* Widget Card Style */
 .widget-list .item {
     padding: 10px 4px;

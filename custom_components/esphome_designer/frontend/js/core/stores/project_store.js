@@ -87,6 +87,30 @@ export class ProjectStore {
         }
     }
 
+    /**
+     * @param {number} fromIndex 
+     * @param {number} toIndex 
+     */
+    reorderPage(fromIndex, toIndex) {
+        if (fromIndex < 0 || fromIndex >= this.state.pages.length ||
+            toIndex < 0 || toIndex >= this.state.pages.length) return;
+
+        const [page] = this.state.pages.splice(fromIndex, 1);
+        this.state.pages.splice(toIndex, 0, page);
+
+        // Update current page index to follow the moved page if it was the current one
+        if (this.state.currentPageIndex === fromIndex) {
+            this.state.currentPageIndex = toIndex;
+        } else if (fromIndex < this.state.currentPageIndex && toIndex >= this.state.currentPageIndex) {
+            this.state.currentPageIndex--;
+        } else if (fromIndex > this.state.currentPageIndex && toIndex <= this.state.currentPageIndex) {
+            this.state.currentPageIndex++;
+        }
+
+        emit(EVENTS.STATE_CHANGED);
+        emit(EVENTS.PAGE_CHANGED, { index: this.state.currentPageIndex });
+    }
+
     /** @param {import("../../types.js").WidgetConfig} widget */
     addWidget(widget) {
         const page = this.getCurrentPage();
