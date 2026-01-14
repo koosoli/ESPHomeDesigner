@@ -174,23 +174,23 @@ export default {
         if (entityId) {
             const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_");
             lambdaStr = '!lambda |-\n';
-            lambdaStr += `          std::string ws = id(${safeId}).state;\n`;
-            lambdaStr += `          if (ws == "clear-night") return "\\U000F0594";\n`;
-            lambdaStr += `          if (ws == "cloudy") return "\\U000F0590";\n`;
-            lambdaStr += `          if (ws == "exceptional") return "\\U000F0026";\n`;
-            lambdaStr += `          if (ws == "fog") return "\\U000F0591";\n`;
-            lambdaStr += `          if (ws == "hail") return "\\U000F0592";\n`;
-            lambdaStr += `          if (ws == "lightning") return "\\U000F0593";\n`;
-            lambdaStr += `          if (ws == "lightning-rainy") return "\\U000F067E";\n`;
-            lambdaStr += `          if (ws == "partlycloudy") return "\\U000F0595";\n`;
-            lambdaStr += `          if (ws == "pouring") return "\\U000F0596";\n`;
-            lambdaStr += `          if (ws == "rainy") return "\\U000F0597";\n`;
-            lambdaStr += `          if (ws == "snowy") return "\\U000F0598";\n`;
-            lambdaStr += `          if (ws == "snowy-rainy") return "\\U000F067F";\n`;
-            lambdaStr += `          if (ws == "sunny") return "\\U000F0599";\n`;
-            lambdaStr += `          if (ws == "windy") return "\\U000F059D";\n`;
-            lambdaStr += `          if (ws == "windy-variant") return "\\U000F059E";\n`;
-            lambdaStr += `          return "\\U000F0599";`;
+            lambdaStr += `              std::string ws = id(${safeId}).state;\n`;
+            lambdaStr += `              if (ws == "clear-night") return "\\U000F0594";\n`;
+            lambdaStr += `              if (ws == "cloudy") return "\\U000F0590";\n`;
+            lambdaStr += `              if (ws == "exceptional") return "\\U000F0026";\n`;
+            lambdaStr += `              if (ws == "fog") return "\\U000F0591";\n`;
+            lambdaStr += `              if (ws == "hail") return "\\U000F0592";\n`;
+            lambdaStr += `              if (ws == "lightning") return "\\U000F0593";\n`;
+            lambdaStr += `              if (ws == "lightning-rainy") return "\\U000F067E";\n`;
+            lambdaStr += `              if (ws == "partlycloudy") return "\\U000F0595";\n`;
+            lambdaStr += `              if (ws == "pouring") return "\\U000F0596";\n`;
+            lambdaStr += `              if (ws == "rainy") return "\\U000F0597";\n`;
+            lambdaStr += `              if (ws == "snowy") return "\\U000F0598";\n`;
+            lambdaStr += `              if (ws == "snowy-rainy") return "\\U000F067F";\n`;
+            lambdaStr += `              if (ws == "sunny") return "\\U000F0599";\n`;
+            lambdaStr += `              if (ws == "windy") return "\\U000F059D";\n`;
+            lambdaStr += `              if (ws == "windy-variant") return "\\U000F059E";\n`;
+            lambdaStr += `              return "\\U000F0599";`;
         }
 
         return {

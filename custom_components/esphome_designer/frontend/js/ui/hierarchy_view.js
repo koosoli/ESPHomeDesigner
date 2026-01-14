@@ -35,7 +35,48 @@ export class HierarchyView {
 
         this.bindEvents();
         this.render();
+        this.renderHeaderActions();
         Logger.log("[HierarchyView] Initialized");
+    }
+
+    renderHeaderActions() {
+        if (!this.header) return;
+
+        let toggles = this.header.querySelector('.hierarchy-header-toggles');
+        if (!toggles) {
+            toggles = document.createElement('div');
+            toggles.className = 'hierarchy-header-toggles';
+            // Insert before the chevron
+            const chevron = this.header.querySelector('.chevron');
+            this.header.insertBefore(toggles, chevron);
+
+            const lockAll = this.createHeaderToggle('mdi-lock-outline', 'Toggle All Locks', () => {
+                const widgets = AppState.getCurrentPage()?.widgets || [];
+                const allLocked = widgets.every(w => w.locked);
+                widgets.forEach(w => AppState.updateWidget(w.id, { locked: !allLocked }));
+            });
+
+            const hideAll = this.createHeaderToggle('mdi-eye-outline', 'Toggle All Visibility', () => {
+                const widgets = AppState.getCurrentPage()?.widgets || [];
+                const allHidden = widgets.every(w => w.hidden);
+                widgets.forEach(w => AppState.updateWidget(w.id, { hidden: !allHidden }));
+            });
+
+            toggles.appendChild(lockAll);
+            toggles.appendChild(hideAll);
+        }
+    }
+
+    createHeaderToggle(iconClass, title, onClick) {
+        const div = document.createElement('div');
+        div.className = 'h-toggle';
+        div.title = title;
+        div.innerHTML = `<i class="mdi ${iconClass}"></i>`;
+        div.onclick = (e) => {
+            e.stopPropagation();
+            onClick();
+        };
+        return div;
     }
 
     bindEvents() {
@@ -71,31 +112,50 @@ export class HierarchyView {
         const page = AppState.getCurrentPage();
         if (!page) return;
 
-        // Widgets are listed in reverse order (top-most first in list, which is last in array)
-        // This matches Photoshop/layers where top is front.
-        const widgets = [...page.widgets].reverse();
-
         this.listContainer.innerHTML = '';
 
-        if (widgets.length === 0) {
+        if (!page.widgets || page.widgets.length === 0) {
             this.listContainer.innerHTML = '<div style="font-size: 10px; color: var(--muted); text-align: center; padding: 12px;">No widgets on this page</div>';
             this.controlsContainer.style.display = 'none';
             return;
         }
 
-        widgets.forEach((widget, index) => {
-            const actualIndex = page.widgets.length - 1 - index;
-            const item = this.createItem(widget, actualIndex);
-            this.listContainer.appendChild(item);
+        // Separate widgets into top-level and children
+        const topLevel = page.widgets.filter(w => !w.parentId).reverse();
+        const childrenMap = new Map();
+        page.widgets.forEach(w => {
+            if (w.parentId) {
+                if (!childrenMap.has(w.parentId)) childrenMap.set(w.parentId, []);
+                childrenMap.get(w.parentId).push(w);
+            }
         });
+
+        // Alphabetical sort for children within groups if needed? 
+        // No, keep same order as in main array (z-order)
+
+        const renderRecursive = (widget, level = 0) => {
+            const actualIndex = page.widgets.indexOf(widget);
+            const item = this.createItem(widget, actualIndex, level);
+            this.listContainer.appendChild(item);
+
+            const children = childrenMap.get(widget.id);
+            if (children && (widget.expanded !== false)) {
+                // Reverse children to match Photoshop/layers logic (front on top)
+                [...children].reverse().forEach(child => renderRecursive(child, level + 1));
+            }
+        };
+
+        topLevel.forEach(w => renderRecursive(w));
 
         this.highlightSelected();
         this.renderControls();
     }
 
-    createItem(widget, actualIndex) {
+    createItem(widget, actualIndex, level = 0) {
         const div = document.createElement('div');
         div.className = `hierarchy-item ${widget.hidden ? 'hidden-widget' : ''}`;
+        if (level > 0) div.classList.add('child-item');
+
         const selectedIds = AppState.selectedWidgetIds || [];
         if (selectedIds.includes(widget.id)) div.classList.add('selected');
 
@@ -104,8 +164,11 @@ export class HierarchyView {
         div.draggable = !widget.locked;
         if (widget.locked) div.classList.add('locked');
 
+        div.style.paddingLeft = (12 + level * 20) + "px";
+
         const typeIcon = this.getWidgetIcon(widget.type);
         const label = this.getWidgetLabel(widget);
+        const isGroup = widget.type === 'group';
 
         div.innerHTML = `
             <div class="hierarchy-item-drag-handle" style="${widget.locked ? 'display:none' : ''}">
@@ -114,32 +177,47 @@ export class HierarchyView {
                     <circle cx="15" cy="5" r="1"></circle><circle cx="15" cy="12" r="1"></circle><circle cx="15" cy="19" r="1"></circle>
                 </svg>
             </div>
+            ${isGroup ? `
+            <div class="hierarchy-group-toggle ${widget.expanded !== false ? 'expanded' : ''}">
+                <i class="mdi mdi-chevron-down"></i>
+            </div>
+            ` : '<div style="width: 16px;"></div>'}
             <div class="hierarchy-item-icon">${typeIcon}</div>
             <div class="hierarchy-item-label">${label}</div>
             <div class="hierarchy-item-actions">
                 <div class="hierarchy-item-action toggle-lock" title="${widget.locked ? 'Unlock' : 'Lock'}">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                        ${widget.locked ?
-                '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path>' :
-                '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path>'
-            }
-                    </svg>
+                     <i class="mdi ${widget.locked ? 'mdi-lock-outline' : 'mdi-lock-open-outline'}"></i>
                 </div>
                 <div class="hierarchy-item-action toggle-visibility" title="Toggle Visibility">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                        ${widget.hidden ?
-                '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>' :
-                '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>'
-            }
-                    </svg>
+                    <i class="mdi ${widget.hidden ? 'mdi-eye-off-outline' : 'mdi-eye-outline'}"></i>
                 </div>
                 <div class="hierarchy-item-action delete-widget danger" title="Delete Widget">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
+                    <i class="mdi mdi-delete-outline"></i>
                 </div>
             </div>
         `;
+
+        // Group toggle
+        if (isGroup) {
+            div.querySelector('.hierarchy-group-toggle').addEventListener('click', (e) => {
+                AppState.updateWidget(widget.id, { expanded: widget.expanded === false });
+                e.stopPropagation();
+            });
+        }
+
+        // Label rename and selection
+        const labelEl = div.querySelector('.hierarchy-item-label');
+        labelEl.addEventListener('click', (e) => {
+            // If already selected, allow rename
+            if (AppState.selectedWidgetIds.includes(widget.id)) {
+                const newName = prompt('Rename:', label);
+                if (newName !== null && newName !== "" && newName !== label) {
+                    AppState.updateWidget(widget.id, { title: newName });
+                }
+                e.stopPropagation();
+                return;
+            }
+        });
 
         // Selection
         div.addEventListener('click', (e) => {
@@ -195,8 +273,22 @@ export class HierarchyView {
 
         div.addEventListener('drop', (e) => {
             e.preventDefault();
+            const draggedId = e.dataTransfer.getData("application/widget-id");
+            const targetId = div.dataset.id;
+            if (draggedId === targetId) return;
+
+            const targetWidget = AppState.getWidgetById(targetId);
+            if (!targetWidget) return;
+
+            // Update parentId based on target
+            if (targetWidget.type === 'group') {
+                AppState.updateWidget(draggedId, { parentId: targetId, expanded: true });
+            } else {
+                AppState.updateWidget(draggedId, { parentId: targetWidget.parentId || null });
+            }
+
             const targetIndex = parseInt(div.dataset.index);
-            if (this.draggedIndex !== null && this.draggedIndex !== targetIndex) {
+            if (this.draggedIndex !== null) {
                 AppState.reorderWidget(AppState.currentPageIndex, this.draggedIndex, targetIndex);
             }
         });
@@ -205,8 +297,8 @@ export class HierarchyView {
     }
 
     renderControls() {
-        const widget = AppState.getSelectedWidget();
-        if (!widget || AppState.selectedWidgetIds.length > 1) {
+        const selectedWidgets = AppState.getSelectedWidgets();
+        if (selectedWidgets.length === 0) {
             this.controlsContainer.style.display = 'none';
             return;
         }
@@ -214,39 +306,73 @@ export class HierarchyView {
         this.controlsContainer.style.display = 'block';
         this.controlsContainer.innerHTML = '';
 
-        const label = document.createElement("div");
-        label.style.fontSize = "10px";
-        label.style.color = "var(--muted)";
-        label.style.marginBottom = "6px";
-        label.style.fontWeight = "600";
-        label.textContent = "LAYER ORDER";
-        this.controlsContainer.appendChild(label);
+        const section = (label) => {
+            const l = document.createElement("div");
+            l.style.fontSize = "10px";
+            l.style.color = "var(--muted)";
+            l.style.marginBottom = "6px";
+            l.style.fontWeight = "600";
+            l.style.marginTop = "8px";
+            l.textContent = label;
+            this.controlsContainer.appendChild(l);
+        };
 
-        const wrap = document.createElement("div");
-        wrap.style.display = "flex";
-        wrap.style.gap = "4px";
+        const buttonRow = () => {
+            const wrap = document.createElement("div");
+            wrap.style.display = "flex";
+            wrap.style.gap = "4px";
+            this.controlsContainer.appendChild(wrap);
+            return wrap;
+        };
 
-        const buttons = [
-            { label: "↑ Front", action: () => this.moveToFront(widget) },
-            { label: "↓ Back", action: () => this.moveToBack(widget) },
-            { label: "▲ Up", action: () => this.moveUp(widget) },
-            { label: "▼ Down", action: () => this.moveDown(widget) }
-        ];
+        // --- Grouping Actions ---
+        section("GROUPING");
+        const gRow = buttonRow();
 
-        buttons.forEach(btn => {
-            const button = document.createElement("button");
-            button.className = "btn btn-secondary";
-            button.textContent = btn.label;
-            button.style.flex = "1";
-            button.style.fontSize = "10px";
-            button.style.padding = "4px";
-            button.addEventListener("click", () => {
-                btn.action();
+        const hasGroup = selectedWidgets.some(w => w.type === 'group' || w.parentId);
+        const groupBtn = document.createElement("button");
+        groupBtn.className = "btn btn-secondary";
+        groupBtn.innerHTML = '<i class="mdi mdi-group" style="margin-right:4px"></i>Group';
+        groupBtn.style.flex = "1";
+        groupBtn.style.fontSize = "10px";
+        groupBtn.disabled = selectedWidgets.length < 2 || hasGroup;
+        groupBtn.onclick = () => AppState.groupSelection();
+        gRow.appendChild(groupBtn);
+
+        const ungroupBtn = document.createElement("button");
+        ungroupBtn.className = "btn btn-secondary";
+        ungroupBtn.innerHTML = '<i class="mdi mdi-ungroup" style="margin-right:4px"></i>Ungroup';
+        ungroupBtn.style.flex = "1";
+        ungroupBtn.style.fontSize = "10px";
+        ungroupBtn.disabled = !hasGroup;
+        ungroupBtn.onclick = () => AppState.ungroupSelection();
+        gRow.appendChild(ungroupBtn);
+
+        // --- Layer Order ---
+        if (selectedWidgets.length === 1) {
+            const widget = selectedWidgets[0];
+            section("LAYER ORDER");
+            const lRow = buttonRow();
+
+            const buttons = [
+                { label: "Front", icon: "mdi-arrange-bring-to-front", action: () => this.moveToFront(widget) },
+                { label: "Back", icon: "mdi-arrange-send-to-back", action: () => this.moveToBack(widget) },
+                { label: "Up", icon: "mdi-arrow-up", action: () => this.moveUp(widget) },
+                { label: "Down", icon: "mdi-arrow-down", action: () => this.moveDown(widget) }
+            ];
+
+            buttons.forEach(btn => {
+                const button = document.createElement("button");
+                button.className = "btn btn-secondary";
+                button.innerHTML = `<i class="mdi ${btn.icon}"></i>`;
+                button.title = btn.label;
+                button.style.flex = "1";
+                button.style.fontSize = "12px";
+                button.style.padding = "4px";
+                button.onclick = () => btn.action();
+                lRow.appendChild(button);
             });
-            wrap.appendChild(button);
-        });
-
-        this.controlsContainer.appendChild(wrap);
+        }
     }
 
     moveToFront(widget) {
@@ -313,6 +439,7 @@ export class HierarchyView {
             'image': 'mdi-image',
             'qr_code': 'mdi-qrcode',
             'line': 'mdi-vector-line',
+            'lvgl_line': 'mdi-vector-line',
             'rect': 'mdi-square-outline',
             'shape_rect': 'mdi-square-outline',
             'arc': 'mdi-circle-outline',
@@ -324,7 +451,8 @@ export class HierarchyView {
             'weather_forecast': 'mdi-weather-partly-cloudy',
             'datetime': 'mdi-clock-outline',
             'graph': 'mdi-chart-timeline-variant',
-            'touch_area': 'mdi-fingerprint'
+            'touch_area': 'mdi-fingerprint',
+            'group': 'mdi-folder-outline'
         };
         const iconClass = icons[type] || 'mdi-widgets-outline';
         return `<i class="mdi ${iconClass}"></i>`;

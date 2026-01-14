@@ -41,6 +41,7 @@ class AppStateFacade {
     get currentLayoutId() { return this.project.currentLayoutId; }
     get snapEnabled() { return this.preferences.snapEnabled; }
     get showGrid() { return this.preferences.showGrid; }
+    get showRulers() { return this.preferences.showRulers; }
     get zoomLevel() { return this.editor.zoomLevel; }
 
     getCurrentPage() { return this.project.getCurrentPage(); }
@@ -91,6 +92,7 @@ class AppStateFacade {
 
     reorderWidget(pageIndex, fromIndex, toIndex) {
         this.project.reorderWidget(pageIndex, fromIndex, toIndex);
+        this.syncWidgetOrderWithHierarchy();
         this.recordHistory();
         emit(EVENTS.STATE_CHANGED);
     }
@@ -117,7 +119,38 @@ class AppStateFacade {
         this.recordHistory();
     }
 
-    selectWidget(id, multi) { this.editor.selectWidget(id, multi); }
+    selectWidget(id, multi) {
+        if (!id) {
+            this.editor.selectWidget(null, multi);
+            return;
+        }
+
+        const widget = this.getWidgetById(id);
+        const groupId = widget?.parentId || (widget?.type === 'group' ? widget.id : null);
+
+        // If it's part of a group, select the whole group
+        if (groupId) {
+            const page = this.pages[this.currentPageIndex];
+            const groupMembers = page.widgets.filter(w => w.parentId === groupId || w.id === groupId);
+            const memberIds = groupMembers.map(w => w.id);
+
+            if (multi) {
+                // If any member is already selected, we might want to toggle the whole group?
+                // Standard behavior: if any is selected, deselect all. Otherwise select all.
+                const anySelected = memberIds.some(mid => this.editor.selectedWidgetIds.includes(mid));
+                if (anySelected) {
+                    const remainingIds = this.editor.selectedWidgetIds.filter(mid => !memberIds.includes(mid));
+                    this.editor.setSelectedWidgetIds(remainingIds);
+                } else {
+                    this.editor.setSelectedWidgetIds([...new Set([...this.editor.selectedWidgetIds, ...memberIds])]);
+                }
+            } else {
+                this.editor.setSelectedWidgetIds(memberIds);
+            }
+        } else {
+            this.editor.selectWidget(id, multi);
+        }
+    }
     selectWidgets(ids) { this.editor.setSelectedWidgetIds(ids); }
 
     updateSettings(newSettings) {
@@ -152,6 +185,7 @@ class AppStateFacade {
 
     setSnapEnabled(e) { this.preferences.setSnapEnabled(e); }
     setShowGrid(e) { this.preferences.setShowGrid(e); }
+    setShowRulers(e) { this.preferences.setShowRulers(e); }
     setZoomLevel(l) { this.editor.setZoomLevel(l); }
 
     // --- Widget Ops ---
@@ -168,6 +202,29 @@ class AppStateFacade {
     }
     updateWidget(id, u) {
         this.project.updateWidget(id, u);
+
+        // Recursive propagation for certain properties if it's a group
+        const widget = this.getWidgetById(id);
+        if (widget && widget.type === 'group') {
+            const propsToPropagate = ['locked', 'hidden'];
+            const childUpdates = {};
+            propsToPropagate.forEach(p => {
+                if (u[p] !== undefined) childUpdates[p] = u[p];
+            });
+
+            if (Object.keys(childUpdates).length > 0) {
+                const page = this.pages[this.currentPageIndex];
+                if (page && page.widgets) {
+                    const children = page.widgets.filter(w => w.parentId === id);
+                    children.forEach(c => this.updateWidget(c.id, childUpdates));
+                }
+            }
+        }
+
+        if (u.parentId !== undefined) {
+            this.syncWidgetOrderWithHierarchy();
+        }
+
         emit(EVENTS.STATE_CHANGED);
     }
     updateWidgets(ids, u) {
@@ -176,8 +233,207 @@ class AppStateFacade {
     }
     deleteWidget(id) {
         const ids = id ? [id] : [...this.editor.selectedWidgetIds];
-        this.project.deleteWidgets(ids);
+
+        // If any selected ID is a group, we should potentially handle children
+        // For simplicity now, we just delete everything selected.
+        // But we should find all children of these groups and delete them too.
+        const allIdsToDelete = [...ids];
+        ids.forEach(targetId => {
+            const widget = this.getWidgetById(targetId);
+            if (widget && widget.type === 'group') {
+                const children = this.pages[this.currentPageIndex].widgets.filter(w => w.parentId === targetId);
+                children.forEach(c => allIdsToDelete.push(c.id));
+            }
+        });
+
+        this.project.deleteWidgets([...new Set(allIdsToDelete)]);
         this.editor.setSelectedWidgetIds([]);
+        this.recordHistory();
+        emit(EVENTS.STATE_CHANGED);
+    }
+
+    groupSelection() {
+        const selectedIds = this.editor.selectedWidgetIds;
+        const widgets = this.getSelectedWidgets();
+
+        // Safety check: Cannot group if it includes existing groups/members
+        const hasExistingGroup = widgets.some(w => w.type === 'group' || w.parentId);
+        if (selectedIds.length < 2 || hasExistingGroup) return;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+        widgets.forEach(w => {
+            minX = Math.min(minX, w.x);
+            minY = Math.min(minY, w.y);
+            maxX = Math.max(maxX, w.x + (w.width || 0));
+            maxY = Math.max(maxY, w.y + (w.height || 0));
+        });
+
+        const groupId = "group_" + generateId();
+        const groupWidget = {
+            id: groupId,
+            type: 'group',
+            title: 'Group',
+            x: minX,
+            y: minY,
+            width: maxX - minX,
+            height: maxY - minY,
+            props: {},
+            expanded: true // For hierarchy view
+        };
+
+        // Add group widget
+        this.project.addWidget(groupWidget);
+
+        // Assign parentId to children and make coordinates relative? 
+        // Actually, let's keep coordinates absolute for now to avoid breaking existing canvas logic,
+        // but mark them as part of the group.
+        widgets.forEach(w => {
+            this.project.updateWidget(w.id, { parentId: groupId });
+        });
+
+        this.selectWidget(groupId);
+        this.syncWidgetOrderWithHierarchy();
+        this.recordHistory();
+        emit(EVENTS.STATE_CHANGED);
+    }
+
+    ungroupSelection(idOrIds = null) {
+        let targets = [];
+        if (idOrIds) {
+            targets = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
+        } else {
+            const selected = this.getSelectedWidgets();
+            const foundIds = new Set();
+            selected.forEach(w => {
+                if (w.type === 'group') foundIds.add(w.id);
+                else if (w.parentId) foundIds.add(w.parentId);
+            });
+            targets = [...foundIds];
+        }
+
+        const groupIds = new Set();
+        targets.forEach(id => {
+            const w = this.getWidgetById(id);
+            if (!w) return;
+            if (w.type === 'group') groupIds.add(w.id);
+            else if (w.parentId) groupIds.add(w.parentId);
+        });
+
+        const idsToProcess = [...groupIds];
+        if (idsToProcess.length === 0) return;
+
+        const allChildren = [];
+        idsToProcess.forEach(groupId => {
+            const group = this.getWidgetById(groupId);
+            if (!group || group.type !== 'group') return;
+
+            const page = this.pages[this.currentPageIndex];
+            const children = page.widgets.filter(w => w.parentId === groupId);
+
+            children.forEach(c => {
+                this.project.updateWidget(c.id, { parentId: null });
+                allChildren.push(c.id);
+            });
+        });
+
+        // Ensure we delete the groups themselves - both from index and array
+        this.project.deleteWidgets(idsToProcess);
+
+        // Safety: Manually filter them out of the current page as well
+        const currentPage = this.pages[this.currentPageIndex];
+        if (currentPage && currentPage.widgets) {
+            currentPage.widgets = currentPage.widgets.filter(w => !idsToProcess.includes(w.id));
+        }
+
+        if (allChildren.length > 0) {
+            this.selectWidgets(allChildren);
+        }
+
+        this.syncWidgetOrderWithHierarchy();
+        this.recordHistory();
+        emit(EVENTS.STATE_CHANGED);
+    }
+
+    /**
+     * Aligns selected widgets in a specific direction.
+     * @param {'left'|'center'|'right'|'top'|'middle'|'bottom'} direction
+     */
+    alignSelectedWidgets(direction) {
+        const widgets = this.getSelectedWidgets();
+        if (widgets.length < 2) return;
+
+        let targetVal;
+        switch (direction) {
+            case 'left':
+                targetVal = Math.min(...widgets.map(w => w.x));
+                widgets.forEach(w => this.project.updateWidget(w.id, { x: targetVal }));
+                break;
+            case 'right':
+                targetVal = Math.max(...widgets.map(w => w.x + (w.width || 0)));
+                widgets.forEach(w => this.project.updateWidget(w.id, { x: targetVal - (w.width || 0) }));
+                break;
+            case 'center':
+                const centers = widgets.map(w => w.x + (w.width || 0) / 2);
+                targetVal = centers.reduce((a, b) => a + b, 0) / centers.length;
+                widgets.forEach(w => this.project.updateWidget(w.id, { x: targetVal - (w.width || 0) / 2 }));
+                break;
+            case 'top':
+                targetVal = Math.min(...widgets.map(w => w.y));
+                widgets.forEach(w => this.project.updateWidget(w.id, { y: targetVal }));
+                break;
+            case 'bottom':
+                targetVal = Math.max(...widgets.map(w => w.y + (w.height || 0)));
+                widgets.forEach(w => this.project.updateWidget(w.id, { y: targetVal - (w.height || 0) }));
+                break;
+            case 'middle':
+                const middles = widgets.map(w => w.y + (w.height || 0) / 2);
+                targetVal = middles.reduce((a, b) => a + b, 0) / middles.length;
+                widgets.forEach(w => this.project.updateWidget(w.id, { y: targetVal - (w.height || 0) / 2 }));
+                break;
+        }
+
+        this.recordHistory();
+        emit(EVENTS.STATE_CHANGED);
+    }
+
+    /**
+     * Distributes selected widgets evenly along an axis.
+     * @param {'horizontal'|'vertical'} axis
+     */
+    distributeSelectedWidgets(axis) {
+        const widgets = [...this.getSelectedWidgets()];
+        if (widgets.length < 3) return;
+
+        if (axis === 'horizontal') {
+            widgets.sort((a, b) => a.x - b.x);
+            const first = widgets[0];
+            const last = widgets[widgets.length - 1];
+            const totalWidth = widgets.reduce((sum, w) => sum + (w.width || 0), 0);
+            const totalSpan = (last.x + (last.width || 0)) - first.x;
+            const totalGap = totalSpan - totalWidth;
+            const gap = totalGap / (widgets.length - 1);
+
+            let currentX = first.x;
+            for (let i = 0; i < widgets.length; i++) {
+                this.project.updateWidget(widgets[i].id, { x: Math.round(currentX) });
+                currentX += (widgets[i].width || 0) + gap;
+            }
+        } else {
+            widgets.sort((a, b) => a.y - b.y);
+            const first = widgets[0];
+            const last = widgets[widgets.length - 1];
+            const totalHeight = widgets.reduce((sum, w) => sum + (w.height || 0), 0);
+            const totalSpan = (last.y + (last.height || 0)) - first.y;
+            const totalGap = totalSpan - totalHeight;
+            const gap = totalGap / (widgets.length - 1);
+
+            let currentY = first.y;
+            for (let i = 0; i < widgets.length; i++) {
+                this.project.updateWidget(widgets[i].id, { y: Math.round(currentY) });
+                currentY += (widgets[i].height || 0) + gap;
+            }
+        }
+
         this.recordHistory();
         emit(EVENTS.STATE_CHANGED);
     }
@@ -185,6 +441,7 @@ class AppStateFacade {
     moveWidgetToPage(widgetId, targetPageIndex, x = null, y = null) {
         const success = this.project.moveWidgetToPage(widgetId, targetPageIndex, x, y);
         if (success) {
+            this.syncWidgetOrderWithHierarchy();
             this.recordHistory();
             emit(EVENTS.STATE_CHANGED);
         }
@@ -327,6 +584,48 @@ class AppStateFacade {
 
     canUndo() { return this.editor.canUndo(); }
     canRedo() { return this.editor.canRedo(); }
+
+    /**
+     * Synchronizes the flat widgets array with the hierarchy tree.
+     * Ensures that parents are rendered BEFORE (under) their children,
+     * and that children are kept adjacent to their parents.
+     */
+    syncWidgetOrderWithHierarchy() {
+        const page = this.getCurrentPage();
+        if (!page || !page.widgets) return;
+
+        const widgets = [...page.widgets];
+
+        // Find top level widgets (those with no parentId)
+        // We preserve their relative order from the original widgets array
+        const topLevel = widgets.filter(w => !w.parentId);
+
+        // Build children map
+        const childrenMap = new Map();
+        widgets.forEach(w => {
+            if (w.parentId) {
+                if (!childrenMap.has(w.parentId)) childrenMap.set(w.parentId, []);
+                childrenMap.get(w.parentId).push(w);
+            }
+        });
+
+        const sorted = [];
+        const processRecursive = (widget) => {
+            sorted.push(widget);
+            const children = childrenMap.get(widget.id);
+            if (children) {
+                // Keep relative order of siblings as they were in the original array
+                children.sort((a, b) => widgets.indexOf(a) - widgets.indexOf(b));
+                children.forEach(processRecursive);
+            }
+        };
+
+        topLevel.forEach(processRecursive);
+
+        // Update the project's widget array
+        page.widgets = sorted;
+        this.project.rebuildWidgetsIndex();
+    }
 }
 
 export const AppState = new AppStateFacade();

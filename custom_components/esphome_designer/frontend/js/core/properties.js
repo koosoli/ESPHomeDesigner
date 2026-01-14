@@ -167,19 +167,22 @@ export class PropertiesPanel {
         }
 
         // === COMMON PROPERTIES ===
-        this.createSection("Transform", false); // Default to COLLAPSED for Transform per user feedback
-        // this.addSectionLabel("Position & Size"); // Redundant with section title
-        this.addLabeledInput("Position X", "number", widget.x, (v) => {
-            AppState.updateWidget(widget.id, { x: parseInt(v, 10) || 0 });
+        this.createSection("Transform", false);
+        this.addCompactPropertyRow(() => {
+            this.addLabeledInput("Pos X", "number", widget.x, (v) => {
+                AppState.updateWidget(widget.id, { x: parseInt(v, 10) || 0 });
+            });
+            this.addLabeledInput("Pos Y", "number", widget.y, (v) => {
+                AppState.updateWidget(widget.id, { y: parseInt(v, 10) || 0 });
+            });
         });
-        this.addLabeledInput("Position Y", "number", widget.y, (v) => {
-            AppState.updateWidget(widget.id, { y: parseInt(v, 10) || 0 });
-        });
-        this.addLabeledInput("Width", "number", widget.width, (v) => {
-            AppState.updateWidget(widget.id, { width: parseInt(v, 10) || 10 });
-        });
-        this.addLabeledInput("Height", "number", widget.height, (v) => {
-            AppState.updateWidget(widget.id, { height: parseInt(v, 10) || 10 });
+        this.addCompactPropertyRow(() => {
+            this.addLabeledInput("Width", "number", widget.width, (v) => {
+                AppState.updateWidget(widget.id, { width: parseInt(v, 10) || 10 });
+            });
+            this.addLabeledInput("Height", "number", widget.height, (v) => {
+                AppState.updateWidget(widget.id, { height: parseInt(v, 10) || 10 });
+            });
         });
         this.endSection();
 
@@ -427,8 +430,8 @@ export class PropertiesPanel {
 
         if (type === "shape_rect" || type === "shape_circle") {
             this.createSection("Appearance", false);
-            this.addLabeledInput("Opacity (%)", "number", props.opacity !== undefined ? props.opacity : 100, (v) => {
-                updateProp("opacity", parseInt(v, 10));
+            this.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => {
+                updateProp("opacity", v);
             });
             this.addCheckbox("Fill", props.fill || false, (v) => updateProp("fill", v));
             this.addLabeledInput("Border Width", "number", props.border_width || 1, (v) => updateProp("border_width", parseInt(v, 10)));
@@ -438,15 +441,17 @@ export class PropertiesPanel {
         }
         else if (type === "rounded_rect") {
             this.createSection("Appearance", false);
-            this.addLabeledInput("Opacity (%)", "number", props.opacity !== undefined ? props.opacity : 100, (v) => {
-                updateProp("opacity", parseInt(v, 10));
+            this.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => {
+                updateProp("opacity", v);
             });
             this.addCheckbox("Fill", props.fill || false, (v) => updateProp("fill", v));
             if (props.fill) {
                 this.addCheckbox("Show Border", props.show_border || false, (v) => updateProp("show_border", v));
             }
-            this.addLabeledInput("Border Width", "number", props.border_width || 4, (v) => updateProp("border_width", parseInt(v, 10)));
-            this.addLabeledInput("Corner Radius", "number", props.radius || 10, (v) => updateProp("radius", parseInt(v, 10)));
+            this.addCompactPropertyRow(() => {
+                this.addLabeledInput("Border Width", "number", props.border_width || 4, (v) => updateProp("border_width", parseInt(v, 10)));
+                this.addLabeledInput("Corner Radius", "number", props.radius || 10, (v) => updateProp("radius", parseInt(v, 10)));
+            });
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
             this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
             this.endSection();
@@ -456,23 +461,23 @@ export class PropertiesPanel {
             this.addLabeledInput("Opacity (%)", "number", props.opacity !== undefined ? props.opacity : 100, (v) => {
                 updateProp("opacity", parseInt(v, 10));
             });
-            this.addSelect("Orientation", props.orientation || "horizontal", ["horizontal", "vertical"], (v) => {
+            this.addSegmentedControl("Orientation", [
+                { value: "horizontal", label: "Horiz", icon: "mdi-arrow-left-right" },
+                { value: "vertical", label: "Vert", icon: "mdi-arrow-up-down" }
+            ], props.orientation || "horizontal", (v) => {
                 const strokeWidth = parseInt(props.stroke_width || 3, 10);
                 const currentW = widget.width;
                 const currentH = widget.height;
                 const isVert = v === "vertical";
 
-                // When switching orientation, swap the length dimension and set the other to stroke width
                 if (isVert) {
-                    // Switching to vertical: height becomes the length (use current width as reference), width becomes stroke
                     AppState.updateWidget(widget.id, {
                         width: strokeWidth,
-                        height: Math.max(currentW, currentH, 20) // Use the larger dimension as new length
+                        height: Math.max(currentW, currentH, 20)
                     });
                 } else {
-                    // Switching to horizontal: width becomes the length (use current height as reference), height becomes stroke
                     AppState.updateWidget(widget.id, {
-                        width: Math.max(currentW, currentH, 20), // Use the larger dimension as new length
+                        width: Math.max(currentW, currentH, 20),
                         height: strokeWidth
                     });
                 }
@@ -528,8 +533,8 @@ export class PropertiesPanel {
             this.endSection();
 
             this.createSection("Appearance", false);
-            this.addLabeledInput("Opacity (%)", "number", props.opacity !== undefined ? props.opacity : 100, (v) => {
-                updateProp("opacity", parseInt(v, 10));
+            this.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => {
+                updateProp("opacity", v);
             });
             this.addLabeledInput("Font Size", "number", props.font_size || 20, (v) => updateProp("font_size", parseInt(v, 10)));
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
@@ -611,11 +616,13 @@ export class PropertiesPanel {
             this.endSection();
 
             this.createSection("Appearance", false);
-            this.addLabeledInput("Opacity (%)", "number", props.opacity !== undefined ? props.opacity : 100, (v) => {
-                updateProp("opacity", parseInt(v, 10));
+            this.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => {
+                updateProp("opacity", v);
             });
-            this.addLabeledInput("Label Size", "number", props.label_font_size || 14, (v) => updateProp("label_font_size", parseInt(v, 10)));
-            this.addLabeledInput("Value Size", "number", props.value_font_size || 20, (v) => updateProp("value_font_size", parseInt(v, 10)));
+            this.addCompactPropertyRow(() => {
+                this.addLabeledInput("Label Size", "number", props.label_font_size || 14, (v) => updateProp("label_font_size", parseInt(v, 10)));
+                this.addLabeledInput("Value Size", "number", props.value_font_size || 20, (v) => updateProp("value_font_size", parseInt(v, 10)));
+            });
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
 
             // Font Family with Custom Support
@@ -715,18 +722,20 @@ export class PropertiesPanel {
             this.endSection();
 
             this.createSection("Appearance", false);
-            this.addLabeledInput("Opacity (%)", "number", props.opacity !== undefined ? props.opacity : 100, (v) => {
-                updateProp("opacity", parseInt(v, 10));
+            this.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => {
+                updateProp("opacity", v);
             });
             this.addCheckbox("Show Label", props.show_label !== false, (v) => updateProp("show_label", v));
             this.addCheckbox("Show Percentage", props.show_percentage !== false, (v) => updateProp("show_percentage", v));
-            this.addLabeledInput("Bar Height", "number", props.bar_height || 15, (v) => {
-                const val = parseInt(v, 10);
-                updateProp("bar_height", isNaN(val) ? 15 : val);
-            });
-            this.addLabeledInput("Border Width", "number", props.border_width || 1, (v) => {
-                const val = parseInt(v, 10);
-                updateProp("border_width", isNaN(val) ? 1 : val);
+            this.addCompactPropertyRow(() => {
+                this.addLabeledInput("Bar H", "number", props.bar_height || 15, (v) => {
+                    const val = parseInt(v, 10);
+                    updateProp("bar_height", isNaN(val) ? 15 : val);
+                });
+                this.addLabeledInput("Border W", "number", props.border_width || 1, (v) => {
+                    const val = parseInt(v, 10);
+                    updateProp("border_width", isNaN(val) ? 1 : val);
+                });
             });
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
             this.endSection();
@@ -750,8 +759,10 @@ export class PropertiesPanel {
             this.addCheckbox("Show Grid", props.grid !== false, (v) => updateProp("grid", v));
             this.addLabeledInput("X Grid Interval", "text", props.x_grid || "1h", (v) => updateProp("x_grid", v));
             this.addLabeledInput("Y Grid Step", "text", props.y_grid || "auto", (v) => updateProp("y_grid", v));
-            this.addLabeledInput("Min Value", "number", props.min_value || "", (v) => updateProp("min_value", v));
-            this.addLabeledInput("Max Value", "number", props.max_value || "", (v) => updateProp("max_value", v));
+            this.addCompactPropertyRow(() => {
+                this.addLabeledInput("Min Value", "number", props.min_value || "", (v) => updateProp("min_value", v));
+                this.addLabeledInput("Max Value", "number", props.max_value || "", (v) => updateProp("max_value", v));
+            });
             this.endSection();
         }
         else if (type === "icon") {
@@ -1489,11 +1500,11 @@ export class PropertiesPanel {
                 }, widget);
                 this.addHint("Controls this entity number/level");
 
-                // Orientation (vertical/horizontal)
-                const isVertical = props.vertical || false;
-                this.addSelect("Orientation", isVertical ? "Vertical" : "Horizontal", ["Horizontal", "Vertical"], (v) => {
+                this.addSegmentedControl("Orientation", [
+                    { value: "Horizontal", label: "Horiz", icon: "mdi-arrow-left-right" },
+                    { value: "Vertical", label: "Vert", icon: "mdi-arrow-up-down" }
+                ], props.vertical ? "Vertical" : "Horizontal", (v) => {
                     const newVertical = v === "Vertical";
-                    // Swap width/height when changing orientation
                     const oldW = widget.width;
                     const oldH = widget.height;
                     AppState.updateWidget(widget.id, {
@@ -1503,9 +1514,11 @@ export class PropertiesPanel {
                     });
                 });
 
-                this.addLabeledInput("Min Value", "number", props.min || 0, (v) => updateProp("min", parseInt(v, 10)));
-                this.addLabeledInput("Max Value", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
-                this.addLabeledInput("Preview Value", "number", props.value || 30, (v) => updateProp("value", parseInt(v, 10)));
+                this.addCompactPropertyRow(() => {
+                    this.addLabeledInput("Min", "number", props.min || 0, (v) => updateProp("min", parseInt(v, 10)));
+                    this.addLabeledInput("Max", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
+                });
+                this.addNumberWithSlider("Value", props.value || 30, props.min || 0, props.max || 100, (v) => updateProp("value", v));
 
                 this.addColorMixer("Knob/Bar Color", props.color || "black", (v) => updateProp("color", v));
                 this.addColorMixer("Track Color", props.bg_color || "gray", (v) => updateProp("bg_color", v));
@@ -1551,9 +1564,16 @@ export class PropertiesPanel {
             }
             else if (type === "lvgl_dropdown") {
                 this.addLabeledInput("Options (one per line)", "textarea", props.options || "", (v) => updateProp("options", v));
-                this.addLabeledInput("Selected Index", "number", props.selected_index || 0, (v) => updateProp("selected_index", parseInt(v, 10)));
-                this.addSelect("Direction", props.direction || "DOWN", ["DOWN", "UP", "LEFT", "RIGHT"], (v) => updateProp("direction", v));
-                this.addLabeledInput("Max Height", "number", props.max_height || 200, (v) => updateProp("max_height", parseInt(v, 10)));
+                this.addCompactPropertyRow(() => {
+                    this.addLabeledInput("Index", "number", props.selected_index || 0, (v) => updateProp("selected_index", parseInt(v, 10)));
+                    this.addLabeledInput("Max H", "number", props.max_height || 200, (v) => updateProp("max_height", parseInt(v, 10)));
+                });
+                this.addSegmentedControl("Direction", [
+                    { value: "DOWN", icon: "mdi-arrow-down" },
+                    { value: "UP", icon: "mdi-arrow-up" },
+                    { value: "LEFT", icon: "mdi-arrow-left" },
+                    { value: "RIGHT", icon: "mdi-arrow-right" }
+                ], props.direction || "DOWN", (v) => updateProp("direction", v));
                 this.addColorMixer("Color", props.color || "white", (v) => updateProp("color", v));
             }
             else if (type === "lvgl_keyboard") {
@@ -1644,6 +1664,96 @@ export class PropertiesPanel {
 
         this.addSelect("Scrollbar Mode", props.scrollbar_mode || "AUTO", ["AUTO", "ON", "OFF", "ACTIVE"], (v) => updateProp("scrollbar_mode", v));
         this.endSection();
+    }
+
+    // --- Advanced Helpers ---
+
+    addNumberWithSlider(label, value, min, max, onChange) {
+        const wrap = document.createElement("div");
+        wrap.className = "field";
+        const lbl = document.createElement("div");
+        lbl.className = "prop-label";
+        lbl.textContent = label;
+
+        const hybrid = document.createElement("div");
+        hybrid.className = "slider-hybrid";
+
+        const slider = document.createElement("input");
+        slider.type = "range";
+        slider.min = min;
+        slider.max = max;
+        slider.value = value;
+
+        const input = document.createElement("input");
+        input.className = "prop-input";
+        input.type = "number";
+        input.value = value;
+        input.min = min;
+        input.max = max;
+
+        slider.addEventListener("input", () => {
+            input.value = slider.value;
+            onChange(parseInt(slider.value, 10));
+        });
+
+        input.addEventListener("input", () => {
+            slider.value = input.value;
+            onChange(parseInt(input.value, 10));
+        });
+
+        hybrid.appendChild(slider);
+        hybrid.appendChild(input);
+        wrap.appendChild(lbl);
+        wrap.appendChild(hybrid);
+        this.getContainer().appendChild(wrap);
+    }
+
+    addSegmentedControl(label, options, value, onChange) {
+        const wrap = document.createElement("div");
+        wrap.className = "field";
+        const lbl = document.createElement("div");
+        lbl.className = "prop-label";
+        lbl.textContent = label;
+
+        const control = document.createElement("div");
+        control.className = "segmented-control";
+
+        options.forEach(opt => {
+            const item = document.createElement("div");
+            item.className = "segment-item" + (opt.value === value ? " active" : "");
+            item.title = opt.label || opt.value;
+
+            if (opt.icon) {
+                item.innerHTML = `<i class="mdi ${opt.icon}"></i>`;
+            } else {
+                item.textContent = opt.label || opt.value;
+            }
+
+            item.onclick = () => {
+                control.querySelectorAll(".segment-item").forEach(i => i.classList.remove("active"));
+                item.classList.add("active");
+                onChange(opt.value);
+            };
+            control.appendChild(item);
+        });
+
+        wrap.appendChild(lbl);
+        wrap.appendChild(control);
+        this.getContainer().appendChild(wrap);
+    }
+
+    /**
+     * Executes a callback within a 2-column grid row
+     */
+    addCompactPropertyRow(callback) {
+        const grid = document.createElement("div");
+        grid.className = "prop-grid-2";
+        this.getContainer().appendChild(grid);
+
+        // Temporarily push grid as container
+        this.containerStack.push(grid);
+        callback();
+        this.containerStack.pop();
     }
 
     // --- Helpers ---

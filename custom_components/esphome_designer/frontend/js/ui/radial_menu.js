@@ -106,6 +106,38 @@ export class RadialMenu {
                 }
             });
 
+            // Grouping logic in radial
+            const selectedIds = state.selectedWidgetIds;
+            const hasGroupInSelection = selectedIds.some(id => {
+                const w = state.getWidgetById(id);
+                return w && (w.type === 'group' || w.parentId);
+            });
+
+            if (selectedIds.length > 1 && !hasGroupInSelection) {
+                actions.push({
+                    label: 'Group',
+                    icon: 'mdi-group',
+                    callback: () => state.groupSelection()
+                });
+            }
+
+            if (widget.type === 'group' || widget.parentId) {
+                actions.push({
+                    label: 'Ungroup',
+                    icon: 'mdi-ungroup',
+                    callback: () => state.ungroupSelection(this.targetWidgetId)
+                });
+            }
+
+            actions.push({
+                label: 'Duplicate',
+                icon: 'mdi-content-duplicate',
+                callback: () => {
+                    state.copyWidget();
+                    state.pasteWidget();
+                }
+            });
+
             actions.push({
                 label: widget.locked ? 'Unlock' : 'Lock',
                 icon: widget.locked ? 'mdi-lock-open-outline' : 'mdi-lock-outline',
@@ -130,6 +162,27 @@ export class RadialMenu {
                     state.deleteWidget(this.targetWidgetId);
                 }
             });
+
+            const page = state.getCurrentPage();
+            const idx = page?.widgets.findIndex(w => w.id === this.targetWidgetId);
+
+            if (idx !== -1) {
+                actions.push({
+                    label: 'Bring to Front',
+                    icon: 'mdi-arrange-bring-to-front',
+                    callback: () => {
+                        state.reorderWidget(state.currentPageIndex, idx, page.widgets.length - 1);
+                    }
+                });
+
+                actions.push({
+                    label: 'Send to Back',
+                    icon: 'mdi-arrange-send-to-back',
+                    callback: () => {
+                        state.reorderWidget(state.currentPageIndex, idx, 0);
+                    }
+                });
+            }
         } else {
             // Canvas specific actions
             actions.push({

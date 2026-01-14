@@ -61,6 +61,32 @@ export default {
         text_align: "CENTER"
     },
     render,
+    exportLVGL: (w, { common, convertColor, convertAlign, getLVGLFont, formatOpacity }) => {
+        const p = w.props || {};
+        const format = p.format || "time_date";
+
+        let fmt = "%H:%M"; // Default time_only or fallback
+        if (format === "date_only") {
+            fmt = "%d.%m.%Y";
+        } else if (format === "time_date") {
+            fmt = "%H:%M\\n%a, %b %d";
+        }
+
+        let lambdaStr = '!lambda |-\n';
+        lambdaStr += `              auto now = id(ha_time).now();\n`;
+        lambdaStr += `              return now.strftime("${fmt}").c_str();`;
+
+        return {
+            label: {
+                ...common,
+                text: lambdaStr,
+                text_font: getLVGLFont(p.font_family, p.time_font_size || 28, p.font_weight, p.italic),
+                text_color: convertColor(p.color),
+                text_align: (convertAlign(p.text_align) || "CENTER").replace("TOP_", "").replace("BOTTOM_", ""),
+                opa: formatOpacity(p.opa)
+            }
+        };
+    },
     export: (w, context) => {
         const {
             lines, getColorConst, addFont, getCondProps, getConditionCheck, getAlignY

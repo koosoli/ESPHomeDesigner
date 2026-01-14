@@ -125,6 +125,12 @@ textarea {
     background: var(--accent-soft);
 }
 
+.btn-icon.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid var(--accent-soft);
+}
+
 .btn-ai-sparkle {
     background: var(--accent-soft) !important;
     color: var(--accent) !important;
@@ -795,30 +801,30 @@ kbd {
 .hierarchy-list {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0;
 }
 
 .hierarchy-item {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 8px;
-    border-radius: 6px;
-    background: var(--bg-base);
-    border: 1px solid transparent;
+    padding: 6px 12px;
+    background: transparent;
+    border: none;
     cursor: grab;
-    transition: all 0.2s;
+    transition: background 0.1s;
     user-select: none;
+    position: relative;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
 }
 
 .hierarchy-item:hover {
-    background: var(--bg-surface);
-    border-color: var(--border-subtle);
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .hierarchy-item.selected {
     background: var(--accent-soft);
-    border-color: var(--accent);
+    border-left: 2px solid var(--accent);
 }
 
 .hierarchy-item.hidden-widget {
@@ -936,11 +942,19 @@ kbd {
 }
 
 .hierarchy-item.dragging {
-    opacity: 0.3;
+    opacity: 0.15;
 }
 
-.hierarchy-item.drag-over {
-    border-top: 2px solid var(--accent);
+.hierarchy-item.drag-over::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -1px;
+    height: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent-soft);
+    z-index: 10;
 }
 
 .widget.hidden-widget {
@@ -959,4 +973,131 @@ kbd {
 .hierarchy-item.locked .toggle-lock {
     opacity: 1;
     color: var(--accent);
+}
+
+/* Header Toggles */
+.hierarchy-header-toggles {
+    display: flex;
+    gap: 4px;
+}
+
+.h-toggle {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0.4;
+    transition: all 0.2s;
+    color: var(--text-muted);
+}
+
+.h-toggle:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text);
+}
+
+.h-toggle.active {
+    opacity: 1;
+    color: var(--accent);
+}
+
+/* Advanced Property Controls */
+.prop-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.prop-grid-2 .field {
+    margin-bottom: 0 !important;
+}
+
+.segmented-control {
+    display: flex;
+    background: var(--prop-input-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 4px;
+    height: 28px;
+}
+
+.segment-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    border-right: 1px solid var(--border-subtle);
+    user-select: none;
+}
+
+.segment-item:last-child {
+    border-right: none;
+}
+
+.segment-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+}
+
+.segment-item.active {
+    background: var(--accent);
+    color: var(--white);
+    border-right-color: transparent;
+}
+
+.slider-hybrid {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.slider-hybrid input[type='range'] {
+    flex: 1;
+    height: 4px;
+    background: var(--border-subtle);
+    border-radius: 2px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.slider-hybrid .prop-input {
+    width: 50px;
+    text-align: center;
+}
+
+/* Hierarchy Nesting & Groups */
+.child-item {
+    border-left: 2px solid var(--border-subtle);
+}
+
+.hierarchy-group-toggle {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-muted);
+}
+
+.hierarchy-group-toggle i {
+    transform: rotate(-90deg);
+    transition: transform 0.2s;
+    font-size: 11px;
+}
+
+.hierarchy-group-toggle.expanded i {
+    transform: rotate(0deg);
 }

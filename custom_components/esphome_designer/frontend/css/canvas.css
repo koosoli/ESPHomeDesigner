@@ -12,6 +12,64 @@
     background: var(--bg-surface);
 }
 
+/* Rulers */
+.canvas-rulers {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 5;
+    /* Lower than widgets/controls */
+}
+
+.ruler {
+    position: absolute;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+    font-size: 9px;
+    font-family: var(--font-mono);
+    pointer-events: none;
+}
+
+.ruler-h {
+    top: 0;
+    left: 20px;
+    right: 0;
+    height: 20px;
+    border-top: none;
+    border-left: none;
+}
+
+.ruler-v {
+    top: 20px;
+    left: 0;
+    bottom: 0;
+    width: 20px;
+    border-top: none;
+    border-left: none;
+}
+
+.ruler-corner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 20px;
+    height: 20px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-top: none;
+    border-left: none;
+    z-index: 61;
+    pointer-events: none;
+}
+
+.ruler canvas {
+    display: block;
+}
+
 .canvas-controls {
     position: absolute;
     top: var(--space-4);
@@ -63,6 +121,8 @@
     padding: 1000px;
     /* Large padding to allow centering first/last objects */
     min-width: max-content;
+    position: relative;
+    z-index: 10;
 }
 
 .artboard-wrapper {
@@ -141,6 +201,11 @@
     transition: box-shadow 0.4s var(--t-base), transform 0.4s var(--t-base);
 }
 
+.canvas-viewport.with-rulers {
+    padding-top: 20px;
+    padding-left: 20px;
+}
+
 .artboard.round-display {
     border-radius: 50%;
     /* Ensure all widgets and grid are clipped to the circle */
@@ -200,46 +265,135 @@
     cursor: default;
 }
 
-.widget.locked .widget-resize-handle {
-    display: none;
-}
-
 .widget.active {
-    outline: 2px solid var(--accent);
-    box-shadow: 0 0 0 2px rgba(82, 199, 234, 0.4);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent);
     background-color: var(--accent-soft);
 }
 
+/* Marching Ants Animation */
+.widget.active::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border: 2px solid transparent;
+    background:
+        linear-gradient(white, white) padding-box,
+        repeating-linear-gradient(-45deg,
+            var(--accent) 0, var(--accent) 5px,
+            transparent 5px, transparent 10px) border-box;
+    mask:
+        linear-gradient(#fff 0 0) padding-box,
+        linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: destination-out;
+    pointer-events: none;
+    z-index: 1;
+    animation: marchingAnts 0.5s infinite linear;
+    border-radius: 4px;
+    /* Matches default widget feel if any */
+}
+
+@keyframes marchingAnts {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: 14px 0;
+    }
+}
+
+.widget.active.locked::before {
+    background:
+        linear-gradient(white, white) padding-box,
+        repeating-linear-gradient(-45deg,
+            var(--danger) 0, var(--danger) 5px,
+            transparent 5px, transparent 10px) border-box;
+}
+
 .widget.active.locked {
-    outline: 2px solid var(--danger);
-    box-shadow: 0 0 0 2px rgba(255, 107, 129, 0.4);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--danger);
 }
 
 .widget-resize-handle {
+    display: none;
+    /* Hidden by default */
     position: absolute;
-    width: 14px;
-    height: 14px;
-    border-radius: 4px;
-    background: var(--accent);
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.7);
-    cursor: nwse-resize;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--white);
+    border: 2px solid var(--accent);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     z-index: 10;
     pointer-events: auto;
+    /* Center handles on edges */
+    margin: -5px;
+}
+
+.widget.active:not(.locked) .widget-resize-handle {
+    display: block;
+    /* Only show when selected/active and not locked */
+}
+
+.widget-resize-handle:hover {
+    background: var(--accent);
+    transform: scale(1.2);
+}
+
+.handle-tl {
+    top: 0;
+    left: 0;
+    cursor: nw-resize;
+}
+
+.handle-tc {
+    top: 0;
+    left: 50%;
+    cursor: n-resize;
+}
+
+.handle-tr {
+    top: 0;
+    left: 100%;
+    cursor: ne-resize;
+}
+
+.handle-rc {
+    top: 50%;
+    left: 100%;
+    cursor: e-resize;
+}
+
+.handle-br {
+    top: 100%;
+    left: 100%;
+    cursor: se-resize;
+}
+
+.handle-bc {
+    top: 100%;
+    left: 50%;
+    cursor: s-resize;
+}
+
+.handle-bl {
+    top: 100%;
+    left: 0;
+    cursor: sw-resize;
+}
+
+.handle-lc {
+    top: 50%;
+    left: 0;
+    cursor: w-resize;
 }
 
 .widget-resize-handle::after {
-    content: "";
-    width: 8px;
-    height: 2px;
-    border-radius: 2px;
-    background: var(--bg-base);
-    transform: rotate(40deg);
-    opacity: 0.9;
+    /* Remove old handle content */
+    display: none;
 }
 
 .snap-guide {
@@ -267,4 +421,130 @@
     background: var(--accent-soft);
     pointer-events: none;
     z-index: 1000;
+}
+
+/* Contextual Toolbar */
+.context-toolbar {
+    position: absolute;
+    display: flex;
+    gap: 4px;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: 4px;
+    box-shadow: var(--glass-shadow);
+    z-index: 2000;
+    pointer-events: none;
+    /* Allow clicks to pass through background to widgets */
+    transition: opacity 0.2s, transform 0.2s;
+    animation: toolbarPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes toolbarPop {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.context-toolbar .btn-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+    border-radius: 6px;
+    pointer-events: auto;
+    /* Buttons remain interactive */
+}
+
+.context-toolbar .btn-icon:hover {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.context-toolbar .separator {
+    width: 1px;
+    height: 20px;
+    background: var(--border-subtle);
+    align-self: center;
+    margin: 0 2px;
+}
+
+/* Distance Markers */
+.distance-marker {
+    position: absolute;
+    pointer-events: none;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-size: 10px;
+    font-weight: bold;
+    font-family: monospace;
+}
+
+.distance-marker::before {
+    content: '';
+    position: absolute;
+    background: var(--accent);
+    opacity: 0.6;
+}
+
+.distance-marker-h::before {
+    height: 1px;
+    left: 0;
+    right: 0;
+}
+
+.distance-marker-v::before {
+    width: 1px;
+    top: 0;
+    bottom: 0;
+}
+
+.distance-marker-label {
+    background: var(--accent);
+    color: white;
+    padding: 1px 4px;
+    border-radius: 3px;
+    z-index: 2;
+}
+
+/* Ticks */
+.distance-marker-h-tick-start,
+.distance-marker-h-tick-end {
+    position: absolute;
+    width: 1px;
+    height: 8px;
+    background: var(--accent);
+}
+
+.distance-marker-h-tick-start {
+    left: 0;
+}
+
+.distance-marker-h-tick-end {
+    right: 0;
+}
+
+.distance-marker-v-tick-start,
+.distance-marker-v-tick-end {
+    position: absolute;
+    height: 1px;
+    width: 8px;
+    background: var(--accent);
+}
+
+.distance-marker-v-tick-start {
+    top: 0;
+}
+
+.distance-marker-v-tick-end {
+    bottom: 0;
 }

@@ -237,7 +237,7 @@ export default {
         const isText2 = entityId2 && (p.is_text_sensor || entityId2.startsWith("text_sensor.") || entityId2.startsWith("weather."));
 
         let lambdaStr = '!lambda |-\n';
-        lambdaStr += `          if (${v1}.has_state()${v2 ? ` && ${v2}.has_state()` : ""}) {\n`;
+        lambdaStr += `              if (${v1}.has_state()${v2 ? ` && ${v2}.has_state()` : ""}) {\n`;
 
         const unit = p.unit || "";
         const prefix = p.prefix || "";
@@ -267,9 +267,9 @@ export default {
             finalFmt = `${prefix}${valFmt1}${v2 ? sep + valFmt2 : ""}${unit ? " " + unit : ""}${postfix}`;
         }
 
-        lambdaStr += `            return str_sprintf("${finalFmt}", ${arg1}${arg2 ? `, ${arg2}` : ""}).c_str();\n`;
-        lambdaStr += '          }\n';
-        lambdaStr += '          return "---";';
+        lambdaStr += `                return str_sprintf("${finalFmt}", ${arg1}${arg2 ? `, ${arg2}` : ""}).c_str();\n`;
+        lambdaStr += '              }\n';
+        lambdaStr += '              return "---";';
 
         return {
             label: {

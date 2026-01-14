@@ -202,6 +202,9 @@ export class DeviceSettings {
             psram: this.customPsram.checked,
             displayDriver: this.customDisplayDriver.value,
             touchTech: this.customTouchTech.value,
+            backlightMinPower: parseFloat(getVal('customBacklightMinPower')) || 0.07,
+            backlightInitial: parseFloat(getVal('customBacklightInitial')) || 0.8,
+            antiburn: !!document.getElementById('customAntiburn')?.checked,
             pins: {
                 cs: getVal('pin_cs'),
                 dc: getVal('pin_dc'),

@@ -39,6 +39,8 @@ export class PreferencesStore {
     get snapEnabled() { return this.state.snapEnabled; }
     /** @returns {boolean} */
     get showGrid() { return this.state.showGrid; }
+    /** @returns {boolean} */
+    get showRulers() { return this.state.showRulers; }
     /** @returns {number} */
     get gridOpacity() { return this.state.gridOpacity; }
     /** @returns {boolean} */
@@ -61,5 +63,11 @@ export class PreferencesStore {
     setShowGrid(enabled) {
         this.state.showGrid = enabled;
         emit(EVENTS.SETTINGS_CHANGED, { showGrid: enabled });
+    }
+
+    /** @param {boolean} enabled */
+    setShowRulers(enabled) {
+        this.state.showRulers = enabled;
+        emit(EVENTS.SETTINGS_CHANGED, { showRulers: enabled });
     }
 }

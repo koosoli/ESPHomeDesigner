@@ -42,6 +42,7 @@ export const ORIENTATIONS = {
 export const DEFAULT_PREFERENCES = {
     snapEnabled: true,
     showGrid: true,
+    showRulers: false,
     gridOpacity: 8,
     editor_light_mode: false,
     aiProvider: "gemini",

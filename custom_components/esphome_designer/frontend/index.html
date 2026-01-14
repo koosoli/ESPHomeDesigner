@@ -22,7 +22,7 @@
   <header class="main-header" role="banner">
     <div class="main-header-title">
       <h2><span class="logo-dot"></span> ESPHome Designer</h2>
-      <span>Visual YAML Editor <small style="opacity: 0.5; margin-left: 8px;">Pre_0.9.0b77</small> <span
+      <span>Visual YAML Editor <small style="opacity: 0.5; margin-left: 8px;">Pre_0.9.0b90</small> <span
           id="currentLayoutDevice" style="margin-left:8px; color:var(--accent);"></span></span>
     </div>
     <div class="main-header-actions desktop-only">
@@ -118,7 +118,12 @@
     <div class="resizer" id="resizer-left"></div>
 
     <main class="main" role="main">
-      <div class="canvas-viewport">
+      <div id="canvasViewport" class="canvas-viewport">
+        <div class="canvas-rulers">
+          <div id="rulerTop" class="ruler ruler-h"></div>
+          <div id="rulerLeft" class="ruler ruler-v"></div>
+          <div class="ruler-corner"></div>
+        </div>
         <div class="canvas-controls">
           <div class="canvas-info">
             <span id="currentPageName">Loading...</span>
@@ -126,6 +131,18 @@
             <span id="zoomLevel">100%</span>
           </div>
           <div class="zoom-actions">
+            <button id="gridToggleBtn" class="btn-icon" title="Toggle Grid">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"></path>
+              </svg>
+            </button>
+            <button id="rulersToggleBtn" class="btn-icon" title="Toggle Rulers" style="margin-right: 8px;">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                  d="M5 7h14c1.1 0 2 .9 2 2v6c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2zm2 8v-3m4 3V9m4 6v-3">
+                </path>
+              </svg>
+            </button>
             <button id="zoomOutBtn" class="btn-icon" title="Zoom Out">−</button>
             <button id="zoomResetBtn" class="btn-icon" title="Reset View">⌂</button>
             <button id="zoomInBtn" class="btn-icon" title="Zoom In">+</button>
@@ -443,6 +460,30 @@
                 <input id="pin_touch_rst" class="prop-input-sm" type="text" placeholder="GPIO15" />
               </div>
             </div>
+          </div>
+
+          <div class="hardware-group" style="margin-top:12px;">
+            <div class="prop-label">Backlight Configuration (LCD/OLED)</div>
+            <div style="font-size:10px; color:var(--muted); margin-bottom:8px;">PWM brightness control via LEDC output.
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div class="field">
+                <div class="prop-label" style="font-size:10px;">Min Power</div>
+                <input id="customBacklightMinPower" class="prop-input-sm" type="number" step="0.01" min="0" max="1"
+                  placeholder="0.07" value="0.07" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:10px;">Initial Brightness</div>
+                <input id="customBacklightInitial" class="prop-input-sm" type="number" step="0.1" min="0" max="1"
+                  placeholder="0.8" value="0.8" />
+              </div>
+            </div>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin-top:8px;">
+              <input id="customAntiburn" type="checkbox" />
+              <span style="font-size:10px;">Enable Anti-Burn Protection (LVGL)</span>
+            </label>
+            <div style="font-size:9px; color:var(--muted); margin-left:20px;">Cycles pixels when idle to prevent LCD
+              burn-in. Requires LVGL.</div>
           </div>
 
           <div class="field" style="margin-top:16px; border-top:1px solid var(--border-subtle); padding-top:12px;">
@@ -966,6 +1007,18 @@
           <div class="shortcut-item">
             <span class="shortcut-label">Snap Off</span>
             <span class="shortcut-key"><kbd>ALT</kbd></span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-label">Group</span>
+            <span class="shortcut-key"><kbd>Ctrl+G</kbd></span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-label">Ungroup</span>
+            <span class="shortcut-key"><kbd>Ctrl+Shift+G</kbd></span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-label">Smart Spacing</span>
+            <span class="shortcut-key"><kbd>CTRL Drag</kbd></span>
           </div>
         </div>
       </div>

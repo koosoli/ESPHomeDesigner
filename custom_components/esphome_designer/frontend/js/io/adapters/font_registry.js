@@ -100,9 +100,9 @@ export class FontRegistry {
         this.fontLines.forEach(f => {
             lines.push(`  - file:`);
             lines.push(`      type: ${f.file.type}`);
-            lines.push(`      family: ${f.file.family}`);
+            lines.push(`      family: "${f.file.family}"`);
             lines.push(`      weight: ${f.file.weight}`);
-            if (f.file.italic) lines.push(`      italic: true`);
+            lines.push(`      italic: ${f.file.italic ? "true" : "false"}`);
             lines.push(`    id: ${f.id}`);
             lines.push(`    size: ${f.size}`);
             const glyphs = f.glyphs.map(g => `"${g}"`).join(", ");

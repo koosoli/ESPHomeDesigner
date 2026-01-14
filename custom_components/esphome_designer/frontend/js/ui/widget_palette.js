@@ -304,6 +304,7 @@ export async function renderWidgetPalette(containerId) {
                 <span class="label">${label}</span>
                 ${tagHtml}
             `;
+            itemEl.title = `Add ${label} to canvas`;
 
             itemEl.addEventListener('dragstart', (e) => {
                 e.dataTransfer.setData('application/widget-type', widget.type);

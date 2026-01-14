@@ -168,11 +168,14 @@ export function setupInteractions(canvasInstance) {
                 if (widget.locked) return;
                 canvasInstance.dragState = {
                     mode: "resize",
+                    handle: ev.target.dataset.handle || 'br',
                     id: widgetId,
                     startX: ev.clientX,
                     startY: ev.clientY,
                     startW: widget.width,
                     startH: widget.height,
+                    startWidgetX: widget.x,
+                    startWidgetY: widget.y,
                     artboardEl: currentArtboardEl,
                     dragStartPanX: canvasInstance.panX,
                     dragStartPanY: canvasInstance.panY
@@ -199,6 +202,9 @@ export function setupInteractions(canvasInstance) {
                     dragStartPanX: canvasInstance.panX,
                     dragStartPanY: canvasInstance.panY
                 };
+                if (canvasInstance.rulers) canvasInstance.rulers.setIndicators({
+                    x: widget.x, y: widget.y, w: widget.width, h: widget.height
+                });
             }
 
             window.addEventListener("mousemove", canvasInstance._boundMouseMove);
@@ -272,7 +278,7 @@ export function onMouseMove(ev, canvasInstance) {
             } else {
                 // Determine if we should snap
                 if (AppState.snapEnabled && !ev.altKey) {
-                    const snapped = applySnapToPosition(canvasInstance, primaryWidget, targetX, targetY, ev.altKey, dims, currentArtboardEl);
+                    const snapped = applySnapToPosition(canvasInstance, primaryWidget, targetX, targetY, ev.altKey, dims, currentArtboardEl, ev.ctrlKey);
                     targetX = snapped.x;
                     targetY = snapped.y;
                 } else {
@@ -285,30 +291,85 @@ export function onMouseMove(ev, canvasInstance) {
             const dy = targetY - primaryOffset.startY;
 
             // Move all selected widgets by the same displacement
+            const primaryDx = dx;
+            const primaryDy = dy;
+
             for (const wInfo of canvasInstance.dragState.widgets) {
                 const widget = AppState.getWidgetById(wInfo.id);
                 if (widget && !widget.locked) {
-                    widget.x = wInfo.startX + dx;
-                    widget.y = wInfo.startY + dy;
+                    widget.x = wInfo.startX + primaryDx;
+                    widget.y = wInfo.startY + primaryDy;
                     updateWidgetDOM(canvasInstance, widget, true);
+
+                    // If this is a group, move its children too
+                    if (widget.type === 'group') {
+                        const children = page.widgets.filter(w => w.parentId === widget.id);
+                        children.forEach(child => {
+                            // We need to keep track of child start positions separately if they aren't in dragState.widgets
+                            // For now, if they aren't in selection, we move them by delta
+                            if (!canvasInstance.dragState.widgets.find(sw => sw.id === child.id)) {
+                                // Direct delta move for non-selected children
+                                child.x += primaryDx - (canvasInstance.dragState.lastDx || 0);
+                                child.y += primaryDy - (canvasInstance.dragState.lastDy || 0);
+                                updateWidgetDOM(canvasInstance, child, true);
+                            }
+                        });
+                    }
                 }
+            }
+            canvasInstance.dragState.lastDx = primaryDx;
+            canvasInstance.dragState.lastDy = primaryDy;
+
+            if (canvasInstance.rulers) {
+                canvasInstance.rulers.setIndicators({
+                    x: targetX, y: targetY, w: primaryWidget.width, h: primaryWidget.height
+                });
             }
         } else if (canvasInstance.dragState.mode === "resize") {
             const widget = AppState.getWidgetById(canvasInstance.dragState.id);
             if (!widget) return;
 
-            const panDx = (canvasInstance.dragState.dragStartPanX - canvasInstance.panX) / zoom;
-            const panDy = (canvasInstance.dragState.dragStartPanY - canvasInstance.panY) / zoom;
+            const ds = canvasInstance.dragState;
+            const handle = ds.handle;
+            const panDx = (ds.dragStartPanX - canvasInstance.panX) / zoom;
+            const panDy = (ds.dragStartPanY - canvasInstance.panY) / zoom;
+            const dx = (ev.clientX - ds.startX) / zoom + panDx;
+            const dy = (ev.clientY - ds.startY) / zoom + panDy;
 
-            let w = canvasInstance.dragState.startW + (ev.clientX - canvasInstance.dragState.startX) / zoom + panDx;
-            let h = canvasInstance.dragState.startH + (ev.clientY - canvasInstance.dragState.startY) / zoom + panDy;
+            let newX = ds.startWidgetX;
+            let newY = ds.startWidgetY;
+            let newW = ds.startW;
+            let newH = ds.startH;
+
+            // Horizontal resize
+            if (handle.includes('l')) {
+                newW = ds.startW - dx;
+                newX = ds.startWidgetX + dx;
+            } else if (handle.includes('r')) {
+                newW = ds.startW + dx;
+            }
+
+            // Vertical resize
+            if (handle.includes('t')) {
+                newH = ds.startH - dy;
+                newY = ds.startWidgetY + dy;
+            } else if (handle.includes('b')) {
+                newH = ds.startH + dy;
+            }
 
             // NaN Safety and Minimum Clamping
-            if (isNaN(w)) w = canvasInstance.dragState.startW;
-            if (isNaN(h)) h = canvasInstance.dragState.startH;
+            const minSize = 4;
+            if (isNaN(newW)) newW = ds.startW;
+            if (isNaN(newH)) newH = ds.startH;
 
-            w = Math.max(1, w);
-            h = Math.max(1, h);
+            if (newW < minSize) {
+                if (handle.includes('l')) newX = ds.startWidgetX + ds.startW - minSize;
+                newW = minSize;
+            }
+            if (newH < minSize) {
+                if (handle.includes('t')) newY = ds.startWidgetY + ds.startH - minSize;
+                newH = minSize;
+            }
 
             const wtype = (widget.type || "").toLowerCase();
 
@@ -318,19 +379,23 @@ export function onMouseMove(ev, canvasInstance) {
                 const strokeWidth = parseInt(props.stroke_width || props.line_width || 3, 10);
 
                 if (orientation === "vertical") {
-                    w = strokeWidth;
-                    h = Math.max(10, h);
+                    newW = strokeWidth;
+                    newH = Math.max(10, newH);
                 } else {
-                    h = strokeWidth;
-                    w = Math.max(10, w);
+                    newH = strokeWidth;
+                    newW = Math.max(10, newW);
                 }
             }
 
-            const minSize = 1;
-            w = Math.max(minSize, Math.min(dims.width - widget.x, w));
-            h = Math.max(minSize, Math.min(dims.height - widget.y, h));
-            widget.width = Math.round(w);
-            widget.height = Math.round(h);
+            // Bound clamping can interfere with smooth resizing if not careful, 
+            // but let's keep it consistent with the target artboard
+            newX = Math.max(0, Math.min(dims.width - newW, newX));
+            newY = Math.max(0, Math.min(dims.height - newH, newY));
+
+            widget.x = Math.round(newX);
+            widget.y = Math.round(newY);
+            widget.width = Math.round(newW);
+            widget.height = Math.round(newH);
 
             if (wtype === "icon" || wtype === "weather_icon" || wtype === "battery_icon" || wtype === "wifi_signal" || wtype === "ondevice_temperature" || wtype === "ondevice_humidity") {
                 const props = widget.props || {};
@@ -349,6 +414,11 @@ export function onMouseMove(ev, canvasInstance) {
             }
 
             updateWidgetDOM(canvasInstance, widget);
+            if (canvasInstance.rulers) {
+                canvasInstance.rulers.setIndicators({
+                    x: widget.x, y: widget.y, w: widget.width, h: widget.height
+                });
+            }
         }
         // render calls skipped for perf
     } else if (canvasInstance.lassoState) {
@@ -444,6 +514,7 @@ export function onMouseUp(ev, canvasInstance) {
         window.removeEventListener("mousemove", canvasInstance._boundMouseMove);
         window.removeEventListener("mouseup", canvasInstance._boundMouseUp);
         canvasInstance.dragState = null;
+        if (canvasInstance.rulers) canvasInstance.rulers.setIndicators(null);
         clearSnapGuides();
 
         updateWidgetGridCell(widgetId);
@@ -562,6 +633,8 @@ export function setupZoomControls(canvasInstance) {
     const zoomInBtn = document.getElementById("zoomInBtn");
     const zoomOutBtn = document.getElementById("zoomOutBtn");
     const zoomResetBtn = document.getElementById("zoomResetBtn");
+    const gridToggleBtn = document.getElementById("gridToggleBtn");
+    const rulersToggleBtn = document.getElementById("rulersToggleBtn");
     const gridOpacityInput = document.getElementById("editorGridOpacity");
 
     if (zoomInBtn) {
@@ -572,6 +645,29 @@ export function setupZoomControls(canvasInstance) {
     }
     if (zoomResetBtn) {
         zoomResetBtn.addEventListener("click", () => zoomReset(canvasInstance));
+    }
+    if (gridToggleBtn) {
+        // Sync initial UI
+        gridToggleBtn.classList.toggle("active", !!AppState.showGrid);
+
+        gridToggleBtn.addEventListener("click", () => {
+            const newState = !AppState.showGrid;
+            AppState.setShowGrid(newState);
+            gridToggleBtn.classList.toggle("active", newState);
+            Logger.log(`[Canvas] Grid toggled: ${newState}`);
+        });
+    }
+
+    if (rulersToggleBtn) {
+        // Sync initial UI
+        rulersToggleBtn.classList.toggle("active", !!AppState.showRulers);
+
+        rulersToggleBtn.addEventListener("click", () => {
+            const newState = !AppState.showRulers;
+            AppState.setShowRulers(newState);
+            rulersToggleBtn.classList.toggle("active", newState);
+            Logger.log(`[Canvas] Rulers toggled: ${newState}`);
+        });
     }
     if (gridOpacityInput) {
         gridOpacityInput.addEventListener("input", (e) => {
@@ -609,6 +705,13 @@ export function setupZoomControls(canvasInstance) {
         } else if (ev.ctrlKey && ev.key.toLowerCase() === "r") {
             ev.preventDefault();
             zoomReset(canvasInstance);
+        } else if (ev.ctrlKey && ev.key.toLowerCase() === "g") {
+            ev.preventDefault();
+            if (ev.shiftKey) {
+                AppState.ungroupSelection();
+            } else {
+                AppState.groupSelection();
+            }
         }
     });
 }

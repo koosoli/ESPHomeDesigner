@@ -53,6 +53,9 @@ export class PluginRegistry {
     async load(id) {
         const targetId = this.aliases[id] || id;
 
+        // 0. Skip internal types that don't need a plugin
+        if (targetId === 'group') return null;
+
         // 1. Check if already loaded
         if (this.plugins.has(targetId)) {
             return this.plugins.get(targetId);

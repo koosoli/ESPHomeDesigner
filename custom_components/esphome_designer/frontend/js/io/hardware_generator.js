@@ -114,21 +114,76 @@ export function generateCustomHardwareYaml(config) {
     lines.push("      # __LAMBDA_PLACEHOLDER__");
     lines.push("");
 
-    // Backlight (PWM)
+    // Backlight (PWM) with brightness control
     if (pins.backlight) {
+        const minPower = config.backlightMinPower ?? 0.07;
+        const initialBrightness = config.backlightInitial ?? 0.8;
+        const antiburn = !!config.antiburn;
+
         lines.push("output:");
         lines.push("  - platform: ledc");
         lines.push(`    pin: ${pins.backlight}`);
-        lines.push("    id: backlight_pwm");
+        lines.push("    id: backlight_brightness_output");
+        lines.push(`    min_power: "${minPower}"`);
+        lines.push("    zero_means_zero: true");
         lines.push("");
         lines.push("light:");
         lines.push("  - platform: monochromatic");
-        lines.push("    output: backlight_pwm");
-        lines.push("    name: Backlight");
-        lines.push("    id: backlight_light");
+        lines.push("    output: backlight_brightness_output");
+        lines.push("    id: lcdbacklight_brightness");
+        lines.push("    name: LCD Backlight");
+        lines.push("    icon: mdi:wall-sconce-flat-outline");
         lines.push("    restore_mode: ALWAYS_ON");
+        lines.push("    initial_state:");
+        lines.push(`      brightness: "${initialBrightness}"`);
+        if (antiburn) {
+            lines.push("    on_turn_off:");
+            lines.push("      - script.execute: start_antiburn");
+            lines.push("    on_turn_on:");
+            lines.push("      - script.execute: stop_antiburn");
+        }
         lines.push("");
+
+        // Antiburn scripts and switch (only if enabled)
+        if (antiburn) {
+            lines.push("script:");
+            lines.push("  - id: start_antiburn");
+            lines.push("    then:");
+            lines.push("      - delay: 5min");
+            lines.push("      - logger.log: Starting automatic antiburn.");
+            lines.push("      - switch.turn_on: switch_antiburn");
+            lines.push("  - id: stop_antiburn");
+            lines.push("    then:");
+            lines.push("      - script.stop: start_antiburn");
+            lines.push("      - switch.turn_off: switch_antiburn");
+            lines.push("");
+            lines.push("switch:");
+            lines.push("  - platform: template");
+            lines.push("    name: Antiburn");
+            lines.push("    id: switch_antiburn");
+            lines.push("    icon: mdi:television-shimmer");
+            lines.push("    optimistic: true");
+            lines.push("    entity_category: config");
+            lines.push("    turn_on_action:");
+            lines.push("      - logger.log: \"Starting Antiburn\"");
+            lines.push("      - if:");
+            lines.push("          condition: lvgl.is_paused");
+            lines.push("          then:");
+            lines.push("            - lvgl.resume:");
+            lines.push("            - lvgl.widget.redraw:");
+            lines.push("      - lvgl.pause:");
+            lines.push("          show_snow: true");
+            lines.push("    turn_off_action:");
+            lines.push("      - logger.log: \"Stopping Antiburn\"");
+            lines.push("      - if:");
+            lines.push("          condition: lvgl.is_paused");
+            lines.push("          then:");
+            lines.push("            - lvgl.resume:");
+            lines.push("            - lvgl.widget.redraw:");
+            lines.push("");
+        }
     }
+
 
     // Touchscreen
     if (touchTech !== "none") {

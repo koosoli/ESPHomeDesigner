@@ -317,7 +317,7 @@ class LayoutManager {
 
         try {
             // Trigger download via the export endpoint
-            const url = `${HA_API_BASE}/layouts/${layoutId}/export`;
+            const url = `${HA_API_BASE}/export?id=${layoutId}`;
             const a = document.createElement("a");
             a.href = url;
             a.download = `${layoutId}_layout.json`;
@@ -542,7 +542,7 @@ class LayoutManager {
         if (typeof hasHaBackend !== "function" || !hasHaBackend()) return;
 
         try {
-            const url = `${HA_API_BASE}/layouts/import${overwrite ? "?overwrite=true" : ""}`;
+            const url = `${HA_API_BASE}/import${overwrite ? "?overwrite=true" : ""}`;
             const resp = await fetch(url, {
                 method: "POST",
                 headers: getHaHeaders(),

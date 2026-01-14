@@ -212,31 +212,75 @@ export class ProjectStore {
     moveWidgetToPage(widgetId, targetPageIndex, x = null, y = null) {
         if (targetPageIndex < 0 || targetPageIndex >= this.state.pages.length) return false;
 
-        // Find current page
-        let sourcePage = null;
-        let sourceWidgetIndex = -1;
+        const targetPage = this.state.pages[targetPageIndex];
+        const allMovedIds = new Set();
+        const movements = [];
 
-        for (const page of this.state.pages) {
-            sourceWidgetIndex = page.widgets.findIndex(w => w.id === widgetId);
-            if (sourceWidgetIndex !== -1) {
-                sourcePage = page;
-                break;
+        // 0. Resolve to root group if the widget is part of a group
+        let rootWidgetId = widgetId;
+        let initialWidget = this.state.widgetsById.get(widgetId);
+        if (initialWidget && initialWidget.parentId) {
+            let current = initialWidget;
+            while (current.parentId) {
+                const parent = this.state.widgetsById.get(current.parentId);
+                if (parent) {
+                    current = parent;
+                } else {
+                    break;
+                }
             }
+            rootWidgetId = current.id;
         }
 
-        if (!sourcePage) return false;
+        // 1. Collect all widgets to move (recursively from root)
+        const collect = (id) => {
+            if (allMovedIds.has(id)) return;
 
-        const targetPage = this.state.pages[targetPageIndex];
-        if (sourcePage === targetPage) return false;
+            let found = null;
+            let sp = null;
+            for (const p of this.state.pages) {
+                found = p.widgets.find(w => w.id === id);
+                if (found) { sp = p; break; }
+            }
 
-        // Move widget
-        const [widget] = sourcePage.widgets.splice(sourceWidgetIndex, 1);
+            if (!found || !sp || sp === targetPage) return;
 
-        if (x !== null) widget.x = x;
-        if (y !== null) widget.y = y;
+            allMovedIds.add(id);
+            movements.push({ widget: found, sourcePage: sp });
 
-        targetPage.widgets.push(widget);
+            // Collect children
+            const children = sp.widgets.filter(w => w.parentId === id);
+            children.forEach(c => collect(c.id));
+        };
 
+        collect(rootWidgetId);
+
+        if (movements.length === 0) return false;
+
+        // 2. Perform movement
+        movements.forEach((m, idx) => {
+            const { widget, sourcePage } = m;
+
+            // Remove from source
+            const sIdx = sourcePage.widgets.indexOf(widget);
+            if (sIdx !== -1) sourcePage.widgets.splice(sIdx, 1);
+
+            // Cleanup parentId for the root item if parent isn't moved
+            if (idx === 0 && widget.parentId && !allMovedIds.has(widget.parentId)) {
+                widget.parentId = null;
+            }
+
+            // Update position for root only
+            if (idx === 0) {
+                if (x !== null) widget.x = x;
+                if (y !== null) widget.y = y;
+            }
+
+            // Add to target
+            targetPage.widgets.push(widget);
+        });
+
+        this.rebuildWidgetsIndex();
         emit(EVENTS.STATE_CHANGED);
         return true;
     }

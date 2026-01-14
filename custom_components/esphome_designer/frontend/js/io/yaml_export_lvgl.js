@@ -58,7 +58,7 @@ export function generateLVGLSnippet(pages, deviceModel) {
             return;
         }
 
-        widgets.forEach(w => {
+        widgets.filter(w => w.type !== 'group').forEach(w => {
             // Generate widget marker comment for import/parsing
             lines.push(`        ${serializeWidget(w)}`);
 

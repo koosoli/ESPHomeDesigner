@@ -20,8 +20,15 @@
 - **Relocated Layer Controls**: Moved "Layer Order" buttons (Front/Back/Up/Down) to the Hierarchy panel.
 - **Inline Text Editing**: Double-click any text widget on the canvas to edit it instantly.
 - **Advanced Multi-Selection**: Full synchronization between Canvas, Hierarchy View, and YAML Editor.
+- **True Atomic Grouping**: Groups now behave as solid containers. Dragging a group to another page transports the entire hierarchy, and reordering a group moves all its children as a single unit, keeping layer orders perfectly synchronized.
 - **Drop Shadow Tool**: One-click "Create Drop Shadow" for shapes.
 - **Hardware-Aware Energy Strategies**: The "Power & Refresh Strategy" section now dynamically adapts to your display technology. LCD and OLED devices now feature specific "Always On", "Backlight Off Schedule", and "Ultra Eco" strategies that switch automatically based on the selected hardware profile.
+- **Experimental Plugin: Grouping & Layout Tools**:
+  - **Batch Alignment/Distribution:** Select multiple widgets to align them (Left/Center/Right/Top/Middle/Bottom) or distribute them evenly.
+  - **Contextual Layout Toolbar:** A smart toolbar appears above your selection for quick access to alignment and grouping actions.
+  - **Grouping Support:** Group multiple widgets into a single unit (`Ctrl+G`) to move, delete, or layer them together. Ungroup with `Ctrl+Shift+G`.
+  - **Smart Spacing Guides:** Hold `Ctrl` while dragging to see pixel-perfect distance markers between the active widget and its neighbors.
+  - **Interactive Canvas Rulers:** Precision top/left rulers that show absolute coordinates, scale with zoom, and highlight the selected widget's position.
 
 ### 🐛 Bug Fixes & Improvements
 - **Viewport Scrollbar Cleanup:** Disabled conflicting native scrollbars in favor of 100% transform-based panning for smoother navigation.

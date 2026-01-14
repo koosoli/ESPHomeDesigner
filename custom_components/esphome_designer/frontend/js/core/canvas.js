@@ -1,6 +1,7 @@
 import { AppState } from './state.js';
 import { on, EVENTS } from './events.js';
 import { render, applyZoom } from './canvas_renderer.js';
+import { CanvasRulers } from './canvas_rulers.js';
 import { setupInteractions, setupPanning, setupZoomControls, setupDragAndDrop, zoomIn, zoomOut, zoomReset, onMouseMove, onMouseUp } from './canvas_interactions.js';
 import { setupTouchInteractions } from './canvas_touch.js';
 import { clearSnapGuides, addSnapGuideVertical, addSnapGuideHorizontal, getSnapLines, applySnapToPosition } from './canvas_snap.js';
@@ -24,6 +25,8 @@ export class Canvas {
         this._boundMouseMove = (ev) => onMouseMove(ev, this);
         this._boundMouseUp = (ev) => onMouseUp(ev, this);
 
+        this.rulers = new CanvasRulers(this);
+
         this.init();
     }
 
@@ -41,8 +44,12 @@ export class Canvas {
         on(EVENTS.SETTINGS_CHANGED, () => {
             this.render();
             this.applyZoom();
+            this.rulers.update();
         });
-        on(EVENTS.ZOOM_CHANGED, () => this.applyZoom());
+        on(EVENTS.ZOOM_CHANGED, () => {
+            this.applyZoom();
+            this.rulers.update();
+        });
 
         // Handle window resizing to keep canvas centered
         this._boundResize = () => {
@@ -78,6 +85,7 @@ export class Canvas {
 
     applyZoom() {
         applyZoom(this);
+        if (this.rulers) this.rulers.update();
     }
 
     setupInteractions() {

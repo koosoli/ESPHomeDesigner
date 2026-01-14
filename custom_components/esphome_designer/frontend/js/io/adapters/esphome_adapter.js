@@ -442,7 +442,7 @@ export class ESPHomeAdapter extends BaseAdapter {
     async preProcessWidgets(pages) {
         for (const p of pages) {
             if (p.widgets) {
-                for (const w of p.widgets.filter(widget => !widget.hidden)) {
+                for (const w of p.widgets.filter(widget => !widget.hidden && widget.type !== 'group')) {
                     const type = w.type;
                     const plugin = PluginRegistry ? await PluginRegistry.load(type) : null;
                     if (plugin) {
@@ -523,7 +523,7 @@ export class ESPHomeAdapter extends BaseAdapter {
             lines.push(`  color_on = COLOR_BLACK;`);
 
             if (page.widgets) {
-                page.widgets.filter(w => !w.hidden).forEach(w => {
+                page.widgets.filter(w => !w.hidden && w.type !== 'group').forEach(w => {
                     const widgetLines = this.generateWidget(w, {
                         profile,
                         layout,
@@ -563,6 +563,7 @@ export class ESPHomeAdapter extends BaseAdapter {
      * @returns {string[]}
      */
     generateWidget(widget, context) {
+        if (widget.type === 'group') return [];
         const widgetLines = [];
         const plugin = PluginRegistry ? PluginRegistry.get(widget.type) : null;
         const isLvglWidget = widget.type && widget.type.startsWith("lvgl_");

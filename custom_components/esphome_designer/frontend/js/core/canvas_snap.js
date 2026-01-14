@@ -50,12 +50,72 @@ export function getSnapLines(excludeWidgetId, dims) {
     return { vertical, horizontal };
 }
 
-export function applySnapToPosition(canvasInstance, widget, x, y, altKey, dims, artboardEl) {
+export function addDistanceMarker(canvasInstance, rectA, rectB, axis, artboardEl) {
+    const parent = artboardEl || canvasInstance.canvas;
+    if (!parent) return;
+
+    const marker = document.createElement("div");
+    marker.className = `snap-guide distance-marker distance-marker-${axis}`;
+
+    let x, y, w, h, val;
+    if (axis === 'h') {
+        const left = Math.min(rectA.x + rectA.w, rectB.x + rectB.w);
+        const right = Math.max(rectA.x, rectB.x);
+        // Correct gap calculation: distance between the closer edges
+        const x1 = rectA.x < rectB.x ? rectA.x + rectA.w : rectB.x + rectB.w;
+        const x2 = rectA.x < rectB.x ? rectB.x : rectA.x;
+        x = x1;
+        y = Math.min(rectA.y + rectA.h / 2, rectB.y + rectB.h / 2);
+        w = x2 - x1;
+        if (w <= 0) return; // No gap
+        val = Math.round(w);
+        marker.style.left = `${x}px`;
+        marker.style.top = `${y}px`;
+        marker.style.width = `${w}px`;
+        marker.style.height = `1px`;
+
+        const tStart = document.createElement("div");
+        tStart.className = "distance-marker-h-tick-start";
+        const tEnd = document.createElement("div");
+        tEnd.className = "distance-marker-h-tick-end";
+        marker.appendChild(tStart);
+        marker.appendChild(tEnd);
+    } else {
+        const y1 = rectA.y < rectB.y ? rectA.y + rectA.h : rectB.y + rectB.h;
+        const y2 = rectA.y < rectB.y ? rectB.y : rectA.y;
+        y = y1;
+        x = Math.min(rectA.x + rectA.w / 2, rectB.x + rectB.w / 2);
+        h = y2 - y1;
+        if (h <= 0) return; // No gap
+        val = Math.round(h);
+        marker.style.left = `${x}px`;
+        marker.style.top = `${y}px`;
+        marker.style.width = `1px`;
+        marker.style.height = `${h}px`;
+
+        const tStart = document.createElement("div");
+        tStart.className = "distance-marker-v-tick-start";
+        const tEnd = document.createElement("div");
+        tEnd.className = "distance-marker-v-tick-end";
+        marker.appendChild(tStart);
+        marker.appendChild(tEnd);
+    }
+
+    const label = document.createElement("div");
+    label.className = "distance-marker-label";
+    label.textContent = val;
+    marker.appendChild(label);
+    parent.appendChild(marker);
+}
+
+export function applySnapToPosition(canvasInstance, widget, x, y, altKey, dims, artboardEl, ctrlKey = false) {
     if (!AppState.snapEnabled || altKey) {
         clearSnapGuides();
         return { x: Math.round(x), y: Math.round(y) };
     }
 
+    const page = AppState.getCurrentPage();
+    const otherWidgets = (page?.widgets || []).filter(w => w.id !== widget.id && !w.hidden);
     const snapLines = getSnapLines(widget.id, dims);
     const w = widget.width || 0;
     const h = widget.height || 0;
@@ -65,7 +125,7 @@ export function applySnapToPosition(canvasInstance, widget, x, y, altKey, dims, 
     let snappedV = null;
     let snappedH = null;
 
-    // Vertical Snap
+    // 1. Standard Edge/Center Snapping
     const vCandidates = [
         { val: x, apply: (line) => (snappedX = line) },
         { val: x + w / 2, apply: (line) => (snappedX = line - w / 2) },
@@ -84,7 +144,6 @@ export function applySnapToPosition(canvasInstance, widget, x, y, altKey, dims, 
         }
     }
 
-    // Horizontal Snap
     const hCandidates = [
         { val: y, apply: (line) => (snappedY = line) },
         { val: y + h / 2, apply: (line) => (snappedY = line - h / 2) },
@@ -103,13 +162,38 @@ export function applySnapToPosition(canvasInstance, widget, x, y, altKey, dims, 
         }
     }
 
-    // Clamp to canvas
-    snappedX = Math.max(0, Math.min(dims.width - w, snappedX));
-    snappedY = Math.max(0, Math.min(dims.height - h, snappedY));
+    // 2. Smart Spacing Detection (Gap Snapping)
+    // Find closest horizontal neighbor to the left and right
+    const myRect = { x: snappedX, y: snappedY, w, h };
 
     clearSnapGuides();
     if (snappedV != null) addSnapGuideVertical(canvasInstance, snappedV, artboardEl);
     if (snappedH != null) addSnapGuideHorizontal(canvasInstance, snappedH, artboardEl);
+
+    // Show distances to neighbors if they are roughly aligned - ONLY IF CTRL IS PRESSED
+    if (ctrlKey) {
+        otherWidgets.forEach(other => {
+            const otherRect = { x: other.x, y: other.y, w: other.width, h: other.height };
+
+            // Horizontal distance
+            const dominatesH = (myRect.y < otherRect.y + otherRect.h && myRect.y + myRect.h > otherRect.y);
+            if (dominatesH) {
+                const gap = myRect.x < otherRect.x ? otherRect.x - (myRect.x + myRect.w) : myRect.x - (otherRect.x + otherRect.w);
+                if (gap > 0 && gap < 150) { // Only show if close enough
+                    addDistanceMarker(canvasInstance, myRect, otherRect, 'h', artboardEl);
+                }
+            }
+
+            // Vertical distance
+            const dominatesV = (myRect.x < otherRect.x + otherRect.w && myRect.x + myRect.w > otherRect.x);
+            if (dominatesV) {
+                const gap = myRect.y < otherRect.y ? otherRect.y - (myRect.y + myRect.h) : myRect.y - (otherRect.y + otherRect.h);
+                if (gap > 0 && gap < 150) {
+                    addDistanceMarker(canvasInstance, myRect, otherRect, 'v', artboardEl);
+                }
+            }
+        });
+    }
 
     return {
         x: Math.round(snappedX),

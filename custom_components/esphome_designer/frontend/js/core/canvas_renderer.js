@@ -2,6 +2,7 @@ import { AppState } from './state.js';
 import { registry as FeatureRegistry } from './plugin_registry.js';
 import { Logger } from '../utils/logger.js';
 import { getColorStyle } from '../utils/device.js';
+import { emit, EVENTS } from './events.js';
 
 export function render(canvasInstance) {
     if (!canvasInstance.canvas) return;
@@ -169,7 +170,11 @@ export function render(canvasInstance) {
             const type = (widget.type || "").toLowerCase();
             const feature = FeatureRegistry ? FeatureRegistry.get(type) : null;
 
-            if (feature && feature.render) {
+            if (type === 'group') {
+                // Internal group rendering: simple container logic
+                el.classList.add('widget-group');
+                el.innerHTML = ''; // Groups are mostly invisible containers
+            } else if (feature && feature.render) {
                 try {
                     const wrappedGetColorStyle = (color) => {
                         if (!color) return isDark ? '#ffffff' : '#000000';
@@ -186,7 +191,9 @@ export function render(canvasInstance) {
                 el.style.border = "1px dashed red";
             }
 
-            addResizeHandle(el);
+            if (type !== 'group') {
+                addResizeHandles(el);
+            }
             artboard.appendChild(el);
         }
 
@@ -195,6 +202,9 @@ export function render(canvasInstance) {
     });
 
     if (existingLasso) canvasInstance.canvas.appendChild(existingLasso);
+
+    // Render contextual toolbar for selection
+    renderContextToolbar(canvasInstance);
 }
 
 function createIconButton(text, title, onClick) {
@@ -318,7 +328,10 @@ export function updateWidgetDOM(canvasInstance, widget, skipPluginRender = false
         // Re-render plugin logic for real-time updates (e.g. font-size in icons)
         const type = (widget.type || "").toLowerCase();
         const feature = FeatureRegistry ? FeatureRegistry.get(type) : null;
-        if (!skipPluginRender && feature && feature.render) {
+
+        if (type === 'group') {
+            el.classList.add('widget-group');
+        } else if (!skipPluginRender && feature && feature.render) {
             try {
                 const wrappedGetColorStyle = (color) => {
                     const pageTheme = getEffectiveDarkMode() ? 'dark' : 'light';
@@ -399,8 +412,146 @@ function renderLvglGridOverlay(canvasInstance, layout, dims, isDark) {
     canvasInstance.canvas.appendChild(gridOverlay);
 }
 
-function addResizeHandle(el) {
-    const handle = document.createElement("div");
-    handle.className = "widget-resize-handle";
-    el.appendChild(handle);
+function addResizeHandles(el) {
+    const handles = ['tl', 'tc', 'tr', 'rc', 'br', 'bc', 'bl', 'lc'];
+    handles.forEach(type => {
+        const handle = document.createElement("div");
+        handle.className = `widget-resize-handle handle-${type}`;
+        handle.dataset.handle = type;
+        el.appendChild(handle);
+    });
 }
+
+function renderContextToolbar(canvasInstance) {
+    // Remove any existing toolbar
+    const existing = canvasInstance.canvas.querySelector(".context-toolbar");
+    if (existing) existing.remove();
+
+    const selectedIds = AppState.selectedWidgetIds;
+    if (selectedIds.length === 0) return;
+
+    // Don't show toolbar during active drag/resize to avoid jumping
+    if (canvasInstance.dragState || canvasInstance.lassoState) return;
+
+    const widgets = AppState.getSelectedWidgets();
+    if (widgets.length === 0) return;
+
+    // Calculate bounding box of selection in canvas space
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    widgets.forEach(w => {
+        minX = Math.min(minX, w.x);
+        minY = Math.min(minY, w.y);
+        maxX = Math.max(maxX, w.x + (w.width || 0));
+        maxY = Math.max(maxY, w.y + (w.height || 0));
+    });
+
+    // Create toolbar
+    const toolbar = document.createElement("div");
+    toolbar.className = "context-toolbar";
+
+    // Multi-selection tools
+    if (selectedIds.length > 1) {
+        // Alignment
+        const alignTools = [
+            { icon: 'mdi-align-horizontal-left', title: 'Align Left', action: 'left' },
+            { icon: 'mdi-align-horizontal-center', title: 'Align Center', action: 'center' },
+            { icon: 'mdi-align-horizontal-right', title: 'Align Right', action: 'right' },
+            { separator: true },
+            { icon: 'mdi-align-vertical-top', title: 'Align Top', action: 'top' },
+            { icon: 'mdi-align-vertical-center', title: 'Align Middle', action: 'middle' },
+            { icon: 'mdi-align-vertical-bottom', title: 'Align Bottom', action: 'bottom' }
+        ];
+
+        alignTools.forEach(tool => {
+            if (tool.separator) {
+                const sep = document.createElement("div");
+                sep.className = "separator";
+                toolbar.appendChild(sep);
+                return;
+            }
+            const btn = document.createElement("button");
+            btn.className = "btn-icon";
+            btn.title = tool.title;
+            btn.innerHTML = `<i class="mdi ${tool.icon}"></i>`;
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                AppState.alignSelectedWidgets(tool.action);
+            };
+            toolbar.appendChild(btn);
+        });
+
+        // Distribution (min 3 widgets)
+        if (selectedIds.length >= 3) {
+            const distSep = document.createElement("div");
+            distSep.className = "separator";
+            toolbar.appendChild(distSep);
+
+            const distTools = [
+                { icon: 'mdi-distribute-horizontal-spacing', title: 'Distribute Horizontally', action: 'horizontal' },
+                { icon: 'mdi-distribute-vertical-spacing', title: 'Distribute Vertically', action: 'vertical' }
+            ];
+
+            distTools.forEach(tool => {
+                const btn = document.createElement("button");
+                btn.className = "btn-icon";
+                btn.title = tool.title;
+                btn.innerHTML = `<i class="mdi ${tool.icon}"></i>`;
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    AppState.distributeSelectedWidgets(tool.action);
+                };
+                toolbar.appendChild(btn);
+            });
+        }
+
+        // Grouping
+        const groupSep = document.createElement("div");
+        groupSep.className = "separator";
+        toolbar.appendChild(groupSep);
+
+        const groupBtn = document.createElement("button");
+        groupBtn.className = "btn-icon";
+        groupBtn.title = "Group Selection (Ctrl+G)";
+        groupBtn.innerHTML = `<i class="mdi mdi-object-group"></i>`;
+        groupBtn.onclick = (e) => {
+            e.stopPropagation();
+            AppState.groupSelection();
+        };
+        toolbar.appendChild(groupBtn);
+    }
+
+    // Ungrouping check (Single or Multi)
+    const hasUngroupable = widgets.some(w => w.type === 'group' || w.parentId);
+    if (hasUngroupable) {
+        const ungroupBtn = document.createElement("button");
+        ungroupBtn.className = "btn-icon";
+        ungroupBtn.title = "Ungroup (Ctrl+Shift+G)";
+        ungroupBtn.innerHTML = `<i class="mdi mdi-object-ungroup"></i>`;
+        ungroupBtn.onclick = (e) => {
+            e.stopPropagation();
+            AppState.ungroupSelection();
+        };
+
+        // Add separator if there's already content (alignment tools)
+        if (toolbar.children.length > 0) {
+            const sep = document.createElement("div");
+            sep.className = "separator";
+            toolbar.appendChild(sep);
+        }
+        toolbar.appendChild(ungroupBtn);
+    }
+
+    // Hide toolbar if it's empty (e.g. single widget that is not a group/child)
+    if (toolbar.children.length === 0) return;
+
+    // Position toolbar above bounding box
+    // Find absolute position within the active artboard
+    const artboard = canvasInstance.canvas.querySelector(`.artboard[data-index="${AppState.currentPageIndex}"]`);
+    if (!artboard) return;
+
+    toolbar.style.left = minX + "px";
+    toolbar.style.top = (minY - 45) + "px"; // 45px offset above bounding box
+
+    artboard.appendChild(toolbar);
+}
+
