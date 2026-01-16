@@ -14,6 +14,9 @@ class AppStateFacade {
         this.preferences = new PreferencesStore();
         this.secrets = new SecretsStore();
 
+        // Guard flag to prevent history recording during undo/redo
+        this._isRestoringHistory = false;
+
         this.recordHistory();
     }
 
@@ -566,6 +569,10 @@ class AppStateFacade {
 
     // --- History ---
     recordHistory() {
+        // Skip recording if we're in the middle of restoring history (undo/redo)
+        if (this._isRestoringHistory) {
+            return;
+        }
         this.editor.recordHistory({
             pages: this.project.pages,
             deviceName: this.project.deviceName
@@ -574,16 +581,26 @@ class AppStateFacade {
 
     undo() {
         const s = this.editor.undo();
-        if (s) this.restoreSnapshot(s);
+        if (s) {
+            this._isRestoringHistory = true;
+            this.restoreSnapshot(s);
+            // Use setTimeout to ensure flag is cleared after all sync listeners run
+            setTimeout(() => { this._isRestoringHistory = false; }, 0);
+        }
     }
 
     redo() {
         const s = this.editor.redo();
-        if (s) this.restoreSnapshot(s);
+        if (s) {
+            this._isRestoringHistory = true;
+            this.restoreSnapshot(s);
+            setTimeout(() => { this._isRestoringHistory = false; }, 0);
+        }
     }
 
     restoreSnapshot(s) {
-        this.project.state.pages = s.pages;
+        // CRITICAL: Deep clone to prevent mutating the history stack object
+        this.project.state.pages = JSON.parse(JSON.stringify(s.pages));
         this.project.state.deviceName = s.deviceName;
         this.project.rebuildWidgetsIndex();
         emit(EVENTS.STATE_CHANGED);

@@ -93,17 +93,45 @@ export class KeyboardHandler {
 
         // Undo: Ctrl+Z
         if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "z" && !ev.shiftKey) {
-            if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") return;
+            if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") {
+                // Allow global undo when snippetBox has auto-highlighted text
+                if (ev.target.id === "snippetBox" && isAutoHighlight) {
+                    ev.preventDefault();
+                    // Prevent focus stealing during undo state restoration
+                    window._undoRedoInProgress = true;
+                    state.undo();
+                    setTimeout(() => { window._undoRedoInProgress = false; }, 100);
+                    return;
+                }
+                return;
+            }
             ev.preventDefault();
+            // Prevent focus stealing during undo state restoration
+            window._undoRedoInProgress = true;
             state.undo();
+            setTimeout(() => { window._undoRedoInProgress = false; }, 100);
             return;
         }
 
         // Redo: Ctrl+Y or Ctrl+Shift+Z
         if ((ev.ctrlKey || ev.metaKey) && (ev.key.toLowerCase() === "y" || (ev.key.toLowerCase() === "z" && ev.shiftKey))) {
-            if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") return;
+            if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") {
+                // Allow global redo when snippetBox has auto-highlighted text
+                if (ev.target.id === "snippetBox" && isAutoHighlight) {
+                    ev.preventDefault();
+                    // Prevent focus stealing during redo state restoration
+                    window._undoRedoInProgress = true;
+                    state.redo();
+                    setTimeout(() => { window._undoRedoInProgress = false; }, 100);
+                    return;
+                }
+                return;
+            }
             ev.preventDefault();
+            // Prevent focus stealing during redo state restoration
+            window._undoRedoInProgress = true;
             state.redo();
+            setTimeout(() => { window._undoRedoInProgress = false; }, 100);
             return;
         }
 

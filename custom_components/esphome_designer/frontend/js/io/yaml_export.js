@@ -96,7 +96,8 @@ export function highlightWidgetInSnippet(widgetIds) {
                 // CRITICAL: If only one widget is selected, we DO want focus to move
                 // to the box so Ctrl+C works immediately and the highlight is visible.
                 // For multiple/Select All, we skip this to stay on the canvas.
-                if (ids.length === 1) {
+                // Also skip if undo/redo is in progress to prevent focus stealing.
+                if (ids.length === 1 && !window._undoRedoInProgress) {
                     box.focus();
                 }
             } catch (e) {

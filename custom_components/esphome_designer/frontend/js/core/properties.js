@@ -59,6 +59,9 @@ export class PropertiesPanel {
     render() {
         if (!this.panel) return;
 
+        // Suppress updates during lasso drag to keep 60fps
+        if (window.Canvas && window.Canvas.lassoState) return;
+
         // Get current selected widget ID
         const currentWidgetId = AppState.selectedWidgetId;
 

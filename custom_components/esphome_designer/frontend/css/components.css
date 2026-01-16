@@ -396,6 +396,18 @@ textarea {
     caret-color: var(--text);
 }
 
+/* Prevent text selection from revealing underlying text when syntax highlighting is on */
+/* Keep selection background visible for widget highlighting, but text must stay transparent */
+.snippet-container.highlighted .snippet-box::selection {
+    color: transparent;
+    background: rgba(82, 199, 234, 0.4);
+}
+
+.snippet-container.highlighted .snippet-box::-moz-selection {
+    color: transparent;
+    background: rgba(82, 199, 234, 0.4);
+}
+
 /* Light Syntax Highlighting Palette - "Goldilocks" Saturation Refinement */
 .hl-comment {
     color: #828a91;

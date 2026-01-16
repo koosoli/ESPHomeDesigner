@@ -239,6 +239,7 @@ export function setupInteractions(canvasInstance) {
                 startY,
                 rect: null,
                 isAdditive: ev.shiftKey || ev.ctrlKey,
+                initialSelection: [...AppState.selectedWidgetIds],
                 artboardEl: currentArtboardEl
             };
 
@@ -467,9 +468,11 @@ export function onMouseMove(ev, canvasInstance) {
         }
 
         // Real-time selection feedback
+        // Real-time selection feedback
         const page = AppState.getCurrentPage();
         if (page) {
-            const currentSelection = new Set(canvasInstance.lassoState.isAdditive ? AppState.selectedWidgetIds : []);
+            // Use initialSelection as base for additive logic
+            const currentSelection = new Set(canvasInstance.lassoState.isAdditive ? canvasInstance.lassoState.initialSelection : []);
             canvasInstance.lassoState.currentSelection = [];
 
             const lassoRect = {
@@ -497,17 +500,19 @@ export function onMouseMove(ev, canvasInstance) {
                     if (intersects) {
                         el.classList.add("active");
                         currentSelection.add(widget.id);
-                    } else if (!canvasInstance.lassoState.isAdditive || !AppState.selectedWidgetIds.includes(widget.id)) {
+                    } else if (canvasInstance.lassoState.isAdditive && canvasInstance.lassoState.initialSelection.includes(widget.id)) {
+                        // Keep it active if it was initially selected
+                        el.classList.add("active");
+                    } else {
                         el.classList.remove("active");
                     }
                 }
             }
             canvasInstance.lassoState.currentSelection = Array.from(currentSelection);
 
-            // Live Highlight YAML
-            if (typeof highlightWidgetInSnippet === 'function') {
-                highlightWidgetInSnippet(canvasInstance.lassoState.currentSelection);
-            }
+            // SYNC GLOBAL STATE LIVE
+            // This triggers Hierarchy and Snippet updates via event listeners
+            AppState.selectWidgets(canvasInstance.lassoState.currentSelection);
         }
 
         ev.preventDefault();

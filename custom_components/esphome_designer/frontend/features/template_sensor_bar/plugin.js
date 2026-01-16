@@ -256,7 +256,7 @@ const exportDoc = (w, context) => {
         }
     }
 
-    addDitherMask(lines, colorProp, isEpaper, w.x, w.y, w.width, w.height);
+
     lines.push(`        }`);
     if (cond) lines.push(`        }`);
 };

@@ -325,6 +325,21 @@ export default {
             }
         }
 
+        // Fallback: Heuristic unit detection from entity ID if still no unit
+        if (!unit && !p.hide_unit && !format.endsWith("_no_unit") && entityId) {
+            const eid = entityId.toLowerCase();
+            if (eid.includes("_power") || eid.includes("_watt")) unit = "W";
+            else if (eid.includes("_energy") || eid.includes("_kwh")) unit = "kWh";
+            else if (eid.includes("_temperature") || eid.includes("_temp")) unit = "°C";
+            else if (eid.includes("_humidity")) unit = "%";
+            else if (eid.includes("_voltage") || eid.includes("_volt")) unit = "V";
+            else if (eid.includes("_current") || eid.includes("_amp")) unit = "A";
+            else if (eid.includes("_battery")) unit = "%";
+            else if (eid.includes("_pressure") || eid.includes("_hpa")) unit = "hPa";
+            else if (eid.includes("_speed") || eid.includes("_kmh")) unit = "km/h";
+            else if (eid.includes("_percent") || eid.includes("_pct")) unit = "%";
+        }
+
         const labelFS = p.label_font_size || 14;
         const valueFS = p.value_font_size || 20;
         const family = p.font_family || "Roboto";
