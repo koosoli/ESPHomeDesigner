@@ -153,6 +153,13 @@ class AppStateFacade {
     }
     selectWidgets(ids) { this.editor.setSelectedWidgetIds(ids); }
 
+    selectAllWidgets() {
+        const page = this.getCurrentPage();
+        if (!page || !page.widgets) return;
+        const ids = page.widgets.map(w => w.id);
+        this.selectWidgets(ids);
+    }
+
     updateSettings(newSettings) {
         const secretUpdates = {};
         const prefUpdates = {};

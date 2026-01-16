@@ -62,7 +62,7 @@ export class KeyboardHandler {
         }
 
         // Copy: Ctrl+C
-        if ((ev.ctrlKey || ev.metaKey) && ev.key === "c") {
+        if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "c") {
             if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") {
                 if (ev.target.id === "snippetBox" && isAutoHighlight) {
                     ev.preventDefault();
@@ -73,10 +73,11 @@ export class KeyboardHandler {
             }
             ev.preventDefault();
             this.copyWidget();
+            return;
         }
 
         // Paste: Ctrl+V
-        if ((ev.ctrlKey || ev.metaKey) && ev.key === "v") {
+        if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "v") {
             if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") {
                 if (ev.target.id === "snippetBox" && isAutoHighlight) {
                     ev.preventDefault();
@@ -87,18 +88,23 @@ export class KeyboardHandler {
             }
             ev.preventDefault();
             this.pasteWidget();
+            return;
         }
 
         // Undo: Ctrl+Z
-        if ((ev.ctrlKey || ev.metaKey) && ev.key === "z" && !ev.shiftKey) {
+        if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "z" && !ev.shiftKey) {
+            if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") return;
             ev.preventDefault();
             state.undo();
+            return;
         }
 
         // Redo: Ctrl+Y or Ctrl+Shift+Z
-        if ((ev.ctrlKey || ev.metaKey) && (ev.key === "y" || (ev.key === "z" && ev.shiftKey))) {
+        if ((ev.ctrlKey || ev.metaKey) && (ev.key.toLowerCase() === "y" || (ev.key.toLowerCase() === "z" && ev.shiftKey))) {
+            if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") return;
             ev.preventDefault();
             state.redo();
+            return;
         }
 
         // Lock/Unlock: Ctrl+L
@@ -109,6 +115,21 @@ export class KeyboardHandler {
             // Toggle: if all are locked, unlock them. Otherwise, lock all.
             state.updateWidgets(state.selectedWidgetIds, { locked: !allLocked });
         }
+
+        // Select All: Ctrl+A
+        if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "a") {
+            const isSnippetAuto = ev.target.id === "snippetBox" && isAutoHighlight;
+            if ((ev.target.tagName !== "INPUT" && ev.target.tagName !== "TEXTAREA") || isSnippetAuto) {
+                ev.preventDefault();
+                state.selectAllWidgets();
+                return;
+            }
+        }
+    }
+
+    // Add interaction detection for inputs
+    static isInput(el) {
+        return el.tagName === "INPUT" || el.tagName === "TEXTAREA";
     }
 
     deleteWidget(widgetId) {

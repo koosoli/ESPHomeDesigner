@@ -143,8 +143,8 @@ const exportDoc = (w, context) => {
     // Entity IDs
     const wifiId = (p.wifi_entity || "wifi_signal_dbm").replace(/[^a-zA-Z0-9_]/g, "_");
     const batId = (p.bat_entity || "battery_level").replace(/[^a-zA-Z0-9_]/g, "_");
-    const humId = (p.hum_entity || (profile.features?.sht4x ? "sht4x_humidity" : (profile.features?.sht3x ? "sht3x_humidity" : "shtc3_humidity"))).replace(/[^a-zA-Z0-9_]/g, "_");
-    const tempId = (p.temp_entity || (profile.features?.sht4x ? "sht4x_temperature" : (profile.features?.sht3x ? "sht3x_temperature" : "shtc3_temperature"))).replace(/[^a-zA-Z0-9_]/g, "_");
+    const humId = (p.hum_entity || (profile.features?.sht4x ? "sht4x_humidity" : ((profile.features?.sht3x || profile.features?.sht3xd) ? "sht3x_humidity" : "shtc3_humidity"))).replace(/[^a-zA-Z0-9_]/g, "_");
+    const tempId = (p.temp_entity || (profile.features?.sht4x ? "sht4x_temperature" : ((profile.features?.sht3x || profile.features?.sht3xd) ? "sht3x_temperature" : "shtc3_temperature"))).replace(/[^a-zA-Z0-9_]/g, "_");
 
     const iconFontRef = addFont("Material Design Icons", 400, iconSize);
     const textFontRef = addFont("Roboto", 500, fontSize);
@@ -181,7 +181,10 @@ const exportDoc = (w, context) => {
                 lines.push(`          it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColor});`);
             }
         }
-        addDitherMask(lines, p.background_color || "black", isEpaper, w.x, w.y, w.width, w.height);
+        addDitherMask(lines, p.border_color || "white", isEpaper, w.x, w.y, w.width, w.height);
+        addDitherMask(lines, p.background_color || "black", isEpaper, w.x + thickness, w.y + thickness, w.width - 2 * thickness, w.height - 2 * thickness);
+    } else if (thickness > 0) {
+        addDitherMask(lines, p.border_color || "white", isEpaper, w.x, w.y, w.width, w.height);
     }
 
     let activeCount = 0;
@@ -277,16 +280,18 @@ const onExportNumericSensors = (context) => {
     barWidgets.forEach(w => {
         const p = w.props || {};
         if (p.show_wifi !== false) {
+            const checkLines = context.mainLines || lines;
             if (p.wifi_entity) autoRegister(p.wifi_entity);
-            else if (!lines.some(l => l.includes("id: wifi_signal_dbm"))) {
+            else if (!checkLines.some(l => l.includes("id: wifi_signal_dbm")) && !lines.some(l => l.includes("id: wifi_signal_dbm"))) {
                 lines.push("- platform: wifi_signal");
                 lines.push("  id: wifi_signal_dbm");
                 lines.push("  internal: true");
             }
         }
         if (p.show_battery !== false) {
+            const checkLines = context.mainLines || lines;
             if (p.bat_entity) autoRegister(p.bat_entity);
-            else if (!lines.some(l => l.includes("id: battery_level"))) {
+            else if (!checkLines.some(l => l.includes("id: battery_level")) && !lines.some(l => l.includes("id: battery_level"))) {
                 // Fallback for devices where battery is not auto-defined by hardware generators
                 lines.push("- platform: template");
                 lines.push("  id: battery_level");
@@ -313,25 +318,36 @@ const onExportNumericSensors = (context) => {
     });
 
     if (needsInternalSHT) {
-        const shtId = profile.features?.sht4x ? "sht4x_sensor" : (profile.features?.sht3x ? "sht3x_sensor" : "shtc3_sensor");
-        const shtPlatform = profile.features?.sht4x ? "sht4x" : (profile.features?.sht3x ? "sht3x" : "shtc3");
+        const isSht4x = profile.features?.sht4x;
+        const isSht3x = profile.features?.sht3x || profile.features?.sht3xd;
 
-        if (!lines.some(l => l.includes(`id: ${shtId}`))) {
+        const shtId = isSht4x ? "sht4x_sensor" : (isSht3x ? "sht3x_sensor" : "shtc3_sensor");
+        const shtPlatform = isSht4x ? "sht4x" : (isSht3x ? "sht3xd" : "shtcx");
+        const tempId = isSht4x ? "sht4x_temperature" : (isSht3x ? "sht3x_temperature" : "shtc3_temperature");
+
+        // Check if the platform OR the temperature sensor already exists to avoid conflict
+        const checkLines = context.mainLines || lines;
+        if (!checkLines.some(l => l.includes(`id: ${shtId}`)) && !checkLines.some(l => l.includes(`id: ${tempId}`))) {
             lines.push(`- platform: ${shtPlatform}`);
             lines.push(`  id: ${shtId}`);
+            if (shtPlatform === "sht3xd" || shtPlatform === "sht4x") lines.push(`  address: 0x44`);
+            if (shtPlatform === "shtcx") {
+                lines.push(`  i2c_id: bus_a`);
+                lines.push(`  address: 0x70`);
+            }
 
             // Check specifically for temp vs hum need
             const needsTemp = barWidgets.some(w => w.props?.show_temperature !== false && !w.props?.temp_entity);
             const needsHum = barWidgets.some(w => w.props?.show_humidity !== false && !w.props?.hum_entity);
 
             if (needsTemp) {
-                const tempId = profile.features?.sht4x ? "sht4x_temperature" : (profile.features?.sht3x ? "sht3x_temperature" : "shtc3_temperature");
+                const tempId = isSht4x ? "sht4x_temperature" : (isSht3x ? "sht3x_temperature" : "shtc3_temperature");
                 lines.push("  temperature:");
                 lines.push(`    id: ${tempId}`);
                 lines.push("    internal: true");
             }
             if (needsHum) {
-                const humId = profile.features?.sht4x ? "sht4x_humidity" : (profile.features?.sht3x ? "sht3x_humidity" : "shtc3_humidity");
+                const humId = isSht4x ? "sht4x_humidity" : (isSht3x ? "sht3x_humidity" : "shtc3_humidity");
                 lines.push("  humidity:");
                 lines.push(`    id: ${humId}`);
                 lines.push("    internal: true");
@@ -414,7 +430,7 @@ export default {
         }
 
         if (showTemp) {
-            const tempId = (p.temp_entity || (profile.features?.sht4x ? "sht4x_temperature" : (profile.features?.sht3x ? "sht3x_temperature" : "shtc3_temperature"))).replace(/[^a-zA-Z0-9_]/g, "_");
+            const tempId = (p.temp_entity || (profile.features?.sht4x ? "sht4x_temperature" : ((profile.features?.sht3x || profile.features?.sht3xd) ? "sht3x_temperature" : "shtc3_temperature"))).replace(/[^a-zA-Z0-9_]/g, "_");
             const unit = p.unit || "°C";
             let tempExpr = `id(${tempId}).state`;
             if (unit === "°F") tempExpr = `(${tempId}.state * 9.0 / 5.0 + 32.0)`;
@@ -432,7 +448,7 @@ export default {
         }
 
         if (showHum) {
-            const humId = (p.hum_entity || (profile.features?.sht4x ? "sht4x_humidity" : (profile.features?.sht3x ? "sht3x_humidity" : "shtc3_humidity"))).replace(/[^a-zA-Z0-9_]/g, "_");
+            const humId = (p.hum_entity || (profile.features?.sht4x ? "sht4x_humidity" : ((profile.features?.sht3x || profile.features?.sht3xd) ? "sht3x_humidity" : "shtc3_humidity"))).replace(/[^a-zA-Z0-9_]/g, "_");
             widgets.push({
                 obj: {
                     width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "TRANSP", border_width: 0,

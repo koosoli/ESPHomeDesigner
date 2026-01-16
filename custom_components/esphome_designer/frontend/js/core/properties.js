@@ -975,7 +975,18 @@ export class PropertiesPanel {
             this.createSection("Appearance", false);
             this.addCheckbox("Show Background", props.show_background !== false, (v) => updateProp("show_background", v));
             if (props.show_background !== false) {
-                this.addColorSelector("Background Color", props.background_color || "black", colors, (v) => updateProp("background_color", v));
+                this.addColorSelector("Background Color", props.background_color || "black", colors, (v) => {
+                    updateProp("background_color", v);
+                    // Auto-contrast: switch foreground to opposite for readability
+                    const darkColors = ["black", "gray", "grey", "#000000", "#808080"];
+                    const lightColors = ["white", "#ffffff", "#fff"];
+                    const currentFg = props.color || "white";
+                    if (darkColors.includes(v.toLowerCase()) && darkColors.includes(currentFg.toLowerCase())) {
+                        updateProp("color", "white");
+                    } else if (lightColors.includes(v.toLowerCase()) && lightColors.includes(currentFg.toLowerCase())) {
+                        updateProp("color", "black");
+                    }
+                });
                 this.addLabeledInput("Border Radius", "number", props.border_radius || 8, (v) => updateProp("border_radius", parseInt(v, 10)));
                 this.addLabeledInput("Border Thickness", "number", props.border_thickness || 0, (v) => updateProp("border_thickness", parseInt(v, 10)));
                 this.addColorSelector("Border Color", props.border_color || "white", colors, (v) => updateProp("border_color", v));
@@ -998,7 +1009,18 @@ export class PropertiesPanel {
             this.createSection("Appearance", false);
             this.addCheckbox("Show Background", props.show_background !== false, (v) => updateProp("show_background", v));
             if (props.show_background !== false) {
-                this.addColorSelector("Background Color", props.background_color || "black", colors, (v) => updateProp("background_color", v));
+                this.addColorSelector("Background Color", props.background_color || "black", colors, (v) => {
+                    updateProp("background_color", v);
+                    // Auto-contrast: switch foreground to opposite for readability
+                    const darkColors = ["black", "gray", "grey", "#000000", "#808080"];
+                    const lightColors = ["white", "#ffffff", "#fff"];
+                    const currentFg = props.color || "white";
+                    if (darkColors.includes(v.toLowerCase()) && darkColors.includes(currentFg.toLowerCase())) {
+                        updateProp("color", "white");
+                    } else if (lightColors.includes(v.toLowerCase()) && lightColors.includes(currentFg.toLowerCase())) {
+                        updateProp("color", "black");
+                    }
+                });
                 this.addLabeledInput("Border Radius", "number", props.border_radius || 8, (v) => updateProp("border_radius", parseInt(v, 10)));
                 this.addLabeledInput("Border Thickness", "number", props.border_thickness || 0, (v) => updateProp("border_thickness", parseInt(v, 10)));
                 this.addColorSelector("Border Color", props.border_color || "white", colors, (v) => updateProp("border_color", v));

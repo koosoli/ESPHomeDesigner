@@ -131,15 +131,14 @@ textarea {
     border: 1px solid var(--accent-soft);
 }
 
-.btn-ai-sparkle {
-    background: var(--accent-soft) !important;
-    color: var(--accent) !important;
-    border: 1px solid var(--accent-soft) !important;
+
+/* AI Assistant Polish */
+#aiPromptBtn {
+    transition: transform 0.2s ease;
 }
 
-.btn-ai-sparkle:hover {
-    background: var(--accent) !important;
-    color: white !important;
+#aiPromptBtn:hover {
+    transform: translateY(-1px);
 }
 
 /* Lists & Items */
@@ -187,33 +186,41 @@ textarea {
 
 /* Widget Card Style */
 .widget-list .item {
-    padding: 10px 4px;
-    border-radius: 8px;
+    padding: var(--space-3) var(--space-2);
+    border-radius: var(--radius-lg);
     font-size: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: var(--space-2);
     cursor: grab;
-    border: 1px solid transparent;
+    border: 1px solid var(--border-subtle);
     color: var(--text-muted);
-    background: transparent;
-    transition: all var(--t-fast);
+    background: hsla(var(--h), 10%, 100%, 0.02);
+    transition: all var(--t-base);
     text-align: center;
     width: 100%;
 }
 
 .widget-list .item:hover {
-    background: var(--bg-surface);
-    border-color: var(--border-subtle);
+    background: var(--accent-soft);
+    border-color: var(--accent);
     color: var(--text);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .widget-list .item .widget-icon {
     width: 32px;
     height: 32px;
     opacity: 0.8;
+    transition: opacity var(--t-fast), transform var(--t-fast);
+}
+
+.widget-list .item:hover .widget-icon {
+    opacity: 1;
+    transform: scale(1.1);
 }
 
 .widget-list .item .label {
@@ -268,13 +275,11 @@ textarea {
     letter-spacing: 0.05em;
     font-weight: 800;
     color: var(--text-muted);
-    background: rgba(255, 255, 255, 0.02);
-    border-bottom: 1px solid var(--border-subtle);
-    transition: background 0.2s;
+    background: transparent;
+    transition: all 0.2s;
 }
 
 .widget-category-header:hover {
-    background: rgba(255, 255, 255, 0.05);
     color: var(--text);
 }
 
@@ -338,22 +343,88 @@ textarea {
     align-items: center;
 }
 
-.snippet-box {
+.snippet-container {
     flex: 1;
-    border-radius: var(--radius-md);
+    position: relative;
+    overflow: hidden;
     background: var(--bg-base);
     border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    display: flex;
+}
+
+.highlight-layer,
+.snippet-box {
+    position: absolute;
+    inset: 0;
     padding: var(--space-4);
     font-family: var(--font-mono);
     font-size: var(--fs-sm);
-    color: var(--text);
-    white-space: pre;
-    overflow-y: auto;
-    overflow-x: auto;
-    min-height: 0;
-    resize: none;
     line-height: 1.7;
+    margin: 0;
+    white-space: pre;
+    overflow: auto;
+    width: 100%;
+    height: 100%;
+}
+
+.highlight-layer {
+    color: var(--text);
+    background: transparent;
+    pointer-events: none;
+    z-index: 1;
+    border: none;
+    opacity: 0;
+    transition: opacity var(--t-base);
+}
+
+.snippet-container.highlighted .highlight-layer {
+    opacity: 1;
+}
+
+.snippet-box {
+    background: transparent;
+    color: var(--text);
+    z-index: 2;
+    border: none;
+    resize: none;
     outline: none;
+}
+
+.snippet-container.highlighted .snippet-box {
+    color: transparent;
+    caret-color: var(--text);
+}
+
+/* Light Syntax Highlighting Palette - "Goldilocks" Saturation Refinement */
+.hl-comment {
+    color: #828a91;
+    font-style: italic;
+}
+
+.hl-key {
+    color: #8fb6d9;
+    font-weight: 500;
+}
+
+.hl-value {
+    color: #8dbd7e;
+}
+
+.hl-keyword {
+    color: #ba95e0;
+}
+
+.hl-tag {
+    color: #e8a2aa;
+}
+
+.hl-string {
+    color: #81cfc6;
+}
+
+.hl-punc {
+    color: #94a1ad;
 }
 
 /* Empty State */

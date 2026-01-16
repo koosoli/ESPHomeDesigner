@@ -46,4 +46,4 @@ class ReTerminalEntitiesView(DesignerBaseView):
             if len(entities) >= 1000: # Safety cap
                 break
 
-        return self.json(entities)
+        return self.json(entities, request=request)

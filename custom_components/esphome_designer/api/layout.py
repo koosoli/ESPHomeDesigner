@@ -29,7 +29,7 @@ class ReTerminalLayoutView(DesignerBaseView):
         _LOGGER.info("Loading layout: %d pages, %d total widgets", 
                      len(device.pages),
                      sum(len(p.widgets) for p in device.pages))
-        return self.json(device.to_dict(), status_code=HTTPStatus.OK)
+        return self.json(device.to_dict(), status_code=HTTPStatus.OK, request=request)
 
     async def post(self, request) -> Any:
         """Update layout for the default device from JSON body."""
@@ -40,6 +40,7 @@ class ReTerminalLayoutView(DesignerBaseView):
             return self.json(
                 {"error": "invalid_json"},
                 status_code=HTTPStatus.BAD_REQUEST,
+                request=request,
             )
 
         _LOGGER.info("Received layout update with %d pages, %d total widgets", 
@@ -52,9 +53,10 @@ class ReTerminalLayoutView(DesignerBaseView):
             return self.json(
                 {"error": "update_failed"},
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                request=request,
             )
 
-        return self.json({"status": "ok", "layout": updated.to_dict()})
+        return self.json({"status": "ok", "layout": updated.to_dict()}, request=request)
 
     async def _async_get_default_device(self) -> DeviceConfig:
         """Return the default device/layout, creating if necessary."""
@@ -79,7 +81,7 @@ class ReTerminalLayoutsListView(DesignerBaseView):
         last_active = None
         if self.storage._state and self.storage._state.last_active_layout_id:
             last_active = self.storage._state.last_active_layout_id
-        return self.json({"layouts": layouts, "last_active_layout_id": last_active})
+        return self.json({"layouts": layouts, "last_active_layout_id": last_active}, request=request)
 
     async def post(self, request) -> Any:
         """Create a new layout."""
@@ -87,7 +89,7 @@ class ReTerminalLayoutsListView(DesignerBaseView):
             body = await request.json()
             layout_id = body.get("id")
             if not layout_id:
-                return self.json({"error": "id_required"}, HTTPStatus.BAD_REQUEST)
+                return self.json({"error": "id_required"}, HTTPStatus.BAD_REQUEST, request=request)
             
             # Sanitization
             layout_id = "".join(c for c in layout_id if c.isalnum() or c in "-_").lower()
@@ -95,7 +97,7 @@ class ReTerminalLayoutsListView(DesignerBaseView):
             # Check if exists
             existing = await self.storage.async_get_layout(layout_id)
             if existing:
-                 return self.json({"error": "already_exists"}, HTTPStatus.CONFLICT)
+                 return self.json({"error": "already_exists"}, HTTPStatus.CONFLICT, request=request)
 
             new_layout = DeviceConfig(
                 device_id=layout_id,
@@ -104,9 +106,9 @@ class ReTerminalLayoutsListView(DesignerBaseView):
                 pages=[]
             )
             await self.storage.async_save_layout(new_layout)
-            return self.json(new_layout.to_dict())
+            return self.json(new_layout.to_dict(), request=request)
         except Exception as exc:
-            return self.json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return self.json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR, request=request)
 
 class ReTerminalLayoutDetailView(DesignerBaseView):
     """Handle individual layout operations."""
@@ -120,21 +122,21 @@ class ReTerminalLayoutDetailView(DesignerBaseView):
     async def get(self, request, layout_id: str) -> Any:
         layout = await self.storage.async_get_layout(layout_id)
         if not layout:
-            return self.json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
-        return self.json(layout.to_dict())
+            return self.json({"error": "not_found"}, HTTPStatus.NOT_FOUND, request=request)
+        return self.json(layout.to_dict(), request=request)
 
     async def delete(self, request, layout_id: str) -> Any:
         if layout_id == "default":
-            return self.json({"error": "cannot_delete_default"}, HTTPStatus.FORBIDDEN)
+            return self.json({"error": "cannot_delete_default"}, HTTPStatus.FORBIDDEN, request=request)
         await self.storage.async_delete_layout(layout_id)
-        return self.json({"status": "deleted"})
+        return self.json({"status": "deleted"}, request=request)
 
     async def post(self, request, layout_id: str) -> Any:
         try:
             body = await request.json()
             updated = await self.storage.async_update_layout(layout_id, body)
             if not updated:
-                 return self.json({"error": "update_failed"}, HTTPStatus.INTERNAL_SERVER_ERROR)
-            return self.json(updated.to_dict())
+                 return self.json({"error": "update_failed"}, HTTPStatus.INTERNAL_SERVER_ERROR, request=request)
+            return self.json(updated.to_dict(), request=request)
         except Exception as exc:
-            return self.json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return self.json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR, request=request)

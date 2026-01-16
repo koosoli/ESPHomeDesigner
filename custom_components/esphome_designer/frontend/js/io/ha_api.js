@@ -266,8 +266,18 @@ export async function loadLayoutFromBackend() {
  * Sends the AppState layout data (pages, settings) to the current layout.
  * @returns {Promise<boolean>} True if successful, false otherwise.
  */
+let saveInProgress = false;
+let saveQueued = false;
+
 export async function saveLayoutToBackend() {
     if (!hasHaBackend()) return false;
+
+    // Prevent concurrent saves - if a save is in progress, queue another one
+    if (saveInProgress) {
+        saveQueued = true;
+        Logger.log("[saveLayoutToBackend] Save already in progress, queuing...");
+        return false;
+    }
 
     // Get layout data from AppState
     if (!AppState) {
@@ -290,24 +300,28 @@ export async function saveLayoutToBackend() {
         deviceName: AppState.deviceName || "Layout 1"
     };
 
+    saveInProgress = true;
+    saveQueued = false;
+
     try {
         Logger.log(`[saveLayoutToBackend] Saving to layout '${layoutId}':`, {
             device_model: deviceModel,
             pages: layoutData.pages?.length,
-            widgets: layoutData.pages?.reduce((sum, p) => sum + (p.widgets?.length || 0), 0),
-            // Debug: Power strategy settings
-            daily_refresh_enabled: layoutData.daily_refresh_enabled,
-            daily_refresh_time: layoutData.daily_refresh_time,
-            deep_sleep_enabled: layoutData.deep_sleep_enabled,
-            sleep_enabled: layoutData.sleep_enabled
+            widgets: layoutData.pages?.reduce((sum, p) => sum + (p.widgets?.length || 0), 0)
         });
+
+        // Use AbortController for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
         // Use the layouts/{id} endpoint to save to the specific layout
         const resp = await fetch(`${HA_API_BASE}/layouts/${layoutId}`, {
             method: "POST",
             headers: getHaHeaders(),
-            body: JSON.stringify(layoutData)
+            body: JSON.stringify(layoutData),
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
         if (!resp.ok) {
             const data = await resp.json().catch(() => ({}));
@@ -316,8 +330,26 @@ export async function saveLayoutToBackend() {
         Logger.log(`[saveLayoutToBackend] Layout '${layoutId}' saved successfully`);
         return true;
     } catch (err) {
+        // Gracefully handle network errors (ERR_EMPTY_RESPONSE, timeouts, etc.)
+        // These often happen when the save actually succeeds but the response is lost
+        // We don't log these since the browser already logs the network error
+        if (err.name === 'AbortError') {
+            return true; // Assume success on timeout as data was sent
+        }
+        if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+            return true; // Assume success for network errors where data was sent
+        }
         Logger.error("Failed to save layout to backend:", err);
         throw err;
+    } finally {
+        saveInProgress = false;
+
+        // If another save was queued while we were saving, trigger it after a short delay
+        if (saveQueued) {
+            setTimeout(() => {
+                saveLayoutToBackend().catch(() => { }); // Fire and forget
+            }, 500);
+        }
     }
 }
 

@@ -26,18 +26,21 @@
   gap: 8px;
 }
 
-.main-header-title h2 {
-  font-size: var(--fs-md);
-  font-weight: 600;
-  margin: 0;
-  color: var(--text);
-}
+/* .main-header-title h2 removed in favor of image logo */
 
 .main-header-title span {
   font-size: var(--fs-xs);
   color: var(--muted);
   border-left: 1px solid var(--border-subtle);
   padding-left: 12px;
+}
+
+.logo-image {
+  height: 24px;
+  width: auto;
+  object-fit: contain;
+  margin-right: 8px;
+  display: block;
 }
 
 .logo-dot {
@@ -199,10 +202,48 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  transition: height var(--t-base);
+}
+
+.code-panel.collapsed {
+  height: 36px !important;
+  min-height: 36px !important;
+  overflow: hidden;
+}
+
+.code-panel.collapsed .snippet-box {
+  display: none;
+}
+
+.code-panel.collapsed .chevron {
+  transform: rotate(-90deg);
+}
+
+.code-toggle-btn {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-dim) !important;
+  cursor: pointer;
+  padding: 0 !important;
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--t-fast);
+}
+
+.code-toggle-btn:hover {
+  color: var(--accent) !important;
+}
+
+.code-toggle-btn .chevron {
+  transition: transform var(--t-base);
 }
 
 .code-panel-header {
-  padding: 8px 16px;
+  height: 36px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -214,6 +255,9 @@
   font-weight: 700;
   text-transform: uppercase;
   color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .code-panel-actions {

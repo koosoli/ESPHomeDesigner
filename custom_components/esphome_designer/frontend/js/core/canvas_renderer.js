@@ -44,6 +44,11 @@ export function render(canvasInstance) {
         const header = document.createElement("div");
         header.className = "artboard-header";
 
+        // Settings button (Far Left)
+        header.appendChild(createMdiIconButton("mdi-cog-outline", "Page Settings", () => {
+            if (window.pageSettings) window.pageSettings.open(index);
+        }));
+
         const nameLabel = document.createElement("span");
         nameLabel.className = "artboard-name";
         nameLabel.textContent = page.name || `Page ${index + 1}`;
@@ -54,64 +59,47 @@ export function render(canvasInstance) {
 
         // Reorder buttons
         if (index > 0) {
-            const moveLeft = createIconButton("‹", "Move Left", () => {
+            actions.appendChild(createMdiIconButton("mdi-chevron-left", "Move Left", () => {
                 AppState.reorderPage(index, index - 1);
-            });
-            actions.appendChild(moveLeft);
+            }));
         }
         if (index < pages.length - 1) {
-            const moveRight = createIconButton("›", "Move Right", () => {
+            actions.appendChild(createMdiIconButton("mdi-chevron-right", "Move Right", () => {
                 AppState.reorderPage(index, index + 1);
-            });
-            actions.appendChild(moveRight);
+            }));
         }
 
-        // Settings button
-        const settingsBtn = createIconButton("⚙", "Page Settings", () => {
-            if (window.pageSettings) window.pageSettings.open(index);
-        });
-        actions.appendChild(settingsBtn);
-
         // Add Page button (Plus)
-        const addPageBtn = createIconButton("+", "Add Page After", () => {
+        actions.appendChild(createMdiIconButton("mdi-plus", "Add Page After", () => {
             AppState.addPage(index + 1);
-        });
-        actions.appendChild(addPageBtn);
+        }));
 
-        // Delete Page button (X)
-        const deletePageBtn = createIconButton("✕", "Delete Page", () => {
-            // Confirmation Modal for Deletion
-            const modal = document.createElement('div');
-            modal.className = 'modal-backdrop';
-            modal.style.display = 'flex';
-            modal.innerHTML = `
-                <div class="modal" style="width: 320px; height: auto; min-height: 150px; padding: var(--space-4);">
-                    <div class="modal-header" style="font-size: var(--fs-md); padding-bottom: var(--space-2);">
-                        <div>Delete Page</div>
-                    </div>
-                    <div class="modal-body" style="padding: var(--space-2) 0;">
-                        <p style="margin-bottom: var(--space-3); font-size: var(--fs-sm);">
-                            Are you sure you want to delete the page <b>"${page.name}"</b>?
-                            <br><br>
-                            This action cannot be undone.
-                        </p>
-                    </div>
-                    <div class="modal-actions" style="padding-top: var(--space-3); border-top: 1px solid var(--border-subtle);">
-                        <button class="btn btn-secondary close-btn btn-xs">Cancel</button>
-                        <button class="btn btn-primary confirm-btn btn-xs" style="background: var(--danger); color: white; border: none;">Delete</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            const closeModal = () => modal.remove();
-            modal.querySelector('.close-btn').addEventListener('click', closeModal);
-            modal.querySelector('.confirm-btn').addEventListener('click', () => {
-                closeModal();
-                AppState.deletePage(index);
+        // Clear Page button (Eraser) - Distinguished from deletion
+        actions.appendChild(createMdiIconButton("mdi-eraser", "Clear Current Page", () => {
+            confirmAction({
+                title: "Clear Page",
+                message: `Are you sure you want to clear all widgets from <b>"${page.name || `Page ${index + 1}`}"</b>?<br><br>This cannot be undone.`,
+                confirmLabel: "Clear Page",
+                confirmClass: "btn-danger",
+                onConfirm: () => {
+                    AppState.setCurrentPageIndex(index);
+                    AppState.clearCurrentPage();
+                }
             });
-            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-        });
-        actions.appendChild(deletePageBtn);
+        }));
+
+        // Delete Page button (Trash)
+        actions.appendChild(createMdiIconButton("mdi-delete-outline", "Delete Page", () => {
+            confirmAction({
+                title: "Delete Page",
+                message: `Are you sure you want to delete the page <b>"${page.name || `Page ${index + 1}`}"</b>?<br><br>All widgets on this page will be lost.`,
+                confirmLabel: "Delete Page",
+                confirmClass: "btn-danger",
+                onConfirm: () => {
+                    AppState.deletePage(index);
+                }
+            });
+        }));
 
         header.appendChild(actions);
         artboardWrapper.appendChild(header);
@@ -124,9 +112,10 @@ export function render(canvasInstance) {
         artboard.className = "artboard";
         artboard.dataset.index = index;
 
-        // Use shorter dimension for both width and height if it's a round display to ensure a perfect circle
-        const displayWidth = isRound ? Math.min(dims.width, dims.height) : dims.width;
-        const displayHeight = isRound ? Math.min(dims.width, dims.height) : dims.height;
+        // For round displays, use actual resolution - this allows ellipses for non-square resolutions
+        // The device settings auto-set square resolution when 'round' is selected, but users can override
+        const displayWidth = dims.width;
+        const displayHeight = dims.height;
 
         artboard.style.width = `${displayWidth}px`;
         artboard.style.height = `${displayHeight}px`;
@@ -200,6 +189,36 @@ export function render(canvasInstance) {
         artboardWrapper.appendChild(artboard);
         canvasInstance.canvas.appendChild(artboardWrapper);
     });
+
+    // 3. Render Add Page Placeholder (nice faded plus icon)
+    const addPlaceholder = document.createElement("div");
+    addPlaceholder.className = "add-page-placeholder";
+    addPlaceholder.title = "Click to add a new page";
+
+    // Match dimensions of artboards if possible
+    addPlaceholder.style.width = `${dims.width}px`;
+    addPlaceholder.style.height = `${dims.height}px`;
+    addPlaceholder.style.marginTop = "32px"; // Offset to align with artboard content, not header
+
+    addPlaceholder.innerHTML = `
+        <div class="plus-icon">+</div>
+        <div class="label">Add Page</div>
+    `;
+
+    addPlaceholder.onclick = (e) => {
+        e.stopPropagation();
+        const newPage = AppState.addPage();
+        // Focus the new page
+        if (newPage) {
+            const newIndex = AppState.pages.length - 1;
+            AppState.setCurrentPageIndex(newIndex);
+            emit(EVENTS.STATE_CHANGED);
+        }
+    };
+
+    // Append to the end of the canvas (after the last page)
+    canvasInstance.canvas.appendChild(addPlaceholder);
+
 
     if (existingLasso) canvasInstance.canvas.appendChild(existingLasso);
 
@@ -422,21 +441,24 @@ function addResizeHandles(el) {
     });
 }
 
-function renderContextToolbar(canvasInstance) {
-    // Remove any existing toolbar
-    const existing = canvasInstance.canvas.querySelector(".context-toolbar");
-    if (existing) existing.remove();
-
+export function renderContextToolbar(canvasInstance) {
     const selectedIds = AppState.selectedWidgetIds;
-    if (selectedIds.length === 0) return;
+    const artboard = canvasInstance.canvas.querySelector(`.artboard[data-index="${AppState.currentPageIndex}"]`);
+    let toolbar = canvasInstance.canvas.querySelector(".context-toolbar");
 
-    // Don't show toolbar during active drag/resize to avoid jumping
-    if (canvasInstance.dragState || canvasInstance.lassoState) return;
+    // Hide if nothing selected or during active drag/lasso
+    if (selectedIds.length === 0 || canvasInstance.dragState || canvasInstance.lassoState || !artboard) {
+        if (toolbar) toolbar.remove();
+        return;
+    }
 
     const widgets = AppState.getSelectedWidgets();
-    if (widgets.length === 0) return;
+    if (widgets.length === 0) {
+        if (toolbar) toolbar.remove();
+        return;
+    }
 
-    // Calculate bounding box of selection in canvas space
+    // Calculate bounding box in canvas space
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     widgets.forEach(w => {
         minX = Math.min(minX, w.x);
@@ -445,13 +467,27 @@ function renderContextToolbar(canvasInstance) {
         maxY = Math.max(maxY, w.y + (w.height || 0));
     });
 
-    // Create toolbar
-    const toolbar = document.createElement("div");
-    toolbar.className = "context-toolbar";
+    const targetLeft = minX;
+    const targetTop = minY - 45;
 
-    // Multi-selection tools
+    // Create or move toolbar
+    if (!toolbar) {
+        toolbar = document.createElement("div");
+        toolbar.className = "context-toolbar";
+        artboard.appendChild(toolbar);
+    } else if (toolbar.parentElement !== artboard) {
+        artboard.appendChild(toolbar);
+    }
+
+    // Update position
+    toolbar.style.left = targetLeft + "px";
+    toolbar.style.top = targetTop + "px";
+
+    // Always rebuild content to ensure correctness
+    toolbar.innerHTML = "";
+
+    // 1. Alignment Tools (Multi-select only)
     if (selectedIds.length > 1) {
-        // Alignment
         const alignTools = [
             { icon: 'mdi-align-horizontal-left', title: 'Align Left', action: 'left' },
             { icon: 'mdi-align-horizontal-center', title: 'Align Center', action: 'center' },
@@ -464,94 +500,103 @@ function renderContextToolbar(canvasInstance) {
 
         alignTools.forEach(tool => {
             if (tool.separator) {
-                const sep = document.createElement("div");
-                sep.className = "separator";
-                toolbar.appendChild(sep);
+                addSeparator(toolbar);
                 return;
             }
-            const btn = document.createElement("button");
-            btn.className = "btn-icon";
-            btn.title = tool.title;
-            btn.innerHTML = `<i class="mdi ${tool.icon}"></i>`;
-            btn.onclick = (e) => {
-                e.stopPropagation();
-                AppState.alignSelectedWidgets(tool.action);
-            };
-            toolbar.appendChild(btn);
+            addButton(toolbar, tool.icon, tool.title, () => AppState.alignSelectedWidgets(tool.action));
         });
 
-        // Distribution (min 3 widgets)
+        // 2. Distribution Tools (3+ widgets)
         if (selectedIds.length >= 3) {
-            const distSep = document.createElement("div");
-            distSep.className = "separator";
-            toolbar.appendChild(distSep);
-
-            const distTools = [
-                { icon: 'mdi-distribute-horizontal-spacing', title: 'Distribute Horizontally', action: 'horizontal' },
-                { icon: 'mdi-distribute-vertical-spacing', title: 'Distribute Vertically', action: 'vertical' }
-            ];
-
-            distTools.forEach(tool => {
-                const btn = document.createElement("button");
-                btn.className = "btn-icon";
-                btn.title = tool.title;
-                btn.innerHTML = `<i class="mdi ${tool.icon}"></i>`;
-                btn.onclick = (e) => {
-                    e.stopPropagation();
-                    AppState.distributeSelectedWidgets(tool.action);
-                };
-                toolbar.appendChild(btn);
-            });
+            addSeparator(toolbar);
+            addButton(toolbar, 'mdi-distribute-horizontal-center', 'Distribute Horizontally', () => AppState.distributeSelectedWidgets('horizontal'));
+            addButton(toolbar, 'mdi-distribute-vertical-center', 'Distribute Vertically', () => AppState.distributeSelectedWidgets('vertical'));
         }
-
-        // Grouping
-        const groupSep = document.createElement("div");
-        groupSep.className = "separator";
-        toolbar.appendChild(groupSep);
-
-        const groupBtn = document.createElement("button");
-        groupBtn.className = "btn-icon";
-        groupBtn.title = "Group Selection (Ctrl+G)";
-        groupBtn.innerHTML = `<i class="mdi mdi-object-group"></i>`;
-        groupBtn.onclick = (e) => {
-            e.stopPropagation();
-            AppState.groupSelection();
-        };
-        toolbar.appendChild(groupBtn);
     }
 
-    // Ungrouping check (Single or Multi)
+    // 3. Grouping Logic
+    // We can only group if NONE of the selected items are already groups or inside groups
+    // We can ungroup if ANY of the selected items are groups or inside groups
     const hasUngroupable = widgets.some(w => w.type === 'group' || w.parentId);
-    if (hasUngroupable) {
-        const ungroupBtn = document.createElement("button");
-        ungroupBtn.className = "btn-icon";
-        ungroupBtn.title = "Ungroup (Ctrl+Shift+G)";
-        ungroupBtn.innerHTML = `<i class="mdi mdi-object-ungroup"></i>`;
-        ungroupBtn.onclick = (e) => {
-            e.stopPropagation();
-            AppState.ungroupSelection();
-        };
 
-        // Add separator if there's already content (alignment tools)
-        if (toolbar.children.length > 0) {
-            const sep = document.createElement("div");
-            sep.className = "separator";
-            toolbar.appendChild(sep);
-        }
-        toolbar.appendChild(ungroupBtn);
+    if (hasUngroupable) {
+        // Show Ungroup
+        if (toolbar.children.length > 0) addSeparator(toolbar);
+        addButton(toolbar, 'mdi-ungroup', 'Ungroup (Ctrl+Shift+G)', () => AppState.ungroupSelection());
+    } else if (selectedIds.length > 1) {
+        // Show Group (only if multiple items and clean hierarchy)
+        if (toolbar.children.length > 0) addSeparator(toolbar);
+        addButton(toolbar, 'mdi-group', 'Group Selection (Ctrl+G)', () => AppState.groupSelection());
     }
 
-    // Hide toolbar if it's empty (e.g. single widget that is not a group/child)
-    if (toolbar.children.length === 0) return;
+    if (toolbar.children.length === 0) {
+        toolbar.remove();
+        return;
+    }
+}
 
-    // Position toolbar above bounding box
-    // Find absolute position within the active artboard
-    const artboard = canvasInstance.canvas.querySelector(`.artboard[data-index="${AppState.currentPageIndex}"]`);
-    if (!artboard) return;
+function addButton(container, icon, title, onClick) {
+    const btn = document.createElement("button");
+    btn.className = "btn-icon";
+    btn.title = title;
+    btn.innerHTML = `<i class="mdi ${icon}"></i>`;
+    btn.onclick = (e) => {
+        e.stopPropagation();
+        onClick();
+    };
+    container.appendChild(btn);
+}
 
-    toolbar.style.left = minX + "px";
-    toolbar.style.top = (minY - 45) + "px"; // 45px offset above bounding box
+function addSeparator(container) {
+    // Avoid double separators or leading separators
+    if (!container.lastElementChild || container.lastElementChild.classList.contains('separator')) return;
 
-    artboard.appendChild(toolbar);
+    const sep = document.createElement("div");
+    sep.className = "separator";
+    container.appendChild(sep);
+}
+
+function createMdiIconButton(iconClass, title, onClick) {
+    const btn = document.createElement("button");
+    btn.className = "artboard-btn";
+    btn.title = title;
+    btn.innerHTML = `<i class="mdi ${iconClass}"></i>`;
+    btn.onclick = (e) => {
+        e.stopPropagation();
+        onClick();
+    };
+    return btn;
+}
+
+function confirmAction({ title, message, confirmLabel, confirmClass, onConfirm }) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-backdrop';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+        <div class="modal" style="width: 340px; height: auto; padding: var(--space-4); border-radius: 12px; border: 1px solid var(--glass-border);">
+            <div class="modal-header" style="font-size: var(--fs-md); font-weight: 600; padding-bottom: var(--space-3); border-bottom: 1px solid var(--border-subtle);">
+                <div>${title}</div>
+            </div>
+            <div class="modal-body" style="padding: var(--space-4) 0;">
+                <p style="font-size: var(--fs-sm); line-height: 1.5; color: var(--text-dim);">
+                    ${message}
+                </p>
+            </div>
+            <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end; padding-top: var(--space-3);">
+                <button class="btn btn-secondary close-btn btn-xs" style="border-radius: 6px;">Cancel</button>
+                <button class="btn ${confirmClass || 'btn-primary'} confirm-btn btn-xs" style="border-radius: 6px;">${confirmLabel || 'Confirm'}</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const closeBtn = modal.querySelector('.close-btn');
+    const confirmBtn = modal.querySelector('.confirm-btn');
+
+    closeBtn.onclick = () => modal.remove();
+    confirmBtn.onclick = () => {
+        onConfirm();
+        modal.remove();
+    };
 }
 

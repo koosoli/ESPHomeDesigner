@@ -272,13 +272,62 @@ export class ProjectStore {
 
             // Update position for root only
             if (idx === 0) {
-                if (x !== null) widget.x = x;
-                if (y !== null) widget.y = y;
+                // Calculate delta if we have target coordinates
+                let dx = 0;
+                let dy = 0;
+
+                if (x !== null && y !== null) {
+                    dx = x - widget.x;
+                    dy = y - widget.y;
+
+                    widget.x = x;
+                    widget.y = y;
+                }
+
+                // If this is the root and we have a delta, apply it to all OTHER moved widgets (children)
+                // Note: 'movements' includes the root at index 0, and children at indices 1..n
+                if (dx !== 0 || dy !== 0) {
+                    for (let i = 1; i < movements.length; i++) {
+                        const child = movements[i].widget;
+                        child.x += dx;
+                        child.y += dy;
+                    }
+                }
             }
 
             // Add to target
             targetPage.widgets.push(widget);
         });
+
+        // 3. Bounds clamping for ROOT widgets only
+        // Only clamp roots to preserve relative positioning within groups
+        const dims = this.getCanvasDimensions();
+        for (const id of allMovedIds) {
+            const widget = this.state.widgetsById.get(id);
+            if (!widget) continue;
+
+            // Skip children - they maintain relative position to their parent
+            if (widget.parentId && allMovedIds.has(widget.parentId)) continue;
+
+            // Clamp the root widget
+            const oldX = widget.x;
+            const oldY = widget.y;
+            widget.x = Math.max(0, Math.min(dims.width - (widget.width || 50), widget.x));
+            widget.y = Math.max(0, Math.min(dims.height - (widget.height || 50), widget.y));
+
+            // If root was clamped, propagate the adjustment to its children
+            const clampDx = widget.x - oldX;
+            const clampDy = widget.y - oldY;
+            if (clampDx !== 0 || clampDy !== 0) {
+                for (const childId of allMovedIds) {
+                    const child = this.state.widgetsById.get(childId);
+                    if (child && child.parentId === widget.id) {
+                        child.x += clampDx;
+                        child.y += clampDy;
+                    }
+                }
+            }
+        }
 
         this.rebuildWidgetsIndex();
         emit(EVENTS.STATE_CHANGED);

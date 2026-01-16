@@ -6,7 +6,7 @@ import { EditorSettings } from './ui/editor_settings.js';
 import { PageSettings } from './ui/page_settings.js';
 import { SnippetManager } from './ui/snippet_manager.js';
 import { KeyboardHandler } from './core/keyboard.js';
-import { ESPHomeAdapter } from './io/adapters/esphome_adapter.js';
+import { ESPHomeAdapter } from './io/adapters/esphome_adapter.js?v=bust2';
 import { AppState } from './core/state.js';
 import { hasHaBackend } from './utils/env.js';
 import { Logger } from './utils/logger.js';
@@ -74,6 +74,9 @@ export class App {
         Logger.log("[App] Initializing ESPHome Designer Designer...");
         Logger.log("[App] AppState:", window.AppState);
 
+        // Guard to prevent auto-save during initial load
+        this.isInitializing = true;
+
         // Initialize UI components
         await renderWidgetPalette('widgetPalette');
         this.sidebar.init();
@@ -137,7 +140,20 @@ export class App {
         // Delegate to SnippetManager? SnippetManager.init() already called setupAutoUpdate() in its constructor.
         // We called init() in constructor of SnippetManager, so it's already running.
 
+
+        // Explicitly center the view on the current page after everything is loaded
+        // We use a small timeout to ensure the DOM has fully updated from the state changes above
+        setTimeout(() => {
+            if (this.canvas) {
+                Logger.log("[App] Forcing initial canvas centering...");
+                this.canvas.focusPage(AppState.currentPageIndex, false);
+            }
+        }, 100);
+
         Logger.log("Initialization complete.");
+
+        // Clear initialization guard - auto-save can now fire
+        this.isInitializing = false;
     }
 
     bindGlobalButtons() {
@@ -224,6 +240,12 @@ export class App {
 
         import('./core/events.js').then(({ on, EVENTS }) => {
             on(EVENTS.STATE_CHANGED, () => {
+                // Skip auto-save during initial load to prevent spurious errors
+                if (this.isInitializing) {
+                    Logger.log("[AutoSave] Skipping during initialization...");
+                    return;
+                }
+
                 // Background save to appropriate storage
                 if (autoSaveTimer) clearTimeout(autoSaveTimer);
 

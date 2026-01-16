@@ -29,7 +29,7 @@ class ReTerminalHardwareListView(DesignerBaseView):
         hardware_dir = Path(__file__).parent.parent / "frontend" / "hardware"
         
         if not hardware_dir.exists():
-            return self.json({"templates": []})
+            return self.json({"templates": []}, request=request)
 
         templates = []
         for yaml_file in hardware_dir.glob("*.yaml"):
@@ -100,7 +100,7 @@ class ReTerminalHardwareListView(DesignerBaseView):
             except Exception as e: # noqa: BLE001
                 _LOGGER.error("Failed to parse hardware template %s: %s", yaml_file, e)
 
-        return self.json({"templates": templates})
+        return self.json({"templates": templates}, request=request)
 
 
 class ReTerminalHardwareUploadView(DesignerBaseView):
@@ -119,14 +119,14 @@ class ReTerminalHardwareUploadView(DesignerBaseView):
             file_field = data.get("file")
             
             if not file_field:
-                return self.json({"error": "no_file"}, status_code=HTTPStatus.BAD_REQUEST)
+                return self.json({"error": "no_file"}, status_code=HTTPStatus.BAD_REQUEST, request=request)
 
             if isinstance(file_field, str):
-                 return self.json({"error": "invalid_file_field"}, status_code=HTTPStatus.BAD_REQUEST)
+                 return self.json({"error": "invalid_file_field"}, status_code=HTTPStatus.BAD_REQUEST, request=request)
 
             filename = file_field.filename
             if not filename.endswith(".yaml"):
-                return self.json({"error": "invalid_extension"}, status_code=HTTPStatus.BAD_REQUEST)
+                return self.json({"error": "invalid_extension"}, status_code=HTTPStatus.BAD_REQUEST, request=request)
 
             filename = "".join(c for c in filename if c.isalnum() or c in "._-").strip()
             
@@ -140,14 +140,14 @@ class ReTerminalHardwareUploadView(DesignerBaseView):
                  return self.json({
                      "error": "missing_placeholder",
                      "message": "Template must contain '__LAMBDA_PLACEHOLDER__' in the display lambda section."
-                 }, status_code=HTTPStatus.BAD_REQUEST)
+                 }, status_code=HTTPStatus.BAD_REQUEST, request=request)
 
             with open(dest_path, "wb") as f:
                 f.write(content)
 
             _LOGGER.info("Saved new hardware template: %s", filename)
-            return self.json({"success": True, "filename": filename})
+            return self.json({"success": True, "filename": filename}, request=request)
 
         except Exception as e: # noqa: BLE001
             _LOGGER.error("Hardware upload failed: %s", e)
-            return self.json({"error": str(e)}, status_code=HTTPStatus.INTERNAL_SERVER_ERROR)
+            return self.json({"error": str(e)}, status_code=HTTPStatus.INTERNAL_SERVER_ERROR, request=request)

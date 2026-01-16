@@ -100,12 +100,12 @@ const exportDoc = (w, context) => {
 
         if (iconPressed) {
             lines.push(`        if (id(${safeId}).state) {`);
-            lines.push(`          it.printf(${w.x} + ${w.width}/2, ${w.y} + ${w.height}/2, id(${fontRef}), ${iconColor}, TextAlign::CENTER, "\\\\U000${iconPressed}");`);
+            lines.push(`          it.printf(${w.x} + ${w.width}/2, ${w.y} + ${w.height}/2, id(${fontRef}), ${iconColor}, TextAlign::CENTER, "\\U000${iconPressed}");`);
             lines.push(`        } else {`);
-            lines.push(`          it.printf(${w.x} + ${w.width}/2, ${w.y} + ${w.height}/2, id(${fontRef}), ${iconColor}, TextAlign::CENTER, "\\\\U000${icon}");`);
+            lines.push(`          it.printf(${w.x} + ${w.width}/2, ${w.y} + ${w.height}/2, id(${fontRef}), ${iconColor}, TextAlign::CENTER, "\\U000${icon}");`);
             lines.push(`        }`);
         } else {
-            lines.push(`        it.printf(${w.x} + ${w.width}/2, ${w.y} + ${w.height}/2, id(${fontRef}), ${iconColor}, TextAlign::CENTER, "\\\\U000${icon}");`);
+            lines.push(`        it.printf(${w.x} + ${w.width}/2, ${w.y} + ${w.height}/2, id(${fontRef}), ${iconColor}, TextAlign::CENTER, "\\U000${icon}");`);
         }
     }
 

@@ -131,6 +131,15 @@ export function generateBacklightSection(profile) {
 
 export function generateExtraComponents(profile) {
     const lines = [];
+
+    // 1. External Components (structured from profile)
+    if (profile.external_components && Array.isArray(profile.external_components) && profile.external_components.length > 0) {
+        lines.push("external_components:");
+        lines.push(...profile.external_components);
+        lines.push("");
+    }
+
+    // 2. Extra Components (Legacy/Misc)
     if (profile.extra_components && Array.isArray(profile.extra_components)) {
         lines.push(...profile.extra_components);
         lines.push("");
@@ -314,7 +323,8 @@ export function generateSensorSection(profile, widgetSensorLines = [], displayId
     }
 
     // 2b. SHT3x (Temperature/Humidity) - M5Paper
-    if (profile.features.sht3x) {
+    // Fallback: Check model name in case feature flag sht3xd is missing/cached out
+    if (profile.features.sht3xd || profile.displayModel === "M5Paper" || (profile.name && profile.name.includes("M5Paper"))) {
         lines.push("  - platform: sht3xd");
         lines.push("    address: 0x44");
         lines.push("    temperature:");

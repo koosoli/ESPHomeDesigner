@@ -6,13 +6,18 @@ import { highlightWidgetInSnippet } from '../io/yaml_export.js';
 import { loadLayoutIntoState, parseSnippetYamlOffline } from '../io/yaml_import.js';
 import { importSnippetBackend } from '../io/ha_api.js';
 import { hasHaBackend } from '../utils/env.js';
+import { YamlHighlighter } from './yaml_highlighter.js';
 
 export class SnippetManager {
     constructor(adapter) {
         this.adapter = adapter;
+        this.highlighter = new YamlHighlighter();
         this.suppressSnippetUpdate = false;
         this.snippetDebounceTimer = null;
         this.lastGeneratedYaml = "";
+
+        // Highlighting persistence
+        this.isHighlighted = localStorage.getItem('esphome_designer_yaml_highlight') !== 'false';
 
         this.init();
     }
@@ -20,6 +25,7 @@ export class SnippetManager {
     init() {
         this.bindEvents();
         this.setupAutoUpdate();
+        this.setupScrollSync();
 
         // Initial update
         this.updateSnippetBox();
@@ -67,6 +73,76 @@ export class SnippetManager {
                 this.copySnippetToClipboard(copySnippetBtn);
             });
         }
+
+        // Toggle YAML Panel
+        const toggleYamlBtn = document.getElementById('toggleYamlBtn');
+        const codePanel = document.querySelector('.code-panel');
+        if (toggleYamlBtn && codePanel) {
+            // Restore state from localStorage
+            const isCollapsed = localStorage.getItem('esphome_designer_yaml_collapsed') === 'true';
+            if (isCollapsed) {
+                codePanel.classList.add('collapsed');
+            }
+
+            toggleYamlBtn.addEventListener('click', () => {
+                const nowCollapsed = codePanel.classList.toggle('collapsed');
+                localStorage.setItem('esphome_designer_yaml_collapsed', nowCollapsed);
+                // Trigger resize event to ensure canvas adjusts if needed
+                window.dispatchEvent(new Event('resize'));
+            });
+        }
+
+        // Toggle Syntax Highlighting
+        const toggleHighlightBtn = document.getElementById('toggleHighlightBtn');
+        const snippetContainer = document.querySelector('.snippet-container');
+        if (toggleHighlightBtn) {
+            // Apply initial state to ALL containers
+            document.querySelectorAll('.snippet-container').forEach(c => {
+                c.classList.toggle('highlighted', this.isHighlighted);
+            });
+            document.querySelectorAll('[id*="ToggleHighlightBtn"]').forEach(b => {
+                b.classList.toggle('active', this.isHighlighted);
+            });
+
+            toggleHighlightBtn.addEventListener('click', () => {
+                this.isHighlighted = !this.isHighlighted;
+                localStorage.setItem('esphome_designer_yaml_highlight', this.isHighlighted);
+
+                // Update ALL containers
+                document.querySelectorAll('.snippet-container').forEach(c => {
+                    c.classList.toggle('highlighted', this.isHighlighted);
+                });
+
+                document.querySelectorAll('[id*="ToggleHighlightBtn"]').forEach(b => {
+                    b.classList.toggle('active', this.isHighlighted);
+                });
+
+                if (this.isHighlighted) {
+                    this.updateHighlightLayer();
+                }
+            });
+        }
+
+        // Update highlight layer on manual input
+        const snippetBox = document.getElementById('snippetBox');
+        if (snippetBox) {
+            snippetBox.addEventListener('input', () => {
+                if (this.isHighlighted) {
+                    this.updateHighlightLayer();
+                }
+            });
+        }
+    }
+
+    setupScrollSync() {
+        const snippetBox = document.getElementById('snippetBox');
+        const highlightLayer = document.getElementById('highlightLayer');
+        if (snippetBox && highlightLayer) {
+            snippetBox.addEventListener('scroll', () => {
+                highlightLayer.scrollTop = snippetBox.scrollTop;
+                highlightLayer.scrollLeft = snippetBox.scrollLeft;
+            });
+        }
     }
 
     setupAutoUpdate() {
@@ -78,12 +154,31 @@ export class SnippetManager {
         });
 
         on(EVENTS.SELECTION_CHANGED, (data) => {
-            // Updated to pass all selected IDs to support multi-select highlighting
             const widgetIds = (data && data.widgetIds) ? data.widgetIds : [];
-            if (widgetIds.length > 0 && typeof highlightWidgetInSnippet === 'function') {
+            if (typeof highlightWidgetInSnippet === 'function') {
                 highlightWidgetInSnippet(widgetIds);
             }
         });
+    }
+
+    updateHighlightLayer() {
+        if (!this.isHighlighted) return;
+
+        const mainBox = document.getElementById('snippetBox');
+        const mainLayer = document.getElementById('highlightLayer');
+        if (mainBox && mainLayer) {
+            mainLayer.innerHTML = this.highlighter.highlight(mainBox.value);
+        }
+
+        // Also update fullscreen if active
+        const modalLayer = document.getElementById('snippetFullscreenHighlight');
+        const modalContent = document.getElementById('snippetFullscreenContent');
+        if (modalLayer && modalContent) {
+            const textarea = modalContent.querySelector('textarea');
+            if (textarea) {
+                modalLayer.innerHTML = this.highlighter.highlight(textarea.value);
+            }
+        }
     }
 
     updateSnippetBox() {
@@ -104,19 +199,24 @@ export class SnippetManager {
                         this.lastGeneratedYaml = yaml;
                         snippetBox.value = yaml;
 
-                        // Re-highlight the selected widgets if any
+                        if (this.isHighlighted) {
+                            this.updateHighlightLayer();
+                        }
+
                         const selectedIds = window.AppState ? window.AppState.selectedWidgetIds : [];
 
-                        if (selectedIds.length > 0 && typeof highlightWidgetInSnippet === 'function') {
+                        if (typeof highlightWidgetInSnippet === 'function') {
                             highlightWidgetInSnippet(selectedIds);
                         }
                     }).catch(e => {
                         Logger.error("Error generating snippet via adapter:", e);
                         snippetBox.value = "# Error generating YAML (adapter): " + e.message;
+                        if (this.isHighlighted) this.updateHighlightLayer();
                     });
                 } catch (e) {
                     Logger.error("Error generating snippet:", e);
                     snippetBox.value = "# Error generating YAML: " + e.message;
+                    if (this.isHighlighted) this.updateHighlightLayer();
                 }
             }, 50);
         }
@@ -124,53 +224,94 @@ export class SnippetManager {
 
     openSnippetModal() {
         const modal = document.getElementById('snippetFullscreenModal');
+        const container = document.getElementById('snippetFullscreenContainer');
         const content = document.getElementById('snippetFullscreenContent');
+        const highlightLayer = document.getElementById('snippetFullscreenHighlight');
         const snippetBox = document.getElementById('snippetBox');
+        const toggleBtn = document.getElementById('toggleFullscreenHighlightBtn');
 
-        if (!modal || !content || !snippetBox) return;
+        if (!modal || !container || !content || !highlightLayer || !snippetBox) return;
+
+        // Sync highlighting state
+        container.classList.toggle('highlighted', this.isHighlighted);
+        if (toggleBtn) toggleBtn.classList.toggle('active', this.isHighlighted);
+
+        // Setup toggle for fullscreen
+        if (toggleBtn && !toggleBtn.hasListener) {
+            toggleBtn.addEventListener('click', () => {
+                this.isHighlighted = !this.isHighlighted;
+                // Sync with main panel and storage
+                localStorage.setItem('esphome_designer_yaml_highlight', this.isHighlighted);
+                const mainContainer = document.querySelector('.snippet-container');
+                const mainToggle = document.getElementById('toggleHighlightBtn');
+
+                if (mainContainer) mainContainer.classList.toggle('highlighted', this.isHighlighted);
+                if (mainToggle) mainToggle.classList.toggle('active', this.isHighlighted);
+
+                container.classList.toggle('highlighted', this.isHighlighted);
+                toggleBtn.classList.toggle('active', this.isHighlighted);
+
+                if (this.isHighlighted) {
+                    highlightLayer.innerHTML = this.highlighter.highlight(textarea.value);
+                    this.updateHighlightLayer(); // Also update main panel
+                }
+            });
+            toggleBtn.hasListener = true;
+        }
 
         // Use a textarea for editing if it doesn't exist, otherwise update its value
         let textarea = content.querySelector("textarea");
         if (!textarea) {
             content.innerHTML = ""; // Clear existing content
             textarea = document.createElement("textarea");
+            textarea.className = "snippet-box"; // Reuse snippet-box styles
             textarea.style.width = "100%";
-            textarea.style.height = "calc(100vh - 150px)"; // Adjusted for header/footer
-            textarea.style.fontFamily = "monospace";
-            textarea.style.padding = "10px";
-            textarea.style.boxSizing = "border-box";
-            textarea.style.resize = "none";
-            textarea.style.backgroundColor = "var(--bg-input)";
-            textarea.style.color = "var(--text)";
-            textarea.style.border = "1px solid var(--border)";
-            textarea.style.borderRadius = "4px";
+            textarea.style.height = "100%";
+            textarea.style.background = "transparent"; // Ensure transparency
+            textarea.spellcheck = false;
             content.appendChild(textarea);
 
-            // Add a save/update button to the modal footer if not present
-            let footer = modal.querySelector(".modal-actions");
-            if (!footer) {
-                footer = document.createElement("div");
-                footer.className = "modal-actions";
-                const modalInner = modal.querySelector(".modal");
-                if (modalInner) modalInner.appendChild(footer);
-            }
+            // Sync scroll for fullscreen
+            textarea.addEventListener('scroll', () => {
+                highlightLayer.scrollTop = textarea.scrollTop;
+                highlightLayer.scrollLeft = textarea.scrollLeft;
+            });
 
-            if (!footer.querySelector("#fullscreenUpdateBtn")) {
+            // Update highlight for fullscreen
+            textarea.addEventListener('input', () => {
+                if (this.isHighlighted) {
+                    highlightLayer.innerHTML = this.highlighter.highlight(textarea.value);
+                }
+            });
+
+            // Add a save/update button to the modal footer
+            let footer = modal.querySelector(".modal-actions");
+            if (footer && !footer.querySelector("#fullscreenUpdateBtn")) {
                 const updateBtn = document.createElement("button");
                 updateBtn.id = "fullscreenUpdateBtn";
                 updateBtn.className = "btn btn-primary";
                 updateBtn.textContent = "Update Layout from YAML";
                 updateBtn.onclick = () => {
                     snippetBox.value = textarea.value;
-                    // Trigger the main update button logic directly
                     this.handleUpdateLayoutFromSnippetBox();
                     modal.classList.add("hidden");
                 };
                 footer.insertBefore(updateBtn, footer.firstChild);
             }
         }
+
         textarea.value = snippetBox.value || "";
-        modal.style.display = ""; // Clear any inline display: none
+
+        // Initial highlight for fullscreen
+        if (this.isHighlighted) {
+            highlightLayer.innerHTML = this.highlighter.highlight(textarea.value);
+            setTimeout(() => {
+                highlightLayer.scrollTop = textarea.scrollTop;
+                highlightLayer.scrollLeft = textarea.scrollLeft;
+            }, 50);
+        }
+
+        modal.style.display = "";
         modal.classList.remove('hidden');
     }
 

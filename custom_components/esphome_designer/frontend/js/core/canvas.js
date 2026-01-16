@@ -1,6 +1,6 @@
 import { AppState } from './state.js';
 import { on, EVENTS } from './events.js';
-import { render, applyZoom } from './canvas_renderer.js';
+import { render, applyZoom, renderContextToolbar } from './canvas_renderer.js';
 import { CanvasRulers } from './canvas_rulers.js';
 import { setupInteractions, setupPanning, setupZoomControls, setupDragAndDrop, zoomIn, zoomOut, zoomReset, onMouseMove, onMouseUp } from './canvas_interactions.js';
 import { setupTouchInteractions } from './canvas_touch.js';
@@ -40,7 +40,7 @@ export class Canvas {
                 this.focusPage(e.index);
             }
         });
-        on(EVENTS.SELECTION_CHANGED, () => this.render());
+        on(EVENTS.SELECTION_CHANGED, () => this.updateSelectionVisuals());
         on(EVENTS.SETTINGS_CHANGED, () => {
             this.render();
             this.applyZoom();
@@ -86,6 +86,26 @@ export class Canvas {
     applyZoom() {
         applyZoom(this);
         if (this.rulers) this.rulers.update();
+    }
+
+    /**
+     * Lightweight update for selection changes.
+     * Updates widget `.active` classes without full DOM rebuild.
+     */
+    updateSelectionVisuals() {
+        const selectedIds = AppState.selectedWidgetIds;
+        const widgetEls = this.canvas.querySelectorAll('.widget');
+        widgetEls.forEach(el => {
+            const id = el.dataset.id;
+            if (selectedIds.includes(id)) {
+                el.classList.add('active');
+            } else {
+                el.classList.remove('active');
+            }
+        });
+
+        // Re-render toolbar synchronously
+        renderContextToolbar(this);
     }
 
     setupInteractions() {

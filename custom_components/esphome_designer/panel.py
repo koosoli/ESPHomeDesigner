@@ -75,6 +75,10 @@ class ESPHomeDesignerPanelView(HomeAssistantView):
                 # CSS
                 html = html.replace('href="editor.css"', 'href="/esphome-designer/static/editor.css"')
                 
+                # Assets (images, icons) - Rewrite "assets/" to "/esphome-designer/static/assets/"
+                html = html.replace('src="assets/', 'src="/esphome-designer/static/assets/')
+                html = html.replace('href="assets/', 'href="/esphome-designer/static/assets/')
+                
                 # JS files - convert relative paths to absolute static paths
                 # Pattern: src="something.js" or src="path/to/file.js" or src="file.js?v=2"
                 # Skip external URLs (http://, https://)

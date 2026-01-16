@@ -270,7 +270,7 @@ export const DEVICE_PROFILES = {
       epaper: true,
       touch: true, // Has GT911
       inverted_colors: true,
-      sht3x: true
+      sht3xd: true
     },
     pins: {
       display: { cs: "GPIO15", dc: null, reset: "GPIO23", busy: "GPIO27" }, // DC not used for IT8951E

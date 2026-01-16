@@ -44,27 +44,6 @@ time:
   - platform: homeassistant
     id: ha_time
 sensor:
-  - platform: adc
-    pin: GPIO1
-    name: "Battery Voltage"
-    unit_of_measurement: "V"
-    device_class: voltage
-    state_class: measurement
-    id: battery_voltage
-    update_interval: 60s
-    attenuation: 12db
-    filters:
-      - multiply: 2
-  - platform: sht4x
-    id: sht4x_sensor
-    temperature:
-      name: "Temperature"
-      id: sht4x_temperature
-    humidity:
-      name: "Humidity"
-      id: sht4x_humidity
-    address: 0x44
-    update_interval: 60s
   - platform: homeassistant
     id: sensor_test_progress
     entity_id: sensor.test_progress
@@ -77,17 +56,6 @@ sensor:
     id: sensor_test_temp
     entity_id: sensor.test_temp
     internal: true
-  - platform: template
-    name: "Battery Level"
-    id: battery_level
-    unit_of_measurement: "%"
-    icon: "mdi:battery"
-    device_class: battery
-    state_class: measurement
-    lambda: |-
-      if (id(battery_voltage).state > 4.15) return 100;
-      if (id(battery_voltage).state < 3.27) return 0;
-      return (id(battery_voltage).state - 3.27) / (4.15 - 3.27) * 100.0;
 binary_sensor:
   - platform: gpio
     pin:
@@ -170,9 +138,12 @@ button:
     icon: "mdi:music-note"
     on_press:
       - rtttl.play: "StarWars:d=4,o=5,b=45:32p,32f,32f,32f,8a#.,8f.6,32d#,32d,32c,8a#.6,4f.6,32d#,32d,32c,8a#.6,4f.6,32d#,32d,32d#,8c6"
-time:
-  - platform: homeassistant
-    id: ha_time
+image:
+  - file: "test_image.png"
+    id: img_test_image_png_50x50
+    type: TRANSPARENT_BINARY
+    resize: 50x50
+    dither: FLOYDSTEINBERG
 graph:
   - id: graph_w_graph
     duration: 1h
@@ -187,44 +158,41 @@ graph:
 font:
   - file:
       type: gfonts
-      family: Roboto
+      family: "Roboto"
       weight: 400
     id: font_roboto_400_20
     size: 20
     glyphs: ["\U00000020", "\U00000021", "\U00000022", "\U00000023", "\U00000024", "\U00000025", "\U00000026", "\U00000027", "\U00000028", "\U00000029", "\U0000002a", "\U0000002b", "\U0000002c", "\U0000002d", "\U0000002e", "\U0000002f", "\U00000030", "\U00000031", "\U00000032", "\U00000033", "\U00000034", "\U00000035", "\U00000036", "\U00000037", "\U00000038", "\U00000039", "\U0000003a", "\U0000003b", "\U0000003c", "\U0000003d", "\U0000003e", "\U0000003f", "\U00000040", "\U00000041", "\U00000042", "\U00000043", "\U00000044", "\U00000045", "\U00000046", "\U00000047", "\U00000048", "\U00000049", "\U0000004a", "\U0000004b", "\U0000004c", "\U0000004d", "\U0000004e", "\U0000004f", "\U00000050", "\U00000051", "\U00000052", "\U00000053", "\U00000054", "\U00000055", "\U00000056", "\U00000057", "\U00000058", "\U00000059", "\U0000005a", "\U0000005b", "\U0000005c", "\U0000005d", "\U0000005e", "\U0000005f", "\U00000060", "\U00000061", "\U00000062", "\U00000063", "\U00000064", "\U00000065", "\U00000066", "\U00000067", "\U00000068", "\U00000069", "\U0000006a", "\U0000006b", "\U0000006c", "\U0000006d", "\U0000006e", "\U0000006f", "\U00000070", "\U00000071", "\U00000072", "\U00000073", "\U00000074", "\U00000075", "\U00000076", "\U00000077", "\U00000078", "\U00000079", "\U0000007a", "\U0000007b", "\U0000007c", "\U0000007d", "\U0000007e", "\U000000B0", "\U000000B1", "\U000000B2", "\U000000B3", "\U000000B5", "\U000000A3", "\U000000A5", "\U000000A9", "\U000000AE", "\U000000D7", "\U000000F7", "\U000003BC", "\U000003A9", "\U000020AC", "\U00002122"]
   - file:
       type: gfonts
-      family: Roboto
-      weight: 400
-    id: font_roboto_400_14
-    size: 14
-    glyphs: ["\U00000020", "\U00000021", "\U00000022", "\U00000023", "\U00000024", "\U00000025", "\U00000026", "\U00000027", "\U00000028", "\U00000029", "\U0000002a", "\U0000002b", "\U0000002c", "\U0000002d", "\U0000002e", "\U0000002f", "\U00000030", "\U00000031", "\U00000032", "\U00000033", "\U00000034", "\U00000035", "\U00000036", "\U00000037", "\U00000038", "\U00000039", "\U0000003a", "\U0000003b", "\U0000003c", "\U0000003d", "\U0000003e", "\U0000003f", "\U00000040", "\U00000041", "\U00000042", "\U00000043", "\U00000044", "\U00000045", "\U00000046", "\U00000047", "\U00000048", "\U00000049", "\U0000004a", "\U0000004b", "\U0000004c", "\U0000004d", "\U0000004e", "\U0000004f", "\U00000050", "\U00000051", "\U00000052", "\U00000053", "\U00000054", "\U00000055", "\U00000056", "\U00000057", "\U00000058", "\U00000059", "\U0000005a", "\U0000005b", "\U0000005c", "\U0000005d", "\U0000005e", "\U0000005f", "\U00000060", "\U00000061", "\U00000062", "\U00000063", "\U00000064", "\U00000065", "\U00000066", "\U00000067", "\U00000068", "\U00000069", "\U0000006a", "\U0000006b", "\U0000006c", "\U0000006d", "\U0000006e", "\U0000006f", "\U00000070", "\U00000071", "\U00000072", "\U00000073", "\U00000074", "\U00000075", "\U00000076", "\U00000077", "\U00000078", "\U00000079", "\U0000007a", "\U0000007b", "\U0000007c", "\U0000007d", "\U0000007e", "\U000000B0", "\U000000B1", "\U000000B2", "\U000000B3", "\U000000B5", "\U000000A3", "\U000000A5", "\U000000A9", "\U000000AE", "\U000000D7", "\U000000F7", "\U000003BC", "\U000003A9", "\U000020AC", "\U00002122"]
-  - file: "fonts/materialdesignicons-webfont.ttf"
-    id: font_material_design_icons_400_24
-    size: 24
-  - file:
-      type: gfonts
-      family: Roboto
+      family: "Roboto"
       weight: 400
     id: font_roboto_400_12
     size: 12
     glyphs: ["\U00000020", "\U00000021", "\U00000022", "\U00000023", "\U00000024", "\U00000025", "\U00000026", "\U00000027", "\U00000028", "\U00000029", "\U0000002a", "\U0000002b", "\U0000002c", "\U0000002d", "\U0000002e", "\U0000002f", "\U00000030", "\U00000031", "\U00000032", "\U00000033", "\U00000034", "\U00000035", "\U00000036", "\U00000037", "\U00000038", "\U00000039", "\U0000003a", "\U0000003b", "\U0000003c", "\U0000003d", "\U0000003e", "\U0000003f", "\U00000040", "\U00000041", "\U00000042", "\U00000043", "\U00000044", "\U00000045", "\U00000046", "\U00000047", "\U00000048", "\U00000049", "\U0000004a", "\U0000004b", "\U0000004c", "\U0000004d", "\U0000004e", "\U0000004f", "\U00000050", "\U00000051", "\U00000052", "\U00000053", "\U00000054", "\U00000055", "\U00000056", "\U00000057", "\U00000058", "\U00000059", "\U0000005a", "\U0000005b", "\U0000005c", "\U0000005d", "\U0000005e", "\U0000005f", "\U00000060", "\U00000061", "\U00000062", "\U00000063", "\U00000064", "\U00000065", "\U00000066", "\U00000067", "\U00000068", "\U00000069", "\U0000006a", "\U0000006b", "\U0000006c", "\U0000006d", "\U0000006e", "\U0000006f", "\U00000070", "\U00000071", "\U00000072", "\U00000073", "\U00000074", "\U00000075", "\U00000076", "\U00000077", "\U00000078", "\U00000079", "\U0000007a", "\U0000007b", "\U0000007c", "\U0000007d", "\U0000007e", "\U000000B0", "\U000000B1", "\U000000B2", "\U000000B3", "\U000000B5", "\U000000A3", "\U000000A5", "\U000000A9", "\U000000AE", "\U000000D7", "\U000000F7", "\U000003BC", "\U000003A9", "\U000020AC", "\U00002122"]
   - file:
       type: gfonts
-      family: Roboto
+      family: "Roboto"
+      weight: 400
+    id: font_roboto_400_14
+    size: 14
+    glyphs: ["\U00000020", "\U00000021", "\U00000022", "\U00000023", "\U00000024", "\U00000025", "\U00000026", "\U00000027", "\U00000028", "\U00000029", "\U0000002a", "\U0000002b", "\U0000002c", "\U0000002d", "\U0000002e", "\U0000002f", "\U00000030", "\U00000031", "\U00000032", "\U00000033", "\U00000034", "\U00000035", "\U00000036", "\U00000037", "\U00000038", "\U00000039", "\U0000003a", "\U0000003b", "\U0000003c", "\U0000003d", "\U0000003e", "\U0000003f", "\U00000040", "\U00000041", "\U00000042", "\U00000043", "\U00000044", "\U00000045", "\U00000046", "\U00000047", "\U00000048", "\U00000049", "\U0000004a", "\U0000004b", "\U0000004c", "\U0000004d", "\U0000004e", "\U0000004f", "\U00000050", "\U00000051", "\U00000052", "\U00000053", "\U00000054", "\U00000055", "\U00000056", "\U00000057", "\U00000058", "\U00000059", "\U0000005a", "\U0000005b", "\U0000005c", "\U0000005d", "\U0000005e", "\U0000005f", "\U00000060", "\U00000061", "\U00000062", "\U00000063", "\U00000064", "\U00000065", "\U00000066", "\U00000067", "\U00000068", "\U00000069", "\U0000006a", "\U0000006b", "\U0000006c", "\U0000006d", "\U0000006e", "\U0000006f", "\U00000070", "\U00000071", "\U00000072", "\U00000073", "\U00000074", "\U00000075", "\U00000076", "\U00000077", "\U00000078", "\U00000079", "\U0000007a", "\U0000007b", "\U0000007c", "\U0000007d", "\U0000007e", "\U000000B0", "\U000000B1", "\U000000B2", "\U000000B3", "\U000000B5", "\U000000A3", "\U000000A5", "\U000000A9", "\U000000AE", "\U000000D7", "\U000000F7", "\U000003BC", "\U000003A9", "\U000020AC", "\U00002122"]
+  - file:
+      type: gfonts
+      family: "Roboto"
       weight: 700
     id: font_roboto_700_28
     size: 28
     glyphs: ["\U00000020", "\U00000021", "\U00000022", "\U00000023", "\U00000024", "\U00000025", "\U00000026", "\U00000027", "\U00000028", "\U00000029", "\U0000002a", "\U0000002b", "\U0000002c", "\U0000002d", "\U0000002e", "\U0000002f", "\U00000030", "\U00000031", "\U00000032", "\U00000033", "\U00000034", "\U00000035", "\U00000036", "\U00000037", "\U00000038", "\U00000039", "\U0000003a", "\U0000003b", "\U0000003c", "\U0000003d", "\U0000003e", "\U0000003f", "\U00000040", "\U00000041", "\U00000042", "\U00000043", "\U00000044", "\U00000045", "\U00000046", "\U00000047", "\U00000048", "\U00000049", "\U0000004a", "\U0000004b", "\U0000004c", "\U0000004d", "\U0000004e", "\U0000004f", "\U00000050", "\U00000051", "\U00000052", "\U00000053", "\U00000054", "\U00000055", "\U00000056", "\U00000057", "\U00000058", "\U00000059", "\U0000005a", "\U0000005b", "\U0000005c", "\U0000005d", "\U0000005e", "\U0000005f", "\U00000060", "\U00000061", "\U00000062", "\U00000063", "\U00000064", "\U00000065", "\U00000066", "\U00000067", "\U00000068", "\U00000069", "\U0000006a", "\U0000006b", "\U0000006c", "\U0000006d", "\U0000006e", "\U0000006f", "\U00000070", "\U00000071", "\U00000072", "\U00000073", "\U00000074", "\U00000075", "\U00000076", "\U00000077", "\U00000078", "\U00000079", "\U0000007a", "\U0000007b", "\U0000007c", "\U0000007d", "\U0000007e", "\U000000B0", "\U000000B1", "\U000000B2", "\U000000B3", "\U000000B5", "\U000000A3", "\U000000A5", "\U000000A9", "\U000000AE", "\U000000D7", "\U000000F7", "\U000003BC", "\U000003A9", "\U000020AC", "\U00002122"]
   - file:
       type: gfonts
-      family: Roboto
+      family: "Roboto"
       weight: 400
     id: font_roboto_400_16
     size: 16
     glyphs: ["\U00000020", "\U00000021", "\U00000022", "\U00000023", "\U00000024", "\U00000025", "\U00000026", "\U00000027", "\U00000028", "\U00000029", "\U0000002a", "\U0000002b", "\U0000002c", "\U0000002d", "\U0000002e", "\U0000002f", "\U00000030", "\U00000031", "\U00000032", "\U00000033", "\U00000034", "\U00000035", "\U00000036", "\U00000037", "\U00000038", "\U00000039", "\U0000003a", "\U0000003b", "\U0000003c", "\U0000003d", "\U0000003e", "\U0000003f", "\U00000040", "\U00000041", "\U00000042", "\U00000043", "\U00000044", "\U00000045", "\U00000046", "\U00000047", "\U00000048", "\U00000049", "\U0000004a", "\U0000004b", "\U0000004c", "\U0000004d", "\U0000004e", "\U0000004f", "\U00000050", "\U00000051", "\U00000052", "\U00000053", "\U00000054", "\U00000055", "\U00000056", "\U00000057", "\U00000058", "\U00000059", "\U0000005a", "\U0000005b", "\U0000005c", "\U0000005d", "\U0000005e", "\U0000005f", "\U00000060", "\U00000061", "\U00000062", "\U00000063", "\U00000064", "\U00000065", "\U00000066", "\U00000067", "\U00000068", "\U00000069", "\U0000006a", "\U0000006b", "\U0000006c", "\U0000006d", "\U0000006e", "\U0000006f", "\U00000070", "\U00000071", "\U00000072", "\U00000073", "\U00000074", "\U00000075", "\U00000076", "\U00000077", "\U00000078", "\U00000079", "\U0000007a", "\U0000007b", "\U0000007c", "\U0000007d", "\U0000007e", "\U000000B0", "\U000000B1", "\U000000B2", "\U000000B3", "\U000000B5", "\U000000A3", "\U000000A5", "\U000000A9", "\U000000AE", "\U000000D7", "\U000000F7", "\U000003BC", "\U000003A9", "\U000020AC", "\U00002122"]
   - file: "fonts/materialdesignicons-webfont.ttf"
-    id: icon_font_24
+    id: font_material_design_icons_400_24
     size: 24
     glyphs: ["\U000F0079", "\U000F007A", "\U000F007B", "\U000F007C", "\U000F007D", "\U000F007E", "\U000F007F", "\U000F0080", "\U000F0081", "\U000F0082", "\U000F0083", "\U000F091F", "\U000F0922", "\U000F0925", "\U000F0928", "\U000F092B"]
 script:
@@ -237,9 +205,17 @@ script:
           int target = target_page;
           while (target < 0) target += pages_count;
           target %= pages_count;
+          // Debounce: Ignore page changes within 3000ms of last change
+          // (e-paper display update takes ~1.6s, so we need a longer debounce)
+          uint32_t now = millis();
+          if (now - id(last_page_switch_time) < 3000) {
+            ESP_LOGD("display", "Page change ignored (debounce), last switch was %d ms ago", now - id(last_page_switch_time));
+            return;
+          }
           if (id(display_page) != target) {
+            // Set debounce time BEFORE display update (update takes ~1.6s)
+            id(last_page_switch_time) = now;
             id(display_page) = target;
-            id(last_page_switch_time) = millis();
             id(epaper_display).update();
             ESP_LOGI("display", "Switched to page %d", target);
             // Restart refresh logic
@@ -284,6 +260,15 @@ display:
       const auto COLOR_ORANGE = Color(255, 165, 0);
       auto color_off = COLOR_WHITE;
       auto color_on = COLOR_BLACK;
+      // Helper to apply a simple grey dither mask for e-paper (checkerboard)
+      auto apply_grey_dither_mask = [&](int x_start, int y_start, int w, int h) {
+        for (int y = y_start; y < y_start + h; y++) {
+          for (int x = x_start; x < x_start + w; x++) {
+            if ((x + y) % 2 == 0) it.draw_pixel_at(x, y, COLOR_WHITE);
+            else it.draw_pixel_at(x, y, COLOR_BLACK);
+          }
+        }
+      };
       int currentPage = id(display_page);
       if (currentPage == 0) {
         // page:name "Page 1"
@@ -367,8 +352,7 @@ display:
           it.strftime(110, 147 + 28 + 2, id(font_roboto_400_16), COLOR_BLACK, TextAlign::CENTER, "%a, %b %d", now);
         }
         // widget:sensor_text id:w_sensor type:sensor_text x:10 y:200 w:100 h:20 ent:sensor.test_temp fmt:label_value
-        it.printf(10, 200, id(font_roboto_400_14), COLOR_BLACK, TextAlign::TOP_LEFT, "test temp:");
-        it.printf(104, 200, id(font_roboto_400_20), COLOR_BLACK, TextAlign::TOP_LEFT, "%.2f", id(sensor_test_temp).state);
+        it.printf(10, 200, id(font_roboto_400_20), COLOR_BLACK, TextAlign::TOP_LEFT, "test temp: %.2f", id(sensor_test_temp).state);
         // widget:graph id:w_graph type:graph x:10 y:230 w:200 h:100 title:"" entity:sensor.test_temp local:false duration:1h border:true color:black x_grid:15min y_grid:50 line_type:SOLID line_thickness:3 continuous:false min_value: max_value: min_range: max_range:
         it.graph(10, 230, id(graph_w_graph));
         for (int i = 0; i < 3; i++) {
@@ -400,6 +384,6 @@ display:
         it.printf(10 + 0, 230 + 100 + 2, id(font_roboto_400_12), COLOR_BLACK, TextAlign::TOP_LEFT, "-1.0h");
         it.printf(10 + 100, 230 + 100 + 2, id(font_roboto_400_12), COLOR_BLACK, TextAlign::TOP_CENTER, "-30m");
         it.printf(10 + 200, 230 + 100 + 2, id(font_roboto_400_12), COLOR_BLACK, TextAlign::TOP_RIGHT, "Now");
-        // widget:image id:w_image status:unsupported
-                // Unsupported widget type: image
+        // widget:image id:w_image type:image x:220 y:230 w:50 h:50 path:"test_image.png" invert:false
+        it.image(220, 230, id(img_test_image_png_50x50));
       }

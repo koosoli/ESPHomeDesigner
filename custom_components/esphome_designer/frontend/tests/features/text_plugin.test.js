@@ -49,7 +49,7 @@ describe('Text Plugin', () => {
         const output = mockContext.lines.join('\n');
         // x = 10 + 100/2 = 60
         // y = 20 + 30/2 = 35
-        expect(output).toContain('it.printf(60, 35, id(font_id_123), COLOR_BLUE, TextAlign::CENTER_CENTER, "Hello World");');
+        expect(output).toContain('it.printf(60, 35, id(font_id_123), COLOR_BLUE, TextAlign::CENTER, "Hello World");');
     });
 
     it('should handle bottom right alignment correctly', () => {

@@ -132,6 +132,23 @@ export class DeviceSettings {
             });
         }
 
+        // Auto-set square resolution when 'round' shape is selected
+        if (this.customShape) {
+            this.customShape.addEventListener('change', () => {
+                if (this.customShape.value === 'round' && this.customRes) {
+                    // Parse current resolution and make it square using the smaller dimension
+                    const currentRes = (this.customRes.value || "800x480").split('x');
+                    const w = parseInt(currentRes[0]) || 480;
+                    const h = parseInt(currentRes[1]) || 480;
+                    const squareSize = Math.min(w, h);
+                    this.customRes.value = `${squareSize}x${squareSize}`;
+                    Logger.log(`[DeviceSettings] Auto-set square resolution for round display: ${squareSize}x${squareSize}`);
+                    // Trigger save
+                    this.customRes.dispatchEvent(new Event('change'));
+                }
+            });
+        }
+
         // Robust Event Delegation with Debounce
         document.body.addEventListener('click', async (e) => {
             if (e.target && e.target.id === 'saveCustomProfileBtn') {

@@ -30,7 +30,7 @@ class ReTerminalImportSnippetView(DesignerBaseView):
             body = await request.json()
             yaml_content = body.get("yaml")
             if not yaml_content:
-                return self.json({"error": "yaml_required"}, HTTPStatus.BAD_REQUEST)
+                return self.json({"error": "yaml_required"}, HTTPStatus.BAD_REQUEST, request=request)
 
             # Reconstruct model from YAML
             layout = yaml_to_layout(yaml_content)
@@ -41,12 +41,12 @@ class ReTerminalImportSnippetView(DesignerBaseView):
             return self.json({
                 "status": "ok",
                 "layout": layout.to_dict()
-            })
+            }, request=request)
         except ValueError as exc:
-            return self.json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return self.json({"error": str(exc)}, HTTPStatus.BAD_REQUEST, request=request)
         except Exception as exc:
             _LOGGER.exception("Unexpected error during snippet import")
-            return self.json({"error": "internal_error"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return self.json({"error": "internal_error"}, HTTPStatus.INTERNAL_SERVER_ERROR, request=request)
 
 class ReTerminalLayoutExportView(DesignerBaseView):
     """Provide a JSON export of a layout."""
@@ -61,9 +61,9 @@ class ReTerminalLayoutExportView(DesignerBaseView):
         layout_id = request.query.get("id", "default")
         layout = await self.storage.async_get_layout(layout_id)
         if not layout:
-            return self.json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
+            return self.json({"error": "not_found"}, HTTPStatus.NOT_FOUND, request=request)
         
-        return self.json(layout.to_dict())
+        return self.json(layout.to_dict(), request=request)
 
 class ReTerminalLayoutImportView(DesignerBaseView):
     """Import a JSON layout file."""
@@ -80,6 +80,6 @@ class ReTerminalLayoutImportView(DesignerBaseView):
             # Convert dict to model and back to validate
             layout = DeviceConfig.from_dict(body)
             await self.storage.async_save_layout(layout)
-            return self.json({"status": "ok", "id": layout.id})
+            return self.json({"status": "ok", "id": layout.id}, request=request)
         except Exception as exc:
-            return self.json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return self.json({"error": str(exc)}, HTTPStatus.BAD_REQUEST, request=request)

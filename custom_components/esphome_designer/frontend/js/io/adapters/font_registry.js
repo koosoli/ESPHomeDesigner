@@ -102,7 +102,9 @@ export class FontRegistry {
             lines.push(`      type: ${f.file.type}`);
             lines.push(`      family: "${f.file.family}"`);
             lines.push(`      weight: ${f.file.weight}`);
-            lines.push(`      italic: ${f.file.italic ? "true" : "false"}`);
+            if (f.file.italic) {
+                lines.push(`      italic: true`);
+            }
             lines.push(`    id: ${f.id}`);
             lines.push(`    size: ${f.size}`);
             const glyphs = f.glyphs.map(g => `"${g}"`).join(", ");

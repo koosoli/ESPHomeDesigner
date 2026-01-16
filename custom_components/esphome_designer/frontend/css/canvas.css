@@ -148,23 +148,24 @@
     justify-content: space-between;
     align-items: center;
     padding: 6px 12px;
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
     color: var(--text-dim);
     font-size: 10px;
     font-weight: 600;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .artboard-name {
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
 }
 
 .artboard-actions {
     display: flex;
-    gap: 4px;
+    gap: 6px;
 }
 
 .artboard-btn {
@@ -172,29 +173,30 @@
     border: none;
     color: inherit;
     cursor: pointer;
-    font-size: 14px;
-    width: 24px;
-    height: 24px;
+    font-size: 16px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 6px;
-    transition: all 0.2s;
+    border-radius: 8px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .artboard-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.12);
     color: var(--text);
+    transform: translateY(-1px);
 }
 
 .artboard {
     background: var(--white);
     position: relative;
-    /* Premium deep elevation shadow */
+    /* Extra deep premium elevation shadow */
     box-shadow:
         0 0 0 1px rgba(0, 0, 0, 0.05),
-        0 20px 50px rgba(0, 0, 0, 0.3),
-        0 50px 100px rgba(0, 0, 0, 0.4);
+        0 25px 50px rgba(0, 0, 0, 0.25),
+        0 60px 120px rgba(0, 0, 0, 0.35);
     overflow: hidden;
     flex-shrink: 0;
     cursor: crosshair;
@@ -213,17 +215,19 @@
 }
 
 .active-page .artboard {
-    /* Active artboard glow and slight lift */
+    /* Active artboard strong glow and lift */
     box-shadow:
         0 0 0 2px var(--accent),
-        0 30px 70px rgba(0, 0, 0, 0.4),
-        0 60px 120px rgba(0, 0, 0, 0.5);
-    transform: translateY(-4px);
+        0 35px 80px rgba(0, 0, 0, 0.45),
+        0 70px 140px rgba(0, 0, 0, 0.55);
+    transform: translateY(-6px);
 }
 
 .artboard.dark {
     background: var(--black);
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 30px 60px rgba(0, 0, 0, 0.6);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 40px 80px rgba(0, 0, 0, 0.7);
 }
 
 .canvas-grid {
@@ -436,9 +440,6 @@
     box-shadow: var(--glass-shadow);
     z-index: 2000;
     pointer-events: none;
-    /* Allow clicks to pass through background to widgets */
-    transition: opacity 0.2s, transform 0.2s;
-    animation: toolbarPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 @keyframes toolbarPop {
@@ -547,4 +548,60 @@
 
 .distance-marker-v-tick-end {
     bottom: 0;
+}
+
+/* Add Page Placeholder */
+.add-page-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    min-height: 200px;
+    cursor: pointer;
+    transition: all 0.3s var(--t-base);
+    opacity: 0.4;
+    gap: 12px;
+    position: relative;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.add-page-placeholder:hover {
+    opacity: 0.8;
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--accent);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.add-page-placeholder .plus-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    color: var(--text-dim);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s;
+}
+
+.add-page-placeholder:hover .plus-icon {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: var(--accent);
+    transform: scale(1.1);
+}
+
+.add-page-placeholder .label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
 }

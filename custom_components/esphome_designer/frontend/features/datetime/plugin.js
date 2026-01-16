@@ -40,6 +40,7 @@ const render = (el, widget, { getColorStyle }) => {
     if (format === "time_only") {
         el.appendChild(timeDiv);
     } else if (format === "date_only") {
+        dateDiv.textContent = "01.01.2024";
         el.appendChild(dateDiv);
     } else if (format === "weekday_day_month") {
         // European/international date format: "Monday 01 January"
@@ -86,7 +87,7 @@ export default {
             label: {
                 ...common,
                 text: lambdaStr,
-                text_font: getLVGLFont(p.font_family, p.time_font_size || 28, p.font_weight, p.italic),
+                text_font: getLVGLFont(p.font_family, p.time_font_size || 28, format === "date_only" ? 400 : 700, p.italic),
                 text_color: convertColor(p.color),
                 text_align: (convertAlign(p.text_align) || "CENTER").replace("TOP_", "").replace("BOTTOM_", ""),
                 opa: formatOpacity(p.opa)

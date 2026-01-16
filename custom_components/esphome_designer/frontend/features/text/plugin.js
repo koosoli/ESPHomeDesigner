@@ -103,6 +103,8 @@ export default {
             align = align.replace("TOP_", "CENTER_");
         }
 
+        if (align === "TextAlign::CENTER_CENTER") align = "TextAlign::CENTER";
+
         lines.push(`        it.printf(${x}, ${y}, id(${fontId}), ${color}, ${align}, "${text.replace(/"/g, '\\"')}");`);
 
         if (cond) lines.push(`        }`);

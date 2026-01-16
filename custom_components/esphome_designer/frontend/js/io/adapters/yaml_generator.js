@@ -57,12 +57,14 @@ export class YamlGenerator {
         lines.push("#   on_boot:");
         lines.push("#     priority: 600");
         lines.push("#     then:");
-        if (profile.battery) {
+        if (profile.battery && profile.pins && profile.pins.batteryEnable) {
             lines.push("#       - output.turn_on: bsp_battery_enable");
         }
         lines.push("#       - delay: 2s  # Wait for Home Assistant API connection");
         lines.push("#       - script.execute: manage_run_and_sleep");
-        lines.push("#       - script.execute: auto_cycle_timer");
+        if (layout.autoCycleEnabled) {
+            lines.push("#       - script.execute: auto_cycle_timer");
+        }
         lines.push("#");
         lines.push("");
         lines.push("# ====================================");

@@ -15,14 +15,14 @@
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
   <link rel="stylesheet" href="editor.css">
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="assets/favicon.png" type="image/x-icon">
 </head>
 
 <body>
   <header class="main-header" role="banner">
     <div class="main-header-title">
-      <h2><span class="logo-dot"></span> ESPHome Designer</h2>
-      <span>Visual YAML Editor <small style="opacity: 0.5; margin-left: 8px;">Pre_0.9.0b93</small> <span
+      <img src="assets/logo_header.png" alt="ESPHome Designer" class="logo-image">
+      <span> <small style="opacity: 0.5; margin-left: 8px;">Pre_0.9.0b120</small> <span
           id="currentLayoutDevice" style="margin-left:8px; color:var(--accent);"></span></span>
     </div>
     <div class="main-header-actions desktop-only">
@@ -159,17 +159,32 @@
       <div class="resizer-h" id="resizer-bottom"></div>
       <div class="code-panel">
         <div class="code-panel-header">
-          <div class="code-panel-title">ESPHome YAML</div>
+          <div class="code-panel-title">
+            <button id="toggleYamlBtn" class="btn-icon btn-xs code-toggle-btn" title="Toggle YAML Panel">
+              <svg class="chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                stroke-width="3">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            ESPHome YAML
+          </div>
           <div class="code-panel-actions">
-            <button id="aiPromptBtn" class="btn btn-secondary btn-xs btn-ai-sparkle">✨ AI Assistant</button>
+            <button id="toggleHighlightBtn" class="btn btn-secondary btn-xs btn-icon" title="Toggle Syntax Highlighting"
+              style="width: auto; padding: 0 6px; border-radius: 4px;">
+              <span class="mdi mdi-palette-outline" style="font-size: 14px;"></span>
+            </button>
+            <button id="aiPromptBtn" class="btn btn-secondary btn-xs">AI Assistant</button>
             <button id="copySnippetBtn" class="btn btn-secondary btn-xs">Copy</button>
             <button id="fullscreenSnippetBtn" class="btn btn-secondary btn-xs">Full</button>
             <button id="updateLayoutBtn" class="btn btn-secondary btn-xs"
               title="Import YAML back to canvas">Update</button>
           </div>
         </div>
-        <textarea id="snippetBox" class="snippet-box" spellcheck="false"
-          placeholder="# Click 'Generate' to see the ESPHome configuration..."></textarea>
+        <div class="snippet-container">
+          <pre id="highlightLayer" class="highlight-layer" aria-hidden="true"></pre>
+          <textarea id="snippetBox" class="snippet-box" spellcheck="false"
+            placeholder="# Click 'Generate' to see the ESPHome configuration..."></textarea>
+        </div>
       </div>
     </main>
 
@@ -226,12 +241,20 @@
   <div id="snippetFullscreenModal" class="modal-backdrop hidden">
     <div class="modal">
       <div class="modal-header">
-        <div>ESPHome YAML (Fullscreen)</div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          ESPHome YAML (Fullscreen)
+          <button id="toggleFullscreenHighlightBtn" class="btn btn-secondary btn-xs btn-icon"
+            title="Toggle Syntax Highlighting" style="width: auto; padding: 0 6px; border-radius: 4px;">
+            <span class="mdi mdi-palette-outline" style="font-size: 14px;"></span>
+          </button>
+        </div>
         <button id="snippetFullscreenClose" class="btn btn-secondary">Close</button>
       </div>
       <div class="modal-body">
-        <pre id="snippetFullscreenContent"
-          style="background:var(--bg); padding:16px; border-radius:8px; border:1px solid var(--border-subtle); overflow:auto;"></pre>
+        <div class="snippet-container" id="snippetFullscreenContainer" style="height: 100%;">
+          <pre id="snippetFullscreenHighlight" class="highlight-layer" aria-hidden="true"></pre>
+          <div id="snippetFullscreenContent" style="width: 100%; height: 100%;"></div>
+        </div>
       </div>
     </div>
   </div>

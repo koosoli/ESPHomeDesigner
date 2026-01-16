@@ -189,8 +189,8 @@ export class ESPHomeAdapter extends BaseAdapter {
             }
 
             // 2. PSRAM
-            if (!profile.isPackageBased && profile.features && (profile.features.psram || profile.features.features?.psram)) {
-                lines.push("psram:", "  mode: octal", "  speed: 80MHz");
+            if (!profile.isPackageBased && Generators.generatePSRAMSection) {
+                lines.push(...Generators.generatePSRAMSection(profile));
             }
 
             // Hardware Sections (I2C, SPI, etc.)
@@ -210,6 +210,7 @@ export class ESPHomeAdapter extends BaseAdapter {
                 if (Generators.generateRTTTLSection) lines.push(...Generators.generateRTTTLSection(profile));
                 if (Generators.generateAudioSection) lines.push(...Generators.generateAudioSection(profile));
 
+
                 // Time (Home Assistant variant, required for datetime plugin and many scripts)
                 const hasTime = lines.some(l => String(l).split('\n').some(subL => subL.trim() === "time:"));
                 if (!hasTime) {
@@ -223,9 +224,12 @@ export class ESPHomeAdapter extends BaseAdapter {
                 }
             }
 
+            // Insert Sensor Section here
+            if (Generators.generateSensorSection) lines.push(...Generators.generateSensorSection(profile, [], displayId, allWidgets));
+
             // Numeric Sensors
             const numericSensorLines = [];
-            PluginRegistry.onExportNumericSensors({ ...context, lines: numericSensorLines });
+            PluginRegistry.onExportNumericSensors({ ...context, lines: numericSensorLines, mainLines: lines });
             if (numericSensorLines.length > 0) {
                 if (!lines.some(l => l === "sensor:")) lines.push("sensor:");
                 lines.push(...numericSensorLines.map(l => "  " + l));

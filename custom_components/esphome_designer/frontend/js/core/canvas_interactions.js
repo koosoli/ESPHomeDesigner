@@ -5,6 +5,7 @@ import { WidgetFactory } from './widget_factory.js';
 import { registry as PluginRegistry } from './plugin_registry.js';
 import { snapToGridCell, applySnapToPosition, clearSnapGuides, updateWidgetGridCell } from './canvas_snap.js';
 import { render, applyZoom, updateWidgetDOM, focusPage } from './canvas_renderer.js';
+import { highlightWidgetInSnippet } from '../io/yaml_export.js';
 
 // Helper for manual double-click detection
 let lastClickTime = 0;
@@ -162,26 +163,44 @@ export function setupInteractions(canvasInstance) {
             const widget = AppState.getWidgetById(widgetId);
             if (!widget) return;
 
+            // If this widget is part of a group, redirect interaction to the group parent
+            // This ensures clicking/dragging any child moves the entire group
+            let effectiveWidget = widget;
+            let effectiveWidgetId = widgetId;
+            if (widget.parentId) {
+                const parentWidget = AppState.getWidgetById(widget.parentId);
+                if (parentWidget) {
+                    effectiveWidget = parentWidget;
+                    effectiveWidgetId = parentWidget.id;
+                    // Select the group instead of the child
+                    AppState.selectWidget(effectiveWidgetId, isMulti);
+                }
+            }
+
             const isResizeHandle = ev.target.classList.contains("widget-resize-handle");
 
             if (isResizeHandle) {
-                if (widget.locked) return;
+                // Block resizing for widgets that are part of a group
+                if (widget.parentId) {
+                    return;
+                }
+                if (effectiveWidget.locked) return;
                 canvasInstance.dragState = {
                     mode: "resize",
                     handle: ev.target.dataset.handle || 'br',
-                    id: widgetId,
+                    id: effectiveWidgetId,
                     startX: ev.clientX,
                     startY: ev.clientY,
-                    startW: widget.width,
-                    startH: widget.height,
-                    startWidgetX: widget.x,
-                    startWidgetY: widget.y,
+                    startW: effectiveWidget.width,
+                    startH: effectiveWidget.height,
+                    startWidgetX: effectiveWidget.x,
+                    startWidgetY: effectiveWidget.y,
                     artboardEl: currentArtboardEl,
                     dragStartPanX: canvasInstance.panX,
                     dragStartPanY: canvasInstance.panY
                 };
             } else {
-                if (widget.locked) return;
+                if (effectiveWidget.locked) return;
 
                 const selectedWidgets = AppState.getSelectedWidgets();
                 const widgetOffsets = selectedWidgets.map(w => ({
@@ -194,7 +213,7 @@ export function setupInteractions(canvasInstance) {
 
                 canvasInstance.dragState = {
                     mode: "move",
-                    id: widgetId,
+                    id: effectiveWidgetId,
                     widgets: widgetOffsets,
                     artboardEl: currentArtboardEl,
                     dragStartX: ev.clientX,
@@ -203,7 +222,7 @@ export function setupInteractions(canvasInstance) {
                     dragStartPanY: canvasInstance.panY
                 };
                 if (canvasInstance.rulers) canvasInstance.rulers.setIndicators({
-                    x: widget.x, y: widget.y, w: widget.width, h: widget.height
+                    x: effectiveWidget.x, y: effectiveWidget.y, w: effectiveWidget.width, h: effectiveWidget.height
                 });
             }
 
@@ -285,6 +304,11 @@ export function onMouseMove(ev, canvasInstance) {
                     clearSnapGuides();
                 }
             }
+
+            // --- BOUNDS CLAMPING ---
+            // Ensure the primary widget stays within the canvas area
+            targetX = Math.max(0, Math.min(dims.width - primaryWidget.width, targetX));
+            targetY = Math.max(0, Math.min(dims.height - primaryWidget.height, targetY));
 
             // Calculate exact displacement applied (including snap)
             const dx = targetX - primaryOffset.startX;
@@ -441,6 +465,51 @@ export function onMouseMove(ev, canvasInstance) {
             canvasInstance.lassoEl.style.width = w + "px";
             canvasInstance.lassoEl.style.height = h + "px";
         }
+
+        // Real-time selection feedback
+        const page = AppState.getCurrentPage();
+        if (page) {
+            const currentSelection = new Set(canvasInstance.lassoState.isAdditive ? AppState.selectedWidgetIds : []);
+            canvasInstance.lassoState.currentSelection = [];
+
+            const lassoRect = {
+                x1: x,
+                y1: y,
+                x2: x + w,
+                y2: y + h
+            };
+
+            for (const widget of page.widgets) {
+                const widgetRect = {
+                    x1: widget.x,
+                    y1: widget.y,
+                    x2: widget.x + widget.width,
+                    y2: widget.y + widget.height
+                };
+
+                const intersects = !(widgetRect.x2 < lassoRect.x1 ||
+                    widgetRect.x1 > lassoRect.x2 ||
+                    widgetRect.y2 < lassoRect.y1 ||
+                    widgetRect.y1 > lassoRect.y2);
+
+                const el = canvasInstance.canvas.querySelector(`.widget[data-id="${widget.id}"]`);
+                if (el) {
+                    if (intersects) {
+                        el.classList.add("active");
+                        currentSelection.add(widget.id);
+                    } else if (!canvasInstance.lassoState.isAdditive || !AppState.selectedWidgetIds.includes(widget.id)) {
+                        el.classList.remove("active");
+                    }
+                }
+            }
+            canvasInstance.lassoState.currentSelection = Array.from(currentSelection);
+
+            // Live Highlight YAML
+            if (typeof highlightWidgetInSnippet === 'function') {
+                highlightWidgetInSnippet(canvasInstance.lassoState.currentSelection);
+            }
+        }
+
         ev.preventDefault();
         ev.stopPropagation();
     }
@@ -476,37 +545,63 @@ export function onMouseUp(ev, canvasInstance) {
             }
 
             if (targetPageIndex !== -1 && targetPageIndex !== AppState.currentPageIndex) {
-                const widgetInfo = canvasInstance.dragState.widgets.find(w => w.id === widgetId);
-                if (widgetInfo) {
+                const widgetsToMove = canvasInstance.dragState.widgets;
+                const targetArtboard = canvasInstance.canvas.querySelector(`.artboard[data-index="${targetPageIndex}"]`);
+                let moveCount = 0;
+
+                // Clean up interactions first
+                window.removeEventListener("mousemove", canvasInstance._boundMouseMove);
+                window.removeEventListener("mouseup", canvasInstance._boundMouseUp);
+                canvasInstance.dragState = null;
+                clearSnapGuides();
+
+                // Cache target rect and zoom BEFORE the loop to avoid reflows and detached DOM issues during re-renders
+                let targetRect = null;
+                const zoom = AppState.zoomLevel;
+                if (targetArtboard) {
+                    targetRect = targetArtboard.getBoundingClientRect();
+                }
+
+                // Filter to identify "root movers" - widgets whose parents are NOT in the move list
+                // This prevents moveWidgetToPage from being called for both a group and its children,
+                // which would cause coordinate corruption as the group move already handles children.
+                const allMovedIds = new Set(widgetsToMove.map(w => w.id));
+                const rootMovers = widgetsToMove.filter(wInfo => {
+                    const widget = AppState.getWidgetById(wInfo.id);
+                    // It's a root mover if it has no parent, OR if its parent is NOT being moved with it
+                    return !widget.parentId || !allMovedIds.has(widget.parentId);
+                });
+
+                rootMovers.forEach(widgetInfo => {
                     let dropX = widgetInfo.startX;
                     let dropY = widgetInfo.startY;
 
                     // If dropped onto a specific artboard, calculate position relative to that artboard
-                    if (targetArtboard) {
-                        const targetRect = targetArtboard.getBoundingClientRect();
-                        const zoom = AppState.zoomLevel;
+                    if (targetRect) {
+                        const widget = AppState.getWidgetById(widgetInfo.id);
+                        const dims = AppState.getCanvasDimensions();
 
                         // Use mouse position relative to target artboard, applying the original click offset
                         dropX = Math.round((ev.clientX - targetRect.left) / zoom - widgetInfo.clickOffsetX);
                         dropY = Math.round((ev.clientY - targetRect.top) / zoom - widgetInfo.clickOffsetY);
 
-                        // Safety clamp: ensure widget doesn't end up at extreme coordinates
-                        dropX = Math.max(0, dropX);
-                        dropY = Math.max(0, dropY);
+                        // Full bounds clamping: ensure widget stays within canvas
+                        const widgetW = widget?.width || 50;
+                        const widgetH = widget?.height || 50;
+                        dropX = Math.max(0, Math.min(dims.width - widgetW, dropX));
+                        dropY = Math.max(0, Math.min(dims.height - widgetH, dropY));
                     }
 
-                    // Clean up BEFORE state change to avoid duplicate events or stale listeners
-                    window.removeEventListener("mousemove", canvasInstance._boundMouseMove);
-                    window.removeEventListener("mouseup", canvasInstance._boundMouseUp);
-                    canvasInstance.dragState = null;
-                    clearSnapGuides();
-
-                    const success = AppState.moveWidgetToPage(widgetId, targetPageIndex, dropX, dropY);
-                    if (success) {
-                        Logger.log(`[Canvas] Moved widget ${widgetId} to page ${targetPageIndex} at (${dropX}, ${dropY})`);
-                        render(canvasInstance);
-                        return;
+                    // Attempt move
+                    if (AppState.moveWidgetToPage(widgetInfo.id, targetPageIndex, dropX, dropY)) {
+                        moveCount++;
                     }
+                });
+
+                if (moveCount > 0) {
+                    Logger.log(`[Canvas] Moved ${moveCount} widgets to page ${targetPageIndex}`);
+                    render(canvasInstance);
+                    return;
                 }
             }
         }
@@ -532,46 +627,8 @@ export function onMouseUp(ev, canvasInstance) {
         }
 
         if (canvasInstance.lassoState.rect) {
-            const { x, y, w, h } = canvasInstance.lassoState.rect;
-            const page = AppState.getCurrentPage();
-            const selectedIds = [];
-
-            if (page) {
-                for (const widget of page.widgets) {
-                    // Check if widget bounds intersect with lasso rect
-                    const widgetRect = {
-                        x1: widget.x,
-                        y1: widget.y,
-                        x2: widget.x + widget.width,
-                        y2: widget.y + widget.height
-                    };
-
-                    const lassoRect = {
-                        x1: x,
-                        y1: y,
-                        x2: x + w,
-                        y2: y + h
-                    };
-
-                    const intersects = !(widgetRect.x2 < lassoRect.x1 ||
-                        widgetRect.x1 > lassoRect.x2 ||
-                        widgetRect.y2 < lassoRect.y1 ||
-                        widgetRect.y1 > lassoRect.y2);
-
-                    if (intersects) {
-                        selectedIds.push(widget.id);
-                    }
-                }
-            }
-
-            if (canvasInstance.lassoState.isAdditive) {
-                // Add new selections to existing ones, making sure we don't have duplicates
-                const currentSelection = AppState.selectedWidgetIds || [];
-                const combined = [...new Set([...currentSelection, ...selectedIds])];
-                AppState.selectWidgets(combined);
-            } else {
-                AppState.selectWidgets(selectedIds);
-            }
+            const finalSelection = canvasInstance.lassoState.currentSelection || [];
+            AppState.selectWidgets(finalSelection);
         } else {
             // Clicked without dragging - clear selection
             if (!canvasInstance.lassoState.isAdditive) {

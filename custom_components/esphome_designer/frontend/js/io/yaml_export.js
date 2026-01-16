@@ -36,8 +36,17 @@ export function highlightWidgetInSnippet(widgetIds) {
     if (!yaml) return;
 
     // Normalize input to array
-    const ids = Array.isArray(widgetIds) ? widgetIds : [widgetIds];
-    if (ids.length === 0) return;
+    const ids = Array.isArray(widgetIds) ? widgetIds : (widgetIds ? [widgetIds] : []);
+
+    if (ids.length === 0) {
+        // Clear selection if nothing is selected
+        try {
+            box.setSelectionRange(0, 0);
+            box.scrollTop = 0;
+            lastHighlightRange = null;
+        } catch (e) { }
+        return;
+    }
 
     let minStart = -1;
     let maxEnd = -1;
@@ -74,23 +83,28 @@ export function highlightWidgetInSnippet(widgetIds) {
         const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
         const isTyping = (activeTag === "input" || activeTag === "textarea") && document.activeElement !== box;
 
-        // Only steal focus if NOT typing in properties AND not interacting with canvas
+        // Only modify selection if we rely on auto-highlight (not typing/interacting)
         const isInteracting = window.Canvas && (window.Canvas.dragState || window.Canvas.lassoState);
 
-        // Only modify focus/selection if we rely on auto-highlight (not typing/interacting)
         if (!isTyping && !isInteracting) {
-            isAutoHighlight = true;
-            box.focus();
+            window.isAutoHighlight = true;
 
-            // Apply selection - handle forward/backward logic if needed, but standard range is fine
+            // Apply selection - Visually highlight the range
             try {
                 box.setSelectionRange(minStart, maxEnd);
+
+                // CRITICAL: If only one widget is selected, we DO want focus to move
+                // to the box so Ctrl+C works immediately and the highlight is visible.
+                // For multiple/Select All, we skip this to stay on the canvas.
+                if (ids.length === 1) {
+                    box.focus();
+                }
             } catch (e) {
                 // Ignore
             }
         }
 
-        lastHighlightRange = { start: minStart, end: maxEnd };
+        window.lastHighlightRange = { start: minStart, end: maxEnd };
 
         // Scroll to selection
         setTimeout(() => {
@@ -108,21 +122,38 @@ export function highlightWidgetInSnippet(widgetIds) {
     }
 }
 
-// Add listeners to reset auto-highlight when user interacts with the box
-document.addEventListener("DOMContentLoaded", () => {
+/**
+ * Global initialization for one-time snippet UI events.
+ * Consolidates multiple lazy-loaded listeners into a single startup check.
+ */
+function initSnippetUILogic() {
     const box = document.getElementById("snippetBox");
-    if (box) {
-        const resetHighlight = () => {
-            isAutoHighlight = false;
-        };
-        box.addEventListener("mousedown", resetHighlight);
-        box.addEventListener("input", resetHighlight);
-        box.addEventListener("keydown", (e) => {
-            if (!e.ctrlKey && !e.metaKey) {
-                isAutoHighlight = false;
-            }
-        });
-    }
-});
+    if (!box) return;
 
-Logger.log("[YAML Export] Minimal snippet UI logic loaded.");
+    // If user clicks or moves cursor manually, it's no longer an "auto" highlight
+    const clearAuto = () => {
+        if (window.isAutoHighlight) {
+            window.isAutoHighlight = false;
+        }
+    };
+
+    box.addEventListener('mousedown', clearAuto);
+    box.addEventListener('input', clearAuto);
+    box.addEventListener('keydown', (ev) => {
+        // Nav keys or actual typing should clear the auto-selection state
+        const navKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'];
+        if (navKeys.includes(ev.key) || (!ev.ctrlKey && !ev.metaKey)) {
+            clearAuto();
+        }
+    });
+
+    Logger.log("[YAML Export] Interaction listeners attached to Snippet Box.");
+}
+
+// Kick off initialization
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initSnippetUILogic);
+} else {
+    initSnippetUILogic();
+}
+
