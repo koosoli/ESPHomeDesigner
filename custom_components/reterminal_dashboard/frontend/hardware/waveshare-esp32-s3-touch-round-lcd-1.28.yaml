@@ -73,7 +73,7 @@ esp32:
   framework:
     type: esp-idf
     advanced:
-       execute_from_psram: true
+      execute_from_psram: true
     sdkconfig_options:
       CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
       CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
