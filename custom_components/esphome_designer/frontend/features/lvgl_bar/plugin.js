@@ -52,7 +52,7 @@ const exportLVGL = (w, { common, convertColor }) => {
 };
 
 const onExportNumericSensors = (context) => {
-    const { lines, widgets } = context;
+    const { lines, widgets, isLvgl } = context;
     if (!widgets) return;
 
     const processedEntities = new Map();
@@ -76,14 +76,14 @@ const onExportNumericSensors = (context) => {
         lines.push(`  id: ${safeId}`);
         lines.push(`  entity_id: ${entityId}`);
         lines.push(`  internal: true`);
-        if (context.isLvgl) {
+        if (isLvgl) {
             lines.push(`  on_value:`);
             lines.push(`    then:`);
 
             for (const wid of widgetIds) {
-                lines.push(`      - lvgl.widget.update:`);
+                lines.push(`      - lvgl.bar.update:`);
                 lines.push(`          id: ${wid}`);
-                lines.push(`          value: !lambda return x;`);
+                lines.push(`          value: !lambda "return x;"`);
             }
         }
     }
