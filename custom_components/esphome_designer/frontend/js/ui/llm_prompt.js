@@ -122,7 +122,7 @@ class LLMPrompt {
             currentPage.widgets = this.generatedWidgets;
 
             // Re-index widgets
-            window.AppState.rebuildWidgetsIndex();
+            window.AppState.project.rebuildWidgetsIndex();
 
             // Trigger update
             emit(EVENTS.STATE_CHANGED);

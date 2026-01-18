@@ -117,8 +117,8 @@ export class Canvas {
     }
 
     // Exposed methods for external callers (if any) or internal use
-    zoomIn() { zoomIn(); }
-    zoomOut() { zoomOut(); }
+    zoomIn() { zoomIn(this); }
+    zoomOut() { zoomOut(this); }
     zoomReset() { zoomReset(this); }
     focusPage(index, smooth = true) {
         import('./canvas_renderer.js').then(m => m.focusPage(this, index, smooth));

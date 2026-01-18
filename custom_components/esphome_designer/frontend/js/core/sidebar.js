@@ -70,6 +70,19 @@ export class Sidebar {
             clearAllBtn.addEventListener('click', () => this.handleClearPage());
         }
 
+        // Quick Search Button
+        const quickSearchBtn = document.getElementById('quickSearchBtn');
+        if (quickSearchBtn) {
+            quickSearchBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (window.QuickSearch) {
+                    window.QuickSearch.open();
+                } else {
+                    Logger.warn("Sidebar: QuickSearch instance not found on window");
+                }
+            });
+        }
+
         this.setupMobileToggles();
         this.render();
     }

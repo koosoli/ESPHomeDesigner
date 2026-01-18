@@ -176,6 +176,7 @@ function transpileToLVGL(w, profile) {
 
     // Common properties shared by many LVGL widgets
     const common = {
+        id: w.id,
         x: x,
         y: y,
         width: w_w,

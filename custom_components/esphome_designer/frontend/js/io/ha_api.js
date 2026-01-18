@@ -331,14 +331,22 @@ export async function saveLayoutToBackend() {
         return true;
     } catch (err) {
         // Gracefully handle network errors (ERR_EMPTY_RESPONSE, timeouts, etc.)
-        // These often happen when the save actually succeeds but the response is lost
-        // We don't log these since the browser already logs the network error
+        // These often happen when the backend is unreachable or the save actually succeeds but response is lost
+        // We suppress logging for expected network failures to reduce console noise
         if (err.name === 'AbortError') {
-            return true; // Assume success on timeout as data was sent
+            // Timeout - data was likely sent, assume success
+            return true;
         }
-        if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
-            return true; // Assume success for network errors where data was sent
+        if (err.message?.includes('Failed to fetch') || 
+            err.message?.includes('NetworkError') ||
+            err.message?.includes('net::ERR_') ||
+            err.message?.includes('ERR_EMPTY_RESPONSE') ||
+            err.message?.includes('Load failed')) {
+            // Network error - backend likely unreachable, fail silently
+            // Don't log since browser already shows the network error
+            return false;
         }
+        // Only log unexpected errors
         Logger.error("Failed to save layout to backend:", err);
         throw err;
     } finally {

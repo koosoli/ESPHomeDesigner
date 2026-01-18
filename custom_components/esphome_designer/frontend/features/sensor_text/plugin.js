@@ -484,7 +484,10 @@ export default {
         const { lines, widgets } = context;
         if (!widgets) return;
 
+        // Group widgets by entity for LVGL update triggers
+        const entityToWidgets = new Map();
         const processed = new Set();
+
         for (const w of widgets) {
             if (w.type !== "sensor_text") continue;
 
@@ -502,10 +505,30 @@ export default {
                     eid = `sensor.${eid}`;
                 }
 
-                if (!processed.has(eid)) {
-                    processed.add(eid);
-                    const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
-                    lines.push("- platform: homeassistant", `  id: ${safeId}`, `  entity_id: ${eid}`, "  internal: true");
+                if (!entityToWidgets.has(eid)) {
+                    entityToWidgets.set(eid, []);
+                }
+                entityToWidgets.get(eid).push(w.id);
+            }
+        }
+
+        // Generate sensors with on_value triggers
+        for (const [eid, widgetIds] of entityToWidgets) {
+            if (processed.has(eid)) continue;
+            processed.add(eid);
+
+            const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            lines.push("- platform: homeassistant");
+            lines.push(`  id: ${safeId}`);
+            lines.push(`  entity_id: ${eid}`);
+            lines.push("  internal: true");
+            if (context.isLvgl) {
+                lines.push("  on_value:");
+                lines.push("    then:");
+
+                for (const wid of widgetIds) {
+                    lines.push("      - lvgl.widget.update:");
+                    lines.push(`          id: ${wid}`);
                 }
             }
         }

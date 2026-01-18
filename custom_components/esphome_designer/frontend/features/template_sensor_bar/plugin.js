@@ -66,10 +66,15 @@ const render = (el, widget, { getColorStyle }) => {
 
     if (props.show_temperature) {
         const state = getEntityState([props.temp_entity, 'sht4x_temperature', 'sht3x_temperature', 'shtc3_temperature', 'sensor.temperature']);
+        const unit = props.temp_unit || "°C";
+        let tempVal = state !== null ? parseFloat(state) : 23.5;
+        if (unit === "°F") {
+            tempVal = (tempVal * 9 / 5) + 32;
+        }
         sensors.push({
             type: 'temp',
             icon: 'F050F',
-            val: state !== null ? parseFloat(state).toFixed(1) + '°C' : '23.5°C'
+            val: tempVal.toFixed(1) + unit
         });
     }
 
@@ -149,7 +154,7 @@ const exportDoc = (w, context) => {
     const iconFontRef = addFont("Material Design Icons", 400, iconSize);
     const textFontRef = addFont("Roboto", 500, fontSize);
 
-    lines.push(`        // widget:template_sensor_bar id:${w.id} type:template_sensor_bar x:${w.x} y:${w.y} w:${w.width} h:${w.height} wifi:${showWifi} temp:${showTemp} hum:${showHum} bat:${showBat} bg:${showBg} bg_color:${p.background_color || "black"} radius:${radius} border:${thickness} icon_size:${iconSize} font_size:${fontSize} color:${colorProp} wifi_ent:"${p.wifi_entity || ""}" temp_ent:"${p.temp_entity || ""}" hum_ent:"${p.hum_entity || ""}" bat_ent:"${p.bat_entity || ""}" ${getCondProps(w)}`);
+    lines.push(`        // widget:template_sensor_bar id:${w.id} type:template_sensor_bar x:${w.x} y:${w.y} w:${w.width} h:${w.height} wifi:${showWifi} temp:${showTemp} hum:${showHum} bat:${showBat} bg:${showBg} bg_color:${p.background_color || "black"} radius:${radius} border:${thickness} icon_size:${iconSize} font_size:${fontSize} color:${colorProp} wifi_ent:"${p.wifi_entity || ""}" temp_ent:"${p.temp_entity || ""}" temp_unit:${p.temp_unit || "°C"} hum_ent:"${p.hum_entity || ""}" bat_ent:"${p.bat_entity || ""}" ${getCondProps(w)}`);
 
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
@@ -169,20 +174,24 @@ const exportDoc = (w, context) => {
 
             if (thickness > 0) {
                 lines.push(`          draw_filled_rrect(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${radius}, ${borderColor});`);
+                addDitherMask(lines, p.border_color || "white", isEpaper, w.x, w.y, w.width, w.height);
                 lines.push(`          draw_filled_rrect(${w.x + thickness}, ${w.y + thickness}, ${w.width - 2 * thickness}, ${w.height - 2 * thickness}, ${Math.max(0, radius - thickness)}, ${bgColor});`);
+                addDitherMask(lines, p.background_color || "black", isEpaper, w.x + thickness, w.y + thickness, w.width - 2 * thickness, w.height - 2 * thickness);
             } else {
                 lines.push(`          draw_filled_rrect(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${radius}, ${bgColor});`);
+                addDitherMask(lines, p.background_color || "black", isEpaper, w.x, w.y, w.width, w.height);
             }
         } else {
             if (thickness > 0) {
                 lines.push(`          it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${borderColor});`);
+                addDitherMask(lines, p.border_color || "white", isEpaper, w.x, w.y, w.width, w.height);
                 lines.push(`          it.filled_rectangle(${w.x + thickness}, ${w.y + thickness}, ${w.width - 2 * thickness}, ${w.height - 2 * thickness}, ${bgColor});`);
+                addDitherMask(lines, p.background_color || "black", isEpaper, w.x + thickness, w.y + thickness, w.width - 2 * thickness, w.height - 2 * thickness);
             } else {
                 lines.push(`          it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColor});`);
+                addDitherMask(lines, p.background_color || "black", isEpaper, w.x, w.y, w.width, w.height);
             }
         }
-        addDitherMask(lines, p.border_color || "white", isEpaper, w.x, w.y, w.width, w.height);
-        addDitherMask(lines, p.background_color || "black", isEpaper, w.x + thickness, w.y + thickness, w.width - 2 * thickness, w.height - 2 * thickness);
     } else if (thickness > 0) {
         addDitherMask(lines, p.border_color || "white", isEpaper, w.x, w.y, w.width, w.height);
     }
@@ -216,7 +225,7 @@ const exportDoc = (w, context) => {
         }
 
         if (showTemp) {
-            const unit = p.unit || "°C";
+            const unit = p.temp_unit || "°C";
             lines.push(`          {`);
             lines.push(`            it.printf(${Math.round(currentX)} - 4, ${centerY}, id(${iconFontRef}), ${color}, TextAlign::CENTER_RIGHT, "\\U000F050F");`);
             lines.push(`            if (id(${tempId}).has_state() && !std::isnan(id(${tempId}).state)) {`);
@@ -388,7 +397,8 @@ export default {
         border_radius: 8,
         color: "white",
         font_size: 14,
-        icon_size: 20
+        icon_size: 20,
+        temp_unit: "°C"
     },
     render,
     exportLVGL: (w, { common, convertColor, getLVGLFont, profile }) => {
@@ -431,9 +441,9 @@ export default {
 
         if (showTemp) {
             const tempId = (p.temp_entity || (profile.features?.sht4x ? "sht4x_temperature" : ((profile.features?.sht3x || profile.features?.sht3xd) ? "sht3x_temperature" : "shtc3_temperature"))).replace(/[^a-zA-Z0-9_]/g, "_");
-            const unit = p.unit || "°C";
+            const unit = p.temp_unit || "°C";
             let tempExpr = `id(${tempId}).state`;
-            if (unit === "°F") tempExpr = `(${tempId}.state * 9.0 / 5.0 + 32.0)`;
+            if (unit === "°F") tempExpr = `(id(${tempId}).state * 9.0 / 5.0 + 32.0)`;
 
             widgets.push({
                 obj: {

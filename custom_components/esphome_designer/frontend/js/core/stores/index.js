@@ -6,6 +6,7 @@ import { emit, EVENTS } from '../events.js';
 import { Logger } from '../../utils/logger.js';
 import { hasHaBackend } from '../../utils/env.js';
 import { generateId } from '../../utils/helpers.js';
+import { showToast } from '../../utils/dom.js';
 
 class AppStateFacade {
     constructor() {
@@ -205,6 +206,7 @@ class AppStateFacade {
     }
 
     addWidget(w, pageIndex = null) {
+        this._checkRenderingModeForWidget(w);
         this.project.addWidget(w, pageIndex);
         this.recordHistory();
         this.selectWidget(w.id);
@@ -488,7 +490,10 @@ class AppStateFacade {
             return pasted;
         });
 
-        newWidgets.forEach(w => this.project.addWidget(w));
+        newWidgets.forEach(w => {
+            this._checkRenderingModeForWidget(w);
+            this.project.addWidget(w);
+        });
         this.editor.setSelectedWidgetIds(newWidgets.map(w => w.id));
         this.recordHistory();
         emit(EVENTS.STATE_CHANGED);
@@ -649,6 +654,24 @@ class AppStateFacade {
         // Update the project's widget array
         page.widgets = sorted;
         this.project.rebuildWidgetsIndex();
+    }
+
+    /**
+     * Internal check to switch rendering mode to LVGL if an LVGL-specific widget is added.
+     * @param {Object} w - The widget being added
+     * @private
+     */
+    _checkRenderingModeForWidget(w) {
+        if (!w || !w.type) return;
+
+        // Auto-detect if it's an LVGL widget
+        const isLvglWidget = w.type.startsWith('lvgl_');
+
+        if (isLvglWidget && this.preferences.state.renderingMode === 'direct') {
+            this.updateSettings({ renderingMode: 'lvgl' });
+            Logger.log(`[AppState] Auto-switched to LVGL rendering mode because an LVGL widget (${w.type}) was added.`);
+            showToast("Auto-switched to LVGL rendering mode", "info");
+        }
     }
 }
 

@@ -19,6 +19,8 @@ import { saveLayoutToFile, handleFileSelect } from './io/file_ops.js';
 
 import { loadLayoutIntoState } from './io/yaml_import.js';
 import './io/hardware_import.js'; // Register global hardware fetchers
+import { AIService } from './io/ai_service.js';
+window.aiService = new AIService();
 
 import { renderWidgetPalette } from './ui/widget_palette.js';
 import { QuickSearch } from './ui/quick_search.js';
@@ -253,7 +255,10 @@ export class App {
                     if (hasHaBackend()) {
                         Logger.log("[AutoSave] Triggering background save to HA...");
                         saveLayoutToBackend()
-                            .catch(err => Logger.error("[AutoSave] Background save failed:", err));
+                            .catch(() => {
+                                // Silently ignore - network errors are expected when backend is unreachable
+                                // The ha_api.js already handles logging for unexpected errors
+                            });
                     } else {
                         Logger.log("[AutoSave] Saving to local storage...");
                         AppState.saveToLocalStorage();
@@ -272,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Expose modal functions globally for button event listeners (matches old monolithic pattern)
     // Exposed globals for legacy/external compatibility
     window.openDeviceSettings = () => app.deviceSettings?.open();
-    window.openEditorSettingsModal = () => app.editorSettings?.open();
+    window.openEditorSettingsModal = (section) => app.editorSettings?.open(section);
     window.pageSettings = app.pageSettings;
 
     // Attach to unified namespace

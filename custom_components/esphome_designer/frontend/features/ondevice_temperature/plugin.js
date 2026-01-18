@@ -110,10 +110,13 @@ export default {
         const p = w.props || {};
         const isLocal = p.is_local_sensor === true || (p.is_local_sensor !== false && !w.entity_id);
         let sensorId = "onboard_temperature";
-        if (isLocal && profile.features) {
-            sensorId = profile.features.sht4x ? "sht4x_temperature" : (profile.features.sht3x ? "sht3x_temperature" : (profile.features.shtc3 ? "shtc3_temperature" : "onboard_temperature"));
+        if (isLocal) {
+            if (profile.features) {
+                sensorId = profile.features.sht4x ? "sht4x_temperature" : (profile.features.sht3x ? "sht3x_temperature" : (profile.features.shtc3 ? "shtc3_temperature" : "onboard_temperature"));
+            }
         } else {
-            sensorId = (w.entity_id || "").replace(/[^a-zA-Z0-9_]/g, "_") || "onboard_temperature";
+            sensorId = (w.entity_id || "").replace(/[^a-zA-Z0-9_]/g, "_");
+            if (!sensorId) sensorId = "onboard_temperature";
         }
 
         const color = convertColor(p.color || "black");
@@ -122,22 +125,77 @@ export default {
         const labelSize = parseInt(p.label_font_size || 10, 10);
         const unit = p.unit || "°C";
 
+        // Strict validation: Local sensor is only valid if hardware actually supports it
+        const supportsOnboard = profile.features && (profile.features.sht4x || profile.features.sht3x || profile.features.shtc3);
+        const hasValidSensor = (isLocal && supportsOnboard) || !!w.entity_id;
+
+        // If no valid sensor, return static strings to avoid "ID not declared" errors
+        if (!hasValidSensor) {
+            return {
+                obj: {
+                    ...common,
+                    bg_opa: "TRANSP",
+                    border_width: 0,
+                    widgets: [
+                        {
+                            label: {
+                                width: parseInt(p.size || 32, 10) + 10,
+                                height: parseInt(p.size || 32, 10) + 4,
+                                align: "TOP_MID",
+                                text: "\\U000F050F", // Static icon
+                                text_font: getLVGLFont("Material Design Icons", parseInt(p.size || 32, 10), 400),
+                                text_color: convertColor(p.color || "black")
+                            }
+                        },
+                        {
+                            label: {
+                                width: "100%",
+                                height: parseInt(p.font_size || 16, 10) + 6,
+                                align: "TOP_MID",
+                                y: parseInt(p.size || 32, 10) + 2,
+                                text: `--${p.unit || "°C"}`, // Static text
+                                text_font: getLVGLFont("Roboto", parseInt(p.font_size || 16, 10), 400),
+                                text_color: convertColor(p.color || "black"),
+                                text_align: "CENTER"
+                            }
+                        },
+                        ...(p.show_label ? [{
+                            label: {
+                                width: "100%",
+                                height: parseInt(p.label_font_size || 10, 10) + 4,
+                                align: "BOTTOM_MID",
+                                text: `"Temperature"`,
+                                text_font: getLVGLFont("Roboto", parseInt(p.label_font_size || 10, 10), 400),
+                                text_color: convertColor(p.color || "black"),
+                                text_align: "CENTER",
+                                opa: 180
+                            }
+                        }] : [])
+                    ]
+                }
+            };
+        }
+
         let iconLambda = '!lambda |-\n';
-        iconLambda += `          if (id(${sensorId}).has_state()) {\n`;
-        iconLambda += `            float t = id(${sensorId}).state;\n`;
-        iconLambda += `            if (t <= 10) return "\\U000F0E4C";\n`;
-        iconLambda += `            if (t <= 25) return "\\U000F050F";\n`;
-        iconLambda += `            return "\\U000F10C2";\n`;
-        iconLambda += '          }\n';
-        iconLambda += '          return "\\U000F050F";';
+        if (hasValidSensor) {
+            iconLambda += `          if (id(${sensorId}).has_state()) {\n`;
+            iconLambda += `            float t = id(${sensorId}).state;\n`;
+            iconLambda += `            if (t <= 10) return "\\U000F0E4C";\n`;
+            iconLambda += `            if (t <= 25) return "\\U000F050F";\n`;
+            iconLambda += `            return "\\U000F10C2";\n`;
+            iconLambda += '          }\n';
+            iconLambda += '          return "\\U000F050F";';
+        }
 
         let textLambda = '!lambda |-\n';
-        textLambda += `          if (id(${sensorId}).has_state()) {\n`;
-        let tempExpr = `id(${sensorId}).state`;
-        if (unit === "°F") tempExpr = `(id(${sensorId}).state * 9.0 / 5.0) + 32.0`;
-        textLambda += `            return str_sprintf("%.1f${unit}", ${tempExpr}).c_str();\n`;
-        textLambda += '          }\n';
-        textLambda += `          return "--${unit}";`;
+        if (hasValidSensor) {
+            textLambda += `          if (id(${sensorId}).has_state()) {\n`;
+            let tempExpr = `id(${sensorId}).state`;
+            if (unit === "°F") tempExpr = `(id(${sensorId}).state * 9.0 / 5.0) + 32.0`;
+            textLambda += `            return str_sprintf("%.1f${unit}", ${tempExpr}).c_str();\n`;
+            textLambda += '          }\n';
+            textLambda += `          return "--${unit}";`;
+        }
 
         const widgets = [
             {
@@ -232,33 +290,55 @@ export default {
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);
 
-        // Icon based on temperature
-        lines.push(`        if (id(${sensorId}).has_state()) {`);
-        lines.push(`          if (id(${sensorId}).state <= 10) {`);
-        lines.push(`            it.printf(${w.x} + ${Math.round(w.width / 2)}, ${w.y} + ${Math.round(iconSize / 2)}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F0E4C");`);
-        lines.push(`          } else if (id(${sensorId}).state <= 25) {`);
-        lines.push(`            it.printf(${w.x} + ${Math.round(w.width / 2)}, ${w.y} + ${Math.round(iconSize / 2)}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F050F");`);
-        lines.push(`          } else {`);
-        lines.push(`            it.printf(${w.x} + ${Math.round(w.width / 2)}, ${w.y} + ${Math.round(iconSize / 2)}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F10C2");`);
-        lines.push(`          }`);
-        lines.push(`        } else {`);
-        lines.push(`          it.printf(${w.x} + ${Math.round(w.width / 2)}, ${w.y} + ${Math.round(iconSize / 2)}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F050F");`);
-        lines.push(`        }`);
+        // Standardized Centering Logic
+        const centerX = `${w.x} + ${w.width} / 2`;
 
-        // Value
-        let tempExpr = `id(${sensorId}).state`;
-        if (unit === "°F") {
-            tempExpr = `(id(${sensorId}).state * 9.0 / 5.0) + 32.0`;
+        // Icon based on temperature
+        // Icon Y: (height - content_height) / 2
+        // Content Stack: Icon + Spacing + Value + (Label)
+        // This widget is a bit more complex vertical stack.
+        // We will stick to the existing "offset from Y" logic but clean up the X alignment.
+
+        const centerYIcon = `${w.y} + ${Math.round(iconSize / 2)}`;
+
+        const supportsOnboard = profile.features && (profile.features.sht4x || profile.features.sht3x || profile.features.shtc3);
+        const hasValidSensor = (isLocal && supportsOnboard) || !!w.entity_id;
+
+        // --- ICON ---
+        if (hasValidSensor) {
+            lines.push(`        if (id(${sensorId}).has_state()) {`);
+            lines.push(`          if (id(${sensorId}).state <= 10) {`);
+            lines.push(`            it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F0E4C");`);
+            lines.push(`          } else if (id(${sensorId}).state <= 25) {`);
+            lines.push(`            it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F050F");`);
+            lines.push(`          } else {`);
+            lines.push(`            it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F10C2");`);
+            lines.push(`          }`);
+            lines.push(`        } else {`);
+            lines.push(`          it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F050F");`);
+            lines.push(`        }`);
+        } else {
+            lines.push(`          it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F050F");`);
         }
-        lines.push(`        if (id(${sensorId}).has_state()) {`);
-        lines.push(`          it.printf(${w.x} + ${Math.round(w.width / 2)}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "%.1f${unit}", ${tempExpr});`);
-        lines.push(`        } else {`);
-        lines.push(`          it.printf(${w.x} + ${Math.round(w.width / 2)}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
-        lines.push(`        }`);
+
+        // --- VALUE ---
+        if (hasValidSensor) {
+            let tempExpr = `id(${sensorId}).state`;
+            if (unit === "°F") {
+                tempExpr = `(id(${sensorId}).state * 9.0 / 5.0) + 32.0`;
+            }
+            lines.push(`        if (id(${sensorId}).has_state()) {`);
+            lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "%.1f${unit}", ${tempExpr});`);
+            lines.push(`        } else {`);
+            lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
+            lines.push(`        }`);
+        } else {
+            lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
+        }
 
         if (p.show_label) {
             const labelFontId = addFont("Roboto", 400, p.label_font_size || 10);
-            lines.push(`        it.printf(${w.x} + ${Math.round(w.width / 2)}, ${w.y} + ${iconSize + fontSize + 8}, id(${labelFontId}), ${color}, TextAlign::TOP_CENTER, "Temperature");`);
+            lines.push(`        it.printf(${centerX}, ${w.y} + ${iconSize + fontSize + 8}, id(${labelFontId}), ${color}, TextAlign::TOP_CENTER, "Temperature");`);
         }
 
         if (cond) lines.push(`        }`);
@@ -289,20 +369,45 @@ export default {
             }
         }
 
-        if (needsLocalSHT) {
-            const shtId = profile.features?.sht4x ? "sht4x_sensor" : (profile.features?.sht3x ? "sht3x_sensor" : "shtc3_sensor");
-            const shtPlatform = profile.features?.sht4x ? "sht4x" : (profile.features?.sht3x ? "sht3x" : "shtc3");
-            const tempId = profile.features?.sht4x ? "sht4x_temperature" : (profile.features?.sht3x ? "sht3x_temperature" : "shtc3_temperature");
+        if (needsLocalSHT && profile.features) {
+            // Strict check: Only generate if hardware actually supports it
+            const hasSht4x = !!profile.features.sht4x;
+            const hasSht3x = !!profile.features.sht3x;
+            const hasShtc3 = !!profile.features.shtc3;
 
-            if (!lines.some(l => l.includes(`id: ${shtId}`))) {
-                lines.push(`- platform: ${shtPlatform}`, `  id: ${shtId}`);
-                lines.push(`  temperature:`, `    id: ${tempId}`, `    internal: true`);
-                lines.push(`  update_interval: 60s`);
-            } else {
-                // SHT already exists, check if temperature sub-component exists
-                if (!lines.some(l => l.includes(`id: ${tempId}`))) {
-                    // This is tricky as we need to insert into an existing YAML block.
-                    // For now, we assume if shtId exists, it was likely registered by template_sensor_bar which includes both temp and hum.
+            if (hasSht4x || hasSht3x || hasShtc3) {
+                const shtId = hasSht4x ? "sht4x_sensor" : (hasSht3x ? "sht3x_sensor" : "shtc3_sensor");
+                // Fix: Hardware generator uses 'sht3xd' and 'shtcx' (for SHTC3)
+                const shtPlatform = hasSht4x ? "sht4x" : (hasSht3x ? "sht3xd" : "shtcx");
+                const tempId = hasSht4x ? "sht4x_temperature" : (hasSht3x ? "sht3x_temperature" : "shtc3_temperature");
+
+                if (!lines.some(l => l.includes(`id: ${shtId}`))) {
+                    lines.push(`- platform: ${shtPlatform}`, `  id: ${shtId}`);
+                    // For shtcx/sht3xd we need address/i2c but hardware_generators.js usually handles the main block.
+                    // However, plugins add *extra* sensors.
+                    // If hardware_generators.js ALREADY generated the sensor block (checked by id), we skip.
+                    // But here we are checking if it's NOT present.
+                    // Note: hardware_generators.js generates these sensors if profile.features.sht* is present.
+                    // So we mostly need to ensure we don't duplicate or add if missing.
+                    // Actually, hardware_generators.js logic: if (hasSht4x) generate...
+                    // So if we are here, likely hardware_generators.js didn't run or we are adding it dynamically?
+                    // No, hardware_generators usually runs first.
+                    // But let's be safe and minimal.
+                    lines.push(`  temperature:`, `    id: ${tempId}`, `    internal: true`);
+                    lines.push(`  update_interval: 60s`);
+
+                    // Add required address/i2c if missing (simple fallback)
+                    if (shtPlatform === "shtcx" && !lines.some(l => l.includes("address: 0x70"))) {
+                        lines.push("    address: 0x70");
+                        lines.push("    i2c_id: bus_a");
+                    }
+                    if (shtPlatform === "sht3xd" && !lines.some(l => l.includes("address: 0x44"))) {
+                        lines.push("    address: 0x44");
+                    }
+                } else {
+                    // SHT platform exists, check if temperature sub-component exists
+                    // This is hard to inject into existing block without parsing.
+                    // But typically if the platform exists, the sensors are defined.
                 }
             }
         }

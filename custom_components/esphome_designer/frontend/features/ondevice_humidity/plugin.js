@@ -104,10 +104,13 @@ export default {
         const p = w.props || {};
         const isLocal = p.is_local_sensor === true || (p.is_local_sensor !== false && !w.entity_id);
         let sensorId = "onboard_humidity";
-        if (isLocal && profile.features) {
-            sensorId = profile.features.sht4x ? "sht4x_humidity" : (profile.features.sht3x ? "sht3x_humidity" : (profile.features.shtc3 ? "shtc3_humidity" : "onboard_humidity"));
+        if (isLocal) {
+            if (profile.features) {
+                sensorId = profile.features.sht4x ? "sht4x_humidity" : (profile.features.sht3x ? "sht3x_humidity" : (profile.features.shtc3 ? "shtc3_humidity" : "onboard_humidity"));
+            }
         } else {
-            sensorId = (w.entity_id || "").replace(/[^a-zA-Z0-9_]/g, "_") || "onboard_humidity";
+            sensorId = (w.entity_id || "").replace(/[^a-zA-Z0-9_]/g, "_");
+            if (!sensorId) sensorId = "onboard_humidity";
         }
 
         const color = convertColor(p.color || "black");
@@ -223,74 +226,108 @@ export default {
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);
 
+        // Standardized Centering Logic
+        const centerX = `${w.x} + ${w.width} / 2`;
+        const centerYIcon = `${w.y} + ${Math.round(iconSize / 2)}`;
+
         // Icon based on humidity
-        lines.push(`        if (id(${sensorId}).has_state()) {`);
-        lines.push(`          if (id(${sensorId}).state <= 30) {`);
-        lines.push(`            it.printf(${w.x} + ${Math.round(w.width / 2)}, ${w.y} + ${Math.round(iconSize / 2)}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F0E7A");`);
-        lines.push(`          } else if (id(${sensorId}).state <= 60) {`);
-        lines.push(`            it.printf(${w.x} + ${Math.round(w.width / 2)}, ${w.y} + ${Math.round(iconSize / 2)}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058E");`);
-        lines.push(`          } else {`);
-        lines.push(`            it.printf(${w.x} + ${Math.round(w.width / 2)}, ${w.y} + ${Math.round(iconSize / 2)}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058C");`);
-        lines.push(`          }`);
-        lines.push(`        } else {`);
-        lines.push(`          it.printf(${w.x} + ${Math.round(w.width / 2)}, ${w.y} + ${Math.round(iconSize / 2)}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058E");`);
-        lines.push(`        }`);
+        // Strict validation: Local sensor is only valid if hardware actually supports it
+        const supportsOnboard = profile.features && (profile.features.sht4x || profile.features.sht3x || profile.features.shtc3);
+        const hasValidSensor = (isLocal && supportsOnboard) || !!w.entity_id;
 
-        // Value
-        lines.push(`        if (id(${sensorId}).has_state()) {`);
-        lines.push(`          it.printf(${w.x} + ${Math.round(w.width / 2)}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "%.0f${unit}", id(${sensorId}).state);`);
-        lines.push(`        } else {`);
-        lines.push(`          it.printf(${w.x} + ${Math.round(w.width / 2)}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
-        lines.push(`        }`);
-
-        if (p.show_label) {
-            const labelFontId = addFont("Roboto", 400, p.label_font_size || 10);
-            lines.push(`        it.printf(${w.x} + ${Math.round(w.width / 2)}, ${w.y} + ${iconSize + fontSize + 8}, id(${labelFontId}), ${color}, TextAlign::TOP_CENTER, "Humidity");`);
+        // If no valid sensor, return static strings to avoid "ID not declared" errors
+        if (!hasValidSensor) {
+            // --- ICON ---
+            lines.push(`          it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058E");`);
+            // --- VALUE ---
+            lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
+        } else {
+            // --- ICON ---
+            lines.push(`        if (id(${sensorId}).has_state()) {`);
+            lines.push(`          if (id(${sensorId}).state <= 30) {`);
+            lines.push(`            it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F0E7A");`);
+            lines.push(`          } else if (id(${sensorId}).state <= 60) {`);
+            lines.push(`            it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058E");`);
+            lines.push(`          } else {`);
+            lines.push(`            it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058C");`);
+            lines.push(`          }`);
+            lines.push(`        } else {`);
+            lines.push(`          it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058E");`);
+            lines.push(`        }`);
+        } else {
+            lines.push(`          it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058E");`);
         }
 
-        if (cond) lines.push(`        }`);
+        // --- VALUE ---
+        if(hasValidSensor) {
+        lines.push(`        if (id(${sensorId}).has_state()) {`);
+        lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "%.0f${unit}", id(${sensorId}).state);`);
+        lines.push(`        } else {`);
+        lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
+        lines.push(`        }`);
+    } else {
+        lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
+    }
+
+        if(p.show_label) {
+    const labelFontId = addFont("Roboto", 400, p.label_font_size || 10);
+    lines.push(`        it.printf(${centerX}, ${w.y} + ${iconSize + fontSize + 8}, id(${labelFontId}), ${color}, TextAlign::TOP_CENTER, "Humidity");`);
+}
+
+if (cond) lines.push(`        }`);
     },
-    onExportNumericSensors: (context) => {
-        const { lines, widgets, profile } = context;
-        if (!widgets) return;
+onExportNumericSensors: (context) => {
+    const { lines, widgets, profile } = context;
+    if (!widgets) return;
 
-        const processed = new Set();
-        let needsLocalSHT = false;
+    const processed = new Set();
+    let needsLocalSHT = false;
 
-        for (const w of widgets) {
-            if (w.type !== "ondevice_humidity") continue;
-            const p = w.props || {};
-            if (p.is_local_sensor === true || (p.is_local_sensor !== false && !w.entity_id)) {
-                needsLocalSHT = true;
-                continue;
-            }
-
-            let eid = (w.entity_id || "").trim();
-            if (!eid) continue;
-            if (!eid.includes(".")) eid = `sensor.${eid}`;
-
-            if (!processed.has(eid)) {
-                processed.add(eid);
-                const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
-                lines.push("- platform: homeassistant", `  id: ${safeId}`, `  entity_id: ${eid}`, "  internal: true");
-            }
+    for (const w of widgets) {
+        if (w.type !== "ondevice_humidity") continue;
+        const p = w.props || {};
+        if (p.is_local_sensor === true || (p.is_local_sensor !== false && !w.entity_id)) {
+            needsLocalSHT = true;
+            continue;
         }
 
-        if (needsLocalSHT) {
-            const shtId = profile.features?.sht4x ? "sht4x_sensor" : (profile.features?.sht3x ? "sht3x_sensor" : "shtc3_sensor");
-            const shtPlatform = profile.features?.sht4x ? "sht4x" : (profile.features?.sht3x ? "sht3x" : "shtc3");
-            const humId = profile.features?.sht4x ? "sht4x_humidity" : (profile.features?.sht3x ? "sht3x_humidity" : "shtc3_humidity");
+        let eid = (w.entity_id || "").trim();
+        if (!eid) continue;
+        if (!eid.includes(".")) eid = `sensor.${eid}`;
+
+        if (!processed.has(eid)) {
+            processed.add(eid);
+            const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            lines.push("- platform: homeassistant", `  id: ${safeId}`, `  entity_id: ${eid}`, "  internal: true");
+        }
+    }
+
+    if (needsLocalSHT && profile.features) {
+        const hasSht4x = !!profile.features.sht4x;
+        const hasSht3x = !!profile.features.sht3x;
+        const hasShtc3 = !!profile.features.shtc3;
+
+        if (hasSht4x || hasSht3x || hasShtc3) {
+            const shtId = hasSht4x ? "sht4x_sensor" : (hasSht3x ? "sht3x_sensor" : "shtc3_sensor");
+            const shtPlatform = hasSht4x ? "sht4x" : (hasSht3x ? "sht3xd" : "shtcx");
+            const humId = hasSht4x ? "sht4x_humidity" : (hasSht3x ? "sht3x_humidity" : "shtc3_humidity");
 
             if (!lines.some(l => l.includes(`id: ${shtId}`))) {
                 lines.push(`- platform: ${shtPlatform}`, `  id: ${shtId}`);
                 lines.push(`  humidity:`, `    id: ${humId}`, `    internal: true`);
                 lines.push(`  update_interval: 60s`);
-            } else {
-                // SHT already exists, check if humidity sub-component exists
-                if (!lines.some(l => l.includes(`id: ${humId}`))) {
-                    // Try to find the block and add it? Difficult in one-pass array push.
+
+                if (shtPlatform === "shtcx" && !lines.some(l => l.includes("address: 0x70"))) {
+                    lines.push("    address: 0x70");
+                    lines.push("    i2c_id: bus_a");
                 }
+                if (shtPlatform === "sht3xd" && !lines.some(l => l.includes("address: 0x44"))) {
+                    lines.push("    address: 0x44");
+                }
+            } else {
+                // exists
             }
         }
     }
+}
 };

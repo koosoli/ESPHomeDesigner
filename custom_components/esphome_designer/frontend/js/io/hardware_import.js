@@ -199,7 +199,9 @@ function parseHardwareRecipeClientSide(yaml, filename) {
         features: {
             psram: yaml.includes("psram:"),
             lcd: !yaml.includes("waveshare_epaper") && !yaml.includes("epaper_spi"),
+            lvgl: yaml.includes("lvgl:") || !yaml.includes("waveshare_epaper"), // Most LCDs support LVGL
             epaper: yaml.includes("waveshare_epaper") || yaml.includes("epaper_spi"),
+            touch: yaml.includes("touchscreen:"),
             inverted_colors: isInverted
         }
     };

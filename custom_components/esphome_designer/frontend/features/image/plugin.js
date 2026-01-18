@@ -4,11 +4,25 @@
 
 const isOffline = () => window.location.protocol === 'file:' || !window.location.hostname;
 
-const render = (el, widget, { getColorStyle }) => {
+const render = (el, widget, context) => {
+    const { getColorStyle, selected, profile } = context || {};
     const props = widget.props || {};
     const url = (props.url || "").trim();
     const path = (props.path || "").replace(/^"|"$/g, '').trim();
     const invert = !!props.invert;
+
+    // Determine display type from profile
+    const displayType = profile?.displayType || 'binary'; // Default to binary for safety
+
+    // Construct filter string based on display type
+    let filter = "";
+    if (invert) filter += "invert(1) ";
+    if (displayType === 'binary') {
+        filter += "grayscale(100%) contrast(1.5) "; // High contrast for 1-bit displays
+    } else if (displayType === 'grayscale') {
+        filter += "grayscale(100%) "; // Multi-level grayscale (e.g., M5Paper)
+    }
+    // For 'color', no grayscale filter is added
 
     el.style.boxSizing = "border-box";
     el.style.backgroundColor = "#f5f5f5";
@@ -30,10 +44,7 @@ const render = (el, widget, { getColorStyle }) => {
         img.style.maxHeight = "100%";
         img.style.objectFit = "contain";
         img.draggable = false;
-
-        if (invert) {
-            img.style.filter = "invert(1)";
-        }
+        if (filter) img.style.filter = filter.trim();
 
         img.onerror = () => {
             const offlineNote = isOffline() ? "<br/><span style='color:#e67e22;font-size:8px;'>⚠️ Offline mode - preview in HA</span>" : "";
@@ -45,17 +56,20 @@ const render = (el, widget, { getColorStyle }) => {
         };
 
         img.onload = () => {
-            const overlay = document.createElement("div");
-            overlay.style.position = "absolute";
-            overlay.style.bottom = "2px";
-            overlay.style.right = "2px";
-            overlay.style.background = "rgba(0,0,0,0.6)";
-            overlay.style.color = "white";
-            overlay.style.padding = "2px 4px";
-            overlay.style.fontSize = "8px";
-            overlay.style.borderRadius = "2px";
-            overlay.textContent = filename + " • " + widget.width + "×" + widget.height + "px";
-            el.appendChild(overlay);
+            // Only show overlay if selected
+            if (selected) {
+                const overlay = document.createElement("div");
+                overlay.style.position = "absolute";
+                overlay.style.bottom = "2px";
+                overlay.style.right = "2px";
+                overlay.style.background = "rgba(0,0,0,0.6)";
+                overlay.style.color = "white";
+                overlay.style.padding = "2px 4px";
+                overlay.style.fontSize = "8px";
+                overlay.style.borderRadius = "2px";
+                overlay.textContent = filename + " • " + widget.width + "×" + widget.height + "px";
+                el.appendChild(overlay);
+            }
         };
 
         let imgSrc;
@@ -68,7 +82,7 @@ const render = (el, widget, { getColorStyle }) => {
                 imgSrc = path;
             }
         } else {
-            imgSrc = "/api/esphome_designer/image_proxy?filename=" + encodeURIComponent(path);
+            imgSrc = "/api/esphome_designer/image_proxy?path=" + encodeURIComponent(path);
         }
 
         if (imgSrc) {
@@ -91,10 +105,7 @@ const render = (el, widget, { getColorStyle }) => {
         img.style.maxHeight = "100%";
         img.style.objectFit = "contain";
         img.draggable = false;
-
-        if (invert) {
-            img.style.filter = "invert(1)";
-        }
+        if (filter) img.style.filter = filter.trim();
 
         img.onerror = () => {
             el.innerHTML = "<div style='text-align:center;color:#666;font-size:11px;padding:8px;line-height:1.4;'>" +
@@ -105,18 +116,20 @@ const render = (el, widget, { getColorStyle }) => {
         };
 
         img.onload = () => {
-            const filename = url.split("/").pop();
-            const overlay = document.createElement("div");
-            overlay.style.position = "absolute";
-            overlay.style.bottom = "2px";
-            overlay.style.right = "2px";
-            overlay.style.background = "rgba(0,0,0,0.6)";
-            overlay.style.color = "white";
-            overlay.style.padding = "2px 4px";
-            overlay.style.fontSize = "8px";
-            overlay.style.borderRadius = "2px";
-            overlay.textContent = filename;
-            el.appendChild(overlay);
+            if (selected) {
+                const filename = url.split("/").pop();
+                const overlay = document.createElement("div");
+                overlay.style.position = "absolute";
+                overlay.style.bottom = "2px";
+                overlay.style.right = "2px";
+                overlay.style.background = "rgba(0,0,0,0.6)";
+                overlay.style.color = "white";
+                overlay.style.padding = "2px 4px";
+                overlay.style.fontSize = "8px";
+                overlay.style.borderRadius = "2px";
+                overlay.textContent = filename;
+                el.appendChild(overlay);
+            }
         };
 
         img.src = url;

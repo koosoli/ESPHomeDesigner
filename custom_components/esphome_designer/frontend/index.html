@@ -22,7 +22,7 @@
   <header class="main-header" role="banner">
     <div class="main-header-title">
       <img src="assets/logo_header.png" alt="ESPHome Designer" class="logo-image">
-      <span><small style="opacity: 0.5; margin-left: 8px;">Pre_0.9b136</small> <span id="currentLayoutDevice"
+      <span><small style="opacity: 0.5; margin-left: 8px;">Pre_0.9b163</small> <span id="currentLayoutDevice"
           style="margin-left:8px; color:var(--accent);"></span></span>
     </div>
     <div class="main-header-actions desktop-only">
@@ -86,12 +86,17 @@
       </div>
 
       <div class="sidebar-section" style="flex: 1; overflow-y: auto;">
-        <div class="sidebar-section-label">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="9" y1="3" x2="9" y2="21"></line>
-          </svg>
-          Widgets
+        <div class="sidebar-section-label" style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+            </svg>
+            <span>Widgets</span>
+          </div>
+          <button id="quickSearchBtn" class="btn-icon btn-xs" title="Quick Search (Shift+Space)" style="opacity: 0.6;">
+            <span class="mdi mdi-magnify" style="font-size: 14px;"></span>
+          </button>
         </div>
         <div id="widgetPalette" class="widget-list"></div>
       </div>
@@ -131,12 +136,12 @@
             <span id="zoomLevel">100%</span>
           </div>
           <div class="zoom-actions">
-            <button id="gridToggleBtn" class="btn-icon" title="Toggle Grid">
+            <button id="gridToggleBtn" class="btn-icon" title="Toggle Grid (G)">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"></path>
               </svg>
             </button>
-            <button id="rulersToggleBtn" class="btn-icon" title="Toggle Rulers" style="margin-right: 8px;">
+            <button id="rulersToggleBtn" class="btn-icon" title="Toggle Rulers (R)" style="margin-right: 8px;">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                 <path
                   d="M5 7h14c1.1 0 2 .9 2 2v6c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2zm2 8v-3m4 3V9m4 6v-3">
@@ -144,7 +149,7 @@
               </svg>
             </button>
             <button id="zoomOutBtn" class="btn-icon" title="Zoom Out">−</button>
-            <button id="zoomResetBtn" class="btn-icon" title="Reset View">⌂</button>
+            <button id="zoomResetBtn" class="btn-icon" title="Reset View (Ctrl+0)">⌂</button>
             <button id="zoomInBtn" class="btn-icon" title="Zoom In">+</button>
           </div>
         </div>
@@ -223,7 +228,8 @@
           <input id="snapToggle" type="checkbox" checked style="width:12px; height:12px;" />
           <span>Snap</span>
         </label>
-        <label style="display:flex; align-items:center; gap:4px; font-size:10px; cursor:pointer;" title="Lock position">
+        <label style="display:flex; align-items:center; gap:4px; font-size:10px; cursor:pointer;"
+          title="Lock position (Ctrl+L)">
           <input id="lockPositionToggle" type="checkbox" style="width:12px; height:12px;" />
           <span>Lock</span>
         </label>
@@ -353,6 +359,19 @@
             <option value="custom">Custom Profile...</option>
           </select>
           <input type="file" id="hardwareFileInput" accept=".yaml" style="display:none;" />
+        </div>
+
+        <!-- Rendering Mode (Only visible for LVGL-capable devices) -->
+        <div class="field" id="renderingModeField" style="display:none;">
+          <div class="prop-label">Rendering Mode</div>
+          <select id="renderingMode" class="prop-input">
+            <option value="lvgl">LVGL (Recommended for LCD)</option>
+            <option value="direct">Direct (Display Lambda)</option>
+          </select>
+          <div style="font-size:var(--fs-xs); color:var(--muted); margin-top:4px;">
+            LVGL uses the LVGL graphics library for advanced widgets. Direct uses raw display commands and omits the
+            lvgl: block.
+          </div>
         </div>
 
         <!-- Custom Hardware Section (Hidden by default) -->
@@ -1065,7 +1084,7 @@
           An API provider and key must be configured in <strong>Editor Settings</strong> before using the AI
           Assistant.
           <button
-            onclick="window.openEditorSettingsModal(); document.getElementById('aiPromptModal').classList.add('hidden');"
+            onclick="window.openEditorSettingsModal('ai'); document.getElementById('aiPromptModal').classList.add('hidden');"
             class="btn btn-secondary btn-xs" style="margin-top:8px; display:block;">⚙ Open Editor
             Settings</button>
         </div>
@@ -1179,7 +1198,7 @@
   <script type="module" src="js/io/ha_api.js"></script>
   <script type="module" src="js/io/yaml_import.js"></script>
   <script type="module" src="js/io/hardware_import.js"></script>
-  <script type="module" src="js/io/ai_service.js"></script>
+
   <script type="module" src="js/io/adapters/base_adapter.js"></script>
   <script type="module" src="js/io/adapters/esphome_adapter.js"></script>
   <script type="module" src="js/io/devices.js"></script>

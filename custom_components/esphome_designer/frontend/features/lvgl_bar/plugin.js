@@ -51,6 +51,44 @@ const exportLVGL = (w, { common, convertColor }) => {
     };
 };
 
+const onExportNumericSensors = (context) => {
+    const { lines, widgets } = context;
+    if (!widgets) return;
+
+    const processedEntities = new Map();
+
+    for (const w of widgets) {
+        if (w.type !== "lvgl_bar") continue;
+
+        const entityId = (w.entity_id || w.props?.entity_id || "").trim();
+        if (!entityId) continue;
+
+        if (!processedEntities.has(entityId)) {
+            processedEntities.set(entityId, []);
+        }
+        processedEntities.get(entityId).push(w.id);
+    }
+
+    for (const [entityId, widgetIds] of processedEntities) {
+        const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_");
+
+        lines.push(`- platform: homeassistant`);
+        lines.push(`  id: ${safeId}`);
+        lines.push(`  entity_id: ${entityId}`);
+        lines.push(`  internal: true`);
+        if (context.isLvgl) {
+            lines.push(`  on_value:`);
+            lines.push(`    then:`);
+
+            for (const wid of widgetIds) {
+                lines.push(`      - lvgl.widget.update:`);
+                lines.push(`          id: ${wid}`);
+                lines.push(`          value: !lambda return x;`);
+            }
+        }
+    }
+};
+
 export default {
     id: "lvgl_bar",
     name: "Bar",
@@ -65,5 +103,6 @@ export default {
         mode: "NORMAL"
     },
     render,
-    exportLVGL
+    exportLVGL,
+    onExportNumericSensors
 };

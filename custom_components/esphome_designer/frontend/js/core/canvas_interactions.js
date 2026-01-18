@@ -63,12 +63,19 @@ function startInlineEdit(canvasInstance, widgetId) {
     textarea.select();
 
     const finishEdit = () => {
+        if (!textarea.isConnected && !textarea.parentElement) return;
+
+        // Cleanup listeners to prevent re-entry (e.g. remove() triggering blur)
+        textarea.removeEventListener("blur", onBlur);
+        textarea.removeEventListener("keydown", onKeyDown);
+
         const newText = textarea.value;
         if (newText !== (widget.props.text || widget.title)) {
             AppState.updateWidget(widgetId, {
                 props: { ...widget.props, text: newText }
             });
         }
+
         textarea.remove();
     };
 
@@ -700,10 +707,10 @@ export function setupZoomControls(canvasInstance) {
     const gridOpacityInput = document.getElementById("editorGridOpacity");
 
     if (zoomInBtn) {
-        zoomInBtn.addEventListener("click", () => zoomIn());
+        zoomInBtn.addEventListener("click", () => zoomIn(canvasInstance));
     }
     if (zoomOutBtn) {
-        zoomOutBtn.addEventListener("click", () => zoomOut());
+        zoomOutBtn.addEventListener("click", () => zoomOut(canvasInstance));
     }
     if (zoomResetBtn) {
         zoomResetBtn.addEventListener("click", () => zoomReset(canvasInstance));
@@ -757,10 +764,10 @@ export function setupZoomControls(canvasInstance) {
     document.addEventListener("keydown", (ev) => {
         if (ev.ctrlKey && (ev.key === "+" || ev.key === "=")) {
             ev.preventDefault();
-            zoomIn();
+            zoomIn(canvasInstance);
         } else if (ev.ctrlKey && ev.key === "-") {
             ev.preventDefault();
-            zoomOut();
+            zoomOut(canvasInstance);
         } else if (ev.ctrlKey && ev.key === "0") {
             ev.preventDefault();
             zoomReset(canvasInstance);
@@ -825,12 +832,37 @@ function handleWheelZoom(ev, canvasInstance) {
     applyZoom(canvasInstance);
 }
 
-export function zoomIn() {
-    AppState.setZoomLevel(AppState.zoomLevel + 0.05);
+export function zoomIn(canvasInstance) {
+    performZoom(0.05, canvasInstance);
 }
 
-export function zoomOut() {
-    AppState.setZoomLevel(AppState.zoomLevel - 0.05);
+export function zoomOut(canvasInstance) {
+    performZoom(-0.05, canvasInstance);
+}
+
+function performZoom(delta, canvasInstance) {
+    const oldZoom = AppState.zoomLevel;
+    const newZoom = Math.min(Math.max(oldZoom + delta, 0.1), 5.0);
+    if (newZoom === oldZoom) return;
+
+    if (canvasInstance && canvasInstance.viewport) {
+        const viewportRect = canvasInstance.viewport.getBoundingClientRect();
+        const centerX = viewportRect.width / 2;
+        const centerY = viewportRect.height / 2;
+
+        // Convert viewport center to canvas-space (before transformation)
+        const canvasX = (centerX - canvasInstance.panX) / oldZoom;
+        const canvasY = (centerY - canvasInstance.panY) / oldZoom;
+
+        // Calculate new pan so that the same canvas position stays under the center
+        canvasInstance.panX = centerX - canvasX * newZoom;
+        canvasInstance.panY = centerY - canvasY * newZoom;
+    }
+
+    AppState.setZoomLevel(newZoom);
+    if (canvasInstance) {
+        applyZoom(canvasInstance);
+    }
 }
 
 export function zoomReset(canvasInstance) {

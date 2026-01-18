@@ -1,3 +1,4 @@
+import { DEVICE_PROFILES } from '../io/devices.js';
 import { AppState } from './state.js';
 import { registry as FeatureRegistry } from './plugin_registry.js';
 import { Logger } from '../utils/logger.js';
@@ -169,7 +170,16 @@ export function render(canvasInstance) {
                         if (!color) return isDark ? '#ffffff' : '#000000';
                         return getColorStyle(color);
                     };
-                    feature.render(el, widget, { getColorStyle: wrappedGetColorStyle });
+
+                    const isSelected = AppState.selectedWidgetIds.includes(widget.id);
+                    const deviceModel = AppState.settings.device_model || 'reterminal_e1001';
+                    const profile = DEVICE_PROFILES ? DEVICE_PROFILES[deviceModel] : null;
+
+                    feature.render(el, widget, {
+                        getColorStyle: wrappedGetColorStyle,
+                        selected: isSelected,
+                        profile: profile
+                    });
                 } catch (err) {
                     el.textContent = `Error: ${type}`;
                     el.style.border = "2px solid red";
@@ -359,7 +369,16 @@ export function updateWidgetDOM(canvasInstance, widget, skipPluginRender = false
                     }
                     return getColorStyle(color);
                 };
-                feature.render(el, widget, { getColorStyle: wrappedGetColorStyle });
+
+                const isSelected = AppState.selectedWidgetIds.includes(widget.id);
+                const deviceModel = AppState.settings.device_model || 'reterminal_e1001';
+                const profile = DEVICE_PROFILES ? DEVICE_PROFILES[deviceModel] : null;
+
+                feature.render(el, widget, {
+                    getColorStyle: wrappedGetColorStyle,
+                    selected: isSelected,
+                    profile: profile
+                });
             } catch (err) {
                 // Silent fail for minor real-time updates to keep performance high
             }

@@ -205,10 +205,20 @@ const exportDoc = (w, context) => {
 
         lines.push(`          auto print_q = [&](esphome::font::Font *f, int line_h, bool draw) -> int {`);
         lines.push(`            int y_curr = ${w.y + 8};`);
+        lines.push(`            std::string text_to_print = display_text;`);
         lines.push(`            std::string curr_line = "";`);
-        lines.push(`            size_t pos = 0; size_t space_pos;`);
-        lines.push(`            while ((space_pos = display_text.find(' ', pos)) != std::string::npos) {`);
-        lines.push(`                std::string word = display_text.substr(pos, space_pos - pos);`);
+        lines.push(`            std::string word;`);
+        lines.push(`            size_t pos = 0;`);
+        lines.push(`            while (pos < text_to_print.length()) {`);
+        lines.push(`                size_t space_pos = text_to_print.find(' ', pos);`);
+        lines.push(`                if (space_pos == std::string::npos) {`);
+        lines.push(`                    word = text_to_print.substr(pos);`);
+        lines.push(`                    pos = text_to_print.length();`);
+        lines.push(`                } else {`);
+        lines.push(`                    word = text_to_print.substr(pos, space_pos - pos);`);
+        lines.push(`                    pos = space_pos + 1;`);
+        lines.push(`                }`);
+        lines.push(`                if (word.empty()) continue;`);
         lines.push(`                std::string test_line = curr_line.empty() ? word : curr_line + " " + word;`);
         lines.push(`                int w_m, h_m, xoff_m, bl_m;`);
         lines.push(`                f->measure(test_line.c_str(), &w_m, &xoff_m, &bl_m, &h_m);`);
@@ -217,11 +227,6 @@ const exportDoc = (w, context) => {
         lines.push(`                    y_curr += line_h;`);
         lines.push(`                    curr_line = word;`);
         lines.push(`                } else { curr_line = test_line; }`);
-        lines.push(`                pos = space_pos + 1;`);
-        lines.push(`            }`);
-        lines.push(`            if (!curr_line.empty()) {`);
-        lines.push(`                std::string rem = display_text.substr(pos);`);
-        lines.push(`                if (!curr_line.empty()) curr_line += " "; curr_line += rem;`);
         lines.push(`            }`);
         lines.push(`            if (!curr_line.empty()) {`);
         lines.push(`                if (draw) it.printf(${w.x + 8}, y_curr, f, ${color}, "%s", curr_line.c_str());`);
@@ -270,14 +275,14 @@ const onExportComponents = (context) => {
     const targets = widgets.filter(w => w.type === "quote_rss");
 
     if (targets.length > 0) {
-        // Ensure http_request is present (critical for this widget)
-        // Check if http_request is already defined in the lines
+        // Ensure http_request is present with sufficient buffer for JSON
         const hasHttpRequest = lines.some(l => l.trim().startsWith("http_request:"));
         if (!hasHttpRequest) {
             lines.push("");
             lines.push("http_request:");
             lines.push("  verify_ssl: false");
             lines.push("  timeout: 20s");
+            lines.push("  buffer_size: 4096");
         }
 
         lines.push("");
@@ -290,13 +295,12 @@ const onExportComponents = (context) => {
             const feedUrl = p.feed_url || "https://www.brainyquote.com/link/quotebr.rss";
             const random = p.random !== false;
 
-            // Note: ESP device needs absolute URL to reach HA.
             const haUrl = (p.ha_url || "http://homeassistant.local:8123").replace(/\/$/, "");
             const proxyEndpoint = "/api/esphome_designer/rss_proxy";
             const proxyUrl = `${haUrl}${proxyEndpoint}?url=${encodeURIComponent(feedUrl)}${random ? '&random=true' : ''}`;
 
             lines.push(`  - interval: ${refreshInterval}`);
-            lines.push(`    startup_delay: 20s`);
+            lines.push(`    startup_delay: 20s`);  // Fetch shortly after boot, before the full interval
             lines.push(`    then:`);
             lines.push(`      - if:`);
             lines.push(`          condition:`);
@@ -330,6 +334,38 @@ const onExportComponents = (context) => {
             lines.push(`                        ESP_LOGW("quote", "HTTP Request failed with code: %d", response->status_code);`);
             lines.push(`                      }`);
         }
+        lines.push('');  // Blank line after interval section
+    }
+};
+
+const onExportTextSensors = (context) => {
+    const { lines, widgets } = context;
+    const targets = widgets.filter(w => w.type === "quote_rss");
+
+    if (targets.length > 0) {
+        lines.push("# Quote RSS Widget Text Sensors (visible in Home Assistant)");
+        for (const w of targets) {
+            const p = w.props || {};
+            const safeIdPrefix = `quote_${w.id.replace(/-/g, "_")}`;
+
+            // Quote text sensor
+            lines.push(`- platform: template`);
+            lines.push(`  id: ${safeIdPrefix}_text_sensor`);
+            lines.push(`  name: "Quote Text"`);
+            lines.push(`  icon: "mdi:format-quote-close"`);
+            lines.push(`  lambda: 'return id(${safeIdPrefix}_text_global);'`);
+            lines.push(`  update_interval: 60s`);
+
+            // Author sensor (if enabled)
+            if (p.show_author !== false) {
+                lines.push(`- platform: template`);
+                lines.push(`  id: ${safeIdPrefix}_author_sensor`);
+                lines.push(`  name: "Quote Author"`);
+                lines.push(`  icon: "mdi:account"`);
+                lines.push(`  lambda: 'return id(${safeIdPrefix}_author_global);'`);
+                lines.push(`  update_interval: 60s`);
+            }
+        }
     }
 };
 
@@ -356,6 +392,7 @@ export default {
     },
     render,
     onExportGlobals,
+    onExportTextSensors,
     onExportComponents,
     export: exportDoc
 };

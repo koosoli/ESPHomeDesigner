@@ -1,0 +1,7 @@
+const d=(e,r,{getColorStyle:l})=>{const s=r.props||{};e.innerHTML="",e.style.display="flex",e.style.alignItems="center",e.style.boxSizing="border-box",e.style.backgroundColor="#fff",e.style.border="1px solid #999",e.style.borderRadius="3px",e.style.padding="0 10px";let t=s.options||`Option 1
+Option 2
+Option 3`;typeof t=="string"?t=t.split(`
+`):Array.isArray(t)||(t=["Option 1","Option 2","Option 3"]);const n=s.selected_index||0,p=t[Math.min(n,t.length-1)]||"Select...",o=document.createElement("span");o.textContent=p,o.style.flex="1",o.style.color="#000",o.style.fontSize="14px",o.style.fontFamily="Roboto, sans-serif",o.style.overflow="hidden",o.style.textOverflow="ellipsis",o.style.whiteSpace="nowrap",e.appendChild(o);const i=document.createElement("span");i.textContent="▼",i.style.color="#000",i.style.fontSize="10px",i.style.marginLeft="10px",e.appendChild(i)},a=(e,{common:r,convertColor:l,formatOpacity:s})=>{const t=e.props||{};let n=t.options||"";return Array.isArray(n)?n=n.map(String):n=String(n).split(`
+`).filter(p=>p.trim()!==""),{dropdown:{...r,options:n,selected_index:t.selected_index,style:{text_color:l(t.color)},direction:t.direction||"DOWN",max_height:t.max_height,opa:s(t.opa)}}},c={id:"lvgl_dropdown",name:"Dropdown",category:"LVGL",defaults:{options:`Option 1
+Option 2
+Option 3`,selected_index:0,color:"black",direction:"DOWN",max_height:200,opa:255},render:d,exportLVGL:a};export{c as default};

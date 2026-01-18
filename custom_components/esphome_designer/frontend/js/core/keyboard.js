@@ -62,7 +62,7 @@ export class KeyboardHandler {
         }
 
         // Copy: Ctrl+C
-        if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "c") {
+        if ((ev.ctrlKey || ev.metaKey) && ev.key && ev.key.toLowerCase() === "c") {
             if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") {
                 if (ev.target.id === "snippetBox" && isAutoHighlight) {
                     ev.preventDefault();
@@ -77,7 +77,7 @@ export class KeyboardHandler {
         }
 
         // Paste: Ctrl+V
-        if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "v") {
+        if ((ev.ctrlKey || ev.metaKey) && ev.key && ev.key.toLowerCase() === "v") {
             if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") {
                 if (ev.target.id === "snippetBox" && isAutoHighlight) {
                     ev.preventDefault();
@@ -92,7 +92,7 @@ export class KeyboardHandler {
         }
 
         // Undo: Ctrl+Z
-        if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "z" && !ev.shiftKey) {
+        if ((ev.ctrlKey || ev.metaKey) && ev.key && ev.key.toLowerCase() === "z" && !ev.shiftKey) {
             if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") {
                 // Allow global undo when snippetBox has auto-highlighted text
                 if (ev.target.id === "snippetBox" && isAutoHighlight) {
@@ -114,7 +114,7 @@ export class KeyboardHandler {
         }
 
         // Redo: Ctrl+Y or Ctrl+Shift+Z
-        if ((ev.ctrlKey || ev.metaKey) && (ev.key.toLowerCase() === "y" || (ev.key.toLowerCase() === "z" && ev.shiftKey))) {
+        if ((ev.ctrlKey || ev.metaKey) && ev.key && (ev.key.toLowerCase() === "y" || (ev.key.toLowerCase() === "z" && ev.shiftKey))) {
             if (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") {
                 // Allow global redo when snippetBox has auto-highlighted text
                 if (ev.target.id === "snippetBox" && isAutoHighlight) {
@@ -136,7 +136,7 @@ export class KeyboardHandler {
         }
 
         // Lock/Unlock: Ctrl+L
-        if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "l" && hasSelection) {
+        if ((ev.ctrlKey || ev.metaKey) && ev.key && ev.key.toLowerCase() === "l" && hasSelection) {
             ev.preventDefault();
             const selectedWidgets = state.getSelectedWidgets();
             const allLocked = selectedWidgets.every(w => w.locked);
@@ -145,11 +145,39 @@ export class KeyboardHandler {
         }
 
         // Select All: Ctrl+A
-        if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "a") {
+        if ((ev.ctrlKey || ev.metaKey) && ev.key && ev.key.toLowerCase() === "a") {
             const isSnippetAuto = ev.target.id === "snippetBox" && isAutoHighlight;
             if ((ev.target.tagName !== "INPUT" && ev.target.tagName !== "TEXTAREA") || isSnippetAuto) {
                 ev.preventDefault();
                 state.selectAllWidgets();
+                return;
+            }
+        }
+
+        // Toggle Grid: G (if not typing)
+        if (ev.key && ev.key.toLowerCase() === "g" && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey && !ev.altKey) {
+            if (ev.target.tagName !== "INPUT" && ev.target.tagName !== "TEXTAREA") {
+                ev.preventDefault();
+                const newState = !state.showGrid;
+                state.setShowGrid(newState);
+                // Sync UI button state if exists
+                const btn = document.getElementById("gridToggleBtn");
+                if (btn) btn.classList.toggle("active", newState);
+                Logger.log(`[Keyboard] Grid toggled: ${newState}`);
+                return;
+            }
+        }
+
+        // Toggle Rulers: R (if not typing)
+        if (ev.key && ev.key.toLowerCase() === "r" && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey && !ev.altKey) {
+            if (ev.target.tagName !== "INPUT" && ev.target.tagName !== "TEXTAREA") {
+                ev.preventDefault();
+                const newState = !state.showRulers;
+                state.setShowRulers(newState);
+                // Sync UI button state if exists
+                const btn = document.getElementById("rulersToggleBtn");
+                if (btn) btn.classList.toggle("active", newState);
+                Logger.log(`[Keyboard] Rulers toggled: ${newState}`);
                 return;
             }
         }

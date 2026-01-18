@@ -44,6 +44,38 @@ time:
   - platform: homeassistant
     id: ha_time
 sensor:
+  - platform: adc
+    pin: GPIO1
+    name: "Battery Voltage"
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    id: battery_voltage
+    update_interval: 60s
+    attenuation: 12db
+    filters:
+      - multiply: 2
+  - platform: sht4x
+    id: sht4x_sensor
+    temperature:
+      name: "Temperature"
+      id: sht4x_temperature
+    humidity:
+      name: "Humidity"
+      id: sht4x_humidity
+    address: 0x44
+    update_interval: 60s
+  - platform: template
+    name: "Battery Level"
+    id: battery_level
+    unit_of_measurement: "%"
+    icon: "mdi:battery"
+    device_class: battery
+    state_class: measurement
+    lambda: |-
+      if (id(battery_voltage).state > 4.15) return 100;
+      if (id(battery_voltage).state < 3.27) return 0;
+      return (id(battery_voltage).state - 3.27) / (4.15 - 3.27) * 100.0;
   - platform: homeassistant
     id: sensor_test_progress
     entity_id: sensor.test_progress
@@ -56,6 +88,10 @@ sensor:
     id: sensor_test_temp
     entity_id: sensor.test_temp
     internal: true
+    on_value:
+      then:
+        - lvgl.widget.update:
+            id: w_sensor
 binary_sensor:
   - platform: gpio
     pin:
@@ -141,9 +177,10 @@ button:
 image:
   - file: "test_image.png"
     id: img_test_image_png_50x50
-    type: TRANSPARENT_BINARY
+    type: BINARY
     resize: 50x50
     dither: FLOYDSTEINBERG
+    transparency: chroma_key
 graph:
   - id: graph_w_graph
     duration: 1h
@@ -313,8 +350,8 @@ display:
             else if (bat_level >= 5) bat_icon = "\U000F007A";  // battery-10
             else bat_icon = "\U000F0083";                      // battery-alert (critical)
           }
-          it.printf(200, 10, id(font_material_design_icons_400_24), COLOR_BLACK, "%s", bat_icon);
-          it.printf(200 + 24/2, 10 + 24 + 2, id(font_roboto_400_12), COLOR_BLACK, TextAlign::TOP_CENTER, "%.0f%%", bat_level);
+          it.printf(200 + 24 / 2, 10 + (24 - 38) / 2, id(font_material_design_icons_400_24), COLOR_BLACK, TextAlign::TOP_CENTER, "%s", bat_icon);
+          it.printf(200 + 24 / 2, 10 + (24 - 38) / 2 + 24 + 2, id(font_roboto_400_12), COLOR_BLACK, TextAlign::TOP_CENTER, "%.0f%%", bat_level);
         }
         // widget:progress_bar id:w_progress type:progress_bar x:10 y:120 w:150 h:20 entity:sensor.test_progress title:"" show_label:true show_pct:true bar_height:15 color:black local:false
         float val_w_progress = id(sensor_test_progress).state;
@@ -329,7 +366,6 @@ display:
           it.filled_rectangle(10 + 2, 125 + 2, bar_w, 15 - 4, COLOR_BLACK);
         }
         // widget:wifi_signal id:w_wifi type:wifi_signal x:240 y:10 w:24 h:24 entity:wifi_signal_dbm size:24 font_size:12 color:black show_dbm:true local:true
-        {
           const char* wifi_icon = "\U000F092B"; // Default: wifi-strength-alert-outline
           if (id(wifi_signal_dbm).has_state()) {
             float signal = id(wifi_signal_dbm).state;
@@ -340,9 +376,9 @@ display:
             else if (signal >= -100) wifi_icon = "\U000F091F"; // wifi-strength-1 (Weak)
             else wifi_icon = "\U000F092B";                    // wifi-strength-alert-outline
           }
-          it.printf(240, 10, id(font_material_design_icons_400_24), COLOR_BLACK, "%s", wifi_icon);
+          it.printf(240 + 24 / 2, 10 + (24 - 38) / 2, id(font_material_design_icons_400_24), COLOR_BLACK, TextAlign::TOP_CENTER, "%s", wifi_icon);
           if (id(wifi_signal_dbm).has_state()) {
-            it.printf(240 + 24/2, 10 + 24 + 2, id(font_roboto_400_12), COLOR_BLACK, TextAlign::TOP_CENTER, "%.0fdB", id(wifi_signal_dbm).state);
+            it.printf(240 + 24 / 2, 10 + (24 - 38) / 2 + 24 + 2, id(font_roboto_400_12), COLOR_BLACK, TextAlign::TOP_CENTER, "%.0fdB", id(wifi_signal_dbm).state);
           }
         }
         // widget:datetime id:w_datetime type:datetime x:10 y:150 w:200 h:40 fmt:time_date
@@ -352,7 +388,7 @@ display:
           it.strftime(110, 147 + 28 + 2, id(font_roboto_400_16), COLOR_BLACK, TextAlign::CENTER, "%a, %b %d", now);
         }
         // widget:sensor_text id:w_sensor type:sensor_text x:10 y:200 w:100 h:20 ent:sensor.test_temp fmt:label_value
-        it.printf(10, 200, id(font_roboto_400_20), COLOR_BLACK, TextAlign::TOP_LEFT, "test temp: %.2f", id(sensor_test_temp).state);
+        it.printf(10, 200, id(font_roboto_400_20), COLOR_BLACK, TextAlign::TOP_LEFT, "test temp: %.2f °C", id(sensor_test_temp).state);
         // widget:graph id:w_graph type:graph x:10 y:230 w:200 h:100 title:"" entity:sensor.test_temp local:false duration:1h border:true color:black x_grid:15min y_grid:50 line_type:SOLID line_thickness:3 continuous:false min_value: max_value: min_range: max_range:
         it.graph(10, 230, id(graph_w_graph));
         for (int i = 0; i < 3; i++) {

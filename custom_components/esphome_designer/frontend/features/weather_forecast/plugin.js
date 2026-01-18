@@ -89,10 +89,12 @@ const render = (el, widget, { getColorStyle }) => {
         tempDiv.style.fontSize = `${tempFontSize}px`;
         tempDiv.style.fontWeight = "400";
         const temp = mockTemps[i % mockTemps.length];
+        const tempUnit = props.temp_unit || "C";
+        const unitSymbol = tempUnit === "F" ? "°F" : "°C";
         if (showHighLow) {
-            tempDiv.textContent = `${temp.high}°/${temp.low}°`;
+            tempDiv.textContent = `${temp.high}${unitSymbol}/${temp.low}${unitSymbol}`;
         } else {
-            tempDiv.textContent = `${temp.high}°`;
+            tempDiv.textContent = `${temp.high}${unitSymbol}`;
         }
         dayDiv.appendChild(tempDiv);
 
@@ -197,9 +199,17 @@ const exportDoc = (w, context) => {
         lines.push(`            it.printf(dx + ${centerOffset}, dy + ${dayFontSize + 4}, id(${iconFontId}), ${color}, TextAlign::TOP_CENTER, "%s", get_icon(cond_day));`);
         if (showHighLow) {
             lines.push(`            float high = id(${highSensorId}).state; float low = id(${lowSensorId}).state;`);
-            lines.push(`            if (!std::isnan(high) && !std::isnan(low)) {`);
-            lines.push(`              it.printf(dx + ${centerOffset}, dy + ${dayFontSize + iconSize + 8}, id(${tempFontId}), ${color}, TextAlign::TOP_CENTER, "%.0f/%.0f", high, low);`);
+            lines.push(`            char temp_buf[32];`);
+            lines.push(`            if (std::isnan(high) && std::isnan(low)) {`);
+            lines.push(`                sprintf(temp_buf, "--/--");`);
+            lines.push(`            } else if (std::isnan(high)) {`);
+            lines.push(`                sprintf(temp_buf, "--/%.0f", low);`);
+            lines.push(`            } else if (std::isnan(low)) {`);
+            lines.push(`                sprintf(temp_buf, "%.0f/--", high);`);
+            lines.push(`            } else {`);
+            lines.push(`                sprintf(temp_buf, "%.0f/%.0f", high, low);`);
             lines.push(`            }`);
+            lines.push(`            it.printf(dx + ${centerOffset}, dy + ${dayFontSize + iconSize + 8}, id(${tempFontId}), ${color}, TextAlign::TOP_CENTER, "%s", temp_buf);`);
         }
         lines.push(`          }`);
     }
@@ -234,7 +244,8 @@ const onExportTextSensors = (context) => {
     const targets = widgets.filter(w => w.type === "weather_forecast");
     if (targets.length === 0) return;
 
-    const weatherEntity = targets[0].entity_id || targets[0].props?.weather_entity || "weather.forecast_home";
+    const p = targets[0].props || {};
+    const weatherEntity = targets[0].entity_id || p.weather_entity || "weather.forecast_home";
 
     lines.push("");
     lines.push("# Weather Forecast Condition Sensors");
@@ -265,14 +276,16 @@ const onExportTextSensors = (context) => {
     lines.push("#           type: daily");
     lines.push("#         response_variable: forecast_data");
     lines.push("#     sensor:");
+    const tempUnit = p.temp_unit || "C";
+    const unitSymbol = tempUnit === "F" ? "°F" : "°C";
     for (let day = 0; day < 5; day++) {
         lines.push(`#       - name: 'Weather Forecast Day ${day} High'`);
         lines.push(`#         unique_id: weather_forecast_day_${day}_high`);
-        lines.push(`#         unit_of_measurement: '°C'`);
+        lines.push(`#         unit_of_measurement: '${unitSymbol}'`);
         lines.push(`#         state: '{{ forecast_data["${weatherEntity}"].forecast[${day}].temperature | default("N/A") }}'`);
         lines.push(`#       - name: 'Weather Forecast Day ${day} Low'`);
         lines.push(`#         unique_id: weather_forecast_day_${day}_low`);
-        lines.push(`#         unit_of_measurement: '°C'`);
+        lines.push(`#         unit_of_measurement: '${unitSymbol}'`);
         lines.push(`#         state: '{{ forecast_data["${weatherEntity}"].forecast[${day}].templow | default("N/A") }}'`);
         lines.push(`#       - name: 'Weather Forecast Day ${day} Condition'`);
         lines.push(`#         unique_id: weather_forecast_day_${day}_condition`);
@@ -313,6 +326,7 @@ export default {
         border_width: 1,
         border_color: "black",
         background_color: "white",
+        temp_unit: "C",
         width: 370,
         height: 90
     },

@@ -13,16 +13,18 @@
     href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Inter:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700;1,800&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&family=Nunito:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Work+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Source+Sans+Pro:ital,wght@0,200;0,300;0,400;0,600;0,700;0,900;1,200;1,300;1,400;1,600;1,700;1,900&family=Quicksand:wght@300;400;500;600;700&display=swap"
     rel="stylesheet">
 
-  <link rel="icon" href="data:,">
-  <link rel="stylesheet" crossorigin href="./assets/main-BbYDs997.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
+  <link rel="icon" href="./assets/favicon-BFR8sXii.png" type="image/x-icon">
+  <script type="module" crossorigin src="./assets/main-5U1tujDr.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/main-B86mDjbK.css">
 </head>
 
 <body>
-  <header class="main-header">
+  <header class="main-header" role="banner">
     <div class="main-header-title">
-      <h2><span class="logo-dot"></span> ESPHome Designer</h2>
-      <span>Visual YAML Editor <small style="opacity: 0.5; margin-left: 8px;">v0.8.6.1</small> <span
-          id="currentLayoutDevice" style="margin-left:8px; color:var(--accent);"></span></span>
+      <img src="./assets/logo_header-CUGdaeC6.png" alt="ESPHome Designer" class="logo-image">
+      <span><small style="opacity: 0.5; margin-left: 8px;">Pre_0.9b136</small> <span id="currentLayoutDevice"
+          style="margin-left:8px; color:var(--accent);"></span></span>
     </div>
     <div class="main-header-actions desktop-only">
       <a href="https://github.com/koosoli/ESPHomeDesigner" target="_blank" class="btn btn-secondary"
@@ -60,508 +62,49 @@
   <div id="mobileBackdrop" class="mobile-backdrop"></div>
 
   <div class="app-content">
-    <aside class="sidebar">
-      <div class="sidebar-section">
-        <div class="sidebar-section-label">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+    <aside class="sidebar" role="complementary" aria-label="Editor Sidebar">
+      <div id="pagesSection" class="sidebar-section collapsible expanded">
+        <div class="sidebar-section-label" id="pagesHeader"
+          style="padding: 12px 16px 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span>Pages</span>
+          </div>
+          <svg class="chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor"
+            stroke-width="3" style="transition: transform 0.2s; transform: rotate(0deg);">
+            <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
-          Pages
         </div>
-        <div id="pageList" class="page-list"></div>
-        <button id="addPageBtn" class="btn btn-secondary btn-full" style="margin-top: 8px;">+ Add page</button>
-        <button id="clearAllBtn" class="btn btn-secondary btn-full" style="margin-top: 4px;"
-          title="Remove all widgets from current page">Clear Current Page</button>
+
+        <div id="pagesContent" class="collapsible-content" style="padding: 0 16px 12px;">
+          <div id="pageList" class="page-list"></div>
+          <button id="addPageBtn" class="btn btn-secondary btn-full" style="margin-top: 8px;">+ Add page</button>
+          <button id="clearAllBtn" class="btn btn-secondary btn-full" style="margin-top: 4px;"
+            title="Remove all widgets from current page">Clear Current Page</button>
+        </div>
       </div>
 
       <div class="sidebar-section" style="flex: 1; overflow-y: auto;">
-        <div class="sidebar-section-label">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="9" y1="3" x2="9" y2="21"></line>
-          </svg>
-          Widgets
+        <div class="sidebar-section-label" style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+            </svg>
+            <span>Widgets</span>
+          </div>
+          <button id="quickSearchBtn" class="btn-icon btn-xs" title="Quick Search (Shift+Space)" style="opacity: 0.6;">
+            <span class="mdi mdi-magnify" style="font-size: 14px;"></span>
+          </button>
         </div>
-        <div id="widgetPalette" class="widget-list">
-
-          <!-- CORE CATEGORY -->
-          <div class="widget-category expanded" data-category="core">
-            <div class="widget-category-header" onclick="toggleWidgetCategory('core')">
-              <span class="category-icon">▼</span>
-              <span class="category-name">Core Widgets</span>
-            </div>
-            <div class="widget-category-items">
-              <div class="item" draggable="true" data-widget-type="label">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18"><text x="4" y="17" font-size="14"
-                    font-weight="bold" fill="currentColor">Aa</text></svg>
-                <span class="label">Floating text</span>
-                <span class="tag">Text</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="sensor_text">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <circle cx="8" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2" />
-                  <path d="M11 12h9M14 9l3 3-3 3" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-                <span class="label">Sensor text</span>
-                <span class="tag">Entity</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="datetime">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
-                  <path d="M12 7v5l3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                </svg>
-                <span class="label">Date & Time</span>
-                <span class="tag">Time</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="icon">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <path d="M12 2L9 9H2l6 4.5L5.5 22 12 17l6.5 5-2.5-8.5L22 9h-7z" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linejoin="round" />
-                </svg>
-                <span class="label">MDI icon</span>
-                <span class="tag">Icon</span>
-              </div>
-
-              <div class="item" draggable="true" data-widget-type="weather_icon">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <circle cx="12" cy="10" r="4" fill="none" stroke="currentColor" stroke-width="2" />
-                  <path d="M12 2v2M12 16v2M4 10H2M22 10h-2M5.6 4.6l1.4 1.4M17 6l1.4-1.4M5.6 15.4l1.4-1.4M17 14l1.4 1.4"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                </svg>
-                <span class="label">Weather icon</span>
-                <span class="tag">Icon</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="image">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
-                  <path d="M21 15l-5-5L11 15l-3-3-5 5" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-                <span class="label">Image</span>
-                <span class="tag">Media</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="online_image">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="3" y="5" width="14" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
-                  <circle cx="8" cy="10" r="1.5" fill="currentColor" />
-                  <path d="M17 12l-4-4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                  <circle cx="19" cy="6" r="3" fill="none" stroke="currentColor" stroke-width="2" />
-                  <path d="M19 5v2M19 9v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                </svg>
-                <span class="label">Puppet image</span>
-                <span class="tag">Remote</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- SHAPES CATEGORY -->
-          <div class="widget-category expanded" data-category="shapes">
-            <div class="widget-category-header" onclick="toggleWidgetCategory('shapes')">
-              <span class="category-icon">▼</span>
-              <span class="category-name">Shapes</span>
-            </div>
-            <div class="widget-category-items">
-              <div class="item" draggable="true" data-widget-type="shape_rect">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
-                </svg>
-                <span class="label">Rectangle</span>
-                <span class="tag">Shape</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="rounded_rect">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="3" y="5" width="18" height="14" rx="6" fill="none" stroke="currentColor" stroke-width="2" />
-                </svg>
-                <span class="label">Rounded Rect</span>
-                <span class="tag">Shape</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="shape_circle">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
-                </svg>
-                <span class="label">Circle</span>
-                <span class="tag">Shape</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="line">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                </svg>
-                <span class="label">Line</span>
-                <span class="tag">Shape</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- ADVANCED CATEGORY -->
-          <div class="widget-category expanded" data-category="advanced">
-            <div class="widget-category-header" onclick="toggleWidgetCategory('advanced')">
-              <span class="category-icon">▼</span>
-              <span class="category-name">Advanced</span>
-            </div>
-            <div class="widget-category-items">
-              <div class="item" draggable="true" data-widget-type="graph">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <path d="M3 3v18h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                  <path d="M7 14l4-4 4 4 5-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round" />
-                </svg>
-                <span class="label">Graph / Chart</span>
-                <span class="tag">Data</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="progress_bar">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="2" y="9" width="20" height="6" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
-                  <rect x="3" y="10" width="12" height="4" rx="1" fill="currentColor" />
-                </svg>
-                <span class="label">Progress bar</span>
-                <span class="tag">Entity</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="qr_code">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="3" y="3" width="7" height="7" fill="currentColor" />
-                  <rect x="14" y="3" width="7" height="7" fill="currentColor" />
-                  <rect x="3" y="14" width="7" height="7" fill="currentColor" />
-                  <rect x="14" y="14" width="3" height="3" fill="currentColor" />
-                </svg>
-                <span class="label">QR Code</span>
-                <span class="tag">Tools</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="calendar">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
-                  <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" />
-                </svg>
-                <span class="label">Calendar</span>
-                <span class="tag">Events</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="weather_forecast">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <circle cx="12" cy="10" r="4" fill="none" stroke="currentColor" stroke-width="2" />
-                  <path d="M12 2v2M12 16v2M4 10H2M22 10h-2M5.6 4.6l1.4 1.4M17 6l1.4-1.4M5.6 15.4l1.4-1.4M17 14l1.4 1.4"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                </svg>
-                <span class="label">Weather Forecast</span>
-                <span class="tag">Forecast</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="quote_rss">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <path d="M6 17h3l2-4V7H5v6h3M13 17h3l2-4V7h-6v6h3" fill="none" stroke="currentColor"
-                    stroke-width="2" />
-                </svg>
-                <span class="label">Quote / RSS</span>
-                <span class="tag">Info</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- INPUTS CATEGORY -->
-          <div class="widget-category" data-category="inputs">
-            <div class="widget-category-header" onclick="toggleWidgetCategory('inputs')">
-              <span class="category-icon">▶</span>
-              <svg class="category-svg" viewBox="0 0 24 24" width="16" height="16">
-                <path
-                  d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zM16.06 17H15v-1l-1-1h-6l-1 1v1H5.94c-.58 0-1.06-.48-1.06-1.06V7.5c0-3.59 2.91-6.5 6.5-6.5s6.5 2.91 6.5 6.5v8.44c0 .58-.48 1.06-1.06 1.06z"
-                  fill="none" stroke="currentColor" stroke-width="2" />
-                <circle cx="12" cy="13" r="1.5" fill="currentColor" />
-              </svg>
-              <span class="category-name">Inputs</span>
-              <span class="category-count">4</span>
-            </div>
-            <div class="widget-category-items">
-              <div class="item" draggable="true" data-widget-type="touch_area">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="5" y="5" width="14" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-dasharray="2,2" />
-                  <circle cx="12" cy="12" r="3" fill="currentColor" />
-                </svg>
-                <span class="label">Touch Area</span>
-                <span class="tag">Input</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="nav_next_page">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <path d="M10 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round" />
-                </svg>
-                <span class="label">Next Page</span>
-                <span class="tag">Nav</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="nav_previous_page">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <path d="M14 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round" />
-                </svg>
-                <span class="label">Prev Page</span>
-                <span class="tag">Nav</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="nav_reload_page">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <path d="M23 4v6h-6M1 20v-6h6" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round" />
-                  <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-                <span class="label">Reload Page</span>
-                <span class="tag">Nav</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="template_nav_bar">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="2" y="6" width="20" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
-                  <path d="M7 12l-3-3 3-3M17 12l3-3-3-3M12 9v6" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-                <span class="label">Navigation Bar</span>
-                <span class="tag">Template</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- ON DEVICE SENSORS CATEGORY -->
-          <div class="widget-category expanded" data-category="ondevice">
-            <div class="widget-category-header" onclick="toggleWidgetCategory('ondevice')">
-              <span class="category-icon">▼</span>
-              <span class="category-name">On Device Sensors</span>
-            </div>
-            <div class="widget-category-items">
-              <div class="item" draggable="true" data-widget-type="battery_icon">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="2" y="7" width="18" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
-                  <rect x="4" y="9" width="8" height="6" fill="currentColor" />
-                  <path d="M20 10h2v4h-2" fill="none" stroke="currentColor" stroke-width="2" />
-                </svg>
-                <span class="label">Battery</span>
-                <span class="tag">Sensor</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="wifi_signal">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <path d="M12 3C7.5 3 3.8 5.4 2 9l2 2c1.3-2.5 4-4.2 8-4.2s6.7 1.7 8 4.2l2-2c-1.8-3.6-5.5-6-10-6z"
-                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                  <path
-                    d="M12 9c-2.7 0-5.1 1.4-6.5 3.5L7 14c1-1.4 2.8-2.3 5-2.3s4 .9 5 2.3l1.5-1.5C17.1 10.4 14.7 9 12 9z"
-                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                  <circle cx="12" cy="18" r="2" fill="currentColor" />
-                </svg>
-                <span class="label">WiFi Signal</span>
-                <span class="tag">Sensor</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="ondevice_temperature">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <path d="M12 2a2 2 0 00-2 2v10.1a4 4 0 104 0V4a2 2 0 00-2-2z" fill="none" stroke="currentColor"
-                    stroke-width="2" />
-                  <circle cx="12" cy="18" r="2" fill="currentColor" />
-                </svg>
-                <span class="label">Temperature</span>
-                <span class="tag">SHT4x</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="ondevice_humidity">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" fill="none" stroke="currentColor" stroke-width="2" />
-                </svg>
-                <span class="label">Humidity</span>
-                <span class="tag">SHT4x</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="template_sensor_bar">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="2" y="6" width="20" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
-                  <path d="M5 12h2M10 12h2M15 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                </svg>
-                <span class="label">On-Board Sensor Bar</span>
-                <span class="tag">New</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- LVGL CATEGORY -->
-          <div class="widget-category" data-category="lvgl">
-            <div class="widget-category-header" onclick="toggleWidgetCategory('lvgl')">
-              <span class="category-icon">▶</span>
-              <svg class="category-svg" viewBox="0 0 24 24" width="16" height="16">
-                <path
-                  d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z"
-                  fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
-              </svg>
-              <span class="category-name">LVGL Components</span>
-            </div>
-            <div class="widget-category-items">
-              <div class="item" draggable="true" data-widget-type="lvgl_obj">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="4" y="4" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" />
-                </svg>
-                <span class="label">Base Object</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_label">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18"><text x="4" y="17" font-size="14"
-                    font-weight="bold" fill="currentColor">Aa</text></svg>
-                <span class="label">Label</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_line">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                </svg>
-                <span class="label">LVGL Line</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_button">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="4" y="8" width="16" height="8" rx="2" fill="currentColor" fill-opacity="0.2"
-                    stroke="currentColor" stroke-width="2" />
-                  <text x="12" y="16.5" font-size="8" text-anchor="middle" fill="currentColor">BTN</text>
-                </svg>
-                <span class="label">Button</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_switch">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="4" y="8" width="16" height="8" rx="4" fill="none" stroke="currentColor" stroke-width="2" />
-                  <circle cx="16" cy="12" r="3" fill="currentColor" />
-                </svg>
-                <span class="label">Switch</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_checkbox">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="4" y="4" width="16" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
-                  <polyline points="9 12 11 14 15 10" fill="none" stroke="currentColor" stroke-width="2" />
-                </svg>
-                <span class="label">Checkbox</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_slider">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                  <circle cx="12" cy="12" r="3" fill="currentColor" />
-                </svg>
-                <span class="label">Slider</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_bar">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="2" y="9" width="20" height="6" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
-                  <rect x="3" y="10" width="12" height="4" rx="1" fill="currentColor" />
-                </svg>
-                <span class="label">Bar</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_arc">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <path d="M4 18 A 10 10 0 1 1 20 18" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" />
-                </svg>
-                <span class="label">Arc</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_meter">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <path d="M4 18 A 10 10 0 1 1 20 18" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" />
-                  <line x1="12" y1="18" x2="16" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                </svg>
-                <span class="label">Meter</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_spinner">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <path d="M12 2a10 10 0 1 0 10 10" fill="none" stroke="currentColor" stroke-width="2" />
-                </svg>
-                <span class="label">Spinner</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_led">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <circle cx="12" cy="12" r="6" fill="currentColor" />
-                  <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2" />
-                </svg>
-                <span class="label">LED</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_chart">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <path d="M3 3v18h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                  <path d="M7 14l4-4 4 4 5-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round" />
-                </svg>
-                <span class="label">Chart</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_img">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
-                  <path d="M21 15l-5-5L11 15l-3-3-5 5" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-                <span class="label">Image</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_qrcode">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="3" y="3" width="7" height="7" fill="currentColor" />
-                  <rect x="14" y="3" width="7" height="7" fill="currentColor" />
-                  <rect x="3" y="14" width="7" height="7" fill="currentColor" />
-                  <rect x="14" y="14" width="3" height="3" fill="currentColor" />
-                </svg>
-                <span class="label">QR Code</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_dropdown">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="2" y="8" width="20" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
-                  <polyline points="16 11 18 13 20 11" fill="currentColor" />
-                </svg>
-                <span class="label">Dropdown</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_roller">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="6" y="2" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
-                  <line x1="6" y1="10" x2="18" y2="10" stroke="currentColor" stroke-width="1" />
-                  <line x1="6" y1="14" x2="18" y2="14" stroke="currentColor" stroke-width="1" />
-                </svg>
-                <span class="label">Roller</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_spinbox">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="4" y="8" width="16" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
-                  <path d="M6 12l2-2 2 2" fill="none" stroke="currentColor" stroke-width="1" />
-                  <path d="M14 12l2 2 2-2" fill="none" stroke="currentColor" stroke-width="1" />
-                </svg>
-                <span class="label">Spinbox</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_textarea">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="3" y="4" width="18" height="16" fill="none" stroke="currentColor" stroke-width="2" />
-                  <line x1="6" y1="8" x2="14" y2="8" stroke="currentColor" stroke-width="2" />
-                </svg>
-                <span class="label">Textarea</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_keyboard">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="2" y="6" width="20" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
-                  <line x1="6" y1="10" x2="8" y2="10" stroke="currentColor" stroke-width="2" />
-                  <line x1="10" y1="10" x2="12" y2="10" stroke="currentColor" stroke-width="2" />
-                </svg>
-                <span class="label">Keyboard</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_buttonmatrix">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="2" y="7" width="9" height="4" fill="none" stroke="currentColor" stroke-width="1" />
-                  <rect x="13" y="7" width="9" height="4" fill="none" stroke="currentColor" stroke-width="1" />
-                  <rect x="2" y="13" width="9" height="4" fill="none" stroke="currentColor" stroke-width="1" />
-                  <rect x="13" y="13" width="9" height="4" fill="none" stroke="currentColor" stroke-width="1" />
-                </svg>
-                <span class="label">Btn Matrix</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_tabview">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="2" y="4" width="20" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
-                  <line x1="2" y1="8" x2="22" y2="8" stroke="currentColor" stroke-width="1" />
-                </svg>
-                <span class="label">Tabview</span>
-              </div>
-              <div class="item" draggable="true" data-widget-type="lvgl_tileview">
-                <svg class="widget-icon" viewBox="0 0 24 24" width="18" height="18">
-                  <rect x="2" y="2" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" />
-                  <rect x="13" y="2" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" />
-                  <rect x="2" y="13" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" />
-                  <rect x="13" y="13" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" />
-                </svg>
-                <span class="label">Tileview</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <div id="widgetPalette" class="widget-list"></div>
       </div>
 
       <div class="sidebar-section">
         <div id="currentLayoutIndicator"
-          style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 11px;">
+          style="background: rgba(255,255,255,0.03); padding: 6px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 10px;">
           <div style="color: var(--muted); margin-bottom: 4px; display: flex; justify-content: space-between;">
             <span>PROJECT</span>
             <span id="sidebarStatus" style="font-size: 10px; opacity: 0.6;">Ready</span>
@@ -580,8 +123,13 @@
 
     <div class="resizer" id="resizer-left"></div>
 
-    <main class="main">
-      <div class="canvas-viewport">
+    <main class="main" role="main">
+      <div id="canvasViewport" class="canvas-viewport">
+        <div class="canvas-rulers">
+          <div id="rulerTop" class="ruler ruler-h"></div>
+          <div id="rulerLeft" class="ruler ruler-v"></div>
+          <div class="ruler-corner"></div>
+        </div>
         <div class="canvas-controls">
           <div class="canvas-info">
             <span id="currentPageName">Loading...</span>
@@ -589,15 +137,27 @@
             <span id="zoomLevel">100%</span>
           </div>
           <div class="zoom-actions">
+            <button id="gridToggleBtn" class="btn-icon" title="Toggle Grid (G)">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"></path>
+              </svg>
+            </button>
+            <button id="rulersToggleBtn" class="btn-icon" title="Toggle Rulers (R)" style="margin-right: 8px;">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                  d="M5 7h14c1.1 0 2 .9 2 2v6c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2zm2 8v-3m4 3V9m4 6v-3">
+                </path>
+              </svg>
+            </button>
             <button id="zoomOutBtn" class="btn-icon" title="Zoom Out">−</button>
-            <button id="zoomResetBtn" class="btn-icon" title="Reset View">⌂</button>
+            <button id="zoomResetBtn" class="btn-icon" title="Reset View (Ctrl+0)">⌂</button>
             <button id="zoomInBtn" class="btn-icon" title="Zoom In">+</button>
           </div>
         </div>
 
         <div id="canvasContainer" class="canvas-container">
-          <div id="canvas" class="canvas">
-            <div class="canvas-grid"></div>
+          <div id="canvas" class="canvas-stage">
+            <!-- Artboards will be rendered here dynamically -->
           </div>
         </div>
       </div>
@@ -605,23 +165,63 @@
       <div class="resizer-h" id="resizer-bottom"></div>
       <div class="code-panel">
         <div class="code-panel-header">
-          <div class="code-panel-title">ESPHome YAML</div>
+          <div class="code-panel-title">
+            <button id="toggleYamlBtn" class="btn-icon btn-xs code-toggle-btn" title="Toggle YAML Panel">
+              <svg class="chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                stroke-width="3">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            ESPHome YAML
+          </div>
           <div class="code-panel-actions">
-            <button id="aiPromptBtn" class="btn btn-secondary btn-xs btn-ai-sparkle">✨ AI Assistant</button>
+            <button id="toggleHighlightBtn" class="btn btn-secondary btn-xs btn-icon" title="Toggle Syntax Highlighting"
+              style="width: auto; padding: 0 6px; border-radius: 4px;">
+              <span class="mdi mdi-palette-outline" style="font-size: 14px;"></span>
+            </button>
+            <button id="aiPromptBtn" class="btn btn-secondary btn-xs">AI Assistant</button>
             <button id="copySnippetBtn" class="btn btn-secondary btn-xs">Copy</button>
             <button id="fullscreenSnippetBtn" class="btn btn-secondary btn-xs">Full</button>
             <button id="updateLayoutBtn" class="btn btn-secondary btn-xs"
               title="Import YAML back to canvas">Update</button>
           </div>
         </div>
-        <textarea id="snippetBox" class="snippet-box" spellcheck="false"
-          placeholder="# Click 'Generate' to see the ESPHome configuration..."></textarea>
+        <div class="snippet-container">
+          <pre id="highlightLayer" class="highlight-layer" aria-hidden="true"></pre>
+          <textarea id="snippetBox" class="snippet-box" spellcheck="false"
+            placeholder="# Click 'Generate' to see the ESPHome configuration..."></textarea>
+        </div>
       </div>
     </main>
 
     <div class="resizer" id="resizer-right"></div>
 
-    <aside class="right-panel">
+    <aside class="right-panel" role="complementary" aria-label="Widget Properties">
+      <!-- Hierarchy Panel -->
+      <div class="sidebar-section" style="border-bottom: 1px solid var(--border-subtle);">
+        <div class="sidebar-section-label"
+          style="padding: 12px 16px 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;"
+          id="hierarchyHeader">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="2" width="18" height="18" rx="2"></rect>
+              <line x1="7" y1="8" x2="17" y2="8"></line>
+              <line x1="7" y1="12" x2="17" y2="12"></line>
+              <line x1="7" y1="16" x2="17" y2="16"></line>
+            </svg>
+            <span>Hierarchy</span>
+          </div>
+          <svg class="chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor"
+            stroke-width="3" style="transition: transform 0.2s; transform: rotate(0deg);">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <div id="hierarchyPanel" class="hierarchy-content"
+          style="max-height: 250px; overflow-y: auto; padding: 0 8px 8px;">
+          <div id="hierarchyList" class="hierarchy-list"></div>
+        </div>
+      </div>
+
       <div class="sidebar-section-label"
         style="padding: 12px 16px 0; display: flex; justify-content: space-between; align-items: center;">
         <span>Properties</span>
@@ -629,7 +229,8 @@
           <input id="snapToggle" type="checkbox" checked style="width:12px; height:12px;" />
           <span>Snap</span>
         </label>
-        <label style="display:flex; align-items:center; gap:4px; font-size:10px; cursor:pointer;" title="Lock position">
+        <label style="display:flex; align-items:center; gap:4px; font-size:10px; cursor:pointer;"
+          title="Lock position (Ctrl+L)">
           <input id="lockPositionToggle" type="checkbox" style="width:12px; height:12px;" />
           <span>Lock</span>
         </label>
@@ -647,12 +248,20 @@
   <div id="snippetFullscreenModal" class="modal-backdrop hidden">
     <div class="modal">
       <div class="modal-header">
-        <div>ESPHome YAML (Fullscreen)</div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          ESPHome YAML (Fullscreen)
+          <button id="toggleFullscreenHighlightBtn" class="btn btn-secondary btn-xs btn-icon"
+            title="Toggle Syntax Highlighting" style="width: auto; padding: 0 6px; border-radius: 4px;">
+            <span class="mdi mdi-palette-outline" style="font-size: 14px;"></span>
+          </button>
+        </div>
         <button id="snippetFullscreenClose" class="btn btn-secondary">Close</button>
       </div>
       <div class="modal-body">
-        <pre id="snippetFullscreenContent"
-          style="background:var(--bg); padding:16px; border-radius:8px; border:1px solid var(--border-subtle); overflow:auto;"></pre>
+        <div class="snippet-container" id="snippetFullscreenContainer" style="height: 100%;">
+          <pre id="snippetFullscreenHighlight" class="highlight-layer" aria-hidden="true"></pre>
+          <div id="snippetFullscreenContent" style="width: 100%; height: 100%;"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -679,7 +288,7 @@
   <div id="pageSettingsModal" class="modal-backdrop hidden">
     <div class="modal">
       <div class="modal-header">
-        <div>Page Configuration</div>
+        <div>Page Settings</div>
         <button id="pageSettingsClose" class="btn btn-secondary">Close</button>
       </div>
       <div class="modal-body">
@@ -733,7 +342,7 @@
   <div id="deviceSettingsModal" class="modal-backdrop hidden">
     <div class="modal">
       <div class="modal-header">
-        <div>Device Configuration</div>
+        <div>Device Settings</div>
         <button id="deviceSettingsClose" class="btn btn-secondary">Close</button>
       </div>
       <div class="modal-body">
@@ -751,6 +360,19 @@
             <option value="custom">Custom Profile...</option>
           </select>
           <input type="file" id="hardwareFileInput" accept=".yaml" style="display:none;" />
+        </div>
+
+        <!-- Rendering Mode (Only visible for LVGL-capable devices) -->
+        <div class="field" id="renderingModeField" style="display:none;">
+          <div class="prop-label">Rendering Mode</div>
+          <select id="renderingMode" class="prop-input">
+            <option value="lvgl">LVGL (Recommended for LCD)</option>
+            <option value="direct">Direct (Display Lambda)</option>
+          </select>
+          <div style="font-size:var(--fs-xs); color:var(--muted); margin-top:4px;">
+            LVGL uses the LVGL graphics library for advanced widgets. Direct uses raw display commands and omits the
+            lvgl: block.
+          </div>
         </div>
 
         <!-- Custom Hardware Section (Hidden by default) -->
@@ -883,7 +505,38 @@
             </div>
           </div>
 
-          <button id="saveCustomProfileBtn" class="btn btn-secondary btn-full"
+          <div class="hardware-group" style="margin-top:12px;">
+            <div class="prop-label">Backlight Configuration (LCD/OLED)</div>
+            <div style="font-size:10px; color:var(--muted); margin-bottom:8px;">PWM brightness control via LEDC output.
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div class="field">
+                <div class="prop-label" style="font-size:10px;">Min Power</div>
+                <input id="customBacklightMinPower" class="prop-input-sm" type="number" step="0.01" min="0" max="1"
+                  placeholder="0.07" value="0.07" />
+              </div>
+              <div class="field">
+                <div class="prop-label" style="font-size:10px;">Initial Brightness</div>
+                <input id="customBacklightInitial" class="prop-input-sm" type="number" step="0.1" min="0" max="1"
+                  placeholder="0.8" value="0.8" />
+              </div>
+            </div>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin-top:8px;">
+              <input id="customAntiburn" type="checkbox" />
+              <span style="font-size:10px;">Enable Anti-Burn Protection (LVGL)</span>
+            </label>
+            <div style="font-size:9px; color:var(--muted); margin-left:20px;">Cycles pixels when idle to prevent LCD
+              burn-in. Requires LVGL.</div>
+          </div>
+
+          <div class="field" style="margin-top:16px; border-top:1px solid var(--border-subtle); padding-top:12px;">
+            <div class="prop-label">Profile Name</div>
+            <div style="font-size:10px; color:var(--muted); margin-bottom:4px;">Give your custom hardware a unique name
+              to save it as a reused recipe.</div>
+            <input id="customProfileName" class="prop-input" type="text" placeholder="e.g. Living Room Alert Display" />
+          </div>
+
+          <button id="saveCustomProfileBtn" class="btn btn-secondary btn-full" type="button"
             style="margin-top:16px; background:var(--accent); color:white; border:none;">
             🚀 Create & Save Profile
           </button>
@@ -938,7 +591,11 @@
               on individual pages.</div>
           </div>
 
-          <div style="display:flex; flex-direction:column; gap:12px; margin-top:8px;">
+          <!-- E-Paper Specific Strategies -->
+          <div id="strategy-epaper-group" style="display:flex; flex-direction:column; gap:12px; margin-top:8px;">
+            <div
+              style="font-size:10px; font-weight:bold; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">
+              E-Paper Options</div>
 
             <!-- Standard -->
             <div>
@@ -962,63 +619,6 @@
               </label>
               <div style="font-size:10px; opacity:0.6; margin-left:24px; margin-bottom:4px;">Stops refreshing during
                 these hours to save energy.</div>
-              <div id="sleep-times-row"
-                style="display:none; align-items:center; gap:8px; margin-left:24px; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px;">
-                <span style="font-size: 11px; opacity: 0.7;">Sleep from</span>
-                <select id="setting-sleep-start" class="prop-input" style="width:70px;">
-                  <option value="0">00:00</option>
-                  <option value="1">01:00</option>
-                  <option value="2">02:00</option>
-                  <option value="3">03:00</option>
-                  <option value="4">04:00</option>
-                  <option value="5">05:00</option>
-                  <option value="6">06:00</option>
-                  <option value="7">07:00</option>
-                  <option value="8">08:00</option>
-                  <option value="9">09:00</option>
-                  <option value="10">10:00</option>
-                  <option value="11">11:00</option>
-                  <option value="12">12:00</option>
-                  <option value="13">13:00</option>
-                  <option value="14">14:00</option>
-                  <option value="15">15:00</option>
-                  <option value="16">16:00</option>
-                  <option value="17">17:00</option>
-                  <option value="18">18:00</option>
-                  <option value="19">19:00</option>
-                  <option value="20">20:00</option>
-                  <option value="21">21:00</option>
-                  <option value="22">22:00</option>
-                  <option value="23">23:00</option>
-                </select>
-                <span style="font-size: 11px; opacity: 0.7;">to</span>
-                <select id="setting-sleep-end" class="prop-input" style="width:70px;">
-                  <option value="0">00:00</option>
-                  <option value="1">01:00</option>
-                  <option value="2">02:00</option>
-                  <option value="3">03:00</option>
-                  <option value="4">04:00</option>
-                  <option value="5">05:00</option>
-                  <option value="6">06:00</option>
-                  <option value="7">07:00</option>
-                  <option value="8">08:00</option>
-                  <option value="9">09:00</option>
-                  <option value="10">10:00</option>
-                  <option value="11">11:00</option>
-                  <option value="12">12:00</option>
-                  <option value="13">13:00</option>
-                  <option value="14">14:00</option>
-                  <option value="15">15:00</option>
-                  <option value="16">16:00</option>
-                  <option value="17">17:00</option>
-                  <option value="18">18:00</option>
-                  <option value="19">19:00</option>
-                  <option value="20">20:00</option>
-                  <option value="21">21:00</option>
-                  <option value="22">22:00</option>
-                  <option value="23">23:00</option>
-                </select>
-              </div>
             </div>
 
             <!-- Daily Refresh -->
@@ -1031,12 +631,6 @@
               </label>
               <div style="font-size:10px; opacity:0.6; margin-left:24px; margin-bottom:4px;">Wakes up once per day at a
                 specific time.</div>
-              <div id="daily-refresh-row"
-                style="display:none; align-items:center; gap:8px; margin-left:24px; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px;">
-                <span style="font-size: 11px; opacity: 0.7;">Refresh at</span>
-                <input type="time" id="setting-daily-refresh-time" class="prop-input" value="08:00"
-                  style="width:100px;">
-              </div>
             </div>
 
             <!-- Manual Only -->
@@ -1061,121 +655,259 @@
               </label>
               <div style="font-size:10px; opacity:0.6; margin-left:24px; margin-bottom:4px;">Shuts down completely
                 between updates. Best for battery life.</div>
-              <div id="deep-sleep-interval-row"
-                style="display:none; align-items:center; gap:8px; margin-left:24px; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px;">
-                <span style="font-size: 11px; opacity: 0.7;">Update every</span>
-                <input type="number" id="setting-deep-sleep-interval" class="prop-input" placeholder="Seconds"
+            </div>
+          </div>
+
+          <!-- LCD Specific Strategies -->
+          <div id="strategy-lcd-group" style="display:none; flex-direction:column; gap:12px; margin-top:8px;">
+            <div
+              style="font-size:10px; font-weight:bold; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">
+              LCD / OLED Options</div>
+
+            <div>
+              <label
+                style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
+                <input type="radio" name="lcdEcoStrategy" value="always_on" onchange="togglePowerSettings()">
+                Always On (Full Brightness)
+              </label>
+            </div>
+
+            <div>
+              <label
+                style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
+                <input type="radio" name="lcdEcoStrategy" value="backlight_off" onchange="togglePowerSettings()">
+                Eco (Backlight Off Schedule)
+              </label>
+              <div style="font-size:10px; opacity:0.6; margin-left:24px;">Turns off backlight during sleep hours
+                (recommended for LCD).</div>
+            </div>
+
+            <div>
+              <label
+                style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
+                <input type="radio" name="lcdEcoStrategy" value="halt_updates" onchange="togglePowerSettings()">
+                Eco (Halt Loop)
+              </label>
+              <div style="font-size:10px; opacity:0.6; margin-left:24px;">Stops update cycle but leaves screen powered.
+              </div>
+            </div>
+
+            <div>
+              <label
+                style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
+                <input type="radio" name="lcdEcoStrategy" value="deep_sleep" onchange="togglePowerSettings()">
+                Ultra Eco (Deep Sleep)
+              </label>
+              <div style="font-size:10px; opacity:0.6; margin-left:24px;">Power down between updates.</div>
+            </div>
+          </div>
+
+          <!-- Common Sleep Times (Used by both) -->
+          <div id="sleep-times-row"
+            style="display:none; flex-direction:column; gap:8px; margin-left:24px; margin-top:8px; background: rgba(0,0,0,0.03); padding: 8px; border-radius: 4px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size: 11px; opacity: 0.7;">Sleep from</span>
+              <select id="setting-sleep-start" class="prop-input" style="width:70px;">
+                <option value="0">00:00</option>
+                <option value="1">01:00</option>
+                <option value="2">02:00</option>
+                <option value="3">03:00</option>
+                <option value="4">04:00</option>
+                <option value="5">05:00</option>
+                <option value="6">06:00</option>
+                <option value="7">07:00</option>
+                <option value="8">08:00</option>
+                <option value="9">09:00</option>
+                <option value="10">10:00</option>
+                <option value="11">11:00</option>
+                <option value="12">12:00</option>
+                <option value="13">13:00</option>
+                <option value="14">14:00</option>
+                <option value="15">15:00</option>
+                <option value="16">16:00</option>
+                <option value="17">17:00</option>
+                <option value="18">18:00</option>
+                <option value="19">19:00</option>
+                <option value="20">20:00</option>
+                <option value="21">21:00</option>
+                <option value="22">22:00</option>
+                <option value="23">23:00</option>
+              </select>
+              <span style="font-size: 11px; opacity: 0.7;">to</span>
+              <select id="setting-sleep-end" class="prop-input" style="width:70px;">
+                <option value="0">00:00</option>
+                <option value="1">01:00</option>
+                <option value="2">02:00</option>
+                <option value="3">03:00</option>
+                <option value="4">04:00</option>
+                <option value="5">05:00</option>
+                <option value="6">06:00</option>
+                <option value="7">07:00</option>
+                <option value="8">08:00</option>
+                <option value="9">09:00</option>
+                <option value="10">10:00</option>
+                <option value="11">11:00</option>
+                <option value="12">12:00</option>
+                <option value="13">13:00</option>
+                <option value="14">14:00</option>
+                <option value="15">15:00</option>
+                <option value="16">16:00</option>
+                <option value="17">17:00</option>
+                <option value="18">18:00</option>
+                <option value="19">19:00</option>
+                <option value="20">20:00</option>
+                <option value="21">21:00</option>
+                <option value="22">22:00</option>
+                <option value="23">23:00</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="daily-refresh-row"
+            style="display:none; align-items:center; gap:8px; margin-left:24px; margin-top:8px; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px;">
+            <span style="font-size: 11px; opacity: 0.7;">Refresh at</span>
+            <input type="time" id="setting-daily-refresh-time" class="prop-input" value="08:00" style="width:100px;">
+          </div>
+
+          <div id="deep-sleep-interval-row"
+            style="display:none; align-items:center; gap:8px; margin-left:24px; margin-top:8px; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px;">
+            <span style="font-size: 11px; opacity: 0.7;">Update every</span>
+            <input type="number" id="setting-deep-sleep-interval" class="prop-input" placeholder="Seconds"
+              style="width:80px;">
+            <span style="font-size: 11px; opacity: 0.7;">sec</span>
+          </div>
+
+          <!-- Silent Hours -->
+          <div style="border-top:1px solid var(--border-subtle); margin-top:8px; padding-top:12px;">
+            <div
+              style="display:flex; align-items:center; gap:8px; font-size:var(--fs-sm); font-weight: 500; color: var(--accent);">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                  d="M17.22 17.22L2 2M12 2v2M4.93 4.93l1.41 1.41M2 12h2M6.34 17.66l-1.41 1.41M12 22v-2m7.07-2.93l-1.41-1.41M22 12h-2m-3.34-5.66l1.41-1.41M12 7a5 5 0 015 5 4.94 4.94 0 01-.46 2.06M12 17a5 5 0 01-5-5 4.94 4.94 0 01.46-2.06">
+                </path>
+              </svg>
+              Silent Hours (No Refresh Window)
+            </div>
+            <div style="font-size:10px; opacity:0.6; margin-left:24px; margin-bottom:8px;">Prevent all display
+              updates
+              during this time window. Used to avoid night-time ghosts/noise.</div>
+            <div
+              style="display:flex; align-items:center; gap:8px; margin-left:24px; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px;">
+              <span style="font-size: 11px; opacity: 0.7;">Disable updates from</span>
+              <select id="setting-no-refresh-start" class="prop-input" style="width:70px;">
+                <option value="">None</option>
+                <option value="0">00:00</option>
+                <option value="1">01:00</option>
+                <option value="2">02:00</option>
+                <option value="3">03:00</option>
+                <option value="4">04:00</option>
+                <option value="5">05:00</option>
+                <option value="6">06:00</option>
+                <option value="7">07:00</option>
+                <option value="8">08:00</option>
+                <option value="9">09:00</option>
+                <option value="10">10:00</option>
+                <option value="11">11:00</option>
+                <option value="12">12:00</option>
+                <option value="13">13:00</option>
+                <option value="14">14:00</option>
+                <option value="15">15:00</option>
+                <option value="16">16:00</option>
+                <option value="17">17:00</option>
+                <option value="18">18:00</option>
+                <option value="19">19:00</option>
+                <option value="20">20:00</option>
+                <option value="21">21:00</option>
+                <option value="22">22:00</option>
+                <option value="23">23:00</option>
+              </select>
+              <span style="font-size: 11px; opacity: 0.7;">to</span>
+              <select id="setting-no-refresh-end" class="prop-input" style="width:70px;">
+                <option value="">None</option>
+                <option value="0">00:00</option>
+                <option value="1">01:00</option>
+                <option value="2">02:00</option>
+                <option value="3">03:00</option>
+                <option value="4">04:00</option>
+                <option value="5">05:00</option>
+                <option value="6">06:00</option>
+                <option value="7">07:00</option>
+                <option value="8">08:00</option>
+                <option value="9">09:00</option>
+                <option value="10">10:00</option>
+                <option value="11">11:00</option>
+                <option value="12">12:00</option>
+                <option value="13">13:00</option>
+                <option value="14">14:00</option>
+                <option value="15">15:00</option>
+                <option value="16">16:00</option>
+                <option value="17">17:00</option>
+                <option value="18">18:00</option>
+                <option value="19">19:00</option>
+                <option value="20">20:00</option>
+                <option value="21">21:00</option>
+                <option value="22">22:00</option>
+                <option value="23">23:00</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Page Auto-Cycling -->
+          <div style="border-top:1px solid var(--border-subtle); margin-top:8px; padding-top:12px;">
+            <div
+              style="display:flex; align-items:center; gap:8px; font-size:var(--fs-sm); font-weight: 600; color: var(--accent);">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              Page Auto-Cycling
+            </div>
+            <div style="font-size:10px; opacity:0.6; margin-left:24px; margin-bottom:8px;">Automatically cycle
+              through
+              pages on a timer.</div>
+            <div style="margin-left: 24px; display: flex; flex-direction: column; gap: 8px;">
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input id="setting-auto-cycle" type="checkbox" />
+                <span style="font-size:var(--fs-xs); font-weight:500;">Enable Automatic Page Cycling</span>
+              </label>
+              <div id="field-auto-cycle-interval"
+                style="display:none; align-items:center; gap:8px; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px;">
+                <span style="font-size: 11px; opacity: 0.7;">Cycle every</span>
+                <input type="number" id="setting-auto-cycle-interval" class="prop-input" min="5" placeholder="30"
                   style="width:80px;">
-                <span style="font-size: 11px; opacity: 0.7;">sec</span>
-              </div>
-            </div>
-
-            <!-- Silent Hours -->
-            <div style="border-top:1px solid var(--border-subtle); margin-top:8px; padding-top:12px;">
-              <div
-                style="display:flex; align-items:center; gap:8px; font-size:var(--fs-sm); font-weight: 500; color: var(--accent);">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                  <path
-                    d="M17.22 17.22L2 2M12 2v2M4.93 4.93l1.41 1.41M2 12h2M6.34 17.66l-1.41 1.41M12 22v-2m7.07-2.93l-1.41-1.41M22 12h-2m-3.34-5.66l1.41-1.41M12 7a5 5 0 015 5 4.94 4.94 0 01-.46 2.06M12 17a5 5 0 01-5-5 4.94 4.94 0 01.46-2.06">
-                  </path>
-                </svg>
-                Silent Hours (No Refresh Window)
-              </div>
-              <div style="font-size:10px; opacity:0.6; margin-left:24px; margin-bottom:8px;">Prevent all display updates
-                during this time window. Used to avoid night-time ghosts/noise.</div>
-              <div
-                style="display:flex; align-items:center; gap:8px; margin-left:24px; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px;">
-                <span style="font-size: 11px; opacity: 0.7;">Disable updates from</span>
-                <select id="setting-no-refresh-start" class="prop-input" style="width:70px;">
-                  <option value="">None</option>
-                  <option value="0">00:00</option>
-                  <option value="1">01:00</option>
-                  <option value="2">02:00</option>
-                  <option value="3">03:00</option>
-                  <option value="4">04:00</option>
-                  <option value="5">05:00</option>
-                  <option value="6">06:00</option>
-                  <option value="7">07:00</option>
-                  <option value="8">08:00</option>
-                  <option value="9">09:00</option>
-                  <option value="10">10:00</option>
-                  <option value="11">11:00</option>
-                  <option value="12">12:00</option>
-                  <option value="13">13:00</option>
-                  <option value="14">14:00</option>
-                  <option value="15">15:00</option>
-                  <option value="16">16:00</option>
-                  <option value="17">17:00</option>
-                  <option value="18">18:00</option>
-                  <option value="19">19:00</option>
-                  <option value="20">20:00</option>
-                  <option value="21">21:00</option>
-                  <option value="22">22:00</option>
-                  <option value="23">23:00</option>
-                </select>
-                <span style="font-size: 11px; opacity: 0.7;">to</span>
-                <select id="setting-no-refresh-end" class="prop-input" style="width:70px;">
-                  <option value="">None</option>
-                  <option value="0">00:00</option>
-                  <option value="1">01:00</option>
-                  <option value="2">02:00</option>
-                  <option value="3">03:00</option>
-                  <option value="4">04:00</option>
-                  <option value="5">05:00</option>
-                  <option value="6">06:00</option>
-                  <option value="7">07:00</option>
-                  <option value="8">08:00</option>
-                  <option value="9">09:00</option>
-                  <option value="10">10:00</option>
-                  <option value="11">11:00</option>
-                  <option value="12">12:00</option>
-                  <option value="13">13:00</option>
-                  <option value="14">14:00</option>
-                  <option value="15">15:00</option>
-                  <option value="16">16:00</option>
-                  <option value="17">17:00</option>
-                  <option value="18">18:00</option>
-                  <option value="19">19:00</option>
-                  <option value="20">20:00</option>
-                  <option value="21">21:00</option>
-                  <option value="22">22:00</option>
-                  <option value="23">23:00</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Page Auto-Cycling -->
-            <div style="border-top:1px solid var(--border-subtle); margin-top:8px; padding-top:12px;">
-              <div
-                style="display:flex; align-items:center; gap:8px; font-size:var(--fs-sm); font-weight: 600; color: var(--accent);">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="23 4 23 10 17 10"></polyline>
-                  <polyline points="1 20 1 14 7 14"></polyline>
-                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                </svg>
-                Page Auto-Cycling
-              </div>
-              <div style="font-size:10px; opacity:0.6; margin-left:24px; margin-bottom:8px;">Automatically cycle through
-                pages on a timer.</div>
-              <div style="margin-left: 24px; display: flex; flex-direction: column; gap: 8px;">
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                  <input id="setting-auto-cycle" type="checkbox" />
-                  <span style="font-size:var(--fs-xs); font-weight:500;">Enable Automatic Page Cycling</span>
-                </label>
-                <div id="field-auto-cycle-interval"
-                  style="display:none; align-items:center; gap:8px; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px;">
-                  <span style="font-size: 11px; opacity: 0.7;">Cycle every</span>
-                  <input type="number" id="setting-auto-cycle-interval" class="prop-input" min="5" placeholder="30"
-                    style="width:80px;">
-                  <span style="font-size: 11px; opacity: 0.7;">seconds</span>
-                </div>
+                <span style="font-size: 11px; opacity: 0.7;">seconds</span>
               </div>
             </div>
           </div>
         </div>
       </div>
+    </div>
+    <div class="modal-actions">
+      <button id="deviceSettingsSave" class="btn btn-secondary">Apply Settings</button>
+    </div>
+  </div>
+  </div>
+
+  <!-- Save Profile Modal -->
+  <div id="saveProfileModal" class="modal-backdrop hidden" style="z-index: 2000;">
+    <div class="modal" style="max-width: 400px;">
+      <div class="modal-header">
+        <div>Save Hardware Profile</div>
+        <button id="saveProfileClose" class="btn btn-secondary">Cancel</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size: 11px; opacity: 0.7; margin-bottom: 12px;">
+          Give your custom hardware configuration a unique name. It will be saved as a reusable recipe.
+        </div>
+        <div class="field">
+          <div class="prop-label">Profile Name</div>
+          <input id="saveProfileName" class="prop-input" type="text" placeholder="e.g. Living Room Display" />
+        </div>
+      </div>
       <div class="modal-actions">
-        <button id="deviceSettingsSave" class="btn btn-secondary">Apply Settings</button>
+        <button id="saveProfileConfirm" class="btn btn-secondary"
+          style="background: var(--accent); color: white; border: none;">Save Profile</button>
       </div>
     </div>
   </div>
@@ -1214,13 +946,15 @@
         <div class="field" style="border-top:1px solid var(--border-subtle); padding-top:12px; margin-top:12px;">
           <span>Home Assistant Connection</span>
         </div>
-        <div style="font-size:10px; opacity:0.6; margin-bottom:8px;">Configure this if you are using the GitHub-hosted
+        <div style="font-size:10px; opacity:0.6; margin-bottom:8px;">Configure this if you are using the
+          GitHub-hosted
           version or an external URL.</div>
         <div class="field" style="display:flex; flex-direction:column; gap:8px;">
           <div id="haCorsTip"
             style="background: rgba(82, 199, 234, 0.1); border-left: 3px solid var(--accent); padding: 10px; border-radius: 4px; font-size: 10px; line-height: 1.4;">
             <strong>💡 Connection Tip:</strong><br>
-            If requests are blocked, you may need to add <code id="haOriginPlaceholder">http://localhost:8000</code> to
+            If requests are blocked, you may need to add <code id="haOriginPlaceholder">http://localhost:8000</code>
+            to
             <code>cors_allowed_origins</code> in your Home Assistant <code>configuration.yaml</code> and
             <strong>restart HA</strong>.
           </div>
@@ -1317,6 +1051,18 @@
             <span class="shortcut-label">Snap Off</span>
             <span class="shortcut-key"><kbd>ALT</kbd></span>
           </div>
+          <div class="shortcut-item">
+            <span class="shortcut-label">Group</span>
+            <span class="shortcut-key"><kbd>Ctrl+G</kbd></span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-label">Ungroup</span>
+            <span class="shortcut-key"><kbd>Ctrl+Shift+G</kbd></span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-label">Smart Spacing</span>
+            <span class="shortcut-key"><kbd>CTRL Drag</kbd></span>
+          </div>
         </div>
       </div>
     </div>
@@ -1336,10 +1082,12 @@
         <div id="aiConfigWarning"
           style="background: rgba(82, 199, 234, 0.1); border-left: 3px solid var(--accent); padding: 10px; border-radius: 4px; font-size: 11px; margin-bottom: 12px; line-height: 1.4;">
           <strong>💡 Configuration Required:</strong><br>
-          An API provider and key must be configured in <strong>Editor Settings</strong> before using the AI Assistant.
+          An API provider and key must be configured in <strong>Editor Settings</strong> before using the AI
+          Assistant.
           <button
-            onclick="window.openEditorSettingsModal(); document.getElementById('aiPromptModal').classList.add('hidden');"
-            class="btn btn-secondary btn-xs" style="margin-top:8px; display:block;">⚙ Open Editor Settings</button>
+            onclick="window.openEditorSettingsModal('ai'); document.getElementById('aiPromptModal').classList.add('hidden');"
+            class="btn btn-secondary btn-xs" style="margin-top:8px; display:block;">⚙ Open Editor
+            Settings</button>
         </div>
         <div style="font-size: 11px; color: var(--muted); margin-bottom: 12px;">
           Describe what you want to change. Example: "Move the selected widget 50px right" or "Make a nice weather
@@ -1387,17 +1135,23 @@
         const warning = document.createElement('div');
         warning.style.cssText = `
           position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
-          background: #ff6b81; color: white; padding: 12px 24px;
+          background: #ff9f43; color: #333; padding: 12px 36px 12px 24px;
           border-radius: 8px; z-index: 10000; font-weight: bold;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.3); text-align: center;
-          line-height: 1.4; border: 2px solid white;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center;
+          line-height: 1.4; border: 1px solid rgba(0,0,0,0.1);
+          font-family: sans-serif; font-size: 14px;
         `;
         warning.innerHTML = `
-          ⚠️ PROTOCOL ERROR: Running from file:// will block widget scripts.<br>
-          <small>Please use <strong>http://localhost:8000/editor.html</strong> instead.</small>
+          <span>⚠️ Running from local file. Full functionality is not guaranteed.<br>
+          <small>For the best experience, install via HACS or use a local server.</small></span>
+          <button onclick="this.parentElement.remove()" style="
+            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; font-size: 18px; cursor: pointer; color: #333;
+            padding: 4px; line-height: 1;
+          ">&times;</button>
         `;
         document.body.appendChild(warning);
-        console.error("[CORS] Running on file:// protocol. ES Modules will be blocked by the browser. Use a local HTTP server.");
+        console.warn("[CORS] Running on file:// protocol. Some features may be limited.");
       });
     }
 
@@ -1421,118 +1175,12 @@
     }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  <script src="js/lib/js-yaml.min.js"></script>
 
-  <script src="js/utils/helpers.js"></script>
-  <script src="js/utils/env.js"></script>
-  <script src="js/utils/dom.js"></script>
-  <script src="js/utils/device.js"></script>
-  <script src="js/utils/graph_helpers.js"></script>
-  <script src="js/core/constants.js"></script>
-  <script src="js/core/utils.js"></script>
-  <script src="js/core/constants_icons.js"></script>
-  <script src="js/core/events.js"></script>
-  <script src="js/core/state.js"></script>
-  <script src="js/core/plugin_registry.js"></script>
-  <script src="features/label/label_plugin.js"></script>
-  <script src="features/calendar/calendar_plugin.js"></script>
-  <script src="features/sensor_text/sensor_text_plugin.js"></script>
-  <script src="features/wifi_signal/wifi_signal_plugin.js"></script>
-  <script src="features/ondevice_temperature/ondevice_temperature_plugin.js"></script>
-  <script src="features/ondevice_humidity/ondevice_humidity_plugin.js"></script>
-  <script src="features/template_sensor_bar/template_sensor_bar_plugin.js"></script>
-  <script src="features/template_nav_bar/template_nav_bar_plugin.js"></script>
-  <script src="features/weather_icon/weather_icon_plugin.js"></script>
-  <script src="features/qr_code/qr_code_plugin.js"></script>
-  <script src="features/touch_area/touch_area_plugin.js"></script>
-  <script src="features/quote_rss/quote_rss_plugin.js"></script>
-  <script src="features/weather_forecast/weather_forecast_plugin.js"></script>
-  <script src="features/datetime/datetime_plugin.js"></script>
-  <script src="features/icon/icon_plugin.js"></script>
-  <script src="features/image/image_plugin.js"></script>
-  <script src="features/online_image/online_image_plugin.js"></script>
-  <script src="features/graph/graph_plugin.js"></script>
-  <script src="features/shapes/shapes_plugin.js"></script>
-  <script src="features/progress_bar/progress_bar_plugin.js"></script>
-  <script src="features/battery/battery_icon_plugin.js"></script>
-  <script src="js/core/widget_factory.js"></script>
-  <script src="js/core/sidebar.js"></script>
-  <script src="js/core/canvas.js"></script>
-  <script src="js/core/properties.js"></script>
-  <script src="js/core/keyboard.js"></script>
-  <script src="js/core/layout_constants.js"></script>
-  <script src="js/io/file_ops.js"></script>
-  <script src="js/io/ha_api.js"></script>
-  <script src="js/io/yaml_import.js"></script>
-  <script src="js/io/hardware_import.js"></script>
-  <script src="js/io/ai_service.js"></script>
-  <script src="js/io/adapters/base_adapter.js"></script>
-  <script src="js/io/adapters/esphome_adapter.js"></script>
-  <script src="js/io/devices.js"></script>
-  <script src="js/io/hardware_generators.js"></script>
-  <script src="js/io/hardware_generator.js"></script>
-  <script src="js/io/yaml_export.js"></script>
-  <script src="js/io/yaml_export_lvgl.js"></script>
-  <script src="js/ui/device_settings.js"></script>
-  <script src="js/ui/editor_settings.js"></script>
-  <script src="js/ui/llm_prompt.js"></script>
-  <script src="js/ui/page_settings.js"></script>
-  <script src="js/ui/entity_picker.js"></script>
-  <script src="js/ui/layout_manager.js"></script>
-  <script src="js/ui/splitters.js"></script>
-  <script src="js/ui/modal_wiring.js"></script>
-  <script src="js/ui/icon_picker.js"></script>
-  <script src="js/ui/quick_search.js"></script>
+  <!-- Feature Plugins (Dynamic ESM Loading) -->
 
-  <!-- Local Feature Pre-loading (Mandatory for file:// protocol) -->
-  <script src="features/battery_icon/render.js"></script>
-  <script src="features/wifi_signal/render.js"></script>
-  <script src="features/ondevice_temperature/render.js"></script>
-  <script src="features/ondevice_humidity/render.js"></script>
-  <script src="features/calendar/render.js"></script>
 
-  <script src="features/datetime/render.js"></script>
-  <script src="features/graph/render.js"></script>
-  <script src="features/icon/render.js"></script>
-  <script src="features/image/render.js"></script>
-  <script src="features/line/render.js"></script>
-  <script src="features/lvgl_arc/render.js"></script>
-  <script src="features/lvgl_bar/render.js"></script>
-  <script src="features/lvgl_button/render.js"></script>
-  <script src="features/lvgl_buttonmatrix/render.js"></script>
-  <script src="features/lvgl_chart/render.js"></script>
-  <script src="features/lvgl_checkbox/render.js"></script>
-  <script src="features/lvgl_dropdown/render.js"></script>
-  <script src="features/lvgl_img/render.js"></script>
-  <script src="features/lvgl_keyboard/render.js"></script>
-  <script src="features/lvgl_label/render.js"></script>
-  <script src="features/lvgl_led/render.js"></script>
-  <script src="features/lvgl_line/render.js"></script>
-  <script src="features/lvgl_meter/render.js"></script>
-  <script src="features/lvgl_obj/render.js"></script>
-  <script src="features/lvgl_qrcode/render.js"></script>
-  <script src="features/lvgl_roller/render.js"></script>
-  <script src="features/lvgl_slider/render.js"></script>
-  <script src="features/lvgl_spinbox/render.js"></script>
-  <script src="features/lvgl_spinner/render.js"></script>
-  <script src="features/lvgl_switch/render.js"></script>
-  <script src="features/lvgl_tabview/render.js"></script>
-  <script src="features/lvgl_textarea/render.js"></script>
-  <script src="features/lvgl_tileview/render.js"></script>
-  <script src="features/online_image/render.js"></script>
-  <script src="features/progress_bar/render.js"></script>
-  <script src="features/qr_code/render.js"></script>
-  <script src="features/quote_rss/render.js"></script>
-  <script src="features/rounded_rect/render.js"></script>
-  <script src="features/sensor_text/render.js"></script>
-  <script src="features/shape_circle/render.js"></script>
-  <script src="features/shape_rect/render.js"></script>
-  <script src="features/text/render.js"></script>
-  <script src="features/touch_area/render.js"></script>
-  <script src="features/weather_forecast/render.js"></script>
-  <script src="features/weather_icon/render.js"></script>
-  <script src="features/template_sensor_bar/render.js"></script>
-  <script src="features/template_nav_bar/render.js"></script>
-  <script src="js/main.js"></script>
+  <!-- Global App Entry -->
 </body>
 
 </html>

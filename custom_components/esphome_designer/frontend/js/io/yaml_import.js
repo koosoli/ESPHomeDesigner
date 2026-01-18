@@ -1253,7 +1253,26 @@ export function parseSnippetYamlOffline(yamlText) {
  * @param {Object} layout - The parsed layout object.
  */
 export function loadLayoutIntoState(layout) {
-    if (!layout || !Array.isArray(layout.pages)) {
+    if (!layout) {
+        Logger.error("Invalid layout - null or undefined");
+        throw new Error("invalid_layout");
+    }
+
+    // --- Legacy HA Storage Adapter ---
+    // Check if this is a raw HA storage dump (e.g. from .storage/esphome_designer)
+    // Format: { version: 1, key: "...", data: { devices: { "device_id": { ... } } } }
+    if (layout.data && layout.data.devices) {
+        const deviceIds = Object.keys(layout.data.devices);
+        if (deviceIds.length > 0) {
+            const firstDeviceId = deviceIds[0];
+            Logger.log(`[loadLayoutIntoState] Detected legacy HA storage format. unwrapping device: ${firstDeviceId}`);
+            // Swap the wrapper for the actual inner layout object
+            layout = layout.data.devices[firstDeviceId];
+        }
+    }
+    // ---------------------------------
+
+    if (!Array.isArray(layout.pages)) {
         Logger.error("Invalid layout - missing pages array");
         throw new Error("invalid_layout");
     }
@@ -1275,27 +1294,34 @@ export function loadLayoutIntoState(layout) {
     }
 
     // Set current layout ID from the layout data
-    // Only update if the layout has a device_id - don't reset an existing valid ID
-    if (layout.device_id) {
+    // Only update if the layout has a device_id or currentLayoutId - don't reset an existing valid ID
+    const importedLayoutId = layout.device_id || layout.currentLayoutId;
+    if (importedLayoutId) {
         const currentId = AppState.currentLayoutId;
-        if (currentId !== layout.device_id) {
-            Logger.log(`[loadLayoutIntoState] Updating currentLayoutId: ${currentId} -> ${layout.device_id}`);
-            AppState.setCurrentLayoutId(layout.device_id);
+        if (currentId !== importedLayoutId) {
+            Logger.log(`[loadLayoutIntoState] Updating currentLayoutId: ${currentId} -> ${importedLayoutId}`);
+            AppState.setCurrentLayoutId(importedLayoutId);
         }
     } else {
         Logger.log(`[loadLayoutIntoState] No device_id in layout, keeping currentLayoutId: ${AppState.currentLayoutId}`);
     }
 
     // Set device name from layout
-    if (layout.name) {
-        AppState.setDeviceName(layout.name);
+    const importedName = layout.name || layout.deviceName;
+    if (importedName) {
+        AppState.setDeviceName(importedName);
     }
 
     // Set device model from layout (check multiple possible locations)
-    const deviceModel = layout.device_model || layout.settings?.device_model;
+    const deviceModel = layout.device_model || layout.deviceModel || layout.settings?.device_model;
     if (deviceModel) {
         AppState.setDeviceModel(deviceModel);
         // window.currentDeviceModel = deviceModel; // Keep global in sync (Deprecated)
+    }
+
+    // Set custom hardware if present
+    if (layout.customHardware) {
+        AppState.setCustomHardware(layout.customHardware);
     }
 
     // Merge imported settings with existing settings
@@ -1323,8 +1349,8 @@ export function loadLayoutIntoState(layout) {
     const newSettings = { ...currentSettings, ...importedSettings, ...rootSettings };
 
     // Ensure device_name is in settings too (for Device Settings modal)
-    if (layout.name) {
-        newSettings.device_name = layout.name;
+    if (importedName) {
+        newSettings.device_name = importedName;
     }
 
     // Ensure device_model is in settings too

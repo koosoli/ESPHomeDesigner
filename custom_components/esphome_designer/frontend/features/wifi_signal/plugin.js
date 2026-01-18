@@ -88,11 +88,23 @@ const exportDoc = (w, context) => {
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
 
-    // Calculate centering
+    // Robust Centering:
+    // We calculate the center X relative to the widget's X and Width.
+    // Ideally: x + w / 2
+    // We use TextAlign::TOP_CENTER to align the text horizontally to that center point.
+
+    // Vertical centering logic:
+    // Content height is icon size (+ spacing + text size if DBM shown).
+    // We calculate 'paddingY' to push the content down to the middle.
+
     const contentHeight = showDbm ? (size + 2 + fontSize) : size;
     const paddingY = `(${w.height} - ${contentHeight}) / 2`;
     const centerX = `${w.x} + ${w.width} / 2`;
+
+    // Icon Y position
     const iconY = `${w.y} + ${paddingY}`;
+
+    // Text Y position (below icon)
     const textY = `${w.y} + ${paddingY} + ${size} + 2`;
 
     lines.push(`          const char* wifi_icon = "\\U000F092B"; // Default: wifi-strength-alert-outline`);
@@ -105,6 +117,8 @@ const exportDoc = (w, context) => {
     lines.push(`            else if (signal >= -100) wifi_icon = "\\U000F091F"; // wifi-strength-1 (Weak)`);
     lines.push(`            else wifi_icon = "\\U000F092B";                    // wifi-strength-alert-outline`);
     lines.push(`          }`);
+
+    // Explicitly use TOP_CENTER alignment
     lines.push(`          it.printf(${centerX}, ${iconY}, id(${fontRef}), ${color}, TextAlign::TOP_CENTER, "%s", wifi_icon);`);
 
     if (showDbm) {

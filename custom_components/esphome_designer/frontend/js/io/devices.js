@@ -28,6 +28,7 @@ export const DEVICE_PROFILES = {
   // ========================================================================
   reterminal_e1001: {
     name: "Seeedstudio reTerminal E1001 (Monochrome)",
+    displayType: "binary",
     chip: "esp32-s3",
     board: "esp32-s3-devkitc-1",
     displayModel: "7.50inv2p",
@@ -60,6 +61,7 @@ export const DEVICE_PROFILES = {
   },
   reterminal_e1002: {
     name: "Seeedstudio reTerminal E1002 (6-Color)",
+    displayType: "color",
     displayModel: "Seeed-reTerminal-E1002",
     displayPlatform: "epaper_spi",
     resolution: { width: 800, height: 480 },
@@ -89,6 +91,7 @@ export const DEVICE_PROFILES = {
   },
   trmnl_diy_esp32s3: {
     name: "Seeed Studio Trmnl DIY Kit (ESP32-S3)",
+    displayType: "binary",
     displayModel: "7.50inv2p",
     displayPlatform: "waveshare_epaper",
     resolution: { width: 800, height: 480 },
@@ -133,6 +136,7 @@ export const DEVICE_PROFILES = {
   },
   trmnl: {
     name: "TRMNL (ESP32-C3)",
+    displayType: "binary",
     displayModel: "7.50inv2",
     displayPlatform: "waveshare_epaper",
     resolution: { width: 800, height: 480 },
@@ -166,6 +170,7 @@ export const DEVICE_PROFILES = {
   // ========================================================================
   esp32_s3_photopainter: {
     name: "Waveshare PhotoPainter (6-Color)",
+    displayType: "color",
     displayModel: "7.30in-f",
     displayPlatform: "waveshare_epaper",
     resolution: { width: 800, height: 480 },
@@ -202,6 +207,7 @@ export const DEVICE_PROFILES = {
   },
   waveshare_esp32_s3_touch_lcd_7: {
     name: "Waveshare Touch LCD 7 7.0\" 800x480",
+    displayType: "color",
     isPackageBased: true,
     hardwarePackage: "hardware/waveshare-esp32-s3-touch-lcd-7.yaml",
     resolution: { width: 800, height: 480 },
@@ -209,6 +215,7 @@ export const DEVICE_PROFILES = {
   },
   waveshare_esp32_s3_touch_lcd_4_3: {
     name: "Waveshare Touch LCD 4.3 4.3\" 800x480",
+    displayType: "color",
     isPackageBased: true,
     hardwarePackage: "hardware/waveshare-esp32-s3-touch-lcd-4.3.yaml",
     resolution: { width: 800, height: 480 },
@@ -220,6 +227,7 @@ export const DEVICE_PROFILES = {
   // ========================================================================
   m5stack_coreink: {
     name: "M5Stack M5Core Ink (200x200)",
+    displayType: "binary",
     displayModel: "1.54inv2",
     displayPlatform: "waveshare_epaper",
     resolution: { width: 200, height: 200 },
@@ -255,6 +263,7 @@ export const DEVICE_PROFILES = {
   },
   m5stack_paper: {
     name: "M5Paper (540x960)",
+    displayType: "grayscale",
     displayModel: "M5Paper",
     displayPlatform: "it8951e",
     // NOTE: The IT8951E external component (Passific/m5paper_esphome) 
@@ -326,8 +335,21 @@ export async function loadExternalProfiles() {
     Logger.log(`[Devices] Loaded ${dynamicTemplates.length} dynamic hardware templates.`);
 
     dynamicTemplates.forEach(template => {
-      // Backend templates are the source of truth for YAML-based devices
-      DEVICE_PROFILES[template.id] = template;
+      // Backend templates are the source of truth for YAML-based devices,
+      // but we merge instead of overwrite to preserve static metadata (like features.lvgl)
+      if (DEVICE_PROFILES[template.id]) {
+        const existing = DEVICE_PROFILES[template.id];
+        DEVICE_PROFILES[template.id] = {
+          ...existing,
+          ...template,
+          features: {
+            ...(existing.features || {}),
+            ...(template.features || {})
+          }
+        };
+      } else {
+        DEVICE_PROFILES[template.id] = template;
+      }
     });
 
     // Handle offline persistence

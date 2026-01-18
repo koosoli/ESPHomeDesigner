@@ -839,6 +839,21 @@ export class PropertiesPanel {
                 AppState.updateWidget(widget.id, { entity_id: v });
             }, widget);
             this.addCheckbox("Local / On-Device Sensor", props.is_local_sensor !== false, (v) => updateProp("is_local_sensor", v));
+
+            // Warning if local sensor selected but not supported
+            let hasTemp = false;
+            const profile = AppState.getSelectedProfile();
+            if (profile && profile.features) {
+                hasTemp = !!(profile.features.sht4x || profile.features.sht3x || profile.features.shtc3);
+            }
+            if (props.is_local_sensor !== false && !hasTemp) {
+                this.addHint('⚠️ <span style="color:orange">This hardware profile has no onboard temperature sensor.</span><br/>Uncheck this or select an HA entity.');
+                // Auto-fix for new widgets (optional, but good UX)
+                if (widget.props && widget.props.is_local_sensor === undefined) {
+                    // First load, force false to avoid crash
+                    setTimeout(() => updateProp("is_local_sensor", false), 0);
+                }
+            }
             this.endSection();
 
             this.createSection("Appearance", false);
@@ -873,6 +888,19 @@ export class PropertiesPanel {
                 AppState.updateWidget(widget.id, { entity_id: v });
             }, widget);
             this.addCheckbox("Local / On-Device Sensor", props.is_local_sensor !== false, (v) => updateProp("is_local_sensor", v));
+
+            // Warning if local sensor selected but not supported
+            let hasHum = false;
+            const profileH = AppState.getSelectedProfile();
+            if (profileH && profileH.features) {
+                hasHum = !!(profileH.features.sht4x || profileH.features.sht3x || profileH.features.shtc3);
+            }
+            if (props.is_local_sensor !== false && !hasHum) {
+                this.addHint('⚠️ <span style="color:orange">This hardware profile has no onboard humidity sensor.</span><br/>Uncheck this or select an HA entity.');
+                if (widget.props && widget.props.is_local_sensor === undefined) {
+                    setTimeout(() => updateProp("is_local_sensor", false), 0);
+                }
+            }
             this.endSection();
 
             this.createSection("Appearance", false);
@@ -930,6 +958,7 @@ export class PropertiesPanel {
             this.createSection("Appearance", false);
             this.addSelect("Layout", props.layout || "horizontal", ["horizontal", "vertical"], (v) => updateProp("layout", v));
             this.addCheckbox("Show High/Low Temp", props.show_high_low !== false, (v) => updateProp("show_high_low", v));
+            this.addSelect("Temperature Unit", props.temp_unit || "C", ["C", "F"], (v) => updateProp("temp_unit", v));
             this.addLabeledInput("Day Font Size", "number", props.day_font_size || 14, (v) => updateProp("day_font_size", parseInt(v, 10)));
             this.addLabeledInput("Temp Font Size", "number", props.temp_font_size || 14, (v) => updateProp("temp_font_size", parseInt(v, 10)));
             this.addLabeledInput("Icon Size", "number", props.icon_size || 24, (v) => updateProp("icon_size", parseInt(v, 10)));
@@ -971,6 +1000,7 @@ export class PropertiesPanel {
             this.createSection("Sensor Data Sources", false);
             this.addLabeledInput("WiFi Entity", "text", props.wifi_entity || "", (v) => updateProp("wifi_entity", v));
             this.addLabeledInput("Temp Entity", "text", props.temp_entity || "", (v) => updateProp("temp_entity", v));
+            this.addSelect("Temperature Unit", props.temp_unit || "°C", ["°C", "°F"], (v) => updateProp("temp_unit", v));
             this.addLabeledInput("Hum Entity", "text", props.hum_entity || "", (v) => updateProp("hum_entity", v));
             this.addLabeledInput("Battery Entity", "text", props.bat_entity || "", (v) => updateProp("bat_entity", v));
             this.endSection();

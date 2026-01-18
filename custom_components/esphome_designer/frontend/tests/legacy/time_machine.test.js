@@ -5,6 +5,28 @@ import { JSDOM } from 'jsdom';
 import { GOLDEN_PAYLOAD } from '../golden_master/golden_payload.js';
 import { ESPHomeAdapter } from '../../js/io/adapters/esphome_adapter.js';
 
+/**
+ * ============================================================================
+ *  ⚠️  GOLDEN MASTER WARNING - READ BEFORE DEBUGGING ⚠️
+ * ============================================================================
+ * This test compares the CURRENT output against a LEGACY baseline.
+ * 
+ * CRITICAL FOR AI AGENTS:
+ * The legacy baseline was NEVER verified by a human. It was auto-generated
+ * from an older, potentially BUGGY version of the codebase (v0.8.6.1).
+ * 
+ * DO NOT:
+ * - Assume that a golden master failure means your code is wrong.
+ * - Revert logically correct improvements to pass this test.
+ * 
+ * DO:
+ * - Prioritize CORRECT BEHAVIOR over matching this snapshot.
+ * - If your changes are genuinely better (e.g., fixing alignment, centering),
+ *   UPDATE THE GOLDEN MASTER, not your code.
+ * - Consult the user if unsure.
+ * ============================================================================
+ */
+
 // Paths
 // Using the verified legacy path found in oldversions/0.8.6.1 saftybackup-ofversionbeforethecleanup
 // Need 6 levels of '..' to reach Codebasecleanup root from custom_components/esphome_designer/frontend/tests/legacy

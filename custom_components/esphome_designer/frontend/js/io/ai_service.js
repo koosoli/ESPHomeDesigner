@@ -1,4 +1,6 @@
-class AIService {
+import { Logger } from '../utils/logger.js';
+
+export class AIService {
     constructor() {
         this.cache = {
             models: {}
@@ -54,17 +56,50 @@ class AIService {
 
     async processPrompt(prompt, context) {
         const settings = this.getSettings();
-        const provider = settings.ai_provider;
+        const provider = settings.ai_provider || 'gemini';
         const apiKey = settings[`ai_api_key_${provider}`];
-        const model = settings[`ai_model_${provider}`];
+        let model = settings[`ai_model_${provider}`];
+
+        // Dynamic auto-detection if no model is selected
+        if (!model && provider === 'gemini') {
+            Logger.log("No model selected, attempting to auto-detect...");
+            try {
+                const availableModels = await this.fetchModels(provider, apiKey);
+                if (availableModels.length > 0) {
+                    // Strictly prefer flash models for speed/quota, then standard pro
+                    const preferred = availableModels.find(m => m.id.includes('flash')) ||
+                        availableModels.find(m => m.id.includes('1.5-pro')) ||
+                        availableModels.find(m => m.id.includes('gemini-pro')) ||
+                        availableModels[0];
+                    model = preferred.id;
+                    Logger.log(`Auto-detected model: ${model}`);
+
+                    // Persist for next time
+                    window.AppState.updateSettings({ [`ai_model_${provider}`]: model });
+                } else {
+                    throw new Error("No models found for this API Key.");
+                }
+            } catch (e) {
+                Logger.error("Auto-detection failed:", e);
+                // Fallback to flash if detection fails (most likely to work)
+                model = 'gemini-1.5-flash';
+            }
+        }
 
         if (!apiKey) throw new Error(`Missing API Key for ${provider}`);
-        if (!model && provider !== 'gemini') throw new Error(`No model selected for ${provider}`);
+        if (!model) throw new Error(`No model selected for ${provider}`);
 
         const systemPrompt = this.getSystemPrompt();
+
+        // Optimize context to reduce token count
+        const minifiedContext = {
+            ...context,
+            widgets: context.widgets.map(w => this.minifyWidget(w))
+        };
+
         const userPrompt = `
 Current Layout Context:
-${JSON.stringify(context, null, 2)}
+${JSON.stringify(minifiedContext, null, 2)}
 
 User Request:
 ${prompt}
@@ -152,7 +187,13 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         });
+
         const data = await response.json();
+
+        if (response.status === 429) {
+            throw new Error("⚠️ Rate Limit Exceeded: You are sending requests too quickly for the free tier. Please wait a minute and try again.");
+        }
+
         if (data.error) throw new Error(data.error.message);
         return data.candidates[0].content.parts[0].text;
     }
@@ -265,6 +306,14 @@ Response: [
   {"id": "w_sep", "type": "shape_rect", "x": 20, "y": 65, "width": 760, "height": 2, "color": "black", "fill": true}
 ]
 
+8. DROP SHADOWS: For LCD displays ("color_lcd"), add subtle drop shadows to shapes and cards.
+   HOW TO: Create a DUPLICATE of the widget to be shadowed.
+           - ID: [original_id]_shadow
+           - X/Y: original.x + 4, original.y + 4
+           - Color: "black" (or "white" if background is dark)
+           - Z-Order: Place the shadow widget BEFORE the main widget in the list so it renders behind.
+           - Opacity: If supported by the widget type ('shape_rect'), set opacity to 0.4. If not, use a gray color like "#333333".
+
 DESIGN GOAL: Create "Beautiful" layouts. Use whitespace, professional alignment, and decorative shapes to make the UI look premium.
 `.trim();
     }
@@ -318,6 +367,10 @@ DESIGN GOAL: Create "Beautiful" layouts. Use whitespace, professional alignment,
 
         return repaired;
     }
+    minifyWidget(w) {
+        // Return a clean copy with only essential properties to save tokens
+        const { id, type, x, y, width, height, ...props } = w;
+        // Filter out editor-only runtime props if any exist
+        return { id, type, x, y, width, height, ...props };
+    }
 }
-
-window.aiService = new AIService();

@@ -86,6 +86,20 @@ const exportDoc = (w, context) => {
 
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
+
+    // Robust Centering:
+    // Determine total height of content (Icon + Spacing + Text)
+    const spacing = 2;
+    const contentHeight = size + spacing + fontSize;
+    const paddingY = `(${w.height} - ${contentHeight}) / 2`;
+
+    // X Center: x + w / 2
+    const centerX = `${w.x} + ${w.width} / 2`;
+
+    // Y Positions
+    const iconY = `${w.y} + ${paddingY}`;
+    const textY = `${w.y} + ${paddingY} + ${size} + ${spacing}`;
+
     lines.push(`        {`);
     lines.push(`          const char* bat_icon = "\\U000F0082"; // Default: battery-90`);
     lines.push(`          float bat_level = 0;`);
@@ -104,8 +118,12 @@ const exportDoc = (w, context) => {
     lines.push(`            else if (bat_level >= 5) bat_icon = "\\U000F007A";  // battery-10`);
     lines.push(`            else bat_icon = "\\U000F0083";                      // battery-alert (critical)`);
     lines.push(`          }`);
-    lines.push(`          it.printf(${w.x}, ${w.y}, id(${fontRef}), ${color}, "%s", bat_icon);`);
-    lines.push(`          it.printf(${w.x} + ${size}/2, ${w.y} + ${size} + 2, id(${pctFontRef}), ${color}, TextAlign::TOP_CENTER, "%.0f%%", bat_level);`);
+
+    // Icon Centered
+    lines.push(`          it.printf(${centerX}, ${iconY}, id(${fontRef}), ${color}, TextAlign::TOP_CENTER, "%s", bat_icon);`);
+
+    // Text Centered
+    lines.push(`          it.printf(${centerX}, ${textY}, id(${pctFontRef}), ${color}, TextAlign::TOP_CENTER, "%.0f%%", bat_level);`);
 
     const ditherY = w.y + (typeof RECT_Y_OFFSET !== 'undefined' ? RECT_Y_OFFSET : 0);
     addDitherMask(lines, colorProp, isEpaper, w.x, ditherY, w.width, w.height);

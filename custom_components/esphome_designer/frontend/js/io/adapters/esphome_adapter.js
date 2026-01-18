@@ -102,8 +102,20 @@ export class ESPHomeAdapter extends BaseAdapter {
         // 3. Any widget with an 'exportLVGL' function (via registry check)
         let isLvgl = !!(profile.features && (profile.features.lvgl || profile.features.lv_display));
 
+        // Check user's explicit rendering mode preference
+        const userRenderingMode = layout.renderingMode || (AppState ? AppState.settings?.renderingMode : null);
+
+        // If user explicitly chose 'direct', override LVGL detection
+        if (userRenderingMode === 'direct') {
+            isLvgl = false;
+            Logger.log("[ESPHomeAdapter] Rendering mode set to 'direct', skipping LVGL generation");
+        } else if (userRenderingMode === 'lvgl') {
+            isLvgl = true;
+            Logger.log("[ESPHomeAdapter] Rendering mode set to 'lvgl', forcing LVGL generation");
+        }
+
         if (!isLvgl) {
-            // Scan all pages and widgets
+            // Scan all pages and widgets for LVGL widgets (only if not already in LVGL mode)
             for (const page of pages) {
                 if (page.widgets) {
                     for (const w of page.widgets.filter(widget => !widget.hidden)) {
@@ -165,7 +177,8 @@ export class ESPHomeAdapter extends BaseAdapter {
             widgets: allWidgets,
             profile,
             displayId,
-            adapter: this
+            adapter: this,
+            isLvgl
         };
 
         if (PluginRegistry) {

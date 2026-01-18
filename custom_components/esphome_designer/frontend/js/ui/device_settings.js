@@ -73,6 +73,10 @@ export class DeviceSettings {
         // Strategy Groups (E-Paper vs LCD)
         this.strategyEpaperGroup = document.getElementById('strategy-epaper-group');
         this.strategyLcdGroup = document.getElementById('strategy-lcd-group');
+
+        // Rendering Mode (LVGL vs Direct)
+        this.renderingModeInput = document.getElementById('renderingMode');
+        this.renderingModeField = document.getElementById('renderingModeField');
     }
     init() {
         if (this.closeBtn) {
@@ -596,6 +600,14 @@ export class DeviceSettings {
             });
         }
 
+        // Rendering Mode (LVGL vs Direct)
+        if (this.renderingModeInput) {
+            this.renderingModeInput.addEventListener('change', () => {
+                updateSetting('renderingMode', this.renderingModeInput.value);
+                Logger.log("Rendering mode changed to:", this.renderingModeInput.value);
+            });
+        }
+
         // Power Strategy
         const radios = [this.modeStandard, this.modeSleep, this.modeManual, this.modeDeepSleep, this.modeDaily];
         radios.forEach(radio => {
@@ -704,14 +716,18 @@ export class DeviceSettings {
     updateStrategyGroupVisibility() {
         const modelId = this.modelInput ? this.modelInput.value : "reterminal_e1001";
         let isLcd = false;
+        let hasLvgl = false;
 
         if (modelId === 'custom') {
             const ch = (AppState.project && AppState.project.state && AppState.project.state.customHardware) || {};
             isLcd = ch.tech === 'lcd';
+            // Custom hardware doesn't have LVGL support yet
+            hasLvgl = false;
         } else {
             const profiles = window.DEVICE_PROFILES || DEVICE_PROFILES || {};
             const profile = profiles[modelId];
             isLcd = !!(profile && profile.features && (profile.features.lcd || profile.features.oled));
+            hasLvgl = !!(profile && profile.features && (profile.features.lvgl || profile.features.lv_display));
         }
 
         if (this.strategyEpaperGroup) {
@@ -724,6 +740,14 @@ export class DeviceSettings {
                 const currentStrategy = AppState.settings.lcdEcoStrategy || 'backlight_off';
                 const radioToSelect = document.querySelector(`input[name="lcdEcoStrategy"][value="${currentStrategy}"]`);
                 if (radioToSelect) radioToSelect.checked = true;
+            }
+        }
+
+        // Show rendering mode field only for LCD/OLED devices
+        if (this.renderingModeField) {
+            this.renderingModeField.style.display = isLcd ? 'block' : 'none';
+            if (isLcd && this.renderingModeInput) {
+                this.renderingModeInput.value = AppState.settings.renderingMode || 'lvgl';
             }
         }
     }

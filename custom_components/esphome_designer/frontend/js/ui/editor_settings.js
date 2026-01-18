@@ -104,10 +104,6 @@ export class EditorSettings {
 
         // Entity Count
         this.updateEntityCount();
-
-        this.modal.classList.remove('hidden');
-        this.modal.style.display = 'flex';
-        Logger.log("Editor Settings opened");
     }
 
     close() {
@@ -236,7 +232,7 @@ export class EditorSettings {
 
         const bindAIKey = (id, key) => {
             const el = document.getElementById(id);
-            if (el) el.addEventListener('change', () => AppState.updateSettings({ [key]: el.value.trim() }));
+            if (el) el.addEventListener('input', () => AppState.updateSettings({ [key]: el.value.trim() }));
         };
         bindAIKey('aiApiKeyGemini', 'ai_api_key_gemini');
         bindAIKey('aiApiKeyOpenai', 'ai_api_key_openai');
@@ -258,8 +254,20 @@ export class EditorSettings {
 
         if (this.aiRefreshModelsBtn) {
             this.aiRefreshModelsBtn.addEventListener('click', async () => {
-                const provider = AppState.settings.ai_provider;
-                const apiKey = AppState.settings[`ai_api_key_${provider}`];
+                const provider = AppState.settings.ai_provider || "gemini";
+
+                // Force read from DOM to ensure we engage with what the user just typed/pasted
+                // even if the 'input' event hasn't fully propagated to settings yet.
+                let apiKey = AppState.settings[`ai_api_key_${provider}`];
+                const inputId = `aiApiKey${provider.charAt(0).toUpperCase() + provider.slice(1)}`;
+                const inputEl = document.getElementById(inputId);
+
+                if (inputEl) {
+                    apiKey = inputEl.value.trim();
+                    // Sync back to state to be sure
+                    AppState.updateSettings({ [`ai_api_key_${provider}`]: apiKey });
+                }
+
                 if (!apiKey) {
                     showToast("Please enter an API key first", 3000, "error");
                     return;
