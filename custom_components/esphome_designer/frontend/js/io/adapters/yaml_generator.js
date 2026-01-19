@@ -101,6 +101,9 @@ export class YamlGenerator {
         const displayId = profile.features?.lcd ? "my_display" : "epaper_display";
         const autoCycleEnabled = payload.autoCycleEnabled && pages.length > 1;
 
+        const isLcd = !!(profile.features && (profile.features.lcd || profile.features.oled));
+        const debounceMs = isLcd ? 500 : 3000;
+
         lines.push("script:");
 
         // Change Page Script
@@ -114,10 +117,10 @@ export class YamlGenerator {
         lines.push("          while (target < 0) target += pages_count;");
         lines.push("          target %= pages_count;");
         lines.push("");
-        lines.push("          // Debounce: Ignore page changes within 3000ms of last change");
-        lines.push("          // (e-paper display update takes ~1.6s, so we need a longer debounce)");
+        lines.push(`          // Debounce: Ignore page changes within ${debounceMs}ms of last change`);
+        lines.push(`          // (adjusted for ${isLcd ? 'LCD' : 'e-paper'} display update time)`);
         lines.push("          uint32_t now = millis();");
-        lines.push("          if (now - id(last_page_switch_time) < 3000) {");
+        lines.push(`          if (now - id(last_page_switch_time) < ${debounceMs}) {`);
         lines.push(`            ESP_LOGD("display", "Page change ignored (debounce), last switch was %d ms ago", now - id(last_page_switch_time));`);
         lines.push("            return;");
         lines.push("          }");

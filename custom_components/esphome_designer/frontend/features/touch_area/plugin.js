@@ -119,44 +119,44 @@ const onExportBinarySensors = (context) => {
     const targets = widgets.filter(w => w.type === 'touch_area' || w.type === 'nav_next_page' || w.type === 'nav_previous_page' || w.type === 'nav_reload_page');
     if (targets.length === 0) return;
 
-    lines.push("  # Touch Area Binary Sensors");
+    lines.push("# Touch Area Binary Sensors");
     targets.forEach(w => {
         const p = w.props || {};
         const safeId = (w.entity_id || `touch_area_${w.id.replace(/-/g, "_")}`).replace(/[^a-zA-Z0-9_]/g, "_");
 
-        lines.push(`  - platform: touchscreen`);
-        lines.push(`    id: ${safeId}`);
-        lines.push(`    touchscreen_id: my_touchscreen`);
-        lines.push(`    x_min: ${w.x}`);
-        lines.push(`    x_max: ${w.x + w.width}`);
-        lines.push(`    y_min: ${w.y}`);
-        lines.push(`    y_max: ${w.y + w.height}`);
+        lines.push(`- platform: touchscreen`);
+        lines.push(`  id: ${safeId}`);
+        lines.push(`  touchscreen_id: my_touchscreen`);
+        lines.push(`  x_min: ${w.x}`);
+        lines.push(`  x_max: ${w.x + w.width}`);
+        lines.push(`  y_min: ${w.y}`);
+        lines.push(`  y_max: ${w.y + w.height}`);
 
         const navAction = p.nav_action || "none";
         const pageIdx = w._pageIndex !== undefined ? w._pageIndex : 0;
 
         if (navAction !== "none" || w.entity_id) {
-            lines.push(`    on_press:`);
-            lines.push(`      - if:`);
-            lines.push(`          condition:`);
-            lines.push(`            lambda: 'return id(display_page) == ${pageIdx};'`);
-            lines.push(`          then:`);
+            lines.push(`  on_press:`);
+            lines.push(`    - if:`);
+            lines.push(`        condition:`);
+            lines.push(`          lambda: 'return id(display_page) == ${pageIdx};'`);
+            lines.push(`        then:`);
 
             if (navAction === "next_page") {
-                lines.push(`            - script.execute:`);
-                lines.push(`                id: change_page_to`);
-                lines.push(`                target_page: !lambda 'return id(display_page) + 1;'`);
+                lines.push(`          - script.execute:`);
+                lines.push(`              id: change_page_to`);
+                lines.push(`              target_page: !lambda 'return id(display_page) + 1;'`);
             } else if (navAction === "previous_page") {
-                lines.push(`            - script.execute:`);
-                lines.push(`                id: change_page_to`);
-                lines.push(`                target_page: !lambda 'return id(display_page) - 1;'`);
+                lines.push(`          - script.execute:`);
+                lines.push(`              id: change_page_to`);
+                lines.push(`              target_page: !lambda 'return id(display_page) - 1;'`);
             } else if (navAction === "reload_page") {
-                lines.push(`            - script.execute: manage_run_and_sleep`);
+                lines.push(`          - script.execute: manage_run_and_sleep`);
             } else if (w.entity_id) {
-                lines.push(`            - homeassistant.service:`);
-                lines.push(`                service: homeassistant.toggle`);
-                lines.push(`                data:`);
-                lines.push(`                  entity_id: ${w.entity_id}`);
+                lines.push(`          - homeassistant.service:`);
+                lines.push(`              service: homeassistant.toggle`);
+                lines.push(`              data:`);
+                lines.push(`                entity_id: ${w.entity_id}`);
             }
         }
     });

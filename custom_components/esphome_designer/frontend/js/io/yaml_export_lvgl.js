@@ -109,7 +109,15 @@ function serializeYamlObject(obj, lines, indentLevel) {
             lines.push(`${spaces}${key}:`);
             serializeYamlObject(val, lines, indentLevel + 2);
         } else {
-            lines.push(`${spaces}${key}: ${val}`);
+            if (typeof val === 'string' && val.includes('\n')) {
+                const parts = val.split('\n');
+                lines.push(`${spaces}${key}: ${parts[0]}`);
+                for (let i = 1; i < parts.length; i++) {
+                    lines.push(`${spaces}${parts[i]}`);
+                }
+            } else {
+                lines.push(`${spaces}${key}: ${val}`);
+            }
         }
     });
 }

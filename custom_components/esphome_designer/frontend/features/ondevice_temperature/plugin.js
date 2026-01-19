@@ -127,7 +127,7 @@ export default {
 
         // Strict validation: Local sensor is only valid if hardware actually supports it
         const supportsOnboard = profile.features && (profile.features.sht4x || profile.features.sht3x || profile.features.shtc3);
-        const hasValidSensor = (isLocal && supportsOnboard) || !!w.entity_id;
+        const hasValidSensor = (isLocal && supportsOnboard && sensorId !== "onboard_temperature") || !!w.entity_id;
 
         // If no valid sensor, return static strings to avoid "ID not declared" errors
         if (!hasValidSensor) {
@@ -302,7 +302,7 @@ export default {
         const centerYIcon = `${w.y} + ${Math.round(iconSize / 2)}`;
 
         const supportsOnboard = profile.features && (profile.features.sht4x || profile.features.sht3x || profile.features.shtc3);
-        const hasValidSensor = (isLocal && supportsOnboard) || !!w.entity_id;
+        const hasValidSensor = (isLocal && supportsOnboard && sensorId !== "onboard_temperature") || !!w.entity_id;
 
         // --- ICON ---
         if (hasValidSensor) {

@@ -133,13 +133,13 @@ const onExportTextSensors = (context) => {
     }
 
     if (weatherEntities.size > 0) {
-        lines.push("  # Weather Entity Sensors (Detected from Weather Icon)");
+        lines.push("# Weather Entity Sensors (Detected from Weather Icon)");
         for (const entityId of weatherEntities) {
             const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_");
-            lines.push(`  - platform: homeassistant`);
-            lines.push(`    id: ${safeId}`);
-            lines.push(`    entity_id: ${entityId}`);
-            lines.push(`    internal: true`);
+            lines.push(`- platform: homeassistant`);
+            lines.push(`  id: ${safeId}`);
+            lines.push(`  entity_id: ${entityId}`);
+            lines.push(`  internal: true`);
         }
         lines.push("");
     }
