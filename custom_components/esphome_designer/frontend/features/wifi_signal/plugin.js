@@ -87,6 +87,7 @@ const exportDoc = (w, context) => {
 
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
+    lines.push(`        {`);
 
     // Robust Centering:
     // We calculate the center X relative to the widget's X and Width.

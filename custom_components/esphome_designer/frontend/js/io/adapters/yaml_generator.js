@@ -57,6 +57,14 @@ export class YamlGenerator {
         lines.push("#   on_boot:");
         lines.push("#     priority: 600");
         lines.push("#     then:");
+        // Fix for Issue #182: Validate restored display_page
+        if (layout.pages && layout.pages.length > 0) {
+            lines.push("#       - lambda: |-");
+            lines.push(`#           if (id(display_page) >= ${layout.pages.length}) {`);
+            lines.push("#             ESP_LOGW(\"display\", \"Restored page index %d is out of bounds (max %d). Resetting to 0.\", id(display_page), " + (layout.pages.length - 1) + ");");
+            lines.push("#             id(display_page) = 0;");
+            lines.push("#           }");
+        }
         if (profile.battery && profile.pins && profile.pins.batteryEnable) {
             lines.push("#       - output.turn_on: bsp_battery_enable");
         }

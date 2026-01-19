@@ -83,16 +83,31 @@ export default {
         lambdaStr += `              auto now = id(ha_time).now();\n`;
         lambdaStr += `              return now.strftime("${fmt}").c_str();`;
 
+        // Logic fix: use correct font size for date formats
+        const isDate = format === "date_only" || format === "weekday_day_month";
+        const fontSize = isDate ? (p.date_font_size || 16) : (p.time_font_size || 28);
+        const fontWeight = isDate ? 400 : 700;
+
         return {
             label: {
                 ...common,
                 text: lambdaStr,
-                text_font: getLVGLFont(p.font_family, p.time_font_size || 28, format === "date_only" ? 400 : 700, p.italic),
+                text_font: getLVGLFont(p.font_family, fontSize, fontWeight, p.italic),
                 text_color: convertColor(p.color),
                 text_align: (convertAlign(p.text_align) || "CENTER").replace("TOP_", "").replace("BOTTOM_", ""),
                 opa: formatOpacity(p.opa)
             }
         };
+    },
+    collectRequirements: (w, context) => {
+        const { addFont } = context;
+        const p = w.props || {};
+        const timeSize = parseInt(p.time_font_size || 28, 10);
+        const dateSize = parseInt(p.date_font_size || 16, 10);
+
+        // Register likely fonts
+        addFont(p.font_family || "Roboto", 700, timeSize, !!p.italic);
+        addFont(p.font_family || "Roboto", 400, dateSize, !!p.italic);
     },
     export: (w, context) => {
         const {
