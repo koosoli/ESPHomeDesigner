@@ -254,80 +254,78 @@ export default {
             lines.push(`        } else {`);
             lines.push(`          it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058E");`);
             lines.push(`        }`);
-        } else {
-            lines.push(`          it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058E");`);
         }
 
         // --- VALUE ---
-        if(hasValidSensor) {
-        lines.push(`        if (id(${sensorId}).has_state()) {`);
-        lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "%.0f${unit}", id(${sensorId}).state);`);
-        lines.push(`        } else {`);
-        lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
-        lines.push(`        }`);
-    } else {
-        lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
-    }
+        if (hasValidSensor) {
+            lines.push(`        if (id(${sensorId}).has_state()) {`);
+            lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "%.0f${unit}", id(${sensorId}).state);`);
+            lines.push(`        } else {`);
+            lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
+            lines.push(`        }`);
+        } else {
+            lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
+        }
 
-        if(p.show_label) {
-    const labelFontId = addFont("Roboto", 400, p.label_font_size || 10);
-    lines.push(`        it.printf(${centerX}, ${w.y} + ${iconSize + fontSize + 8}, id(${labelFontId}), ${color}, TextAlign::TOP_CENTER, "Humidity");`);
-}
+        if (p.show_label) {
+            const labelFontId = addFont("Roboto", 400, p.label_font_size || 10);
+            lines.push(`        it.printf(${centerX}, ${w.y} + ${iconSize + fontSize + 8}, id(${labelFontId}), ${color}, TextAlign::TOP_CENTER, "Humidity");`);
+        }
 
-if (cond) lines.push(`        }`);
+        if (cond) lines.push(`        }`);
     },
-onExportNumericSensors: (context) => {
-    const { lines, widgets, profile } = context;
-    if (!widgets) return;
+    onExportNumericSensors: (context) => {
+        const { lines, widgets, profile } = context;
+        if (!widgets) return;
 
-    const processed = new Set();
-    let needsLocalSHT = false;
+        const processed = new Set();
+        let needsLocalSHT = false;
 
-    for (const w of widgets) {
-        if (w.type !== "ondevice_humidity") continue;
-        const p = w.props || {};
-        if (p.is_local_sensor === true || (p.is_local_sensor !== false && !w.entity_id)) {
-            needsLocalSHT = true;
-            continue;
+        for (const w of widgets) {
+            if (w.type !== "ondevice_humidity") continue;
+            const p = w.props || {};
+            if (p.is_local_sensor === true || (p.is_local_sensor !== false && !w.entity_id)) {
+                needsLocalSHT = true;
+                continue;
+            }
+
+            let eid = (w.entity_id || "").trim();
+            if (!eid) continue;
+            if (!eid.includes(".")) eid = `sensor.${eid}`;
+
+            if (!processed.has(eid)) {
+                processed.add(eid);
+                const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+                lines.push("- platform: homeassistant", `  id: ${safeId}`, `  entity_id: ${eid}`, "  internal: true");
+            }
         }
 
-        let eid = (w.entity_id || "").trim();
-        if (!eid) continue;
-        if (!eid.includes(".")) eid = `sensor.${eid}`;
+        if (needsLocalSHT && profile.features) {
+            const hasSht4x = !!profile.features.sht4x;
+            const hasSht3x = !!profile.features.sht3x;
+            const hasShtc3 = !!profile.features.shtc3;
 
-        if (!processed.has(eid)) {
-            processed.add(eid);
-            const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
-            lines.push("- platform: homeassistant", `  id: ${safeId}`, `  entity_id: ${eid}`, "  internal: true");
-        }
-    }
+            if (hasSht4x || hasSht3x || hasShtc3) {
+                const shtId = hasSht4x ? "sht4x_sensor" : (hasSht3x ? "sht3x_sensor" : "shtc3_sensor");
+                const shtPlatform = hasSht4x ? "sht4x" : (hasSht3x ? "sht3xd" : "shtcx");
+                const humId = hasSht4x ? "sht4x_humidity" : (hasSht3x ? "sht3x_humidity" : "shtc3_humidity");
 
-    if (needsLocalSHT && profile.features) {
-        const hasSht4x = !!profile.features.sht4x;
-        const hasSht3x = !!profile.features.sht3x;
-        const hasShtc3 = !!profile.features.shtc3;
+                if (!lines.some(l => l.includes(`id: ${shtId}`))) {
+                    lines.push(`- platform: ${shtPlatform}`, `  id: ${shtId}`);
+                    lines.push(`  humidity:`, `    id: ${humId}`, `    internal: true`);
+                    lines.push(`  update_interval: 60s`);
 
-        if (hasSht4x || hasSht3x || hasShtc3) {
-            const shtId = hasSht4x ? "sht4x_sensor" : (hasSht3x ? "sht3x_sensor" : "shtc3_sensor");
-            const shtPlatform = hasSht4x ? "sht4x" : (hasSht3x ? "sht3xd" : "shtcx");
-            const humId = hasSht4x ? "sht4x_humidity" : (hasSht3x ? "sht3x_humidity" : "shtc3_humidity");
-
-            if (!lines.some(l => l.includes(`id: ${shtId}`))) {
-                lines.push(`- platform: ${shtPlatform}`, `  id: ${shtId}`);
-                lines.push(`  humidity:`, `    id: ${humId}`, `    internal: true`);
-                lines.push(`  update_interval: 60s`);
-
-                if (shtPlatform === "shtcx" && !lines.some(l => l.includes("address: 0x70"))) {
-                    lines.push("    address: 0x70");
-                    lines.push("    i2c_id: bus_a");
+                    if (shtPlatform === "shtcx" && !lines.some(l => l.includes("address: 0x70"))) {
+                        lines.push("    address: 0x70");
+                        lines.push("    i2c_id: bus_a");
+                    }
+                    if (shtPlatform === "sht3xd" && !lines.some(l => l.includes("address: 0x44"))) {
+                        lines.push("    address: 0x44");
+                    }
+                } else {
+                    // exists
                 }
-                if (shtPlatform === "sht3xd" && !lines.some(l => l.includes("address: 0x44"))) {
-                    lines.push("    address: 0x44");
-                }
-            } else {
-                // exists
             }
         }
     }
-}
 };
