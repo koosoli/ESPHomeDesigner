@@ -7,6 +7,7 @@ import { Logger } from '../../utils/logger.js';
 import { hasHaBackend } from '../../utils/env.js';
 import { generateId } from '../../utils/helpers.js';
 import { showToast } from '../../utils/dom.js';
+import { DEVICE_PROFILES } from '../../io/devices.js';
 
 class AppStateFacade {
     constructor() {
@@ -52,6 +53,10 @@ class AppStateFacade {
     getWidgetById(id) { return this.project.getWidgetById(id); }
     getSelectedWidget() { return this.project.getWidgetById(this.editor.selectedWidgetIds[0]); }
     getSelectedWidgets() { return this.editor.selectedWidgetIds.map(id => this.getWidgetById(id)).filter(w => !!w); }
+
+    getSelectedProfile() {
+        return DEVICE_PROFILES[this.project.deviceModel] || null;
+    }
 
     getCanvasDimensions() {
         return this.project.getCanvasDimensions(this.preferences.state.orientation);
