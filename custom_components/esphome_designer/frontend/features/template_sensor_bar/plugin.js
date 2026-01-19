@@ -131,19 +131,24 @@ const exportDoc = (w, context) => {
 
     const p = w.props || {};
 
+    const ensureHex = (c) => {
+        if (c === "gray" || c === "grey") return "#808080";
+        return c;
+    };
+
     const iconSize = parseInt(p.icon_size || 20, 10);
     const fontSize = parseInt(p.font_size || 14, 10);
-    const colorProp = p.color || "white";
+    const colorProp = ensureHex(p.color || "white");
     const color = getColorConst(colorProp);
     const showWifi = p.show_wifi !== false;
     const showTemp = p.show_temperature !== false;
     const showHum = p.show_humidity !== false;
     const showBat = p.show_battery !== false;
     const showBg = p.show_background !== false;
-    const bgColor = getColorConst(p.background_color || "black");
+    const bgColor = getColorConst(ensureHex(p.background_color || "black"));
     const radius = parseInt(p.border_radius || 8, 10);
     const thickness = parseInt(p.border_thickness || 0, 10);
-    const borderColor = getColorConst(p.border_color || "white");
+    const borderColor = getColorConst(ensureHex(p.border_color || "white"));
 
     // Entity IDs
     const wifiId = (p.wifi_entity || "wifi_signal_dbm").replace(/[^a-zA-Z0-9_]/g, "_");
@@ -152,7 +157,7 @@ const exportDoc = (w, context) => {
     const tempId = (p.temp_entity || (profile.features?.sht4x ? "sht4x_temperature" : ((profile.features?.sht3x || profile.features?.sht3xd) ? "sht3x_temperature" : "shtc3_temperature"))).replace(/[^a-zA-Z0-9_]/g, "_");
 
     const iconFontRef = addFont("Material Design Icons", 400, iconSize);
-    const textFontRef = addFont("Roboto", 500, fontSize);
+    const textFontRef = addFont("Roboto", 400, fontSize);
 
     lines.push(`        // widget:template_sensor_bar id:${w.id} type:template_sensor_bar x:${w.x} y:${w.y} w:${w.width} h:${w.height} wifi:${showWifi} temp:${showTemp} hum:${showHum} bat:${showBat} bg:${showBg} bg_color:${p.background_color || "black"} radius:${radius} border:${thickness} icon_size:${iconSize} font_size:${fontSize} color:${colorProp} wifi_ent:"${p.wifi_entity || ""}" temp_ent:"${p.temp_entity || ""}" temp_unit:${p.temp_unit || "°C"} hum_ent:"${p.hum_entity || ""}" bat_ent:"${p.bat_entity || ""}" ${getCondProps(w)}`);
 
@@ -373,7 +378,8 @@ const collectRequirements = (widget, context) => {
     const fontSize = parseInt(p.font_size || 14, 10);
 
     addFont("Material Design Icons", 400, iconSize);
-    addFont("Roboto", 500, fontSize);
+    addFont("Material Design Icons", 400, iconSize);
+    addFont("Roboto", 400, fontSize);
 
     if (p.show_wifi !== false) ["F092B", "F091F", "F0922", "F0925", "F0928"].forEach(c => trackIcon(c, iconSize));
     if (p.show_temperature !== false) ["F050F"].forEach(c => trackIcon(c, iconSize));
@@ -403,7 +409,15 @@ export default {
     render,
     exportLVGL: (w, { common, convertColor, getLVGLFont, profile }) => {
         const p = w.props || {};
-        const color = convertColor(p.color || "white");
+
+        // Helper to ensure colors are valid Hex
+        const ensureHex = (c) => {
+            if (c === "gray" || c === "grey") return "#808080";
+            // Add other named color mappings if needed, or rely on convertColor for hex
+            return c;
+        };
+
+        const color = convertColor(ensureHex(p.color || "white"));
         const iconSize = parseInt(p.icon_size || 20, 10);
         const fontSize = parseInt(p.font_size || 14, 10);
         const showWifi = p.show_wifi !== false;
@@ -412,7 +426,7 @@ export default {
         const showBat = p.show_battery !== false;
 
         const iconFont = getLVGLFont("Material Design Icons", iconSize, 400);
-        const textFont = getLVGLFont("Roboto", fontSize, 500);
+        const textFont = getLVGLFont("Roboto", fontSize, 400);
 
         const widgets = [];
 
@@ -495,11 +509,12 @@ export default {
         return {
             obj: {
                 ...common,
-                bg_color: p.show_background !== false ? convertColor(p.background_color || "black") : "TRANSP",
+                bg_color: p.show_background !== false ? convertColor(ensureHex(p.background_color || "black")) : "TRANSP",
                 bg_opa: p.show_background !== false ? "COVER" : "TRANSP",
                 radius: p.border_radius || 8,
+                clip_corner: true,
                 border_width: p.border_thickness || 0,
-                border_color: convertColor(p.border_color || "white"),
+                border_color: convertColor(ensureHex(p.border_color || "white")),
                 layout: { type: "FLEX", flex_flow: "ROW", flex_align_main: "SPACE_AROUND", flex_align_cross: "CENTER" },
                 widgets: widgets
             }

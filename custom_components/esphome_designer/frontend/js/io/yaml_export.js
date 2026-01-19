@@ -62,12 +62,37 @@ export function highlightWidgetInSnippet(widgetIds) {
 
             // Find the next widget or page marker to determine block end
             const nextMarkers = ["# widget:", "// widget:", "// page:"];
+
+            // Also check for common top-level standard ESPHome keys to prevent bleeding into global sections
+            // Note: We check for newline + key to ensure it's a top-level start
+            const stopKeys = [
+                "esphome:", "logger:", "api:", "ota:", "wifi:", "ethernet:", "psram:",
+                "substitutions:", "external_components:", "packages:",
+                "globals:", "sensor:", "binary_sensor:", "text_sensor:",
+                "time:", "script:", "font:", "image:", "animation:",
+                "display:", "lvgl:", "i2c:", "spi:", "uart:",
+                "output:", "light:", "switch:", "button:", "number:", "select:", "climate:", "fan:", "cover:"
+            ];
+
             let nextMarkerIndex = -1;
 
+            // Check standard markers
             nextMarkers.forEach(m => {
                 const idx = yaml.indexOf(m, index + targetStr.length);
                 if (idx !== -1 && (nextMarkerIndex === -1 || idx < nextMarkerIndex)) {
                     nextMarkerIndex = idx;
+                }
+            });
+
+            // Check stop keys (must be at start of line)
+            stopKeys.forEach(key => {
+                const searchStr = "\n" + key;
+                const idx = yaml.indexOf(searchStr, index + targetStr.length);
+                if (idx !== -1 && (nextMarkerIndex === -1 || idx < nextMarkerIndex)) {
+                    // Include the newline in the count, so we stop BEFORE the key
+                    // But wait, the selection range end is exclusive? 
+                    // Usually we want to stop exactly at the newline before.
+                    nextMarkerIndex = idx + 1; // +1 to capture the newline character itself but stop before key
                 }
             });
 
