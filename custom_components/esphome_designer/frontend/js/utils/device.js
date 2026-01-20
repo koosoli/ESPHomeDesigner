@@ -86,7 +86,7 @@ export function getColorStyle(colorName) {
         case "blue": return "#0000ff";
         case "yellow": return "#ffff00";
         case "orange": return "#ffa500";
-        case "gray": return "#aaaaaa"; // Keep for backward compatibility/preview
+        case "gray": return "#a0a0a0"; // Matched to Color(160,160,160)
         case "black":
         default: return "#000000";
     }

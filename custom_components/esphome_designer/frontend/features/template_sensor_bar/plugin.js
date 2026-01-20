@@ -166,6 +166,11 @@ const exportDoc = (w, context) => {
 
     lines.push(`        {`);
     if (showBg) {
+        // Layering Strategy for E-ink:
+        // 1. Dither the entire footprint if border color is gray (Layer 1)
+        // 2. Draw inner solid box (Layer 2)
+        // 3. Draw icons in white for contrast (Layer 3)
+
         if (radius > 0) {
             lines.push(`          auto draw_filled_rrect = [&](int x, int y, int w, int h, int r, auto c) {`);
             lines.push(`            it.filled_rectangle(x + r, y, w - 2 * r, h, c);`);
@@ -178,10 +183,16 @@ const exportDoc = (w, context) => {
             lines.push(`          };`);
 
             if (thickness > 0) {
+                // Layer 1: Border footprint
                 lines.push(`          draw_filled_rrect(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${radius}, ${borderColor});`);
                 addDitherMask(lines, p.border_color || "white", isEpaper, w.x, w.y, w.width, w.height);
+
+                // Layer 2: Inner Dark Box
                 lines.push(`          draw_filled_rrect(${w.x + thickness}, ${w.y + thickness}, ${w.width - 2 * thickness}, ${w.height - 2 * thickness}, ${Math.max(0, radius - thickness)}, ${bgColor});`);
-                addDitherMask(lines, p.background_color || "black", isEpaper, w.x + thickness, w.y + thickness, w.width - 2 * thickness, w.height - 2 * thickness);
+                // Note: No dither mask for inner box yet if it's solid black
+                if (ensureHex(p.background_color) !== "black" && ensureHex(p.background_color) !== "#000000") {
+                    addDitherMask(lines, p.background_color || "black", isEpaper, w.x + thickness, w.y + thickness, w.width - 2 * thickness, w.height - 2 * thickness);
+                }
             } else {
                 lines.push(`          draw_filled_rrect(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${radius}, ${bgColor});`);
                 addDitherMask(lines, p.background_color || "black", isEpaper, w.x, w.y, w.width, w.height);
@@ -191,7 +202,9 @@ const exportDoc = (w, context) => {
                 lines.push(`          it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${borderColor});`);
                 addDitherMask(lines, p.border_color || "white", isEpaper, w.x, w.y, w.width, w.height);
                 lines.push(`          it.filled_rectangle(${w.x + thickness}, ${w.y + thickness}, ${w.width - 2 * thickness}, ${w.height - 2 * thickness}, ${bgColor});`);
-                addDitherMask(lines, p.background_color || "black", isEpaper, w.x + thickness, w.y + thickness, w.width - 2 * thickness, w.height - 2 * thickness);
+                if (ensureHex(p.background_color) !== "black" && ensureHex(p.background_color) !== "#000000") {
+                    addDitherMask(lines, p.background_color || "black", isEpaper, w.x + thickness, w.y + thickness, w.width - 2 * thickness, w.height - 2 * thickness);
+                }
             } else {
                 lines.push(`          it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColor});`);
                 addDitherMask(lines, p.background_color || "black", isEpaper, w.x, w.y, w.width, w.height);
@@ -199,6 +212,15 @@ const exportDoc = (w, context) => {
         }
     } else if (thickness > 0) {
         addDitherMask(lines, p.border_color || "white", isEpaper, w.x, w.y, w.width, w.height);
+    }
+
+    // E-ink Smart Contrast: If icons are "gray" and background is "black", use White text for crispness.
+    let effectiveColor = color;
+    if (isEpaper && (p.color === "gray" || p.color === "grey" || p.color === "#808080" || p.color === "#a0a0a0")) {
+        // If background is dark, forcing white text is the standard way to fix unreadable dithered text.
+        if (p.background_color === "black" || p.background_color === "#000000") {
+            effectiveColor = "COLOR_WHITE";
+        }
     }
 
     let activeCount = 0;
@@ -222,9 +244,9 @@ const exportDoc = (w, context) => {
             lines.push(`              else if (sig >= -85) wifi_icon = "\\U000F0922";`);
             lines.push(`              else wifi_icon = "\\U000F091F";`);
             lines.push(`            }`);
-            lines.push(`            it.printf(${Math.round(currentX)} - 4, ${centerY}, id(${iconFontRef}), ${color}, TextAlign::CENTER_RIGHT, "%s", wifi_icon);`);
-            lines.push(`            if (id(${wifiId}).has_state()) it.printf(${Math.round(currentX)} + 4, ${centerY}, id(${textFontRef}), ${color}, TextAlign::CENTER_LEFT, "%.0fdB", id(${wifiId}).state);`);
-            lines.push(`            else it.printf(${Math.round(currentX)} + 4, ${centerY}, id(${textFontRef}), ${color}, TextAlign::CENTER_LEFT, "--dB");`);
+            lines.push(`            it.printf(${Math.round(currentX)} - 4, ${Math.round(centerY)}, id(${iconFontRef}), ${effectiveColor}, TextAlign::CENTER_RIGHT, "%s", wifi_icon);`);
+            lines.push(`            if (id(${wifiId}).has_state()) it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "%.0fdB", id(${wifiId}).state);`);
+            lines.push(`            else it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "--dB");`);
             lines.push(`          }`);
             currentX += spacing;
         }
@@ -232,15 +254,15 @@ const exportDoc = (w, context) => {
         if (showTemp) {
             const unit = p.temp_unit || "°C";
             lines.push(`          {`);
-            lines.push(`            it.printf(${Math.round(currentX)} - 4, ${centerY}, id(${iconFontRef}), ${color}, TextAlign::CENTER_RIGHT, "\\U000F050F");`);
+            lines.push(`            it.printf(${Math.round(currentX)} - 4, ${Math.round(centerY)}, id(${iconFontRef}), ${effectiveColor}, TextAlign::CENTER_RIGHT, "%s", "\\U000F050F");`);
             lines.push(`            if (id(${tempId}).has_state() && !std::isnan(id(${tempId}).state)) {`);
             if (unit === "°F" || unit === "F") {
-                lines.push(`              it.printf(${Math.round(currentX)} + 4, ${centerY}, id(${textFontRef}), ${color}, TextAlign::CENTER_LEFT, "%.1f°F", id(${tempId}).state * 9.0 / 5.0 + 32.0);`);
+                lines.push(`              it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "%.1f°F", id(${tempId}).state * 9.0 / 5.0 + 32.0);`);
             } else {
-                lines.push(`              it.printf(${Math.round(currentX)} + 4, ${centerY}, id(${textFontRef}), ${color}, TextAlign::CENTER_LEFT, "%.1f°C", id(${tempId}).state);`);
+                lines.push(`              it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "%.1f°C", id(${tempId}).state);`);
             }
             lines.push(`            } else {`);
-            lines.push(`              it.printf(${Math.round(currentX)} + 4, ${centerY}, id(${textFontRef}), ${color}, TextAlign::CENTER_LEFT, "--${unit}");`);
+            lines.push(`              it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "--${unit}");`);
             lines.push(`            }`);
             lines.push(`          }`);
             currentX += spacing;
@@ -248,9 +270,9 @@ const exportDoc = (w, context) => {
 
         if (showHum) {
             lines.push(`          {`);
-            lines.push(`            it.printf(${Math.round(currentX)} - 4, ${centerY}, id(${iconFontRef}), ${color}, TextAlign::CENTER_RIGHT, "\\U000F058E");`);
-            lines.push(`            if (id(${humId}).has_state()) it.printf(${Math.round(currentX)} + 4, ${centerY}, id(${textFontRef}), ${color}, TextAlign::CENTER_LEFT, "%.0f%%", id(${humId}).state);`);
-            lines.push(`            else it.printf(${Math.round(currentX)} + 4, ${centerY}, id(${textFontRef}), ${color}, TextAlign::CENTER_LEFT, "--%%");`);
+            lines.push(`            it.printf(${Math.round(currentX)} - 4, ${Math.round(centerY)}, id(${iconFontRef}), ${effectiveColor}, TextAlign::CENTER_RIGHT, "%s", "\\U000F058E");`);
+            lines.push(`            if (id(${humId}).has_state()) it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "%.0f%%", id(${humId}).state);`);
+            lines.push(`            else it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "--%%");`);
             lines.push(`          }`);
             currentX += spacing;
         }
@@ -263,9 +285,9 @@ const exportDoc = (w, context) => {
             lines.push(`            else if (lvl >= 50) bat_icon = "\\U000F007E";`);
             lines.push(`            else if (lvl >= 20) bat_icon = "\\U000F007B";`);
             lines.push(`            else bat_icon = "\\U000F0083";`);
-            lines.push(`            it.printf(${Math.round(currentX)} - 4, ${centerY}, id(${iconFontRef}), ${color}, TextAlign::CENTER_RIGHT, "%s", bat_icon);`);
-            lines.push(`            if (id(${batId}).has_state()) it.printf(${Math.round(currentX)} + 4, ${centerY}, id(${textFontRef}), ${color}, TextAlign::CENTER_LEFT, "%.0f%%", id(${batId}).state);`);
-            lines.push(`            else it.printf(${Math.round(currentX)} + 4, ${centerY}, id(${textFontRef}), ${color}, TextAlign::CENTER_LEFT, "--%%");`);
+            lines.push(`            it.printf(${Math.round(currentX)} - 4, ${Math.round(centerY)}, id(${iconFontRef}), ${effectiveColor}, TextAlign::CENTER_RIGHT, "%s", bat_icon);`);
+            lines.push(`            if (id(${batId}).has_state()) it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "%.0f%%", id(${batId}).state);`);
+            lines.push(`            else it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "--%%");`);
             lines.push(`          }`);
         }
     }

@@ -89,8 +89,8 @@ export const ENTITY_LIMIT = 5000;
 export const ESPHOME_COLOR_MAPPING = {
     "white": "COLOR_WHITE",
     "black": "COLOR_BLACK",
-    "gray": "Color(128, 128, 128)",
-    "grey": "Color(128, 128, 128)",
+    "gray": "Color(160, 160, 160)",
+    "grey": "Color(160, 160, 160)",
     "red": "COLOR_RED",
     "green": "COLOR_GREEN",
     "blue": "COLOR_BLUE",

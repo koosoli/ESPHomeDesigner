@@ -100,7 +100,7 @@ export class FontRegistry {
         this.fontLines.forEach(f => {
             lines.push(`  - file:`);
             lines.push(`      type: ${f.file.type}`);
-            lines.push(`      family: "${f.file.family}"`);
+            lines.push(`      family: ${f.file.family}`);
             lines.push(`      weight: ${f.file.weight}`);
             if (f.file.italic) {
                 lines.push(`      italic: true`);

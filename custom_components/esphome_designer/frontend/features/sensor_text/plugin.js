@@ -505,7 +505,10 @@ export default {
             lines.push("# Weather Entity Sensors (Detected from Sensor Text)");
             for (const entityId of weatherEntities) {
                 const safeId = entityId.replace(/^weather\./, "").replace(/\./g, "_").replace(/-/g, "_");
-                lines.push("- platform: homeassistant", `  id: ${safeId}`, `  entity_id: ${entityId}`, "  internal: true");
+                lines.push("- platform: homeassistant");
+                lines.push(`  id: ${safeId}`);
+                lines.push(`  entity_id: ${entityId}`);
+                lines.push(`  internal: true`);
             }
         }
 
@@ -513,7 +516,10 @@ export default {
             lines.push("# Text Sensors (Detected from Sensor Text)");
             for (const entityId of textEntities) {
                 const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_") + "_txt";
-                lines.push("- platform: homeassistant", `  id: ${safeId}`, `  entity_id: ${entityId}`, "  internal: true");
+                lines.push("- platform: homeassistant");
+                lines.push(`  id: ${safeId}`);
+                lines.push(`  entity_id: ${entityId}`);
+                lines.push(`  internal: true`);
             }
         }
     },

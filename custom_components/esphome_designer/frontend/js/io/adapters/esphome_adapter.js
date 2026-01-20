@@ -144,8 +144,7 @@ export class ESPHomeAdapter extends BaseAdapter {
         const displayId = profile.features?.lcd ? "my_display" : "epaper_display";
         // const isLvgl = !!(profile.features && (profile.features.lvgl || profile.features.lv_display)); // Moved up for auto-detection
 
-        // Ensure Roboto 20 is the first font registered (matches legacy)
-        this.fonts.addFont("Roboto", 400, 20);
+        // Font registry is reset in this.reset(), robot fallback is handled in font_registry.js getLines() if empty.
 
         this.preProcessWidgetsPromise = this.preProcessWidgets(pages);
         await this.preProcessWidgetsPromise;
@@ -202,7 +201,8 @@ export class ESPHomeAdapter extends BaseAdapter {
             }
 
             // 2. PSRAM
-            if (!profile.isPackageBased && Generators.generatePSRAMSection) {
+            const packageHasPsram = packageContent && packageContent.includes("psram:");
+            if (!packageHasPsram && profile.features?.psram && Generators.generatePSRAMSection) {
                 lines.push(...Generators.generatePSRAMSection(profile));
             }
 
@@ -245,7 +245,7 @@ export class ESPHomeAdapter extends BaseAdapter {
             PluginRegistry.onExportNumericSensors({ ...context, lines: numericSensorLines, mainLines: lines });
             if (numericSensorLines.length > 0) {
                 if (!lines.some(l => l === "sensor:")) lines.push("sensor:");
-                lines.push(...numericSensorLines.map(l => "  " + l));
+                lines.push(...numericSensorLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
             }
 
             // Safety Fix: Auto-register any HA numeric sensors that weren't caught by plugins
@@ -293,7 +293,7 @@ export class ESPHomeAdapter extends BaseAdapter {
 
             if (numericSensorLinesExtra.length > 0) {
                 if (!lines.some(l => l === "sensor:")) lines.push("sensor:");
-                lines.push(...numericSensorLinesExtra.map(l => "  " + l));
+                lines.push(...numericSensorLinesExtra.flatMap(l => l.split('\n').map(sub => "  " + sub)));
             }
 
             // Text Sensors
@@ -301,7 +301,7 @@ export class ESPHomeAdapter extends BaseAdapter {
             PluginRegistry.onExportTextSensors({ ...context, lines: textSensorLines });
             if (textSensorLines.length > 0) {
                 lines.push("text_sensor:");
-                lines.push(...textSensorLines.map(l => "  " + l));
+                lines.push(...textSensorLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
             }
 
             // Binary Sensors
@@ -320,7 +320,7 @@ export class ESPHomeAdapter extends BaseAdapter {
             PluginRegistry.onExportBinarySensors({ ...context, lines: binarySensorLines });
             if (binarySensorLines.length > 0) {
                 lines.push("binary_sensor:");
-                lines.push(...binarySensorLines.map(l => "  " + l));
+                lines.push(...binarySensorLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
             }
 
             // Safety Fix: Auto-register any HA binary sensors used in conditions or linked to widgets
@@ -360,7 +360,7 @@ export class ESPHomeAdapter extends BaseAdapter {
 
             if (binarySensorLinesExtra.length > 0) {
                 if (!lines.some(l => l === "binary_sensor:")) lines.push("binary_sensor:");
-                lines.push(...binarySensorLinesExtra.map(l => "  " + l));
+                lines.push(...binarySensorLinesExtra.flatMap(l => l.split('\n').map(sub => "  " + sub)));
             }
 
             // Button Section
@@ -693,6 +693,8 @@ export class ESPHomeAdapter extends BaseAdapter {
                 else if (rotation === 270) transform = `transform:\n${indent}  swap_xy: true\n${indent}  mirror_x: true\n${indent}  mirror_y: false`;
 
                 if (transform) {
+                    // FIX: transform string already includes the newline and internal indentation.
+                    // But the 'transform:' key itself must be indented to match 'id: my_touchscreen'.
                     yaml = yaml.replace(/(id:\s*my_touchscreen[^\n\r]*[\r\n]+)/, `$1${indent}${transform}\n`);
                 }
             }

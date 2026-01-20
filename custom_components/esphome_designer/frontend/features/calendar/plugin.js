@@ -150,21 +150,18 @@ export default {
         const calendarWidgets = widgets.filter(w => w.type === "calendar");
         if (calendarWidgets.length === 0) return;
 
-        // Ensure json component is available
-        if (!lines.some(l => l.trim() === "json:")) {
-            lines.push("json:");
-        }
+
 
         for (const w of calendarWidgets) {
             const p = w.props || {};
             const entityId = (w.entity_id || p.entity_id || "sensor.esp_calendar_data").trim();
             const safeId = `calendar_data_${w.id}`;
 
-            lines.push(`  - platform: homeassistant`);
-            lines.push(`    id: ${safeId}`);
-            lines.push(`    entity_id: ${entityId}`);
-            lines.push(`    attribute: entries`);
-            lines.push(`    internal: true`);
+            lines.push(`- platform: homeassistant`);
+            lines.push(`  id: ${safeId}`);
+            lines.push(`  entity_id: ${entityId}`);
+            lines.push(`  attribute: entries`);
+            lines.push(`  internal: true`);
         }
     },
 

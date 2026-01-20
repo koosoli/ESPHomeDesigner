@@ -70,8 +70,25 @@ export const Utils = {
      * @param {number} x, y, w, h - Coordinates
      */
     addDitherMask: (lines, colorProp, isEpaper, x, y, w, h) => {
-        if (isEpaper && (colorProp.toLowerCase() === "gray" || colorProp.toLowerCase() === "grey")) {
-            lines.push(`        apply_grey_dither_mask(${x}, ${y}, ${w}, ${h});`);
+        if (!isEpaper) return;
+        if (!colorProp) return;
+
+        const cp = colorProp.toLowerCase();
+        let isGray = cp === "gray" || cp === "grey";
+
+        // Also detect gray hex codes (where R, G, and B are roughly equal and in mid-range)
+        if (!isGray && cp.startsWith("#") && cp.length === 7) {
+            const r = parseInt(cp.substring(1, 3), 16);
+            const g = parseInt(cp.substring(3, 5), 16);
+            const b = parseInt(cp.substring(5, 7), 16);
+            // If they are within 10% of each other and not too dark/light
+            if (Math.abs(r - g) < 15 && Math.abs(g - b) < 15 && r > 40 && r < 210) {
+                isGray = true;
+            }
+        }
+
+        if (isGray) {
+            lines.push(`          apply_grey_dither_mask(${Math.round(x)}, ${Math.round(y)}, ${Math.round(w)}, ${Math.round(h)});`);
         }
     },
 

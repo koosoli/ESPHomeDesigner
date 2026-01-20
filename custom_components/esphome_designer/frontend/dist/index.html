@@ -3,6 +3,16 @@
 
 <head>
   <meta charset="UTF-8" />
+  <script>
+    // Fix for HA Sidebar disappearing on reload:
+    // If we are the top window (not in iframe) but we are the editor index.html,
+    // it means the user reloaded the frame directly. Redirect back to the HA panel.
+    if (window.top === window.self && window.location.pathname.includes('/esphome-designer/index.html')) {
+      const haPanelPath = window.location.pathname.replace('/index.html', '');
+      window.location.replace(haPanelPath);
+    }
+  </script>
+
   <title>ESPHome Designer · YAML Snippet Editor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
@@ -15,7 +25,7 @@
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
   <link rel="icon" href="./assets/favicon-BFR8sXii.png" type="image/x-icon">
-  <script type="module" crossorigin src="./assets/main-5U1tujDr.js"></script>
+  <script type="module" crossorigin src="./assets/main-4KF2zEyr.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/main-B86mDjbK.css">
 </head>
 
@@ -23,7 +33,7 @@
   <header class="main-header" role="banner">
     <div class="main-header-title">
       <img src="./assets/logo_header-CUGdaeC6.png" alt="ESPHome Designer" class="logo-image">
-      <span><small style="opacity: 0.5; margin-left: 8px;">Pre_0.9b136</small> <span id="currentLayoutDevice"
+      <span><small style="opacity: 0.5; margin-left: 8px;">Pre_0.9b181</small> <span id="currentLayoutDevice"
           style="margin-left:8px; color:var(--accent);"></span></span>
     </div>
     <div class="main-header-actions desktop-only">

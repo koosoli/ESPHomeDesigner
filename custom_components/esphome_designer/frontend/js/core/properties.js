@@ -196,9 +196,9 @@ export class PropertiesPanel {
                 const tag = active.tagName.toLowerCase();
                 const type = active.type ? active.type.toLowerCase() : "";
 
-                if (tag === "input" || tag === "textarea" || tag === "select") {
+                if (tag === "input" || tag === "textarea" || tag === "select" || active.classList.contains("prop-input")) {
                     // Don't re-render while user is interacting with form elements
-                    // EXCEPT for range/checkbox if they want instant feedback (usually we do, but here it breaks focus)
+                    // This prevents focus loss and "kick out" during typing or arrow use
                     return;
                 }
             }
@@ -549,7 +549,7 @@ export class PropertiesPanel {
         };
 
         if (type === "shape_rect" || type === "shape_circle") {
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => {
                 updateProp("opacity", v);
             });
@@ -560,7 +560,7 @@ export class PropertiesPanel {
             this.endSection();
         }
         else if (type === "rounded_rect") {
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => {
                 updateProp("opacity", v);
             });
@@ -577,7 +577,7 @@ export class PropertiesPanel {
             this.endSection();
         }
         else if (type === "line") {
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addLabeledInput("Opacity (%)", "number", props.opacity !== undefined ? props.opacity : 100, (v) => {
                 updateProp("opacity", parseInt(v, 10));
             });
@@ -648,11 +648,11 @@ export class PropertiesPanel {
             this.endSection();
         }
         else if (type === "text" || type === "label") {
-            this.createSection("Content", false);
+            this.createSection("Content", true);
             this.addLabeledInput("Text", "text", props.text || "", (v) => updateProp("text", v));
             this.endSection();
 
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => {
                 updateProp("opacity", v);
             });
@@ -697,7 +697,7 @@ export class PropertiesPanel {
             this.endSection();
         }
         else if (type === "sensor_text") {
-            this.createSection("Data Source", false);
+            this.createSection("Data Source", true);
             this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
                 AppState.updateWidget(widget.id, { entity_id: v });
                 // Auto-populate title if empty and entity has a friendly name
@@ -735,7 +735,7 @@ export class PropertiesPanel {
             this.addCheckbox("Hide default unit", props.hide_unit || false, (v) => updateProp("hide_unit", v));
             this.endSection();
 
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => {
                 updateProp("opacity", v);
             });
@@ -784,7 +784,7 @@ export class PropertiesPanel {
             this.endSection();
         }
         else if (type === "datetime") {
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addLabeledInput("Opacity (%)", "number", props.opacity !== undefined ? props.opacity : 100, (v) => {
                 updateProp("opacity", parseInt(v, 10));
             });
@@ -827,7 +827,7 @@ export class PropertiesPanel {
             this.endSection();
         }
         else if (type === "progress_bar") {
-            this.createSection("Data Source", false);
+            this.createSection("Data Source", true);
             this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
                 AppState.updateWidget(widget.id, { entity_id: v });
                 if (v && !widget.title && window.AppState && window.AppState.entityStates) {
@@ -841,7 +841,7 @@ export class PropertiesPanel {
             });
             this.endSection();
 
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => {
                 updateProp("opacity", v);
             });
@@ -861,7 +861,7 @@ export class PropertiesPanel {
             this.endSection();
         }
         else if (type === "graph") {
-            this.createSection("Data Source", false);
+            this.createSection("Data Source", true);
             this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
                 AppState.updateWidget(widget.id, { entity_id: v });
             }, widget);
@@ -871,7 +871,7 @@ export class PropertiesPanel {
             this.addLabeledInput("Duration", "text", props.duration || "1h", (v) => updateProp("duration", v));
             this.endSection();
 
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addColorSelector("Line Color", props.color || "black", colors, (v) => updateProp("color", v));
             this.addSelect("Line Type", props.line_type || "SOLID", ["SOLID", "DASHED", "DOTTED"], (v) => updateProp("line_type", v));
             this.addLabeledInput("Line Thickness", "number", props.line_thickness || 3, (v) => updateProp("line_thickness", parseInt(v, 10)));
@@ -886,7 +886,7 @@ export class PropertiesPanel {
             this.endSection();
         }
         else if (type === "icon") {
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addCheckbox("Fit icon to frame", props.fit_icon_to_frame || false, (v) => updateProp("fit_icon_to_frame", v));
             this.addIconPicker("Select Icon", props.code || "F07D0", (v) => updateProp("code", v), widget);
             this.addLabeledInput("Icon Size (px)", "number", props.size || 40, (v) => {
@@ -900,14 +900,14 @@ export class PropertiesPanel {
             this.endSection();
         }
         else if (type === "battery_icon") {
-            this.createSection("Data Source", false);
+            this.createSection("Data Source", true);
             this.addLabeledInputWithPicker("Battery Entity ID", "text", widget.entity_id || "", (v) => {
                 AppState.updateWidget(widget.id, { entity_id: v });
             }, widget);
             this.addCheckbox("Local / On-Device Sensor", !!props.is_local_sensor, (v) => updateProp("is_local_sensor", v));
             this.endSection();
 
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addCheckbox("Fit icon to frame", props.fit_icon_to_frame || false, (v) => updateProp("fit_icon_to_frame", v));
             this.addLabeledInput("Icon Size (px)", "number", props.size || 48, (v) => {
                 let n = parseInt(v || "48", 10);
@@ -925,14 +925,14 @@ export class PropertiesPanel {
             this.endSection();
         }
         else if (type === "wifi_signal") {
-            this.createSection("Data Source", false);
+            this.createSection("Data Source", true);
             this.addLabeledInputWithPicker("WiFi Signal Entity ID", "text", widget.entity_id || "", (v) => {
                 AppState.updateWidget(widget.id, { entity_id: v });
             }, widget);
             this.addCheckbox("Local / On-Device Sensor", props.is_local_sensor !== false, (v) => updateProp("is_local_sensor", v));
             this.endSection();
 
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addCheckbox("Show dBm value", props.show_dbm !== false, (v) => updateProp("show_dbm", v));
             this.addCheckbox("Fit icon to frame", props.fit_icon_to_frame || false, (v) => updateProp("fit_icon_to_frame", v));
             this.addLabeledInput("Icon Size (px)", "number", props.size || 24, (v) => {
@@ -951,7 +951,7 @@ export class PropertiesPanel {
             this.endSection();
         }
         else if (type === "ondevice_temperature") {
-            this.createSection("Data Source", false);
+            this.createSection("Data Source", true);
             this.addLabeledInputWithPicker("Temperature Entity ID", "text", widget.entity_id || "", (v) => {
                 AppState.updateWidget(widget.id, { entity_id: v });
             }, widget);
@@ -973,7 +973,7 @@ export class PropertiesPanel {
             }
             this.endSection();
 
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addCheckbox("Fit icon to frame", props.fit_icon_to_frame || false, (v) => updateProp("fit_icon_to_frame", v));
             this.addCheckbox("Show Label", props.show_label !== false, (v) => updateProp("show_label", v));
             this.addLabeledInput("Icon Size (px)", "number", props.size || 32, (v) => {
@@ -1000,7 +1000,7 @@ export class PropertiesPanel {
             this.endSection();
         }
         else if (type === "ondevice_humidity") {
-            this.createSection("Data Source", false);
+            this.createSection("Data Source", true);
             this.addLabeledInputWithPicker("Humidity Entity ID", "text", widget.entity_id || "", (v) => {
                 AppState.updateWidget(widget.id, { entity_id: v });
             }, widget);
@@ -1020,7 +1020,7 @@ export class PropertiesPanel {
             }
             this.endSection();
 
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addCheckbox("Fit icon to frame", props.fit_icon_to_frame || false, (v) => updateProp("fit_icon_to_frame", v));
             this.addCheckbox("Show Label", props.show_label !== false, (v) => updateProp("show_label", v));
             this.addLabeledInput("Icon Size (px)", "number", props.size || 32, (v) => {
@@ -1048,13 +1048,13 @@ export class PropertiesPanel {
         }
 
         else if (type === "weather_icon") {
-            this.createSection("Data Source", false);
+            this.createSection("Data Source", true);
             this.addLabeledInputWithPicker("Weather Entity ID", "text", widget.entity_id || props.weather_entity || "weather.forecast_home", (v) => {
                 AppState.updateWidget(widget.id, { entity_id: v });
             }, widget);
             this.endSection();
 
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addCheckbox("Fit icon to frame", props.fit_icon_to_frame || false, (v) => updateProp("fit_icon_to_frame", v));
             this.addLabeledInput("Icon Size (px)", "number", props.size || 48, (v) => {
                 let n = parseInt(v || "48", 10);
@@ -1066,13 +1066,13 @@ export class PropertiesPanel {
             this.endSection();
         }
         else if (type === "weather_forecast") {
-            this.createSection("Data Source", false);
+            this.createSection("Data Source", true);
             this.addLabeledInputWithPicker("Weather Entity ID", "text", widget.entity_id || props.weather_entity || "weather.forecast_home", (v) => {
                 AppState.updateWidget(widget.id, { entity_id: v });
             }, widget);
             this.endSection();
 
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addSelect("Layout", props.layout || "horizontal", ["horizontal", "vertical"], (v) => updateProp("layout", v));
             this.addCheckbox("Show High/Low Temp", props.show_high_low !== false, (v) => updateProp("show_high_low", v));
             this.addSelect("Temperature Unit", props.temp_unit || "C", ["C", "F"], (v) => updateProp("temp_unit", v));
@@ -1122,7 +1122,7 @@ export class PropertiesPanel {
             this.addLabeledInput("Battery Entity", "text", props.bat_entity || "", (v) => updateProp("bat_entity", v));
             this.endSection();
 
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addCheckbox("Show Background", props.show_background !== false, (v) => updateProp("show_background", v));
             if (props.show_background !== false) {
                 this.addColorSelector("Background Color", props.background_color || "black", colors, (v) => {
@@ -1156,7 +1156,7 @@ export class PropertiesPanel {
             this.addCheckbox("Show Next", props.show_next !== false, (v) => updateProp("show_next", v));
             this.endSection();
 
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addCheckbox("Show Background", props.show_background !== false, (v) => updateProp("show_background", v));
             if (props.show_background !== false) {
                 this.addColorSelector("Background Color", props.background_color || "black", colors, (v) => {
@@ -1209,7 +1209,7 @@ export class PropertiesPanel {
             }
             this.endSection();
 
-            this.createSection("Content", false);
+            this.createSection("Content", true);
             this.addLabeledInput("Title", "text", props.title || "", (v) => updateProp("title", v));
             this.addIconPicker("Normal Icon", props.icon || "", (v) => updateProp("icon", v), widget);
             this.addIconPicker("Pressed Icon", props.icon_pressed || "", (v) => updateProp("icon_pressed", v), widget);
@@ -1217,7 +1217,7 @@ export class PropertiesPanel {
             this.addColorSelector("Icon Color", props.icon_color || "black", colors, (v) => updateProp("icon_color", v));
             this.endSection();
 
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             // Alpha slider logic for touch area
             const currentColor = props.color || "rgba(0, 0, 255, 0.2)";
             let hex = "#0000ff";
@@ -1262,7 +1262,7 @@ export class PropertiesPanel {
             this.addLabeledInput("Image Path", "text", props.path || "", (v) => updateProp("path", v));
             this.endSection();
 
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             if (props.invert === undefined) {
                 updateProp("invert", getDeviceModel() === "reterminal_e1001");
             }
@@ -1297,7 +1297,7 @@ export class PropertiesPanel {
             this.addLabeledInput("Update interval (seconds)", "number", props.interval_s || 300, (v) => updateProp("interval_s", parseInt(v, 10)));
             this.endSection();
 
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             if (props.invert === undefined) {
                 updateProp("invert", getDeviceModel() === "reterminal_e1001");
             }
@@ -1332,7 +1332,7 @@ export class PropertiesPanel {
             this.addHint("Enter a URL, text, or any string to encode");
             this.endSection();
 
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addLabeledInput("Scale", "number", props.scale || 2, (v) => {
                 let n = parseInt(v || "2", 10);
                 if (Number.isNaN(n) || n < 1) n = 1;
@@ -1416,7 +1416,7 @@ export class PropertiesPanel {
             this.endSection();
         }
         else if (type === "calendar") {
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addColorSelector("Text Color", props.text_color || "black", colors, (v) => updateProp("text_color", v));
             this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
             this.addColorSelector("Background", props.background_color || "white", colors, (v) => updateProp("background_color", v));
@@ -1432,7 +1432,7 @@ export class PropertiesPanel {
             this.addLabeledInput("Event Text Size", "number", props.font_size_event || 18, (v) => updateProp("font_size_event", parseInt(v, 10)));
             this.endSection();
 
-            this.createSection("Data Source", false);
+            this.createSection("Data Source", true);
             this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "sensor.esp_calendar_data", (v) => {
                 AppState.updateWidget(widget.id, { entity_id: v });
             }, widget);
@@ -1471,7 +1471,7 @@ export class PropertiesPanel {
             this.addHint('Tip: Use mdi:icon-name for Material Design Icons. <br><b>Important:</b> Ensure `materialdesignicons - webfont.ttf` is in your ESPHome `fonts / ` folder. <a href="https://pictogrammers.com/library/mdi/" target="_blank" style="color: #52c7ea">MDI Library</a>');
             this.endSection();
 
-            this.createSection("Appearance", false);
+            this.createSection("Appearance", true);
             this.addSelect("Image type", props.image_type || "RGB565", ["RGB565", "RGB", "GRAYSCALE", "BINARY"], (v) => updateProp("image_type", v));
             this.addHint("RGB565=2B/px, RGB=3B/px, GRAYSCALE=1B/px, BINARY=1bit/px");
 

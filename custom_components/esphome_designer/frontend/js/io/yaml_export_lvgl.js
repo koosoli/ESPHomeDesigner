@@ -111,9 +111,28 @@ function serializeYamlObject(obj, lines, indentLevel) {
         } else {
             if (typeof val === 'string' && val.includes('\n')) {
                 const parts = val.split('\n');
-                lines.push(`${spaces}${key}: ${parts[0]}`);
-                for (let i = 1; i < parts.length; i++) {
-                    lines.push(`${spaces}${parts[i]}`);
+                if (val.trim().startsWith('!lambda')) {
+                    // Optimized tagged lambda handling
+                    lines.push(`${spaces}${key}: ${parts[0].trim()}`);
+
+                    // Detect minimum shared indentation in the body (excluding first line)
+                    const bodyParts = parts.slice(1);
+                    const minIndent = bodyParts.reduce((min, line) => {
+                        if (!line.trim()) return min;
+                        const match = line.match(/^ */);
+                        return Math.min(min, match ? match[0].length : 0);
+                    }, Infinity);
+                    const safeMin = minIndent === Infinity ? 0 : minIndent;
+
+                    for (let i = 1; i < parts.length; i++) {
+                        const content = parts[i].trim() === "" ? "" : parts[i].substring(safeMin);
+                        lines.push(`${spaces}  ${content}`);
+                    }
+                } else {
+                    lines.push(`${spaces}${key}: |-`);
+                    parts.forEach(part => {
+                        lines.push(`${spaces}  ${part}`);
+                    });
                 }
             } else {
                 lines.push(`${spaces}${key}: ${val}`);
