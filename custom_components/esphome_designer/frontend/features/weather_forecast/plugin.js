@@ -101,7 +101,9 @@ const render = (el, widget, { getColorStyle }) => {
         el.appendChild(dayDiv);
     }
 
-    if (!widget.entity_id) {
+    const weatherEntity = widget.entity_id || props.weather_entity || "weather.forecast_home";
+
+    if (!weatherEntity) {
         const warning = document.createElement("div");
         warning.style.position = "absolute";
         warning.style.bottom = "2px";
@@ -314,6 +316,7 @@ export default {
     name: "Weather Forecast",
     category: "Sensors",
     defaults: {
+        weather_entity: "weather.forecast_home",
         days: 5,
         layout: "horizontal",
         icon_size: 32,

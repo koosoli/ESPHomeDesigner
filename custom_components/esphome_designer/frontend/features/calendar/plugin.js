@@ -34,7 +34,7 @@ const drawCalendarPreview = (el, widget, props) => {
     header.style.flexShrink = "0";
 
     const bigDate = document.createElement("div");
-    bigDate.style.fontSize = Math.min((props.font_size_date || 100) / 2, 80) + "px";
+    bigDate.style.fontSize = Math.min((props.font_size_date || 100) * 0.7, 80) + "px";
     bigDate.style.fontWeight = "100";
     bigDate.style.lineHeight = "0.8";
     bigDate.innerText = date;
@@ -143,11 +143,36 @@ export default {
         drawCalendarPreview(el, widget, props);
     },
 
+    onExportTextSensors: (context) => {
+        const { lines, widgets } = context;
+        if (!widgets) return;
+
+        const calendarWidgets = widgets.filter(w => w.type === "calendar");
+        if (calendarWidgets.length === 0) return;
+
+        // Ensure json component is available
+        if (!lines.some(l => l.trim() === "json:")) {
+            lines.push("json:");
+        }
+
+        for (const w of calendarWidgets) {
+            const p = w.props || {};
+            const entityId = (w.entity_id || p.entity_id || "sensor.esp_calendar_data").trim();
+            const safeId = `calendar_data_${w.id}`;
+
+            lines.push(`  - platform: homeassistant`);
+            lines.push(`    id: ${safeId}`);
+            lines.push(`    entity_id: ${entityId}`);
+            lines.push(`    attribute: entries`);
+            lines.push(`    internal: true`);
+        }
+    },
+
     exportLVGL: (w, { common, convertColor, getLVGLFont }) => {
         const p = w.props || {};
         const color = convertColor(p.text_color || "black");
         const bgColor = convertColor(p.background_color || "white");
-        const dateFS = Math.min((p.font_size_date || 100) / 2, 80);
+        const dateFS = Math.min((p.font_size_date || 100), 100);
         const dayFS = parseInt(p.font_size_day || 24, 10);
         const gridFS = parseInt(p.font_size_grid || 14, 10);
         const family = p.font_family || "Roboto";
@@ -245,7 +270,7 @@ export default {
         const eventFontSize = parseInt(p.font_size_event || 18, 10);
         const fontFamily = p.font_family || "Roboto";
 
-        const dateFontId = addFont(fontFamily, 100, Math.min(dateFontSize / 2, 80)); // Scaled like preview
+        const dateFontId = addFont(fontFamily, 100, dateFontSize); // Full size
         const dayFontId = addFont(fontFamily, 700, dayFontSize);
         const gridFontId = addFont(fontFamily, 400, gridFontSize);
         const eventFontId = addFont(fontFamily, 400, eventFontSize);
@@ -266,10 +291,10 @@ export default {
 
         // Header
         lines.push(`          // Header`);
-        lines.push(`          int headH = ${dateFontSize / 2 + dayFontSize + gridFontSize + 10};`);
+        lines.push(`          int headH = ${dateFontSize + dayFontSize + gridFontSize + 10};`);
         lines.push(`          it.strftime(x + w/2, y + 2, id(${dateFontId}), ${color}, TextAlign::TOP_CENTER, "%d", now);`);
-        lines.push(`          it.strftime(x + w/2, y + ${dateFontSize / 2}, id(${dayFontId}), ${color}, TextAlign::TOP_CENTER, "%A", now);`);
-        lines.push(`          it.strftime(x + w/2, y + ${dateFontSize / 2 + dayFontSize}, id(${gridFontId}), ${color}, TextAlign::TOP_CENTER, "%B %Y", now);`);
+        lines.push(`          it.strftime(x + w/2, y + ${dateFontSize}, id(${dayFontId}), ${color}, TextAlign::TOP_CENTER, "%A", now);`);
+        lines.push(`          it.strftime(x + w/2, y + ${dateFontSize + dayFontSize}, id(${gridFontId}), ${color}, TextAlign::TOP_CENTER, "%B %Y", now);`);
         lines.push(`          it.line(x, y + headH, x + w, y + headH, ${color});`);
 
         // Grid
@@ -309,10 +334,82 @@ export default {
         lines.push(`          }`);
 
         // Events
-        lines.push(`          // Events (Mock or Sensor)`);
+        lines.push(`          // Events (Real Data from Sensor)`);
+        lines.push(`          auto extract_time = [](const char* datetime) -> std::string {`);
+        lines.push(`              std::string datetimeStr(datetime);`);
+        lines.push(`              size_t pos = datetimeStr.find('T');`);
+        lines.push(`              if (pos != std::string::npos && pos + 3 < datetimeStr.size()) {`);
+        lines.push(`                  return datetimeStr.substr(pos + 1, 5);`);
+        lines.push(`              }`);
+        lines.push(`              return "";`);
+        lines.push(`          };`);
+        lines.push(``);
         lines.push(`          int eventY = gridY + (r+1)*rowH + 10;`);
-        lines.push(`          it.printf(x + 5, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_LEFT, "<b>%d</b> Meeting with Team", now.day_of_month);`);
-        lines.push(`          it.printf(x + 5, eventY + ${eventFontSize + 4}, id(${eventFontId}), ${color}, TextAlign::TOP_LEFT, "<b>%d</b> Dentist Appointment", (now.day_of_month + 2) > daysInMonth ? 1 : now.day_of_month + 2);`);
+        lines.push(`          int max_y = y + h - 5;`);
+        lines.push(`          const int event_limit = ${p.event_limit || 4};`);
+        lines.push(`          `);
+        lines.push(`          // Debug and parse JSON`);
+        lines.push(`          if (id(calendar_data_${w.id}).state.length() > 5 && id(calendar_data_${w.id}).state != "unknown") {`);
+        lines.push(`             StaticJsonDocument<4096> doc;`);
+        lines.push(`             DeserializationError error = deserializeJson(doc, id(calendar_data_${w.id}).state);`);
+        lines.push(``);
+        lines.push(`             if (!error) {`);
+        lines.push(`                 JsonVariant root = doc.as<JsonVariant>();`);
+        lines.push(`                 JsonArray days;`);
+        lines.push(``);
+        lines.push(`                 if (root.is<JsonObject>() && root["days"].is<JsonArray>()) {`);
+        lines.push(`                     days = root["days"];`);
+        lines.push(`                 } else if (root.is<JsonArray>()) {`);
+        lines.push(`                     days = root;`);
+        lines.push(`                 }`);
+        lines.push(`                 `);
+        lines.push(`                 if (!days.isNull() && days.size() > 0) {`);
+        lines.push(`                     int event_count = 0;`);
+        lines.push(`                     // Separator line`);
+        lines.push(`                     it.filled_rectangle(x + 10, eventY - 5, w - 20, 2, ${color});`);
+        lines.push(``);
+        lines.push(`                     for (JsonVariant dayEntry : days) {`);
+        lines.push(`                         if (eventY > max_y || event_count >= event_limit) break;`);
+        lines.push(`                         int currentDayNum = dayEntry["day"].as<int>();`);
+        lines.push(``);
+        lines.push(`                         auto draw_row = [&](JsonVariant event, bool is_all_day) {`);
+        lines.push(`                             if (eventY > max_y || event_count >= event_limit) return;`);
+        lines.push(`                             const char* summary = event["summary"] | "No Title";`);
+        lines.push(`                             const char* start = event["start"] | "";`);
+        lines.push(``);
+        lines.push(`                             // Draw Day Number`);
+        lines.push(`                             it.printf(x + 10, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
+        lines.push(`                             `);
+        lines.push(`                             // Draw Summary`);
+        lines.push(`                             it.printf(x + 50, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_LEFT, "%.25s", summary);`);
+        lines.push(``);
+        lines.push(`                             // Draw Time`);
+        lines.push(`                             if (is_all_day) {`);
+        lines.push(`                                 it.printf(x + w - 10, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_RIGHT, "All Day");`);
+        lines.push(`                             } else {`);
+        lines.push(`                                 std::string timeStr = extract_time(start);`);
+        lines.push(`                                 it.printf(x + w - 10, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_RIGHT, "%s", timeStr.c_str());`);
+        lines.push(`                             }`);
+        lines.push(`                             eventY += ${eventFontSize + 6};`);
+        lines.push(`                             event_count++;`);
+        lines.push(`                         };`);
+        lines.push(``);
+        lines.push(`                         if (dayEntry["all_day"].is<JsonArray>()) {`);
+        lines.push(`                             for (JsonVariant event : dayEntry["all_day"].as<JsonArray>()) {`);
+        lines.push(`                                 draw_row(event, true);`);
+        lines.push(`                             }`);
+        lines.push(`                         }`);
+        lines.push(`                         if (dayEntry["other"].is<JsonArray>()) {`);
+        lines.push(`                             for (JsonVariant event : dayEntry["other"].as<JsonArray>()) {`);
+        lines.push(`                                 draw_row(event, false);`);
+        lines.push(`                             }`);
+        lines.push(`                         }`);
+        lines.push(`                     }`);
+        lines.push(`                 }`);
+        lines.push(`             } else {`);
+        lines.push(`                 ESP_LOGW("calendar", "JSON Parse Error: %s", error.c_str());`);
+        lines.push(`             }`);
+        lines.push(`          }`);
 
 
         if (borderEnabled) {

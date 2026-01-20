@@ -1337,7 +1337,9 @@ export function loadLayoutIntoState(layout) {
         "manual_refresh_only", "deep_sleep_enabled", "deep_sleep_interval",
         "daily_refresh_enabled", "daily_refresh_time", "no_refresh_start_hour", "no_refresh_end_hour",
         "auto_cycle_enabled", "auto_cycle_interval_s", "refresh_interval",
-        "width", "height", "shape", "inverted_colors"
+        "auto_cycle_enabled", "auto_cycle_interval_s", "refresh_interval",
+        "width", "height", "shape", "inverted_colors",
+        "renderingMode", "lcdEcoStrategy", "extendedLatinGlyphs"
     ];
 
     settingKeys.forEach(key => {

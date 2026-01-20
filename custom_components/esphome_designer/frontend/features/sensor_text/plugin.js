@@ -222,6 +222,9 @@ export default {
         let precision = parseInt(p.precision, 10);
         if (isNaN(precision) || precision < 0) precision = 1;
 
+        // Escaping helper for printf
+        const escapeFmt = (str) => (str || "").replace(/%/g, "%%");
+
         const getVarName = (eid) => {
             if (p.is_local_sensor) return `id(${eid || "battery_level"})`;
             const safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
@@ -239,12 +242,41 @@ export default {
         let lambdaStr = '!lambda |-\n';
         lambdaStr += `              if (${v1}.has_state()${v2 ? ` && ${v2}.has_state()` : ""}) {\n`;
 
-        const unit = p.unit || "";
-        const prefix = p.prefix || "";
-        const postfix = p.postfix || "";
+        // Auto-detect unit if missing and not suppressed
+        let detectedUnit = (p.unit || "").trim();
+        if (!detectedUnit && !p.hide_unit && !format.endsWith("_no_unit") && window.AppState && window.AppState.entityStates) {
+            const eObj = window.AppState.entityStates[entityId];
+            if (eObj) {
+                if (eObj.attributes && eObj.attributes.unit_of_measurement) {
+                    detectedUnit = eObj.attributes.unit_of_measurement;
+                } else if (eObj.formatted) {
+                    const match = eObj.formatted.match(/^([-+]?\d*[.,]?\d+)\s*(.*)$/);
+                    if (match && match[2]) detectedUnit = match[2].trim();
+                }
+            }
+        }
+
+        // Fallback: Heuristic unit detection from entity ID if still no unit
+        if (!detectedUnit && !p.hide_unit && !format.endsWith("_no_unit") && entityId) {
+            const eid = entityId.toLowerCase();
+            if (eid.includes("_power") || eid.includes("_watt")) detectedUnit = "W";
+            else if (eid.includes("_energy") || eid.includes("_kwh")) detectedUnit = "kWh";
+            else if (eid.includes("_temperature") || eid.includes("_temp")) detectedUnit = "°C";
+            else if (eid.includes("_humidity")) detectedUnit = "%";
+            else if (eid.includes("_voltage") || eid.includes("_volt")) detectedUnit = "V";
+            else if (eid.includes("_current") || eid.includes("_amp")) detectedUnit = "A";
+            else if (eid.includes("_battery")) detectedUnit = "%";
+            else if (eid.includes("_pressure") || eid.includes("_hpa")) detectedUnit = "hPa";
+            else if (eid.includes("_speed") || eid.includes("_kmh")) detectedUnit = "km/h";
+            else if (eid.includes("_percent") || eid.includes("_pct")) detectedUnit = "%";
+        }
+
+        const unit = escapeFmt(detectedUnit);
+        const prefix = escapeFmt(p.prefix || "");
+        const postfix = escapeFmt(p.postfix || "");
         const valFmt1 = isText1 ? "%s" : `%.${precision}f`;
         const valFmt2 = v2 ? (isText2 ? "%s" : `%.${precision}f`) : "";
-        const sep = p.separator || " ~ ";
+        const sep = escapeFmt(p.separator || " ~ ");
 
         let title = (w.title || p.title || "").trim();
         if (!title && format.startsWith("label_")) {
@@ -353,7 +385,10 @@ export default {
         let precision = parseInt(p.precision, 10);
         if (isNaN(precision) || precision < 0) precision = 2;
 
-        lines.push(`        // widget:sensor_text id:${w.id} type:sensor_text x:${w.x} y:${w.y} w:${w.width} h:${w.height} ent:${entityId} fmt:${format} ${getCondProps(w)}`);
+        // Escaping helper for printf
+        const escapeFmt = (str) => (str || "").replace(/%/g, "%%");
+
+        lines.push(`        // widget:sensor_text id:${w.id} type:sensor_text x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:"${entityId}" format:"${format}" ${getCondProps(w)}`);
 
         if (!entityId && !p.is_local_sensor) {
             lines.push(`        // Sensor ID missing for this widget`);
@@ -387,7 +422,10 @@ export default {
             title = entityId.split('.').pop().replace(/_/g, ' '); // Minimal fallback
         }
 
-        const displayUnitStr = (p.hide_unit || format.endsWith("_no_unit")) ? "" : unit;
+        const displayUnitStr = (p.hide_unit || format.endsWith("_no_unit")) ? "" : escapeFmt(unit);
+        const prefixEsc = escapeFmt(prefix);
+        const postfixEsc = escapeFmt(postfix);
+        const separatorEsc = escapeFmt(separator);
 
         // Alignment Mapping
         const getAlign = (a) => {
@@ -413,7 +451,7 @@ export default {
         else if (!textAlign.includes("TOP")) yVal = Math.round(w.y + w.height / 2); // Middle
 
         // Determine format string for values
-        const finalValFmt = `${prefix}${valFmt1}${v2 ? separator + valFmt2 : ""}${displayUnitStr ? " " + displayUnitStr : ""}${postfix}`;
+        const finalValFmt = `${prefixEsc}${valFmt1}${v2 ? separatorEsc + valFmt2 : ""}${displayUnitStr ? " " + displayUnitStr : ""}${postfixEsc}`;
 
         const arg1 = isText1 ? `${v1}.state.c_str()` : `${v1}.state`;
         const arg2 = v2 ? (isText2 ? `${v2}.state.c_str()` : `${v2}.state`) : null;

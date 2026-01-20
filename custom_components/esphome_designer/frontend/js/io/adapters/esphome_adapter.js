@@ -672,11 +672,12 @@ export class ESPHomeAdapter extends BaseAdapter {
 
     applyPackageOverrides(yaml, profile, orientation) {
         if (profile.name?.includes("Waveshare Touch LCD 7")) {
-            let rotation = 90;
-            if (orientation === "portrait") rotation = 0;
-            else if (orientation === "landscape") rotation = 90;
-            else if (orientation === "portrait_inverted") rotation = 180;
-            else if (orientation === "landscape_inverted") rotation = 270;
+            // Fix #182: Native resolution is 800x480 (Landscape), so rotation should be 0 for landscape.
+            let rotation = 0;
+            if (orientation === "portrait") rotation = 90;
+            else if (orientation === "landscape") rotation = 0;
+            else if (orientation === "portrait_inverted") rotation = 270;
+            else if (orientation === "landscape_inverted") rotation = 180;
 
             yaml = yaml.replace(/rotation:\s*\d+/g, `rotation: ${rotation}`);
 
@@ -685,10 +686,11 @@ export class ESPHomeAdapter extends BaseAdapter {
             if (idMatch) {
                 const indent = idMatch[1];
                 let transform = "";
-                if (rotation === 0) transform = `transform:\n${indent}  swap_xy: true\n${indent}  mirror_x: false\n${indent}  mirror_y: true`;
-                else if (rotation === 90) transform = `transform:\n${indent}  swap_xy: false\n${indent}  mirror_x: false\n${indent}  mirror_y: false`;
-                else if (rotation === 180) transform = `transform:\n${indent}  swap_xy: true\n${indent}  mirror_x: true\n${indent}  mirror_y: false`;
-                else if (rotation === 270) transform = `transform:\n${indent}  swap_xy: false\n${indent}  mirror_x: true\n${indent}  mirror_y: true`;
+                // Note: GT911 on this panel often needs specific calibration/swaps matching the display rotation
+                if (rotation === 0) transform = `transform:\n${indent}  swap_xy: false\n${indent}  mirror_x: false\n${indent}  mirror_y: false`;
+                else if (rotation === 90) transform = `transform:\n${indent}  swap_xy: true\n${indent}  mirror_x: false\n${indent}  mirror_y: true`;
+                else if (rotation === 180) transform = `transform:\n${indent}  swap_xy: false\n${indent}  mirror_x: true\n${indent}  mirror_y: true`;
+                else if (rotation === 270) transform = `transform:\n${indent}  swap_xy: true\n${indent}  mirror_x: true\n${indent}  mirror_y: false`;
 
                 if (transform) {
                     yaml = yaml.replace(/(id:\s*my_touchscreen[^\n\r]*[\r\n]+)/, `$1${indent}${transform}\n`);

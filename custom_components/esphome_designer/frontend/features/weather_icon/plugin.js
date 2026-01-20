@@ -9,7 +9,7 @@ const render = (el, widget, { getColorStyle }) => {
     const color = props.color || "black";
 
     let weatherState = "sunny"; // Default preview
-    const entityId = widget.entity_id || "";
+    const entityId = widget.entity_id || props.weather_entity || "weather.forecast_home";
 
     if (entityId && window.AppState && window.AppState.entityStates) {
         const stateSet = window.AppState.entityStates[entityId];
@@ -56,7 +56,7 @@ const render = (el, widget, { getColorStyle }) => {
     el.style.alignItems = "center";
     el.style.justifyContent = "center";
 
-    if (!widget.entity_id) {
+    if (!entityId) {
         el.style.flexDirection = "column";
         el.style.alignItems = "flex-start";
         el.style.justifyContent = "flex-start";
@@ -75,7 +75,7 @@ const exportDoc = (w, context) => {
     } = context;
 
     const p = w.props || {};
-    const entityId = (w.entity_id || "").trim();
+    const entityId = (w.entity_id || p.weather_entity || "weather.forecast_home").trim();
     const size = parseInt(p.size || 48, 10);
     const colorProp = p.color || "black";
 
@@ -88,7 +88,7 @@ const exportDoc = (w, context) => {
     if (cond) lines.push(`        ${cond}`);
 
     if (entityId) {
-        const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_");
+        const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_") + "_text_sensor";
         // Generate dynamic weather icon mapping based on entity state
         lines.push(`        {`);
         lines.push(`          std::string weather_state = id(${safeId}).state;`);
@@ -126,8 +126,8 @@ const onExportTextSensors = (context) => {
     const weatherEntities = new Set();
     for (const w of widgets) {
         if (w.type !== "weather_icon") continue;
-        const entityId = (w.entity_id || "").trim();
-        if (entityId && entityId.startsWith("weather.")) {
+        const entityId = (w.entity_id || w.props?.weather_entity || "weather.forecast_home").trim();
+        if (entityId) {
             weatherEntities.add(entityId);
         }
     }
@@ -135,7 +135,7 @@ const onExportTextSensors = (context) => {
     if (weatherEntities.size > 0) {
         lines.push("# Weather Entity Sensors (Detected from Weather Icon)");
         for (const entityId of weatherEntities) {
-            const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_");
+            const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_") + "_text_sensor";
             lines.push(`- platform: homeassistant`);
             lines.push(`  id: ${safeId}`);
             lines.push(`  entity_id: ${entityId}`);
@@ -161,18 +161,20 @@ export default {
         height: 60,
         size: 48,
         color: "black",
+        background_color: "transparent",
+        weather_entity: "weather.forecast_home",
         fit_icon_to_frame: true
     },
     render,
     exportLVGL: (w, { common, convertColor, getLVGLFont }) => {
         const p = w.props || {};
-        const entityId = (w.entity_id || "").trim();
+        const entityId = (w.entity_id || p.weather_entity || "weather.forecast_home").trim();
         const size = parseInt(p.size || 48, 10);
         const color = convertColor(p.color || "black");
 
         let lambdaStr = '"\\U000F0599"'; // Default: sunny
         if (entityId) {
-            const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_");
+            const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_") + "_text_sensor";
             lambdaStr = '!lambda |-\n';
             lambdaStr += `              std::string ws = id(${safeId}).state;\n`;
             lambdaStr += `              if (ws == "clear-night") return "\\U000F0594";\n`;

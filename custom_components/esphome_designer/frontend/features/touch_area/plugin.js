@@ -114,7 +114,8 @@ const exportDoc = (w, context) => {
 
 const onExportBinarySensors = (context) => {
     const { lines, widgets, profile } = context;
-    if (!profile || (!profile.touch && !profile.features?.touch)) return;
+    // Fix #180: Don't restrict by profile flags. If user added touch widgets, we should try to generate.
+    // if (!profile || (!profile.touch && !profile.features?.touch)) return;
 
     const targets = widgets.filter(w => w.type === 'touch_area' || w.type === 'nav_next_page' || w.type === 'nav_previous_page' || w.type === 'nav_reload_page');
     if (targets.length === 0) return;
