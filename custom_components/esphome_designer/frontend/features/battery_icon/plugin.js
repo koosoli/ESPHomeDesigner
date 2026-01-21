@@ -232,7 +232,6 @@ export default {
         const { lines, widgets } = context;
         if (!widgets) return;
 
-        const processed = new Set();
         for (const w of widgets) {
             if (w.type !== "battery_icon") continue;
 
@@ -247,9 +246,13 @@ export default {
                 eid = `sensor.${eid}`;
             }
 
-            if (!processed.has(eid)) {
-                processed.add(eid);
-                const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(eid)) ||
+                (context.seenSensorIds && context.seenSensorIds.has(safeId));
+
+            if (!alreadyDefined) {
+                if (context.seenEntityIds) context.seenEntityIds.add(eid);
+                if (context.seenSensorIds) context.seenSensorIds.add(safeId);
                 lines.push("- platform: homeassistant", `  id: ${safeId}`, `  entity_id: ${eid}`, "  internal: true");
             }
         }

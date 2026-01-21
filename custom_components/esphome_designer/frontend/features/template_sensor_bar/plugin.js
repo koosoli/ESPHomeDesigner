@@ -304,9 +304,16 @@ const onExportNumericSensors = (context) => {
 
     const autoRegister = (entityId) => {
         if (!entityId || !entityId.includes(".") || entityId.startsWith("text_sensor.") || entityId.startsWith("binary_sensor.")) return;
-        if (lines.some(l => l.includes(`entity_id: ${entityId}`))) return;
 
         const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_");
+        const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(entityId)) ||
+            (context.seenSensorIds && context.seenSensorIds.has(safeId));
+
+        if (alreadyDefined) return;
+
+        if (context.seenEntityIds) context.seenEntityIds.add(entityId);
+        if (context.seenSensorIds) context.seenSensorIds.add(safeId);
+
         lines.push("- platform: homeassistant");
         lines.push(`  id: ${safeId}`);
         lines.push(`  entity_id: ${entityId}`);
@@ -315,35 +322,41 @@ const onExportNumericSensors = (context) => {
 
     barWidgets.forEach(w => {
         const p = w.props || {};
+        const checkLines = context.mainLines || lines;
+
         if (p.show_wifi !== false) {
-            const checkLines = context.mainLines || lines;
             if (p.wifi_entity) autoRegister(p.wifi_entity);
-            else if (!checkLines.some(l => l.includes("id: wifi_signal_dbm")) && !lines.some(l => l.includes("id: wifi_signal_dbm"))) {
-                lines.push("- platform: wifi_signal");
-                lines.push("  id: wifi_signal_dbm");
-                lines.push("  internal: true");
+            else {
+                const alreadyDefined = (context.seenSensorIds && context.seenSensorIds.has("wifi_signal_dbm"));
+                if (!alreadyDefined && !checkLines.some(l => l.includes("id: wifi_signal_dbm")) && !lines.some(l => l.includes("id: wifi_signal_dbm"))) {
+                    if (context.seenSensorIds) context.seenSensorIds.add("wifi_signal_dbm");
+                    lines.push("- platform: wifi_signal");
+                    lines.push("  id: wifi_signal_dbm");
+                    lines.push("  internal: true");
+                }
             }
         }
         if (p.show_battery !== false) {
-            const checkLines = context.mainLines || lines;
             if (p.bat_entity) autoRegister(p.bat_entity);
-            else if (!checkLines.some(l => l.includes("id: battery_level")) && !lines.some(l => l.includes("id: battery_level"))) {
-                // Fallback for devices where battery is not auto-defined by hardware generators
-                lines.push("- platform: template");
-                lines.push("  id: battery_level");
-                lines.push("  name: \"Battery Level\"");
-                lines.push("  unit_of_measurement: '%'");
-                lines.push("  update_interval: 60s");
-                lines.push("  internal: true");
+            else {
+                const alreadyDefined = (context.seenSensorIds && context.seenSensorIds.has("battery_level"));
+                if (!alreadyDefined && !checkLines.some(l => l.includes("id: battery_level")) && !lines.some(l => l.includes("id: battery_level"))) {
+                    if (context.seenSensorIds) context.seenSensorIds.add("battery_level");
+                    // Fallback for devices where battery is not auto-defined by hardware generators
+                    lines.push("- platform: template");
+                    lines.push("  id: battery_level");
+                    lines.push("  name: \"Battery Level\"");
+                    lines.push("  unit_of_measurement: '%'");
+                    lines.push("  update_interval: 60s");
+                    lines.push("  internal: true");
+                }
             }
         }
         if (p.show_temperature !== false) {
             if (p.temp_entity) autoRegister(p.temp_entity);
-            // Internal SHT handled below if needed
         }
         if (p.show_humidity !== false) {
             if (p.hum_entity) autoRegister(p.hum_entity);
-            // Internal SHT handled below if needed
         }
     });
 
@@ -363,7 +376,15 @@ const onExportNumericSensors = (context) => {
 
         // Check if the platform OR the temperature sensor already exists to avoid conflict
         const checkLines = context.mainLines || lines;
-        if (!checkLines.some(l => l.includes(`id: ${shtId}`)) && !checkLines.some(l => l.includes(`id: ${tempId}`))) {
+        const alreadyDefined = (context.seenSensorIds && context.seenSensorIds.has(shtId)) ||
+            (context.seenSensorIds && context.seenSensorIds.has(tempId));
+
+        if (!alreadyDefined && !checkLines.some(l => l.includes(`id: ${shtId}`)) && !checkLines.some(l => l.includes(`id: ${tempId}`))) {
+            if (context.seenSensorIds) {
+                context.seenSensorIds.add(shtId);
+                context.seenSensorIds.add(tempId);
+                context.seenSensorIds.add(isSht4x ? "sht4x_humidity" : (isSht3x ? "sht3x_humidity" : "shtc3_humidity"));
+            }
             lines.push(`- platform: ${shtPlatform}`);
             lines.push(`  id: ${shtId}`);
             if (shtPlatform === "sht3xd" || shtPlatform === "sht4x") lines.push(`  address: 0x44`);

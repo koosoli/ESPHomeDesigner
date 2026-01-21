@@ -322,6 +322,38 @@ const onExportComponents = (context) => {
     }
 };
 
+const onExportNumericSensors = (context) => {
+    const { lines, widgets } = context;
+    if (!widgets) return;
+
+    for (const w of widgets) {
+        if (w.type !== "graph") continue;
+
+        let entityId = (w.entity_id || "").trim();
+        const p = w.props || {};
+        if (!entityId || p.is_local_sensor) continue;
+
+        // Ensure sensor. prefix if missing
+        if (!entityId.includes(".")) {
+            entityId = `sensor.${entityId}`;
+        }
+
+        const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_");
+        const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(entityId)) ||
+            (context.seenSensorIds && context.seenSensorIds.has(safeId));
+
+        if (!alreadyDefined) {
+            if (context.seenEntityIds) context.seenEntityIds.add(entityId);
+            if (context.seenSensorIds) context.seenSensorIds.add(safeId);
+
+            lines.push("- platform: homeassistant");
+            lines.push(`  id: ${safeId}`);
+            lines.push(`  entity_id: ${entityId}`);
+            lines.push(`  internal: true`);
+        }
+    }
+};
+
 export default {
     id: "graph",
     name: "Graph / Chart",
@@ -344,6 +376,7 @@ export default {
     },
     render,
     export: exportDoc,
-    onExportComponents
+    onExportComponents,
+    onExportNumericSensors
 };
 

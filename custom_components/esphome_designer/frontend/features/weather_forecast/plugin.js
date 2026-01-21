@@ -226,15 +226,30 @@ const onExportNumericSensors = (context) => {
     const hasWeather = widgets.some(w => w.type === "weather_forecast");
 
     if (hasWeather) {
-        lines.push("");
-        lines.push("# Weather Forecast High/Low Sensors");
+        let addedAny = false;
         for (let day = 0; day < 5; day++) {
+            const highId = `weather_high_day${day}`;
+            const lowId = `weather_low_day${day}`;
+
+            if (context.seenSensorIds && context.seenSensorIds.has(highId)) continue;
+
+            if (!addedAny) {
+                lines.push("");
+                lines.push("# Weather Forecast High/Low Sensors");
+                addedAny = true;
+            }
+
+            if (context.seenSensorIds) {
+                context.seenSensorIds.add(highId);
+                context.seenSensorIds.add(lowId);
+            }
+
             lines.push("- platform: homeassistant");
-            lines.push(`  id: weather_high_day${day}`);
+            lines.push(`  id: ${highId}`);
             lines.push(`  entity_id: sensor.weather_forecast_day_${day}_high`);
             lines.push(`  internal: true`);
             lines.push("- platform: homeassistant");
-            lines.push(`  id: weather_low_day${day}`);
+            lines.push(`  id: ${lowId}`);
             lines.push(`  entity_id: sensor.weather_forecast_day_${day}_low`);
             lines.push(`  internal: true`);
         }
@@ -249,11 +264,21 @@ const onExportTextSensors = (context) => {
     const p = targets[0].props || {};
     const weatherEntity = targets[0].entity_id || p.weather_entity || "weather.forecast_home";
 
-    lines.push("");
-    lines.push("# Weather Forecast Condition Sensors");
+    let addedAny = false;
     for (let day = 0; day < 5; day++) {
+        const condId = `weather_cond_day${day}`;
+        if (context.seenSensorIds && context.seenSensorIds.has(condId)) continue;
+
+        if (!addedAny) {
+            lines.push("");
+            lines.push("# Weather Forecast Condition Sensors");
+            addedAny = true;
+        }
+
+        if (context.seenSensorIds) context.seenSensorIds.add(condId);
+
         lines.push("- platform: homeassistant");
-        lines.push(`  id: weather_cond_day${day}`);
+        lines.push(`  id: ${condId}`);
         lines.push(`  entity_id: sensor.weather_forecast_day_${day}_condition`);
         lines.push(`  internal: true`);
     }

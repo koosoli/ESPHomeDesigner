@@ -347,9 +347,7 @@ export default {
         const { lines, widgets, profile } = context;
         if (!widgets) return;
 
-        const processed = new Set();
         let needsLocalSHT = false;
-
         for (const w of widgets) {
             if (w.type !== "ondevice_temperature") continue;
             const p = w.props || {};
@@ -362,9 +360,13 @@ export default {
             if (!eid) continue;
             if (!eid.includes(".")) eid = `sensor.${eid}`;
 
-            if (!processed.has(eid)) {
-                processed.add(eid);
-                const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(eid)) ||
+                (context.seenSensorIds && context.seenSensorIds.has(safeId));
+
+            if (!alreadyDefined) {
+                if (context.seenEntityIds) context.seenEntityIds.add(eid);
+                if (context.seenSensorIds) context.seenSensorIds.add(safeId);
                 lines.push("- platform: homeassistant", `  id: ${safeId}`, `  entity_id: ${eid}`, "  internal: true");
             }
         }
@@ -381,7 +383,16 @@ export default {
                 const shtPlatform = hasSht4x ? "sht4x" : (hasSht3x ? "sht3xd" : "shtcx");
                 const tempId = hasSht4x ? "sht4x_temperature" : (hasSht3x ? "sht3x_temperature" : "shtc3_temperature");
 
-                if (!lines.some(l => l.includes(`id: ${shtId}`))) {
+                const checkLines = context.mainLines || lines;
+                const alreadyDefined = (context.seenSensorIds && context.seenSensorIds.has(shtId)) ||
+                    (context.seenSensorIds && context.seenSensorIds.has(tempId)) ||
+                    checkLines.some(l => l.includes(`id: ${shtId}`));
+
+                if (!alreadyDefined) {
+                    if (context.seenSensorIds) {
+                        context.seenSensorIds.add(shtId);
+                        context.seenSensorIds.add(tempId);
+                    }
                     lines.push(`- platform: ${shtPlatform}`, `  id: ${shtId}`);
                     // For shtcx/sht3xd we need address/i2c but hardware_generators.js usually handles the main block.
                     // However, plugins add *extra* sensors.

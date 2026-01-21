@@ -136,7 +136,7 @@ export class ESPHomeAdapter extends BaseAdapter {
         // 1. Instructions & Setup Comments
         if (!profile.isPackageBased) {
             lines.push(...this.yaml.generateInstructionHeader(profile, layout));
-
+            lines.push(...this.yaml.generateSystemSections(profile, layout));
             lines.push("");
         }
 
@@ -194,7 +194,11 @@ export class ESPHomeAdapter extends BaseAdapter {
             globalLines.push("- id: page_refresh_default_s", "  type: int", "  restore_value: true", `  initial_value: '${defaultRefresh}'`);
             globalLines.push("- id: page_refresh_current_s", "  type: int", "  restore_value: false", "  initial_value: '60'");
             globalLines.push("- id: last_page_switch_time", "  type: uint32_t", "  restore_value: false", "  initial_value: '0'");
-            PluginRegistry.onExportGlobals({ ...context, lines: globalLines });
+            // Track registered IDs and entities to avoid duplicates
+            const seenEntityIds = new Set();
+            const seenSensorIds = new Set();
+
+            PluginRegistry.onExportGlobals({ ...context, lines: globalLines, seenEntityIds, seenSensorIds });
             if (globalLines.length > 0) {
                 lines.push("globals:");
                 lines.push(...globalLines.map(l => "  " + l));
@@ -228,12 +232,37 @@ export class ESPHomeAdapter extends BaseAdapter {
                 const hasTime = lines.some(l => String(l).split('\n').some(subL => subL.trim() === "time:"));
                 if (!hasTime) {
                     lines.push("time:", "  - platform: homeassistant", "    id: ha_time");
+                    seenSensorIds.add("ha_time");
                 }
             } else {
                 // For package-based, we STILL want the time block if not present
                 const hasTime = lines.some(l => String(l).split('\n').some(subL => subL.trim() === "time:"));
                 if (!hasTime) {
                     lines.push("time:", "  - platform: homeassistant", "    id: ha_time");
+                    seenSensorIds.add("ha_time");
+                }
+            }
+
+            // Pre-populate hardware sensors based on profile features
+            if (profile.features) {
+                if (profile.pins?.batteryAdc) {
+                    seenSensorIds.add("battery_voltage");
+                    seenSensorIds.add("battery_level");
+                }
+                if (profile.features.sht4x) {
+                    seenSensorIds.add("sht4x_sensor");
+                    seenSensorIds.add("sht4x_temperature");
+                    seenSensorIds.add("sht4x_humidity");
+                }
+                if (profile.features.sht3x || profile.features.sht3xd) {
+                    seenSensorIds.add("sht3x_sensor");
+                    seenSensorIds.add("sht3x_temperature");
+                    seenSensorIds.add("sht3x_humidity");
+                }
+                if (profile.features.shtc3) {
+                    seenSensorIds.add("shtc3_sensor");
+                    seenSensorIds.add("shtc3_temperature");
+                    seenSensorIds.add("shtc3_humidity");
                 }
             }
 
@@ -242,7 +271,7 @@ export class ESPHomeAdapter extends BaseAdapter {
 
             // Numeric Sensors
             const numericSensorLines = [];
-            PluginRegistry.onExportNumericSensors({ ...context, lines: numericSensorLines, mainLines: lines });
+            PluginRegistry.onExportNumericSensors({ ...context, lines: numericSensorLines, mainLines: lines, seenEntityIds, seenSensorIds });
             if (numericSensorLines.length > 0) {
                 if (!lines.some(l => l === "sensor:")) lines.push("sensor:");
                 lines.push(...numericSensorLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
@@ -251,17 +280,7 @@ export class ESPHomeAdapter extends BaseAdapter {
             // Safety Fix: Auto-register any HA numeric sensors that weren't caught by plugins
             // This now runs for ALL profiles (including legacy) to ensure consistency.
             const allWidgetsForSensors = pages.flatMap(p => p.widgets || []);
-            const seenEntities = new Set();
             const numericSensorLinesExtra = [];
-
-            // Track entities already registered
-            numericSensorLines.forEach(l => {
-                if (l.includes("entity_id:")) {
-                    const m = l.match(/entity_id:\s*(.+)/);
-                    if (m) seenEntities.add(m[1].trim());
-                }
-            });
-
             allWidgetsForSensors.forEach(w => {
                 let entityId = (w.entity_id || "").trim();
                 const p = w.props || {};
@@ -274,20 +293,20 @@ export class ESPHomeAdapter extends BaseAdapter {
                     entityId = `sensor.${entityId}`;
                 }
 
-                // Check if it's a Home Assistant sensor domain
                 const isHaSensor = entityId.includes(".") && !entityId.startsWith("weather.") && !entityId.startsWith("text_sensor.") && !entityId.startsWith("binary_sensor.");
-
-                // Exclude common binary domains (they go in binary_sensor section)
                 const binaryDomains = ["switch.", "light.", "fan.", "input_boolean.", "cover.", "lock."];
                 const isBinaryDomain = binaryDomains.some(d => entityId.startsWith(d));
 
-                if (isHaSensor && !isBinaryDomain && !seenEntities.has(entityId)) {
-                    seenEntities.add(entityId);
+                if (isHaSensor && !isBinaryDomain && !seenEntityIds.has(entityId)) {
                     const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_");
-                    numericSensorLinesExtra.push("- platform: homeassistant");
-                    numericSensorLinesExtra.push(`  id: ${safeId}`);
-                    numericSensorLinesExtra.push(`  entity_id: ${entityId}`);
-                    numericSensorLinesExtra.push(`  internal: true`);
+                    if (!seenSensorIds.has(safeId)) {
+                        seenEntityIds.add(entityId);
+                        seenSensorIds.add(safeId);
+                        numericSensorLinesExtra.push("- platform: homeassistant");
+                        numericSensorLinesExtra.push(`  id: ${safeId}`);
+                        numericSensorLinesExtra.push(`  entity_id: ${entityId}`);
+                        numericSensorLinesExtra.push(`  internal: true`);
+                    }
                 }
             });
 
@@ -298,7 +317,7 @@ export class ESPHomeAdapter extends BaseAdapter {
 
             // Text Sensors
             const textSensorLines = [];
-            PluginRegistry.onExportTextSensors({ ...context, lines: textSensorLines });
+            PluginRegistry.onExportTextSensors({ ...context, lines: textSensorLines, seenEntityIds, seenSensorIds });
             if (textSensorLines.length > 0) {
                 lines.push("text_sensor:");
                 lines.push(...textSensorLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
@@ -317,7 +336,7 @@ export class ESPHomeAdapter extends BaseAdapter {
             }
 
             // New: Allow plugins to register binary sensors
-            PluginRegistry.onExportBinarySensors({ ...context, lines: binarySensorLines });
+            PluginRegistry.onExportBinarySensors({ ...context, lines: binarySensorLines, seenEntityIds, seenSensorIds });
             if (binarySensorLines.length > 0) {
                 lines.push("binary_sensor:");
                 lines.push(...binarySensorLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
@@ -325,17 +344,8 @@ export class ESPHomeAdapter extends BaseAdapter {
 
             // Safety Fix: Auto-register any HA binary sensors used in conditions or linked to widgets
             const allWidgetsForBinary = pages.flatMap(p => p.widgets || []);
-            const seenBinaryEntities = new Set();
             const binaryDomains = ["binary_sensor.", "switch.", "light.", "input_boolean.", "fan.", "cover.", "vacuum.", "lock."];
             const binarySensorLinesExtra = [];
-
-            // Track entities already registered
-            binarySensorLines.forEach(l => {
-                if (l.includes("entity_id:")) {
-                    const m = l.match(/entity_id:\s*(.+)/);
-                    if (m) seenBinaryEntities.add(m[1].trim());
-                }
-            });
 
             allWidgetsForBinary.forEach(w => {
                 // Check condition entity
@@ -347,13 +357,16 @@ export class ESPHomeAdapter extends BaseAdapter {
                     if (!ent) return;
                     const isBinaryHa = binaryDomains.some(d => ent.startsWith(d));
 
-                    if (isBinaryHa && !seenBinaryEntities.has(ent)) {
-                        seenBinaryEntities.add(ent);
+                    if (isBinaryHa && !seenEntityIds.has(ent)) {
                         const safeId = ent.replace(/[^a-zA-Z0-9_]/g, "_");
-                        binarySensorLinesExtra.push("- platform: homeassistant");
-                        binarySensorLinesExtra.push(`  id: ${safeId}`);
-                        binarySensorLinesExtra.push(`  entity_id: ${ent}`);
-                        binarySensorLinesExtra.push(`  internal: true`);
+                        if (!seenSensorIds.has(safeId)) {
+                            seenEntityIds.add(ent);
+                            seenSensorIds.add(safeId);
+                            binarySensorLinesExtra.push("- platform: homeassistant");
+                            binarySensorLinesExtra.push(`  id: ${safeId}`);
+                            binarySensorLinesExtra.push(`  entity_id: ${ent}`);
+                            binarySensorLinesExtra.push(`  internal: true`);
+                        }
                     }
                 });
             });

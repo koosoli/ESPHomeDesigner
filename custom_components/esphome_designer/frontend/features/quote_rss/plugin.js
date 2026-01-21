@@ -312,13 +312,13 @@ const onExportComponents = (context) => {
             lines.push(`                on_response:`);
             lines.push(`                  - lambda: |-`);
             lines.push(`                      if (response->status_code == 200) {`);
-            lines.push(`                        DynamicJsonDocument doc(4096);`);
+            lines.push(`                        JsonDocument doc;`);
             lines.push(`                        DeserializationError error = deserializeJson(doc, body);`);
             lines.push(`                        if (error) {`);
             lines.push(`                          ESP_LOGW("quote", "Failed to parse JSON: %s", error.c_str());`);
             lines.push(`                          return;`);
             lines.push(`                        }`);
-            lines.push(`                        if (doc.containsKey("success") && doc["success"].as<bool>()) {`);
+            lines.push(`                        if (doc["success"].is<bool>() && doc["success"].as<bool>()) {`);
             lines.push(`                          JsonObject q = doc["quote"];`);
             lines.push(`                          if (!q.isNull()) {`);
             lines.push(`                            std::string q_str = q["quote"].as<std::string>();`);

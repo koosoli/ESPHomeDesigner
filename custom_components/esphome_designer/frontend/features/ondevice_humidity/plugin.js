@@ -278,9 +278,7 @@ export default {
         const { lines, widgets, profile } = context;
         if (!widgets) return;
 
-        const processed = new Set();
         let needsLocalSHT = false;
-
         for (const w of widgets) {
             if (w.type !== "ondevice_humidity") continue;
             const p = w.props || {};
@@ -293,9 +291,13 @@ export default {
             if (!eid) continue;
             if (!eid.includes(".")) eid = `sensor.${eid}`;
 
-            if (!processed.has(eid)) {
-                processed.add(eid);
-                const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(eid)) ||
+                (context.seenSensorIds && context.seenSensorIds.has(safeId));
+
+            if (!alreadyDefined) {
+                if (context.seenEntityIds) context.seenEntityIds.add(eid);
+                if (context.seenSensorIds) context.seenSensorIds.add(safeId);
                 lines.push("- platform: homeassistant", `  id: ${safeId}`, `  entity_id: ${eid}`, "  internal: true");
             }
         }
@@ -310,7 +312,13 @@ export default {
                 const shtPlatform = hasSht4x ? "sht4x" : (hasSht3x ? "sht3xd" : "shtcx");
                 const humId = hasSht4x ? "sht4x_humidity" : (hasSht3x ? "sht3x_humidity" : "shtc3_humidity");
 
-                if (!lines.some(l => l.includes(`id: ${shtId}`))) {
+                // Check both numericSensorLines (lines) and global seenSensorIds
+                const alreadyDefined = (context.seenSensorIds && context.seenSensorIds.has(shtId)) || lines.some(l => l.includes(`id: ${shtId}`));
+
+                if (!alreadyDefined) {
+                    if (context.seenSensorIds) context.seenSensorIds.add(shtId);
+                    if (context.seenSensorIds) context.seenSensorIds.add(humId);
+
                     lines.push(`- platform: ${shtPlatform}`, `  id: ${shtId}`);
                     lines.push(`  humidity:`, `    id: ${humId}`, `    internal: true`);
                     lines.push(`  update_interval: 60s`);
@@ -322,8 +330,6 @@ export default {
                     if (shtPlatform === "sht3xd" && !lines.some(l => l.includes("address: 0x44"))) {
                         lines.push("    address: 0x44");
                     }
-                } else {
-                    // exists
                 }
             }
         }

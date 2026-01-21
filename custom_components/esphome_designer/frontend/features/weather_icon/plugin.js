@@ -135,15 +135,26 @@ const onExportTextSensors = (context) => {
     }
 
     if (weatherEntities.size > 0) {
-        lines.push("# Weather Entity Sensors (Detected from Weather Icon)");
+        let headerAdded = false;
         for (const entityId of weatherEntities) {
             const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_") + "_text_sensor";
-            lines.push(`- platform: homeassistant`);
-            lines.push(`  id: ${safeId}`);
-            lines.push(`  entity_id: ${entityId}`);
-            lines.push(`  internal: true`);
+            const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(entityId)) ||
+                (context.seenSensorIds && context.seenSensorIds.has(safeId));
+
+            if (!alreadyDefined) {
+                if (!headerAdded) {
+                    lines.push("# Weather Entity Sensors (Detected from Weather Icon)");
+                    headerAdded = true;
+                }
+                if (context.seenEntityIds) context.seenEntityIds.add(entityId);
+                if (context.seenSensorIds) context.seenSensorIds.add(safeId);
+                lines.push(`- platform: homeassistant`);
+                lines.push(`  id: ${safeId}`);
+                lines.push(`  entity_id: ${entityId}`);
+                lines.push(`  internal: true`);
+            }
         }
-        lines.push("");
+        if (headerAdded) lines.push("");
     }
 };
 

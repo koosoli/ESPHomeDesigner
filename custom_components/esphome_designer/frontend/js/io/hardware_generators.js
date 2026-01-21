@@ -243,13 +243,18 @@ export function generateDisplaySection(profile, orientation = 'landscape') {
             addPin("busy_pin", p.busy);
         }
 
+        if (profile.displayPlatform === "waveshare_epaper") {
+            if (profile.displayModel) lines.push(`    model: "${profile.displayModel}"`);
+        }
+
 
         lines.push(`    rotation: ${displayRotation}`);
+        // M5Paper / IT8951 needs specific reset durations
         if (profile.displayModel === "M5Paper" || profile.displayPlatform === "it8951e") {
             lines.push("    reversed: false");
             lines.push("    reset_duration: 100ms");
         }
-        else if (profile.displayModel) {
+        else if (profile.displayModel && profile.displayPlatform !== "waveshare_epaper") {
             let modelLine = `    model: "${profile.displayModel}"`;
             if (profile.displayModel === "Seeed-reTerminal-E1002") {
                 modelLine += " #Please update your ESPHome version to 2025.11.1 above";
@@ -488,6 +493,31 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
                 lines.push("        - script.execute: activity_timer");
             }
         }
+        if (b.home) {
+            lines.push("  - platform: gpio"); // Home / Reload Button
+            lines.push(`    pin:`);
+            if (typeof b.home === 'object') {
+                lines.push(`      number: ${b.home.number}`);
+                lines.push(`      mode: ${b.home.mode || 'INPUT_PULLUP'}`);
+                lines.push(`      inverted: ${b.home.inverted !== undefined ? b.home.inverted : true}`);
+            } else {
+                lines.push(`      number: ${b.home}`);
+                lines.push(`      mode: INPUT_PULLUP`);
+                lines.push(`      inverted: true`);
+            }
+            lines.push("    name: \"Home Button\"");
+            lines.push("    id: button_home");
+            lines.push("    on_press:");
+            lines.push("      then:");
+            lines.push("        - script.execute:");
+            lines.push("            id: change_page_to");
+            lines.push("            target_page: 0");
+            lines.push("        - script.execute: manage_run_and_sleep");
+            if (isCoreInk) {
+                lines.push("        - script.stop: activity_timer");
+                lines.push("        - script.execute: activity_timer");
+            }
+        }
     }
 
     // 2. Touch Area Buttons
@@ -677,10 +707,10 @@ export function generatePSRAMSection(profile) {
     const hasPsram = (profile.features && profile.features.psram) || (profile.features && profile.features.features && profile.features.features.psram);
     if (!hasPsram) return [];
 
-    const lines = ["# psram: # (Auto-commented)"];
+    const lines = ["psram:"];
     if (profile.psram_mode) {
-        lines.push(`#   mode: ${profile.psram_mode}`);
-        lines.push("#   speed: 80MHz");
+        lines.push(`  mode: ${profile.psram_mode}`);
+        lines.push("  speed: 80MHz");
     }
     lines.push("");
     return lines;

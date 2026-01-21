@@ -502,9 +502,20 @@ export default {
         }
 
         if (weatherEntities.size > 0) {
-            lines.push("# Weather Entity Sensors (Detected from Sensor Text)");
+            let headerAdded = false;
             for (const entityId of weatherEntities) {
                 const safeId = entityId.replace(/^weather\./, "").replace(/\./g, "_").replace(/-/g, "_");
+                if (context.seenSensorIds && context.seenSensorIds.has(safeId)) continue;
+                if (context.seenEntityIds && context.seenEntityIds.has(entityId)) continue;
+
+                if (!headerAdded) {
+                    lines.push("# Weather Entity Sensors (Detected from Sensor Text)");
+                    headerAdded = true;
+                }
+
+                if (context.seenSensorIds) context.seenSensorIds.add(safeId);
+                if (context.seenEntityIds) context.seenEntityIds.add(entityId);
+
                 lines.push("- platform: homeassistant");
                 lines.push(`  id: ${safeId}`);
                 lines.push(`  entity_id: ${entityId}`);
@@ -513,9 +524,20 @@ export default {
         }
 
         if (textEntities.size > 0) {
-            lines.push("# Text Sensors (Detected from Sensor Text)");
+            let headerAdded = false;
             for (const entityId of textEntities) {
                 const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_") + "_txt";
+                if (context.seenSensorIds && context.seenSensorIds.has(safeId)) continue;
+                if (context.seenEntityIds && context.seenEntityIds.has(entityId)) continue;
+
+                if (!headerAdded) {
+                    lines.push("# Text Sensors (Detected from Sensor Text)");
+                    headerAdded = true;
+                }
+
+                if (context.seenSensorIds) context.seenSensorIds.add(safeId);
+                if (context.seenEntityIds) context.seenEntityIds.add(entityId);
+
                 lines.push("- platform: homeassistant");
                 lines.push(`  id: ${safeId}`);
                 lines.push(`  entity_id: ${entityId}`);
@@ -558,10 +580,16 @@ export default {
 
         // Generate sensors with on_value triggers
         for (const [eid, widgetIds] of entityToWidgets) {
-            if (processed.has(eid)) continue;
-            processed.add(eid);
-
             const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+
+            const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(eid)) ||
+                (context.seenSensorIds && context.seenSensorIds.has(safeId));
+
+            if (alreadyDefined) continue;
+
+            if (context.seenEntityIds) context.seenEntityIds.add(eid);
+            if (context.seenSensorIds) context.seenSensorIds.add(safeId);
+
             lines.push("- platform: homeassistant");
             lines.push(`  id: ${safeId}`);
             lines.push(`  entity_id: ${eid}`);

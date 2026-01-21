@@ -238,9 +238,6 @@ export default {
         const { lines, widgets } = context;
         if (!widgets) return;
 
-        const processed = new Set();
-        let needsLocalWifi = false;
-
         for (const w of widgets) {
             if (w.type !== "wifi_signal") continue;
 
@@ -260,14 +257,20 @@ export default {
                 eid = `sensor.${eid}`;
             }
 
-            if (!processed.has(eid)) {
-                processed.add(eid);
-                const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(eid)) ||
+                (context.seenSensorIds && context.seenSensorIds.has(safeId));
+
+            if (!alreadyDefined) {
+                if (context.seenEntityIds) context.seenEntityIds.add(eid);
+                if (context.seenSensorIds) context.seenSensorIds.add(safeId);
                 lines.push("- platform: homeassistant", `  id: ${safeId}`, `  entity_id: ${eid}`, "  internal: true");
             }
         }
 
-        if (needsLocalWifi && !lines.some(l => l.includes("id: wifi_signal_dbm"))) {
+        const wifiDefined = (context.seenSensorIds && context.seenSensorIds.has("wifi_signal_dbm"));
+        if (needsLocalWifi && !wifiDefined && !lines.some(l => l.includes("id: wifi_signal_dbm"))) {
+            if (context.seenSensorIds) context.seenSensorIds.add("wifi_signal_dbm");
             lines.push("- platform: wifi_signal", "  name: \"WiFi Signal\"", "  id: wifi_signal_dbm", "  update_interval: 60s");
         }
     }

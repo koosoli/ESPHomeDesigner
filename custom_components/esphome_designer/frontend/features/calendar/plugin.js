@@ -150,19 +150,51 @@ export default {
         const calendarWidgets = widgets.filter(w => w.type === "calendar");
         if (calendarWidgets.length === 0) return;
 
-
-
         for (const w of calendarWidgets) {
             const p = w.props || {};
             const entityId = (w.entity_id || p.entity_id || "sensor.esp_calendar_data").trim();
             const safeId = `calendar_data_${w.id}`;
 
-            lines.push(`- platform: homeassistant`);
-            lines.push(`  id: ${safeId}`);
-            lines.push(`  entity_id: ${entityId}`);
-            lines.push(`  attribute: entries`);
-            lines.push(`  internal: true`);
+            const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(entityId)) ||
+                (context.seenSensorIds && context.seenSensorIds.has(safeId));
+
+            if (!alreadyDefined) {
+                if (context.seenEntityIds) context.seenEntityIds.add(entityId);
+                if (context.seenSensorIds) context.seenSensorIds.add(safeId);
+
+                lines.push("- platform: homeassistant");
+                lines.push(`  id: ${safeId}`);
+                lines.push(`  entity_id: ${entityId}`);
+                lines.push(`  attribute: entries`);
+                lines.push(`  internal: true`);
+            }
         }
+
+        lines.push("");
+        lines.push("# ============================================================================");
+        lines.push("# CALENDAR EVENTS SETUP (HOME ASSISTANT)");
+        lines.push("# 1. Download the 'Helper Script' from the Calendar widget's properties panel.");
+        lines.push("# 2. Place it in your /config/python_scripts/ folder.");
+        lines.push("# 3. Add this automation to your automations.yaml to update the sensor:");
+        lines.push("#");
+        lines.push("# automation:");
+        lines.push("#   - alias: Update ESP Calendar Data");
+        lines.push("#     trigger:");
+        lines.push("#       - platform: time_pattern");
+        lines.push("#         minutes: '/15'");
+        lines.push("#     action:");
+        lines.push("#       - service: python_script.esp_calendar_data_conversion");
+        lines.push("#         data:");
+        lines.push("#           calendar:");
+        lines.push("#             calendar.your_calendar: {}  # Add your calendars here");
+        lines.push("#           now: \"{{ now().isoformat() }}\"");
+        lines.push("#         response_variable: output");
+        lines.push("#       - service: input_text.set_value");
+        lines.push("#         target:");
+        lines.push("#           entity_id: input_text.esp_calendar_data_json");
+        lines.push("#         data:");
+        lines.push("#           value: \"{{ output.entries | to_json }}\"");
+        lines.push("# ============================================================================");
     },
 
     exportLVGL: (w, { common, convertColor, getLVGLFont }) => {
@@ -347,7 +379,7 @@ export default {
         lines.push(`          `);
         lines.push(`          // Debug and parse JSON`);
         lines.push(`          if (id(calendar_data_${w.id}).state.length() > 5 && id(calendar_data_${w.id}).state != "unknown") {`);
-        lines.push(`             StaticJsonDocument<4096> doc;`);
+        lines.push(`             JsonDocument doc;`);
         lines.push(`             DeserializationError error = deserializeJson(doc, id(calendar_data_${w.id}).state);`);
         lines.push(``);
         lines.push(`             if (!error) {`);

@@ -162,7 +162,6 @@ const onExportNumericSensors = (context) => {
     const { lines, widgets } = context;
     if (!widgets || widgets.length === 0) return;
 
-    const processed = new Set();
     for (const w of widgets) {
         if (w.type !== "progress_bar") continue;
 
@@ -175,9 +174,14 @@ const onExportNumericSensors = (context) => {
             entityId = `sensor.${entityId}`;
         }
 
-        if (!processed.has(entityId)) {
-            processed.add(entityId);
-            const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_");
+        const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_");
+        const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(entityId)) ||
+            (context.seenSensorIds && context.seenSensorIds.has(safeId));
+
+        if (!alreadyDefined) {
+            if (context.seenEntityIds) context.seenEntityIds.add(entityId);
+            if (context.seenSensorIds) context.seenSensorIds.add(safeId);
+
             lines.push("- platform: homeassistant");
             lines.push(`  id: ${safeId}`);
             lines.push(`  entity_id: ${entityId}`);
