@@ -7,7 +7,7 @@
 import { Logger } from '../utils/logger.js';
 import { DEVICE_PROFILES, SUPPORTED_DEVICE_IDS } from '../io/devices.js';
 import { getHaHeaders } from '../io/ha_api.js';
-import { hasHaBackend, HA_API_BASE } from '../utils/env.js';
+import { hasHaBackend, HA_API_BASE, getHaToken } from '../utils/env.js';
 import { AppState } from '../core/state.js';
 import { loadLayoutIntoState } from '../io/yaml_import.js';
 import { emit, EVENTS } from '../core/events.js';
@@ -135,9 +135,8 @@ class LayoutManager {
         }
 
         try {
-            const resp = await fetch(`${HA_API_BASE}/layouts`, {
-                headers: getHaHeaders()
-            });
+            // Use no custom headers to avoid CORS preflight
+            const resp = await fetch(`${HA_API_BASE}/layouts`);
             if (!resp.ok) throw new Error(`Failed to load layouts: ${resp.status}`);
 
             const data = await resp.json();
@@ -248,9 +247,8 @@ class LayoutManager {
         try {
             this.setStatus("Loading layout...", "info");
 
-            const resp = await fetch(`${HA_API_BASE}/layouts/${layoutId}`, {
-                headers: getHaHeaders()
-            });
+            // Use no custom headers to avoid CORS preflight
+            const resp = await fetch(`${HA_API_BASE}/layouts/${layoutId}`);
             if (!resp.ok) throw new Error(`Failed to load layout: ${resp.status}`);
 
             const layout = await resp.json();
@@ -338,10 +336,14 @@ class LayoutManager {
         const confirmed = confirm(`Are you sure you want to delete "${layoutName}"?\n\nThis cannot be undone.`);
         if (!confirmed) return;
 
+        this.setStatus("Deleting layout...", "info");
+
         try {
+            // Use text/plain to avoid CORS preflight
             const resp = await fetch(`${HA_API_BASE}/layouts/${layoutId}`, {
-                method: "DELETE",
-                headers: getHaHeaders()
+                method: "POST",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify({ action: "delete" })
             });
 
             if (!resp.ok) {
@@ -357,8 +359,26 @@ class LayoutManager {
             await this.loadLayouts();
 
         } catch (err) {
-            Logger.error("[LayoutManager] Error deleting layout:", err);
-            this.setStatus("Failed to delete layout", "error");
+            Logger.warn("[LayoutManager] Network error during delete, verifying if operation completed...");
+
+            // Wait a moment for the backend to complete the operation
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Reload the layout list to check if deletion actually succeeded
+            await this.loadLayouts();
+
+            // Check if the layout is still in the list
+            const stillExists = this.layouts.some(l => l.id === layoutId);
+
+            if (!stillExists) {
+                // The deletion actually succeeded despite the network error
+                Logger.log("[LayoutManager] Layout was successfully deleted (verified after refresh)");
+                this.setStatus(`Deleted: ${layoutName}`, "success");
+            } else {
+                // The deletion truly failed
+                Logger.error("[LayoutManager] Error deleting layout:", err);
+                this.setStatus("Failed to delete layout", "error");
+            }
         }
     }
 
@@ -395,7 +415,7 @@ class LayoutManager {
             `;
             document.body.appendChild(modal);
 
-            // Bindevents
+            // Bind events
             document.getElementById("newLayoutClose").addEventListener("click", () => {
                 modal.classList.add("hidden");
             });
@@ -403,29 +423,59 @@ class LayoutManager {
                 modal.classList.add("hidden");
             });
             document.getElementById("newLayoutConfirm").addEventListener("click", () => {
-                const name = document.getElementById("newLayoutName").value.trim();
-                const deviceType = document.getElementById("newLayoutDeviceType").value;
-                if (!name) {
-                    alert("Please enter a layout name.");
-                    return;
-                }
-                modal.classList.add("hidden");
-                this.createLayout(name, deviceType);
+                this.handleCreateLayoutConfirm();
             });
+
+            // Keyboard support
+            document.getElementById("newLayoutName").addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    this.handleCreateLayoutConfirm();
+                } else if (e.key === "Escape") {
+                    modal.classList.add("hidden");
+                }
+                // Prevent bubbling to avoid triggering global keyboard shortcuts
+                e.stopPropagation();
+            });
+
             modal.addEventListener("click", (e) => {
-                if (e.target === modal) modal.classList.add("hidden");
+                // Only close on backdrop click if not clicking the modal itself
+                // and not while actively typing
+                if (e.target === modal) {
+                    const nameInput = document.getElementById("newLayoutName");
+                    if (document.activeElement !== nameInput) {
+                        modal.classList.add("hidden");
+                    }
+                }
             });
         }
 
-        // Auto-generate default name
+        // Reset and show
+        const nameInput = document.getElementById("newLayoutName");
         const existingCount = this.layouts.length;
         const defaultName = `Layout ${existingCount + 1}`;
-        document.getElementById("newLayoutName").value = defaultName;
+        nameInput.value = defaultName;
+
         // Default to first available device or fallback
         const model = AppState.deviceModel || (AppState.settings ? AppState.settings.device_model : null) || "reterminal_e1001";
         const defaultDevice = DEVICE_PROFILES ? Object.keys(DEVICE_PROFILES)[0] : "reterminal_e1001";
         document.getElementById("newLayoutDeviceType").value = defaultDevice;
+
         document.getElementById("newLayoutModal").classList.remove("hidden");
+
+        // Focus name input with a slight delay
+        setTimeout(() => nameInput.focus(), 100);
+    }
+
+    handleCreateLayoutConfirm() {
+        const name = document.getElementById("newLayoutName").value.trim();
+        const deviceType = document.getElementById("newLayoutDeviceType").value;
+        if (!name) {
+            alert("Please enter a layout name.");
+            return;
+        }
+        document.getElementById("newLayoutModal").classList.add("hidden");
+        this.createLayout(name, deviceType);
     }
 
     generateDeviceOptions() {
@@ -456,13 +506,15 @@ class LayoutManager {
         // Always append timestamp for uniqueness
         const id = baseId + "_" + Date.now();
 
-        // Note: deviceModel is now passed directly from the select value
+        this.setStatus("Creating layout...", "info");
 
+        let createSucceeded = false;
 
         try {
+            // Use text/plain to avoid CORS preflight
             const resp = await fetch(`${HA_API_BASE}/layouts`, {
                 method: "POST",
-                headers: getHaHeaders(),
+                headers: { "Content-Type": "text/plain" },
                 body: JSON.stringify({ id, name, device_type: deviceModel, device_model: deviceModel })
             });
 
@@ -471,8 +523,45 @@ class LayoutManager {
                 throw new Error(data.error || `Create failed: ${resp.status}`);
             }
 
+            createSucceeded = true;
+
+        } catch (err) {
+            Logger.warn("[LayoutManager] Network error during create, verifying if operation completed...");
+
+            // Wait a moment for the backend to complete the operation
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Reload the layout list to check if creation actually succeeded
+            await this.loadLayouts();
+
+            // Check if the new layout appears in the list
+            const nowExists = this.layouts.some(l => l.id === id);
+
+            if (nowExists) {
+                // The creation actually succeeded despite the network error
+                Logger.log("[LayoutManager] Layout was successfully created (verified after refresh)");
+                createSucceeded = true;
+            } else {
+                // The creation truly failed
+                Logger.error("[LayoutManager] Error creating layout:", err);
+                this.setStatus("Failed to create layout", "error");
+                return;
+            }
+        }
+
+        if (createSucceeded) {
             this.setStatus(`Created: ${name}`, "success");
             await this.loadLayouts();
+
+            // Detect if this is an e-ink device to set appropriate rendering mode default
+            const profile = DEVICE_PROFILES[deviceModel];
+            const isEpaper = profile && profile.features && profile.features.epaper;
+            const hasLvgl = profile && profile.features && profile.features.lvgl;
+
+            // Default to direct mode for e-ink unless it explicitly supports LVGL
+            const initialRenderingMode = (isEpaper && !hasLvgl) ? "direct" : "lvgl";
+
+            Logger.log(`[LayoutManager] New layout ${id} detected device type. isEpaper=${isEpaper}, hasLvgl=${hasLvgl}. Setting initial renderingMode to: ${initialRenderingMode}`);
 
             // CRITICAL: Clear the current state BEFORE loading the new layout
             // This prevents any widgets from the previous layout from appearing
@@ -484,7 +573,14 @@ class LayoutManager {
                     widgets: []
                 }]);
                 window.AppState.setCurrentPageIndex(0);
-                Logger.log("[LayoutManager] Cleared state before loading new layout");
+
+                // Update settings with the detected rendering mode
+                window.AppState.updateSettings({
+                    renderingMode: initialRenderingMode,
+                    device_model: deviceModel
+                });
+
+                Logger.log("[LayoutManager] Cleared state and set initial settings before loading new layout");
             }
 
             // Auto-load the new layout so user can start working on it
@@ -506,10 +602,6 @@ class LayoutManager {
 
                 Logger.log(`[LayoutManager] Created layout '${id}' with device_model: ${deviceModel}, pages: ${window.AppState.pages?.length}, widgets: ${window.AppState.getCurrentPage()?.widgets?.length || 0}`);
             }
-
-        } catch (err) {
-            Logger.error("[LayoutManager] Error creating layout:", err);
-            this.setStatus("Failed to create layout", "error");
         }
     }
 

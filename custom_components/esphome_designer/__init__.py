@@ -163,11 +163,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Register the embedded editor panel backend view
     hass.http.register_view(ESPHomeDesignerPanelView(hass))
-    _LOGGER.info("%s: Panel view registered at /esphome-designer", DOMAIN)
+    _LOGGER.info("%s: Panel view registered at /esphome-designer/editor", DOMAIN)
 
     # Register the font view for MDI icons
     hass.http.register_view(ESPHomeDesignerFontView(hass))
-    _LOGGER.info("%s: Font view registered at /esphome-designer/materialdesignicons-webfont.ttf", DOMAIN)
+    _LOGGER.info("%s: Font view registered at /esphome-designer/editor/materialdesignicons-webfont.ttf", DOMAIN)
 
     # Register static view for frontend assets (CSS/JS)
     # This manually serves editor.css and editor.js to avoid issues with register_static_path
@@ -185,7 +185,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 sidebar_title="ESPHome Designer",
                 sidebar_icon="mdi:tablet-dashboard",
                 frontend_url_path="esphome-designer",
-                config={"url": "/esphome-designer/index.html"},
+                config={"url": "/esphome-designer/editor/index.html"},
                 require_admin=False,
             )
             _LOGGER.info("%s: Sidebar panel registered", DOMAIN)

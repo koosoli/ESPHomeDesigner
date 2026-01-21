@@ -65,7 +65,7 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
             bg_color: convertColor(p.bg_color),
             text_color: convertColor(p.color),
             selected: { bg_color: convertColor(p.selected_bg_color), text_color: convertColor(p.selected_text_color) },
-            mode: p.mode || "NORMAL",
+            mode: p.mode || "normal",
             opa: formatOpacity(p.opa)
         }
     };
@@ -82,7 +82,7 @@ export default {
         color: "black",
         selected_bg_color: "blue",
         selected_text_color: "white",
-        mode: "NORMAL",
+        mode: "normal",
         opa: 255
     },
     render,

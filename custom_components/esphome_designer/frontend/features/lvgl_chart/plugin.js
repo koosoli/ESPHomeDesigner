@@ -59,7 +59,7 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
     return {
         chart: {
             ...common,
-            type: p.type || "LINE",
+            type: p.type || "line",
             style: {
                 bg_color: convertColor(p.bg_color || "white"),
                 border_color: convertColor(p.color),
@@ -74,7 +74,7 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
             items: [{ line_color: convertColor(p.color), points: [0, 20, 50, 30, 80, 60, 40, 90, 50, 70] }],
             widgets: [{
                 label: {
-                    align: "TOP_MID",
+                    align: "top_mid",
                     text: `"${p.title || 'Graph'}"`,
                     text_color: convertColor(p.color)
                 }
@@ -92,7 +92,7 @@ export default {
         max: 100,
         color: "blue",
         title: "Chart",
-        type: "LINE",
+        type: "line",
         point_count: 10,
         x_div_lines: 3,
         y_div_lines: 3

@@ -57,20 +57,30 @@ export function generateCustomHardwareYaml(config) {
     lines.push("");
 
     // infrastructure section (Commented out by default to follow snippet philosophy)
-    lines.push("#Infrastructure (Comment out if pasting into existing config)");
-    lines.push("# esphome:");
+    lines.push("# Infrastructure (Comment out if pasting into existing config)");
+    lines.push("# esphome: # (Auto-commented)");
     lines.push(`#   name: ${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`);
     lines.push("#");
-    lines.push("# esp32:");
+    lines.push("# esp32: # (Auto-commented)");
     lines.push(`#   board: ${getBoardForChip(chip)}`);
     lines.push("#   framework:");
     lines.push("#     type: esp-idf");
+    if (psram && chip.includes("s3")) {
+        lines.push("#     # For stability on S3 devices with high-res displays/LVGL:");
+        lines.push("#     advanced:");
+        lines.push("#       execute_from_psram: true");
+    }
     lines.push("");
 
     // PSRAM (Commented out by default)
     if (psram) {
-        lines.push("# psram:");
-        lines.push("#");
+        lines.push("# psram: # (Auto-commented)");
+        if (chip.includes("s3")) {
+            lines.push("#   # Quad or Octal depending on your board");
+            lines.push("#   mode: quad");
+            lines.push("#   speed: 80MHz");
+        }
+        lines.push("");
     }
 
     // SPI Bus (Common for most displays)

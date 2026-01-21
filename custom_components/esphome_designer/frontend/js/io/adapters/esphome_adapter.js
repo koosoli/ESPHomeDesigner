@@ -631,9 +631,9 @@ export class ESPHomeAdapter extends BaseAdapter {
     async fetchHardwarePackage(url) {
         // Handle proxy if needed
         let fetchUrl = url;
-        if (window.location.pathname.includes("/esphome-designer")) {
+        if (window.location.pathname.includes("/esphome-designer/editor")) {
             if (!url.startsWith("http") && !url.startsWith("/")) {
-                fetchUrl = "/esphome-designer/static/" + url;
+                fetchUrl = "/esphome-designer/editor/static/" + url;
             }
         }
 
@@ -649,7 +649,7 @@ export class ESPHomeAdapter extends BaseAdapter {
 
     sanitizePackageContent(yaml) {
         if (!yaml) return "";
-        const systemKeys = ["esphome:", "esp32:", "wifi:", "api:", "ota:", "logger:", "web_server:", "captive_portal:", "platformio_options:", "preferences:", "substitutions:"];
+        const systemKeys = ["esphome:", "esp32:", "psram:", "wifi:", "api:", "ota:", "logger:", "web_server:", "captive_portal:", "platformio_options:", "preferences:", "substitutions:"];
         const lines = yaml.split('\n');
         const sanitized = [];
         let inSystemBlock = false;

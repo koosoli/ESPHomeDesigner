@@ -253,11 +253,11 @@ export default {
         const btnProps = {
             width: iconSize + 16,
             height: "100%",
-            bg_opa: "TRANSP",
+            bg_opa: "transp",
             border_width: 0,
             radius: 0,
             pad_all: 0,
-            layout: { type: "FLEX", flex_align_main: "CENTER", flex_align_cross: "CENTER" }
+            layout: { type: "flex", flex_align_main: "center", flex_align_cross: "center" }
         };
 
         const iconFont = getLVGLFont("Material Design Icons", iconSize, 400);
@@ -267,7 +267,7 @@ export default {
                 button: {
                     ...btnProps,
                     on_click: [{ "script.execute": { id: "change_page_to", target_page: "!lambda 'return id(display_page) - 1;'" } }],
-                    widgets: [{ label: { align: "CENTER", text: '"\\U000F0141"', text_font: iconFont, text_color: color } }]
+                    widgets: [{ label: { align: "center", text: '"\\U000F0141"', text_font: iconFont, text_color: color } }]
                 }
             });
         }
@@ -276,7 +276,7 @@ export default {
                 button: {
                     ...btnProps,
                     on_click: [{ "script.execute": "manage_run_and_sleep" }],
-                    widgets: [{ label: { align: "CENTER", text: '"\\U000F02DC"', text_font: iconFont, text_color: color } }]
+                    widgets: [{ label: { align: "center", text: '"\\U000F02DC"', text_font: iconFont, text_color: color } }]
                 }
             });
         }
@@ -285,7 +285,7 @@ export default {
                 button: {
                     ...btnProps,
                     on_click: [{ "script.execute": { id: "change_page_to", target_page: "!lambda 'return id(display_page) + 1;'" } }],
-                    widgets: [{ label: { align: "CENTER", text: '"\\U000F0142"', text_font: iconFont, text_color: color } }]
+                    widgets: [{ label: { align: "center", text: '"\\U000F0142"', text_font: iconFont, text_color: color } }]
                 }
             });
         }
@@ -293,12 +293,12 @@ export default {
         return {
             obj: {
                 ...common,
-                bg_color: p.show_background !== false ? convertColor(p.background_color || "black") : "TRANSP",
-                bg_opa: p.show_background !== false ? "COVER" : "TRANSP",
+                bg_color: p.show_background !== false ? convertColor(p.background_color || "black") : "transp",
+                bg_opa: p.show_background !== false ? "cover" : "transp",
                 radius: p.border_radius || 8,
                 border_width: p.border_thickness || 0,
                 border_color: convertColor(p.border_color || "white"),
-                layout: { type: "FLEX", flex_flow: "ROW", flex_align_main: "SPACE_AROUND", flex_align_cross: "CENTER" },
+                layout: { type: "flex", flex_flow: "row", flex_align_main: "space_around", flex_align_cross: "center" },
                 widgets: widgets
             }
         };

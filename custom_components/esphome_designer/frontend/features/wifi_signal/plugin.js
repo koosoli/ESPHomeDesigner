@@ -184,7 +184,7 @@ export default {
                 label: {
                     width: iconSize + 10,
                     height: iconSize + 4,
-                    align: "TOP_MID",
+                    align: "top_mid",
                     text: iconLambda,
                     text_font: getLVGLFont("Material Design Icons", iconSize, 400),
                     text_color: color
@@ -203,12 +203,12 @@ export default {
                 label: {
                     width: "100%",
                     height: fontSize + 4,
-                    align: "BOTTOM_MID",
+                    align: "bottom_mid",
                     y: 2,
                     text: textLambda,
                     text_font: getLVGLFont("Roboto", fontSize, 400),
                     text_color: color,
-                    text_align: "CENTER"
+                    text_align: "center"
                 }
             });
         }
@@ -216,7 +216,7 @@ export default {
         return {
             obj: {
                 ...common,
-                bg_opa: "TRANSP",
+                bg_opa: "transp",
                 border_width: 0,
                 widgets: widgets
             }

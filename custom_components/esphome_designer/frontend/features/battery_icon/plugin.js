@@ -79,7 +79,12 @@ const exportDoc = (w, context) => {
     if (p.is_local_sensor) {
         sensorId = "battery_level";
     } else {
-        sensorId = entityId ? entityId.replace(/[^a-zA-Z0-9_]/g, "_") : "battery_level";
+        // Ensure sensor. prefix if missing (matching onExportNumericSensors logic)
+        let normalizedEntityId = entityId;
+        if (normalizedEntityId && !normalizedEntityId.includes(".")) {
+            normalizedEntityId = `sensor.${normalizedEntityId}`;
+        }
+        sensorId = normalizedEntityId ? normalizedEntityId.replace(/[^a-zA-Z0-9_]/g, "_") : "battery_level";
     }
 
     lines.push(`        // widget:battery_icon id:${w.id} type:battery_icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId || "battery_level"} size:${size} font_size:${fontSize} color:${colorProp} local:${!!p.is_local_sensor} ${getCondProps(w)}`);
@@ -145,7 +150,12 @@ export default {
     render,
     exportLVGL: (w, { common, convertColor, getLVGLFont, formatOpacity }) => {
         const p = w.props || {};
-        const entityId = (w.entity_id || "").trim();
+        let entityId = (w.entity_id || "").trim();
+        // Ensure sensor. prefix if missing (matching onExportNumericSensors logic)
+        if (entityId && !entityId.includes(".")) {
+            entityId = `sensor.${entityId}`;
+        }
+
         const sensorId = p.is_local_sensor ? "battery_level" : (entityId ? entityId.replace(/[^a-zA-Z0-9_]/g, "_") : "battery_level");
         const color = convertColor(p.color || "black");
         const iconSize = parseInt(p.size || 24, 10);
@@ -177,14 +187,14 @@ export default {
         return {
             obj: {
                 ...common,
-                bg_opa: "TRANSP",
+                bg_opa: "transp",
                 border_width: 0,
                 widgets: [
                     {
                         label: {
                             width: iconSize + 10,
                             height: iconSize + 4,
-                            align: "TOP_MID",
+                            align: "top_mid",
                             text: iconLambda,
                             text_font: getLVGLFont("Material Design Icons", iconSize, 400),
                             text_color: color
@@ -194,12 +204,12 @@ export default {
                         label: {
                             width: "100%",
                             height: fontSize + 4,
-                            align: "BOTTOM_MID",
+                            align: "bottom_mid",
                             y: 2,
                             text: textLambda,
                             text_font: getLVGLFont("Roboto", fontSize, 400),
                             text_color: color,
-                            text_align: "CENTER"
+                            text_align: "center"
                         }
                     }
                 ]

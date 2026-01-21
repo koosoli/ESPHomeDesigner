@@ -100,7 +100,7 @@ export default {
         color: "blue",
         bg_color: "gray",
         start_value: 0,
-        mode: "NORMAL"
+        mode: "normal"
     },
     render,
     exportLVGL,

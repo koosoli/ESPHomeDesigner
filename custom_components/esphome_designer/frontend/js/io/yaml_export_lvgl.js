@@ -251,13 +251,13 @@ function transpileToLVGL(w, profile) {
     }
 
     function convertAlign(align) {
-        if (!align) return "TOP_LEFT";
+        if (!align) return "top_left";
         const mapping = {
-            "left": "TOP_LEFT",
-            "center": "CENTER",
-            "right": "TOP_RIGHT"
+            "left": "top_left",
+            "center": "center",
+            "right": "top_right"
         };
-        return mapping[align.toLowerCase()] || align;
+        return mapping[align.toLowerCase()] || align.toLowerCase();
     }
 
     function getLVGLFont(family, size, weight, italic) {
@@ -269,10 +269,10 @@ function transpileToLVGL(w, profile) {
     }
 
     function formatOpacity(opa) {
-        if (opa === undefined || opa === null) return "COVER";
+        if (opa === undefined || opa === null) return "cover";
         if (typeof opa === "number") {
-            if (opa >= 255) return "COVER";
-            if (opa <= 0) return "TRANSP";
+            if (opa >= 255) return "cover";
+            if (opa <= 0) return "transp";
             return Math.round((opa / 255) * 100) + "%";
         }
         return opa;

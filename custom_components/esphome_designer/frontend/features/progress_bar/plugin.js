@@ -92,7 +92,7 @@ const exportLVGL = (w, { common, convertColor }) => {
             value: barValue,
             bg_color: convertColor(p.bg_color || "white"),
             indicator: { bg_color: convertColor(p.color) },
-            mode: p.mode || "NORMAL"
+            mode: p.mode || "normal"
         }
     };
 };
@@ -199,7 +199,7 @@ export default {
         bg_color: "white",
         min: 0,
         max: 100,
-        mode: "NORMAL"
+        mode: "normal"
     },
     render,
     exportLVGL,

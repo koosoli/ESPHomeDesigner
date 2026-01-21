@@ -213,10 +213,10 @@ export default {
         widgets.push({
             obj: {
                 width: "100%", height: "SIZE_CONTENT", y: headH + 5,
-                bg_opa: "TRANSP", border_width: 0,
-                layout: { type: "FLEX", flex_flow: "ROW_WRAP", flex_align_main: "SPACE_AROUND" },
+                bg_opa: "transp", border_width: 0,
+                layout: { type: "flex", flex_flow: "row_wrap", flex_align_main: "space_around" },
                 widgets: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map(d => ({
-                    label: { text: `"${d}"`, text_font: getLVGLFont(family, gridFS, 700), text_color: color, width: "14%", align: "CENTER" }
+                    label: { text: `"${d}"`, text_font: getLVGLFont(family, gridFS, 700), text_color: color, width: "14%", align: "center" }
                 }))
             }
         });

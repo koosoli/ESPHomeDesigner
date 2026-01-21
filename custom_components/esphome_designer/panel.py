@@ -31,7 +31,7 @@ from .const import API_BASE_PATH
 _LOGGER = logging.getLogger(__name__)
 
 
-PANEL_URL_PATH = "/esphome-designer/index.html"
+PANEL_URL_PATH = "/esphome-designer/editor/index.html"
 
 
 class ESPHomeDesignerPanelView(HomeAssistantView):
@@ -41,7 +41,7 @@ class ESPHomeDesignerPanelView(HomeAssistantView):
     name = "esphome_designer:panel"
     requires_auth = False
     # WARNING: Do NOT add custom `options()` handlers to this view!
-    cors_allowed = False
+    cors_allowed = True
 
     def __init__(self, hass: HomeAssistant) -> None:
         """Store hass if needed later."""
@@ -72,25 +72,19 @@ class ESPHomeDesignerPanelView(HomeAssistantView):
                 # while HA serves it with correct absolute paths
                 import re
                 
-                # CSS
-                html = html.replace('href="editor.css"', 'href="/esphome-designer/static/editor.css"')
-                
-                # Assets (images, icons) - Rewrite "assets/" to "/esphome-designer/static/assets/"
-                html = html.replace('src="assets/', 'src="/esphome-designer/static/assets/')
-                html = html.replace('href="assets/', 'href="/esphome-designer/static/assets/')
-                
-                # JS files - convert relative paths to absolute static paths
-                # Pattern: src="something.js" or src="path/to/file.js" or src="file.js?v=2"
-                # Skip external URLs (http://, https://)
-                def rewrite_js_src(match):
-                    path = match.group(1)
-                    # Don't rewrite external URLs
-                    if path.startswith('http://') or path.startswith('https://'):
+                # Robust Asset Rewriter
+                # This converts relative paths (like "editor.css" or "assets/logo.png") 
+                # into absolute paths served by the integration (/esphome-designer/editor/static/...)
+                def rewrite_attr(match):
+                    attr = match.group(1)
+                    path = match.group(2)
+                    # Don't rewrite external URLs, data URIs, or already absolute paths
+                    if path.startswith(('http://', 'https://', 'data:', '/')):
                         return match.group(0)
-                    return f'src="/esphome-designer/static/{path}"'
+                    return f'{attr}="/esphome-designer/editor/static/{path}"'
                 
-                # Match .js files with optional query strings (e.g., ?v=2, ?cache=bust)
-                html = re.sub(r'src="([^"]+\.js(?:\?[^"]*)?)"', rewrite_js_src, html)
+                # Match src="..." and href="..."
+                html = re.sub(r'(src|href)="([^"]+)"', rewrite_attr, html)
 
                 _LOGGER.info("✓ Serving editor from integration: %s (%d bytes)", editor_path_integration, len(html))
                 return web.Response(
@@ -144,7 +138,7 @@ class ESPHomeDesignerPanelView(HomeAssistantView):
 class ESPHomeDesignerStaticView(HomeAssistantView):
     """Serve static frontend assets (CSS/JS) from the frontend directory."""
 
-    url = "/esphome-designer/static/{path:.*}"
+    url = "/esphome-designer/editor/static/{path:.*}"
     name = "esphome_designer:static"
     requires_auth = False
     # This breaks component setup and causes 404 errors for all static assets.

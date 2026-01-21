@@ -75,7 +75,7 @@ const exportLVGL = (w, { common, convertColor }) => {
             pivot_x: (p.pivot_x || 0),
             pivot_y: (p.pivot_y || 0),
             image_recolor: convertColor(p.color),
-            image_recolor_opa: "COVER"
+            image_recolor_opa: "cover"
         }
     };
 };

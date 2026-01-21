@@ -89,7 +89,7 @@ const exportLVGL = (w, { common, convertColor, profile }) => {
             bg_color: convertColor(p.bg_color || "gray"),
             indicator: { bg_color: convertColor(p.color) },
             knob: { bg_color: convertColor(p.color), border_width: 2, border_color: "0xFFFFFF" },
-            mode: p.mode || "NORMAL",
+            mode: p.mode || "normal",
             on_value: undefined
         }
     };
@@ -126,7 +126,7 @@ export default {
         color: "blue",
         bg_color: "gray",
         border_width: 2,
-        mode: "NORMAL",
+        mode: "normal",
         vertical: false
     },
     render,

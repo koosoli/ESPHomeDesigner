@@ -381,7 +381,7 @@ export default {
             const dayWidgets = [
                 {
                     label: {
-                        align: "TOP_MID",
+                        align: "top_mid",
                         text: dayNameLambda,
                         text_font: getLVGLFont(p.font_family || "Roboto", dayFS, 700),
                         text_color: color
@@ -389,7 +389,7 @@ export default {
                 },
                 {
                     label: {
-                        align: "CENTER",
+                        align: "center",
                         y: 0,
                         text: iconLambda,
                         text_font: getLVGLFont("Material Design Icons", iconS, 400),
@@ -398,7 +398,7 @@ export default {
                 },
                 {
                     label: {
-                        align: "BOTTOM_MID",
+                        align: "bottom_mid",
                         text: showHighLow ? `!lambda "return str_sprintf(\'%.0f/%.0f\', id(weather_high_day${i}).state, id(weather_low_day${i}).state).c_str();"` : `!lambda "return str_sprintf(\'%.0f\', id(weather_high_day${i}).state).c_str();"`,
                         text_font: getLVGLFont(p.font_family || "Roboto", tempFS, 400),
                         text_color: color
@@ -410,7 +410,7 @@ export default {
                 obj: {
                     width: isHorizontal ? (100 / days) + "%" : "100%",
                     height: isHorizontal ? "100%" : (100 / days) + "%",
-                    bg_opa: "TRANSP",
+                    bg_opa: "transp",
                     border_width: 0,
                     widgets: dayWidgets
                 }
@@ -425,7 +425,7 @@ export default {
                 radius: 8,
                 border_width: p.show_border !== false ? (p.border_width || 1) : 0,
                 border_color: convertColor(p.border_color || p.color || "black"),
-                layout: { type: "FLEX", flex_flow: isHorizontal ? "ROW" : "COLUMN", flex_align_main: "SPACE_AROUND", flex_align_cross: "CENTER" },
+                layout: { type: "flex", flex_flow: isHorizontal ? "row" : "column", flex_align_main: "space_around", flex_align_cross: "center" },
                 widgets: widgets
             }
         };

@@ -264,6 +264,11 @@ class DeviceConfig:
     # Daily Scheduled Refresh
     daily_refresh_enabled: bool = False
     daily_refresh_time: str = "08:00"
+    
+    # Rendering and UI Settings
+    rendering_mode: str = "lvgl"
+    extended_latin_glyphs: bool = False
+    lcd_eco_strategy: str = "backlight_off"
 
     def ensure_pages(self, min_pages: int = DEFAULT_PAGES) -> None:
         """Ensure at least min_pages exist; add simple default pages if missing."""
@@ -329,6 +334,9 @@ class DeviceConfig:
             "no_refresh_end_hour": self.no_refresh_end_hour,
             "daily_refresh_enabled": self.daily_refresh_enabled,
             "daily_refresh_time": self.daily_refresh_time,
+            "rendering_mode": self.rendering_mode,
+            "extended_latin_glyphs": self.extended_latin_glyphs,
+            "lcd_eco_strategy": self.lcd_eco_strategy,
             "pages": [p.to_dict() for p in self.pages],
         }
 
@@ -399,6 +407,9 @@ class DeviceConfig:
             no_refresh_end_hour=no_refresh_end_hour,
             daily_refresh_enabled=bool(data.get("daily_refresh_enabled", False)),
             daily_refresh_time=str(data.get("daily_refresh_time", "08:00")),
+            rendering_mode=str(data.get("rendering_mode", data.get("renderingMode", "lvgl"))),
+            extended_latin_glyphs=bool(data.get("extended_latin_glyphs", data.get("extendedLatinGlyphs", False))),
+            lcd_eco_strategy=str(data.get("lcd_eco_strategy", data.get("lcdEcoStrategy", "backlight_off"))),
         )
         cfg.ensure_pages()
         return cfg

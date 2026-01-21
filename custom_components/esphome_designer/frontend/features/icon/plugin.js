@@ -65,7 +65,7 @@ export default {
                 text: `"\\U000${code}"`,
                 text_font: getLVGLFont("Material Design Icons", size, 400),
                 text_color: color,
-                text_align: "CENTER"
+                text_align: "center"
             }
         };
     },

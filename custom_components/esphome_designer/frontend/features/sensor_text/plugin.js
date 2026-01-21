@@ -309,7 +309,7 @@ export default {
                 text: lambdaStr,
                 text_font: getLVGLFont(p.font_family, p.value_font_size || 20, p.font_weight, p.italic),
                 text_color: convertColor(p.color),
-                text_align: (convertAlign(p.text_align) || "LEFT").replace("TOP_", "").replace("BOTTOM_", ""),
+                text_align: (convertAlign(p.text_align) || "left").replace("top_", "").replace("bottom_", ""),
                 bg_color: (p.bg_color && p.bg_color !== "transparent") ? convertColor(p.bg_color) : undefined,
                 opa: formatOpacity(p.opa)
             }

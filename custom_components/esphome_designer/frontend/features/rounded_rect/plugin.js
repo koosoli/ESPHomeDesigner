@@ -30,7 +30,7 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
         obj: {
             ...common,
             bg_color: convertColor(p.bg_color || p.color),
-            bg_opa: p.fill !== false ? "COVER" : "TRANSP",
+            bg_opa: p.fill !== false ? "cover" : "transp",
             border_width: p.border_width,
             border_color: convertColor(p.border_color || p.color),
             radius: p.radius || 10,

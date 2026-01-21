@@ -19,7 +19,7 @@ export function getHaHeaders() {
         "Content-Type": "application/json"
     };
     const token = getHaToken();
-    if (token) {
+    if (token && token.trim() !== "" && token !== "null") {
         headers["Authorization"] = `Bearer ${token}`;
     }
     return headers;
@@ -337,7 +337,7 @@ export async function saveLayoutToBackend() {
             // Timeout - data was likely sent, assume success
             return true;
         }
-        if (err.message?.includes('Failed to fetch') || 
+        if (err.message?.includes('Failed to fetch') ||
             err.message?.includes('NetworkError') ||
             err.message?.includes('net::ERR_') ||
             err.message?.includes('ERR_EMPTY_RESPONSE') ||

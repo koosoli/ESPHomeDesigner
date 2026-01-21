@@ -32,7 +32,7 @@ const exportLVGL = (w, { common, convertColor, formatOpacity, profile }) => {
         button: {
             ...common,
             bg_color: convertColor(p.bg_color),
-            bg_opa: "COVER",
+            bg_opa: "cover",
             border_width: p.border_width,
             border_color: convertColor(p.color),
             radius: p.radius,
@@ -41,7 +41,7 @@ const exportLVGL = (w, { common, convertColor, formatOpacity, profile }) => {
             widgets: [
                 {
                     label: {
-                        align: "CENTER",
+                        align: "center",
                         text: `"${p.text || 'BTN'}"`,
                         text_color: convertColor(p.color)
                     }

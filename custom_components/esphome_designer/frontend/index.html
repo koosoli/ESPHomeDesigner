@@ -7,9 +7,9 @@
     // Fix for HA Sidebar disappearing on reload:
     // If we are the top window (not in iframe) but we are the editor index.html,
     // it means the user reloaded the frame directly. Redirect back to the HA panel.
-    if (window.top === window.self && window.location.pathname.includes('/esphome-designer/index.html')) {
-      const haPanelPath = window.location.pathname.replace('/index.html', '');
-      window.location.replace(haPanelPath);
+    if (window.top === window.self && window.location.pathname.includes('/esphome-designer/editor/index.html')) {
+      // Redirect back to the Home Assistant panel URL
+      window.location.replace('/esphome-designer');
     }
   </script>
 
@@ -32,7 +32,7 @@
   <header class="main-header" role="banner">
     <div class="main-header-title">
       <img src="assets/logo_header.png" alt="ESPHome Designer" class="logo-image">
-      <span><small style="opacity: 0.5; margin-left: 8px;">Pre_0.9b186</small> <span id="currentLayoutDevice"
+      <span><small style="opacity: 0.5; margin-left: 8px;">Pre_0.9b194</small> <span id="currentLayoutDevice"
           style="margin-left:8px; color:var(--accent);"></span></span>
     </div>
     <div class="main-header-actions desktop-only">

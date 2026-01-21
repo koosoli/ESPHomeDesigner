@@ -677,18 +677,13 @@ export function generatePSRAMSection(profile) {
     const hasPsram = (profile.features && profile.features.psram) || (profile.features && profile.features.features && profile.features.features.psram);
     if (!hasPsram) return [];
 
+    const lines = ["# psram: # (Auto-commented)"];
     if (profile.psram_mode) {
-        return [
-            "psram:",
-            `  mode: ${profile.psram_mode}`,
-            "  speed: 80MHz",
-            ""
-        ];
+        lines.push(`#   mode: ${profile.psram_mode}`);
+        lines.push("#   speed: 80MHz");
     }
-    return [
-        "psram:",
-        ""
-    ];
+    lines.push("");
+    return lines;
 }
 
 export function generateAXP2101Section(profile) {

@@ -94,7 +94,7 @@ export default {
                 text: lambdaStr,
                 text_font: getLVGLFont(p.font_family, fontSize, fontWeight, p.italic),
                 text_color: convertColor(p.color),
-                text_align: (convertAlign(p.text_align) || "CENTER").replace("TOP_", "").replace("BOTTOM_", ""),
+                text_align: (convertAlign(p.text_align) || "center").replace("top_", "").replace("bottom_", ""),
                 opa: formatOpacity(p.opa)
             }
         };

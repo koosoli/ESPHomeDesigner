@@ -91,7 +91,9 @@ const exportDoc = (w, context) => {
         const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_") + "_text_sensor";
         // Generate dynamic weather icon mapping based on entity state
         lines.push(`        {`);
-        lines.push(`          std::string weather_state = id(${safeId}).state;`);
+        lines.push(`          std::string raw_state = id(${safeId}).state;`);
+        lines.push(`          std::string weather_state = "";`);
+        lines.push(`          for(auto &c : raw_state) weather_state += tolower(c);`);
         lines.push(`          const char* icon = "\\U000F0599"; // Default: sunny`);
         lines.push(`          if (weather_state == "clear-night") icon = "\\U000F0594";`);
         lines.push(`          else if (weather_state == "cloudy") icon = "\\U000F0590";`);
@@ -108,7 +110,7 @@ const exportDoc = (w, context) => {
         lines.push(`          else if (weather_state == "sunny") icon = "\\U000F0599";`);
         lines.push(`          else if (weather_state == "windy") icon = "\\U000F059D";`);
         lines.push(`          else if (weather_state == "windy-variant") icon = "\\U000F059E";`);
-
+        lines.push(`          else if (weather_state != "" && weather_state != "unknown") ESP_LOGW("weather", "Unhandled weather state: %s", raw_state.c_str());`);
         lines.push(`          it.printf(${w.x}, ${w.y}, id(${fontRef}), ${color}, "%s", icon);`);
         lines.push(`        }`);
     } else {
@@ -201,7 +203,7 @@ export default {
                 text: lambdaStr,
                 text_font: getLVGLFont("Material Design Icons", size, 400),
                 text_color: color,
-                text_align: "CENTER"
+                text_align: "center"
             }
         };
     },

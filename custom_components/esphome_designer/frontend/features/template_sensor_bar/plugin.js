@@ -465,8 +465,8 @@ export default {
 
             widgets.push({
                 obj: {
-                    width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "TRANSP", border_width: 0,
-                    layout: "FLEX", flex_flow: "ROW", flex_align_main: "CENTER", flex_align_cross: "CENTER",
+                    width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0,
+                    layout: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center",
                     pad_all: 0, widgets: [
                         { label: { text: iconL, text_font: iconFont, text_color: color } },
                         { label: { text: '!lambda "return id(wifi_signal_dbm).has_state() ? str_sprintf(\'%.0fdB\', id(wifi_signal_dbm).state).c_str() : \'--dB\';"', text_font: textFont, text_color: color, x: 4 } }
@@ -483,8 +483,8 @@ export default {
 
             widgets.push({
                 obj: {
-                    width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "TRANSP", border_width: 0,
-                    layout: "FLEX", flex_flow: "ROW", flex_align_main: "CENTER", flex_align_cross: "CENTER",
+                    width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0,
+                    layout: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center",
                     pad_all: 0, widgets: [
                         { label: { text: '"\\U000F050F"', text_font: iconFont, text_color: color } },
                         { label: { text: `!lambda "return id(${tempId}).has_state() ? str_sprintf(\'%.1f${unit}\', ${tempExpr}).c_str() : \'--${unit}\';"`, text_font: textFont, text_color: color, x: 4 } }
@@ -497,8 +497,8 @@ export default {
             const humId = (p.hum_entity || (profile.features?.sht4x ? "sht4x_humidity" : ((profile.features?.sht3x || profile.features?.sht3xd) ? "sht3x_humidity" : "shtc3_humidity"))).replace(/[^a-zA-Z0-9_]/g, "_");
             widgets.push({
                 obj: {
-                    width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "TRANSP", border_width: 0,
-                    layout: "FLEX", flex_flow: "ROW", flex_align_main: "CENTER", flex_align_cross: "CENTER",
+                    width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0,
+                    layout: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center",
                     pad_all: 0, widgets: [
                         { label: { text: '"\\U000F058E"', text_font: iconFont, text_color: color } },
                         { label: { text: `!lambda "return id(${humId}).has_state() ? str_sprintf(\'%.0f%%\', id(${humId}).state).c_str() : \'--%\';"`, text_font: textFont, text_color: color, x: 4 } }
@@ -518,8 +518,8 @@ export default {
 
             widgets.push({
                 obj: {
-                    width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "TRANSP", border_width: 0,
-                    layout: "FLEX", flex_flow: "ROW", flex_align_main: "CENTER", flex_align_cross: "CENTER",
+                    width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0,
+                    layout: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center",
                     pad_all: 0, widgets: [
                         { label: { text: batIconL, text_font: iconFont, text_color: color } },
                         { label: { text: `!lambda "return id(${batId}).has_state() ? str_sprintf(\'%.0f%%\', id(${batId}).state).c_str() : \'--%\';"`, text_font: textFont, text_color: color, x: 4 } }
@@ -531,13 +531,13 @@ export default {
         return {
             obj: {
                 ...common,
-                bg_color: p.show_background !== false ? convertColor(ensureHex(p.background_color || "black")) : "TRANSP",
-                bg_opa: p.show_background !== false ? "COVER" : "TRANSP",
+                bg_color: p.show_background !== false ? convertColor(ensureHex(p.background_color || "black")) : "transp",
+                bg_opa: p.show_background !== false ? "cover" : "transp",
                 radius: p.border_radius || 8,
                 clip_corner: true,
                 border_width: p.border_thickness || 0,
                 border_color: convertColor(ensureHex(p.border_color || "white")),
-                layout: { type: "FLEX", flex_flow: "ROW", flex_align_main: "SPACE_AROUND", flex_align_cross: "CENTER" },
+                layout: { type: "flex", flex_flow: "row", flex_align_main: "space_around", flex_align_cross: "center" },
                 widgets: widgets
             }
         };

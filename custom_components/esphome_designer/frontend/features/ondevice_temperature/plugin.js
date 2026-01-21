@@ -134,14 +134,14 @@ export default {
             return {
                 obj: {
                     ...common,
-                    bg_opa: "TRANSP",
+                    bg_opa: "transp",
                     border_width: 0,
                     widgets: [
                         {
                             label: {
                                 width: parseInt(p.size || 32, 10) + 10,
                                 height: parseInt(p.size || 32, 10) + 4,
-                                align: "TOP_MID",
+                                align: "top_mid",
                                 text: "\\U000F050F", // Static icon
                                 text_font: getLVGLFont("Material Design Icons", parseInt(p.size || 32, 10), 400),
                                 text_color: convertColor(p.color || "black")
@@ -151,23 +151,23 @@ export default {
                             label: {
                                 width: "100%",
                                 height: parseInt(p.font_size || 16, 10) + 6,
-                                align: "TOP_MID",
+                                align: "top_mid",
                                 y: parseInt(p.size || 32, 10) + 2,
                                 text: `--${p.unit || "°C"}`, // Static text
                                 text_font: getLVGLFont("Roboto", parseInt(p.font_size || 16, 10), 400),
                                 text_color: convertColor(p.color || "black"),
-                                text_align: "CENTER"
+                                text_align: "center"
                             }
                         },
                         ...(p.show_label ? [{
                             label: {
                                 width: "100%",
                                 height: parseInt(p.label_font_size || 10, 10) + 4,
-                                align: "BOTTOM_MID",
+                                align: "bottom_mid",
                                 text: `"Temperature"`,
                                 text_font: getLVGLFont("Roboto", parseInt(p.label_font_size || 10, 10), 400),
                                 text_color: convertColor(p.color || "black"),
-                                text_align: "CENTER",
+                                text_align: "center",
                                 opa: 180
                             }
                         }] : [])
@@ -202,7 +202,7 @@ export default {
                 label: {
                     width: iconSize + 10,
                     height: iconSize + 4,
-                    align: "TOP_MID",
+                    align: "top_mid",
                     text: iconLambda,
                     text_font: getLVGLFont("Material Design Icons", iconSize, 400),
                     text_color: color
@@ -212,12 +212,12 @@ export default {
                 label: {
                     width: "100%",
                     height: fontSize + 6,
-                    align: "TOP_MID",
+                    align: "top_mid",
                     y: iconSize + 2,
                     text: textLambda,
                     text_font: getLVGLFont("Roboto", fontSize, 400),
                     text_color: color,
-                    text_align: "CENTER"
+                    text_align: "center"
                 }
             }
         ];
@@ -227,11 +227,11 @@ export default {
                 label: {
                     width: "100%",
                     height: labelSize + 4,
-                    align: "BOTTOM_MID",
+                    align: "bottom_mid",
                     text: `"Temperature"`,
                     text_font: getLVGLFont("Roboto", labelSize, 400),
                     text_color: color,
-                    text_align: "CENTER",
+                    text_align: "center",
                     opa: 180
                 }
             });
@@ -240,7 +240,7 @@ export default {
         return {
             obj: {
                 ...common,
-                bg_opa: "TRANSP",
+                bg_opa: "transp",
                 border_width: 0,
                 widgets: widgets
             }

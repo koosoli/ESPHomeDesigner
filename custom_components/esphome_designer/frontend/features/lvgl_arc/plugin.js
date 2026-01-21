@@ -120,7 +120,7 @@ const exportLVGL = (w, { common, convertColor }) => {
             widgets: [
                 {
                     label: {
-                        align: "CENTER",
+                        align: "center",
                         text: `"${p.title || ''}"`,
                         text_color: convertColor(p.color)
                     }
@@ -143,7 +143,7 @@ export default {
         title: "",
         start_angle: 135,
         end_angle: 45,
-        mode: "NORMAL"
+        mode: "normal"
     },
     render,
     exportLVGL
