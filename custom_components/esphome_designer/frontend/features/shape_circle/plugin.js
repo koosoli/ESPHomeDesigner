@@ -64,7 +64,7 @@ export default {
         if (cond) lines.push(`        ${cond}`);
 
         if (fill) {
-            addDitherMask(lines, colorProp, isEpaper, Math.floor(w.x), Math.floor(w.y + (RECT_Y_OFFSET || 0)), Math.floor(w.width), Math.floor(w.height));
+            addDitherMask(lines, colorProp, isEpaper, Math.floor(w.x), Math.floor(w.y + (RECT_Y_OFFSET || 0)), Math.floor(w.width), Math.floor(w.height), r);
             if (!(colorProp.toLowerCase() === "gray" && isEpaper)) {
                 lines.push(`        it.filled_circle(${cx}, ${cy}, ${r}, ${color});`);
             }
@@ -75,7 +75,7 @@ export default {
             lines.push(`          it.circle(${cx}, ${cy}, ${r} - i, ${borderColor});`);
             lines.push(`        }`);
             if (!fill) {
-                addDitherMask(lines, borderColorProp, isEpaper, Math.floor(w.x), Math.floor(w.y + (RECT_Y_OFFSET || 0)), Math.floor(w.width), Math.floor(w.height));
+                addDitherMask(lines, borderColorProp, isEpaper, Math.floor(w.x), Math.floor(w.y + (RECT_Y_OFFSET || 0)), Math.floor(w.width), Math.floor(w.height), r);
             }
         }
 

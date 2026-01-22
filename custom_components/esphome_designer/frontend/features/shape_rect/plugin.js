@@ -66,7 +66,7 @@ export default {
         if (cond) lines.push(`        ${cond}`);
 
         if (fill) {
-            addDitherMask(lines, colorProp, isEpaper, rectX, rectY, rectW, rectH);
+            addDitherMask(lines, colorProp, isEpaper, rectX, rectY, rectW, rectH, p.radius || 0);
             if (!(colorProp.toLowerCase() === "gray" && isEpaper)) {
                 lines.push(`        it.filled_rectangle(${rectX}, ${rectY}, ${rectW}, ${rectH}, ${color});`);
             }
@@ -78,7 +78,7 @@ export default {
             lines.push(`          it.rectangle(${rectX} + i, ${rectY} + i, ${rectW} - 2 * i, ${rectH} - 2 * i, ${borderColor});`);
             lines.push(`        }`);
             if (!fill) {
-                addDitherMask(lines, borderColorProp, isEpaper, rectX, rectY, rectW, rectH);
+                addDitherMask(lines, borderColorProp, isEpaper, rectX, rectY, rectW, rectH, p.radius || 0);
             }
         }
 

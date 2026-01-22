@@ -213,7 +213,7 @@ export class ESPHomeAdapter extends BaseAdapter {
             // Hardware Sections (I2C, SPI, etc.)
             if (!profile.isPackageBased) {
                 // HTTP Request first
-                lines.push("http_request:", "  verify_ssl: false", "  timeout: 20s");
+                lines.push("http_request:", "  verify_ssl: false", "  timeout: 20s", "  buffer_size: 4096");
 
                 if (Generators.generateI2CSection) {
                     lines.push(...Generators.generateI2CSection(profile));
@@ -521,9 +521,17 @@ export class ESPHomeAdapter extends BaseAdapter {
         lines.push("auto color_on = COLOR_BLACK;");
         lines.push("");
         lines.push("// Helper to apply a simple grey dither mask for e-paper (checkerboard)");
-        lines.push("auto apply_grey_dither_mask = [&](int x_start, int y_start, int w, int h) {");
+        lines.push("auto apply_grey_dither_mask = [&](int x_start, int y_start, int w, int h, int r = 0) {");
         lines.push("  for (int y = y_start; y < y_start + h; y++) {");
         lines.push("    for (int x = x_start; x < x_start + w; x++) {");
+        lines.push("      if (r > 0) {");
+        lines.push("        int dx = 0, dy = 0;");
+        lines.push("        if (x < x_start + r && y < y_start + r) { dx = x_start + r - x; dy = y_start + r - y; }");
+        lines.push("        else if (x >= x_start + w - r && y < y_start + r) { dx = x - (x_start + w - r - 1); dy = y_start + r - y; }");
+        lines.push("        else if (x < x_start + r && y >= y_start + h - r) { dx = x_start + r - x; dy = y - (y_start + h - r - 1); }");
+        lines.push("        else if (x >= x_start + w - r && y >= y_start + h - r) { dx = x - (x_start + w - r - 1); dy = y - (y_start + h - r - 1); }");
+        lines.push("        if (dx*dx + dy*dy > r*r) continue;");
+        lines.push("      }");
         lines.push("      if ((x + y) % 2 == 0) it.draw_pixel_at(x, y, COLOR_WHITE);");
         lines.push("      else it.draw_pixel_at(x, y, COLOR_BLACK);");
         lines.push("    }");
@@ -606,7 +614,7 @@ export class ESPHomeAdapter extends BaseAdapter {
                 getColorConst: (c) => Utils ? Utils.getColorConst(c) : `"${c}"`,
                 getAlignX: (a, x, w) => Utils ? Utils.getAlignX(a, x, w) : x,
                 getAlignY: (a, y, h) => Utils ? Utils.getAlignY(a, y, h) : y,
-                addDitherMask: (l, c, e, x, y, w, h) => Utils ? Utils.addDitherMask(l, c, e, x, y, w, h) : null,
+                addDitherMask: (l, c, e, x, y, w, h, r) => Utils ? Utils.addDitherMask(l, c, e, x, y, w, h, r || 0) : null,
                 sanitize: (s) => this.sanitize(s),
                 getCondProps: (w) => this.getCondProps(w),
                 getConditionCheck: (w) => this.getConditionCheck(w),

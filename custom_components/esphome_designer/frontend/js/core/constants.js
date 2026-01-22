@@ -67,7 +67,8 @@ export const DEFAULT_PREFERENCES = {
     dailyRefreshTime: "08:00",
     noRefreshStartHour: null,
     noRefreshEndHour: null,
-    renderingMode: "lvgl"
+    renderingMode: null
+
 };
 
 export const WIDGET_DEFAULTS = {

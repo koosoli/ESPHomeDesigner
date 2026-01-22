@@ -185,33 +185,33 @@ const exportDoc = (w, context) => {
             if (thickness > 0) {
                 // Layer 1: Border footprint
                 lines.push(`          draw_filled_rrect(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${radius}, ${borderColor});`);
-                addDitherMask(lines, p.border_color || "white", isEpaper, w.x, w.y, w.width, w.height);
+                addDitherMask(lines, p.border_color || "white", isEpaper, w.x, w.y, w.width, w.height, radius);
 
                 // Layer 2: Inner Dark Box
                 lines.push(`          draw_filled_rrect(${w.x + thickness}, ${w.y + thickness}, ${w.width - 2 * thickness}, ${w.height - 2 * thickness}, ${Math.max(0, radius - thickness)}, ${bgColor});`);
                 // Note: No dither mask for inner box yet if it's solid black
                 if (ensureHex(p.background_color) !== "black" && ensureHex(p.background_color) !== "#000000") {
-                    addDitherMask(lines, p.background_color || "black", isEpaper, w.x + thickness, w.y + thickness, w.width - 2 * thickness, w.height - 2 * thickness);
+                    addDitherMask(lines, p.background_color || "black", isEpaper, w.x + thickness, w.y + thickness, w.width - 2 * thickness, w.height - 2 * thickness, Math.max(0, radius - thickness));
                 }
             } else {
                 lines.push(`          draw_filled_rrect(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${radius}, ${bgColor});`);
-                addDitherMask(lines, p.background_color || "black", isEpaper, w.x, w.y, w.width, w.height);
+                addDitherMask(lines, p.background_color || "black", isEpaper, w.x, w.y, w.width, w.height, radius);
             }
         } else {
             if (thickness > 0) {
                 lines.push(`          it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${borderColor});`);
-                addDitherMask(lines, p.border_color || "white", isEpaper, w.x, w.y, w.width, w.height);
+                addDitherMask(lines, p.border_color || "white", isEpaper, w.x, w.y, w.width, w.height, 0);
                 lines.push(`          it.filled_rectangle(${w.x + thickness}, ${w.y + thickness}, ${w.width - 2 * thickness}, ${w.height - 2 * thickness}, ${bgColor});`);
                 if (ensureHex(p.background_color) !== "black" && ensureHex(p.background_color) !== "#000000") {
-                    addDitherMask(lines, p.background_color || "black", isEpaper, w.x + thickness, w.y + thickness, w.width - 2 * thickness, w.height - 2 * thickness);
+                    addDitherMask(lines, p.background_color || "black", isEpaper, w.x + thickness, w.y + thickness, w.width - 2 * thickness, w.height - 2 * thickness, 0);
                 }
             } else {
                 lines.push(`          it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColor});`);
-                addDitherMask(lines, p.background_color || "black", isEpaper, w.x, w.y, w.width, w.height);
+                addDitherMask(lines, p.background_color || "black", isEpaper, w.x, w.y, w.width, w.height, 0);
             }
         }
     } else if (thickness > 0) {
-        addDitherMask(lines, p.border_color || "white", isEpaper, w.x, w.y, w.width, w.height);
+        addDitherMask(lines, p.border_color || "white", isEpaper, w.x, w.y, w.width, w.height, radius);
     }
 
     // E-ink Smart Contrast: If icons are "gray" and background is "black", use White text for crispness.

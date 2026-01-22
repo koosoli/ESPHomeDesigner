@@ -293,7 +293,10 @@ const onExportComponents = (context) => {
                 }
             }
 
-            const entityId = (w.entity_id || "").trim();
+            let entityId = (w.entity_id || "").trim();
+            if (entityId && !entityId.includes(".") && !p.is_local_sensor) {
+                entityId = `sensor.${entityId}`;
+            }
             const localSensorId = entityId.replace(/[^a-zA-Z0-9_]/g, "_") || "none";
             const lineType = (p.line_type || "SOLID").toUpperCase();
             const lineThickness = parseInt(p.line_thickness || 3, 10);

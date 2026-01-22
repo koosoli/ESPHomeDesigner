@@ -133,17 +133,7 @@ const exportDoc = (w, context) => {
     if (cond) lines.push(`        }`);
 };
 
-const onExportNumericSensors = (context) => {
-    const { lines, widgets } = context;
-    if (!widgets || widgets.length === 0) return;
-    const needsWifi = widgets.some(w => w.type === "wifi_signal");
-    if (needsWifi) {
-        lines.push("- platform: wifi_signal");
-        lines.push("  name: \"WiFi Signal\"");
-        lines.push("  id: wifi_signal_dbm");
-        lines.push("  update_interval: 60s");
-    }
-};
+
 
 export default {
     id: "wifi_signal",
@@ -237,6 +227,8 @@ export default {
     onExportNumericSensors: (context) => {
         const { lines, widgets } = context;
         if (!widgets) return;
+
+        let needsLocalWifi = false;
 
         for (const w of widgets) {
             if (w.type !== "wifi_signal") continue;

@@ -69,7 +69,7 @@ export const Utils = {
      * @param {boolean} isEpaper - Whether target is e-paper
      * @param {number} x, y, w, h - Coordinates
      */
-    addDitherMask: (lines, colorProp, isEpaper, x, y, w, h) => {
+    addDitherMask: (lines, colorProp, isEpaper, x, y, w, h, radius = 0) => {
         if (!isEpaper) return;
         if (!colorProp) return;
 
@@ -88,7 +88,7 @@ export const Utils = {
         }
 
         if (isGray) {
-            lines.push(`          apply_grey_dither_mask(${Math.round(x)}, ${Math.round(y)}, ${Math.round(w)}, ${Math.round(h)});`);
+            lines.push(`          apply_grey_dither_mask(${Math.round(x)}, ${Math.round(y)}, ${Math.round(w)}, ${Math.round(h)}, ${Math.round(radius)});`);
         }
     },
 

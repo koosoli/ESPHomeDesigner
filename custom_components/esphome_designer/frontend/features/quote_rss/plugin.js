@@ -312,24 +312,28 @@ const onExportComponents = (context) => {
             lines.push(`                on_response:`);
             lines.push(`                  - lambda: |-`);
             lines.push(`                      if (response->status_code == 200) {`);
+            lines.push(`                        ESP_LOGD("quote", "Raw body: %s", body.c_str());`);
             lines.push(`                        JsonDocument doc;`);
             lines.push(`                        DeserializationError error = deserializeJson(doc, body);`);
             lines.push(`                        if (error) {`);
             lines.push(`                          ESP_LOGW("quote", "Failed to parse JSON: %s", error.c_str());`);
             lines.push(`                          return;`);
             lines.push(`                        }`);
-            lines.push(`                        if (doc["success"].is<bool>() && doc["success"].as<bool>()) {`);
-            lines.push(`                          JsonObject q = doc["quote"];`);
-            lines.push(`                          if (!q.isNull()) {`);
-            lines.push(`                            std::string q_str = q["quote"].as<std::string>();`);
-            lines.push(`                            id(${safeIdPrefix}_text_global) = q_str;`);
+            lines.push(`                        if (doc["success"].as<bool>()) {`);
+            lines.push(`                          JsonVariant q_var = doc["quote"];`);
+            lines.push(`                          if (q_var.is<JsonObject>()) {`);
+            lines.push(`                            JsonObject q = q_var.as<JsonObject>();`);
+            lines.push(`                            std::string q_str = q["quote"] | "";`);
+            lines.push(`                            if (!q_str.empty()) {`);
+            lines.push(`                              id(${safeIdPrefix}_text_global) = q_str;`);
             if (p.show_author !== false) {
-                lines.push(`                            id(${safeIdPrefix}_author_global) = q["author"].as<std::string>();`);
+                lines.push(`                              id(${safeIdPrefix}_author_global) = q["author"] | "Unknown";`);
             }
             lines.push(`                            ESP_LOGI("quote", "Fetched quote: %s", q_str.c_str());`);
             lines.push(`                            id(${displayId}).update();`);
             lines.push(`                          }`);
             lines.push(`                        }`);
+            lines.push(`                      }`);
             lines.push(`                      } else {`);
             lines.push(`                        ESP_LOGW("quote", "HTTP Request failed with code: %d", response->status_code);`);
             lines.push(`                      }`);

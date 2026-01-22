@@ -64,9 +64,14 @@ class ReTerminalHardwareListView(DesignerBaseView):
                 if inv_match:
                     features["inverted_colors"] = True
                 
-                if "waveshare_epaper" in content or "epaper_spi" in content:
+                is_epaper = "waveshare_epaper" in content or "epaper_spi" in content
+                if is_epaper:
                      features["epaper"] = True
                      features["lcd"] = False
+                     features["lvgl"] = "lvgl:" in content # Only enable if explicitly in YAML
+                else:
+                     features["lvgl"] = True # Default for non-epaper (LCD)
+
                 
                 try:
                     data = yaml.safe_load(content)

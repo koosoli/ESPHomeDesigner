@@ -101,7 +101,7 @@ export default {
                 if (fr < 0) fr = 0;
             }
             if (colorProp.toLowerCase() === "gray" && isEpaper) {
-                addDitherMask(lines, colorProp, isEpaper, fx, fy, fw, fh);
+                addDitherMask(lines, colorProp, isEpaper, fx, fy, fw, fh, fr);
             } else {
                 if (fw > 0 && fh > 0) lines.push(`          draw_filled_rrect(${fx}, ${fy}, ${fw}, ${fh}, ${fr}, ${color});`);
             }
@@ -127,7 +127,7 @@ export default {
             lines.push(`          draw_rrect_border(${rrectX}, ${rrectY}, ${rrectW}, ${rrectH}, ${r}, ${thickness}, ${borderColor});`);
         }
 
-        addDitherMask(lines, borderColorProp, isEpaper, rrectX, rrectY, rrectW, rrectH);
+        addDitherMask(lines, borderColorProp, isEpaper, rrectX, rrectY, rrectW, rrectH, r);
         lines.push(`        }`);
         if (cond) lines.push(`        }`);
     }

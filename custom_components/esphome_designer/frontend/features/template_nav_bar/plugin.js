@@ -129,7 +129,7 @@ const exportDoc = (w, context) => {
                 lines.push(`          it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColor});`);
             }
         }
-        addDitherMask(lines, p.background_color || "black", isEpaper, w.x, w.y, w.width, w.height);
+        addDitherMask(lines, p.background_color || "black", isEpaper, w.x, w.y, w.width, w.height, radius);
     }
 
     let activeCount = 0;

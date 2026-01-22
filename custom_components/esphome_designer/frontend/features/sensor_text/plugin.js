@@ -462,9 +462,20 @@ export default {
         } else if (format === "value_only" || format === "value_only_no_unit" || !title) {
             lines.push(`        it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${color}, ${valueAlign}, "${finalValFmt}", ${args});`);
         } else if (format === "label_value" || format === "label_value_no_unit") {
-            // Horizontal layout: "Label: Value" using single printf for perfect alignment
+            // Horizontal layout: "Label: Value"
             const labelStr = `${title}${title.endsWith(":") ? "" : ":"} `;
-            lines.push(`        it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${color}, ${valueAlign}, "${labelStr}${finalValFmt}", ${args});`);
+
+            // If fonts differ and we are left-aligned, split the print to support different sizes
+            // We use get_width() to position the value immediately after the label
+            if (labelFS !== valueFS && textAlign.includes("LEFT")) {
+                // Ensure we use the correct vertical alignment for both
+                const align = getAlign(textAlign);
+                lines.push(`        it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${color}, ${align}, "${labelStr}");`);
+                lines.push(`        it.printf(${xVal} + id(${labelFontId})->get_width("${labelStr}"), ${yVal}, id(${valueFontId}), ${color}, ${align}, "${finalValFmt}", ${args});`);
+            } else {
+                // Single printf for perfect alignment (same font or non-left align)
+                lines.push(`        it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${color}, ${valueAlign}, "${labelStr}${finalValFmt}", ${args});`);
+            }
         } else if (format === "label_newline_value" || format === "label_newline_value_no_unit") {
             // Vertical layout
             lines.push(`        it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${color}, ${labelAlign}, "${title}");`);

@@ -2,6 +2,41 @@ import { AppState } from '../core/state.js';
 import { Logger } from '../utils/logger.js';
 
 /**
+ * Creates a custom js-yaml schema that supports ESPHome tags like !lambda.
+ */
+function getESPHomeSchema() {
+    if (!window.jsyaml) return null;
+
+    // Cache for performance
+    if (window._esphomeYamlSchema) return window._esphomeYamlSchema;
+
+    try {
+        const LambdaType = new jsyaml.Type('!lambda', {
+            kind: 'scalar',
+            construct: function (data) { return data; }
+        });
+
+        // Handle verbatim tag too just in case js-yaml sees it this way
+        const VerbatimLambdaType = new jsyaml.Type('!<!lambda>', {
+            kind: 'scalar',
+            construct: function (data) { return data; }
+        });
+
+        const SecretType = new jsyaml.Type('!secret', {
+            kind: 'scalar',
+            construct: function (data) { return `!secret ${data}`; }
+        });
+
+        // Extend DEFAULT_SCHEMA (works for js-yaml 3.x and 4.x)
+        window._esphomeYamlSchema = jsyaml.DEFAULT_SCHEMA.extend([LambdaType, VerbatimLambdaType, SecretType]);
+        return window._esphomeYamlSchema;
+    } catch (e) {
+        Logger.error("[getESPHomeSchema] Error creating schema:", e);
+        return jsyaml.DEFAULT_SCHEMA;
+    }
+}
+
+/**
  * Parses an ESPHome YAML snippet offline to extract the layout.
  * @param {string} yamlText - The YAML string to parse.
  * @returns {Object} The parsed layout object containing pages and settings.
@@ -14,7 +49,7 @@ export function parseSnippetYamlOffline(yamlText) {
     let doc = {};
     try {
         if (window.jsyaml) {
-            doc = jsyaml.load(yamlText) || {};
+            doc = jsyaml.load(yamlText, { schema: getESPHomeSchema() }) || {};
             Logger.log("[parseSnippetYamlOffline] YAML parsed successfully with js-yaml");
         }
     } catch (e) {
@@ -90,7 +125,7 @@ export function parseSnippetYamlOffline(yamlText) {
         }
         try {
             const yamlStr = blockLines.join("\n");
-            return { value: jsyaml.load(yamlStr), nextJ: j };
+            return { value: jsyaml.load(yamlStr, { schema: getESPHomeSchema() }), nextJ: j };
         } catch (e) {
             Logger.error("Error parsing YAML sub-block:", e);
             return { value: null, nextJ: j };
@@ -1370,6 +1405,28 @@ export function loadLayoutIntoState(layout) {
     if (newSettings.daily_refresh_enabled === undefined) newSettings.daily_refresh_enabled = false;
     if (newSettings.daily_refresh_time === undefined) newSettings.daily_refresh_time = "08:00";
     if (newSettings.refresh_interval === undefined) newSettings.refresh_interval = 600;
+
+    // --- LVGL Safety Fix for E-Paper ---
+    // If the device is detected as E-Paper and doesn't explicitly support LVGL in its profile,
+    // force it back to 'direct' mode to prevent generating invalid LVGL config.
+    const activeProfile = (window.DEVICE_PROFILES || {})[deviceModel];
+    if (activeProfile && activeProfile.features) {
+        const isEpaper = !!activeProfile.features.epaper;
+        const hasLvgl = !!(activeProfile.features.lvgl || activeProfile.features.lv_display);
+
+        if (isEpaper && !hasLvgl && newSettings.renderingMode === 'lvgl') {
+            // Smart Check: Only repair if NO LVGL widgets are actually used.
+            // This preserves user intent if they intentionally added LVGL widgets to e-paper.
+            const hasLvglWidgets = pages.some(p =>
+                p.widgets && p.widgets.some(w => w.type && w.type.startsWith('lvgl_'))
+            );
+
+            if (!hasLvglWidgets) {
+                Logger.log(`[loadLayoutIntoState] E-Paper detected without LVGL support and NO LVGL widgets found. Repairing renderingMode: lvgl -> direct`);
+                newSettings.renderingMode = 'direct';
+            }
+        }
+    }
 
     // Update State
     AppState.setPages(pages);

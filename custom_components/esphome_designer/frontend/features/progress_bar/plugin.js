@@ -146,7 +146,7 @@ const exportDoc = (w, context) => {
         lines.push(`          int bar_w = (${w.width} - 4) * pct_${w.id.replace(/-/g, '_')} / 100;`);
         lines.push(`          it.filled_rectangle(${w.x} + 2, ${barY} + 2, bar_w, ${barHeight} - 4, ${color});`);
         lines.push(`        }`);
-        addDitherMask(lines, colorProp, isEpaper, w.x, barY, w.width, barHeight);
+        addDitherMask(lines, colorProp, isEpaper, w.x, barY, w.width, barHeight, 2);
     } else {
         lines.push(`        it.rectangle(${w.x}, ${w.y} + ${w.height} - ${barHeight}, ${w.width}, ${barHeight}, ${color});`);
         lines.push(`        it.filled_rectangle(${w.x} + 2, ${w.y} + ${w.height} - ${barHeight} + 2, ${w.width} / 2, ${barHeight} - 4, ${color});`);
