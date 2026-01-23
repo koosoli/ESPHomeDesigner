@@ -112,10 +112,12 @@ function initModalWiring() {
     function openEditorSettings() {
         Logger.log("[ModalWiring] Opening editor settings");
         editorSettingsModal.classList.remove('hidden');
+        editorSettingsModal.style.display = 'flex';
     }
 
     function closeEditorSettings() {
         editorSettingsModal.classList.add('hidden');
+        editorSettingsModal.style.display = 'none';
     }
 
     if (editorSettingsBtn) {

@@ -84,7 +84,7 @@ const getSafeId = (w) => `online_img_${w.id.replace(/-/g, "_")}`;
 
 const exportDoc = (w, context) => {
     const {
-        lines, getCondProps, getConditionCheck
+        lines, getCondProps, getConditionCheck, profile
     } = context;
 
     const p = w.props || {};
@@ -99,8 +99,25 @@ const exportDoc = (w, context) => {
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
 
-    if (invert) {
-        lines.push(`        it.image(${w.x}, ${w.y}, id(${safeId}), color_off, color_on);`);
+    // Determine if it's binary
+    let imgType = "GRAYSCALE";
+    if (renderMode === "Binary") {
+        imgType = "BINARY";
+    } else if (renderMode === "Grayscale") {
+        imgType = "GRAYSCALE";
+    } else if (renderMode === "Color (RGB565)") {
+        imgType = "RGB565";
+    } else {
+        const isColor = profile?.features?.lcd || (profile?.name && (profile.name.includes("6-Color") || profile.name.includes("Color")));
+        imgType = isColor ? "RGB565" : "BINARY";
+    }
+
+    if (imgType === "BINARY") {
+        if (invert) {
+            lines.push(`        it.image(${w.x}, ${w.y}, id(${safeId}), color_off, color_on);`);
+        } else {
+            lines.push(`        it.image(${w.x}, ${w.y}, id(${safeId}), color_on, color_off);`);
+        }
     } else {
         lines.push(`        it.image(${w.x}, ${w.y}, id(${safeId}));`);
     }
@@ -155,9 +172,7 @@ const onExportComponents = (context) => {
 
             lines.push(`    update_interval: ${updateInterval}`);
 
-            if (imgType === "BINARY" || imgType === "GRAYSCALE") {
-                lines.push(`    dither: FLOYDSTEINBERG`);
-            }
+
 
             const displayId = profile.features?.lcd ? "my_display" : "epaper_display";
             lines.push(`    on_download_finished:`);

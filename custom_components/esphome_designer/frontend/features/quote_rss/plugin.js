@@ -282,7 +282,7 @@ const onExportComponents = (context) => {
             lines.push("http_request:");
             lines.push("  verify_ssl: false");
             lines.push("  timeout: 20s");
-            lines.push("  buffer_size: 4096");
+            lines.push("  buffer_size_rx: 4096");
         }
 
         lines.push("");

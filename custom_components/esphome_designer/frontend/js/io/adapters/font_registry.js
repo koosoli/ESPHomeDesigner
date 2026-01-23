@@ -5,11 +5,10 @@ export class FontRegistry {
     constructor() {
         this.reset();
         this.EXTENDED_GLYPHS = [
-            ...Array.from({ length: 95 }, (_, i) => `\\U000000${(i + 32).toString(16).padStart(2, '0')}`),
-            "\\U000000B0", "\\U000000B1", "\\U000000B2", "\\U000000B3",
-            "\\U000000B5", "\\U000000A3", "\\U000000A5", "\\U000000A9",
-            "\\U000000AE", "\\U000000D7", "\\U000000F7", "\\U000003BC",
-            "\\U000003A9", "\\U000020AC", "\\U00002122"
+            ...Array.from({ length: 95 }, (_, i) => `\\U000000${(i + 32).toString(16).toUpperCase().padStart(2, '0')}`),
+            // Latin-1 Supplement (A0-FF) - Includes German Umlauts, accented characters, etc.
+            ...Array.from({ length: 96 }, (_, i) => `\\U000000${(i + 160).toString(16).toUpperCase().padStart(2, '0')}`),
+            "\\U000003BC", "\\U000003A9", "\\U000020AC", "\\U00002122"
         ];
     }
 
@@ -34,7 +33,8 @@ export class FontRegistry {
         const safeFamily = family.replace(/\s+/g, "_").toLowerCase();
         const weightNum = parseInt(weight) || 400;
         const italicSuffix = italic ? "_italic" : "";
-        const id = `font_${safeFamily}_${weightNum}_${size}${italicSuffix}`;
+        const idSize = String(size).replace(".", "_");
+        const id = `font_${safeFamily}_${weightNum}_${idSize}${italicSuffix}`;
 
         if (this.definedFontIds.has(id)) return id;
         this.definedFontIds.add(id);
@@ -104,7 +104,7 @@ export class FontRegistry {
             lines.push(`      weight: ${f.file.weight}`);
             lines.push(`      italic: ${f.file.italic ? 'true' : 'false'}`);
             lines.push(`    id: ${f.id}`);
-            lines.push(`    size: ${f.size}`);
+            lines.push(`    size: ${Math.round(f.size)}`);
             const glyphs = f.glyphs.map(g => `"${g}"`).join(", ");
             lines.push(`    glyphs: [${glyphs}]`);
         });

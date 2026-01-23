@@ -155,7 +155,7 @@ const getSafeImageId = (w) => {
 };
 
 const exportDoc = (w, context) => {
-    const { lines, getCondProps, getConditionCheck } = context;
+    const { lines, getCondProps, getConditionCheck, profile } = context;
     const props = w.props || {};
     const path = (props.path || "").replace(/^"|"$/g, '').trim();
     const invert = !!props.invert;
@@ -168,8 +168,14 @@ const exportDoc = (w, context) => {
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
 
-    if (invert) {
-        lines.push(`        it.image(${w.x}, ${w.y}, id(${safeId}), color_off, color_on);`);
+    const isColor = profile?.features?.lcd || (profile?.name && (profile.name.includes("6-Color") || profile.name.includes("Color")));
+
+    if (!isColor) {
+        if (invert) {
+            lines.push(`        it.image(${w.x}, ${w.y}, id(${safeId}), color_off, color_on);`);
+        } else {
+            lines.push(`        it.image(${w.x}, ${w.y}, id(${safeId}), color_on, color_off);`);
+        }
     } else {
         lines.push(`        it.image(${w.x}, ${w.y}, id(${safeId}));`);
     }
@@ -203,7 +209,6 @@ const onExportComponents = (context) => {
             imageLines.push(`    resize: ${w.width}x${w.height}`);
             if (!isColor) {
                 imageLines.push(`    dither: FLOYDSTEINBERG`);
-                imageLines.push(`    transparency: chroma_key`);
             }
         });
 

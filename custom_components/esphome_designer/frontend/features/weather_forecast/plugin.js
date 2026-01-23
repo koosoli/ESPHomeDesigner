@@ -58,6 +58,8 @@ const render = (el, widget, { getColorStyle }) => {
     const itemWidth = layout === "horizontal" ? Math.floor(availableWidth / days) : availableWidth;
     const itemHeight = layout === "vertical" ? Math.floor(availableHeight / days) : availableHeight;
 
+    const weatherEntity = widget.entity_id || props.weather_entity || "weather.forecast_home";
+
     for (let i = 0; i < days; i++) {
         const dayDiv = document.createElement("div");
         dayDiv.style.display = "flex";
@@ -69,16 +71,60 @@ const render = (el, widget, { getColorStyle }) => {
         dayDiv.style.color = colorStyle;
         dayDiv.style.fontFamily = fontFamily;
 
+        // Try to get live data
+        let liveCond = null;
+        let liveHigh = null;
+        let liveLow = null;
+
+        if (window.AppState && window.AppState.entityStates) {
+            const condState = window.AppState.entityStates[`sensor.weather_forecast_day_${i}_condition`];
+            const highState = window.AppState.entityStates[`sensor.weather_forecast_day_${i}_high`];
+            const lowState = window.AppState.entityStates[`sensor.weather_forecast_day_${i}_low`];
+
+            if (condState && condState.state && condState.state !== "unknown") liveCond = condState.state.toLowerCase();
+            if (highState && highState.state && highState.state !== "unknown") liveHigh = parseFloat(highState.state);
+            if (lowState && lowState.state && lowState.state !== "unknown") liveLow = parseFloat(lowState.state);
+        }
+
         const dayLabel = document.createElement("div");
         dayLabel.style.fontSize = `${dayFontSize}px`;
         dayLabel.style.fontWeight = "400";
         dayLabel.style.marginBottom = "2px";
-        dayLabel.textContent = dayNames[i] || `D${i}`;
+
+        if (i === 0) {
+            dayLabel.textContent = "Today";
+        } else {
+            const future = new Date();
+            future.setDate(future.getDate() + i);
+            dayLabel.textContent = future.toLocaleDateString(undefined, { weekday: 'short' });
+        }
         dayDiv.appendChild(dayLabel);
 
         const iconDiv = document.createElement("div");
-        const iconData = weatherIcons[i % weatherIcons.length];
-        const cp = 0xf0000 + parseInt(iconData.code.slice(1), 16);
+        let iconCode = "F0590"; // Default cloudy
+        const condition = liveCond || (weatherIcons[i % weatherIcons.length].condition);
+
+        const iconMatch = [
+            { code: "F0594", condition: "clear-night" },
+            { code: "F0590", condition: "cloudy" },
+            { code: "F0026", condition: "exceptional" },
+            { code: "F0591", condition: "fog" },
+            { code: "F0592", condition: "hail" },
+            { code: "F0593", condition: "lightning" },
+            { code: "F067E", condition: "lightning-rainy" },
+            { code: "F0595", condition: "partlycloudy" },
+            { code: "F0596", condition: "pouring" },
+            { code: "F0597", condition: "rainy" },
+            { code: "F0598", condition: "snowy" },
+            { code: "F067F", condition: "snowy-rainy" },
+            { code: "F0599", condition: "sunny" },
+            { code: "F059D", condition: "windy" },
+            { code: "F059E", condition: "windy-variant" }
+        ].find(ic => ic.condition === condition);
+
+        if (iconMatch) iconCode = iconMatch.code;
+
+        const cp = 0xf0000 + parseInt(iconCode.slice(1), 16);
         iconDiv.innerText = String.fromCodePoint(cp);
         iconDiv.style.fontSize = `${iconSize}px`;
         iconDiv.style.fontFamily = "MDI, system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
@@ -88,20 +134,22 @@ const render = (el, widget, { getColorStyle }) => {
         const tempDiv = document.createElement("div");
         tempDiv.style.fontSize = `${tempFontSize}px`;
         tempDiv.style.fontWeight = "400";
-        const temp = mockTemps[i % mockTemps.length];
+
+        const high = !isNaN(liveHigh) ? liveHigh : mockTemps[i % mockTemps.length].high;
+        const low = !isNaN(liveLow) ? liveLow : mockTemps[i % mockTemps.length].low;
+
         const tempUnit = props.temp_unit || "C";
         const unitSymbol = tempUnit === "F" ? "°F" : "°C";
         if (showHighLow) {
-            tempDiv.textContent = `${temp.high}${unitSymbol}/${temp.low}${unitSymbol}`;
+            tempDiv.textContent = `${Math.round(high)}${unitSymbol}/${Math.round(low)}${unitSymbol}`;
         } else {
-            tempDiv.textContent = `${temp.high}${unitSymbol}`;
+            tempDiv.textContent = `${Math.round(high)}${unitSymbol}`;
         }
         dayDiv.appendChild(tempDiv);
 
         el.appendChild(dayDiv);
     }
-
-    const weatherEntity = widget.entity_id || props.weather_entity || "weather.forecast_home";
+    // weatherEntity already declared above
 
     if (!weatherEntity) {
         const warning = document.createElement("div");

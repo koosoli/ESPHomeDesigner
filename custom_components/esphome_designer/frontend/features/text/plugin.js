@@ -66,15 +66,19 @@ export default {
     exportLVGL,
     export: (w, context) => {
         const {
-            lines, getColorConst, addFont, getAlignX, getAlignY, getCondProps, getConditionCheck
+            lines, getColorConst, addFont, getAlignX, getAlignY, getCondProps, getConditionCheck, Utils, isEpaper
         } = context;
 
         const p = w.props || {};
-        const color = getColorConst(p.color || "black");
+        const colorProp = p.color || "black";
         const fontSize = p.font_size || p.value_font_size || 20;
         const fontId = addFont(p.font_family || "Roboto", p.font_weight || 400, fontSize, p.italic);
         const text = p.text || w.title || "Text";
         const textAlign = p.text_align || "TOP_LEFT";
+
+        // Check if gray text on e-paper - use dithering
+        const isGrayOnEpaper = isEpaper && Utils && Utils.isGrayColor && Utils.isGrayColor(colorProp);
+        const color = isGrayOnEpaper ? "COLOR_BLACK" : getColorConst(colorProp);
 
         lines.push(`        // widget:text id:${w.id} type:text x:${w.x} y:${w.y} w:${w.width} h:${w.height} text:"${text}" ${getCondProps(w)}`);
 
@@ -106,6 +110,11 @@ export default {
         if (align === "TextAlign::CENTER_CENTER") align = "TextAlign::CENTER";
 
         lines.push(`        it.printf(${x}, ${y}, id(${fontId}), ${color}, ${align}, "${text.replace(/"/g, '\\"')}");`);
+
+        // Apply dithering for gray text on e-paper
+        if (isGrayOnEpaper) {
+            lines.push(`        apply_grey_dither_to_text(${w.x}, ${w.y}, ${w.width}, ${w.height});`);
+        }
 
         if (cond) lines.push(`        }`);
     }

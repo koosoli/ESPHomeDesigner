@@ -213,7 +213,7 @@ export class ESPHomeAdapter extends BaseAdapter {
             // Hardware Sections (I2C, SPI, etc.)
             if (!profile.isPackageBased) {
                 // HTTP Request first
-                lines.push("http_request:", "  verify_ssl: false", "  timeout: 20s", "  buffer_size: 4096");
+                lines.push("http_request:", "  verify_ssl: false", "  timeout: 20s", "  buffer_size_rx: 4096");
 
                 if (Generators.generateI2CSection) {
                     lines.push(...Generators.generateI2CSection(profile));
@@ -534,6 +534,15 @@ export class ESPHomeAdapter extends BaseAdapter {
         lines.push("      }");
         lines.push("      if ((x + y) % 2 == 0) it.draw_pixel_at(x, y, COLOR_WHITE);");
         lines.push("      else it.draw_pixel_at(x, y, COLOR_BLACK);");
+        lines.push("    }");
+        lines.push("  }");
+        lines.push("};");
+        lines.push("");
+        lines.push("// Helper to apply grey dither to text (subtractive - erases every other black pixel)");
+        lines.push("auto apply_grey_dither_to_text = [&](int x_start, int y_start, int w, int h) {");
+        lines.push("  for (int y = y_start; y < y_start + h; y++) {");
+        lines.push("    for (int x = x_start; x < x_start + w; x++) {");
+        lines.push("      if ((x + y) % 2 == 0) it.draw_pixel_at(x, y, COLOR_WHITE);");
         lines.push("    }");
         lines.push("  }");
         lines.push("};");

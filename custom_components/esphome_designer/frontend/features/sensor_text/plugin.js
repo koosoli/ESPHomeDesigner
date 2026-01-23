@@ -470,8 +470,13 @@ export default {
             if (labelFS !== valueFS && textAlign.includes("LEFT")) {
                 // Ensure we use the correct vertical alignment for both
                 const align = getAlign(textAlign);
-                lines.push(`        it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${color}, ${align}, "${labelStr}");`);
-                lines.push(`        it.printf(${xVal} + id(${labelFontId})->get_width("${labelStr}"), ${yVal}, id(${valueFontId}), ${color}, ${align}, "${finalValFmt}", ${args});`);
+                // Use correct measure() method for ESPHome fonts
+                lines.push(`        {`);
+                lines.push(`          int w, h, xoff, bl;`);
+                lines.push(`          id(${labelFontId})->measure("${labelStr}", &w, &xoff, &bl, &h);`);
+                lines.push(`          it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${color}, ${align}, "${labelStr}");`);
+                lines.push(`          it.printf(${xVal} + w, ${yVal}, id(${valueFontId}), ${color}, ${align}, "${finalValFmt}", ${args});`);
+                lines.push(`        }`);
             } else {
                 // Single printf for perfect alignment (same font or non-left align)
                 lines.push(`        it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${color}, ${valueAlign}, "${labelStr}${finalValFmt}", ${args});`);

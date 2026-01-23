@@ -28,25 +28,36 @@ const render = (el, widget, { getColorStyle }) => {
     timeDiv.style.color = color;
     timeDiv.style.fontFamily = fontFamily;
     timeDiv.style.fontWeight = "bold";
-    timeDiv.textContent = "12:34"; // Preview value
 
     const dateDiv = document.createElement("div");
     dateDiv.style.fontSize = `${props.date_font_size || 16}px`;
     dateDiv.style.color = color;
     dateDiv.style.fontFamily = fontFamily;
     dateDiv.style.opacity = "0.8";
-    dateDiv.textContent = "Monday, Jan 1"; // Preview value
+
+    const now = new Date();
+    const dayNamesShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const monthNamesShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const dayNamesFull = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const monthNamesFull = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    const timeStr = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+    const dateStrShort = dayNamesShort[now.getDay()] + ", " + monthNamesShort[now.getMonth()] + " " + now.getDate();
+    const dateStrDots = now.getDate().toString().padStart(2, '0') + "." + (now.getMonth() + 1).toString().padStart(2, '0') + "." + now.getFullYear();
+    const dateStrFull = dayNamesFull[now.getDay()] + " " + now.getDate().toString().padStart(2, '0') + " " + monthNamesFull[now.getMonth()];
+
+    timeDiv.textContent = timeStr;
 
     if (format === "time_only") {
         el.appendChild(timeDiv);
     } else if (format === "date_only") {
-        dateDiv.textContent = "01.01.2024";
+        dateDiv.textContent = dateStrDots;
         el.appendChild(dateDiv);
     } else if (format === "weekday_day_month") {
-        // European/international date format: "Monday 01 January"
-        dateDiv.textContent = "Monday 01 January";
+        dateDiv.textContent = dateStrFull;
         el.appendChild(dateDiv);
     } else {
+        dateDiv.textContent = dateStrShort;
         el.appendChild(timeDiv);
         el.appendChild(dateDiv);
     }

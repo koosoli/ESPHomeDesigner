@@ -104,6 +104,10 @@ export class EditorSettings {
 
         // Entity Count
         this.updateEntityCount();
+
+        // Actually show the modal
+        this.modal.classList.remove('hidden');
+        this.modal.style.display = 'flex';
     }
 
     close() {

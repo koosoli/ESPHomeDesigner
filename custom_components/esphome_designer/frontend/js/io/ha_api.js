@@ -58,6 +58,7 @@ function updateEntityDatalist(entities) {
 
 /**
  * Fetches entity states from Home Assistant.
+ * Supports both integrated mode (custom component API) and standalone mode (HA REST API).
  * Emits EVENTS.ENTITIES_LOADED on success.
  * @returns {Promise<Array>} The list of entities or empty array.
  */
@@ -69,15 +70,47 @@ export async function fetchEntityStates() {
 
     entityStatesFetchInProgress = true;
     try {
-        // Use a timeout to avoid hanging forever
+        // Use a timeout to avoid hanging forever - 10 seconds for cross-network requests
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        Logger.log("[EntityStates] Fetching from:", `${HA_API_BASE}/entities`);
-        const resp = await fetch(`${HA_API_BASE}/entities?domains=sensor,binary_sensor,weather,light,switch,fan,cover,climate,media_player,input_number,number,input_boolean,input_text,input_select,button,input_button,scene,script`, {
-            headers: getHaHeaders(),
-            signal: controller.signal
-        });
+        // Determine which API to use
+        const isStandaloneMode = HA_API_BASE.includes('api/esphome_designer') &&
+            !window.location.pathname.includes('esphome-designer');
+
+        let apiUrl;
+        let useNativeHaApi = false;
+
+        // Check if we have an LLAT token - if so, we might be in external/standalone mode
+        const token = getHaToken();
+
+        // First try the custom component endpoint
+        apiUrl = `${HA_API_BASE}/entities?domains=sensor,binary_sensor,weather,light,switch,fan,cover,climate,media_player,input_number,number,input_boolean,input_text,input_select,button,input_button,scene,script`;
+
+        Logger.log("[EntityStates] Fetching from:", apiUrl);
+
+        let resp;
+        try {
+            resp = await fetch(apiUrl, {
+                headers: getHaHeaders(),
+                signal: controller.signal
+            });
+        } catch (fetchErr) {
+            // If custom component endpoint fails and we have a token, try native HA API
+            if (token && HA_API_BASE) {
+                const haBaseUrl = HA_API_BASE.replace('/api/esphome_designer', '');
+                apiUrl = `${haBaseUrl}/api/states`;
+                Logger.log("[EntityStates] Custom endpoint failed, trying native HA API:", apiUrl);
+                useNativeHaApi = true;
+                resp = await fetch(apiUrl, {
+                    headers: getHaHeaders(),
+                    signal: controller.signal
+                });
+            } else {
+                throw fetchErr;
+            }
+        }
+
         clearTimeout(timeoutId);
 
         if (!resp.ok) {
@@ -85,7 +118,31 @@ export async function fetchEntityStates() {
             haEntitiesLoadError = true;
             return [];
         }
-        const entities = await resp.json();
+
+        let entities = await resp.json();
+
+        // Transform native HA API response to our format
+        if (useNativeHaApi && Array.isArray(entities)) {
+            // Native HA /api/states returns full state objects
+            // Filter to useful domains
+            const allowedDomains = ['sensor', 'binary_sensor', 'weather', 'light', 'switch',
+                'fan', 'cover', 'climate', 'media_player', 'input_number',
+                'number', 'input_boolean', 'input_text', 'input_select',
+                'button', 'input_button', 'scene', 'script'];
+            entities = entities
+                .filter(e => {
+                    const domain = e.entity_id?.split('.')[0];
+                    return allowedDomains.includes(domain);
+                })
+                .map(e => ({
+                    entity_id: e.entity_id,
+                    name: e.attributes?.friendly_name || e.entity_id,
+                    state: e.state,
+                    unit: e.attributes?.unit_of_measurement,
+                    attributes: e.attributes || {}
+                }));
+        }
+
         if (!Array.isArray(entities)) {
             Logger.warn("[EntityStates] Invalid response format");
             haEntitiesLoadError = true;
@@ -127,7 +184,11 @@ export async function fetchEntityStates() {
 
         return entityStatesCache;
     } catch (err) {
-        Logger.warn("[EntityStates] Error fetching:", err);
+        if (err.name === 'AbortError') {
+            Logger.warn("[EntityStates] Request timed out after 10 seconds");
+        } else {
+            Logger.warn("[EntityStates] Error fetching:", err);
+        }
         haEntitiesLoadError = true;
         return [];
     } finally {

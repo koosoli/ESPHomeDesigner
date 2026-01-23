@@ -43,6 +43,7 @@ const drawCalendarPreview = (el, widget, props) => {
     const dayName = document.createElement("div");
     dayName.style.fontSize = (props.font_size_day || 24) + "px";
     dayName.style.fontWeight = "bold";
+    dayName.style.marginTop = "4px"; // Add space below the date
     dayName.innerText = dayNameText;
     header.appendChild(dayName);
 
@@ -110,10 +111,59 @@ const drawCalendarPreview = (el, widget, props) => {
     events.style.flexGrow = "1";
     events.style.overflow = "hidden";
 
-    events.innerHTML = `
-        <div style="margin-bottom:4px;"><b>${date}</b> Meeting with Team</div>
-        <div><b>${Math.min(date + 2, daysInMonth)}</b> Dentist Appointment</div>
-    `;
+    // Try to get live data from AppState
+    let liveEvents = null;
+    const entityId = (widget.entity_id || props.entity_id || "sensor.esp_calendar_data").trim();
+    if (window.AppState && window.AppState.entityStates) {
+        const stateSet = window.AppState.entityStates[entityId];
+        if (stateSet && stateSet.state && stateSet.state !== "unknown" && stateSet.state.length > 5) {
+            try {
+                const doc = JSON.parse(stateSet.state);
+                liveEvents = doc.days || doc; // Handle both {days:[]} and [] formats
+            } catch (e) {
+                console.warn("[Calendar Widget] Failed to parse live state:", e);
+            }
+        }
+    }
+
+    if (liveEvents && Array.isArray(liveEvents) && liveEvents.length > 0) {
+        events.innerHTML = "";
+        const limit = props.event_limit || 4;
+        let count = 0;
+        for (const dayEntry of liveEvents) {
+            if (count >= limit) break;
+            const dayNum = dayEntry.day;
+
+            const drawRow = (ev, isAllDay) => {
+                if (count >= limit) return;
+                const summary = ev.summary || "No Title";
+                const start = ev.start || "";
+                let timeStr = isAllDay ? "All Day" : "";
+                if (!isAllDay && start.includes("T")) {
+                    timeStr = start.split("T")[1].substring(0, 5);
+                }
+
+                const row = document.createElement("div");
+                row.style.marginBottom = "4px";
+                row.style.display = "flex";
+                row.style.justifyContent = "space-between";
+                row.innerHTML = `<span style="flex-shrink:0;width:25px;"><b>${dayNum}</b></span>` +
+                    `<span style="flex-grow:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px;">${summary}</span>` +
+                    `<span style="flex-shrink:0;opacity:0.7;font-size:0.9em;">${timeStr}</span>`;
+                events.appendChild(row);
+                count++;
+            };
+
+            if (dayEntry.all_day) dayEntry.all_day.forEach(ev => drawRow(ev, true));
+            if (dayEntry.other) dayEntry.other.forEach(ev => drawRow(ev, false));
+        }
+    } else {
+        // Fallback to mock data
+        events.innerHTML = `
+            <div style="margin-bottom:4px;"><b>${date}</b> Meeting with Team</div>
+            <div><b>${Math.min(date + 2, daysInMonth)}</b> Dentist Appointment</div>
+        `;
+    }
     el.appendChild(events);
 };
 
@@ -201,12 +251,12 @@ export default {
         const p = w.props || {};
         const color = convertColor(p.text_color || "black");
         const bgColor = convertColor(p.background_color || "white");
-        const dateFS = Math.min((p.font_size_date || 100), 100);
+        const dateFS = Math.round(Math.min((p.font_size_date || 100) * 0.7, 80));
         const dayFS = parseInt(p.font_size_day || 24, 10);
         const gridFS = parseInt(p.font_size_grid || 14, 10);
         const family = p.font_family || "Roboto";
 
-        const headH = dateFS + dayFS + gridFS + 10;
+        const headH = dateFS + dayFS + gridFS + 15;
 
         // Note: This is an LVGL approximation. A full dynamic calendar grid requires 
         // complex C++ logic or a custom LVGL widget type not yet standard in ESPHome.
@@ -222,14 +272,14 @@ export default {
             },
             {
                 label: {
-                    align: "TOP_MID", y: dateFS + 2, height: dayFS + 4,
+                    align: "TOP_MID", y: dateFS + 6, height: dayFS + 4,
                     text: '!lambda "char buf[16]; id(ha_time).now().strftime(buf, sizeof(buf), \'%A\'); return buf;"',
                     text_font: getLVGLFont(family, dayFS, 700), text_color: color
                 }
             },
             {
                 label: {
-                    align: "TOP_MID", y: dateFS + dayFS + 4, height: gridFS + 4,
+                    align: "TOP_MID", y: dateFS + dayFS + 10, height: gridFS + 4,
                     text: '!lambda "char buf[32]; id(ha_time).now().strftime(buf, sizeof(buf), \'%B %Y\'); return buf;"',
                     text_font: getLVGLFont(family, gridFS, 400), text_color: color
                 }
@@ -293,7 +343,7 @@ export default {
         const borderEnabled = p.show_border !== false;
         const borderWidth = parseInt(p.border_width || 2, 10);
 
-        const dateFontSize = parseInt(p.font_size_date || 100, 10);
+        const dateFontSize = Math.round(Math.min(parseInt(p.font_size_date || 100, 10) * 0.7, 80));
         const dayFontSize = parseInt(p.font_size_day || 24, 10);
         const gridFontSize = parseInt(p.font_size_grid || 14, 10);
         const eventFontSize = parseInt(p.font_size_event || 18, 10);
@@ -320,10 +370,10 @@ export default {
 
         // Header
         lines.push(`          // Header`);
-        lines.push(`          int headH = ${dateFontSize + dayFontSize + gridFontSize + 10};`);
+        lines.push(`          int headH = ${dateFontSize + dayFontSize + gridFontSize + 15};`);
         lines.push(`          it.strftime(x + w/2, y + 2, id(${dateFontId}), ${color}, TextAlign::TOP_CENTER, "%d", now);`);
-        lines.push(`          it.strftime(x + w/2, y + ${dateFontSize}, id(${dayFontId}), ${color}, TextAlign::TOP_CENTER, "%A", now);`);
-        lines.push(`          it.strftime(x + w/2, y + ${dateFontSize + dayFontSize}, id(${gridFontId}), ${color}, TextAlign::TOP_CENTER, "%B %Y", now);`);
+        lines.push(`          it.strftime(x + w/2, y + ${dateFontSize + 6}, id(${dayFontId}), ${color}, TextAlign::TOP_CENTER, "%A", now);`);
+        lines.push(`          it.strftime(x + w/2, y + ${dateFontSize + dayFontSize + 10}, id(${gridFontId}), ${color}, TextAlign::TOP_CENTER, "%B %Y", now);`);
         lines.push(`          it.line(x, y + headH, x + w, y + headH, ${color});`);
 
         // Grid

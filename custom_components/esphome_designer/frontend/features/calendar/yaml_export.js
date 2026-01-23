@@ -160,9 +160,9 @@ text_sensor:
           int cx = ${x} + (${w} / 2);
           
           // Date
-          it.printf(cx, ${y} + 0, id(font_roboto_100), color_content, TextAlign::TOP_CENTER, "%d", time.day_of_month);
-          it.printf(cx, ${y} + 70, id(font_roboto_24), color_content, TextAlign::TOP_CENTER, "%s", id(todays_day_name_${id}).state.c_str());
-          it.printf(cx, ${y} + 92, id(font_roboto_14), color_content, TextAlign::TOP_CENTER, "%s", id(todays_date_month_year_${id}).state.c_str());
+          it.printf(cx, ${y} + 0, id(font_roboto_70), color_content, TextAlign::TOP_CENTER, "%d", time.day_of_month);
+          it.printf(cx, ${y} + 50, id(font_roboto_24), color_content, TextAlign::TOP_CENTER, "%s", id(todays_day_name_${id}).state.c_str());
+          it.printf(cx, ${y} + 72, id(font_roboto_14), color_content, TextAlign::TOP_CENTER, "%s", id(todays_date_month_year_${id}).state.c_str());
           
           // Calendar Grid
           int calendar_y_pos = ${y} + 115;
