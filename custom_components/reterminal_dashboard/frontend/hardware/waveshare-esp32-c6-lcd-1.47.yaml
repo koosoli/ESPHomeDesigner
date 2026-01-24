@@ -58,14 +58,6 @@ substitutions:
   one_wire: GPIO10
   logger: "DEBUG"
 
-esphome:
-  min_version: 2025.12.0
-  name: "${name}"
-  friendly_name: "${friendly_name}"
-  project:
-    name: "${project_name}"
-    version: "${project_version}"
-
 esp32:
   board: esp32-c6-devkitc-1
   variant: esp32c6
