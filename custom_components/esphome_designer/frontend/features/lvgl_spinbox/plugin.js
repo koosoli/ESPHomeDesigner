@@ -36,6 +36,43 @@ const render = (el, widget, { getColorStyle }) => {
     el.appendChild(cursor);
 };
 
+const exportLVGL = (w, { common }) => {
+    const p = w.props || {};
+    let spinValue = p.value || 0;
+
+    if (w.entity_id) {
+        const safeId = w.entity_id.replace(/[^a-zA-Z0-9_]/g, "_");
+        spinValue = `!lambda "return (int)id(${safeId}).state;"`;
+    }
+
+    return {
+        spinbox: {
+            ...common,
+            value: spinValue,
+            digits: p.digit_count || 4
+        }
+    };
+};
+
+const onExportNumericSensors = (context) => {
+    const { widgets, isLvgl, pendingTriggers } = context;
+    if (!widgets) return;
+
+    for (const w of widgets) {
+        if (w.type !== "lvgl_spinbox") continue;
+
+        const eid = (w.entity_id || w.props?.entity_id || "").trim();
+        if (!eid) continue;
+
+        if (isLvgl && pendingTriggers) {
+            if (!pendingTriggers.has(eid)) {
+                pendingTriggers.set(eid, new Set());
+            }
+            pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
+        }
+    }
+};
+
 export default {
     id: "lvgl_spinbox",
     name: "Spinbox",
@@ -45,5 +82,7 @@ export default {
         digit_count: 4,
         step: 1
     },
-    render
+    render,
+    exportLVGL,
+    onExportNumericSensors
 };

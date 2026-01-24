@@ -86,9 +86,11 @@ export class FontRegistry {
 
     /**
      * Generates the font section lines for the YAML.
+     *  @param {string[]} glyphsets
+     *  @param {boolean} includeExtendedLatin
      * @returns {string[]}
      */
-    getLines() {
+    getLines(glyphsets = [], includeExtendedLatin = false) {
         // Fallback font if none registered
         if (this.definedFontIds.size === 0) {
             this.addFont("Roboto", 400, 20);
@@ -105,8 +107,16 @@ export class FontRegistry {
             lines.push(`      italic: ${f.file.italic ? 'true' : 'false'}`);
             lines.push(`    id: ${f.id}`);
             lines.push(`    size: ${Math.round(f.size)}`);
-            const glyphs = f.glyphs.map(g => `"${g}"`).join(", ");
-            lines.push(`    glyphs: [${glyphs}]`);
+            if (glyphsets && glyphsets.length > 0) {
+                const sets = glyphsets.join(", ");
+                lines.push(`    glyphsets: [${sets}]`);
+            }
+
+            // Only include manual extended glyphs if explicitly requested or if no glyphsets
+            if (includeExtendedLatin || (!glyphsets || glyphsets.length === 0)) {
+                const glyphs = f.glyphs.map(g => `"${g}"`).join(", ");
+                lines.push(`    glyphs: [${glyphs}]`);
+            }
         });
 
         // 2. Icon Fonts - Corrected to use the expected IDs

@@ -44,7 +44,7 @@ const render = (el, widget, { getColorStyle }) => {
     el.appendChild(label);
 };
 
-const exportLVGL = (w, { common, formatOpacity, profile }) => {
+const exportLVGL = (w, { common, convertColor, formatOpacity, profile }) => {
     const p = w.props || {};
 
     // Robust entity ID detection
@@ -54,7 +54,12 @@ const exportLVGL = (w, { common, formatOpacity, profile }) => {
         checkbox: {
             ...common,
             text: `"${p.text || 'Checkbox'}"`,
-            checked: p.checked,
+            state: {
+                checked: p.checked
+            },
+            indicator: {
+                bg_color: convertColor(p.color || "blue"),
+            },
             opa: formatOpacity(p.opa),
             on_value: undefined
         }
@@ -65,10 +70,30 @@ const exportLVGL = (w, { common, formatOpacity, profile }) => {
     return checkboxObj;
 };
 
+const onExportBinarySensors = (context) => {
+    const { widgets, isLvgl, pendingTriggers } = context;
+    if (!widgets) return;
+
+    for (const w of widgets) {
+        if (w.type !== "lvgl_checkbox") continue;
+
+        let eid = (w.entity_id || w.props?.entity_id || w.props?.entity || "").trim();
+        if (!eid) continue;
+
+        if (isLvgl && pendingTriggers) {
+            if (!pendingTriggers.has(eid)) {
+                pendingTriggers.set(eid, new Set());
+            }
+            pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
+        }
+    }
+};
+
 export default {
     id: "lvgl_checkbox",
     name: "Checkbox",
     category: "LVGL",
+    supportedModes: ['lvgl'],
     defaults: {
         text: "Checkbox",
         checked: false,
@@ -76,5 +101,6 @@ export default {
         opa: 255
     },
     render,
-    exportLVGL
+    exportLVGL,
+    onExportBinarySensors
 };

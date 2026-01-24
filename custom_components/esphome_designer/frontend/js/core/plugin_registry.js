@@ -103,6 +103,7 @@ export class PluginRegistry {
 
     // Hook listeners (delegates to plugins)
     onExportGlobals(context) { this.getAll().forEach(p => p.onExportGlobals && p.onExportGlobals(context)); }
+    onExportEsphome(context) { this.getAll().forEach(p => p.onExportEsphome && p.onExportEsphome(context)); }
     onExportNumericSensors(context) { this.getAll().forEach(p => p.onExportNumericSensors && p.onExportNumericSensors(context)); }
     onExportTextSensors(context) { this.getAll().forEach(p => p.onExportTextSensors && p.onExportTextSensors(context)); }
     onExportBinarySensors(context) { this.getAll().forEach(p => p.onExportBinarySensors && p.onExportBinarySensors(context)); }

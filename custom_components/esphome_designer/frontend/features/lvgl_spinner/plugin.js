@@ -74,9 +74,13 @@ export default {
             "spinner": {
                 ...common,
                 "arc_length": props.arc_length || 60,
-                "time": props.time || 1000,
-                "indicator_color": convertColor(props.arc_color || "blue"), // Spinner uses indicator_color for the arc
-                "main_color": convertColor(props.track_color || "white")    // Spinner uses main_color for the track
+                "spin_time": `${props.time || 1000}ms`,
+                "indicator": {
+                    "arc_color": convertColor(props.arc_color || "blue")
+                },
+                "main": {
+                    "arc_color": convertColor(props.track_color || "white")
+                }
             }
         };
     }

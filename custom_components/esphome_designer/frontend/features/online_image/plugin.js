@@ -66,11 +66,11 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportLVGL = (w, { common, convertColor }) => {
     const p = w.props || {};
-    let src = (p.src || p.path || p.url || "symbol_image");
+    const safeId = getSafeId(w);
     return {
-        img: {
+        image: {
             ...common,
-            src: src,
+            src: safeId,
             angle: (p.rotation || 0),
             pivot_x: (p.pivot_x || 0),
             pivot_y: (p.pivot_y || 0),
@@ -175,12 +175,21 @@ const onExportComponents = (context) => {
 
 
             const displayId = profile.features?.lcd ? "my_display" : "epaper_display";
-            lines.push(`    on_download_finished:`);
-            lines.push(`      then:`);
-            lines.push(`        - component.update: ${displayId}`);
-            lines.push(`    on_error:`);
-            lines.push(`      then:`);
-            lines.push(`        - component.update: ${displayId}`);
+            if (context.isLvgl) {
+                lines.push(`    on_download_finished:`);
+                lines.push(`      then:`);
+                lines.push(`        - lvgl.widget.refresh: ${w.id}`);
+                lines.push(`    on_error:`);
+                lines.push(`      then:`);
+                lines.push(`        - lvgl.widget.refresh: ${w.id}`);
+            } else {
+                lines.push(`    on_download_finished:`);
+                lines.push(`      then:`);
+                lines.push(`        - component.update: ${displayId}`);
+                lines.push(`    on_error:`);
+                lines.push(`      then:`);
+                lines.push(`        - component.update: ${displayId}`);
+            }
         });
         lines.push("");
     }
@@ -190,6 +199,7 @@ export default {
     id: "online_image",
     name: "Online Image",
     category: "Graphics",
+    supportedModes: ['lvgl', 'direct', 'oepl', 'opendisplay'],
     defaults: {
         url: "",
         invert: false,
@@ -198,6 +208,36 @@ export default {
         color: "black"
     },
     render,
+    exportOpenDisplay: (w, { layout, page }) => {
+        const p = w.props || {};
+        const url = (p.url || "").trim();
+
+        return {
+            type: "draw_image",
+            src: url || "",
+            x: Math.round(w.x),
+            y: Math.round(w.y),
+            w: Math.round(w.width),
+            h: Math.round(w.height)
+        };
+    },
+    exportOEPL: (w, { layout, page }) => {
+        const p = w.props || {};
+        const url = (p.url || "").trim();
+
+        if (url) {
+            return {
+                type: "online_image",
+                url: url,
+                x: Math.round(w.x),
+                y: Math.round(w.y),
+                width: Math.round(w.width),
+                height: Math.round(w.height)
+            };
+        }
+
+        return null;
+    },
     exportLVGL,
     export: exportDoc,
     onExportComponents

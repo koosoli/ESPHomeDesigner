@@ -1,5 +1,6 @@
 import { registry as PluginRegistry } from '../core/plugin_registry.js';
 import { Logger } from '../utils/logger.js';
+import { EVENTS, on } from '../core/events.js';
 
 export const WIDGET_CATEGORIES = [
     {
@@ -228,7 +229,13 @@ export const WIDGET_CATEGORIES = [
             { type: 'lvgl_keyboard', label: 'Keyboard', icon: '<svg class="widget-icon" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2" /><line x1="6" y1="10" x2="8" y2="10" stroke="currentColor" stroke-width="2" /><line x1="10" y1="10" x2="12" y2="10" stroke="currentColor" stroke-width="2" /></svg>' },
             { type: 'lvgl_buttonmatrix', label: 'Btn Matrix', icon: '<svg class="widget-icon" viewBox="0 0 24 24"><rect x="2" y="7" width="9" height="4" fill="none" stroke="currentColor" stroke-width="1" /><rect x="13" y="7" width="9" height="4" fill="none" stroke="currentColor" stroke-width="1" /><rect x="2" y="13" width="9" height="4" fill="none" stroke="currentColor" stroke-width="1" /><rect x="13" y="13" width="9" height="4" fill="none" stroke="currentColor" stroke-width="1" /></svg>' },
             { type: 'lvgl_tabview', label: 'Tabview', icon: '<svg class="widget-icon" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2" /><line x1="2" y1="8" x2="22" y2="8" stroke="currentColor" stroke-width="1" /></svg>' },
-            { type: 'lvgl_tileview', label: 'Tileview', icon: '<svg class="widget-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" /><rect x="13" y="2" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" /><rect x="2" y="13" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" /><rect x="13" y="13" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" /></svg>' }
+            { type: 'lvgl_tileview', label: 'Tileview', icon: '<svg class="widget-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" /><rect x="13" y="2" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" /><rect x="2" y="13" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" /><rect x="13" y="13" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" /></svg>' },
+            {
+                type: 'template_nav_bar',
+                label: 'Nav Bar (Template)',
+                tag: 'Nav',
+                icon: '<svg class="widget-icon" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2" /><path d="M7 12l-3-3 3-3M17 12l3-3-3-3M12 9v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>'
+            }
         ]
     }
 ];
@@ -236,6 +243,9 @@ export const WIDGET_CATEGORIES = [
 export async function renderWidgetPalette(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
+
+    const currentMode = window.AppState?.settings?.renderingMode || 'lvgl';
+    Logger.log(`[Palette] Rendering palette for mode: ${currentMode}`);
 
     container.innerHTML = '<div class="palette-loading" style="padding: 20px; color: #999; text-align: center; font-size: 13px;">Loading widgets...</div>';
 
@@ -260,8 +270,15 @@ export async function renderWidgetPalette(containerId) {
     container.innerHTML = '';
 
     WIDGET_CATEGORIES.forEach(category => {
+        // Auto-Expansion Logic
+        let isExpanded = category.expanded;
+        if (currentMode === 'lvgl') {
+            // Force focus on LVGL components, collapse everything else
+            isExpanded = (category.id === 'lvgl');
+        }
+
         const categoryEl = document.createElement('div');
-        categoryEl.className = `widget-category ${category.expanded ? 'expanded' : ''}`;
+        categoryEl.className = `widget-category ${isExpanded ? 'expanded' : ''}`;
         categoryEl.dataset.category = category.id;
 
         const headerEl = document.createElement('div');
@@ -275,7 +292,7 @@ export async function renderWidgetPalette(containerId) {
         headerEl.innerHTML = `
             ${iconHtml}
             <span class="category-name">${category.name}</span>
-            ${category.widgets.length > 0 && !category.expanded ? `<span class="category-count">${category.widgets.length}</span>` : ''}
+            ${category.widgets.length > 0 && !isExpanded ? `<span class="category-count">${category.widgets.length}</span>` : ''}
         `;
 
         headerEl.addEventListener('click', () => {
@@ -287,11 +304,49 @@ export async function renderWidgetPalette(containerId) {
 
         category.widgets.forEach(widget => {
             const itemEl = document.createElement('div');
-            itemEl.className = 'item';
-            itemEl.draggable = true;
+            const plugin = PluginRegistry.get(widget.type);
+
+            // STRICT COMPATIBILITY CHECK
+            let isCompatible = true;
+            let explanation = '';
+
+            if (plugin?.supportedModes) {
+                isCompatible = plugin.supportedModes.includes(currentMode);
+                explanation = `Not supported in ${currentMode} mode`;
+            } else {
+                // Fallback to method-based detection
+                if (currentMode === 'oepl' || currentMode === 'opendisplay') {
+                    const hasExport = currentMode === 'oepl' ? !!plugin?.exportOEPL : !!plugin?.exportOpenDisplay;
+                    // CRITICAL ARCHITECTURAL NOTE: Protocol-based rendering (OEPL/OpenDisplay) does not 
+                    // support on-device hardware sensors, high-complexity widgets (calendar/graph),
+                    // or widgets requiring network-side processing (quote_rss).
+                    const isExcludedCategory = (category.id === 'ondevice' || category.id === 'lvgl');
+                    const isExcludedWidget = (widget.type === 'calendar' || widget.type === 'weather_forecast' || widget.type === 'graph' || widget.type === 'quote_rss');
+
+                    isCompatible = hasExport && !isExcludedCategory && !isExcludedWidget;
+                    explanation = `Not supported in ${currentMode === 'oepl' ? 'OpenEpaperLink' : 'OpenDisplay'} mode`;
+                } else if (currentMode === 'lvgl') {
+                    // CRITICAL ARCHITECTURAL NOTE: LVGL mode is strictly restricted to native LVGL objects 
+                    // and essential input/navigation controls to prevent mixing incompatible
+                    // lambda-based rendering with the LVGL stack.
+                    const isLvglNative = widget.type.startsWith('lvgl_');
+                    const isInputCategory = (category.id === 'inputs');
+
+                    isCompatible = isLvglNative || isInputCategory;
+                    explanation = 'Only native LVGL widgets and input controls supported in LVGL mode';
+                } else if (currentMode === 'direct') {
+                    // Direct mode is display.lambda.
+                    // Compatible if it has 'export' method AND is not strictly for another protocol (LVGL/OEPL).
+                    const isProtocolSpecific = widget.type.startsWith('lvgl_') || widget.type.startsWith('oepl_');
+                    isCompatible = !!plugin?.export && !isProtocolSpecific;
+                    explanation = 'Not supported in Direct rendering mode';
+                }
+            }
+
+            itemEl.className = 'item' + (isCompatible ? '' : ' incompatible');
+            itemEl.draggable = isCompatible;
             itemEl.dataset.widgetType = widget.type;
 
-            const plugin = PluginRegistry.get(widget.type);
             const label = widget.label || plugin?.name;
 
             let tagHtml = '';
@@ -304,12 +359,21 @@ export async function renderWidgetPalette(containerId) {
                 <span class="label">${label}</span>
                 ${tagHtml}
             `;
-            itemEl.title = `Add ${label} to canvas`;
+            itemEl.title = isCompatible ? `Add ${label} to canvas` : explanation;
 
-            itemEl.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('application/widget-type', widget.type);
-                e.dataTransfer.effectAllowed = 'copy';
-            });
+            if (isCompatible) {
+                itemEl.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('application/widget-type', widget.type);
+                    e.dataTransfer.effectAllowed = 'copy';
+                });
+            } else {
+                itemEl.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    import('../utils/dom.js').then(dom => {
+                        dom.showToast(explanation, 'warning');
+                    });
+                });
+            }
 
             itemsEl.appendChild(itemEl);
         });
@@ -319,3 +383,10 @@ export async function renderWidgetPalette(containerId) {
         container.appendChild(categoryEl);
     });
 }
+// Refresh palette on mode change
+on(EVENTS.SETTINGS_CHANGED, (settings) => {
+    if (settings && settings.renderingMode !== undefined) {
+        Logger.log(`[Palette] Settings changed, refreshing palette for mode: ${settings.renderingMode}`);
+        renderWidgetPalette('widgetPalette');
+    }
+});

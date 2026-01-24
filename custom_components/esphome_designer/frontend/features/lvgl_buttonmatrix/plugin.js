@@ -51,10 +51,22 @@ const render = (el, widget, { getColorStyle }) => {
 const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
     const p = w.props || {};
     let matrix = p.rows || [{ buttons: ["1", "2", "3"] }, { buttons: ["4", "5", "6"] }];
+
+    // Schema fix: each button must be a dictionary with a 'text' property in newest ESPHome
+    const processedRows = matrix.map(row => ({
+        ...row,
+        buttons: (row.buttons || []).map(btn => {
+            if (typeof btn === 'string' || typeof btn === 'number') {
+                return { text: String(btn) };
+            }
+            return btn;
+        })
+    }));
+
     return {
         buttonmatrix: {
             ...common,
-            rows: matrix,
+            rows: processedRows,
             bg_color: convertColor(p.bg_color || "#444"),
             text_color: convertColor(p.color || "white"),
             opa: formatOpacity(p.opa)

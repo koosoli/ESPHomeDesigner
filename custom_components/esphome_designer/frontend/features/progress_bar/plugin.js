@@ -1,6 +1,4 @@
-/**
- * Progress Bar Plugin
- */
+import { TemplateConverter } from '../../js/utils/template_converter.js';
 
 const render = (el, widget, tools) => {
     const props = widget.props || {};
@@ -159,7 +157,7 @@ const exportDoc = (w, context) => {
 };
 
 const onExportNumericSensors = (context) => {
-    const { lines, widgets } = context;
+    const { lines, widgets, isLvgl, pendingTriggers } = context;
     if (!widgets || widgets.length === 0) return;
 
     for (const w of widgets) {
@@ -174,19 +172,15 @@ const onExportNumericSensors = (context) => {
             entityId = `sensor.${entityId}`;
         }
 
-        const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_");
-        const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(entityId)) ||
-            (context.seenSensorIds && context.seenSensorIds.has(safeId));
-
-        if (!alreadyDefined) {
-            if (context.seenEntityIds) context.seenEntityIds.add(entityId);
-            if (context.seenSensorIds) context.seenSensorIds.add(safeId);
-
-            lines.push("- platform: homeassistant");
-            lines.push(`  id: ${safeId}`);
-            lines.push(`  entity_id: ${entityId}`);
-            lines.push(`  internal: true`);
+        if (isLvgl && pendingTriggers) {
+            if (!pendingTriggers.has(entityId)) {
+                pendingTriggers.set(entityId, new Set());
+            }
+            pendingTriggers.get(entityId).add(`- lvgl.widget.refresh: ${w.id}`);
         }
+
+        // We let the safety fix handle the sensor generation for HA entities.
+        // It will deduplicate and merge triggers automatically.
     }
 };
 
@@ -194,6 +188,7 @@ export default {
     id: "progress_bar",
     name: "Progress Bar",
     category: "Advanced",
+    supportedModes: ['lvgl', 'direct', 'oepl', 'opendisplay'],
     defaults: {
         show_label: true,
         show_percentage: true,
@@ -206,6 +201,107 @@ export default {
         mode: "normal"
     },
     render,
+    exportOpenDisplay: (w, { layout, page }) => {
+        const p = w.props || {};
+        const title = w.title || "";
+        const showLabel = p.show_label !== false;
+        const barHeight = parseInt(p.bar_height || 15, 10);
+        const color = p.color || "black";
+
+        const actions = [];
+
+        // Outline rect for bar
+        const barY = Math.round(w.y + (w.height - barHeight));
+        actions.push({
+            type: "draw_rect",
+            x: Math.round(w.x),
+            y: barY,
+            w: Math.round(w.width),
+            h: barHeight,
+            fill: null,
+            outline: color,
+            width: 1
+        });
+
+        // Fill half as placeholder
+        actions.push({
+            type: "draw_rect",
+            x: Math.round(w.x + 2),
+            y: barY + 2,
+            w: Math.round((w.width - 4) * 0.5),
+            h: barHeight - 4,
+            fill: color
+        });
+
+        if (showLabel && title) {
+            actions.push({
+                type: "draw_text",
+                x: Math.round(w.x),
+                y: Math.round(w.y),
+                text: title,
+                size: 12,
+                color: color
+            });
+        }
+
+        return actions;
+    },
+    exportOEPL: (w, { layout, page }) => {
+        const p = w.props || {};
+        const entityId = (w.entity_id || "").trim();
+        const title = w.title || "";
+        const showLabel = p.show_label !== false;
+        const showPercentage = p.show_percentage !== false;
+        const barHeight = parseInt(p.bar_height || 15, 10);
+        const color = p.color || "black";
+
+        const elements = [];
+        const template = TemplateConverter.toHATemplate(entityId, { precision: 0, isNumeric: true });
+
+        // Label
+        if (showLabel && title) {
+            elements.push({
+                type: "text",
+                value: title,
+                x: Math.round(w.x),
+                y: Math.round(w.y),
+                size: 12,
+                color: color,
+                anchor: "lt"
+            });
+        }
+
+        // Percentage
+        if (showPercentage) {
+            elements.push({
+                type: "text",
+                value: `${template}%`,
+                x: Math.round(w.x + w.width),
+                y: Math.round(w.y),
+                size: 12,
+                color: color,
+                align: "right",
+                anchor: "rt"
+            });
+        }
+
+        // Bar
+        const barY = Math.round(w.y + (w.height - barHeight));
+        elements.push({
+            type: "progress",
+            x_start: Math.round(w.x),
+            y_start: barY,
+            x_end: Math.round(w.x + w.width),
+            y_end: Math.round(barY + barHeight),
+            value: template,
+            color: color,
+            outline: color,
+            fill: color,
+            width: 1
+        });
+
+        return elements;
+    },
     exportLVGL,
     export: exportDoc,
     onExportNumericSensors

@@ -13,7 +13,7 @@ const render = (el, widget, { getColorStyle }) => {
     el.style.alignItems = "center";
     el.style.justifyContent = "center";
 
-    const text = props.text || "https://esphome.io";
+    const text = props.text || "https://github.com/koosoli/ESPHomeDesigner/";
 
     try {
         if (window.qrcode) {
@@ -44,15 +44,41 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportLVGL = (w, { common, convertColor }) => {
     const p = w.props || {};
+    let qrText = `"${p.text || 'https://github.com/koosoli/ESPHomeDesigner/'}"`;
+
+    if (w.entity_id) {
+        const safeId = w.entity_id.replace(/[^a-zA-Z0-9_]/g, "_");
+        qrText = `!lambda "return id(${safeId}).state.c_str();"`;
+    }
+
     return {
         qrcode: {
             ...common,
-            text: `"${p.text || 'https://esphome.io'}"`,
-            size: Math.min(w.w, w.h),
+            text: qrText,
+            size: Math.min(common.width, common.height),
             dark_color: convertColor(p.color),
             light_color: convertColor(p.bg_color || "white")
         }
     };
+};
+
+const onExportTextSensors = (context) => {
+    const { widgets, isLvgl, pendingTriggers } = context;
+    if (!widgets) return;
+
+    for (const w of widgets) {
+        if (w.type !== "lvgl_qrcode") continue;
+
+        const eid = (w.entity_id || w.props?.entity_id || "").trim();
+        if (!eid) continue;
+
+        if (isLvgl && pendingTriggers) {
+            if (!pendingTriggers.has(eid)) {
+                pendingTriggers.set(eid, new Set());
+            }
+            pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
+        }
+    }
 };
 
 export default {
@@ -60,11 +86,12 @@ export default {
     name: "QR Code (lv)",
     category: "LVGL",
     defaults: {
-        text: "https://esphome.io",
+        text: "https://github.com/koosoli/ESPHomeDesigner/",
         color: "black",
         bg_color: "white",
         scale: 4
     },
     render,
-    exportLVGL
+    exportLVGL,
+    onExportTextSensors
 };

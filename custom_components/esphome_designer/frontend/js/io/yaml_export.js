@@ -71,7 +71,8 @@ export function highlightWidgetInSnippet(widgetIds) {
                 "globals:", "sensor:", "binary_sensor:", "text_sensor:",
                 "time:", "script:", "font:", "image:", "animation:",
                 "display:", "lvgl:", "i2c:", "spi:", "uart:",
-                "output:", "light:", "switch:", "button:", "number:", "select:", "climate:", "fan:", "cover:"
+                "output:", "light:", "switch:", "button:", "number:", "select:", "climate:", "fan:", "cover:",
+                "  ]", "    ]", "  }", "    }"
             ];
 
             let nextMarkerIndex = -1;

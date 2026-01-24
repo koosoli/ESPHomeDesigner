@@ -42,6 +42,7 @@ export const ORIENTATIONS = {
 export const DEFAULT_PREFERENCES = {
     snapEnabled: true,
     showGrid: true,
+    showDebugGrid: false,
     showRulers: false,
     gridOpacity: 8,
     editor_light_mode: false,
@@ -67,8 +68,10 @@ export const DEFAULT_PREFERENCES = {
     dailyRefreshTime: "08:00",
     noRefreshStartHour: null,
     noRefreshEndHour: null,
-    renderingMode: null
-
+    renderingMode: "direct",
+    oeplEntityId: "",
+    oeplDither: 2,
+    glyphsets: ["GF_Latin_Kernel"]
 };
 
 export const WIDGET_DEFAULTS = {

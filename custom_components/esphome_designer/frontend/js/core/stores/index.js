@@ -2,7 +2,7 @@ import { ProjectStore } from './project_store.js';
 import { EditorStore } from './editor_store.js';
 import { PreferencesStore } from './preferences_store.js';
 import { SecretsStore } from './secrets_store.js';
-import { emit, EVENTS } from '../events.js';
+import { emit, EVENTS, on } from '../events.js';
 import { Logger } from '../../utils/logger.js';
 import { hasHaBackend } from '../../utils/env.js';
 import { generateId } from '../../utils/helpers.js';
@@ -20,6 +20,13 @@ class AppStateFacade {
         this._isRestoringHistory = false;
 
         this.recordHistory();
+
+        // Mode Compatibility Sync
+        on(EVENTS.SETTINGS_CHANGED, (settings) => {
+            if (settings && settings.renderingMode !== undefined) {
+                this.syncWidgetVisibilityWithMode();
+            }
+        });
     }
 
     reset() {
@@ -46,6 +53,7 @@ class AppStateFacade {
     get currentLayoutId() { return this.project.currentLayoutId; }
     get snapEnabled() { return this.preferences.snapEnabled; }
     get showGrid() { return this.preferences.showGrid; }
+    get showDebugGrid() { return this.preferences.showDebugGrid; }
     get showRulers() { return this.preferences.showRulers; }
     get zoomLevel() { return this.editor.zoomLevel; }
 
@@ -59,6 +67,15 @@ class AppStateFacade {
     }
 
     getCanvasDimensions() {
+        const mode = this.preferences.state.renderingMode || 'lvgl';
+        if (mode === 'oepl' || mode === 'opendisplay') {
+            const ph = this.project.protocolHardware;
+            const orientation = this.preferences.state.orientation;
+            if (orientation === 'portrait') {
+                return { width: Math.min(ph.width, ph.height), height: Math.max(ph.width, ph.height) };
+            }
+            return { width: Math.max(ph.width, ph.height), height: Math.min(ph.width, ph.height) };
+        }
         return this.project.getCanvasDimensions(this.preferences.state.orientation);
     }
 
@@ -69,12 +86,19 @@ class AppStateFacade {
     getPagesPayload() {
         return {
             ...this.project.getPagesPayload(),
+            currentPageIndex: this.currentPageIndex,
+            protocolHardware: this.project.protocolHardware,
             ...this.settings
         };
     }
 
     getSettings() { return this.settings; }
     setSettings(s) { this.updateSettings(s); }
+
+    updateProtocolHardware(updates) {
+        Object.assign(this.project.state.protocolHardware, updates);
+        emit(EVENTS.SETTINGS_CHANGED);
+    }
 
     // --- Persistence ---
     saveToLocalStorage() {
@@ -201,6 +225,7 @@ class AppStateFacade {
 
     setSnapEnabled(e) { this.preferences.setSnapEnabled(e); }
     setShowGrid(e) { this.preferences.setShowGrid(e); }
+    setShowDebugGrid(e) { this.preferences.setShowDebugGrid(e); }
     setShowRulers(e) { this.preferences.setShowRulers(e); }
     setZoomLevel(l) { this.editor.setZoomLevel(l); }
 
@@ -659,6 +684,67 @@ class AppStateFacade {
         // Update the project's widget array
         page.widgets = sorted;
         this.project.rebuildWidgetsIndex();
+    }
+
+    /**
+     * Synchronizes widget visibility based on the current rendering mode.
+     * Incompatible widgets are marked as hidden.
+     */
+    syncWidgetVisibilityWithMode() {
+        const mode = this.preferences.state.renderingMode || 'lvgl';
+        Logger.log(`[AppState] Syncing widget visibility for mode: ${mode}`);
+
+        let changeCount = 0;
+        this.project.pages.forEach(page => {
+            page.widgets.forEach(w => {
+                const isCompatible = this._isWidgetCompatibleWithMode(w, mode);
+
+                if (!isCompatible && !w.hidden) {
+                    // Auto-hide incompatible widgets
+                    w.hidden = true;
+                    changeCount++;
+                } else if (isCompatible && w.hidden) {
+                    // If it was hidden but IS now compatible, should we show it?
+                    // User might have manually hidden it. 
+                    // However, for mode switching, it's safer to reveal it if it was clearly
+                    // hidden due to incompatibility previously.
+                    // For now, let's keep the aggressive "auto-show if compatible" behavior
+                    // to help users see what's valid in the current mode.
+                    w.hidden = false;
+                    changeCount++;
+                }
+            });
+        });
+
+        if (changeCount > 0) {
+            Logger.log(`[AppState] Updated ${changeCount} widgets due to mode switch.`);
+            this.project.rebuildWidgetsIndex();
+            emit(EVENTS.STATE_CHANGED);
+        }
+    }
+
+    /**
+     * Internal check for widget compatibility.
+     * @private
+     */
+    _isWidgetCompatibleWithMode(w, mode) {
+        const plugin = PluginRegistry.get(w.type);
+        if (!plugin) return true; // Default to visible if plugin missing
+
+        if (mode === 'oepl') return !!plugin.exportOEPL;
+        if (mode === 'opendisplay') return !!plugin.exportOpenDisplay;
+        if (mode === 'lvgl') {
+            // Strict Isolation: Only permit native LVGL widgets
+            return w.type && w.type.startsWith('lvgl_');
+        }
+        if (mode === 'direct') {
+            // Direct mode uses display.lambda. Compatible if it has 'export' method
+            // AND it's not strictly for another protocol.
+            const isProtocolSpecific = w.type && (w.type.startsWith('lvgl_') || w.type.startsWith('oepl_'));
+            return !!plugin.export && !isProtocolSpecific;
+        }
+
+        return true;
     }
 
     /**

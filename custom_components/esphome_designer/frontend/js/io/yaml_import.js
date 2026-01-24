@@ -67,27 +67,73 @@ export function parseSnippetYamlOffline(yamlText) {
     }
 
     // 2. Fallback to manual scanning if js-yaml missed the lambda (e.g. malformed YAML or partial snippet)
-    if (lambdaLines.length === 0) {
-        let inLambda = false;
-        let lambdaIndent = 0;
+    // OR if it's an LVGL-based YAML where we need to scan the lvgl: block for widgets.
+    if (lambdaLines.length === 0 || yamlText.includes("lvgl:")) {
+        let inBlock = false;
+        let blockIndent = 0;
+        let blockType = null; // 'lambda' or 'lvgl'
+
         for (const rawLine of rawLines) {
             const line = rawLine.replace(/\t/g, "    ");
-            if (!inLambda && line.match(/^\s*lambda:\s*\|\-/)) {
-                inLambda = true;
-                continue;
+            const trimmed = line.trim();
+
+            if (!inBlock) {
+                if (line.match(/^\s*lambda:\s*\|\-/)) {
+                    inBlock = true;
+                    blockType = 'lambda';
+                    blockIndent = 0;
+                    continue;
+                } else if (line.match(/^\s*lvgl:\s*$/)) {
+                    inBlock = true;
+                    blockType = 'lvgl';
+                    blockIndent = 0;
+                    continue;
+                } else if (line.match(/^\s*"?(?:open_epaper_link\.drawcustom|payload)"?:\s*(?:\[|\|-)?/)) {
+                    inBlock = true;
+                    blockType = 'oepl';
+                    blockIndent = 0;
+                    continue;
+                } else if (line.match(/^\s*"actions":\s*\[/)) {
+                    inBlock = true;
+                    blockType = 'odp';
+                    blockIndent = 0;
+                    continue;
+                }
             }
-            if (inLambda) {
-                const indentMatch = line.match(/^(\s+)/);
-                if (indentMatch) {
-                    const indentLen = indentMatch[1].length;
-                    if (lambdaIndent === 0) lambdaIndent = indentLen;
-                    if (indentLen < lambdaIndent) { inLambda = false; continue; }
-                    lambdaLines.push(line.slice(lambdaIndent));
-                } else if (line.trim() === "") {
+
+            if (inBlock) {
+                const indentMatch = line.match(/^(\s*)/);
+                const indentLen = indentMatch ? indentMatch[1].length : 0;
+
+                if (trimmed === "") {
                     lambdaLines.push("");
+                    continue;
+                }
+
+                if (blockIndent === 0 && trimmed !== "" && !trimmed.startsWith("#") && !trimmed.startsWith("//")) {
+                    blockIndent = indentLen;
+                }
+
+                // OEPL/ODP can be JSON, so we handle both # and // markers
+                if (trimmed.startsWith("#") || trimmed.startsWith("//")) {
+                    lambdaLines.push(line);
+                    continue;
+                }
+
+                if (blockIndent !== 0 && indentLen < blockIndent && trimmed !== "") {
+                    // Check if it's a new root key or a lower indent level
+                    if (line.match(/^\w+:/) || line.match(/^\s*}/) || indentLen < blockIndent) {
+                        inBlock = false;
+                        continue;
+                    }
+                }
+
+                // For LVGL/OEPL/ODP blocks, we keep the indentation to help the sub-block parser
+                // For Lambdas, we strip the base indent
+                if (blockType === 'lambda') {
+                    lambdaLines.push(line.slice(blockIndent));
                 } else {
-                    // Check if it's a root key
-                    if (line.match(/^\w+:/)) inLambda = false;
+                    lambdaLines.push(line);
                 }
             }
         }
@@ -1357,6 +1403,11 @@ export function loadLayoutIntoState(layout) {
     // Set custom hardware if present
     if (layout.customHardware) {
         AppState.setCustomHardware(layout.customHardware);
+    }
+
+    // Set protocol hardware if present
+    if (layout.protocolHardware) {
+        AppState.updateProtocolHardware(layout.protocolHardware);
     }
 
     // Merge imported settings with existing settings

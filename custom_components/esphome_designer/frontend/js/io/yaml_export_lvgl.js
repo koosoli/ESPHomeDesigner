@@ -6,15 +6,53 @@
 import { DEVICE_PROFILES } from './devices.js';
 import { Logger } from '../utils/logger.js';
 
+// --- Helpers (Exported for plugins and other adapters) ---
+
+export function convertColor(hex) {
+    if (!hex || hex === "transparent") return '"0x000000"';
+    if (hex.startsWith("#")) {
+        return '"0x' + hex.substring(1).toUpperCase() + '"';
+    }
+    return `"${hex}"`;
+}
+
+export function convertAlign(align) {
+    if (!align) return "top_left";
+    const mapping = {
+        "left": "top_left",
+        "center": "center",
+        "right": "top_right"
+    };
+    return mapping[align.toLowerCase()] || align.toLowerCase();
+}
+
+export function getLVGLFont(family, size, weight, italic) {
+    const f = (family || "Roboto").toLowerCase().replace(/\s+/g, "_");
+    const w = weight || 400;
+    const s = size || 20;
+    const i = italic ? "_italic" : "";
+    return `font_${f}_${w}_${s}${i}`;
+}
+
+export function formatOpacity(opa) {
+    if (opa === undefined || opa === null) return "cover";
+    if (typeof opa === "number") {
+        if (opa >= 255) return "cover";
+        if (opa <= 0) return "transp";
+        return Math.round((opa / 255) * 100) + "%";
+    }
+    return opa;
+}
+
 /**
  * Generates the LVGL snippet for the ESPHome configuration.
  * @param {Array} pages - The list of pages.
  * @param {string} deviceModel - The device model.
  * @returns {Array} The generated lines of YAML.
  */
-export function generateLVGLSnippet(pages, deviceModel) {
+export function generateLVGLSnippet(pages, deviceModel, profileOverride = null) {
     const lines = [];
-    const profile = DEVICE_PROFILES ? (DEVICE_PROFILES[deviceModel] || {}) : {};
+    const profile = profileOverride || (DEVICE_PROFILES ? (DEVICE_PROFILES[deviceModel] || {}) : {});
 
     // 1. Generate Global Config (Display settings for LVGL)
     lines.push("# ============================================================================");
@@ -58,7 +96,7 @@ export function generateLVGLSnippet(pages, deviceModel) {
             return;
         }
 
-        widgets.filter(w => w.type !== 'group').forEach(w => {
+        widgets.filter(w => !w.hidden && w.type !== 'group').forEach(w => {
             // Generate widget marker comment for import/parsing
             lines.push(`        ${serializeWidget(w)}`);
 
@@ -101,7 +139,7 @@ function serializeYamlObject(obj, lines, indentLevel) {
                         // Increase indent for array item properties
                         serializeYamlObject(item, lines, indentLevel + 4);
                     } else {
-                        lines.push(`${spaces}  - ${item}`);
+                        lines.push(`${spaces}  - ${safeYamlValue(item)}`);
                     }
                 });
             }
@@ -135,10 +173,47 @@ function serializeYamlObject(obj, lines, indentLevel) {
                     });
                 }
             } else {
-                lines.push(`${spaces}${key}: ${val}`);
+                lines.push(`${spaces}${key}: ${safeYamlValue(val)}`);
             }
         }
     });
+}
+
+/**
+ * Escapes and quotes YAML values if they contain special characters 
+ * that would otherwise trigger YAML features like aliases (*), anchors (&), 
+ * or be mis-parsed as booleans/numbers.
+ * @param {any} val - The value to check and quote.
+ * @returns {string} The safe YAML string.
+ */
+function safeYamlValue(val) {
+    if (val === undefined || val === null) return "";
+    if (typeof val !== 'string') return String(val);
+
+    const trimmed = val.trim();
+
+    // 1. If it's already explicitly quoted or is a tag/lambda, leave it alone
+    if ((val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'")) ||
+        trimmed.startsWith('!lambda') ||
+        trimmed.startsWith('!secret')) {
+        return val;
+    }
+
+    // 2. Check for characters that require quoting at the start of a YAML scalar
+    // or if the string represents a reserved YAML literal (true/false/null/yes/no)
+    // Also quote if it contains sequences like ": " or " #" which are sensitive in YAML.
+    const needsQuoting = /^[*&!|>%@,\-{}[\]?#:]/.test(trimmed) ||
+        /^(true|false|null|yes|no)$/i.test(trimmed) ||
+        trimmed.includes(': ') ||
+        trimmed.includes(' #');
+
+    if (needsQuoting) {
+        // Use JSON.stringify to handle the quoting and escaping reliably
+        return JSON.stringify(val);
+    }
+
+    return val;
 }
 
 /**
@@ -177,7 +252,9 @@ export function serializeWidget(w) {
                     Logger.warn(`[serializeWidget] Failed to serialize prop ${k}`, e);
                 }
             } else {
-                parts.push(`${k}:${v}`);
+                // Use JSON.stringify for primitives too to ensure strings are quoted/escaped
+                // and numbers/booleans are formatted correctly.
+                parts.push(`${k}:${JSON.stringify(v)}`);
             }
         });
     }
@@ -222,14 +299,28 @@ function transpileToLVGL(w, profile) {
     if (registry) {
         const plugin = registry.get(w.type);
         if (plugin && typeof plugin.exportLVGL === 'function') {
-            return plugin.exportLVGL(w, {
+            // Helper for plugins using the descriptor pattern
+            const getObjectDescriptor = () => ({
+                type: "obj",
+                attrs: { ...common }
+            });
+
+            const result = plugin.exportLVGL(w, {
                 profile,
                 common: common,
                 convertColor,
                 convertAlign,
                 getLVGLFont,
-                formatOpacity
+                formatOpacity,
+                getObjectDescriptor
             });
+
+            // Normalize result if it uses the descriptor pattern (e.g. { type: 'textarea', attrs: {...} })
+            if (result && result.type && result.attrs) {
+                return { [result.type]: result.attrs };
+            }
+
+            return result;
         }
     }
 
@@ -240,43 +331,6 @@ function transpileToLVGL(w, profile) {
     }
 
     return null;
-
-    // Helpers
-    function convertColor(hex) {
-        if (!hex || hex === "transparent") return '"0x000000"';
-        if (hex.startsWith("#")) {
-            return '"0x' + hex.substring(1).toUpperCase() + '"';
-        }
-        return `"${hex}"`;
-    }
-
-    function convertAlign(align) {
-        if (!align) return "top_left";
-        const mapping = {
-            "left": "top_left",
-            "center": "center",
-            "right": "top_right"
-        };
-        return mapping[align.toLowerCase()] || align.toLowerCase();
-    }
-
-    function getLVGLFont(family, size, weight, italic) {
-        const f = (family || "Roboto").toLowerCase().replace(/\s+/g, "_");
-        const w = weight || 400;
-        const s = size || 20;
-        const i = italic ? "_italic" : "";
-        return `font_${f}_${w}_${s}${i}`;
-    }
-
-    function formatOpacity(opa) {
-        if (opa === undefined || opa === null) return "cover";
-        if (typeof opa === "number") {
-            if (opa >= 255) return "cover";
-            if (opa <= 0) return "transp";
-            return Math.round((opa / 255) * 100) + "%";
-        }
-        return opa;
-    }
 }
 
 /**

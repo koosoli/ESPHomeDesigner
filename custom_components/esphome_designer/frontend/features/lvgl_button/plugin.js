@@ -73,6 +73,7 @@ export default {
     id: "lvgl_button",
     name: "Button",
     category: "LVGL",
+    supportedModes: ['lvgl'],
     defaults: {
         text: "Button",
         bg_color: "white",

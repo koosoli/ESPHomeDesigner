@@ -172,6 +172,9 @@ export default {
     id: "calendar",
     name: "Calendar",
     category: "Events",
+    // CRITICAL ARCHITECTURAL NOTE: OEPL and OpenDisplay are excluded because their 
+    // export implementations are insufficient for this complex widget.
+    supportedModes: ['lvgl', 'direct'],
     defaults: {
         entity_id: "sensor.esp_calendar_data",
         border_width: 2,
@@ -309,7 +312,7 @@ export default {
                 y: headH + 40, align: "TOP_MID",
                 text: "\"Calendar Grid Not Supported in LVGL Mode\"",
                 text_font: getLVGLFont("Roboto", 12, 400),
-                text_color: "#888888"
+                text_color: "0x888888"
             }
         });
 
@@ -500,5 +503,19 @@ export default {
         addDitherMask(lines, colorProp, isEpaper, w.x, w.y, w.width, w.height);
         lines.push(`        }`);
         if (cond) lines.push(`        }`);
+    },
+    collectRequirements: (w, { addFont }) => {
+        const p = w.props || {};
+        const dateFontSize = Math.round(Math.min(parseInt(p.font_size_date || 100, 10) * 0.7, 80));
+        const dayFontSize = parseInt(p.font_size_day || 24, 10);
+        const gridFontSize = parseInt(p.font_size_grid || 14, 10);
+        const eventFontSize = parseInt(p.font_size_event || 18, 10);
+        const fontFamily = p.font_family || "Roboto";
+
+        addFont(fontFamily, 100, dateFontSize);
+        addFont(fontFamily, 700, dayFontSize);
+        addFont(fontFamily, 400, gridFontSize);
+        addFont(fontFamily, 400, eventFontSize);
+        addFont("Material Design Icons", 400, 24);
     }
 };

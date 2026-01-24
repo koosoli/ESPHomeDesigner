@@ -54,46 +54,34 @@ const render = (el, widget, { getColorStyle }) => {
     el.appendChild(content);
 };
 
-const exportLVGL = (w, context) => {
-    const { getObjectDescriptor } = context;
-    const props = w.props || {};
-
-    const obj = getObjectDescriptor(w);
-    obj.type = "tabview";
-
-    // Tabview uses special construction args in ESPHome
-    obj.type = "obj"; // Reset to obj because tabview is complex container
-    // But wait, ESPHome components usually map directly. 
-    // Let's check LVGL docs or ESPHome LVGL docs.
-    // ESPHome lvgl config:
-    // - tabview:
-    //     tabs: 
-    //       - title: "Tab 1"
-
-    // However, our simplified generator likely expects a type mapping.
-    // If the generator supports generic attrs, we can pass them.
-
-    obj.type = "tabview";
-    obj.attrs = {
-        ...obj.attrs,
-        tab_pos: props.tab_pos || "TOP",
-        tab_size: 30
-    };
-
-    // Tabs need to be children or configured in a specific way.
-    // The simplified generator might not handle nested complex structures well purely via attrs.
-    // We'll pass the raw tabs list for the generator to handle if it knows how,
-    // or arguably just creating the container is better than the warning.
-
-    let tabs = props.tabs || ["Tab 1", "Tab 2"];
-    if (typeof tabs === 'string') {
-        tabs = tabs.includes("\n") ? tabs.split("\n") : tabs.split(",").map(t => t.trim());
+const exportLVGL = (w, { common }) => {
+    const p = w.props || {};
+    let tabsRaw = p.tabs || ["Tab 1", "Tab 2"];
+    if (typeof tabsRaw === 'string') {
+        tabsRaw = tabsRaw.includes("\n") ? tabsRaw.split("\n") : tabsRaw.split(",").map(t => t.trim());
+    } else if (!Array.isArray(tabsRaw)) {
+        tabsRaw = ["Tab 1", "Tab 2"];
     }
 
-    // Pass tabs as a custom property for the generator to potentially usage
-    obj._custom = { tabs };
+    const tabs = tabsRaw.map(name => ({
+        name: String(name),
+        widgets: []
+    }));
 
-    return obj;
+    // Convert tab_size to percentage string if it's a number
+    let sizeStr = "10%";
+    if (p.tab_size) {
+        sizeStr = typeof p.tab_size === 'number' ? `${p.tab_size}%` : p.tab_size;
+    }
+
+    return {
+        tabview: {
+            ...common,
+            position: p.tab_pos || "TOP",
+            size: sizeStr,
+            tabs: tabs
+        }
+    };
 };
 
 export default {

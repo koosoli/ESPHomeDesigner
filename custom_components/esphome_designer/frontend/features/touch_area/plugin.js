@@ -173,6 +173,10 @@ export default {
     id: "touch_area",
     name: "Touch Area",
     category: "Controls",
+    // CRITICAL ARCHITECTURAL NOTE: OEPL and OpenDisplay are excluded because this 
+    // widget is strictly for display.lambda touchscreens. LVGL has its own 
+    // internal touch handling via objects.
+    supportedModes: ['direct'],
     defaults: {
         title: "",
         icon: "",

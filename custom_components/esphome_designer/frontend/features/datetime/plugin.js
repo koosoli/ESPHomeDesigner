@@ -67,6 +67,7 @@ export default {
     id: "datetime",
     name: "Date & Time",
     category: "Core",
+    supportedModes: ['lvgl', 'direct', 'oepl', 'opendisplay'],
     defaults: {
         format: "time_date",
         time_font_size: 28,
@@ -77,6 +78,61 @@ export default {
         text_align: "CENTER"
     },
     render,
+    exportOpenDisplay: (w, { layout, page }) => {
+        const p = w.props || {};
+        const format = p.format || "time_date";
+        const textAlign = p.text_align || "CENTER";
+
+        let text = "";
+        const now = new Date();
+        if (format === "time_only") {
+            text = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+        } else if (format === "date_only") {
+            text = now.getDate().toString().padStart(2, '0') + "." + (now.getMonth() + 1).toString().padStart(2, '0') + "." + now.getFullYear();
+        } else {
+            text = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+        }
+
+        return {
+            type: "draw_text",
+            x: Math.round(w.x + (textAlign === "CENTER" ? w.width / 2 : (textAlign === "RIGHT" ? w.width : 0))),
+            y: Math.round(w.y),
+            text: text,
+            size: p.time_font_size || 28,
+            color: p.color || "black",
+            font: p.font_family?.toLowerCase() || "roboto"
+        };
+    },
+    exportOEPL: (w, { layout, page }) => {
+        const p = w.props || {};
+        const format = p.format || "time_date";
+        const color = p.color || "black";
+        const textAlign = p.text_align || "CENTER";
+
+        let template = "";
+        if (format === "time_only") {
+            template = "{{ now().strftime('%H:%M') }}";
+        } else if (format === "date_only") {
+            template = "{{ now().strftime('%d.%m.%Y') }}";
+        } else if (format === "weekday_day_month") {
+            template = "{{ now().strftime('%A %d %B') }}";
+        } else {
+            // "time_date" - needs to be multi-line or split. OEPL supports \n in text.
+            template = "{{ now().strftime('%H:%M') }}\n{{ now().strftime('%a, %b %d') }}";
+        }
+
+        return {
+            type: "text",
+            value: template,
+            x: Math.round(w.x + (textAlign === "CENTER" ? w.width / 2 : (textAlign === "RIGHT" ? w.width : 0))),
+            y: Math.round(w.y),
+            size: p.time_font_size || 28,
+            font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf",
+            color: color,
+            align: textAlign.toLowerCase(),
+            anchor: "lt"
+        };
+    },
     exportLVGL: (w, { common, convertColor, convertAlign, getLVGLFont, formatOpacity }) => {
         const p = w.props || {};
         const format = p.format || "time_date";

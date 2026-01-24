@@ -1,4 +1,4 @@
-.canvas-viewport {
+﻿.canvas-viewport {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -267,6 +267,12 @@
 
 .widget.locked {
     cursor: default;
+}
+
+.widget.hidden-widget {
+    opacity: 0.3 !important;
+    filter: grayscale(0.8);
+    pointer-events: none;
 }
 
 .widget.active {
@@ -604,4 +610,58 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--text-muted);
+}
+
+/* True Pixel Matrix Overlay */
+.debug-grid-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    /* Force to top of artboard */
+    /* Matrix Hierarchy: 1px grid (visible), 10px and 50px accents */
+    background-image:
+        linear-gradient(to right, hsla(195, 85%, 65%, 0.4) 1.5px, transparent 1.5px),
+        linear-gradient(to bottom, hsla(195, 85%, 65%, 0.4) 1.5px, transparent 1.5px),
+        linear-gradient(to right, hsla(195, 85%, 65%, 0.2) 1px, transparent 1px),
+        linear-gradient(to bottom, hsla(195, 85%, 65%, 0.2) 1px, transparent 1px),
+        linear-gradient(to right, hsla(195, 85%, 65%, 0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, hsla(195, 85%, 65%, 0.08) 1px, transparent 1px);
+    background-size: 50px 50px, 50px 50px, 10px 10px, 10px 10px, 1px 1px, 1px 1px;
+    background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0;
+}
+
+.artboard.dark .debug-grid-overlay {
+    background-image:
+        linear-gradient(to right, hsla(195, 85%, 75%, 0.6) 1.5px, transparent 1.5px),
+        linear-gradient(to bottom, hsla(195, 85%, 75%, 0.6) 1.5px, transparent 1.5px),
+        linear-gradient(to right, hsla(195, 85%, 75%, 0.3) 1px, transparent 1px),
+        linear-gradient(to bottom, hsla(195, 85%, 75%, 0.3) 1px, transparent 1px),
+        linear-gradient(to right, hsla(195, 85%, 75%, 0.15) 1px, transparent 1px),
+        linear-gradient(to bottom, hsla(195, 85%, 75%, 0.15) 1px, transparent 1px);
+}
+
+/* Floating Real-time Cursor Tracker */
+.debug-cursor-tooltip {
+    position: fixed;
+    pointer-events: none;
+    z-index: 10000;
+    background: rgba(15, 17, 21, 0.95);
+    color: hsl(195, 85%, 65%);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    border: 1px solid hsla(195, 85%, 65%, 0.5);
+    display: none;
+    transform: translate(15px, 15px);
+    letter-spacing: 0.05em;
+    backdrop-filter: blur(8px);
+}
+
+.debug-cursor-tooltip span {
+    color: hsla(195, 85%, 65%, 0.6);
+    margin-right: 4px;
 }

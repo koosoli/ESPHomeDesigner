@@ -108,21 +108,24 @@ const exportDoc = (w, context) => {
     lines.push(`        {`);
     lines.push(`          const char* bat_icon = "\\U000F0082"; // Default: battery-90`);
     lines.push(`          float bat_level = 0;`);
-    lines.push(`          if (id(${sensorId}).has_state()) {`);
-    lines.push(`            bat_level = id(${sensorId}).state;`);
-    lines.push(`            if (std::isnan(bat_level)) bat_level = 0;`);
-    lines.push(`            if (bat_level >= 95) bat_icon = "\\U000F0079";      // battery (full)`);
-    lines.push(`            else if (bat_level >= 85) bat_icon = "\\U000F0082"; // battery-90`);
-    lines.push(`            else if (bat_level >= 75) bat_icon = "\\U000F0081"; // battery-80`);
-    lines.push(`            else if (bat_level >= 65) bat_icon = "\\U000F0080"; // battery-70`);
-    lines.push(`            else if (bat_level >= 55) bat_icon = "\\U000F007F"; // battery-60`);
-    lines.push(`            else if (bat_level >= 45) bat_icon = "\\U000F007E"; // battery-50`);
-    lines.push(`            else if (bat_level >= 35) bat_icon = "\\U000F007D"; // battery-40`);
-    lines.push(`            else if (bat_level >= 25) bat_icon = "\\U000F007C"; // battery-30`);
-    lines.push(`            else if (bat_level >= 15) bat_icon = "\\U000F007B"; // battery-20`);
-    lines.push(`            else if (bat_level >= 5) bat_icon = "\\U000F007A";  // battery-10`);
-    lines.push(`            else bat_icon = "\\U000F0083";                      // battery-alert (critical)`);
-    lines.push(`          }`);
+    const idExists = (id) => context.seenSensorIds && context.seenSensorIds.has(id);
+    if (sensorId && idExists(sensorId)) {
+        lines.push(`          if (id(${sensorId}).has_state()) {`);
+        lines.push(`            bat_level = id(${sensorId}).state;`);
+        lines.push(`            if (std::isnan(bat_level)) bat_level = 0;`);
+        lines.push(`            if (bat_level >= 95) bat_icon = "\\U000F0079";      // battery (full)`);
+        lines.push(`            else if (bat_level >= 85) bat_icon = "\\U000F0082"; // battery-90`);
+        lines.push(`            else if (bat_level >= 75) bat_icon = "\\U000F0081"; // battery-80`);
+        lines.push(`            else if (bat_level >= 65) bat_icon = "\\U000F0080"; // battery-70`);
+        lines.push(`            else if (bat_level >= 55) bat_icon = "\\U000F007F"; // battery-60`);
+        lines.push(`            else if (bat_level >= 45) bat_icon = "\\U000F007E"; // battery-50`);
+        lines.push(`            else if (bat_level >= 35) bat_icon = "\\U000F007D"; // battery-40`);
+        lines.push(`            else if (bat_level >= 25) bat_icon = "\\U000F007C"; // battery-30`);
+        lines.push(`            else if (bat_level >= 15) bat_icon = "\\U000F007B"; // battery-20`);
+        lines.push(`            else if (bat_level >= 5) bat_icon = "\\U000F007A";  // battery-10`);
+        lines.push(`            else bat_icon = "\\U000F0083";                      // battery-alert (critical)`);
+        lines.push(`          }`);
+    }
 
     // Icon Centered
     lines.push(`          it.printf(${centerX}, ${iconY}, id(${fontRef}), ${color}, TextAlign::TOP_CENTER, "%s", bat_icon);`);
@@ -140,6 +143,9 @@ export default {
     id: "battery_icon",
     name: "Battery",
     category: "Sensors",
+    // CRITICAL ARCHITECTURAL NOTE: Protocol-based modes (OEPL/OpenDisplay) do not support 
+    // on-device hardware sensors.
+    supportedModes: ['lvgl', 'direct'],
     defaults: {
         width: 60,
         height: 60,
@@ -148,6 +154,90 @@ export default {
         color: "black"
     },
     render,
+    exportOpenDisplay: (w, { layout, page }) => {
+        const p = w.props || {};
+        const entityId = (w.entity_id || "sensor.battery_level").trim();
+        const size = p.size || 36;
+        const fontSize = p.font_size || 14;
+        const color = p.color || "black";
+
+        let batteryLevel = 75;
+        if (window.AppState && window.AppState.entityStates && entityId) {
+            const stateObj = window.AppState.entityStates[entityId];
+            if (stateObj && stateObj.state !== undefined) {
+                const val = parseFloat(stateObj.state);
+                if (!isNaN(val)) batteryLevel = val;
+            }
+        }
+
+        let iconName = "battery-80";
+        if (batteryLevel >= 95) iconName = "battery";
+        else if (batteryLevel >= 85) iconName = "battery-90";
+        else if (batteryLevel >= 75) iconName = "battery-80";
+        else if (batteryLevel >= 65) iconName = "battery-70";
+        else if (batteryLevel >= 55) iconName = "battery-60";
+        else if (batteryLevel >= 45) iconName = "battery-50";
+        else if (batteryLevel >= 35) iconName = "battery-40";
+        else if (batteryLevel >= 25) iconName = "battery-30";
+        else if (batteryLevel >= 15) iconName = "battery-20";
+        else if (batteryLevel >= 5) iconName = "battery-10";
+        else iconName = "battery-alert";
+
+        return [
+            {
+                type: "draw_icon",
+                value: iconName,
+                x: Math.round(w.x + w.width / 2),
+                y: Math.round(w.y),
+                size: size,
+                color: color
+            },
+            {
+                type: "draw_text",
+                text: `${Math.round(batteryLevel)}%`,
+                x: Math.round(w.x + w.width / 2),
+                y: Math.round(w.y + size + 2),
+                size: fontSize,
+                color: color
+            }
+        ];
+    },
+    exportOEPL: (w, { layout, page }) => {
+        const p = w.props || {};
+        const entityId = (w.entity_id || "sensor.battery_level").trim();
+        const size = p.size || 36;
+        const fontSize = p.font_size || 14;
+        const color = p.color || "black";
+
+        // Template for dynamic battery icon name
+        const iconTemplate = `{{ 'battery-' ~ (states('${entityId}') | int / 10 | int * 10) if states('${entityId}') | int >= 10 else 'battery-outline' if states('${entityId}') | int >= 5 else 'battery-alert' }}`;
+        // Note: OEPL might support specific names like battery-90, battery-80 etc.
+        // Simplified mapping for OEPL:
+        const simpleIconTemplate = `{% set b = states('${entityId}') | int %}` +
+            `{% if b >= 95 %}battery{% elif b >= 15 %}battery-{{ (b/10)|int * 10 }}{% else %}battery-alert{% endif %}`;
+
+        return [
+            {
+                type: "icon",
+                value: simpleIconTemplate,
+                x: Math.round(w.x + w.width / 2),
+                y: Math.round(w.y),
+                size: size,
+                color: color,
+                anchor: "mt"
+            },
+            {
+                type: "text",
+                value: `{{ states('${entityId}') }}%`,
+                x: Math.round(w.x + w.width / 2),
+                y: Math.round(w.y + size + 2),
+                size: fontSize,
+                color: color,
+                align: "center",
+                anchor: "mt"
+            }
+        ];
+    },
     exportLVGL: (w, { common, convertColor, getLVGLFont, formatOpacity }) => {
         const p = w.props || {};
         let entityId = (w.entity_id || "").trim();
@@ -229,31 +319,47 @@ export default {
     },
     export: exportDoc,
     onExportNumericSensors: (context) => {
-        const { lines, widgets } = context;
+        // REGRESSION PROOF: Always destructure 'lines' (and other required props) from context
+        const { lines, widgets, isLvgl, pendingTriggers } = context;
         if (!widgets) return;
 
         for (const w of widgets) {
             if (w.type !== "battery_icon") continue;
 
             const p = w.props || {};
-            if (p.is_local_sensor) continue;
-
             let eid = (w.entity_id || "").trim();
-            if (!eid) continue;
-
-            // Ensure sensor. prefix if missing
-            if (!eid.includes(".")) {
-                eid = `sensor.${eid}`;
+            if (p.is_local_sensor) {
+                eid = "battery_level";
+            } else if (eid) {
+                // Ensure sensor. prefix if missing
+                if (!eid.includes(".")) {
+                    eid = `sensor.${eid}`;
+                }
             }
 
-            const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
-            const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(eid)) ||
-                (context.seenSensorIds && context.seenSensorIds.has(safeId));
+            if (!eid) continue;
 
-            if (!alreadyDefined) {
-                if (context.seenEntityIds) context.seenEntityIds.add(eid);
-                if (context.seenSensorIds) context.seenSensorIds.add(safeId);
-                lines.push("- platform: homeassistant", `  id: ${safeId}`, `  entity_id: ${eid}`, "  internal: true");
+            if (isLvgl && pendingTriggers) {
+                if (!pendingTriggers.has(eid)) {
+                    pendingTriggers.set(eid, new Set());
+                }
+                pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
+            }
+
+            // Explicitly export the Home Assistant sensor block if it's not a local sensor
+            if (!p.is_local_sensor && eid.startsWith("sensor.")) {
+                const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+                if (context.seenSensorIds && !context.seenSensorIds.has(safeId)) {
+                    if (context.seenSensorIds.size === 0) {
+                        lines.push("");
+                        lines.push("# External Battery Sensors");
+                    }
+                    context.seenSensorIds.add(safeId);
+                    lines.push("- platform: homeassistant");
+                    lines.push(`  id: ${safeId}`);
+                    lines.push(`  entity_id: ${eid}`);
+                    lines.push(`  internal: true`);
+                }
             }
         }
     }

@@ -62,15 +62,15 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
     const p = w.props || {};
-    const w_w = Math.round(w.w);
-    const w_h = Math.round(w.h);
+    const w_w = common.width;
+    const w_h = common.height;
     let pointsArr;
     const orientation = p.orientation || "horizontal";
 
     if (p.points && typeof p.points === 'string' && p.points.includes(',')) {
         pointsArr = p.points.split(" ").map(pt => {
             const [px, py] = pt.split(",").map(Number);
-            return { x: Math.round(px), y: Math.round(py) };
+            return { x: Math.round(px || 0), y: Math.round(py || 0) };
         });
     } else {
         if (orientation === "vertical") pointsArr = [{ x: 0, y: 0 }, { x: 0, y: w_h }];
@@ -81,12 +81,10 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
         line: {
             ...common,
             points: pointsArr,
-            style: {
-                line_width: p.line_width || 3,
-                line_color: convertColor(p.line_color || p.color),
-                line_rounded: p.line_rounded !== false,
-                line_opa: formatOpacity(p.opa || 255)
-            }
+            line_width: p.line_width || 3,
+            line_color: convertColor(p.line_color || p.color),
+            line_rounded: p.line_rounded !== false,
+            opa: formatOpacity(p.opa || 255)
         }
     };
 };

@@ -77,6 +77,24 @@ export class DeviceSettings {
         // Rendering Mode (LVGL vs Direct)
         this.renderingModeInput = document.getElementById('renderingMode');
         this.renderingModeField = document.getElementById('renderingModeField');
+
+        // OEPL Settings
+        this.oeplSettingsSection = document.getElementById('oeplSettingsSection');
+        this.oeplEntityIdInput = document.getElementById('oeplEntityId');
+        this.oeplDitherInput = document.getElementById('oeplDither');
+
+        // Protocol Hardware
+        this.protocolHardwareSection = document.getElementById('protocolHardwareSection');
+        this.protocolResPreset = document.getElementById('protocolResPreset');
+        this.protocolWidth = document.getElementById('protocolWidth');
+        this.protocolHeight = document.getElementById('protocolHeight');
+        this.protocolColorMode = document.getElementById('protocolColorMode');
+        this.deviceModelField = document.getElementById('deviceModelField');
+
+        // ESPHome Only Fields
+        this.powerStrategySection = document.getElementById('powerStrategySection');
+        this.deviceExtendedLatinGlyphsField = document.getElementById('deviceExtendedLatinGlyphsField');
+        this.deviceInvertedColorsField = document.getElementById('deviceInvertedColorsField');
     }
     init() {
         if (this.closeBtn) {
@@ -113,6 +131,7 @@ export class DeviceSettings {
 
         this.setupAutoSaveListeners();
         this.setupCustomHardwareListeners();
+        this.setupProtocolHardwareListeners();
     }
 
     setupCustomHardwareListeners() {
@@ -179,8 +198,33 @@ export class DeviceSettings {
                 }
             }
         });
-
         this.setupCustomHardwareAutoSave();
+    }
+
+    setupProtocolHardwareListeners() {
+        const syncProtocol = () => {
+            const width = parseInt(this.protocolWidth.value) || 400;
+            const height = parseInt(this.protocolHeight.value) || 300;
+            const colorMode = this.protocolColorMode.value || 'bw';
+
+            AppState.updateProtocolHardware({ width, height, colorMode });
+        };
+
+        if (this.protocolResPreset) {
+            this.protocolResPreset.addEventListener('change', () => {
+                const val = this.protocolResPreset.value;
+                if (val !== 'custom') {
+                    const [w, h] = val.split('x').map(Number);
+                    this.protocolWidth.value = w;
+                    this.protocolHeight.value = h;
+                    syncProtocol();
+                }
+            });
+        }
+
+        if (this.protocolWidth) this.protocolWidth.addEventListener('input', syncProtocol);
+        if (this.protocolHeight) this.protocolHeight.addEventListener('input', syncProtocol);
+        if (this.protocolColorMode) this.protocolColorMode.addEventListener('change', syncProtocol);
     }
 
     setupCustomHardwareAutoSave() {
@@ -352,6 +396,8 @@ export class DeviceSettings {
         // Populate fields
         if (this.nameInput) this.nameInput.value = AppState.settings.device_name || "My E-Ink Display";
         if (this.modelInput) this.modelInput.value = AppState.settings.device_model || "reterminal_e1001";
+
+        if (this.renderingModeInput) this.renderingModeInput.value = AppState.settings.renderingMode || 'lvgl';
         if (this.orientationInput) this.orientationInput.value = AppState.settings.orientation || "landscape";
         if (this.darkModeInput) this.darkModeInput.checked = !!AppState.settings.darkMode;
         if (this.extendedLatinGlyphsInput) this.extendedLatinGlyphsInput.checked = !!AppState.settings.extendedLatinGlyphs;
@@ -386,10 +432,15 @@ export class DeviceSettings {
         if (this.autoCycleEnabled) this.autoCycleEnabled.checked = !!s.autoCycleEnabled;
         if (this.autoCycleInterval) this.autoCycleInterval.value = s.autoCycleIntervalS ?? 30;
 
+        // OEPL
+        if (this.oeplEntityIdInput) this.oeplEntityIdInput.value = s.oeplEntityId || "";
+        if (this.oeplDitherInput) this.oeplDitherInput.value = s.oeplDither ?? 2;
+
         // Show/hide sub-settings
         this.updateVisibility();
         this.updateStrategyGroupVisibility();
         this.populateCustomFields();
+        this.populateProtocolFields();
         this.updateCustomSectionVisibility();
 
         this.modal.classList.remove('hidden');
@@ -413,6 +464,7 @@ export class DeviceSettings {
         if (this.customRes) this.customRes.value = `${ch.resWidth || 800}x${ch.resHeight || 480}`;
         if (this.customShape) this.customShape.value = ch.shape || "rect";
         if (this.customPsram) this.customPsram.checked = !!ch.psram;
+
         if (this.customDisplayDriver) this.customDisplayDriver.value = ch.displayDriver || "generic_st7789";
         if (this.customTouchTech) {
             this.customTouchTech.value = ch.touchTech || "none";
@@ -438,6 +490,25 @@ export class DeviceSettings {
         setPin('pin_scl', pins.scl);
         setPin('pin_touch_int', pins.touch_int);
         setPin('pin_touch_rst', pins.touch_rst);
+    }
+
+    populateProtocolFields() {
+        const ph = (AppState.project && AppState.project.protocolHardware) || { width: 400, height: 300, colorMode: 'bw' };
+
+        if (this.protocolWidth) this.protocolWidth.value = ph.width;
+        if (this.protocolHeight) this.protocolHeight.value = ph.height;
+        if (this.protocolColorMode) this.protocolColorMode.value = ph.colorMode;
+
+        // Try to match preset
+        if (this.protocolResPreset) {
+            const res = `${ph.width}x${ph.height}`;
+            const options = Array.from(this.protocolResPreset.options).map(o => o.value);
+            if (options.includes(res)) {
+                this.protocolResPreset.value = res;
+            } else {
+                this.protocolResPreset.value = 'custom';
+            }
+        }
     }
 
     populateDeviceSelect() {
@@ -503,6 +574,38 @@ export class DeviceSettings {
         if (this.autoCycleRow) {
             this.autoCycleRow.style.display = (this.autoCycleEnabled && this.autoCycleEnabled.checked) ? 'flex' : 'none';
         }
+
+        // Protocol vs ESPHome Hardware Visibility
+        const mode = this.renderingModeInput ? this.renderingModeInput.value : (AppState.settings.renderingMode || 'lvgl');
+        const isProtocol = mode === 'oepl' || mode === 'opendisplay';
+        const isESPHome = mode === 'lvgl' || mode === 'direct';
+
+        if (this.protocolHardwareSection) {
+            this.protocolHardwareSection.style.display = isProtocol ? 'block' : 'none';
+        }
+        if (this.deviceModelField) {
+            this.deviceModelField.style.display = isProtocol ? 'none' : 'block';
+        }
+        if (this.customHardwareSection && isProtocol) {
+            this.customHardwareSection.style.display = 'none';
+        }
+
+        // ESPHome-Only Features Visibility
+        if (this.powerStrategySection) {
+            this.powerStrategySection.style.display = isESPHome ? 'block' : 'none';
+        }
+        if (this.deviceExtendedLatinGlyphsField) {
+            this.deviceExtendedLatinGlyphsField.style.display = isESPHome ? 'block' : 'none';
+        }
+        if (this.deviceInvertedColorsField) {
+            // Only show for ESPHome AND when it's an E-Paper display
+            const currentModel = this.modelInput ? this.modelInput.value : null;
+            const profiles = window.DEVICE_PROFILES || DEVICE_PROFILES || {};
+            const profile = currentModel ? profiles[currentModel] : null;
+            const isEpaper = !!(profile && profile.features && profile.features.epaper);
+
+            this.deviceInvertedColorsField.style.display = (isESPHome && isEpaper) ? 'block' : 'none';
+        }
     }
 
     persistToBackend() {
@@ -567,6 +670,7 @@ export class DeviceSettings {
                 window.currentDeviceModel = newModel;
                 AppState.setDeviceModel(newModel); // Update top-level deviceModel
                 updateSetting('device_model', newModel); // Also persist to settings
+
                 this.updateStrategyGroupVisibility(); // Update strategy UI
                 Logger.log("Device model changed to:", newModel);
             });
@@ -600,11 +704,24 @@ export class DeviceSettings {
             });
         }
 
-        // Rendering Mode (LVGL vs Direct)
         if (this.renderingModeInput) {
             this.renderingModeInput.addEventListener('change', () => {
                 updateSetting('renderingMode', this.renderingModeInput.value);
+                this.updateVisibility(); // Update Hardware Panel Visibility
+                this.updateStrategyGroupVisibility(); // Update OEPL section visibility
                 Logger.log("Rendering mode changed to:", this.renderingModeInput.value);
+            });
+        }
+
+        // OEPL Settings
+        if (this.oeplEntityIdInput) {
+            this.oeplEntityIdInput.addEventListener('input', () => {
+                updateSetting('oeplEntityId', this.oeplEntityIdInput.value.trim());
+            });
+        }
+        if (this.oeplDitherInput) {
+            this.oeplDitherInput.addEventListener('change', () => {
+                updateSetting('oeplDither', parseInt(this.oeplDitherInput.value));
             });
         }
 
@@ -743,12 +860,19 @@ export class DeviceSettings {
             }
         }
 
-        // Show rendering mode field only for LCD/OLED devices
+        // Show rendering mode field (now always visible to allow switching to OEPL)
         if (this.renderingModeField) {
-            this.renderingModeField.style.display = isLcd ? 'block' : 'none';
-            if (isLcd && this.renderingModeInput) {
+            this.renderingModeField.style.display = 'block';
+            if (this.renderingModeInput) {
                 this.renderingModeInput.value = AppState.settings.renderingMode || 'lvgl';
             }
+        }
+
+        // Show OEPL section if mode is OEPL
+        if (this.oeplSettingsSection) {
+            const isOEPL = (this.renderingModeInput && this.renderingModeInput.value === 'oepl') ||
+                AppState.settings.renderingMode === 'oepl';
+            this.oeplSettingsSection.style.display = isOEPL ? 'block' : 'none';
         }
     }
 

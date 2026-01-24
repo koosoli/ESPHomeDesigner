@@ -45,17 +45,15 @@ const exportLVGL = (w, { common, convertColor }) => {
             value: barValue,
             bg_color: convertColor(p.bg_color || "gray"),
             indicator: { bg_color: convertColor(p.color) },
-            start_value: p.start_value,
+            start_value: p.mode === "range" ? p.start_value : undefined,
             mode: p.mode
         }
     };
 };
 
 const onExportNumericSensors = (context) => {
-    const { lines, widgets, isLvgl } = context;
+    const { widgets, isLvgl, pendingTriggers } = context;
     if (!widgets) return;
-
-    const processedEntities = new Map();
 
     for (const w of widgets) {
         if (w.type !== "lvgl_bar") continue;
@@ -63,28 +61,11 @@ const onExportNumericSensors = (context) => {
         const entityId = (w.entity_id || w.props?.entity_id || "").trim();
         if (!entityId) continue;
 
-        if (!processedEntities.has(entityId)) {
-            processedEntities.set(entityId, []);
-        }
-        processedEntities.get(entityId).push(w.id);
-    }
-
-    for (const [entityId, widgetIds] of processedEntities) {
-        const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_");
-
-        lines.push(`- platform: homeassistant`);
-        lines.push(`  id: ${safeId}`);
-        lines.push(`  entity_id: ${entityId}`);
-        lines.push(`  internal: true`);
-        if (isLvgl) {
-            lines.push(`  on_value:`);
-            lines.push(`    then:`);
-
-            for (const wid of widgetIds) {
-                lines.push(`      - lvgl.bar.update:`);
-                lines.push(`          id: ${wid}`);
-                lines.push(`          value: !lambda "return x;"`);
+        if (isLvgl && pendingTriggers) {
+            if (!pendingTriggers.has(entityId)) {
+                pendingTriggers.set(entityId, new Set());
             }
+            pendingTriggers.get(entityId).add(`- lvgl.widget.refresh: ${w.id}`);
         }
     }
 };

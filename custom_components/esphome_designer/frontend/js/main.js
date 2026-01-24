@@ -6,7 +6,9 @@ import { EditorSettings } from './ui/editor_settings.js';
 import { PageSettings } from './ui/page_settings.js';
 import { SnippetManager } from './ui/snippet_manager.js';
 import { KeyboardHandler } from './core/keyboard.js';
-import { ESPHomeAdapter } from './io/adapters/esphome_adapter.js?v=bust2';
+import { ESPHomeAdapter } from './io/adapters/esphome_adapter.js';
+import { OEPLAdapter } from './io/adapters/oepl_adapter.js';
+import { OpenDisplayAdapter } from './io/adapters/opendisplay_adapter.js';
 import { AppState } from './core/state.js';
 import { hasHaBackend } from './utils/env.js';
 import { Logger } from './utils/logger.js';
@@ -53,8 +55,8 @@ export class App {
             Logger.log("[App] QuickSearch initialized");
 
             // Initialize Output Adapter
-            this.adapter = new ESPHomeAdapter();
-            Logger.log("[App] ESPHomeAdapter initialized");
+            this.adapter = this.createAdapter();
+            Logger.log("[App] Adapter initialized:", this.adapter.constructor.name);
 
             // Initialize Snippet Manager (Handles YAML IO mostly)
             this.snippetManager = new SnippetManager(this.adapter);
@@ -242,6 +244,12 @@ export class App {
 
         import('./core/events.js').then(({ on, EVENTS }) => {
             on(EVENTS.STATE_CHANGED, () => {
+                // If rendering mode changed, we might need to swap the adapter
+                const currentMode = AppState.settings.renderingMode;
+                if (this.adapter && this.adapter.mode !== currentMode) {
+                    this.refreshAdapter();
+                }
+
                 // Skip auto-save during initial load to prevent spurious errors
                 if (this.isInitializing) {
                     Logger.log("[AutoSave] Skipping during initialization...");
@@ -265,7 +273,37 @@ export class App {
                     }
                 }, SAVE_DEBOUNCE_MS);
             });
+
+            // Re-render palette when mode might have changed
+            on(EVENTS.STATE_CHANGED, () => {
+                if (!this.isInitializing) {
+                    renderWidgetPalette('widgetPalette');
+                }
+            });
         });
+    }
+
+    createAdapter() {
+        const mode = AppState.settings.renderingMode || 'lvgl';
+        let adapter;
+        if (mode === 'oepl') {
+            adapter = new OEPLAdapter();
+        } else if (mode === 'opendisplay') {
+            adapter = new OpenDisplayAdapter();
+        } else {
+            adapter = new ESPHomeAdapter();
+        }
+        adapter.mode = mode; // Tag it for change detection
+        return adapter;
+    }
+
+    refreshAdapter() {
+        Logger.log("[App] Refreshing adapter due to mode change...");
+        this.adapter = this.createAdapter();
+        if (this.snippetManager) {
+            this.snippetManager.adapter = this.adapter;
+        }
+        emit(EVENTS.STATE_CHANGED); // Trigger a snippet update
     }
 }
 

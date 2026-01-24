@@ -10,6 +10,10 @@ import { fetchDynamicHardwareProfiles, getOfflineProfilesFromStorage } from './h
 
 // List of devices explicitly confirmed to work.
 // All other devices will be marked as (untested) in the UI.
+// IMPORTANT: Most device profiles here are snippet-based. 
+// System sections (esphome, esp32, psram, etc.) MUST be commented out 
+// in the generated YAML to allow users to merge this into their 
+// existing device configurations without conflicts.
 export const SUPPORTED_DEVICE_IDS = [
   'reterminal_e1001',
   'reterminal_e1002',
@@ -162,7 +166,9 @@ export const DEVICE_PROFILES = {
       sht4x: false,
       epaper: true,
       inverted_colors: true
-    }
+    },
+    chip: "esp32-c3",
+    board: "esp32-c3-devkitm-1"
   },
 
   // ========================================================================
@@ -211,7 +217,12 @@ export const DEVICE_PROFILES = {
     isPackageBased: true,
     hardwarePackage: "hardware/waveshare-esp32-s3-touch-lcd-7.yaml",
     resolution: { width: 800, height: 480 },
-    features: { psram: true, buzzer: false, buttons: false, lcd: true, lvgl: true, touch: true }
+    features: { psram: true, buzzer: false, buttons: false, lcd: true, lvgl: true, touch: true },
+    touch: {
+      platform: "gt911",
+      transformed: true,
+      transform: { swap_xy: true }
+    }
   },
   waveshare_esp32_s3_touch_lcd_4_3: {
     name: "Waveshare Touch LCD 4.3 4.3\" 800x480",
@@ -219,7 +230,12 @@ export const DEVICE_PROFILES = {
     isPackageBased: true,
     hardwarePackage: "hardware/waveshare-esp32-s3-touch-lcd-4.3.yaml",
     resolution: { width: 800, height: 480 },
-    features: { psram: true, buzzer: false, buttons: false, lcd: true, touch: true }
+    features: { psram: true, buzzer: false, buttons: false, lcd: true, touch: true },
+    touch: {
+      platform: "gt911",
+      transformed: true,
+      transform: { swap_xy: true }
+    }
   },
 
   // ========================================================================
@@ -240,6 +256,8 @@ export const DEVICE_PROFILES = {
       epaper: true,
       inverted_colors: true
     },
+    chip: "esp32",
+    board: "m5stack-coreink",
     pins: {
       // BUSY PIN REMOVED: Causes timeout on some devices (Blind Mode)
       display: { cs: "GPIO9", dc: "GPIO15", reset: "GPIO0", busy: null },
@@ -271,6 +289,8 @@ export const DEVICE_PROFILES = {
     // as landscape-native. We match this here so rotation calculations work correctly.
     resolution: { width: 960, height: 540 },
     shape: "rect",
+    chip: "esp32",
+    board: "m5stack-paper",
     features: {
       psram: true,
       buzzer: false,

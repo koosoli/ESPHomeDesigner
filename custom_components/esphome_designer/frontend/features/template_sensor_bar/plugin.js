@@ -152,9 +152,9 @@ const exportDoc = (w, context) => {
 
     // Entity IDs
     const wifiId = (p.wifi_entity || "wifi_signal_dbm").replace(/[^a-zA-Z0-9_]/g, "_");
-    const batId = (p.bat_entity || "battery_level").replace(/[^a-zA-Z0-9_]/g, "_");
-    const humId = (p.hum_entity || (profile.features?.sht4x ? "sht4x_humidity" : ((profile.features?.sht3x || profile.features?.sht3xd) ? "sht3x_humidity" : "shtc3_humidity"))).replace(/[^a-zA-Z0-9_]/g, "_");
-    const tempId = (p.temp_entity || (profile.features?.sht4x ? "sht4x_temperature" : ((profile.features?.sht3x || profile.features?.sht3xd) ? "sht3x_temperature" : "shtc3_temperature"))).replace(/[^a-zA-Z0-9_]/g, "_");
+    const batId = (p.bat_entity || (profile.pins?.batteryAdc ? "battery_level" : "")).replace(/[^a-zA-Z0-9_]/g, "_");
+    const humId = (p.hum_entity || (profile.features?.sht4x ? "sht4x_humidity" : ((profile.features?.sht3x || profile.features?.sht3xd) ? "sht3x_humidity" : (profile.features?.shtc3 ? "shtc3_humidity" : "")))).replace(/[^a-zA-Z0-9_]/g, "_");
+    const tempId = (p.temp_entity || (profile.features?.sht4x ? "sht4x_temperature" : ((profile.features?.sht3x || profile.features?.sht3xd) ? "sht3x_temperature" : (profile.features?.shtc3 ? "shtc3_temperature" : "")))).replace(/[^a-zA-Z0-9_]/g, "_");
 
     const iconFontRef = addFont("Material Design Icons", 400, iconSize);
     const textFontRef = addFont("Roboto", 400, fontSize);
@@ -234,19 +234,27 @@ const exportDoc = (w, context) => {
         let currentX = w.x + spacing / 2;
         const centerY = w.y + w.height / 2;
 
+        const idExists = (id) => context.seenSensorIds && context.seenSensorIds.has(id);
+
         if (showWifi) {
             lines.push(`          {`);
             lines.push(`            const char* wifi_icon = "\\U000F092B";`);
-            lines.push(`            if (id(${wifiId}).has_state()) {`);
-            lines.push(`              float sig = id(${wifiId}).state;`);
-            lines.push(`              if (sig >= -50) wifi_icon = "\\U000F0928";`);
-            lines.push(`              else if (sig >= -70) wifi_icon = "\\U000F0925";`);
-            lines.push(`              else if (sig >= -85) wifi_icon = "\\U000F0922";`);
-            lines.push(`              else wifi_icon = "\\U000F091F";`);
-            lines.push(`            }`);
+            if (wifiId && idExists(wifiId)) {
+                lines.push(`            if (id(${wifiId}).has_state()) {`);
+                lines.push(`              float sig = id(${wifiId}).state;`);
+                lines.push(`              if (sig >= -50) wifi_icon = "\\U000F0928";`);
+                lines.push(`              else if (sig >= -70) wifi_icon = "\\U000F0925";`);
+                lines.push(`              else if (sig >= -85) wifi_icon = "\\U000F0922";`);
+                lines.push(`              else wifi_icon = "\\U000F091F";`);
+                lines.push(`            }`);
+            }
             lines.push(`            it.printf(${Math.round(currentX)} - 4, ${Math.round(centerY)}, id(${iconFontRef}), ${effectiveColor}, TextAlign::CENTER_RIGHT, "%s", wifi_icon);`);
-            lines.push(`            if (id(${wifiId}).has_state()) it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "%.0fdB", id(${wifiId}).state);`);
-            lines.push(`            else it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "--dB");`);
+            if (wifiId && idExists(wifiId)) {
+                lines.push(`            if (id(${wifiId}).has_state()) it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "%.0fdB", id(${wifiId}).state);`);
+                lines.push(`            else it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "--dB");`);
+            } else {
+                lines.push(`            it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "--dB");`);
+            }
             lines.push(`          }`);
             currentX += spacing;
         }
@@ -255,15 +263,19 @@ const exportDoc = (w, context) => {
             const unit = p.temp_unit || "°C";
             lines.push(`          {`);
             lines.push(`            it.printf(${Math.round(currentX)} - 4, ${Math.round(centerY)}, id(${iconFontRef}), ${effectiveColor}, TextAlign::CENTER_RIGHT, "%s", "\\U000F050F");`);
-            lines.push(`            if (id(${tempId}).has_state() && !std::isnan(id(${tempId}).state)) {`);
-            if (unit === "°F" || unit === "F") {
-                lines.push(`              it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "%.1f°F", id(${tempId}).state * 9.0 / 5.0 + 32.0);`);
+            if (tempId && idExists(tempId)) {
+                lines.push(`            if (id(${tempId}).has_state() && !std::isnan(id(${tempId}).state)) {`);
+                if (unit === "°F" || unit === "F") {
+                    lines.push(`              it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "%.1f°F", id(${tempId}).state * 9.0 / 5.0 + 32.0);`);
+                } else {
+                    lines.push(`              it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "%.1f°C", id(${tempId}).state);`);
+                }
+                lines.push(`            } else {`);
+                lines.push(`              it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "--${unit}");`);
+                lines.push(`            }`);
             } else {
-                lines.push(`              it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "%.1f°C", id(${tempId}).state);`);
+                lines.push(`            it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "--${unit}");`);
             }
-            lines.push(`            } else {`);
-            lines.push(`              it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "--${unit}");`);
-            lines.push(`            }`);
             lines.push(`          }`);
             currentX += spacing;
         }
@@ -271,8 +283,12 @@ const exportDoc = (w, context) => {
         if (showHum) {
             lines.push(`          {`);
             lines.push(`            it.printf(${Math.round(currentX)} - 4, ${Math.round(centerY)}, id(${iconFontRef}), ${effectiveColor}, TextAlign::CENTER_RIGHT, "%s", "\\U000F058E");`);
-            lines.push(`            if (id(${humId}).has_state()) it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "%.0f%%", id(${humId}).state);`);
-            lines.push(`            else it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "--%%");`);
+            if (humId && idExists(humId)) {
+                lines.push(`            if (id(${humId}).has_state()) it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "%.0f%%", id(${humId}).state);`);
+                lines.push(`            else it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "--%%");`);
+            } else {
+                lines.push(`            it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "--%%");`);
+            }
             lines.push(`          }`);
             currentX += spacing;
         }
@@ -280,14 +296,20 @@ const exportDoc = (w, context) => {
         if (showBat) {
             lines.push(`          {`);
             lines.push(`            const char* bat_icon = "\\U000F0082";`);
-            lines.push(`            float lvl = id(${batId}).state;`);
-            lines.push(`            if (lvl >= 90) bat_icon = "\\U000F0079";`);
-            lines.push(`            else if (lvl >= 50) bat_icon = "\\U000F007E";`);
-            lines.push(`            else if (lvl >= 20) bat_icon = "\\U000F007B";`);
-            lines.push(`            else bat_icon = "\\U000F0083";`);
-            lines.push(`            it.printf(${Math.round(currentX)} - 4, ${Math.round(centerY)}, id(${iconFontRef}), ${effectiveColor}, TextAlign::CENTER_RIGHT, "%s", bat_icon);`);
-            lines.push(`            if (id(${batId}).has_state()) it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "%.0f%%", id(${batId}).state);`);
-            lines.push(`            else it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "--%%");`);
+            let hasRealBat = batId && idExists(batId);
+            if (hasRealBat) {
+                lines.push(`            float lvl = id(${batId}).state;`);
+                lines.push(`            if (lvl >= 90) bat_icon = "\\U000F0079";`);
+                lines.push(`            else if (lvl >= 50) bat_icon = "\\U000F007E";`);
+                lines.push(`            else if (lvl >= 20) bat_icon = "\\U000F007B";`);
+                lines.push(`            else bat_icon = "\\U000F0083";`);
+                lines.push(`            it.printf(${Math.round(currentX)} - 4, ${Math.round(centerY)}, id(${iconFontRef}), ${effectiveColor}, TextAlign::CENTER_RIGHT, "%s", bat_icon);`);
+                lines.push(`            if (id(${batId}).has_state()) it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "%.0f%%", id(${batId}).state);`);
+                lines.push(`            else it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "--%%");`);
+            } else {
+                lines.push(`            it.printf(${Math.round(currentX)} - 4, ${Math.round(centerY)}, id(${iconFontRef}), ${effectiveColor}, TextAlign::CENTER_RIGHT, "%s", bat_icon);`);
+                lines.push(`            it.printf(${Math.round(currentX)} + 4, ${Math.round(centerY)}, id(${textFontRef}), ${effectiveColor}, TextAlign::CENTER_LEFT, "--%%");`);
+            }
             lines.push(`          }`);
         }
     }
@@ -298,120 +320,46 @@ const exportDoc = (w, context) => {
 };
 
 const onExportNumericSensors = (context) => {
-    const { lines, widgets, profile } = context;
+    const { lines, widgets, isLvgl, pendingTriggers, profile } = context;
     const barWidgets = widgets.filter(w => w.type === "template_sensor_bar");
     if (barWidgets.length === 0) return;
 
     const autoRegister = (entityId) => {
         if (!entityId || !entityId.includes(".") || entityId.startsWith("text_sensor.") || entityId.startsWith("binary_sensor.")) return;
 
-        const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_");
-        const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(entityId)) ||
-            (context.seenSensorIds && context.seenSensorIds.has(safeId));
-
-        if (alreadyDefined) return;
-
-        if (context.seenEntityIds) context.seenEntityIds.add(entityId);
-        if (context.seenSensorIds) context.seenSensorIds.add(safeId);
-
-        lines.push("- platform: homeassistant");
-        lines.push(`  id: ${safeId}`);
-        lines.push(`  entity_id: ${entityId}`);
-        lines.push(`  internal: true`);
+        // We let the safety fix handle the sensor generation for HA entities.
+        // It will deduplicate and merge triggers automatically.
     };
 
     barWidgets.forEach(w => {
         const p = w.props || {};
         const checkLines = context.mainLines || lines;
 
+        const addTrigger = (eid) => {
+            if (!eid || !isLvgl || !pendingTriggers) return;
+            if (!pendingTriggers.has(eid)) pendingTriggers.set(eid, new Set());
+            pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
+        };
+
         if (p.show_wifi !== false) {
-            if (p.wifi_entity) autoRegister(p.wifi_entity);
-            else {
+            let eid = p.wifi_entity || "wifi_signal_dbm";
+            if (eid.includes(".") && !eid.startsWith("text_sensor.")) {
+                if (!eid.includes(".")) eid = `sensor.${eid}`;
+            }
+            addTrigger(eid);
+
+            if (!p.wifi_entity) {
                 const alreadyDefined = (context.seenSensorIds && context.seenSensorIds.has("wifi_signal_dbm"));
                 if (!alreadyDefined && !checkLines.some(l => l.includes("id: wifi_signal_dbm")) && !lines.some(l => l.includes("id: wifi_signal_dbm"))) {
                     if (context.seenSensorIds) context.seenSensorIds.add("wifi_signal_dbm");
-                    lines.push("- platform: wifi_signal");
-                    lines.push("  id: wifi_signal_dbm");
-                    lines.push("  internal: true");
+                    lines.push("- platform: wifi_signal", "  id: wifi_signal_dbm", "  internal: true");
                 }
             }
         }
-        if (p.show_battery !== false) {
-            if (p.bat_entity) autoRegister(p.bat_entity);
-            else {
-                const alreadyDefined = (context.seenSensorIds && context.seenSensorIds.has("battery_level"));
-                if (!alreadyDefined && !checkLines.some(l => l.includes("id: battery_level")) && !lines.some(l => l.includes("id: battery_level"))) {
-                    if (context.seenSensorIds) context.seenSensorIds.add("battery_level");
-                    // Fallback for devices where battery is not auto-defined by hardware generators
-                    lines.push("- platform: template");
-                    lines.push("  id: battery_level");
-                    lines.push("  name: \"Battery Level\"");
-                    lines.push("  unit_of_measurement: '%'");
-                    lines.push("  update_interval: 60s");
-                    lines.push("  internal: true");
-                }
-            }
-        }
-        if (p.show_temperature !== false) {
-            if (p.temp_entity) autoRegister(p.temp_entity);
-        }
-        if (p.show_humidity !== false) {
-            if (p.hum_entity) autoRegister(p.hum_entity);
-        }
     });
 
-    // Check if internal SHT sensors are still needed (no override for at least one bar)
-    const needsInternalSHT = barWidgets.some(w => {
-        const p = w.props || {};
-        return (p.show_temperature !== false && !p.temp_entity) || (p.show_humidity !== false && !p.hum_entity);
-    });
-
-    if (needsInternalSHT) {
-        const isSht4x = profile.features?.sht4x;
-        const isSht3x = profile.features?.sht3x || profile.features?.sht3xd;
-
-        const shtId = isSht4x ? "sht4x_sensor" : (isSht3x ? "sht3x_sensor" : "shtc3_sensor");
-        const shtPlatform = isSht4x ? "sht4x" : (isSht3x ? "sht3xd" : "shtcx");
-        const tempId = isSht4x ? "sht4x_temperature" : (isSht3x ? "sht3x_temperature" : "shtc3_temperature");
-
-        // Check if the platform OR the temperature sensor already exists to avoid conflict
-        const checkLines = context.mainLines || lines;
-        const alreadyDefined = (context.seenSensorIds && context.seenSensorIds.has(shtId)) ||
-            (context.seenSensorIds && context.seenSensorIds.has(tempId));
-
-        if (!alreadyDefined && !checkLines.some(l => l.includes(`id: ${shtId}`)) && !checkLines.some(l => l.includes(`id: ${tempId}`))) {
-            if (context.seenSensorIds) {
-                context.seenSensorIds.add(shtId);
-                context.seenSensorIds.add(tempId);
-                context.seenSensorIds.add(isSht4x ? "sht4x_humidity" : (isSht3x ? "sht3x_humidity" : "shtc3_humidity"));
-            }
-            lines.push(`- platform: ${shtPlatform}`);
-            lines.push(`  id: ${shtId}`);
-            if (shtPlatform === "sht3xd" || shtPlatform === "sht4x") lines.push(`  address: 0x44`);
-            if (shtPlatform === "shtcx") {
-                lines.push(`  i2c_id: bus_a`);
-                lines.push(`  address: 0x70`);
-            }
-
-            // Check specifically for temp vs hum need
-            const needsTemp = barWidgets.some(w => w.props?.show_temperature !== false && !w.props?.temp_entity);
-            const needsHum = barWidgets.some(w => w.props?.show_humidity !== false && !w.props?.hum_entity);
-
-            if (needsTemp) {
-                const tempId = isSht4x ? "sht4x_temperature" : (isSht3x ? "sht3x_temperature" : "shtc3_temperature");
-                lines.push("  temperature:");
-                lines.push(`    id: ${tempId}`);
-                lines.push("    internal: true");
-            }
-            if (needsHum) {
-                const humId = isSht4x ? "sht4x_humidity" : (isSht3x ? "sht3x_humidity" : "shtc3_humidity");
-                lines.push("  humidity:");
-                lines.push(`    id: ${humId}`);
-                lines.push("    internal: true");
-            }
-            lines.push("  update_interval: 60s");
-        }
-    }
+    // NOTE: SHT and Battery sensors are now handled primarily by the hardware_generators.js
+    // shared core, so we only need to ensure the wifi_signal_dbm (which is misc) is present.
 };
 
 const collectRequirements = (widget, context) => {
@@ -434,6 +382,10 @@ export default {
     id: "template_sensor_bar",
     name: "Sensor Bar",
     category: "Templates",
+    // CRITICAL ARCHITECTURAL NOTE: OEPL and OpenDisplay are excluded because this 
+    // template aggregates multiple sensors and handles complex layouting not 
+    // supported in protocol-based rendering.
+    supportedModes: ['lvgl', 'direct'],
     defaults: {
         w: 355,
         h: 43,
@@ -487,7 +439,7 @@ export default {
             widgets.push({
                 obj: {
                     width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0,
-                    layout: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center",
+                    layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" },
                     pad_all: 0, widgets: [
                         { label: { text: iconL, text_font: iconFont, text_color: color } },
                         { label: { text: '!lambda "return id(wifi_signal_dbm).has_state() ? str_sprintf(\'%.0fdB\', id(wifi_signal_dbm).state).c_str() : \'--dB\';"', text_font: textFont, text_color: color, x: 4 } }
@@ -505,10 +457,10 @@ export default {
             widgets.push({
                 obj: {
                     width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0,
-                    layout: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center",
+                    layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" },
                     pad_all: 0, widgets: [
                         { label: { text: '"\\U000F050F"', text_font: iconFont, text_color: color } },
-                        { label: { text: `!lambda "return id(${tempId}).has_state() ? str_sprintf(\'%.1f${unit}\', ${tempExpr}).c_str() : \'--${unit}\';"`, text_font: textFont, text_color: color, x: 4 } }
+                        { label: { text: `!lambda "if (id(${tempId}).has_state()) { return str_sprintf(\'%.1f${unit}\', ${tempExpr}).c_str(); } return \'--${unit}\';"`, text_font: textFont, text_color: color, x: 4 } }
                     ]
                 }
             });
@@ -519,10 +471,10 @@ export default {
             widgets.push({
                 obj: {
                     width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0,
-                    layout: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center",
+                    layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" },
                     pad_all: 0, widgets: [
                         { label: { text: '"\\U000F058E"', text_font: iconFont, text_color: color } },
-                        { label: { text: `!lambda "return id(${humId}).has_state() ? str_sprintf(\'%.0f%%\', id(${humId}).state).c_str() : \'--%\';"`, text_font: textFont, text_color: color, x: 4 } }
+                        { label: { text: `!lambda "if (id(${humId}).has_state()) { return str_sprintf(\'%.0f%%\', id(${humId}).state).c_str(); } return \'--%\';"`, text_font: textFont, text_color: color, x: 4 } }
                     ]
                 }
             });
@@ -540,7 +492,7 @@ export default {
             widgets.push({
                 obj: {
                     width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0,
-                    layout: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center",
+                    layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" },
                     pad_all: 0, widgets: [
                         { label: { text: batIconL, text_font: iconFont, text_color: color } },
                         { label: { text: `!lambda "return id(${batId}).has_state() ? str_sprintf(\'%.0f%%\', id(${batId}).state).c_str() : \'--%\';"`, text_font: textFont, text_color: color, x: 4 } }

@@ -89,6 +89,12 @@ export class EditorSettings {
             this.gridOpacity.value = settings.grid_opacity !== undefined ? settings.grid_opacity : 20;
         }
 
+        // Glyphsets
+        const selectedGlyphsets = settings.glyphsets || ["GF_Latin_Kernel"];
+        document.querySelectorAll('.glyphset-checkbox').forEach(cb => {
+            cb.checked = selectedGlyphsets.includes(cb.value);
+        });
+
         // HA Connection
         if (this.haManualUrl) this.haManualUrl.value = getHaManualUrl() || "";
         if (this.haLlatToken) this.haLlatToken.value = getHaToken() || "";
@@ -306,6 +312,29 @@ export class EditorSettings {
                 }
             });
         }
+
+        // Glyphsets
+        document.querySelectorAll('.glyphset-checkbox').forEach(cb => {
+            cb.addEventListener('change', () => {
+                const checked = Array.from(document.querySelectorAll('.glyphset-checkbox:checked')).map(el => el.value);
+                AppState.updateSettings({ glyphsets: checked });
+            });
+        });
+
+        // Collapsible Categories logic
+        const categoryHeaders = this.modal.querySelectorAll('.settings-category-header');
+        categoryHeaders.forEach(header => {
+            header.addEventListener('click', () => {
+                const category = header.closest('.settings-category');
+                const isExpanded = category.classList.contains('expanded');
+
+                if (isExpanded) {
+                    category.classList.remove('expanded');
+                } else {
+                    category.classList.add('expanded');
+                }
+            });
+        });
     }
 
     updateAIKeyVisibility() {

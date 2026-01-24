@@ -26,8 +26,10 @@
 #         - Select: ESP32-S3
 #         - Framework: ESP-IDF (Required for this device)
 #
-# STEP 3: REPLACE your entire YAML with this generated output
-#         (This profile includes full esphome: and esp32: sections)
+# STEP 3: MERGE this snippet into your YAML
+#         - Paste this snippet at the end of your configuration.
+#         - System sections (esphome, esp32, psram, etc.) are auto-commented
+#           to avoid conflicts with your existing setup.
 #
 # ============================================================================
 
@@ -78,12 +80,14 @@ touchscreen:
     reset_pin:
       ch422g:
       number: 1
+    transform:
+      swap_xy: true
 
 display:
   - platform: rpi_dpi_rgb
     id: my_display
-    update_interval: never
-    auto_clear_enabled: false
+    update_interval: 1s
+    auto_clear_enabled: true
     color_order: RGB
     pclk_frequency: 16MHz
     dimensions:

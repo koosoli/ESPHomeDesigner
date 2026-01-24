@@ -1,7 +1,12 @@
 /**
  * Graph Plugin
  */
-import { drawInternalGrid, generateMockData, drawSmartAxisLabels } from '../../js/utils/graph_helpers.js';
+import { drawInternalGrid, generateMockData, drawSmartAxisLabels, generateHistoricalDataPoints } from '../../js/utils/graph_helpers.js';
+import { fetchEntityHistory } from '../../js/io/ha_api.js';
+import { emit, EVENTS } from '../../js/core/events.js';
+
+const historyCache = new Map(); // cacheKey -> { data, timestamp }
+const fetchInProgress = new Set(); // cacheKey
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -27,9 +32,48 @@ const render = (el, widget, { getColorStyle }) => {
 
     drawInternalGrid(svg, widget.width, widget.height, props.x_grid, props.y_grid);
 
-    const minVal = parseFloat(props.min_value) || 0;
-    const maxVal = parseFloat(props.max_value) || 100;
-    const points = generateMockData(widget.width, widget.height, minVal, maxVal);
+    let minVal = props.auto_scale !== false ? NaN : (parseFloat(props.min_value) || 0);
+    let maxVal = props.auto_scale !== false ? NaN : (parseFloat(props.max_value) || 100);
+
+    // Check for historical data
+    let historyData = null;
+    if (entityId) {
+        const duration = props.duration || "1h";
+        const cacheKey = `${entityId}_${duration}`;
+        const cached = historyCache.get(cacheKey);
+
+        if (cached && (Date.now() - cached.timestamp < 60000)) {
+            historyData = cached.data;
+        } else if (!fetchInProgress.has(cacheKey)) {
+            fetchInProgress.add(cacheKey);
+            fetchEntityHistory(entityId, duration).then(data => {
+                historyCache.set(cacheKey, { data, timestamp: Date.now() });
+                fetchInProgress.delete(cacheKey);
+                // Trigger re-render
+                emit(EVENTS.WIDGET_UPDATED, widget.id);
+            }).catch(() => {
+                fetchInProgress.delete(cacheKey);
+            });
+        }
+    }
+
+    // Calculate effective min/max for axis labels if auto-scaling
+    let effectiveMin = minVal;
+    let effectiveMax = maxVal;
+    if (historyData && historyData.length > 0 && (isNaN(minVal) || isNaN(maxVal))) {
+        const vals = historyData.map(d => parseFloat(d.state)).filter(v => !isNaN(v));
+        if (vals.length > 0) {
+            effectiveMin = Math.min(...vals);
+            effectiveMax = Math.max(...vals);
+            const pad = (effectiveMax - effectiveMin) * 0.1 || 1.0;
+            effectiveMin -= pad;
+            effectiveMax += pad;
+        }
+    }
+    if (isNaN(effectiveMin)) effectiveMin = 0;
+    if (isNaN(effectiveMax)) effectiveMax = 100;
+
+    const points = generateHistoricalDataPoints(widget.width, widget.height, effectiveMin, effectiveMax, historyData, props.duration);
 
     const polyline = document.createElementNS(svgNS, "polyline");
     const pointsStr = points.map(p => `${p.x},${p.y}`).join(" ");
@@ -52,10 +96,12 @@ const render = (el, widget, { getColorStyle }) => {
 
     const widgetId = widget.id;
     setTimeout(() => {
-        const canvas = document.getElementById("canvas");
-        const widgetStillExists = canvas && canvas.querySelector(`[data-id="${widgetId}"]`);
-        if (canvas && widgetStillExists) {
-            drawSmartAxisLabels(canvas, widget.x, widget.y, widget.width, widget.height, minVal, maxVal, props.duration);
+        // Important: We need the artboard, not the global canvas.
+        // This ensures labels zoom/pan with the graph.
+        const widgetEl = el;
+        const artboard = widgetEl.closest('.artboard');
+        if (artboard) {
+            drawSmartAxisLabels(artboard, widget.x, widget.y, widget.width, widget.height, effectiveMin, effectiveMax, props.duration, widgetId);
         }
     }, 0);
 
@@ -91,23 +137,33 @@ const render = (el, widget, { getColorStyle }) => {
 const exportLVGL = (w, { common, convertColor }) => {
     const p = w.props || {};
     const entityId = (w.entity_id || "").replace(/[^a-zA-Z0-9_]/g, "_");
+    const chartId = `chart_${w.id}`.replace(/-/g, "_");
+
+    const chart = {
+        ...common,
+        id: chartId,
+        type: "LINE",
+        duration: p.duration || "1h",
+        bg_color: convertColor(p.bg_color || "white"),
+        series: [
+            {
+                sensor: entityId,
+                color: convertColor(p.color || "black"),
+                width: p.line_thickness || 2
+            }
+        ],
+        y_min: p.min_value || 0,
+        y_max: p.max_value || 100
+    };
+
+    // If using history, we indicate it so the LVGL generator can potentially handle it
+    // or we can add a custom attribute for later processing.
+    if (p.use_ha_history) {
+        chart.use_ha_history = true;
+    }
+
     return {
-        chart: {
-            ...common,
-            type: "LINE",
-            duration: p.duration || "1h",
-            bg_color: convertColor(p.bg_color || "white"),
-            traces: [
-                {
-                    sensor: entityId,
-                    color: convertColor(p.color || "black"),
-                    thickness: p.line_thickness || 2,
-                    line_type: p.line_type || "SOLID"
-                }
-            ],
-            y_min: p.min_value || 0,
-            y_max: p.max_value || 100
-        }
+        lv_chart: chart
     };
 };
 
@@ -170,7 +226,44 @@ const exportDoc = (w, context) => {
     if (cond) lines.push(`        ${cond}`);
 
     if (entityId) {
-        lines.push(`        it.graph(${w.x}, ${w.y}, id(${safeId}));`);
+        if (p.use_ha_history) {
+            const histId = `hist_${w.id}`.replace(/-/g, "_");
+            const points = p.history_points || 100;
+            const useAutoScale = p.auto_scale !== false;
+
+            lines.push(`        // Draw historical graph from global array ${histId}`);
+            lines.push(`        {`);
+            if (useAutoScale) {
+                lines.push(`          float g_min = id(${histId}_min);`);
+                lines.push(`          float g_max = id(${histId}_max);`);
+                lines.push(`          // Add slight padding to scale`);
+                lines.push(`          float g_pad = (g_max - g_min) * 0.05;`);
+                lines.push(`          if (g_pad == 0) g_pad = 1.0;`);
+                lines.push(`          g_min -= g_pad; g_max += g_pad;`);
+                lines.push(`          float g_range = g_max - g_min;`);
+            } else {
+                lines.push(`          float g_min = ${minValue || "0"};`);
+                lines.push(`          float g_max = ${maxValue || "100"};`);
+                lines.push(`          float g_range = g_max - g_min;`);
+            }
+            lines.push(`          if (g_range == 0) g_range = 1.0;`);
+            lines.push(`          for (int i = 0; i < ${points} - 1; i++) {`);
+            lines.push(`            float val1 = id(${histId})[i];`);
+            lines.push(`            float val2 = id(${histId})[i+1];`);
+            lines.push(`            if (isnan(val1) || isnan(val2)) continue;`);
+            lines.push(`            int x1 = ${w.x} + (i * ${w.width}) / (${points}-1);`);
+            lines.push(`            int x2 = ${w.x} + ((i+1) * ${w.width}) / (${points}-1);`);
+            lines.push(`            int y1 = ${w.y} + ${w.height} - (int)((val1 - g_min) / g_range * ${w.height});`);
+            lines.push(`            int y2 = ${w.y} + ${w.height} - (int)((val2 - g_min) / g_range * ${w.height});`);
+            lines.push(`            it.line(x1, y1, x2, y2, ${color});`);
+            if (lineThickness > 1) {
+                lines.push(`            it.line(x1, y1+1, x2, y2+1, ${color});`);
+            }
+            lines.push(`          }`);
+            lines.push(`        }`);
+        } else {
+            lines.push(`        it.graph(${w.x}, ${w.y}, id(${safeId}));`);
+        }
 
         if (borderEnabled) {
             lines.push(`        for (int i = 0; i < ${lineThickness}; i++) {`);
@@ -325,8 +418,86 @@ const onExportComponents = (context) => {
     }
 };
 
-const onExportNumericSensors = (context) => {
+const onExportGlobals = (context) => {
     const { lines, widgets } = context;
+    widgets.filter(w => w.type === 'graph' && w.props?.use_ha_history).forEach(w => {
+        const histId = `hist_${w.id}`.replace(/-/g, "_");
+        const points = w.props.history_points || 100;
+        lines.push(`- id: ${histId}`);
+        lines.push(`  type: float[${points}]`);
+        lines.push(`  initial_value: 'NAN'`);
+        if (w.props.auto_scale !== false) {
+            lines.push(`- id: ${histId}_min`);
+            lines.push(`  type: float`);
+            lines.push(`  initial_value: '0'`);
+            lines.push(`- id: ${histId}_max`);
+            lines.push(`  type: float`);
+            lines.push(`  initial_value: '100'`);
+        }
+    });
+};
+
+const onExportEsphome = (context) => {
+    const { lines, widgets } = context;
+    const hasHistoryGraph = widgets.some(w => w.type === 'graph' && w.props?.use_ha_history);
+    if (hasHistoryGraph) {
+        if (!lines.includes("<sstream>")) lines.push("<sstream>");
+        if (!lines.includes("<algorithm>")) lines.push("<algorithm>");
+    }
+};
+
+const onExportTextSensors = (context) => {
+    const { lines, widgets } = context;
+    widgets.filter(w => w.type === 'graph' && w.props?.use_ha_history).forEach(w => {
+        const p = w.props || {};
+        const entityId = (w.entity_id || "").trim();
+        if (!entityId) return;
+
+        const histId = `hist_${w.id}`.replace(/-/g, "_");
+        const points = p.history_points || 100;
+        const attr = p.history_attribute || "history";
+
+        lines.push(`- platform: homeassistant`);
+        lines.push(`  entity_id: ${entityId}`);
+        lines.push(`  id: ${histId}_fetcher`);
+        lines.push(`  attribute: ${attr}`);
+        lines.push(`  internal: true`);
+        lines.push(`  on_value:`);
+        lines.push(`    then:`);
+        lines.push(`      - lambda: |-`);
+        lines.push(`          std::string input = x;`);
+        lines.push(`          if (input.empty()) return;`);
+        lines.push(`          if (input.front() == '[') input.erase(0, 1);`);
+        lines.push(`          if (input.back() == ']') input.pop_back();`);
+        lines.push(`          std::replace(input.begin(), input.end(), ',', ' ');`);
+        lines.push(`          std::stringstream ss(input);`);
+        lines.push(`          float val;`);
+        lines.push(`          int idx = 0;`);
+        if (p.auto_scale !== false) {
+            lines.push(`          float min_v = 1e30, max_v = -1e30;`);
+        }
+        lines.push(`          while (ss >> val && idx < ${points}) {`);
+        lines.push(`            id(${histId})[idx++] = val;`);
+        if (p.auto_scale !== false) {
+            lines.push(`            if (val < min_v) min_v = val;`);
+            lines.push(`            if (val > max_v) max_v = val;`);
+        }
+        lines.push(`          }`);
+        if (p.auto_scale !== false) {
+            lines.push(`          id(${histId}_min) = min_v;`);
+            lines.push(`          id(${histId}_max) = max_v;`);
+        }
+        if (p.history_smoothing) {
+            lines.push(`          // Simple moving average smoothing (window=3)`);
+            lines.push(`          for (int i = 1; i < idx - 1; i++) {`);
+            lines.push(`             id(${histId})[i] = (id(${histId})[i-1] + id(${histId})[i] + id(${histId})[i+1]) / 3.0;`);
+            lines.push(`          }`);
+        }
+    });
+};
+
+const onExportNumericSensors = (context) => {
+    const { widgets, isLvgl, pendingTriggers } = context;
     if (!widgets) return;
 
     for (const w of widgets) {
@@ -341,19 +512,15 @@ const onExportNumericSensors = (context) => {
             entityId = `sensor.${entityId}`;
         }
 
-        const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_");
-        const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(entityId)) ||
-            (context.seenSensorIds && context.seenSensorIds.has(safeId));
-
-        if (!alreadyDefined) {
-            if (context.seenEntityIds) context.seenEntityIds.add(entityId);
-            if (context.seenSensorIds) context.seenSensorIds.add(safeId);
-
-            lines.push("- platform: homeassistant");
-            lines.push(`  id: ${safeId}`);
-            lines.push(`  entity_id: ${entityId}`);
-            lines.push(`  internal: true`);
+        if (isLvgl && pendingTriggers) {
+            if (!pendingTriggers.has(entityId)) {
+                pendingTriggers.set(entityId, new Set());
+            }
+            pendingTriggers.get(entityId).add(`- lvgl.widget.refresh: ${w.id}`);
         }
+
+        // We let the safety fix handle the sensor generation for HA entities.
+        // It will deduplicate and merge triggers automatically.
     }
 };
 
@@ -361,6 +528,10 @@ export default {
     id: "graph",
     name: "Graph / Chart",
     category: "Advanced",
+    // CRITICAL ARCHITECTURAL NOTE: OEPL and OpenDisplay are excluded because this widget 
+    // requires significant C++ logic/global arrays which are not yet supported 
+    // in those modes.
+    supportedModes: ['lvgl', 'direct'],
     defaults: {
         duration: "1h",
         border: true,
@@ -375,11 +546,20 @@ export default {
         min_value: "",
         max_value: "",
         min_range: "",
-        max_range: ""
+        max_range: "",
+        use_ha_history: false,
+        history_points: 100,
+        history_attribute: "history",
+        history_smoothing: false,
+        auto_scale: true
     },
     render,
+    exportLVGL,
     export: exportDoc,
     onExportComponents,
-    onExportNumericSensors
+    onExportNumericSensors,
+    onExportGlobals,
+    onExportEsphome,
+    onExportTextSensors
 };
 

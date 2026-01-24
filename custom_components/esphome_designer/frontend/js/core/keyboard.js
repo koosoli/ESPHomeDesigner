@@ -1,5 +1,6 @@
 import { AppState } from './state.js';
 import { Logger } from '../utils/logger.js';
+import { emit, EVENTS } from './events.js';
 
 export class KeyboardHandler {
     constructor() {
@@ -160,10 +161,44 @@ export class KeyboardHandler {
                 ev.preventDefault();
                 const newState = !state.showGrid;
                 state.setShowGrid(newState);
+
+                // Exclusive logic
+                if (newState) {
+                    state.setShowDebugGrid(false);
+                    const debugBtn = document.getElementById("debugGridToggleBtn");
+                    if (debugBtn) debugBtn.classList.remove("active");
+                }
+
                 // Sync UI button state if exists
                 const btn = document.getElementById("gridToggleBtn");
                 if (btn) btn.classList.toggle("active", newState);
+
+                emit(EVENTS.STATE_CHANGED);
                 Logger.log(`[Keyboard] Grid toggled: ${newState}`);
+                return;
+            }
+        }
+
+        // Toggle Debug: D (if not typing)
+        if (ev.key && ev.key.toLowerCase() === "d" && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey && !ev.altKey) {
+            if (ev.target.tagName !== "INPUT" && ev.target.tagName !== "TEXTAREA") {
+                ev.preventDefault();
+                const newState = !state.showDebugGrid;
+                state.setShowDebugGrid(newState);
+
+                // Exclusive logic
+                if (newState) {
+                    state.setShowGrid(false);
+                    const gridBtn = document.getElementById("gridToggleBtn");
+                    if (gridBtn) gridBtn.classList.remove("active");
+                }
+
+                // Sync UI button state if exists
+                const btn = document.getElementById("debugGridToggleBtn");
+                if (btn) btn.classList.toggle("active", newState);
+
+                emit(EVENTS.STATE_CHANGED);
+                Logger.log(`[Keyboard] Debug mode toggled: ${newState}`);
                 return;
             }
         }
@@ -179,6 +214,17 @@ export class KeyboardHandler {
                 if (btn) btn.classList.toggle("active", newState);
                 Logger.log(`[Keyboard] Rulers toggled: ${newState}`);
                 return;
+            }
+        }
+
+        // Deselect / Escape: Escape key
+        if (ev.key === "Escape") {
+            if (document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA")) {
+                document.activeElement.blur();
+            }
+            if (state.selectedWidgetIds.length > 0) {
+                state.selectWidgets([]);
+                emit(EVENTS.STATE_CHANGED);
             }
         }
     }

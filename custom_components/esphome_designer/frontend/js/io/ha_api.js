@@ -217,6 +217,49 @@ export function getEntityAttributes(entityId) {
 }
 
 /**
+ * Fetches historical data for an entity from Home Assistant.
+ * Uses the backend proxy endpoint to avoid auth issues.
+ * NOTE: This is only used for graph preview in the editor. Not critical.
+ * @param {string} entityId 
+ * @param {string} duration - Duration string like "24h", "1h", etc.
+ * @returns {Promise<Array>} List of state objects from HA history.
+ */
+let historyFetchWarned = false;
+export async function fetchEntityHistory(entityId, duration = "24h") {
+    if (!hasHaBackend() || !entityId) return [];
+
+    try {
+        // Use the backend proxy endpoint which handles auth internally
+        const apiUrl = `${HA_API_BASE}/history/${encodeURIComponent(entityId)}?duration=${encodeURIComponent(duration)}`;
+
+        const resp = await fetch(apiUrl, {
+            headers: getHaHeaders()
+        });
+
+        if (!resp.ok) {
+            // Only log once to avoid console spam - history is non-critical (preview only)
+            if (!historyFetchWarned) {
+                Logger.log("[EntityHistory] History fetch unavailable (graph preview will use mock data)");
+                historyFetchWarned = true;
+            }
+            return [];
+        }
+
+        const data = await resp.json();
+
+        // The proxy returns an array of state objects directly
+        if (Array.isArray(data)) {
+            return data;
+        }
+
+        return [];
+    } catch (err) {
+        // Silently fail - history is only for editor preview
+        return [];
+    }
+}
+
+/**
  * Ensures entities are loaded, fetching if necessary.
  * @returns {Promise<Array>} The list of entities.
  */

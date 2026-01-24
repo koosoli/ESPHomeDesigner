@@ -50,8 +50,25 @@ export function isRGBDevice() {
  * @returns {string[]}
  */
 export function getAvailableColors() {
-    // If it's an RGB device, we still return a base palette for dropdowns that force it,
-    // but the UI should prefer RGB pickers.
+    // 1. Protocol Mode Logic
+    const AppState = window.AppState; // Use window ref to avoid circular import issues in utils
+    const mode = AppState?.settings?.renderingMode || 'lvgl';
+
+    if (mode === 'oepl' || mode === 'opendisplay') {
+        const ph = AppState?.project?.protocolHardware || {};
+        const colorMode = ph.colorMode || 'bw';
+
+        if (colorMode === 'full_color') {
+            return ["black", "white", "red", "green", "blue", "yellow", "orange", "gray", "purple", "cyan", "magenta"];
+        }
+        if (colorMode === 'color_3') {
+            // BWR/BWY displays
+            return ["black", "white", "red", "yellow", "gray"];
+        }
+        return ["black", "white", "gray"];
+    }
+
+    // 2. ESPHome Mode Logic (Existing)
     if (isRGBDevice()) {
         return ["black", "white", "red", "green", "blue", "yellow", "orange", "gray", "purple", "cyan", "magenta"];
     }

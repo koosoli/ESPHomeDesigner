@@ -130,10 +130,30 @@ const exportLVGL = (w, { common, convertColor }) => {
     };
 };
 
+const onExportNumericSensors = (context) => {
+    const { widgets, isLvgl, pendingTriggers } = context;
+    if (!widgets) return;
+
+    for (const w of widgets) {
+        if (w.type !== "lvgl_arc") continue;
+
+        const eid = (w.entity_id || w.props?.entity_id || "").trim();
+        if (!eid) continue;
+
+        if (isLvgl && pendingTriggers) {
+            if (!pendingTriggers.has(eid)) {
+                pendingTriggers.set(eid, new Set());
+            }
+            pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
+        }
+    }
+};
+
 export default {
     id: "lvgl_arc",
     name: "Arc",
     category: "LVGL",
+    supportedModes: ['lvgl'],
     defaults: {
         value: 50,
         min: 0,
@@ -146,5 +166,6 @@ export default {
         mode: "normal"
     },
     render,
-    exportLVGL
+    exportLVGL,
+    onExportNumericSensors
 };

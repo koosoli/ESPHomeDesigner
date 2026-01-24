@@ -32,12 +32,10 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
         line: {
             ...common,
             points: pointsArr,
-            style: {
-                line_width: p.stroke_width || 3,
-                line_color: convertColor(p.color),
-                line_rounded: true,
-                line_opa: formatOpacity(p.opa || 255)
-            }
+            line_width: p.stroke_width || 3,
+            line_color: convertColor(p.color),
+            line_rounded: true,
+            opa: formatOpacity(p.opa || 255)
         }
     };
 };
@@ -46,6 +44,7 @@ export default {
     id: "line",
     name: "Line",
     category: "Shapes",
+    supportedModes: ['lvgl', 'direct', 'oepl', 'opendisplay'],
     defaults: {
         width: 100,
         height: 10,
@@ -55,6 +54,46 @@ export default {
         opa: 255
     },
     render,
+    exportOpenDisplay: (w, { layout, page }) => {
+        const p = w.props || {};
+        const strokeWidth = parseInt(p.stroke_width || 3, 10);
+        const orientation = p.orientation || "horizontal";
+
+        let x_start = Math.round(w.x);
+        let y_start = Math.round(w.y);
+        let x_end = Math.round(w.x + (orientation === "vertical" ? 0 : w.width));
+        let y_end = Math.round(w.y + (orientation === "vertical" ? w.height : 0));
+
+        return {
+            type: "draw_line",
+            x_start: x_start,
+            y_start: y_start,
+            x_end: x_end,
+            y_end: y_end,
+            color: p.color || "black",
+            width: strokeWidth
+        };
+    },
+    exportOEPL: (w, { layout, page }) => {
+        const p = w.props || {};
+        const strokeWidth = parseInt(p.stroke_width || 3, 10);
+        const orientation = p.orientation || "horizontal";
+
+        let x_start = Math.round(w.x);
+        let y_start = Math.round(w.y);
+        let x_end = Math.round(w.x + (orientation === "vertical" ? 0 : w.width));
+        let y_end = Math.round(w.y + (orientation === "vertical" ? w.height : 0));
+
+        return {
+            type: "line",
+            x_start: x_start,
+            y_start: y_start,
+            x_end: x_end,
+            y_end: y_end,
+            color: p.color || "black",
+            width: strokeWidth
+        };
+    },
     exportLVGL,
     export: (w, context) => {
         const {

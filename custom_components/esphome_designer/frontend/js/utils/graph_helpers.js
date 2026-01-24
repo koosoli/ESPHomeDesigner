@@ -36,6 +36,75 @@ export function generateMockData(width, height, min, max) {
     return points;
 }
 
+/**
+ * Maps Home Assistant history data to SVG coordinates for the graph.
+ * Supports auto-scaling if min/max are not provided or effectively 0.
+ */
+export function generateHistoricalDataPoints(width, height, min, max, historyData, durationStr) {
+    if (!historyData || historyData.length === 0) return generateMockData(width, height, min, max);
+
+    const points = [];
+    const durationSec = parseDuration(durationStr);
+    const now = Date.now();
+    const startTime = now - (durationSec * 1000);
+
+    // HA history data filter and map
+    const mappedData = historyData
+        .map(item => ({
+            time: new Date(item.last_changed || item.when || Date.now()).getTime(),
+            value: parseFloat(item.state)
+        }))
+        .filter(item => !isNaN(item.value));
+
+    if (mappedData.length === 0) return generateMockData(width, height, min, max);
+
+    // Sort by time
+    mappedData.sort((a, b) => a.time - b.time);
+
+    // Auto-scaling logic
+    let effectiveMin = min;
+    let effectiveMax = max;
+
+    const values = mappedData.map(d => d.value);
+    const dataMin = Math.min(...values);
+    const dataMax = Math.max(...values);
+
+    // If min/max are explicitly same or unset (auto), use data range
+    if (min === max || (isNaN(min) && isNaN(max)) || (min === 0 && max === 100 && (dataMin > 100 || dataMax < 0))) {
+        effectiveMin = dataMin;
+        effectiveMax = dataMax;
+
+        // Add 10% padding
+        const padding = (effectiveMax - effectiveMin) * 0.1 || 1.0;
+        effectiveMin -= padding;
+        effectiveMax += padding;
+    }
+
+    const range = (effectiveMax - effectiveMin) || 1;
+
+    mappedData.forEach(item => {
+        // Map time to X (0 to width)
+        const x = ((item.time - startTime) / (durationSec * 1000)) * width;
+
+        // Map value to Y (height to 0)
+        let normalizedY = (item.value - effectiveMin) / range;
+        normalizedY = Math.max(-0.1, Math.min(1.1, normalizedY)); // Allow a bit over/under for smooth lines
+        const y = height - (normalizedY * height);
+
+        // Only include points within the duration window (roughly)
+        if (x >= -10 && x <= width + 10) {
+            points.push({ x, y });
+        }
+    });
+
+    // If we have very few points, it might look empty, maybe add a point at "Now"
+    if (points.length > 0 && points[points.length - 1].x < width - 1) {
+        points.push({ x: width, y: points[points.length - 1].y });
+    }
+
+    return points;
+}
+
 export function drawInternalGrid(svg, width, height, xGridStr, yGridStr) {
     const gridGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
     gridGroup.setAttribute("stroke", "rgba(0,0,0,0.1)");
@@ -69,18 +138,25 @@ export function drawInternalGrid(svg, width, height, xGridStr, yGridStr) {
     svg.appendChild(gridGroup);
 }
 
-export function drawSmartAxisLabels(container, x, y, width, height, min, max, durationStr) {
-    // Remove existing axis labels first (from previous renders)
-    const existing = container.querySelectorAll('.graph-axis-label');
+export function drawSmartAxisLabels(container, x, y, width, height, min, max, durationStr, widgetId) {
+    // container should be the ARTBOARD (div.artboard)
+    if (!container) return;
+
+    // Remove existing axis labels for THIS widget only
+    const existing = container.querySelectorAll(`.graph-axis-label[data-widget-id="${widgetId}"]`);
     existing.forEach(el => el.remove());
 
     // Y-Axis Labels (Left of graph)
     const range = max - min;
     const steps = 4; // Min, 25%, 50%, 75%, Max
 
-    // Get CANVAS_WIDTH - try multiple sources
-    const canvasWidth = (typeof CANVAS_WIDTH !== 'undefined') ? CANVAS_WIDTH :
-        (typeof window.CANVAS_WIDTH !== 'undefined') ? window.CANVAS_WIDTH : 800;
+    // Use artboard dimensions for logical clamping
+    const canvasWidth = parseInt(container.style.width) || 800;
+    const canvasHeight = parseInt(container.style.height) || 480;
+
+    // Determine if labels should be inside or outside
+    const yLabelsInside = x < 40;
+    const xLabelsInside = (y + height + 20) > canvasHeight;
 
     for (let i = 0; i <= steps; i++) {
         const val = min + (range * (i / steps));
@@ -88,12 +164,25 @@ export function drawSmartAxisLabels(container, x, y, width, height, min, max, du
 
         const div = document.createElement("div");
         div.className = "graph-axis-label";
+        div.dataset.widgetId = widgetId;
         div.style.position = "absolute";
-        div.style.right = `${(canvasWidth - x) + 4}px`; // Position to left of graph
+
+        if (yLabelsInside) {
+            div.style.left = `${x + 4}px`;
+            div.style.textAlign = "left";
+        } else {
+            // Positon to left of graph.
+            // We use left-based positioning to be relative to artboard origin.
+            div.style.left = `${x - 4}px`;
+            div.style.transform = "translateX(-100%)";
+            div.style.textAlign = "right";
+        }
+
         div.style.top = `${labelY - 6}px`; // Center vertically
         div.style.fontSize = "10px";
-        div.style.color = "#666";
-        div.style.textAlign = "right";
+        div.style.color = yLabelsInside ? "#888" : "#666"; // Slightly lighter if inside
+        div.style.pointerEvents = "none";
+        div.style.zIndex = "10";
         div.textContent = val.toFixed(1);
         container.appendChild(div);
     }
@@ -117,12 +206,33 @@ export function drawSmartAxisLabels(container, x, y, width, height, min, max, du
 
         const div = document.createElement("div");
         div.className = "graph-axis-label";
+        div.dataset.widgetId = widgetId;
         div.style.position = "absolute";
         div.style.left = `${labelX}px`;
-        div.style.top = `${y + height + 4}px`; // Below graph
+
+        if (xLabelsInside) {
+            div.style.top = `${y + height - 14}px`; // Inside, above bottom
+        } else {
+            div.style.top = `${y + height + 4}px`; // Below graph
+        }
+
         div.style.fontSize = "10px";
-        div.style.color = "#666";
-        div.style.transform = "translateX(-50%)";
+        div.style.color = xLabelsInside ? "#888" : "#666";
+        div.style.pointerEvents = "none";
+        div.style.zIndex = "10";
+
+        // Horizontal clamping for X labels relative to artboard
+        if (labelX < 20) {
+            div.style.transform = "none";
+            div.style.textAlign = "left";
+        } else if (labelX > canvasWidth - 20) {
+            div.style.transform = "translateX(-100%)";
+            div.style.textAlign = "right";
+        } else {
+            div.style.transform = "translateX(-50%)";
+            div.style.textAlign = "center";
+        }
+
         div.textContent = labelText;
         container.appendChild(div);
     }

@@ -42,14 +42,40 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
     const p = w.props || {};
+    let brightnessValue = (p.brightness !== undefined ? p.brightness : 255) / 255.0;
+
+    if (w.entity_id) {
+        const safeId = w.entity_id.replace(/[^a-zA-Z0-9_]/g, "_");
+        brightnessValue = `!lambda "return id(${safeId}).state / 255.0;"`;
+    }
+
     return {
         led: {
             ...common,
             color: convertColor(p.color || "red"),
-            brightness: (p.brightness !== undefined ? p.brightness : 255) / 255.0,
+            brightness: brightnessValue,
             opa: formatOpacity(p.opa)
         }
     };
+};
+
+const onExportNumericSensors = (context) => {
+    const { widgets, isLvgl, pendingTriggers } = context;
+    if (!widgets) return;
+
+    for (const w of widgets) {
+        if (w.type !== "lvgl_led") continue;
+
+        const eid = (w.entity_id || w.props?.entity_id || "").trim();
+        if (!eid) continue;
+
+        if (isLvgl && pendingTriggers) {
+            if (!pendingTriggers.has(eid)) {
+                pendingTriggers.set(eid, new Set());
+            }
+            pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
+        }
+    }
 };
 
 export default {
@@ -62,5 +88,6 @@ export default {
         opa: 255
     },
     render,
-    exportLVGL
+    exportLVGL,
+    onExportNumericSensors
 };

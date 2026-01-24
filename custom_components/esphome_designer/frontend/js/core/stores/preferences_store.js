@@ -29,7 +29,8 @@ export class PreferencesStore {
          *  dailyRefreshEnabled: boolean,
          *  dailyRefreshTime: string,
          *  noRefreshStartHour: number|null,
-         *  noRefreshEndHour: number|null
+         *  noRefreshEndHour: number|null,
+         *  glyphsets: string[]
          * }}
          */
         this.state = { ...DEFAULT_PREFERENCES };
@@ -39,6 +40,8 @@ export class PreferencesStore {
     get snapEnabled() { return this.state.snapEnabled; }
     /** @returns {boolean} */
     get showGrid() { return this.state.showGrid; }
+    /** @returns {boolean} */
+    get showDebugGrid() { return this.state.showDebugGrid; }
     /** @returns {boolean} */
     get showRulers() { return this.state.showRulers; }
     /** @returns {number} */
@@ -63,6 +66,12 @@ export class PreferencesStore {
     setShowGrid(enabled) {
         this.state.showGrid = enabled;
         emit(EVENTS.SETTINGS_CHANGED, { showGrid: enabled });
+    }
+
+    /** @param {boolean} enabled */
+    setShowDebugGrid(enabled) {
+        this.state.showDebugGrid = enabled;
+        emit(EVENTS.SETTINGS_CHANGED, { showDebugGrid: enabled });
     }
 
     /** @param {boolean} enabled */

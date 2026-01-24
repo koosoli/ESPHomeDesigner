@@ -196,10 +196,11 @@ export function generateSPISection(profile) {
     return lines;
 }
 
-export function generateDisplaySection(profile, orientation = 'landscape') {
+export function generateDisplaySection(profile, layout = {}, isLvgl = false) {
     const lines = [];
     if (!profile) return lines;
 
+    const orientation = layout.orientation || 'landscape';
     const resolution = profile.resolution || { width: 800, height: 480 };
     const isNativePortrait = resolution.height > resolution.width;
     const isRequestedPortrait = orientation === 'portrait';
@@ -218,11 +219,21 @@ export function generateDisplaySection(profile, orientation = 'landscape') {
     if (profile.display_config) {
         lines.push("display:");
         lines.push(...profile.display_config);
+        // Correct auto_clear_enabled for LVGL if present in config
+        if (isLvgl) {
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].includes("auto_clear_enabled: true")) {
+                    lines[i] = lines[i].replace("auto_clear_enabled: true", "auto_clear_enabled: false");
+                }
+            }
+        }
         lines.push("");
     } else {
+        const isLcd = !!(profile.features && (profile.features.lcd || profile.features.oled));
         lines.push("display:");
         lines.push(`  - platform: ${profile.displayPlatform}`);
-        lines.push("    id: epaper_display");
+        lines.push(`    id: ${isLcd ? 'my_display' : 'epaper_display'}`);
+        if (isLvgl) lines.push("    auto_clear_enabled: false");
 
         const p = (profile.pins && profile.pins.display) ? profile.pins.display : null;
         if (p) {
@@ -252,7 +263,7 @@ export function generateDisplaySection(profile, orientation = 'landscape') {
         // M5Paper / IT8951 needs specific reset durations
         if (profile.displayModel === "M5Paper" || profile.displayPlatform === "it8951e") {
             lines.push("    reversed: false");
-            lines.push("    reset_duration: 100ms");
+            lines.push("    reset_duration: 200ms");
         }
         else if (profile.displayModel && profile.displayPlatform !== "waveshare_epaper") {
             let modelLine = `    model: "${profile.displayModel}"`;
@@ -262,7 +273,8 @@ export function generateDisplaySection(profile, orientation = 'landscape') {
             lines.push(modelLine);
         }
 
-        lines.push("    update_interval: never");
+        const refreshInterval = layout.refreshInterval || 1;
+        lines.push(`    update_interval: ${isLcd ? refreshInterval + 's' : 'never'}`);
 
         const modelsWithFullUpdate = [
             "1.54in", "1.54inv2", "2.13in", "2.13in-ttgo", "2.13in-ttgo-b1",
@@ -749,7 +761,8 @@ export function generateAXP2101Section(profile) {
 
 export function generateOutputSection(profile) {
     const lines = [];
-    if (!profile || !profile.pins || (!profile.pins.batteryEnable && !profile.pins.buzzer)) return lines;
+    const hasM5Power = (profile.m5paper?.main_power_pin || profile.pins?.main_power_pin || profile.m5paper?.battery_power_pin || profile.pins?.battery_power_pin);
+    if (!profile || !profile.pins || (!profile.pins.batteryEnable && !profile.pins.buzzer && !hasM5Power)) return lines;
 
     lines.push("output:");
     if (profile.pins.batteryEnable) {
@@ -768,6 +781,22 @@ export function generateOutputSection(profile) {
         }
         lines.push("    id: bsp_battery_enable");
     }
+
+    // M5Paper / Device-specific main power pins
+    if (profile.m5paper?.main_power_pin || profile.pins?.main_power_pin) {
+        if (profile.pins.batteryEnable) lines.push("");
+        lines.push("  - platform: gpio");
+        lines.push(`    pin: ${profile.m5paper?.main_power_pin || profile.pins.main_power_pin}`);
+        lines.push("    id: main_power");
+    }
+
+    if (profile.m5paper?.battery_power_pin || profile.pins?.battery_power_pin) {
+        if (profile.pins.batteryEnable || profile.m5paper?.main_power_pin) lines.push("");
+        lines.push("  - platform: gpio");
+        lines.push(`    pin: ${profile.m5paper?.battery_power_pin || profile.pins.battery_power_pin}`);
+        lines.push("    id: battery_power");
+    }
+
     if (profile.pins.buzzer) {
         if (profile.pins.batteryEnable) lines.push("");
         lines.push("  - platform: ledc");

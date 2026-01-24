@@ -122,7 +122,8 @@ const exportDoc = (w, context) => {
 };
 
 const onExportTextSensors = (context) => {
-    const { lines, widgets } = context;
+    // REGRESSION PROOF: Always destructure 'lines' from context to allow sensor generation
+    const { lines, widgets, isLvgl, pendingTriggers } = context;
     if (!widgets || widgets.length === 0) return;
 
     const weatherEntities = new Set();
@@ -130,32 +131,32 @@ const onExportTextSensors = (context) => {
         if (w.type !== "weather_icon") continue;
         const entityId = (w.entity_id || w.props?.weather_entity || "weather.forecast_home").trim();
         if (entityId) {
-            weatherEntities.add(entityId);
+            weatherEntities.add({ id: w.id, entity_id: entityId });
         }
     }
 
-    if (weatherEntities.size > 0) {
-        let headerAdded = false;
-        for (const entityId of weatherEntities) {
-            const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_") + "_text_sensor";
-            const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(entityId)) ||
-                (context.seenSensorIds && context.seenSensorIds.has(safeId));
+    weatherEntities.forEach(({ id, entity_id }) => {
+        const safeId = entity_id.replace(/[^a-zA-Z0-9_]/g, "_") + "_text_sensor";
 
-            if (!alreadyDefined) {
-                if (!headerAdded) {
-                    lines.push("# Weather Entity Sensors (Detected from Weather Icon)");
-                    headerAdded = true;
-                }
-                if (context.seenEntityIds) context.seenEntityIds.add(entityId);
-                if (context.seenSensorIds) context.seenSensorIds.add(safeId);
-                lines.push(`- platform: homeassistant`);
-                lines.push(`  id: ${safeId}`);
-                lines.push(`  entity_id: ${entityId}`);
-                lines.push(`  internal: true`);
+        if (isLvgl && pendingTriggers) {
+            if (!pendingTriggers.has(safeId)) pendingTriggers.set(safeId, new Set());
+            pendingTriggers.get(safeId).add(`- lvgl.widget.refresh: ${id}`);
+        }
+
+        // Explicitly export the Home Assistant sensor block
+        const addedAny = !!lines.length;
+        if (context.seenSensorIds && !context.seenSensorIds.has(safeId)) {
+            if (!addedAny) {
+                lines.push("");
+                lines.push("# Weather Condition Sensors (Detected from Weather Icon)");
             }
+            context.seenSensorIds.add(safeId);
+            lines.push("- platform: homeassistant");
+            lines.push(`  id: ${safeId}`);
+            lines.push(`  entity_id: ${entity_id}`);
+            lines.push(`  internal: true`);
         }
-        if (headerAdded) lines.push("");
-    }
+    });
 };
 
 const collectRequirements = (widget, { trackIcon }) => {
@@ -169,6 +170,7 @@ export default {
     id: "weather_icon",
     name: "Weather Icon",
     category: "Sensors",
+    supportedModes: ['lvgl', 'direct', 'oepl', 'opendisplay'],
     defaults: {
         width: 60,
         height: 60,
@@ -179,6 +181,76 @@ export default {
         fit_icon_to_frame: true
     },
     render,
+    exportOpenDisplay: (w, { layout, page }) => {
+        const p = w.props || {};
+        const entityId = (w.entity_id || p.weather_entity || "weather.forecast_home").trim();
+        let weatherState = "sunny";
+
+        if (entityId && window.AppState && window.AppState.entityStates) {
+            const stateSet = window.AppState.entityStates[entityId];
+            if (stateSet && stateSet.state) weatherState = String(stateSet.state).toLowerCase();
+        }
+
+        const iconMap = {
+            'clear-night': 'moon',
+            'cloudy': 'cloud',
+            'fog': 'fog',
+            'hail': 'hail',
+            'lightning': 'lightning',
+            'lightning-rainy': 'lightning-rainy',
+            'partlycloudy': 'partly-cloudy',
+            'pouring': 'pouring',
+            'rainy': 'rainy',
+            'snowy': 'snowy',
+            'snowy-rainy': 'snowy-rainy',
+            'sunny': 'sun',
+            'windy': 'wind'
+        };
+        const iconName = iconMap[weatherState] || 'sun';
+
+        return {
+            type: "draw_icon",
+            value: iconName,
+            x: Math.round(w.x),
+            y: Math.round(w.y),
+            size: p.size || 48,
+            color: p.color || "black"
+        };
+    },
+    exportOEPL: (w, { layout, page }) => {
+        const p = w.props || {};
+        const entityId = (w.entity_id || p.weather_entity || "weather.forecast_home").trim();
+        const size = p.size || 48;
+        const color = p.color || "black";
+
+        // OEPL has built-in weather icon support if we use their icon names
+        // We can create a template that returns the icon name based on state
+        const template = `{{ {
+            'clear-night': 'moon',
+            'cloudy': 'cloud',
+            'fog': 'fog',
+            'hail': 'hail',
+            'lightning': 'lightning',
+            'lightning-rainy': 'lightning-rainy',
+            'partlycloudy': 'partly-cloudy',
+            'pouring': 'pouring',
+            'rainy': 'rainy',
+            'snowy': 'snowy',
+            'snowy-rainy': 'snowy-rainy',
+            'sunny': 'sun',
+            'windy': 'wind'
+        }[states('${entityId}')] | default('sun') }}`;
+
+        return {
+            type: "icon",
+            value: template,
+            x: Math.round(w.x),
+            y: Math.round(w.y),
+            size: size,
+            color: color,
+            anchor: "lt"
+        };
+    },
     exportLVGL: (w, { common, convertColor, getLVGLFont }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || p.weather_entity || "weather.forecast_home").trim();

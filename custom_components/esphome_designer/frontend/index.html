@@ -32,7 +32,7 @@
   <header class="main-header" role="banner">
     <div class="main-header-title">
       <img src="assets/logo_header.png" alt="ESPHome Designer" class="logo-image">
-      <span><small style="opacity: 0.5; margin-left: 8px;">Pre_0.9b214</small> <span id="currentLayoutDevice"
+      <span><small style="opacity: 0.5; margin-left: 8px;">Pre_0.9b254</small> <span id="currentLayoutDevice"
           style="margin-left:8px; color:var(--accent);"></span></span>
     </div>
     <div class="main-header-actions desktop-only">
@@ -151,6 +151,9 @@
                 <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"></path>
               </svg>
             </button>
+            <button id="debugGridToggleBtn" class="btn-icon" title="Toggle Debug Mode (D)">
+              <span class="mdi mdi-bug-outline" style="font-size: 16px;"></span>
+            </button>
             <button id="rulersToggleBtn" class="btn-icon" title="Toggle Rulers (R)" style="margin-right: 8px;">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                 <path
@@ -190,9 +193,27 @@
             </button>
             <button id="aiPromptBtn" class="btn btn-secondary btn-xs">AI Assistant</button>
             <button id="copySnippetBtn" class="btn btn-secondary btn-xs">Copy</button>
+            <button id="copyOEPLServiceBtn" class="btn btn-secondary btn-xs" style="display:none;"
+              title="Copy full HA Service Call">HA Service</button>
             <button id="fullscreenSnippetBtn" class="btn btn-secondary btn-xs">Full</button>
             <button id="updateLayoutBtn" class="btn btn-secondary btn-xs"
               title="Import YAML back to canvas">Update</button>
+          </div>
+        </div>
+        <div id="oeplNotice" class="oepl-notice hidden"
+          style="background: rgba(255, 159, 67, 0.1); border-bottom: 1px solid rgba(255, 159, 67, 0.2); padding: 8px 12px; font-size: 10px; color: #ff9f43; display: flex; align-items: center; gap: 8px;">
+          <span class="mdi mdi-alert-circle-outline" style="font-size: 14px;"></span>
+          <div>
+            <strong>OpenEpaperLink JSON (Beta)</strong> - Copy this to Home Assistant → Developer Tools → Services →
+            <code>open_epaper_link.drawcustom</code>
+          </div>
+        </div>
+        <div id="odpNotice" class="odp-notice hidden"
+          style="background: rgba(82, 199, 234, 0.1); border-bottom: 1px solid rgba(82, 199, 234, 0.2); padding: 8px 12px; font-size: 10px; color: var(--accent); display: flex; align-items: center; gap: 8px;">
+          <span class="mdi mdi-informational" style="font-size: 14px;"></span>
+          <div>
+            <strong>OpenDisplay JSON (ODP)</strong> - Send this payload to your ESL controller via MQTT or HTTP POST.
+            Compatible with ODP v1 primitives.
           </div>
         </div>
         <div class="snippet-container">
@@ -355,237 +376,238 @@
         <button id="deviceSettingsClose" class="btn btn-secondary">Close</button>
       </div>
       <div class="modal-body">
-        <div class="field">
-          <div class="prop-label">Friendly Name</div>
-          <input id="deviceName" class="prop-input" type="text" placeholder="My E-Ink Device" />
-        </div>
-        <div class="field">
-          <div class="prop-label" style="display:flex; justify-content:space-between; align-items:center;">
-            <span>Hardware Profile</span>
-            <button id="importHardwareBtn" class="btn btn-secondary btn-xs"
-              style="font-size: 10px; padding: 2px 6px;">Import Recipe</button>
-          </div>
-          <select id="deviceModel" class="prop-input">
-            <option value="custom">Custom Profile...</option>
-          </select>
-          <input type="file" id="hardwareFileInput" accept=".yaml" style="display:none;" />
-        </div>
-
-        <!-- Rendering Mode (Only visible for LVGL-capable devices) -->
-        <div class="field" id="renderingModeField" style="display:none;">
-          <div class="prop-label">Rendering Mode</div>
-          <select id="renderingMode" class="prop-input">
-            <option value="lvgl">LVGL (Recommended for LCD)</option>
-            <option value="direct">Direct (Display Lambda)</option>
-          </select>
-          <div style="font-size:var(--fs-xs); color:var(--muted); margin-top:4px;">
-            LVGL uses the LVGL graphics library for advanced widgets. Direct uses raw display commands and omits the
-            lvgl: block.
-          </div>
-        </div>
-
-        <!-- Custom Hardware Section (Hidden by default) -->
-        <div id="customHardwareSection"
-          style="display:none; border:1px solid var(--accent); border-radius:8px; padding:12px; margin-top:12px; background: rgba(82, 199, 234, 0.03);">
-          <div
-            style="font-size:12px; font-weight:bold; color:var(--accent); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-              <path
-                d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z">
-              </path>
-            </svg>
-            Custom Hardware Configuration
-          </div>
-
-          <div class="hardware-group">
-            <div class="prop-label">General</div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-              <div class="field">
-                <div class="prop-label" style="font-size:10px;">Chip Type</div>
-                <select id="customChip" class="prop-input-sm">
-                  <option value="esp32-s3">ESP32-S3</option>
-                  <option value="esp32">ESP32</option>
-                  <option value="esp32-c3">ESP32-C3</option>
-                  <option value="esp32-c6">ESP32-C6</option>
-                </select>
-              </div>
-              <div class="field">
-                <div class="prop-label" style="font-size:10px;">Tech</div>
-                <select id="customTech" class="prop-input-sm">
-                  <option value="lcd">LCD / OLED</option>
-                  <option value="epaper">E-Paper</option>
-                </select>
-              </div>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-              <div class="field">
-                <div class="prop-label" style="font-size:10px;">Resolution</div>
-                <input id="customRes" class="prop-input-sm" type="text" placeholder="800x480" value="800x480" />
-              </div>
-              <div class="field">
-                <div class="prop-label" style="font-size:10px;">Shape</div>
-                <select id="customShape" class="prop-input-sm">
-                  <option value="rect">Rectangle</option>
-                  <option value="round">Round</option>
-                </select>
-              </div>
-            </div>
-            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin-top:4px;">
-              <input id="customPsram" type="checkbox" checked />
-              <span style="font-size:10px;">Enable PSRAM</span>
-            </label>
-          </div>
-
-          <div class="hardware-group" style="margin-top:12px;">
-            <div class="prop-label">Display (SPI)</div>
+        <div class="settings-grid">
+          <!-- PRIMARY SETTINGS (Top 2x2 Grid) -->
+          <div class="primary-settings-grid">
             <div class="field">
-              <div class="prop-label" style="font-size:10px;">Driver / Platform</div>
-              <select id="customDisplayDriver" class="prop-input-sm">
-                <option value="st7789v">ST7789 (LCD)</option>
-                <option value="ili9341">ILI9341 (LCD)</option>
-                <option value="waveshare_epaper">Waveshare E-Paper</option>
-                <option value="epaper_spi">Generic SPI E-Paper</option>
-                <option value="custom">Other (Custom YAML)</option>
+              <div class="prop-label">Friendly Name</div>
+              <input id="deviceName" class="prop-input" type="text" placeholder="My E-Ink Device" />
+            </div>
+
+            <div class="field" id="renderingModeField">
+              <div class="prop-label">Rendering Mode</div>
+              <select id="renderingMode" class="prop-input">
+                <option value="direct">Direct (Display Lambda)</option>
+                <option value="lvgl">LVGL (Recommended for LCD)</option>
+                <option value="oepl">OpenEpaperLink JSON (Drawing Protocol)</option>
+                <option value="opendisplay">OpenDisplay JSON (ODP)</option>
               </select>
             </div>
-            <div id="spiPinsGrid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:8px;">
-              <div class="field">
-                <div class="prop-label" style="font-size:9px;">CS</div>
-                <input id="pin_cs" class="prop-input-sm" type="text" placeholder="GPIO10" value="GPIO10" />
-              </div>
-              <div class="field">
-                <div class="prop-label" style="font-size:9px;">DC</div>
-                <input id="pin_dc" class="prop-input-sm" type="text" placeholder="GPIO11" value="GPIO11" />
-              </div>
-              <div class="field">
-                <div class="prop-label" style="font-size:9px;">RST</div>
-                <input id="pin_rst" class="prop-input-sm" type="text" placeholder="GPIO12" value="GPIO12" />
-              </div>
-              <div class="field">
-                <div class="prop-label" style="font-size:9px;">BUSY</div>
-                <input id="pin_busy" class="prop-input-sm" type="text" placeholder="GPIO13" />
-              </div>
-              <div class="field">
-                <div class="prop-label" style="font-size:9px;">CLK</div>
-                <input id="pin_clk" class="prop-input-sm" type="text" placeholder="GPIO7" value="GPIO7" />
-              </div>
-              <div class="field">
-                <div class="prop-label" style="font-size:9px;">MOSI</div>
-                <input id="pin_mosi" class="prop-input-sm" type="text" placeholder="GPIO9" value="GPIO9" />
-              </div>
+
+            <div class="field">
+              <div class="prop-label">Screen Orientation</div>
+              <select id="deviceOrientation" class="prop-input">
+                <option value="landscape">Landscape</option>
+                <option value="portrait">Portrait</option>
+              </select>
             </div>
           </div>
 
-          <div class="hardware-group" style="margin-top:12px;">
-            <div class="prop-label">Backlight & Touch</div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <!-- SECONDARY SETTINGS (Left Column) -->
+          <div class="settings-column">
+            <!-- Dynamic Hardware Profile Section (ESPHome Only) -->
+            <div class="field" id="deviceModelField"
+              style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px; margin-bottom: 8px;">
+              <div class="prop-label" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>Hardware Profile</span>
+                <button id="importHardwareBtn" class="btn btn-secondary btn-xs"
+                  style="font-size: 10px; padding: 2px 6px;">Import Recipe</button>
+              </div>
+              <select id="deviceModel" class="prop-input">
+                <option value="custom">Custom Profile...</option>
+              </select>
+              <input type="file" id="hardwareFileInput" accept=".yaml" style="display:none;" />
+            </div>
+
+            <!-- OpenEpaperLink Settings -->
+            <div id="oeplSettingsSection" style="display:none;">
+              <div style="font-size: 11px; font-weight: bold; color: var(--accent); margin-bottom: 8px;">
+                OpenEpaperLink Configuration</div>
               <div class="field">
-                <div class="prop-label" style="font-size:10px;">Backlight Pin</div>
-                <input id="pin_backlight" class="prop-input-sm" type="text" placeholder="GPIO45" />
+                <div class="prop-label">OEPL Tag Entity ID</div>
+                <input id="oeplEntityId" class="prop-input" type="text"
+                  placeholder="open_epaper_link.0000000000000000" />
               </div>
               <div class="field">
-                <div class="prop-label" style="font-size:10px;">Touch Tech</div>
-                <select id="customTouchTech" class="prop-input-sm">
-                  <option value="none">None</option>
-                  <option value="gt911">GT911 (I2C)</option>
-                  <option value="ft6x36">FT6x36 (I2C)</option>
-                  <option value="cst816">CST816 (I2C)</option>
+                <div class="prop-label">Dithering Algorithm</div>
+                <select id="oeplDither" class="prop-input">
+                  <option value="0">None (Faster)</option>
+                  <option value="1">Ordered</option>
+                  <option value="2" selected>Burkes (Recommended)</option>
+                  <option value="3">Atkinson</option>
+                  <option value="4">Floyd-Steinberg</option>
+                  <option value="5">Jarvis-Judice-Ninke</option>
+                  <option value="6">Stucki</option>
+                  <option value="7">Sierra</option>
                 </select>
               </div>
             </div>
-            <div id="touchPinsGrid"
-              style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; display:none;">
-              <div class="field">
-                <div class="prop-label" style="font-size:9px;">SDA</div>
-                <input id="pin_sda" class="prop-input-sm" type="text" placeholder="GPIO17" />
+
+            <!-- Custom Hardware Section -->
+            <div id="customHardwareSection"
+              style="display:none; border:1px solid var(--accent); border-radius:8px; padding:12px; background: rgba(82, 199, 234, 0.03);">
+              <div
+                style="font-size:11px; font-weight:bold; color:var(--accent); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <path
+                    d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z">
+                  </path>
+                </svg>
+                Custom Hardware Pinout
               </div>
-              <div class="field">
-                <div class="prop-label" style="font-size:9px;">SCL</div>
-                <input id="pin_scl" class="prop-input-sm" type="text" placeholder="GPIO18" />
+
+              <div class="hardware-group" style="border:none; margin:0; padding:0;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                  <div class="field">
+                    <div class="prop-label" style="font-size:10px;">Chip Type</div>
+                    <select id="customChip" class="prop-input-sm">
+                      <option value="esp32-s3">ESP32-S3</option>
+                      <option value="esp32">ESP32</option>
+                      <option value="esp32-c3">ESP32-C3</option>
+                      <option value="esp32-c6">ESP32-C6</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <div class="prop-label" style="font-size:10px;">Tech</div>
+                    <select id="customTech" class="prop-input-sm">
+                      <option value="lcd">LCD / OLED</option>
+                      <option value="epaper">E-Paper</option>
+                    </select>
+                  </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                  <div class="field">
+                    <div class="prop-label" style="font-size:10px;">Resolution</div>
+                    <input id="customRes" class="prop-input-sm" type="text" placeholder="800x480" value="800x480" />
+                  </div>
+                  <div class="field">
+                    <div class="prop-label" style="font-size:10px;">Shape</div>
+                    <select id="customShape" class="prop-input-sm">
+                      <option value="rect">Rectangle</option>
+                      <option value="round">Round</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-              <div class="field">
-                <div class="prop-label" style="font-size:9px;">INT</div>
-                <input id="pin_touch_int" class="prop-input-sm" type="text" placeholder="GPIO16" />
+
+              <div class="hardware-group" style="margin-top:12px;">
+                <div class="prop-label" style="font-size:10px; margin-bottom:4px;">Display (SPI)</div>
+                <select id="customDisplayDriver" class="prop-input-sm" style="margin-bottom:8px;">
+                  <option value="st7789v">ST7789 (LCD)</option>
+                  <option value="ili9341">ILI9341 (LCD)</option>
+                  <option value="waveshare_epaper">Waveshare E-Paper</option>
+                  <option value="epaper_spi">Generic SPI E-Paper</option>
+                  <option value="custom">Other (Custom YAML)</option>
+                </select>
+                <div id="spiPinsGrid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
+                  <div class="field">
+                    <div class="prop-label" style="font-size:9px;">CS</div>
+                    <input id="pin_cs" class="prop-input-sm" type="text" placeholder="GPIO10" />
+                  </div>
+                  <div class="field">
+                    <div class="prop-label" style="font-size:9px;">DC</div>
+                    <input id="pin_dc" class="prop-input-sm" type="text" placeholder="GPIO11" />
+                  </div>
+                  <div class="field">
+                    <div class="prop-label" style="font-size:9px;">RST</div>
+                    <input id="pin_rst" class="prop-input-sm" type="text" placeholder="GPIO12" />
+                  </div>
+                  <div class="field">
+                    <div class="prop-label" style="font-size:9px;">BUSY</div>
+                    <input id="pin_busy" class="prop-input-sm" type="text" />
+                  </div>
+                  <div class="field">
+                    <div class="prop-label" style="font-size:9px;">CLK</div>
+                    <input id="pin_clk" class="prop-input-sm" type="text" />
+                  </div>
+                  <div class="field">
+                    <div class="prop-label" style="font-size:9px;">MOSI</div>
+                    <input id="pin_mosi" class="prop-input-sm" type="text" />
+                  </div>
+                </div>
               </div>
+
+              <div class="field" style="margin-top:12px; border-top:1px solid var(--border-subtle); padding-top:8px;">
+                <div class="prop-label" style="font-size:10px;">Recipe Name</div>
+                <input id="customProfileName" class="prop-input-sm" type="text" placeholder="e.g. My Custom S3" />
+              </div>
+
+              <button id="saveCustomProfileBtn" class="btn btn-primary btn-full" type="button" style="margin-top:12px;">
+                🚀 Save Profile
+              </button>
+            </div>
+
+            <!-- Protocol Hardware Section (OEPL / ODP) -->
+            <div id="protocolHardwareSection"
+              style="display:none; border:1px solid var(--accent); border-radius:8px; padding:12px; background: rgba(82, 199, 234, 0.03);">
+              <div
+                style="font-size:11px; font-weight:bold; color:var(--accent); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                  <line x1="8" y1="21" x2="16" y2="21"></line>
+                  <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                Protocol Hardware Specs
+              </div>
+
               <div class="field">
-                <div class="prop-label" style="font-size:9px;">RST</div>
-                <input id="pin_touch_rst" class="prop-input-sm" type="text" placeholder="GPIO15" />
+                <div class="prop-label">Resolution Preset</div>
+                <select id="protocolResPreset" class="prop-input">
+                  <option value="custom">Manual...</option>
+                  <option value="296x128">2.9" (296x128)</option>
+                  <option value="400x300">4.2" (400x300)</option>
+                  <option value="800x480">7.5" (800x480)</option>
+                  <option value="640x384">5.83" (640x384)</option>
+                  <option value="250x122">2.13" (250x122)</option>
+                </select>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <div class="field">
+                  <div class="prop-label">Width</div>
+                  <input id="protocolWidth" class="prop-input" type="number" value="400" />
+                </div>
+                <div class="field">
+                  <div class="prop-label">Height</div>
+                  <input id="protocolHeight" class="prop-input" type="number" value="300" />
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="prop-label">Color Mode</div>
+                <select id="protocolColorMode" class="prop-input">
+                  <option value="bw">Monochrome (B/W)</option>
+                  <option value="grayscale">Grayscale</option>
+                  <option value="color_3">3-Color (BWR / BWY)</option>
+                  <option value="full_color">Full Color</option>
+                </select>
               </div>
             </div>
-          </div>
 
-          <div class="hardware-group" style="margin-top:12px;">
-            <div class="prop-label">Backlight Configuration (LCD/OLED)</div>
-            <div style="font-size:10px; color:var(--muted); margin-bottom:8px;">PWM brightness control via LEDC output.
+            <!-- Global Preferences -->
+            <div class="field" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-subtle);">
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input id="deviceDarkMode" type="checkbox" />
+                <span style="font-size:var(--fs-xs); font-weight:600;">Dark mode (Canvas Preview)</span>
+              </label>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-              <div class="field">
-                <div class="prop-label" style="font-size:10px;">Min Power</div>
-                <input id="customBacklightMinPower" class="prop-input-sm" type="number" step="0.01" min="0" max="1"
-                  placeholder="0.07" value="0.07" />
-              </div>
-              <div class="field">
-                <div class="prop-label" style="font-size:10px;">Initial Brightness</div>
-                <input id="customBacklightInitial" class="prop-input-sm" type="number" step="0.1" min="0" max="1"
-                  placeholder="0.8" value="0.8" />
-              </div>
+            <div class="field" id="deviceExtendedLatinGlyphsField">
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input id="deviceExtendedLatinGlyphs" type="checkbox" />
+                <span style="font-size:var(--fs-xs); font-weight:600;">Extended Latin Glyphs</span>
+              </label>
             </div>
-            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin-top:8px;">
-              <input id="customAntiburn" type="checkbox" />
-              <span style="font-size:10px;">Enable Anti-Burn Protection (LVGL)</span>
-            </label>
-            <div style="font-size:9px; color:var(--muted); margin-left:20px;">Cycles pixels when idle to prevent LCD
-              burn-in. Requires LVGL.</div>
-          </div>
-
-          <div class="field" style="margin-top:16px; border-top:1px solid var(--border-subtle); padding-top:12px;">
-            <div class="prop-label">Profile Name</div>
-            <div style="font-size:10px; color:var(--muted); margin-bottom:4px;">Give your custom hardware a unique name
-              to save it as a reused recipe.</div>
-            <input id="customProfileName" class="prop-input" type="text" placeholder="e.g. Living Room Alert Display" />
-          </div>
-
-          <button id="saveCustomProfileBtn" class="btn btn-secondary btn-full" type="button"
-            style="margin-top:16px; background:var(--accent); color:white; border:none;">
-            🚀 Create & Save Profile
-          </button>
-        </div>
-        <div class="field">
-          <div class="prop-label">Screen Orientation</div>
-          <select id="deviceOrientation" class="prop-input">
-            <option value="landscape">Landscape</option>
-            <option value="portrait">Portrait</option>
-          </select>
-        </div>
-        <div class="field">
-          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-            <input id="deviceDarkMode" type="checkbox" />
-            <span style="font-size:var(--fs-sm); font-weight:600;">Dark mode (white elements on black background)</span>
-          </label>
-          <div style="font-size:var(--fs-xs); color:var(--muted); margin-top:4px; margin-left:24px;">
-            Toggle the canvas preview between white and black background. This is a global dark mode setting.
-          </div>
-        </div>
-        <div class="field">
-          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-            <input id="deviceExtendedLatinGlyphs" type="checkbox" />
-            <span style="font-size:var(--fs-sm); font-weight:600;">Extended Latin characters (diacritics)</span>
-          </label>
-          <div style="font-size:var(--fs-xs); color:var(--muted); margin-top:4px; margin-left:24px;">
-            Enable GF_Latin_Core glyphset for fonts to render characters like ľ, š, č, ť, ž. Increases firmware size.
-          </div>
-        </div>
-        <div class="field">
-          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-            <input id="deviceInvertedColors" type="checkbox" />
-            <span style="font-size:var(--fs-sm); font-weight:600;">Inverted Colors (for some e-paper displays)</span>
-          </label>
-          <div style="font-size:var(--fs-xs); color:var(--muted); margin-top:4px; margin-left:24px;">
-            Swap black and white in the generated YAML. Use this if your e-paper display shows inverted colors.
+            <div class="field" id="deviceInvertedColorsField">
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input id="deviceInvertedColors" type="checkbox" />
+                <span style="font-size:var(--fs-xs); font-weight:600;">Inverted Colors (E-Paper)</span>
+              </label>
+            </div>
           </div>
         </div>
 
-        <div style="border-top:1px solid var(--border-subtle); margin-top:16px; padding-top:16px;">
+        <div id="powerStrategySection"
+          style="border-top:1px solid var(--border-subtle); margin-top:16px; padding-top:16px;">
           <div class="prop-label">Power & Refresh Strategy</div>
 
           <div id="global-refresh-row"
@@ -928,148 +950,227 @@
         <button id="editorSettingsClose" class="btn btn-secondary">Close</button>
       </div>
       <div class="modal-body">
-        <div class="field">
-          <label style="display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" id="editorShowGrid" checked> <span>Show Grid</span>
-          </label>
-          <label style="display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" id="editorSnapToGrid" checked> <span>Enable Snapping</span>
-          </label>
-          <div style="margin-top:12px;">
-            <div class="prop-label">Grid Opacity</div>
-            <input type="range" id="editorGridOpacity" min="0" max="100" step="1" value="8" style="width:100%;">
+        <!-- CATEGORY: VIEW & THEME -->
+        <div class="settings-category collapsible expanded" data-category="view">
+          <div class="settings-category-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="mdi mdi-eye-outline"></span>
+              <span>View & Theme</span>
+            </div>
+            <span class="mdi mdi-chevron-down category-chevron"></span>
           </div>
-        </div>
-        <div class="field">
-          <div class="prop-label">Theme</div>
-          <label style="display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" id="editorLightMode"> <span>Use Light Mode interface</span>
-          </label>
-        </div>
-        <div class="field">
-          <div class="prop-label">Resources</div>
-          <button id="editorRefreshEntities" class="btn btn-secondary btn-xs">Refresh Entity List</button>
-          <span id="editorEntityCount" style="font-size:var(--fs-xs); opacity:0.6; margin-left:8px;"></span>
-        </div>
-        <div class="field" style="border-top:1px solid var(--border-subtle); padding-top:12px; margin-top:12px;">
-          <span>Home Assistant Connection</span>
-        </div>
-        <div style="font-size:10px; opacity:0.6; margin-bottom:8px;">Configure this if you are using the
-          GitHub-hosted
-          version or an external URL.</div>
-        <div class="field" style="display:flex; flex-direction:column; gap:8px;">
-          <div id="haCorsTip"
-            style="background: rgba(82, 199, 234, 0.1); border-left: 3px solid var(--accent); padding: 10px; border-radius: 4px; font-size: 10px; line-height: 1.4;">
-            <strong>💡 Connection Tip:</strong><br>
-            If requests are blocked, you may need to add <code id="haOriginPlaceholder">http://localhost:8000</code>
-            to
-            <code>cors_allowed_origins</code> in your Home Assistant <code>configuration.yaml</code> and
-            <strong>restart HA</strong>.
-          </div>
-          <div>
-            <div class="prop-label" style="font-size: 10px;">Base URL</div>
-            <input type="text" id="haManualUrl" class="prop-input" placeholder="https://your-ha.duckdns.org:8123" />
-          </div>
-          <div>
-            <div class="prop-label" style="font-size: 10px;">Long-Lived Access Token</div>
-            <input type="password" id="haLlatToken" class="prop-input" placeholder="Paste your token here..." />
-          </div>
-          <div style="display:flex; gap:8px; align-items:center;">
-            <button id="editorTestHaBtn" class="btn btn-secondary btn-xs" style="flex:1;">Test Connection</button>
-            <div id="haTestResult" style="font-size:10px; line-height: 1.2;"></div>
+          <div class="settings-category-content">
+            <div class="field">
+              <label style="display:flex; align-items:center; gap:8px; cursor: pointer;">
+                <input type="checkbox" id="editorShowGrid" checked> <span>Show Grid</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; cursor: pointer;">
+                <input type="checkbox" id="editorSnapToGrid" checked> <span>Enable Snapping</span>
+              </label>
+              <div style="margin-top:12px;">
+                <div class="prop-label">Grid Opacity</div>
+                <input type="range" id="editorGridOpacity" min="0" max="100" step="1" value="8" style="width:100%;">
+              </div>
+            </div>
+            <div class="field">
+              <div class="prop-label">Interface Theme</div>
+              <label style="display:flex; align-items:center; gap:8px; cursor: pointer;">
+                <input type="checkbox" id="editorLightMode"> <span>Use Light Mode interface</span>
+              </label>
+            </div>
           </div>
         </div>
 
-        <div class="field" style="border-top:1px solid var(--border-subtle); padding-top:12px; margin-top:12px;">
-          <span>AI Integration (LLM)</span>
-        </div>
-        <div style="font-size:10px; opacity:0.6; margin-bottom:8px;">Configure Gemini, OpenAI or OpenRouter to use
-          natural language prompts.</div>
-        <div class="field" style="display:flex; flex-direction:column; gap:8px;">
-          <div>
-            <div class="prop-label" style="font-size: 10px;">Provider</div>
-            <select id="aiProvider" class="prop-input">
-              <option value="gemini">Google Gemini</option>
-              <option value="openai">OpenAI</option>
-              <option value="openrouter">OpenRouter</option>
-            </select>
+        <!-- CATEGORY: FONT SETTINGS -->
+        <div class="settings-category collapsible" data-category="fonts">
+          <div class="settings-category-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="mdi mdi-format-font"></span>
+              <span>Font Settings</span>
+            </div>
+            <span class="mdi mdi-chevron-down category-chevron"></span>
           </div>
-          <div id="aiKeyGeminiRow">
-            <div class="prop-label" style="font-size: 10px;">Gemini API Key</div>
-            <input type="password" id="aiApiKeyGemini" class="prop-input" placeholder="Paste Gemini key..." />
-          </div>
-          <div id="aiKeyOpenaiRow" style="display:none;">
-            <div class="prop-label" style="font-size: 10px;">OpenAI API Key</div>
-            <input type="password" id="aiApiKeyOpenai" class="prop-input" placeholder="Paste OpenAI key..." />
-          </div>
-          <div id="aiKeyOpenrouterRow" style="display:none;">
-            <div class="prop-label" style="font-size: 10px;">OpenRouter API Key</div>
-            <input type="password" id="aiApiKeyOpenrouter" class="prop-input" placeholder="Paste OpenRouter key..." />
-          </div>
-          <div>
-            <div class="prop-label" style="font-size: 10px;">Model Filter (e.g. "free", "flash", "gpt-4")</div>
-            <div style="display:flex; gap:4px; align-items: center;">
-              <input type="text" id="aiModelFilter" class="prop-input" placeholder="Filter models..." style="flex:1;" />
-              <button id="aiRefreshModelsBtn" class="btn btn-secondary btn-xs">Test & Load Models</button>
-              <div id="aiTestResult" style="font-size:10px; line-height: 1.2;"></div>
+          <div class="settings-category-content">
+            <div class="field">
+              <div class="prop-label">Global Glyphsets</div>
+              <div style="font-size:10px; opacity:0.6; margin-bottom:8px;">Select glyphsets to include language specific
+                characters (like å, ö, ä) in the generated YAML for all fonts.</div>
+              <div id="editorGlyphsets"
+                style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                <label style="display:flex; align-items:center; gap:8px; font-size: 11px; cursor: pointer;">
+                  <input type="checkbox" class="glyphset-checkbox" value="GF_Latin_Kernel"> <span>Latin Kernel <small
+                      style="opacity:0.6">(Basic A-Z, 0-9)</small></span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; font-size: 11px; cursor: pointer;">
+                  <input type="checkbox" class="glyphset-checkbox" value="GF_Latin_Core"> <span>Latin Core <small
+                      style="opacity:0.6">(å, ö, ä, é, ß...)</small></span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; font-size: 11px; cursor: pointer;">
+                  <input type="checkbox" class="glyphset-checkbox" value="GF_Arabic_Core"> <span>Arabic Core <small
+                      style="opacity:0.6">(ا, ب, ت...)</small></span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; font-size: 11px; cursor: pointer;">
+                  <input type="checkbox" class="glyphset-checkbox" value="GF_Cyrillic_Core"> <span>Cyrillic <small
+                      style="opacity:0.6">(А, Б, В...)</small></span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; font-size: 11px; cursor: pointer;">
+                  <input type="checkbox" class="glyphset-checkbox" value="GF_Greek_Core"> <span>Greek <small
+                      style="opacity:0.6">(α, β, γ...)</small></span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; font-size: 11px; cursor: pointer;">
+                  <input type="checkbox" class="glyphset-checkbox" value="GF_Latin_African"> <span>Latin African</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; font-size: 11px; cursor: pointer;">
+                  <input type="checkbox" class="glyphset-checkbox" value="GF_Latin_PriAfrican"> <span>Latin
+                    PriAfrican</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; font-size: 11px; cursor: pointer;">
+                  <input type="checkbox" class="glyphset-checkbox" value="GF_Latin_Vietnamese"> <span>Vietnamese <small
+                      style="opacity:0.6">(à, á, ả...)</small></span>
+                </label>
+              </div>
             </div>
           </div>
-          <div>
-            <div class="prop-label" style="font-size: 10px;">Selected Model</div>
-            <select id="aiModelSelect" class="prop-input"></select>
+        </div>
+
+        <!-- CATEGORY: CONNECTIVITY -->
+        <div class="settings-category collapsible" data-category="ha">
+          <div class="settings-category-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="mdi mdi-home-assistant"></span>
+              <span>Home Assistant</span>
+            </div>
+            <span class="mdi mdi-chevron-down category-chevron"></span>
+          </div>
+          <div class="settings-category-content">
+            <div class="field">
+              <div class="prop-label">Resources</div>
+              <button id="editorRefreshEntities" class="btn btn-secondary btn-xs">Refresh Entity List</button>
+              <span id="editorEntityCount" style="font-size:var(--fs-xs); opacity:0.6; margin-left:8px;"></span>
+            </div>
+            <div class="field">
+              <div class="prop-label">Connection Settings</div>
+              <div style="font-size:10px; opacity:0.6; margin-bottom:8px;">Configure this if you are using the
+                GitHub-hosted version or an external URL.</div>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <div id="haCorsTip"
+                  style="background: rgba(82, 199, 234, 0.1); border-left: 3px solid var(--accent); padding: 10px; border-radius: 4px; font-size: 10px; line-height: 1.4;">
+                  <strong>💡 Connection Tip:</strong><br>
+                  If requests are blocked, you may need to add <code
+                    id="haOriginPlaceholder">http://localhost:8000</code> to <code>cors_allowed_origins</code> and
+                  <strong>restart HA</strong>.
+                </div>
+                <div>
+                  <div class="prop-label" style="font-size: 10px;">Base URL</div>
+                  <input type="text" id="haManualUrl" class="prop-input"
+                    placeholder="https://your-ha.duckdns.org:8123" />
+                </div>
+                <div>
+                  <div class="prop-label" style="font-size: 10px;">Long-Lived Access Token</div>
+                  <input type="password" id="haLlatToken" class="prop-input" placeholder="Paste your token here..." />
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <button id="editorTestHaBtn" class="btn btn-secondary btn-xs" style="flex:1;">Test Connection</button>
+                  <div id="haTestResult" style="font-size:10px; line-height: 1.2;"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="field" style="border-top:1px solid var(--border-subtle); padding-top:12px; margin-top:12px;">
-        <div class="prop-label">Keyboard Shortcuts</div>
-        <div class="shortcuts-grid">
-          <div class="shortcut-item">
-            <span class="shortcut-label">Undo</span>
-            <span class="shortcut-key"><kbd>Ctrl+Z</kbd></span>
+
+        <!-- CATEGORY: AI ASSISTANT -->
+        <div class="settings-category collapsible" data-category="ai">
+          <div class="settings-category-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="mdi mdi-robot-outline"></span>
+              <span>AI Integration (LLM)</span>
+            </div>
+            <span class="mdi mdi-chevron-down category-chevron"></span>
           </div>
-          <div class="shortcut-item">
-            <span class="shortcut-label">Redo</span>
-            <span class="shortcut-key"><kbd>Ctrl+Y</kbd></span>
+          <div class="settings-category-content">
+            <div style="font-size:10px; opacity:0.6; margin-bottom:8px;">Configure Gemini, OpenAI or OpenRouter to use
+              natural language prompts.</div>
+            <div class="field" style="display:flex; flex-direction:column; gap:8px;">
+              <div>
+                <div class="prop-label" style="font-size: 10px;">Provider</div>
+                <select id="aiProvider" class="prop-input">
+                  <option value="gemini">Google Gemini</option>
+                  <option value="openai">OpenAI</option>
+                  <option value="openrouter">OpenRouter</option>
+                </select>
+              </div>
+              <div id="aiKeyGeminiRow">
+                <div class="prop-label" style="font-size: 10px;">Gemini API Key</div>
+                <input type="password" id="aiApiKeyGemini" class="prop-input" placeholder="Paste Gemini key..." />
+              </div>
+              <div id="aiKeyOpenaiRow" style="display:none;">
+                <div class="prop-label" style="font-size: 10px;">OpenAI API Key</div>
+                <input type="password" id="aiApiKeyOpenai" class="prop-input" placeholder="Paste OpenAI key..." />
+              </div>
+              <div id="aiKeyOpenrouterRow" style="display:none;">
+                <div class="prop-label" style="font-size: 10px;">OpenRouter API Key</div>
+                <input type="password" id="aiApiKeyOpenrouter" class="prop-input"
+                  placeholder="Paste OpenRouter key..." />
+              </div>
+              <div>
+                <div class="prop-label" style="font-size: 10px;">Model Filter (e.g. "free", "flash", "gpt-4")</div>
+                <div style="display:flex; gap:4px; align-items: center;">
+                  <input type="text" id="aiModelFilter" class="prop-input" placeholder="Filter models..."
+                    style="flex:1;" />
+                  <button id="aiRefreshModelsBtn" class="btn btn-secondary btn-xs">Test & Load Models</button>
+                  <div id="aiTestResult" style="font-size:10px; line-height: 1.2;"></div>
+                </div>
+              </div>
+              <div>
+                <div class="prop-label" style="font-size: 10px;">Selected Model</div>
+                <select id="aiModelSelect" class="prop-input"></select>
+              </div>
+            </div>
           </div>
-          <div class="shortcut-item">
-            <span class="shortcut-label">Copy</span>
-            <span class="shortcut-key"><kbd>Ctrl+C</kbd></span>
+        </div>
+
+        <!-- CATEGORY: SHORTCUTS -->
+        <div class="settings-category collapsible" data-category="shortcuts">
+          <div class="settings-category-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="mdi mdi-keyboard-outline"></span>
+              <span>Keyboard Shortcuts</span>
+            </div>
+            <span class="mdi mdi-chevron-down category-chevron"></span>
           </div>
-          <div class="shortcut-item">
-            <span class="shortcut-label">Paste</span>
-            <span class="shortcut-key"><kbd>Ctrl+V</kbd></span>
-          </div>
-          <div class="shortcut-item">
-            <span class="shortcut-label">Delete</span>
-            <span class="shortcut-key"><kbd>DEL</kbd></span>
-          </div>
-          <div class="shortcut-item">
-            <span class="shortcut-label">Lock/Unlock</span>
-            <span class="shortcut-key"><kbd>Ctrl+L</kbd></span>
-          </div>
-          <div class="shortcut-item">
-            <span class="shortcut-label">Search</span>
-            <span class="shortcut-key"><kbd>Shift+Space</kbd></span>
-          </div>
-          <div class="shortcut-item">
-            <span class="shortcut-label">Zoom Reset</span>
-            <span class="shortcut-key"><kbd>Ctrl+R</kbd></span>
-          </div>
-          <div class="shortcut-item">
-            <span class="shortcut-label">Snap Off</span>
-            <span class="shortcut-key"><kbd>ALT</kbd></span>
-          </div>
-          <div class="shortcut-item">
-            <span class="shortcut-label">Group</span>
-            <span class="shortcut-key"><kbd>Ctrl+G</kbd></span>
-          </div>
-          <div class="shortcut-item">
-            <span class="shortcut-label">Ungroup</span>
-            <span class="shortcut-key"><kbd>Ctrl+Shift+G</kbd></span>
-          </div>
-          <div class="shortcut-item">
-            <span class="shortcut-label">Smart Spacing</span>
-            <span class="shortcut-key"><kbd>CTRL Drag</kbd></span>
+          <div class="settings-category-content">
+            <div class="shortcuts-grid">
+              <div class="shortcut-item"><span class="shortcut-label">Undo</span><span
+                  class="shortcut-key"><kbd>Ctrl+Z</kbd></span></div>
+              <div class="shortcut-item"><span class="shortcut-label">Redo</span><span
+                  class="shortcut-key"><kbd>Ctrl+Y</kbd></span></div>
+              <div class="shortcut-item"><span class="shortcut-label">Copy</span><span
+                  class="shortcut-key"><kbd>Ctrl+C</kbd></span></div>
+              <div class="shortcut-item"><span class="shortcut-label">Paste</span><span
+                  class="shortcut-key"><kbd>Ctrl+V</kbd></span></div>
+              <div class="shortcut-item"><span class="shortcut-label">Delete</span><span
+                  class="shortcut-key"><kbd>DEL</kbd></span></div>
+              <div class="shortcut-item"><span class="shortcut-label">Lock/Unlock</span><span
+                  class="shortcut-key"><kbd>Ctrl+L</kbd></span></div>
+              <div class="shortcut-item"><span class="shortcut-label">Search</span><span
+                  class="shortcut-key"><kbd>Shift+Space</kbd></span></div>
+              <div class="shortcut-item"><span class="shortcut-label">Debug Mode</span><span
+                  class="shortcut-key"><kbd>D</kbd></span></div>
+              <div class="shortcut-item"><span class="shortcut-label">Design Grid</span><span
+                  class="shortcut-key"><kbd>G</kbd></span></div>
+              <div class="shortcut-item"><span class="shortcut-label">Rulers</span><span
+                  class="shortcut-key"><kbd>R</kbd></span></div>
+              <div class="shortcut-item"><span class="shortcut-label">Zoom Reset</span><span
+                  class="shortcut-key"><kbd>Ctrl+R</kbd></span></div>
+              <div class="shortcut-item"><span class="shortcut-label">Snap Off</span><span
+                  class="shortcut-key"><kbd>ALT</kbd></span></div>
+              <div class="shortcut-item"><span class="shortcut-label">Distances</span><span
+                  class="shortcut-key"><kbd>CTRL Drag</kbd></span></div>
+              <div class="shortcut-item"><span class="shortcut-label">Group</span><span
+                  class="shortcut-key"><kbd>Ctrl+G</kbd></span></div>
+              <div class="shortcut-item"><span class="shortcut-label">Ungroup</span><span
+                  class="shortcut-key"><kbd>Ctrl+Shift+G</kbd></span></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1209,6 +1310,8 @@
 
   <script type="module" src="js/io/adapters/base_adapter.js"></script>
   <script type="module" src="js/io/adapters/esphome_adapter.js"></script>
+  <script type="module" src="js/io/adapters/oepl_adapter.js"></script>
+  <script type="module" src="js/io/adapters/opendisplay_adapter.js"></script>
   <script type="module" src="js/io/devices.js"></script>
   <script type="module" src="js/io/hardware_generators.js"></script>
   <script type="module" src="js/io/hardware_generator.js"></script>

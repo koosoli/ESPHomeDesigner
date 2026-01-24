@@ -139,6 +139,9 @@ export default {
     id: "wifi_signal",
     name: "WiFi Signal",
     category: "Sensors",
+    // CRITICAL ARCHITECTURAL NOTE: Protocol-based modes (OEPL/OpenDisplay) do not support 
+    // on-device hardware sensors.
+    supportedModes: ['lvgl', 'direct'],
     defaults: {
         size: 24,
         font_size: 12,
@@ -148,6 +151,93 @@ export default {
         is_local_sensor: true
     },
     render,
+    exportOpenDisplay: (w, { layout, page }) => {
+        const p = w.props || {};
+        const entityId = (w.entity_id || "sensor.wifi_signal").trim();
+        const size = p.size || 24;
+        const fontSize = p.font_size || 12;
+        const color = p.color || "black";
+        const showDbm = p.show_dbm !== false;
+
+        let signalLevel = -45;
+        if (window.AppState && window.AppState.entityStates && entityId) {
+            const stateObj = window.AppState.entityStates[entityId];
+            if (stateObj && stateObj.state !== undefined) {
+                const val = parseFloat(stateObj.state);
+                if (!isNaN(val)) signalLevel = val;
+            }
+        }
+
+        let iconName = "wifi-strength-4";
+        if (signalLevel >= -50) iconName = "wifi-strength-4";
+        else if (signalLevel >= -60) iconName = "wifi-strength-3";
+        else if (signalLevel >= -75) iconName = "wifi-strength-2";
+        else if (signalLevel >= -100) iconName = "wifi-strength-1";
+        else iconName = "wifi-strength-alert-outline";
+
+        const actions = [
+            {
+                type: "draw_icon",
+                value: iconName,
+                x: Math.round(w.x + w.width / 2),
+                y: Math.round(w.y),
+                size: size,
+                color: color
+            }
+        ];
+
+        if (showDbm) {
+            actions.push({
+                type: "draw_text",
+                text: `${Math.round(signalLevel)}dB`,
+                x: Math.round(w.x + w.width / 2),
+                y: Math.round(w.y + size + 2),
+                size: fontSize,
+                color: color
+            });
+        }
+
+        return actions;
+    },
+    exportOEPL: (w, { layout, page }) => {
+        const p = w.props || {};
+        const entityId = (w.entity_id || "sensor.wifi_signal").trim();
+        const size = p.size || 24;
+        const fontSize = p.font_size || 12;
+        const color = p.color || "black";
+        const showDbm = p.show_dbm !== false;
+
+        const iconTemplate = `{% set s = states('${entityId}') | int %}` +
+            `{% if s >= -50 %}wifi-strength-4{% elif s >= -60 %}wifi-strength-3` +
+            `{% elif s >= -75 %}wifi-strength-2{% elif s >= -100 %}wifi-strength-1{% else %}wifi-strength-alert-outline{% endif %}`;
+
+        const elements = [
+            {
+                type: "icon",
+                value: iconTemplate,
+                x: Math.round(w.x + w.width / 2),
+                y: Math.round(w.y),
+                size: size,
+                color: color,
+                anchor: "mt"
+            }
+        ];
+
+        if (showDbm) {
+            elements.push({
+                type: "text",
+                value: `{{ states('${entityId}') }}dB`,
+                x: Math.round(w.x + w.width / 2),
+                y: Math.round(w.y + size + 2),
+                size: fontSize,
+                color: color,
+                align: "center",
+                anchor: "mt"
+            });
+        }
+
+        return elements;
+    },
     exportLVGL: (w, { common, convertColor, getLVGLFont, formatOpacity }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "").trim();
@@ -225,7 +315,8 @@ export default {
     },
     export: exportDoc,
     onExportNumericSensors: (context) => {
-        const { lines, widgets } = context;
+        // REGRESSION PROOF: Always destructure 'lines' from context
+        const { lines, widgets, isLvgl, pendingTriggers, profile } = context;
         if (!widgets) return;
 
         let needsLocalWifi = false;
@@ -236,27 +327,40 @@ export default {
             const p = w.props || {};
             const isLocal = p.is_local_sensor !== false;
 
+            let eid = (w.entity_id || "").trim();
             if (isLocal) {
                 needsLocalWifi = true;
-                continue;
+                eid = "wifi_signal_dbm";
+            } else if (eid) {
+                // Ensure sensor. prefix if missing
+                if (!eid.includes(".")) {
+                    eid = `sensor.${eid}`;
+                }
             }
 
-            let eid = (w.entity_id || "").trim();
             if (!eid) continue;
 
-            // Ensure sensor. prefix if missing
-            if (!eid.includes(".")) {
-                eid = `sensor.${eid}`;
+            if (isLvgl && pendingTriggers) {
+                if (!pendingTriggers.has(eid)) {
+                    pendingTriggers.set(eid, new Set());
+                }
+                pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
             }
 
-            const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
-            const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(eid)) ||
-                (context.seenSensorIds && context.seenSensorIds.has(safeId));
-
-            if (!alreadyDefined) {
-                if (context.seenEntityIds) context.seenEntityIds.add(eid);
-                if (context.seenSensorIds) context.seenSensorIds.add(safeId);
-                lines.push("- platform: homeassistant", `  id: ${safeId}`, `  entity_id: ${eid}`, "  internal: true");
+            // Explicitly export the Home Assistant sensor block if it's not a local sensor
+            if (!isLocal && eid.startsWith("sensor.")) {
+                const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+                if (context.seenSensorIds && !context.seenSensorIds.has(safeId)) {
+                    if (context.seenSensorIds.size === 0) {
+                        lines.push("");
+                        lines.push("# External WiFi Signal Sensors");
+                    }
+                    context.seenSensorIds.add(safeId);
+                    lines.push("- platform: homeassistant");
+                    lines.push(`  id: ${safeId}`);
+                    lines.push(`  entity_id: ${eid}`);
+                    lines.push(`  internal: true`);
+                }
             }
         }
 

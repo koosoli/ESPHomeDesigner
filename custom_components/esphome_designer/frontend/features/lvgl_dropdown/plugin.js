@@ -47,17 +47,52 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
     let dropdownOptions = p.options || "";
     if (Array.isArray(dropdownOptions)) dropdownOptions = dropdownOptions.map(String);
     else dropdownOptions = String(dropdownOptions).split("\n").filter(o => o.trim() !== "");
+
+    let selectedIdx = p.selected_index;
+    if (w.entity_id) {
+        const safeId = w.entity_id.replace(/[^a-zA-Z0-9_]/g, "_");
+        selectedIdx = `!lambda "return (int)id(${safeId}).state;"`;
+    }
+
+    const dirMap = {
+        "DOWN": "BOTTOM",
+        "UP": "TOP",
+        "LEFT": "LEFT",
+        "RIGHT": "RIGHT"
+    };
+
     return {
         dropdown: {
             ...common,
             options: dropdownOptions,
-            selected_index: p.selected_index,
-            style: { text_color: convertColor(p.color) },
-            direction: p.direction || "DOWN",
-            max_height: p.max_height,
+            selected_index: selectedIdx,
+            text_color: convertColor(p.color),
+            dir: dirMap[p.direction] || p.direction || "BOTTOM",
+            dropdown_list: {
+                max_height: p.max_height
+            },
             opa: formatOpacity(p.opa)
         }
     };
+};
+
+const onExportNumericSensors = (context) => {
+    const { widgets, isLvgl, pendingTriggers } = context;
+    if (!widgets) return;
+
+    for (const w of widgets) {
+        if (w.type !== "lvgl_dropdown") continue;
+
+        const eid = (w.entity_id || w.props?.entity_id || "").trim();
+        if (!eid) continue;
+
+        if (isLvgl && pendingTriggers) {
+            if (!pendingTriggers.has(eid)) {
+                pendingTriggers.set(eid, new Set());
+            }
+            pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
+        }
+    }
 };
 
 export default {
@@ -73,5 +108,6 @@ export default {
         opa: 255
     },
     render,
-    exportLVGL
+    exportLVGL,
+    onExportNumericSensors
 };

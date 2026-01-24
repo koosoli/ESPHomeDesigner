@@ -11,6 +11,124 @@ import { highlightWidgetInSnippet } from '../io/yaml_export.js';
 let lastClickTime = 0;
 let lastClickWidgetId = null;
 
+/**
+ * Creates a floating drag ghost that follows the cursor during widget drags.
+ * This enables smooth cross-page dragging without the widget being clamped to artboard bounds.
+ */
+function createDragGhost(canvasInstance, widgets, clientX, clientY, zoom, widgetOffsets) {
+    // Remove any existing ghost
+    removeDragGhost(canvasInstance);
+
+    const ghostContainer = document.createElement('div');
+    ghostContainer.className = 'drag-ghost-container';
+    // Apply same zoom as artboard so cloned widgets match visual size
+    ghostContainer.style.cssText = `
+        position: fixed;
+        pointer-events: none;
+        z-index: 99999;
+        opacity: 0.85;
+        transform-origin: top left;
+        transform: scale(${zoom});
+        transition: none;
+    `;
+
+    // Find the primary widget
+    const primaryOffset = widgetOffsets[0];
+    const primaryWidget = widgets.find(w => w.id === primaryOffset?.id) || widgets[0];
+    const primaryEl = document.querySelector(`.widget[data-id="${primaryWidget.id}"]`);
+
+    if (!primaryEl) {
+        return;
+    }
+
+    // Clone each selected widget's visual representation
+    widgets.forEach(widget => {
+        const widgetEl = document.querySelector(`.widget[data-id="${widget.id}"]`);
+        if (widgetEl) {
+            const clone = widgetEl.cloneNode(true);
+
+            clone.style.position = 'absolute';
+            clone.style.margin = '0';
+            clone.style.transform = ''; // Clear any transform from original
+            clone.classList.remove('active');
+            clone.classList.add('drag-ghost-widget');
+
+            // Position relative to primary widget using canvas coordinates
+            clone.style.left = (widget.x - primaryWidget.x) + 'px';
+            clone.style.top = (widget.y - primaryWidget.y) + 'px';
+            // Use canvas dimensions explicitly
+            clone.style.width = widget.width + 'px';
+            clone.style.height = widget.height + 'px';
+
+            ghostContainer.appendChild(clone);
+        }
+    });
+
+    // Store click offset for positioning (in screen pixels)
+    if (primaryOffset) {
+        canvasInstance.dragGhostOffset = {
+            x: primaryOffset.clickOffsetX * zoom,
+            y: primaryOffset.clickOffsetY * zoom
+        };
+    }
+
+    document.body.appendChild(ghostContainer);
+    canvasInstance.dragGhostEl = ghostContainer;
+
+    // Initial position
+    updateDragGhost(canvasInstance, clientX, clientY);
+
+    // Fade out original widgets during drag
+    widgets.forEach(widget => {
+        const widgetEl = document.querySelector(`.widget[data-id="${widget.id}"]`);
+        if (widgetEl) {
+            widgetEl.classList.add('dragging-source');
+        }
+    });
+}
+
+/**
+ * Updates the drag ghost position to follow the cursor.
+ */
+function updateDragGhost(canvasInstance, clientX, clientY) {
+    if (!canvasInstance.dragGhostEl || !canvasInstance.dragGhostOffset) return;
+
+    const offset = canvasInstance.dragGhostOffset;
+    const x = clientX - offset.x;
+    const y = clientY - offset.y;
+
+    canvasInstance.dragGhostEl.style.left = x + 'px';
+    canvasInstance.dragGhostEl.style.top = y + 'px';
+}
+
+/**
+ * Updates the drag ghost position to an absolute screen position (for snapped positions).
+ * The screenX/screenY should be the top-left corner of where the primary widget should appear.
+ */
+function updateDragGhostPosition(canvasInstance, screenX, screenY) {
+    if (!canvasInstance.dragGhostEl) return;
+
+    canvasInstance.dragGhostEl.style.left = screenX + 'px';
+    canvasInstance.dragGhostEl.style.top = screenY + 'px';
+}
+
+/**
+ * Removes the drag ghost and restores original widget visibility.
+ */
+function removeDragGhost(canvasInstance) {
+    if (canvasInstance.dragGhostEl) {
+        canvasInstance.dragGhostEl.remove();
+        canvasInstance.dragGhostEl = null;
+        canvasInstance.dragGhostOffset = null;
+    }
+
+    // Restore original widgets
+    document.querySelectorAll('.widget.dragging-source').forEach(el => {
+        el.classList.remove('dragging-source');
+    });
+}
+
+
 function startInlineEdit(canvasInstance, widgetId) {
     const widget = AppState.getWidgetById(widgetId);
     if (!widget) return;
@@ -106,6 +224,12 @@ export function setupInteractions(canvasInstance) {
         if (!wrapperEl || ev.target.closest(".artboard-btn") || ev.target.closest("button")) {
             // Clicked on stage background OR a button - release focus from inputs
             if (document.activeElement && !ev.target.closest("button")) document.activeElement.blur();
+
+            // If clicking strictly on the stage background (not a button), deselect everything
+            if (!ev.target.closest("button") && !ev.target.closest(".artboard-btn")) {
+                AppState.selectWidgets([]);
+                render(canvasInstance);
+            }
             return;
         }
 
@@ -228,6 +352,10 @@ export function setupInteractions(canvasInstance) {
                     dragStartPanX: canvasInstance.panX,
                     dragStartPanY: canvasInstance.panY
                 };
+
+                // Create floating drag ghost for smooth cross-page dragging
+                createDragGhost(canvasInstance, selectedWidgets, ev.clientX, ev.clientY, zoom, widgetOffsets);
+
                 if (canvasInstance.rulers) canvasInstance.rulers.setIndicators({
                     x: effectiveWidget.x, y: effectiveWidget.y, w: effectiveWidget.width, h: effectiveWidget.height
                 });
@@ -268,6 +396,41 @@ export function setupInteractions(canvasInstance) {
         if (window.RadialMenu) {
             window.RadialMenu.show(ev.clientX, ev.clientY, widgetId);
         }
+    });
+
+    // --- DEBUG CURSOR TRACKER ---
+    let debugTooltip = document.querySelector(".debug-cursor-tooltip");
+    if (!debugTooltip) {
+        debugTooltip = document.createElement("div");
+        debugTooltip.className = "debug-cursor-tooltip";
+        document.body.appendChild(debugTooltip);
+    }
+
+    canvasInstance.canvas.addEventListener("mousemove", (ev) => {
+        if (!AppState.showDebugGrid) {
+            debugTooltip.style.display = "none";
+            return;
+        }
+
+        const artboard = ev.target.closest(".artboard");
+        if (!artboard) {
+            debugTooltip.style.display = "none";
+            return;
+        }
+
+        const rect = artboard.getBoundingClientRect();
+        const zoom = AppState.zoomLevel;
+        const x = Math.round((ev.clientX - rect.left) / zoom);
+        const y = Math.round((ev.clientY - rect.top) / zoom);
+
+        debugTooltip.style.display = "block";
+        debugTooltip.style.left = ev.clientX + "px";
+        debugTooltip.style.top = ev.clientY + "px";
+        debugTooltip.innerHTML = `<span>X:</span>${x} <span>Y:</span>${y}`;
+    });
+
+    canvasInstance.canvas.addEventListener("mouseleave", () => {
+        debugTooltip.style.display = "none";
     });
 }
 
@@ -313,10 +476,15 @@ export function onMouseMove(ev, canvasInstance) {
                 }
             }
 
-            // --- BOUNDS CLAMPING ---
-            // Ensure the primary widget stays within the canvas area
-            targetX = Math.max(0, Math.min(dims.width - primaryWidget.width, targetX));
-            targetY = Math.max(0, Math.min(dims.height - primaryWidget.height, targetY));
+            // Update ghost position using SNAPPED position (not raw cursor)
+            // Convert snapped canvas coords to screen position for ghost
+            const artboardRect = currentArtboardEl.getBoundingClientRect();
+            const ghostScreenX = artboardRect.left + (targetX * zoom);
+            const ghostScreenY = artboardRect.top + (targetY * zoom);
+            updateDragGhostPosition(canvasInstance, ghostScreenX, ghostScreenY);
+
+            // NO BOUNDS CLAMPING during drag - ghost follows cursor freely
+            // Clamping is applied on drop to the target artboard
 
             // Calculate exact displacement applied (including snap)
             const dx = targetX - primaryOffset.startX;
@@ -331,7 +499,8 @@ export function onMouseMove(ev, canvasInstance) {
                 if (widget && !widget.locked) {
                     widget.x = wInfo.startX + primaryDx;
                     widget.y = wInfo.startY + primaryDy;
-                    updateWidgetDOM(canvasInstance, widget, true);
+                    // Don't update DOM during cross-page drag - ghost handles visualization
+                    // updateWidgetDOM(canvasInstance, widget, true);
 
                     // If this is a group, move its children too
                     if (widget.type === 'group') {
@@ -343,7 +512,6 @@ export function onMouseMove(ev, canvasInstance) {
                                 // Direct delta move for non-selected children
                                 child.x += primaryDx - (canvasInstance.dragState.lastDx || 0);
                                 child.y += primaryDy - (canvasInstance.dragState.lastDy || 0);
-                                updateWidgetDOM(canvasInstance, child, true);
                             }
                         });
                     }
@@ -564,6 +732,7 @@ export function onMouseUp(ev, canvasInstance) {
                 // Clean up interactions first
                 window.removeEventListener("mousemove", canvasInstance._boundMouseMove);
                 window.removeEventListener("mouseup", canvasInstance._boundMouseUp);
+                removeDragGhost(canvasInstance);
                 canvasInstance.dragState = null;
                 clearSnapGuides();
 
@@ -620,6 +789,19 @@ export function onMouseUp(ev, canvasInstance) {
 
         window.removeEventListener("mousemove", canvasInstance._boundMouseMove);
         window.removeEventListener("mouseup", canvasInstance._boundMouseUp);
+        removeDragGhost(canvasInstance);
+
+        // Clamp all dragged widgets to canvas bounds (prevents "neverland" placement)
+        const dims = AppState.getCanvasDimensions();
+        const widgetsToClamp = canvasInstance.dragState?.widgets || [];
+        widgetsToClamp.forEach(wInfo => {
+            const widget = AppState.getWidgetById(wInfo.id);
+            if (widget && !widget.locked) {
+                widget.x = Math.max(0, Math.min(dims.width - widget.width, widget.x));
+                widget.y = Math.max(0, Math.min(dims.height - widget.height, widget.y));
+            }
+        });
+
         canvasInstance.dragState = null;
         if (canvasInstance.rulers) canvasInstance.rulers.setIndicators(null);
         clearSnapGuides();
@@ -703,6 +885,7 @@ export function setupZoomControls(canvasInstance) {
     const zoomOutBtn = document.getElementById("zoomOutBtn");
     const zoomResetBtn = document.getElementById("zoomResetBtn");
     const gridToggleBtn = document.getElementById("gridToggleBtn");
+    const debugGridToggleBtn = document.getElementById("debugGridToggleBtn");
     const rulersToggleBtn = document.getElementById("rulersToggleBtn");
     const gridOpacityInput = document.getElementById("editorGridOpacity");
 
@@ -716,14 +899,36 @@ export function setupZoomControls(canvasInstance) {
         zoomResetBtn.addEventListener("click", () => zoomReset(canvasInstance));
     }
     if (gridToggleBtn) {
-        // Sync initial UI
         gridToggleBtn.classList.toggle("active", !!AppState.showGrid);
-
         gridToggleBtn.addEventListener("click", () => {
             const newState = !AppState.showGrid;
             AppState.setShowGrid(newState);
+
+            // Exclusive: If Grid ON, Debug OFF
+            if (newState) {
+                AppState.setShowDebugGrid(false);
+                if (debugGridToggleBtn) debugGridToggleBtn.classList.remove("active");
+            }
+
             gridToggleBtn.classList.toggle("active", newState);
-            Logger.log(`[Canvas] Grid toggled: ${newState}`);
+            emit(EVENTS.STATE_CHANGED);
+        });
+    }
+
+    if (debugGridToggleBtn) {
+        debugGridToggleBtn.classList.toggle("active", !!AppState.showDebugGrid);
+        debugGridToggleBtn.addEventListener("click", () => {
+            const newState = !AppState.showDebugGrid;
+            AppState.setShowDebugGrid(newState);
+
+            // Exclusive: If Debug ON, Grid OFF
+            if (newState) {
+                AppState.setShowGrid(false);
+                if (gridToggleBtn) gridToggleBtn.classList.remove("active");
+            }
+
+            debugGridToggleBtn.classList.toggle("active", newState);
+            emit(EVENTS.STATE_CHANGED);
         });
     }
 

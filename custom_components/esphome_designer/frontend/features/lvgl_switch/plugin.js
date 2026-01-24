@@ -50,6 +50,9 @@ const exportLVGL = (w, { common, convertColor, formatOpacity, profile }) => {
     const switchObj = {
         switch: {
             ...common,
+            state: {
+                checked: p.checked
+            },
             bg_color: convertColor(p.bg_color),
             indicator: { bg_color: convertColor(p.color) },
             knob: { bg_color: convertColor(p.knob_color) },
@@ -65,44 +68,20 @@ const exportLVGL = (w, { common, convertColor, formatOpacity, profile }) => {
 
 
 const onExportBinarySensors = (context) => {
-    const { lines, widgets } = context;
+    const { widgets, isLvgl, pendingTriggers } = context;
     if (!widgets) return;
 
-    const processedEntities = new Map();
-
-    // 1. Group widgets by entity_id
     for (const w of widgets) {
         if (w.type !== "lvgl_switch") continue;
 
         let eid = (w.entity_id || w.props?.entity_id || w.props?.entity || "").trim();
         if (!eid) continue;
 
-        // Ensure sensor. or similar if needed, but for switches, it's usually the entity itself
-        // Actually, for binary_sensor platform homeassistant, entity_id is the remote entity.
-
-        if (!processedEntities.has(eid)) {
-            processedEntities.set(eid, []);
-        }
-        processedEntities.get(eid).push(w.id);
-    }
-
-    // 2. Generate binary sensors
-    for (const [entityId, widgetIds] of processedEntities) {
-        const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_") + "_state_sync";
-
-        lines.push(`- platform: homeassistant`);
-        lines.push(`  id: ${safeId}`);
-        lines.push(`  entity_id: ${entityId}`);
-        lines.push(`  internal: true`);
-        lines.push(`  publish_initial_state: true`);
-        lines.push(`  on_state:`);
-        lines.push(`    then:`);
-
-        for (const wid of widgetIds) {
-            lines.push(`      - lvgl.widget.update:`);
-            lines.push(`          id: ${wid}`);
-            lines.push(`          state:`);
-            lines.push(`            checked: !lambda return x;`);
+        if (isLvgl && pendingTriggers) {
+            if (!pendingTriggers.has(eid)) {
+                pendingTriggers.set(eid, new Set());
+            }
+            pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
         }
     }
 };
@@ -111,6 +90,7 @@ export default {
     id: "lvgl_switch",
     name: "Switch",
     category: "LVGL",
+    supportedModes: ['lvgl'],
     defaults: {
         checked: false,
         bg_color: "gray",

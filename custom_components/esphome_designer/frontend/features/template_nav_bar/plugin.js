@@ -188,31 +188,37 @@ const onExportBinarySensors = (context) => {
                 const yMin = w.y;
                 const yMax = w.y + w.height;
 
-                lines.push(`  - platform: touchscreen`);
-                lines.push(`    id: nav_${action}_${w.id.replace(/-/g, '_')}`);
-                lines.push(`    touchscreen_id: my_touchscreen`);
-                lines.push(`    x_min: ${xMin}`);
-                lines.push(`    x_max: ${xMax}`);
-                lines.push(`    y_min: ${yMin}`);
-                lines.push(`    y_max: ${yMax}`);
-                lines.push(`    on_press:`);
+                lines.push(`- platform: touchscreen`);
+                lines.push(`  id: nav_${action}_${w.id.replace(/-/g, '_')}`);
+                lines.push(`  touchscreen_id: my_touchscreen`);
+                lines.push(`  x_min: ${xMin}`);
+                lines.push(`  x_max: ${xMax}`);
+                lines.push(`  y_min: ${yMin}`);
+                lines.push(`  y_max: ${yMax}`);
+                lines.push(`  on_press:`);
 
                 const pageIdx = w._pageIndex !== undefined ? w._pageIndex : 0;
-                lines.push(`      - if:`);
-                lines.push(`          condition:`);
-                lines.push(`            lambda: 'return id(display_page) == ${pageIdx};'`);
-                lines.push(`          then:`);
+                lines.push(`    - if:`);
+                lines.push(`        condition:`);
+                lines.push(`          lambda: 'return id(display_page) == ${pageIdx};'`);
+                lines.push(`        then:`);
 
-                if (action === "prev") {
-                    lines.push(`            - script.execute:`);
-                    lines.push(`                id: change_page_to`);
-                    lines.push(`                target_page: !lambda 'return id(display_page) - 1;'`);
-                } else if (action === "home") {
-                    lines.push(`            - script.execute: manage_run_and_sleep`);
-                } else if (action === "next") {
-                    lines.push(`            - script.execute:`);
-                    lines.push(`                id: change_page_to`);
-                    lines.push(`                target_page: !lambda 'return id(display_page) + 1;'`);
+                let target = "";
+                if (action === "prev") target = p.prev_target || "relative_prev";
+                else if (action === "home") target = p.home_target || "home";
+                else if (action === "next") target = p.next_target || "relative_next";
+
+                if (target === "home") {
+                    lines.push(`          - script.execute: manage_run_and_sleep`);
+                } else {
+                    let targetVal = "";
+                    if (target === "relative_prev") targetVal = "!lambda 'return id(display_page) - 1;'";
+                    else if (target === "relative_next") targetVal = "!lambda 'return id(display_page) + 1;'";
+                    else targetVal = target; // Specific index
+
+                    lines.push(`          - script.execute:`);
+                    lines.push(`              id: change_page_to`);
+                    lines.push(`              target_page: ${targetVal}`);
                 }
                 currentIdx++;
             };
@@ -228,6 +234,10 @@ export default {
     id: "template_nav_bar",
     name: "Nav Bar",
     category: "Templates",
+    // CRITICAL ARCHITECTURAL NOTE: OEPL and OpenDisplay are excluded because this 
+    // template relies on local script execution and precise touch coordinates 
+    // handled via display.lambda.
+    supportedModes: ["lvgl", "direct"],
     defaults: {
         w: 180,
         h: 40,
@@ -262,11 +272,23 @@ export default {
 
         const iconFont = getLVGLFont("Material Design Icons", iconSize, 400);
 
+        const getTargetScript = (target) => {
+            if (target === "home") {
+                return [{ "script.execute": "manage_run_and_sleep" }];
+            }
+            let targetVal = "";
+            if (target === "relative_prev") targetVal = "!lambda 'return id(display_page) - 1;'";
+            else if (target === "relative_next") targetVal = "!lambda 'return id(display_page) + 1;'";
+            else targetVal = target;
+
+            return [{ "script.execute": { id: "change_page_to", target_page: targetVal } }];
+        };
+
         if (showPrev) {
             widgets.push({
                 button: {
                     ...btnProps,
-                    on_click: [{ "script.execute": { id: "change_page_to", target_page: "!lambda 'return id(display_page) - 1;'" } }],
+                    on_click: getTargetScript(p.prev_target || "relative_prev"),
                     widgets: [{ label: { align: "center", text: '"\\U000F0141"', text_font: iconFont, text_color: color } }]
                 }
             });
@@ -275,7 +297,7 @@ export default {
             widgets.push({
                 button: {
                     ...btnProps,
-                    on_click: [{ "script.execute": "manage_run_and_sleep" }],
+                    on_click: getTargetScript(p.home_target || "home"),
                     widgets: [{ label: { align: "center", text: '"\\U000F02DC"', text_font: iconFont, text_color: color } }]
                 }
             });
@@ -284,7 +306,7 @@ export default {
             widgets.push({
                 button: {
                     ...btnProps,
-                    on_click: [{ "script.execute": { id: "change_page_to", target_page: "!lambda 'return id(display_page) + 1;'" } }],
+                    on_click: getTargetScript(p.next_target || "relative_next"),
                     widgets: [{ label: { align: "center", text: '"\\U000F0142"', text_font: iconFont, text_color: color } }]
                 }
             });

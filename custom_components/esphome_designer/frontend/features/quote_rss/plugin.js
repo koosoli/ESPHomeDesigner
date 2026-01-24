@@ -164,6 +164,33 @@ const render = (element, widget, helpers) => {
     element.appendChild(feedDiv);
 };
 
+const exportLVGL = (w, { common, convertColor, getLVGLFont }) => {
+    const p = w.props || {};
+    const safeIdPrefix = `quote_${w.id.replace(/-/g, "_")}`;
+    const quoteFontSize = parseInt(p.quote_font_size || 18, 10);
+    const fontFamily = p.font_family || "Roboto";
+    const fontWeight = parseInt(p.font_weight || 400, 10);
+    const color = convertColor(p.color || "black");
+
+    const textLambda = `!lambda |-
+      std::string q = id(${safeIdPrefix}_text_global);
+      std::string a = id(${safeIdPrefix}_author_global);
+      if (q.empty()) return "Loading quote...";
+      if (a.empty()) return ("\\"" + q + "\\"").c_str();
+      return ("\\"" + q + "\\"\\n— " + a).c_str();
+    `;
+
+    return {
+        label: {
+            ...common,
+            text: textLambda,
+            text_font: getLVGLFont(fontFamily, quoteFontSize, fontWeight, p.italic_quote !== false),
+            text_color: color,
+            text_align: "center"
+        }
+    };
+};
+
 const exportDoc = (w, context) => {
     const {
         lines, addFont, getColorConst, getCondProps, getConditionCheck, getAlignX
@@ -329,14 +356,22 @@ const onExportComponents = (context) => {
             if (p.show_author !== false) {
                 lines.push(`                              id(${safeIdPrefix}_author_global) = q["author"] | "Unknown";`);
             }
-            lines.push(`                            ESP_LOGI("quote", "Fetched quote: %s", q_str.c_str());`);
-            lines.push(`                            id(${displayId}).update();`);
+            lines.push(`                              ESP_LOGI("quote", "Fetched quote: %s", q_str.c_str());`);
+            lines.push(`                            }`);
             lines.push(`                          }`);
             lines.push(`                        }`);
             lines.push(`                      }`);
-            lines.push(`                      } else {`);
-            lines.push(`                        ESP_LOGW("quote", "HTTP Request failed with code: %d", response->status_code);`);
-            lines.push(`                      }`);
+            lines.push(`                  - if:`);
+            lines.push(`                      condition:`);
+            lines.push(`                        lambda: 'return response->status_code == 200;'`);
+            lines.push(`                      then:`);
+            if (context.isLvgl) {
+                lines.push(`                        - lvgl.widget.refresh: ${w.id}`);
+            } else {
+                lines.push(`                        - component.update: ${displayId}`);
+            }
+            lines.push(`                      else:`);
+            lines.push(`                        - lambda: 'ESP_LOGW("quote", "HTTP Request failed with code: %d", response->status_code);'`);
         }
         lines.push('');  // Blank line after interval section
     }
@@ -377,6 +412,10 @@ export default {
     id: "quote_rss",
     name: "Quote RSS",
     category: "Events",
+    // CRITICAL ARCHITECTURAL NOTE: OEPL and OpenDisplay are excluded because this widget 
+    // requires complex fetching (http_request/RSS proxy) and dynamic string management 
+    // that is not supported in protocol-based rendering.
+    supportedModes: ['lvgl', 'direct'],
     defaults: {
         feed_url: "https://www.brainyquote.com/link/quotebr.rss",
         quote_font_size: 18,
@@ -398,5 +437,6 @@ export default {
     onExportGlobals,
     onExportTextSensors,
     onExportComponents,
+    exportLVGL,
     export: exportDoc
 };

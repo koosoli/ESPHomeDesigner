@@ -30,6 +30,7 @@ export default {
     id: "shape_circle",
     name: "Circle",
     category: "Shapes",
+    supportedModes: ['lvgl', 'direct', 'oepl', 'opendisplay'],
     defaults: {
         width: 100,
         height: 100,
@@ -41,6 +42,38 @@ export default {
         opa: 255
     },
     render,
+    exportOpenDisplay: (w, { layout, page }) => {
+        const p = w.props || {};
+        const r = Math.floor(Math.min(w.width, w.height) / 2);
+        const cx = Math.floor(w.x + w.width / 2);
+        const cy = Math.floor(w.y + w.height / 2);
+
+        return {
+            type: "draw_circle",
+            x: cx,
+            y: cy,
+            radius: r,
+            fill: p.fill ? (p.bg_color || p.color || "black") : null,
+            outline: p.border_color || p.color || "black",
+            width: p.border_width || 1
+        };
+    },
+    exportOEPL: (w, { layout, page }) => {
+        const p = w.props || {};
+        const r = Math.floor(Math.min(w.width, w.height) / 2);
+        const cx = Math.floor(w.x + w.width / 2);
+        const cy = Math.floor(w.y + w.height / 2);
+
+        return {
+            type: "circle",
+            x: cx,
+            y: cy,
+            radius: r,
+            fill: p.fill ? (p.bg_color || p.color || "black") : null,
+            outline: p.border_color || p.color || "black",
+            width: p.border_width || 1
+        };
+    },
     exportLVGL,
     export: (w, context) => {
         const {

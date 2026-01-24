@@ -50,6 +50,7 @@ export default {
     id: "text", // also used for 'label'
     name: "Text",
     category: "Core",
+    supportedModes: ['lvgl', 'direct', 'oepl', 'opendisplay'],
     defaults: {
         text: "Text",
         font_size: 20,
@@ -63,7 +64,33 @@ export default {
         opa: 255
     },
     render,
+    exportOpenDisplay: (w, { layout, page }) => {
+        const p = w.props || {};
+        return {
+            type: "draw_text",
+            x: Math.round(w.x),
+            y: Math.round(w.y),
+            text: p.text || w.title || "Text",
+            size: p.font_size || 20,
+            color: p.color || "black",
+            font: p.font_family?.toLowerCase() || "roboto"
+        };
+    },
     exportLVGL,
+    exportOEPL: (w, { layout, page }) => {
+        const p = w.props || {};
+        return {
+            type: "text",
+            value: p.text || w.title || "Text",
+            x: Math.round(w.x),
+            y: Math.round(w.y),
+            size: p.font_size || 20,
+            font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf",
+            color: p.color || "black",
+            align: (p.text_align || "TOP_LEFT").toLowerCase().replace("top_", "").replace("bottom_", "").replace("_", ""),
+            anchor: "lt" // Start with left-top for simplicity
+        };
+    },
     export: (w, context) => {
         const {
             lines, getColorConst, addFont, getAlignX, getAlignY, getCondProps, getConditionCheck, Utils, isEpaper

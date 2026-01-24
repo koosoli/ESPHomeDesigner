@@ -79,6 +79,11 @@ const exportLVGL = (w, { common, convertColor, profile }) => {
     const hasTouch = profile?.touch;
     let sliderValue = p.value || 30;
 
+    if (w.entity_id) {
+        const safeId = w.entity_id.replace(/[^a-zA-Z0-9_]/g, "_");
+        sliderValue = `!lambda "return id(${safeId}).state;"`;
+    }
+
     const sliderObj = {
         slider: {
             ...common,
@@ -115,10 +120,30 @@ const exportLVGL = (w, { common, convertColor, profile }) => {
     return sliderObj;
 };
 
+const onExportNumericSensors = (context) => {
+    const { widgets, isLvgl, pendingTriggers } = context;
+    if (!widgets) return;
+
+    for (const w of widgets) {
+        if (w.type !== "lvgl_slider") continue;
+
+        const eid = (w.entity_id || w.props?.entity_id || "").trim();
+        if (!eid) continue;
+
+        if (isLvgl && pendingTriggers) {
+            if (!pendingTriggers.has(eid)) {
+                pendingTriggers.set(eid, new Set());
+            }
+            pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
+        }
+    }
+};
+
 export default {
     id: "lvgl_slider",
     name: "Slider",
     category: "LVGL",
+    supportedModes: ['lvgl'],
     defaults: {
         value: 30,
         min: 0,
@@ -130,5 +155,6 @@ export default {
         vertical: false
     },
     render,
-    exportLVGL
+    exportLVGL,
+    onExportNumericSensors
 };

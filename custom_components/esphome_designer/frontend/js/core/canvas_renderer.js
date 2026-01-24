@@ -135,6 +135,11 @@ export function render(canvasInstance) {
             artboard.appendChild(grid);
         }
 
+        // Render Debug Grid if enabled
+        if (AppState.showDebugGrid) {
+            renderDebugGridOverlay(artboard, dims, isDark);
+        }
+
         // Render LVGL grid overlay if page has grid layout
         if (page.layout && /^\d+x\d+$/.test(page.layout)) {
             renderLvglGridOverlayToElement(artboard, page.layout, dims, isDark);
@@ -617,5 +622,11 @@ function confirmAction({ title, message, confirmLabel, confirmClass, onConfirm }
         onConfirm();
         modal.remove();
     };
+}
+
+function renderDebugGridOverlay(element, dims, isDark) {
+    const overlay = document.createElement("div");
+    overlay.className = "debug-grid-overlay";
+    element.appendChild(overlay);
 }
 

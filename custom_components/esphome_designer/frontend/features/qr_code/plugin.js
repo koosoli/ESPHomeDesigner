@@ -9,7 +9,7 @@ const exportLVGL = (w, { common, convertColor }) => {
     return {
         qrcode: {
             ...common,
-            text: `"${p.text || p.value || 'https://esphome.io'}"`,
+            text: `"${p.text || p.value || 'https://github.com/koosoli/ESPHomeDesigner/'}"`,
             size: Math.min(w.width, w.height),
             dark_color: convertColor(p.color),
             light_color: convertColor(p.bg_color || "white")
@@ -19,7 +19,7 @@ const exportLVGL = (w, { common, convertColor }) => {
 
 const render = (element, widget, helpers) => {
     const props = widget.props || {};
-    const value = props.value || "https://esphome.io";
+    const value = props.value || "https://github.com/koosoli/ESPHomeDesigner/";
     const color = props.color || "black";
     const ecc = props.ecc || "LOW";
 
@@ -80,7 +80,7 @@ const exportDoc = (w, context) => {
     } = context;
 
     const p = w.props || {};
-    const value = sanitize(p.value || "https://esphome.io");
+    const value = sanitize(p.value || "https://github.com/koosoli/ESPHomeDesigner/");
     const ecc = p.ecc || "LOW";
     const colorProp = p.color || "black";
 
@@ -112,7 +112,7 @@ const onExportComponents = (context) => {
         qrCodeWidgets.forEach(w => {
             const p = w.props || {};
             const safeId = `qr_${w.id}`.replace(/-/g, "_");
-            const value = (p.value || "https://esphome.io").replace(/"/g, '\\"');
+            const value = (p.value || "https://github.com/koosoli/ESPHomeDesigner/").replace(/"/g, '\\"');
             const ecc = p.ecc || "LOW";
 
             lines.push(`  - id: ${safeId}`);
@@ -127,8 +127,9 @@ export default {
     id: "qr_code",
     name: "QR Code",
     category: "Graphics",
+    supportedModes: ['lvgl', 'direct', 'oepl', 'opendisplay'],
     defaults: {
-        value: "https://esphome.io",
+        value: "https://github.com/koosoli/ESPHomeDesigner/",
         ecc: "LOW",
         color: "black",
         bg_color: "white",
@@ -136,6 +137,36 @@ export default {
         height: 130
     },
     render,
+    exportOpenDisplay: (w, { layout, page }) => {
+        const p = w.props || {};
+        const value = p.value || "https://github.com/koosoli/ESPHomeDesigner/";
+
+        return {
+            type: "draw_qrcode",
+            data: value,
+            x: Math.round(w.x),
+            y: Math.round(w.y),
+            w: Math.round(w.width),
+            h: Math.round(w.height)
+        };
+    },
+    exportOEPL: (w, { layout, page }) => {
+        const p = w.props || {};
+        const value = p.value || "https://github.com/koosoli/ESPHomeDesigner/";
+
+        const availableSize = Math.min(w.width, w.height);
+        const contentLen = value.length;
+        const estimatedModules = Math.min(177, 21 + Math.ceil(contentLen / 10) * 2);
+        const scale = Math.max(1, Math.floor(availableSize / estimatedModules));
+
+        return {
+            type: "qrcode",
+            data: value,
+            x: Math.round(w.x),
+            y: Math.round(w.y),
+            scale: scale
+        };
+    },
     exportLVGL,
     export: exportDoc,
     onExportComponents

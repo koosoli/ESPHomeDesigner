@@ -1,7 +1,4 @@
-/**
- * Sensor Text Plugin
- * @description Displays a single or double sensor value with optional label and unit.
- */
+import { TemplateConverter } from '../../js/utils/template_converter.js';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -201,6 +198,7 @@ export default {
     id: "sensor_text",
     name: "Sensor Text",
     category: "Sensors",
+    supportedModes: ['lvgl', 'direct', 'oepl', 'opendisplay'],
     defaults: {
         entity_id: "",
         title: "",
@@ -214,105 +212,88 @@ export default {
     },
 
     render,
-    exportLVGL: (w, { common, convertColor, convertAlign, getLVGLFont, formatOpacity }) => {
+    exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};
-        let entityId = (w.entity_id || "").trim();
-        const entityId2 = (w.entity_id_2 || "").trim();
+        const entityId = (w.entity_id || "").trim();
         const format = p.value_format || "label_value";
-        let precision = parseInt(p.precision, 10);
-        if (isNaN(precision) || precision < 0) precision = 1;
 
-        // Escaping helper for printf
-        const escapeFmt = (str) => (str || "").replace(/%/g, "%%");
-
-        const getVarName = (eid) => {
-            if (p.is_local_sensor) return `id(${eid || "battery_level"})`;
-            const safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
-            if (eid.startsWith("text_sensor.")) return `id(${safe}_txt)`;
-            return `id(${safe})`;
-        };
-
-        if (!entityId && !p.is_local_sensor) return null;
-
-        const v1 = getVarName(entityId);
-        const v2 = entityId2 ? getVarName(entityId2) : null;
-        const isText1 = p.is_text_sensor || (entityId && (entityId.startsWith("text_sensor.") || entityId.startsWith("weather.")));
-        const isText2 = entityId2 && (p.is_text_sensor || entityId2.startsWith("text_sensor.") || entityId2.startsWith("weather."));
-
-        let lambdaStr = '!lambda |-\n';
-        lambdaStr += `              if (${v1}.has_state()${v2 ? ` && ${v2}.has_state()` : ""}) {\n`;
-
-        // Auto-detect unit if missing and not suppressed
-        let detectedUnit = (p.unit || "").trim();
-        if (!detectedUnit && !p.hide_unit && !format.endsWith("_no_unit") && window.AppState && window.AppState.entityStates) {
+        let value = "";
+        if (window.AppState && window.AppState.entityStates && entityId) {
             const eObj = window.AppState.entityStates[entityId];
-            if (eObj) {
-                if (eObj.attributes && eObj.attributes.unit_of_measurement) {
-                    detectedUnit = eObj.attributes.unit_of_measurement;
-                } else if (eObj.formatted) {
-                    const match = eObj.formatted.match(/^([-+]?\d*[.,]?\d+)\s*(.*)$/);
-                    if (match && match[2]) detectedUnit = match[2].trim();
-                }
-            }
+            value = eObj ? (eObj.formatted || String(eObj.state)) : "--";
+        } else {
+            value = "{{ state }}"; // Template placeholder for sender-side rendering
         }
-
-        // Fallback: Heuristic unit detection from entity ID if still no unit
-        if (!detectedUnit && !p.hide_unit && !format.endsWith("_no_unit") && entityId) {
-            const eid = entityId.toLowerCase();
-            if (eid.includes("_power") || eid.includes("_watt")) detectedUnit = "W";
-            else if (eid.includes("_energy") || eid.includes("_kwh")) detectedUnit = "kWh";
-            else if (eid.includes("_temperature") || eid.includes("_temp")) detectedUnit = "°C";
-            else if (eid.includes("_humidity")) detectedUnit = "%";
-            else if (eid.includes("_voltage") || eid.includes("_volt")) detectedUnit = "V";
-            else if (eid.includes("_current") || eid.includes("_amp")) detectedUnit = "A";
-            else if (eid.includes("_battery")) detectedUnit = "%";
-            else if (eid.includes("_pressure") || eid.includes("_hpa")) detectedUnit = "hPa";
-            else if (eid.includes("_speed") || eid.includes("_kmh")) detectedUnit = "km/h";
-            else if (eid.includes("_percent") || eid.includes("_pct")) detectedUnit = "%";
-        }
-
-        const unit = escapeFmt(detectedUnit);
-        const prefix = escapeFmt(p.prefix || "");
-        const postfix = escapeFmt(p.postfix || "");
-        const valFmt1 = isText1 ? "%s" : `%.${precision}f`;
-        const valFmt2 = v2 ? (isText2 ? "%s" : `%.${precision}f`) : "";
-        const sep = escapeFmt(p.separator || " ~ ");
 
         let title = (w.title || p.title || "").trim();
         if (!title && format.startsWith("label_")) {
             title = entityId.split('.').pop().replace(/_/g, ' ');
         }
 
-        const arg1 = isText1 ? `${v1}.state.c_str()` : `${v1}.state`;
-        const arg2 = v2 ? (isText2 ? `${v2}.state.c_str()` : `${v2}.state`) : null;
-
-        let finalFmt = "";
+        let text = "";
         if (format === "label_only") {
-            finalFmt = title;
-        } else if (format === "label_value" || format === "label_value_no_unit") {
-            finalFmt = `${title}: ${prefix}${valFmt1}${v2 ? sep + valFmt2 : ""}${unit ? " " + unit : ""}${postfix}`;
-        } else if (format === "label_newline_value" || format === "label_newline_value_no_unit") {
-            finalFmt = `${title}\\n${prefix}${valFmt1}${v2 ? sep + valFmt2 : ""}${unit ? " " + unit : ""}${postfix}`;
-        } else if (format === "value_label") {
-            finalFmt = `${prefix}${valFmt1}${v2 ? sep + valFmt2 : ""}${unit ? " " + unit : ""}${postfix} ${title}`;
+            text = title;
+        } else if (format === "label_value") {
+            text = `${title}: ${value}`;
         } else {
-            finalFmt = `${prefix}${valFmt1}${v2 ? sep + valFmt2 : ""}${unit ? " " + unit : ""}${postfix}`;
+            text = value;
         }
 
-        lambdaStr += `                return str_sprintf("${finalFmt}", ${arg1}${arg2 ? `, ${arg2}` : ""}).c_str();\n`;
-        lambdaStr += '              }\n';
-        lambdaStr += '              return "---";';
+        return {
+            type: "draw_text",
+            x: Math.round(w.x),
+            y: Math.round(w.y),
+            text: text,
+            size: p.value_font_size || 20,
+            color: p.color || "black",
+            font: p.font_family?.toLowerCase() || "roboto"
+        };
+    },
+    exportOEPL: (w, { layout, page }) => {
+        const p = w.props || {};
+        const entityId = (w.entity_id || "").trim();
+        const entityId2 = (w.entity_id_2 || "").trim();
+        const format = p.value_format || "label_value";
+        const precision = parseInt(p.precision, 10) || 0;
+        const separator = p.separator || " ~ ";
+        const prefix = p.prefix || "";
+        const postfix = p.postfix || "";
+        const unit = (p.unit || "").trim();
+
+        const val1 = TemplateConverter.toHATemplate(entityId, { precision, isNumeric: !p.is_text_sensor });
+        const val2 = entityId2 ? TemplateConverter.toHATemplate(entityId2, { precision, isNumeric: !p.is_text_sensor }) : null;
+
+        const displayValue = val2 ? `${val1}${separator}${val2}` : val1;
+        const fullValue = `${prefix}${displayValue}${unit ? " " + unit : ""}${postfix}`.trim();
+
+        let title = (w.title || p.title || "").trim();
+        if (!title && format.startsWith("label_")) {
+            title = entityId.split('.').pop().replace(/_/g, ' ');
+        }
+
+        let text = "";
+        if (format === "label_only") {
+            text = title;
+        } else if (format === "label_value" || format === "label_value_no_unit") {
+            text = `${title}: ${fullValue}`;
+        } else if (format === "label_newline_value" || format === "label_newline_value_no_unit") {
+            text = `${title}\n${fullValue}`;
+        } else if (format === "value_label") {
+            text = `${fullValue} ${title}`;
+        } else {
+            text = fullValue;
+        }
 
         return {
-            label: {
-                ...common,
-                text: lambdaStr,
-                text_font: getLVGLFont(p.font_family, p.value_font_size || 20, p.font_weight, p.italic),
-                text_color: convertColor(p.color),
-                text_align: (convertAlign(p.text_align) || "left").replace("top_", "").replace("bottom_", ""),
-                bg_color: (p.bg_color && p.bg_color !== "transparent") ? convertColor(p.bg_color) : undefined,
-                opa: formatOpacity(p.opa)
-            }
+            type: "text",
+            value: text,
+            x: Math.round(w.x),
+            y: Math.round(w.y),
+            size: p.value_font_size || 20,
+            font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf",
+            color: p.color || "black",
+            align: (p.text_align || "TOP_LEFT").toLowerCase().replace("top_", "").replace("bottom_", "").replace("_", ""),
+            anchor: "lt"
         };
     },
     collectRequirements: (w, { addFont }) => {
@@ -404,8 +385,9 @@ export default {
         // Helper to get ESPHome variable name for an entity
         const getVarName = (eid, isText) => {
             if (p.is_local_sensor) return `id(${eid || "battery_level"})`;
+            const isTextSensor = isText || p.is_text_sensor || (eid && (eid.startsWith("text_sensor.") || eid.startsWith("weather.")));
             const safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
-            if (isText || p.is_text_sensor || eid.startsWith("text_sensor.")) return `id(${safe}_txt)`;
+            if (isTextSensor) return `id(${safe}_txt)`;
             return `id(${safe})`;
         };
 
@@ -519,10 +501,11 @@ export default {
 
         if (weatherEntities.size > 0) {
             let headerAdded = false;
-            for (const entityId of weatherEntities) {
-                const safeId = entityId.replace(/^weather\./, "").replace(/\./g, "_").replace(/-/g, "_");
+            for (let entityId of weatherEntities) {
+                if (entityId && !entityId.includes(".")) entityId = `weather.${entityId}`;
+                const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_") + "_txt";
                 if (context.seenSensorIds && context.seenSensorIds.has(safeId)) continue;
-                if (context.seenEntityIds && context.seenEntityIds.has(entityId)) continue;
+                if (context.seenTextEntityIds && context.seenTextEntityIds.has(entityId)) continue;
 
                 if (!headerAdded) {
                     lines.push("# Weather Entity Sensors (Detected from Sensor Text)");
@@ -530,7 +513,7 @@ export default {
                 }
 
                 if (context.seenSensorIds) context.seenSensorIds.add(safeId);
-                if (context.seenEntityIds) context.seenEntityIds.add(entityId);
+                if (context.seenTextEntityIds) context.seenTextEntityIds.add(entityId);
 
                 lines.push("- platform: homeassistant");
                 lines.push(`  id: ${safeId}`);
@@ -541,10 +524,11 @@ export default {
 
         if (textEntities.size > 0) {
             let headerAdded = false;
-            for (const entityId of textEntities) {
+            for (let entityId of textEntities) {
+                if (entityId && !entityId.includes(".") && !entityId.startsWith("text_sensor.")) entityId = `text_sensor.${entityId}`;
                 const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_") + "_txt";
                 if (context.seenSensorIds && context.seenSensorIds.has(safeId)) continue;
-                if (context.seenEntityIds && context.seenEntityIds.has(entityId)) continue;
+                if (context.seenTextEntityIds && context.seenTextEntityIds.has(entityId)) continue;
 
                 if (!headerAdded) {
                     lines.push("# Text Sensors (Detected from Sensor Text)");
@@ -552,7 +536,7 @@ export default {
                 }
 
                 if (context.seenSensorIds) context.seenSensorIds.add(safeId);
-                if (context.seenEntityIds) context.seenEntityIds.add(entityId);
+                if (context.seenTextEntityIds) context.seenTextEntityIds.add(entityId);
 
                 lines.push("- platform: homeassistant");
                 lines.push(`  id: ${safeId}`);
@@ -563,12 +547,8 @@ export default {
     },
 
     onExportNumericSensors: (context) => {
-        const { lines, widgets } = context;
+        const { widgets, isLvgl, pendingTriggers } = context;
         if (!widgets) return;
-
-        // Group widgets by entity for LVGL update triggers
-        const entityToWidgets = new Map();
-        const processed = new Set();
 
         for (const w of widgets) {
             if (w.type !== "sensor_text") continue;
@@ -587,36 +567,11 @@ export default {
                     eid = `sensor.${eid}`;
                 }
 
-                if (!entityToWidgets.has(eid)) {
-                    entityToWidgets.set(eid, []);
-                }
-                entityToWidgets.get(eid).push(w.id);
-            }
-        }
-
-        // Generate sensors with on_value triggers
-        for (const [eid, widgetIds] of entityToWidgets) {
-            const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
-
-            const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(eid)) ||
-                (context.seenSensorIds && context.seenSensorIds.has(safeId));
-
-            if (alreadyDefined) continue;
-
-            if (context.seenEntityIds) context.seenEntityIds.add(eid);
-            if (context.seenSensorIds) context.seenSensorIds.add(safeId);
-
-            lines.push("- platform: homeassistant");
-            lines.push(`  id: ${safeId}`);
-            lines.push(`  entity_id: ${eid}`);
-            lines.push("  internal: true");
-            if (context.isLvgl) {
-                lines.push("  on_value:");
-                lines.push("    then:");
-
-                for (const wid of widgetIds) {
-                    lines.push("      - lvgl.widget.update:");
-                    lines.push(`          id: ${wid}`);
+                if (isLvgl && pendingTriggers) {
+                    if (!pendingTriggers.has(eid)) {
+                        pendingTriggers.set(eid, new Set());
+                    }
+                    pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
                 }
             }
         }

@@ -172,33 +172,59 @@ export class ESPHomeAdapter extends BaseAdapter {
             }
         });
 
+        // Track registered IDs and entities to avoid duplicates
+        const seenEntityIds = new Set();
+        const seenSensorIds = new Set();
+        const seenTextEntityIds = new Set();
+        const pendingTriggers = new Map(); // entity_id -> Set of action strings
+
         const context = {
             widgets: allWidgets,
             profile,
             displayId,
             adapter: this,
-            isLvgl
+            isLvgl,
+            seenEntityIds,
+            seenSensorIds,
+            seenTextEntityIds,
+            pendingTriggers
         };
 
         if (PluginRegistry) {
-            // 1. Globals First
+            // 1. ESPHome Section & Globals
             const globalLines = [];
+            const includeLines = [];
+
+            // Collect includes from plugins
+            PluginRegistry.onExportEsphome({ ...context, lines: includeLines });
 
             // Core Globals
             globalLines.push("- id: display_page", "  type: int", "  restore_value: true", "  initial_value: '0'");
 
             // Match legacy epaper detection for regression testing
-            const isEpaper = !!(profile.features && profile.features.epaper);
+            const isEpaper = !!(profile.features && (profile.features.epaper || profile.features.epd));
             const isLcd = !!(profile.features && profile.features.lcd) || !isEpaper;
             const defaultRefresh = layout.refreshInterval || (isLcd ? 60 : (layout.deepSleepInterval || 600));
             globalLines.push("- id: page_refresh_default_s", "  type: int", "  restore_value: true", `  initial_value: '${defaultRefresh}'`);
             globalLines.push("- id: page_refresh_current_s", "  type: int", "  restore_value: false", "  initial_value: '60'");
             globalLines.push("- id: last_page_switch_time", "  type: uint32_t", "  restore_value: false", "  initial_value: '0'");
-            // Track registered IDs and entities to avoid duplicates
-            const seenEntityIds = new Set();
-            const seenSensorIds = new Set();
 
-            PluginRegistry.onExportGlobals({ ...context, lines: globalLines, seenEntityIds, seenSensorIds });
+            PluginRegistry.onExportGlobals({ ...context, lines: globalLines });
+
+            if (includeLines.length > 0) {
+                // We add the includes to the system sections via a dedicated param if we refactor it,
+                // or just inject it into the lines array before system sections.
+                // For now, let's pass it to generateSystemSections.
+                layout.plugin_includes = includeLines;
+            }
+
+            if (!profile.isPackageBased) {
+                lines.length = 0; // Reset lines to handle the header/system sections after hook collection
+                lines.push(...this.yaml.generateInstructionHeader(profile, layout));
+                lines.push(...this.yaml.generateSystemSections(profile, layout));
+                lines.push("");
+            }
+
             if (globalLines.length > 0) {
                 lines.push("globals:");
                 lines.push(...globalLines.map(l => "  " + l));
@@ -270,8 +296,10 @@ export class ESPHomeAdapter extends BaseAdapter {
             if (Generators.generateSensorSection) lines.push(...Generators.generateSensorSection(profile, [], displayId, allWidgets));
 
             // Numeric Sensors
-            const numericSensorLines = [];
-            PluginRegistry.onExportNumericSensors({ ...context, lines: numericSensorLines, mainLines: lines, seenEntityIds, seenSensorIds });
+            const numericSensorLinesOrig = [];
+            PluginRegistry.onExportNumericSensors({ ...context, lines: numericSensorLinesOrig, mainLines: lines });
+            const numericSensorLines = this.processPendingTriggers(numericSensorLinesOrig, pendingTriggers, isLvgl, "on_value");
+
             if (numericSensorLines.length > 0) {
                 if (!lines.some(l => l === "sensor:")) lines.push("sensor:");
                 lines.push(...numericSensorLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
@@ -279,7 +307,7 @@ export class ESPHomeAdapter extends BaseAdapter {
 
             // Safety Fix: Auto-register any HA numeric sensors that weren't caught by plugins
             // This now runs for ALL profiles (including legacy) to ensure consistency.
-            const allWidgetsForSensors = pages.flatMap(p => p.widgets || []);
+            const allWidgetsForSensors = pages.flatMap(p => (p.widgets || []).filter(w => !w.hidden));
             const numericSensorLinesExtra = [];
             allWidgetsForSensors.forEach(w => {
                 let entityId = (w.entity_id || "").trim();
@@ -292,6 +320,9 @@ export class ESPHomeAdapter extends BaseAdapter {
                 if (numericSensorTypes.includes(w.type) && !entityId.includes(".")) {
                     entityId = `sensor.${entityId}`;
                 }
+
+                // Fix #198: Skip if this is a sensor_text widget explicitly marked as a text sensor
+                if (w.type === "sensor_text" && p.is_text_sensor) return;
 
                 const isHaSensor = entityId.includes(".") && !entityId.startsWith("weather.") && !entityId.startsWith("text_sensor.") && !entityId.startsWith("binary_sensor.");
                 const binaryDomains = ["switch.", "light.", "fan.", "input_boolean.", "cover.", "lock."];
@@ -312,38 +343,42 @@ export class ESPHomeAdapter extends BaseAdapter {
 
             if (numericSensorLinesExtra.length > 0) {
                 if (!lines.some(l => l === "sensor:")) lines.push("sensor:");
-                lines.push(...numericSensorLinesExtra.flatMap(l => l.split('\n').map(sub => "  " + sub)));
+
+                const mergedSafetyLines = this.processPendingTriggers(numericSensorLinesExtra, pendingTriggers, isLvgl, "on_value");
+                lines.push(...mergedSafetyLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
             }
 
             // Text Sensors
-            const textSensorLines = [];
-            PluginRegistry.onExportTextSensors({ ...context, lines: textSensorLines, seenEntityIds, seenSensorIds });
+            const textSensorLinesOrig = [];
+            PluginRegistry.onExportTextSensors({ ...context, lines: textSensorLinesOrig });
+            const textSensorLines = this.processPendingTriggers(textSensorLinesOrig, pendingTriggers, isLvgl, "on_value");
             if (textSensorLines.length > 0) {
                 lines.push("text_sensor:");
                 lines.push(...textSensorLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
             }
 
             // Binary Sensors
-            const binarySensorLines = [];
+            const binarySensorLinesOrig = [];
             if (!profile.isPackageBased && Generators.generateBinarySensorSection) {
                 // Note: touch_area widgets are now handled by the plugin's onExportBinarySensors hook
                 const legacyBinary = Generators.generateBinarySensorSection(profile, pages.length, displayId, []);
                 if (legacyBinary.length > 0 && legacyBinary[0].trim() === "binary_sensor:") {
-                    binarySensorLines.push(...legacyBinary.slice(1).map(l => l.startsWith("  ") ? l.slice(2) : l));
+                    binarySensorLinesOrig.push(...legacyBinary.slice(1).map(l => l.startsWith("  ") ? l.slice(2) : l));
                 } else {
-                    binarySensorLines.push(...legacyBinary);
+                    binarySensorLinesOrig.push(...legacyBinary);
                 }
             }
 
             // New: Allow plugins to register binary sensors
-            PluginRegistry.onExportBinarySensors({ ...context, lines: binarySensorLines, seenEntityIds, seenSensorIds });
+            PluginRegistry.onExportBinarySensors({ ...context, lines: binarySensorLinesOrig });
+            const binarySensorLines = this.processPendingTriggers(binarySensorLinesOrig, pendingTriggers, isLvgl, "on_state");
             if (binarySensorLines.length > 0) {
                 lines.push("binary_sensor:");
                 lines.push(...binarySensorLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
             }
 
             // Safety Fix: Auto-register any HA binary sensors used in conditions or linked to widgets
-            const allWidgetsForBinary = pages.flatMap(p => p.widgets || []);
+            const allWidgetsForBinary = pages.flatMap(p => (p.widgets || []).filter(w => !w.hidden));
             const binaryDomains = ["binary_sensor.", "switch.", "light.", "input_boolean.", "fan.", "cover.", "vacuum.", "lock."];
             const binarySensorLinesExtra = [];
 
@@ -373,7 +408,9 @@ export class ESPHomeAdapter extends BaseAdapter {
 
             if (binarySensorLinesExtra.length > 0) {
                 if (!lines.some(l => l === "binary_sensor:")) lines.push("binary_sensor:");
-                lines.push(...binarySensorLinesExtra.flatMap(l => l.split('\n').map(sub => "  " + sub)));
+
+                const mergedBinaryExtraLines = this.processPendingTriggers(binarySensorLinesExtra, pendingTriggers, isLvgl, "on_state");
+                lines.push(...mergedBinaryExtraLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
             }
 
             // Button Section
@@ -401,10 +438,10 @@ export class ESPHomeAdapter extends BaseAdapter {
         }
 
         // Before generating fonts/scripts, generate the lambda content to track dependencies
-        const lambdaContent = this.generateDisplayLambda(pages, layout, profile);
+        const lambdaContent = this.generateDisplayLambda(pages, layout, profile, context);
 
         // 5. Fonts
-        lines.push(...this.fonts.getLines());
+        lines.push(...this.fonts.getLines(layout.glyphsets, layout.extendedLatinGlyphs));
 
         // 6. Scripts
         const scriptLines = this.yaml.generateScriptSection(layout, pages, profile);
@@ -414,7 +451,7 @@ export class ESPHomeAdapter extends BaseAdapter {
 
         // 6.5 LVGL (If supported)
         if (isLvgl && generateLVGLSnippet) {
-            const lvglSnippet = generateLVGLSnippet(pages, model);
+            const lvglSnippet = generateLVGLSnippet(pages, model, profile);
             if (lvglSnippet && lvglSnippet.length > 0) {
                 lines.push(...lvglSnippet);
             }
@@ -425,7 +462,7 @@ export class ESPHomeAdapter extends BaseAdapter {
         if (!profile.isPackageBased) {
             // Fix #129: Keep display hardware but skip lambda if LVGL is handling rendering
             const hardwareLines = Generators.generateDisplaySection
-                ? Generators.generateDisplaySection(profile, layout.orientation)
+                ? Generators.generateDisplaySection(profile, layout, isLvgl)
                 : [];
             lines.push(...hardwareLines);
 
@@ -462,8 +499,28 @@ export class ESPHomeAdapter extends BaseAdapter {
                 }
             }
 
-            packageContent = this.applyPackageOverrides(packageContent, profile, layout.orientation);
-            return this.sanitizePackageContent(packageContent) + "\n\n" + lines.join('\n');
+            packageContent = this.applyPackageOverrides(packageContent, profile, layout.orientation, hasLvgl);
+
+            // Fix: Standardize section merging. We want to avoid double headers like "sensor:"
+            // but we MUST NOT filter out content lines like "- platform:" which are shared.
+            const sanitizedPackage = this.sanitizePackageContent(packageContent);
+            const extraLines = [];
+
+            let inDisplaySection = false;
+            for (const line of lines) {
+                const trimmed = line.trim();
+                const isHeader = (trimmed.endsWith(':') && !line.startsWith(' '));
+
+                if (isHeader) {
+                    inDisplaySection = (trimmed === "display:");
+                }
+
+                if (!inDisplaySection) {
+                    extraLines.push(line);
+                }
+            }
+
+            return sanitizedPackage + "\n\n" + extraLines.join('\n');
         }
 
         return lines.join('\n');
@@ -478,7 +535,7 @@ export class ESPHomeAdapter extends BaseAdapter {
                     if (plugin) {
                         this.usedPlugins.add(plugin);
 
-                        // New: Decentralized requirement collection
+                        // Registration Hook: Plugins collect their own requirements (fonts, icons, etc.)
                         if (typeof plugin.collectRequirements === 'function') {
                             plugin.collectRequirements(w, {
                                 trackIcon: (name, size) => this.fonts.trackIcon(name, size),
@@ -499,11 +556,12 @@ export class ESPHomeAdapter extends BaseAdapter {
      * @param {import("../../types.js").PageConfig[]} pages
      * @param {import("../../types.js").ProjectPayload} layout
      * @param {import("../../types.js").DeviceProfile} profile
+     * @param {import("../../types.js").GenerationContext} context
      */
-    generateDisplayLambda(pages, layout, profile) {
+    generateDisplayLambda(pages, layout, profile, context) {
         const lines = [];
         const useInvertedColors = profile.features?.inverted_colors || layout.invertedColors;
-        const isEpaper = !!(profile.features && profile.features.epaper);
+        const isEpaper = !!(profile.features && (profile.features.epaper || profile.features.epd));
 
         if (useInvertedColors) {
             lines.push("const auto COLOR_WHITE = Color(0, 0, 0); // Inverted for e-ink");
@@ -520,32 +578,26 @@ export class ESPHomeAdapter extends BaseAdapter {
         lines.push("auto color_off = COLOR_WHITE;");
         lines.push("auto color_on = COLOR_BLACK;");
         lines.push("");
-        lines.push("// Helper to apply a simple grey dither mask for e-paper (checkerboard)");
-        lines.push("auto apply_grey_dither_mask = [&](int x_start, int y_start, int w, int h, int r = 0) {");
-        lines.push("  for (int y = y_start; y < y_start + h; y++) {");
-        lines.push("    for (int x = x_start; x < x_start + w; x++) {");
-        lines.push("      if (r > 0) {");
-        lines.push("        int dx = 0, dy = 0;");
-        lines.push("        if (x < x_start + r && y < y_start + r) { dx = x_start + r - x; dy = y_start + r - y; }");
-        lines.push("        else if (x >= x_start + w - r && y < y_start + r) { dx = x - (x_start + w - r - 1); dy = y_start + r - y; }");
-        lines.push("        else if (x < x_start + r && y >= y_start + h - r) { dx = x_start + r - x; dy = y - (y_start + h - r - 1); }");
-        lines.push("        else if (x >= x_start + w - r && y >= y_start + h - r) { dx = x - (x_start + w - r - 1); dy = y - (y_start + h - r - 1); }");
-        lines.push("        if (dx*dx + dy*dy > r*r) continue;");
-        lines.push("      }");
-        lines.push("      if ((x + y) % 2 == 0) it.draw_pixel_at(x, y, COLOR_WHITE);");
-        lines.push("      else it.draw_pixel_at(x, y, COLOR_BLACK);");
-        lines.push("    }");
-        lines.push("  }");
-        lines.push("};");
-        lines.push("");
-        lines.push("// Helper to apply grey dither to text (subtractive - erases every other black pixel)");
-        lines.push("auto apply_grey_dither_to_text = [&](int x_start, int y_start, int w, int h) {");
-        lines.push("  for (int y = y_start; y < y_start + h; y++) {");
-        lines.push("    for (int x = x_start; x < x_start + w; x++) {");
-        lines.push("      if ((x + y) % 2 == 0) it.draw_pixel_at(x, y, COLOR_WHITE);");
-        lines.push("    }");
-        lines.push("  }");
-        lines.push("};");
+        if (isEpaper) {
+            lines.push("// Helper to apply a simple grey dither mask for e-paper (checkerboard)");
+            lines.push("auto apply_grey_dither_mask = [&](int x_start, int y_start, int w, int h) {");
+            lines.push("  for (int y = y_start; y < y_start + h; y++) {");
+            lines.push("    for (int x = x_start; x < x_start + w; x++) {");
+            lines.push("      if ((x + y) % 2 == 0) it.draw_pixel_at(x, y, COLOR_WHITE);");
+            lines.push("      else it.draw_pixel_at(x, y, COLOR_BLACK);");
+            lines.push("    }");
+            lines.push("  }");
+            lines.push("};");
+            lines.push("");
+            lines.push("// Helper to apply grey dither to text (subtractive - erases every other black pixel)");
+            lines.push("auto apply_grey_dither_to_text = [&](int x_start, int y_start, int w, int h) {");
+            lines.push("  for (int y = y_start; y < y_start + h; y++) {");
+            lines.push("    for (int x = x_start; x < x_start + w; x++) {");
+            lines.push("      if ((x + y) % 2 == 0) it.draw_pixel_at(x, y, COLOR_WHITE);");
+            lines.push("    }");
+            lines.push("  }");
+            lines.push("};");
+        }
 
         // Helper hooks
         if (window.PluginRegistry) {
@@ -564,15 +616,16 @@ export class ESPHomeAdapter extends BaseAdapter {
             lines.push(`  // page:refresh_time "${page.refresh_time || ""}"`);
 
             // Clear screen for this page
+            const isDarkMode = page.dark_mode === 'enabled' || (page.dark_mode === 'inherit' && layout.darkMode);
             lines.push(`  // Clear screen for this page`);
-            lines.push(`  it.fill(COLOR_WHITE);`);
-            lines.push(`  color_off = COLOR_WHITE;`);
-            lines.push(`  color_on = COLOR_BLACK;`);
+            lines.push(`  it.fill(${isDarkMode ? 'COLOR_BLACK' : 'COLOR_WHITE'});`);
+            lines.push(`  color_off = ${isDarkMode ? 'COLOR_BLACK' : 'COLOR_WHITE'};`);
+            lines.push(`  color_on = ${isDarkMode ? 'COLOR_WHITE' : 'COLOR_BLACK'};`);
 
             if (page.widgets) {
                 page.widgets.filter(w => !w.hidden && w.type !== 'group').forEach(w => {
                     const widgetLines = this.generateWidget(w, {
-                        profile,
+                        ...context,
                         layout,
                         adapter: this,
                         isEpaper
@@ -657,6 +710,103 @@ export class ESPHomeAdapter extends BaseAdapter {
         return widgetLines;
     }
 
+    /**
+     * Processes defined sensor lines and injects on_value triggers 
+     * from pendingTriggers if a matching id or entity_id is found.
+     */
+    /**
+     * Processes defined sensor lines and injects on_value triggers 
+     * from pendingTriggers if a matching id or entity_id is found.
+     */
+    processPendingTriggers(sensorLines, pendingTriggers, isLvgl, triggerName = "on_value") {
+        if (!isLvgl || !pendingTriggers || pendingTriggers.size === 0) return sensorLines;
+
+        const mergedLines = [];
+        let pendingInjection = null;
+
+        for (let i = 0; i < sensorLines.length; i++) {
+            const line = sensorLines[i];
+            const trimmed = line.trim();
+            mergedLines.push(line);
+
+            // 1. Detect Entity/ID match
+            const match = line.match(/^\s*(entity_id|id):\s*"?([^"]+)"?/);
+            if (match) {
+                const ent = match[2].trim();
+                // Check exact match (often entity_id) OR simplified match (id)
+                const hasTrigger = pendingTriggers.has(ent);
+
+                if (hasTrigger) {
+                    // Check if on_value exists ahead
+                    let hasExistingTrigger = false;
+                    const currentIndent = (line.match(/^\s*/) || [""])[0].length;
+
+                    for (let j = i + 1; j < sensorLines.length; j++) {
+                        const nextLine = sensorLines[j];
+                        const nextTrim = nextLine.trim();
+                        if (!nextTrim) continue;
+                        const nextIndent = (nextLine.match(/^\s*/) || [""])[0].length;
+
+                        // Stop if we exit the current item block
+                        if (nextIndent <= currentIndent && nextTrim.startsWith("-")) break;
+
+                        if (nextTrim === `${triggerName}:`) {
+                            hasExistingTrigger = true;
+                            break;
+                        }
+                    }
+
+                    if (hasExistingTrigger) {
+                        pendingInjection = {
+                            triggers: pendingTriggers.get(ent),
+                            active: true
+                        };
+                    } else {
+                        // Inject immediately
+                        const indent = " ".repeat(currentIndent);
+                        mergedLines.push(`${indent}${triggerName}:`);
+                        mergedLines.push(`${indent}  then:`);
+                        for (const action of pendingTriggers.get(ent)) {
+                            const actionLines = action.split('\n');
+                            actionLines.forEach(aLine => {
+                                mergedLines.push(`${indent}    ${aLine}`);
+                            });
+                        }
+                    }
+                }
+            }
+
+            // 2. Handle Injection into Existing Trigger
+            if (pendingInjection && pendingInjection.active) {
+                if (trimmed === `${triggerName}:`) {
+                    pendingInjection.foundKey = true;
+                } else if (pendingInjection.foundKey) {
+                    // Inject after 'then:' or after first list item
+                    if (trimmed === "then:") {
+                        const indentStr = " ".repeat((line.match(/^\s*/) || [""])[0].length + 2);
+                        for (const action of pendingInjection.triggers) {
+                            const actionLines = action.split('\n');
+                            actionLines.forEach(aLine => {
+                                mergedLines.push(`${indentStr}${aLine}`);
+                            });
+                        }
+                        pendingInjection = null;
+                    } else if (trimmed.startsWith("-")) {
+                        const indentStr = " ".repeat((line.match(/^\s*/) || [""])[0].length);
+                        for (const action of pendingInjection.triggers) {
+                            const actionLines = action.split('\n');
+                            actionLines.forEach(aLine => {
+                                mergedLines.push(`${indentStr}${aLine}`);
+                            });
+                        }
+                        pendingInjection = null;
+                    }
+                }
+            }
+        }
+        return mergedLines;
+    }
+
 
     async fetchHardwarePackage(url) {
         // Handle proxy if needed
@@ -679,6 +829,8 @@ export class ESPHomeAdapter extends BaseAdapter {
 
     sanitizePackageContent(yaml) {
         if (!yaml) return "";
+        // IMPORTANT: These keys are system-level and MUST be commented out in the final snippet.
+        // This allows users to merge the generated YAML into their existing config without conflicts.
         const systemKeys = ["esphome:", "esp32:", "psram:", "wifi:", "api:", "ota:", "logger:", "web_server:", "captive_portal:", "platformio_options:", "preferences:", "substitutions:"];
         const lines = yaml.split('\n');
         const sanitized = [];
@@ -700,8 +852,13 @@ export class ESPHomeAdapter extends BaseAdapter {
         return sanitized.join('\n');
     }
 
-    applyPackageOverrides(yaml, profile, orientation) {
-        if (profile.name?.includes("Waveshare Touch LCD 7")) {
+    applyPackageOverrides(yaml, profile, orientation, isLvgl = false) {
+        if (isLvgl) {
+            // Fix: ESPHome 2025.12.7 compatibility - LVGL cannot have auto_clear_enabled: true
+            yaml = yaml.replace(/auto_clear_enabled:\s*true/g, "auto_clear_enabled: false");
+        }
+
+        if (profile.name?.toLowerCase().includes("waveshare touch lcd 7")) {
             // Fix #182: Native resolution is 800x480 (Landscape), so rotation should be 0 for landscape.
             let rotation = 0;
             if (orientation === "portrait") rotation = 90;
@@ -709,9 +866,15 @@ export class ESPHomeAdapter extends BaseAdapter {
             else if (orientation === "portrait_inverted") rotation = 270;
             else if (orientation === "landscape_inverted") rotation = 180;
 
-            yaml = yaml.replace(/rotation:\s*\d+/g, `rotation: ${rotation}`);
+            // More robust replacement: look for rotation inside display platform
+            yaml = yaml.replace(/(display:[\s\S]*?rotation:\s*)\d+/g, `$1${rotation}`);
+
+            // Also update the Captive Portal hotspot name in the header if present
+            const deviceName = profile.name.replace(/["\\]/g, "").split(" ")[0] || "ESPHome-Device";
+            yaml = yaml.replace(/"Waveshare-7-Inch"/g, `"${deviceName}-Hotspot"`);
 
             // Fix #129: Indentation-aware GT911 transform logic
+            // Match any whitespace before id: my_touchscreen
             const idMatch = yaml.match(/^(\s*)id:\s*my_touchscreen/m);
             if (idMatch) {
                 const indent = idMatch[1];
@@ -723,9 +886,10 @@ export class ESPHomeAdapter extends BaseAdapter {
                 else if (rotation === 270) transform = `transform:\n${indent}  swap_xy: true\n${indent}  mirror_x: true\n${indent}  mirror_y: false`;
 
                 if (transform) {
-                    // FIX: transform string already includes the newline and internal indentation.
-                    // But the 'transform:' key itself must be indented to match 'id: my_touchscreen'.
-                    yaml = yaml.replace(/(id:\s*my_touchscreen[^\n\r]*[\r\n]+)/, `$1${indent}${transform}\n`);
+                    // Remove existing transform if present to avoid duplication
+                    const transformRegex = new RegExp(`^${indent}transform:[\\s\\S]*?^(?=\\S|\\s{${indent.length},${indent.length}}\\S)`, 'm');
+                    // We'll just replace the ID line with ID + transform
+                    yaml = yaml.replace(/^(\s*)id:\s*my_touchscreen.*$/m, `$1id: my_touchscreen\n$1${transform}`);
                 }
             }
         }

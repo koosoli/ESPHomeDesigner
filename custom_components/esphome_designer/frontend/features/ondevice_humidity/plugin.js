@@ -86,6 +86,9 @@ export default {
     id: "ondevice_humidity",
     name: "Humidity",
     category: "SHT4x",
+    // CRITICAL ARCHITECTURAL NOTE: Protocol-based modes (OEPL/OpenDisplay) do not support 
+    // on-device hardware sensors.
+    supportedModes: ['lvgl', 'direct'],
     defaults: {
         width: 60,
         height: 60,
@@ -100,24 +103,141 @@ export default {
         is_local_sensor: true
     },
     render,
+    exportOpenDisplay: (w, { layout, page }) => {
+        const p = w.props || {};
+        const entityId = (w.entity_id || "sensor.humidity").trim();
+        const size = p.size || 32;
+        const fontSize = p.font_size || 16;
+        const color = p.color || "black";
+        const unit = p.unit || "%";
+
+        let humidity = 45;
+        if (window.AppState && window.AppState.entityStates && entityId) {
+            const stateSet = window.AppState.entityStates[entityId];
+            if (stateSet && stateSet.state) humidity = parseFloat(stateSet.state);
+        }
+
+        let iconName = "water-percent";
+        if (humidity <= 30) iconName = "water-outline";
+        else if (humidity >= 70) iconName = "water";
+
+        return [
+            {
+                type: "draw_icon",
+                value: iconName,
+                x: Math.round(w.x + w.width / 2),
+                y: Math.round(w.y),
+                size: size,
+                color: color
+            },
+            {
+                type: "draw_text",
+                text: `${Math.round(humidity)}${unit}`,
+                x: Math.round(w.x + w.width / 2),
+                y: Math.round(w.y + size + 2),
+                size: fontSize,
+                color: color
+            }
+        ];
+    },
+    exportOEPL: (w, { layout, page }) => {
+        const p = w.props || {};
+        const entityId = (w.entity_id || "sensor.humidity").trim();
+        const size = p.size || 32;
+        const fontSize = p.font_size || 16;
+        const color = p.color || "black";
+        const unit = p.unit || "%";
+
+        const iconTemplate = `{% set h = states('${entityId}') | float %}` +
+            `{% if h <= 30 %}water-outline{% elif h >= 70 %}water{% else %}water-percent{% endif %}`;
+
+        return [
+            {
+                type: "icon",
+                value: iconTemplate,
+                x: Math.round(w.x + w.width / 2),
+                y: Math.round(w.y),
+                size: size,
+                color: color,
+                anchor: "mt"
+            },
+            {
+                type: "text",
+                value: `{{ states('${entityId}') }}${unit}`,
+                x: Math.round(w.x + w.width / 2),
+                y: Math.round(w.y + size + 2),
+                size: fontSize,
+                color: color,
+                align: "center",
+                anchor: "mt"
+            }
+        ];
+    },
     exportLVGL: (w, { common, convertColor, getLVGLFont, profile }) => {
         const p = w.props || {};
         const isLocal = p.is_local_sensor === true || (p.is_local_sensor !== false && !w.entity_id);
-        let sensorId = "onboard_humidity";
-        if (isLocal) {
-            if (profile.features) {
-                sensorId = profile.features.sht4x ? "sht4x_humidity" : (profile.features.sht3x ? "sht3x_humidity" : (profile.features.shtc3 ? "shtc3_humidity" : "onboard_humidity"));
-            }
-        } else {
-            sensorId = (w.entity_id || "").replace(/[^a-zA-Z0-9_]/g, "_");
-            if (!sensorId) sensorId = "onboard_humidity";
+        let sensorId = (w.entity_id || "").replace(/[^a-zA-Z0-9_]/g, "_");
+        if (isLocal && profile.features) {
+            sensorId = profile.features.sht4x ? "sht4x_humidity" : (profile.features.sht3x ? "sht3x_humidity" : (profile.features.shtc3 ? "shtc3_humidity" : "onboard_humidity"));
         }
+        if (!sensorId) sensorId = "onboard_humidity";
 
         const color = convertColor(p.color || "black");
         const iconSize = parseInt(p.size || 32, 10);
         const fontSize = parseInt(p.font_size || 16, 10);
         const labelSize = parseInt(p.label_font_size || 10, 10);
         const unit = p.unit || "%";
+
+        // Strict validation: Local sensor is only valid if hardware actually supports it
+        const supportsOnboard = profile.features && (profile.features.sht4x || profile.features.sht3x || profile.features.shtc3);
+        const hasValidSensor = (isLocal && supportsOnboard && sensorId !== "onboard_humidity") || !!w.entity_id;
+
+        // If no valid sensor, return static strings to avoid "ID not declared" errors
+        if (!hasValidSensor) {
+            return {
+                obj: {
+                    ...common,
+                    bg_opa: "transp",
+                    border_width: 0,
+                    widgets: [
+                        {
+                            label: {
+                                width: iconSize + 10,
+                                height: iconSize + 4,
+                                align: "top_mid",
+                                text: "\\U000F058E", // Static icon
+                                text_font: getLVGLFont("Material Design Icons", iconSize, 400),
+                                text_color: color
+                            }
+                        },
+                        {
+                            label: {
+                                width: "100%",
+                                height: fontSize + 6,
+                                align: "top_mid",
+                                y: iconSize + 2,
+                                text: `--${unit}`, // Static text
+                                text_font: getLVGLFont("Roboto", fontSize, 400),
+                                text_color: color,
+                                text_align: "center"
+                            }
+                        },
+                        ...(p.show_label ? [{
+                            label: {
+                                width: "100%",
+                                height: labelSize + 4,
+                                align: "bottom_mid",
+                                text: `"Humidity"`,
+                                text_font: getLVGLFont("Roboto", labelSize, 400),
+                                text_color: color,
+                                text_align: "center",
+                                opa: "70%"
+                            }
+                        }] : [])
+                    ]
+                }
+            };
+        }
 
         let iconLambda = '!lambda |-\n';
         iconLambda += `          if (id(${sensorId}).has_state()) {\n`;
@@ -169,7 +289,7 @@ export default {
                     text_font: getLVGLFont("Roboto", labelSize, 400),
                     text_color: color,
                     text_align: "center",
-                    opa: 180
+                    opa: "70%"
                 }
             });
         }
@@ -210,16 +330,14 @@ export default {
         const valueFontId = addFont("Roboto", 400, fontSize);
 
         const isLocal = p.is_local_sensor === true || (p.is_local_sensor !== false && !w.entity_id);
-        let sensorId = "onboard_humidity";
+        let sensorId = (w.entity_id || "").replace(/[^a-zA-Z0-9_]/g, "_");
 
         if (isLocal) {
             if (profile.features) {
                 sensorId = profile.features.sht4x ? "sht4x_humidity" : (profile.features.sht3x ? "sht3x_humidity" : (profile.features.shtc3 ? "shtc3_humidity" : "onboard_humidity"));
             }
-        } else {
-            sensorId = (w.entity_id || "").replace(/[^a-zA-Z0-9_]/g, "_");
-            if (!sensorId) sensorId = "onboard_humidity";
         }
+        if (!sensorId) sensorId = "onboard_humidity";
 
         lines.push(`        // widget:ondevice_humidity id:${w.id} type:ondevice_humidity x:${w.x} y:${w.y} w:${w.width} h:${w.height} unit:${unit} local:${isLocal} ent:${w.entity_id || ""} ${getCondProps(w)}`);
 
@@ -239,8 +357,6 @@ export default {
         if (!hasValidSensor) {
             // --- ICON ---
             lines.push(`          it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058E");`);
-            // --- VALUE ---
-            lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
         } else {
             // --- ICON ---
             lines.push(`        if (id(${sensorId}).has_state()) {`);
@@ -275,30 +391,53 @@ export default {
         if (cond) lines.push(`        }`);
     },
     onExportNumericSensors: (context) => {
-        const { lines, widgets, profile } = context;
+        // REGRESSION PROOF: Always destructure 'lines' from context to allow sensor generation
+        const { lines, widgets, isLvgl, pendingTriggers, profile } = context;
         if (!widgets) return;
 
         let needsLocalSHT = false;
         for (const w of widgets) {
             if (w.type !== "ondevice_humidity") continue;
             const p = w.props || {};
-            if (p.is_local_sensor === true || (p.is_local_sensor !== false && !w.entity_id)) {
-                needsLocalSHT = true;
-                continue;
-            }
+            const isLocal = p.is_local_sensor === true || (p.is_local_sensor !== false && !w.entity_id);
 
             let eid = (w.entity_id || "").trim();
+            if (isLocal) {
+                needsLocalSHT = true;
+                if (profile.features) {
+                    eid = profile.features.sht4x ? "sht4x_humidity" : (profile.features.sht3x ? "sht3x_humidity" : (profile.features.shtc3 ? "shtc3_humidity" : "onboard_humidity"));
+                } else {
+                    eid = "onboard_humidity";
+                }
+            } else if (eid) {
+                if (!eid.includes(".")) eid = `sensor.${eid}`;
+            }
+
             if (!eid) continue;
-            if (!eid.includes(".")) eid = `sensor.${eid}`;
 
-            const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
-            const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(eid)) ||
-                (context.seenSensorIds && context.seenSensorIds.has(safeId));
+            if (!eid) continue;
 
-            if (!alreadyDefined) {
-                if (context.seenEntityIds) context.seenEntityIds.add(eid);
-                if (context.seenSensorIds) context.seenSensorIds.add(safeId);
-                lines.push("- platform: homeassistant", `  id: ${safeId}`, `  entity_id: ${eid}`, "  internal: true");
+            if (isLvgl && pendingTriggers) {
+                if (!pendingTriggers.has(eid)) {
+                    pendingTriggers.set(eid, new Set());
+                }
+                pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
+            }
+
+            // Explicitly export the Home Assistant sensor block if it's not a local sensor
+            if (!isLocal && eid.startsWith("sensor.")) {
+                const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+                if (context.seenSensorIds && !context.seenSensorIds.has(safeId)) {
+                    if (context.seenSensorIds.size === 0) {
+                        lines.push("");
+                        lines.push("# External Humidity Sensors");
+                    }
+                    context.seenSensorIds.add(safeId);
+                    lines.push("- platform: homeassistant");
+                    lines.push(`  id: ${safeId}`);
+                    lines.push(`  entity_id: ${eid}`);
+                    lines.push(`  internal: true`);
+                }
             }
         }
 
@@ -312,13 +451,15 @@ export default {
                 const shtPlatform = hasSht4x ? "sht4x" : (hasSht3x ? "sht3xd" : "shtcx");
                 const humId = hasSht4x ? "sht4x_humidity" : (hasSht3x ? "sht3x_humidity" : "shtc3_humidity");
 
-                // Check both numericSensorLines (lines) and global seenSensorIds
-                const alreadyDefined = (context.seenSensorIds && context.seenSensorIds.has(shtId)) || lines.some(l => l.includes(`id: ${shtId}`));
+                const checkLines = context.mainLines || lines;
+                const alreadyDefined = (context.seenSensorIds && context.seenSensorIds.has(shtId)) ||
+                    checkLines.some(l => l.includes(`id: ${shtId}`));
 
                 if (!alreadyDefined) {
-                    if (context.seenSensorIds) context.seenSensorIds.add(shtId);
-                    if (context.seenSensorIds) context.seenSensorIds.add(humId);
-
+                    if (context.seenSensorIds) {
+                        context.seenSensorIds.add(shtId);
+                        context.seenSensorIds.add(humId);
+                    }
                     lines.push(`- platform: ${shtPlatform}`, `  id: ${shtId}`);
                     lines.push(`  humidity:`, `    id: ${humId}`, `    internal: true`);
                     lines.push(`  update_interval: 60s`);

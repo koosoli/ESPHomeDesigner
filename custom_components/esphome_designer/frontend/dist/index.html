@@ -7,9 +7,9 @@
     // Fix for HA Sidebar disappearing on reload:
     // If we are the top window (not in iframe) but we are the editor index.html,
     // it means the user reloaded the frame directly. Redirect back to the HA panel.
-    if (window.top === window.self && window.location.pathname.includes('/esphome-designer/index.html')) {
-      const haPanelPath = window.location.pathname.replace('/index.html', '');
-      window.location.replace(haPanelPath);
+    if (window.top === window.self && window.location.pathname.includes('/esphome-designer/editor/index.html')) {
+      // Redirect back to the Home Assistant panel URL
+      window.location.replace('/esphome-designer');
     }
   </script>
 
@@ -25,7 +25,7 @@
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
   <link rel="icon" href="./assets/favicon-BFR8sXii.png" type="image/x-icon">
-  <script type="module" crossorigin src="./assets/main-4KF2zEyr.js"></script>
+  <script type="module" crossorigin src="./assets/main-C9acjiVQ.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/main-B86mDjbK.css">
 </head>
 
@@ -33,7 +33,7 @@
   <header class="main-header" role="banner">
     <div class="main-header-title">
       <img src="./assets/logo_header-CUGdaeC6.png" alt="ESPHome Designer" class="logo-image">
-      <span><small style="opacity: 0.5; margin-left: 8px;">Pre_0.9b181</small> <span id="currentLayoutDevice"
+      <span><small style="opacity: 0.5; margin-left: 8px;">Pre_0.9b214</small> <span id="currentLayoutDevice"
           style="margin-left:8px; color:var(--accent);"></span></span>
     </div>
     <div class="main-header-actions desktop-only">
@@ -892,11 +892,10 @@
           </div>
         </div>
       </div>
+      <div class="modal-actions">
+        <button id="deviceSettingsSave" class="btn btn-secondary">Apply Settings</button>
+      </div>
     </div>
-    <div class="modal-actions">
-      <button id="deviceSettingsSave" class="btn btn-secondary">Apply Settings</button>
-    </div>
-  </div>
   </div>
 
   <!-- Save Profile Modal -->
@@ -1075,9 +1074,9 @@
           </div>
         </div>
       </div>
-    </div>
-    <div class="modal-actions">
-      <button id="editorSettingsDone" class="btn btn-secondary">Done</button>
+      <div class="modal-actions">
+        <button id="editorSettingsDone" class="btn btn-secondary">Done</button>
+      </div>
     </div>
   </div>
 
@@ -1125,7 +1124,6 @@
         <button id="aiPromptApply" class="btn btn-success" style="display:none;">Apply</button>
       </div>
     </div>
-  </div>
   </div>
 
   <!-- Scripts -->

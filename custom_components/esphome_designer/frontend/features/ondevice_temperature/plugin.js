@@ -92,6 +92,9 @@ export default {
     id: "ondevice_temperature",
     name: "Temperature",
     category: "SHT4x",
+    // CRITICAL ARCHITECTURAL NOTE: Protocol-based modes (OEPL/OpenDisplay) do not support 
+    // on-device hardware sensors.
+    supportedModes: ['lvgl', 'direct'],
     defaults: {
         width: 60,
         height: 60,
@@ -106,18 +109,87 @@ export default {
         is_local_sensor: true
     },
     render,
+    exportOpenDisplay: (w, { layout, page }) => {
+        const p = w.props || {};
+        const entityId = (w.entity_id || p.weather_entity || "sensor.temperature").trim();
+        const size = p.size || 32;
+        const fontSize = p.font_size || 16;
+        const color = p.color || "black";
+        const unit = p.unit || "°C";
+
+        let temperature = 22.5;
+        if (window.AppState && window.AppState.entityStates && entityId) {
+            const stateSet = window.AppState.entityStates[entityId];
+            if (stateSet && stateSet.state) temperature = parseFloat(stateSet.state);
+        }
+
+        let iconName = "thermometer";
+        if (temperature <= 10) iconName = "thermometer-low";
+        else if (temperature >= 30) iconName = "thermometer-high";
+
+        let displayTemp = temperature;
+        if (unit === "°F") displayTemp = (temperature * 9 / 5) + 32;
+
+        return [
+            {
+                type: "draw_icon",
+                value: iconName,
+                x: Math.round(w.x + w.width / 2),
+                y: Math.round(w.y),
+                size: size,
+                color: color
+            },
+            {
+                type: "draw_text",
+                text: `${displayTemp.toFixed(1)}${unit}`,
+                x: Math.round(w.x + w.width / 2),
+                y: Math.round(w.y + size + 2),
+                size: fontSize,
+                color: color
+            }
+        ];
+    },
+    exportOEPL: (w, { layout, page }) => {
+        const p = w.props || {};
+        const entityId = (w.entity_id || "sensor.temperature").trim();
+        const size = p.size || 32;
+        const fontSize = p.font_size || 16;
+        const color = p.color || "black";
+        const unit = p.unit || "°C";
+
+        const iconTemplate = `{% set t = states('${entityId}') | float %}` +
+            `{% if t <= 10 %}thermometer-low{% elif t >= 30 %}thermometer-high{% else %}thermometer{% endif %}`;
+
+        return [
+            {
+                type: "icon",
+                value: iconTemplate,
+                x: Math.round(w.x + w.width / 2),
+                y: Math.round(w.y),
+                size: size,
+                color: color,
+                anchor: "mt"
+            },
+            {
+                type: "text",
+                value: `{{ states('${entityId}') }}${unit}`,
+                x: Math.round(w.x + w.width / 2),
+                y: Math.round(w.y + size + 2),
+                size: fontSize,
+                color: color,
+                align: "center",
+                anchor: "mt"
+            }
+        ];
+    },
     exportLVGL: (w, { common, convertColor, getLVGLFont, profile }) => {
         const p = w.props || {};
         const isLocal = p.is_local_sensor === true || (p.is_local_sensor !== false && !w.entity_id);
-        let sensorId = "onboard_temperature";
-        if (isLocal) {
-            if (profile.features) {
-                sensorId = profile.features.sht4x ? "sht4x_temperature" : (profile.features.sht3x ? "sht3x_temperature" : (profile.features.shtc3 ? "shtc3_temperature" : "onboard_temperature"));
-            }
-        } else {
-            sensorId = (w.entity_id || "").replace(/[^a-zA-Z0-9_]/g, "_");
-            if (!sensorId) sensorId = "onboard_temperature";
+        let sensorId = (w.entity_id || "").replace(/[^a-zA-Z0-9_]/g, "_");
+        if (isLocal && profile.features) {
+            sensorId = profile.features.sht4x ? "sht4x_temperature" : (profile.features.sht3x ? "sht3x_temperature" : (profile.features.shtc3 ? "shtc3_temperature" : "onboard_temperature"));
         }
+        if (!sensorId) sensorId = "onboard_temperature";
 
         const color = convertColor(p.color || "black");
         const iconSize = parseInt(p.size || 32, 10);
@@ -168,7 +240,7 @@ export default {
                                 text_font: getLVGLFont("Roboto", parseInt(p.label_font_size || 10, 10), 400),
                                 text_color: convertColor(p.color || "black"),
                                 text_align: "center",
-                                opa: 180
+                                opa: "70%"
                             }
                         }] : [])
                     ]
@@ -232,7 +304,7 @@ export default {
                     text_font: getLVGLFont("Roboto", labelSize, 400),
                     text_color: color,
                     text_align: "center",
-                    opa: 180
+                    opa: "70%"
                 }
             });
         }
@@ -273,17 +345,14 @@ export default {
         const valueFontId = addFont("Roboto", 400, fontSize);
 
         const isLocal = p.is_local_sensor === true || (p.is_local_sensor !== false && !w.entity_id);
-        let sensorId = "onboard_temperature";
+        let sensorId = (w.entity_id || "").replace(/[^a-zA-Z0-9_]/g, "_");
 
         if (isLocal) {
-            // Use consistent ID with template_sensor_bar if possible
             if (profile.features) {
                 sensorId = profile.features.sht4x ? "sht4x_temperature" : (profile.features.sht3x ? "sht3x_temperature" : (profile.features.shtc3 ? "shtc3_temperature" : "onboard_temperature"));
             }
-        } else {
-            sensorId = (w.entity_id || "").replace(/[^a-zA-Z0-9_]/g, "_");
-            if (!sensorId) sensorId = "onboard_temperature";
         }
+        if (!sensorId) sensorId = "onboard_temperature";
 
         lines.push(`        // widget:ondevice_temperature id:${w.id} type:ondevice_temperature x:${w.x} y:${w.y} w:${w.width} h:${w.height} unit:${unit} local:${isLocal} ent:${w.entity_id || ""} ${getCondProps(w)}`);
 
@@ -304,7 +373,6 @@ export default {
         const supportsOnboard = profile.features && (profile.features.sht4x || profile.features.sht3x || profile.features.shtc3);
         const hasValidSensor = (isLocal && supportsOnboard && sensorId !== "onboard_temperature") || !!w.entity_id;
 
-        // --- ICON ---
         if (hasValidSensor) {
             lines.push(`        if (id(${sensorId}).has_state()) {`);
             lines.push(`          if (id(${sensorId}).state <= 10) {`);
@@ -344,42 +412,62 @@ export default {
         if (cond) lines.push(`        }`);
     },
     onExportNumericSensors: (context) => {
-        const { lines, widgets, profile } = context;
+        // REGRESSION PROOF: Always destructure 'lines' from context to allow sensor generation
+        const { lines, widgets, isLvgl, pendingTriggers, profile } = context;
         if (!widgets) return;
 
         let needsLocalSHT = false;
         for (const w of widgets) {
             if (w.type !== "ondevice_temperature") continue;
             const p = w.props || {};
-            if (p.is_local_sensor === true || (p.is_local_sensor !== false && !w.entity_id)) {
-                needsLocalSHT = true;
-                continue;
-            }
+            const isLocal = p.is_local_sensor === true || (p.is_local_sensor !== false && !w.entity_id);
 
             let eid = (w.entity_id || "").trim();
+            if (isLocal) {
+                needsLocalSHT = true;
+                if (profile.features) {
+                    eid = profile.features.sht4x ? "sht4x_temperature" : (profile.features.sht3x ? "sht3x_temperature" : (profile.features.shtc3 ? "shtc3_temperature" : "onboard_temperature"));
+                } else {
+                    eid = "onboard_temperature";
+                }
+            } else if (eid) {
+                if (!eid.includes(".")) eid = `sensor.${eid}`;
+            }
+
             if (!eid) continue;
-            if (!eid.includes(".")) eid = `sensor.${eid}`;
 
-            const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
-            const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(eid)) ||
-                (context.seenSensorIds && context.seenSensorIds.has(safeId));
+            if (isLvgl && pendingTriggers) {
+                if (!pendingTriggers.has(eid)) {
+                    pendingTriggers.set(eid, new Set());
+                }
+                pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
+            }
 
-            if (!alreadyDefined) {
-                if (context.seenEntityIds) context.seenEntityIds.add(eid);
-                if (context.seenSensorIds) context.seenSensorIds.add(safeId);
-                lines.push("- platform: homeassistant", `  id: ${safeId}`, `  entity_id: ${eid}`, "  internal: true");
+            // Explicitly export the Home Assistant sensor block if it's not a local sensor
+            if (!isLocal && eid.startsWith("sensor.")) {
+                const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+                if (context.seenSensorIds && !context.seenSensorIds.has(safeId)) {
+                    if (context.seenSensorIds.size === 0) {
+                        lines.push("");
+                        lines.push("# External Temperature Sensors");
+                    }
+                    context.seenSensorIds.add(safeId);
+                    lines.push("- platform: homeassistant");
+                    lines.push(`  id: ${safeId}`);
+                    lines.push(`  entity_id: ${eid}`);
+                    lines.push(`  internal: true`);
+                }
             }
         }
 
         if (needsLocalSHT && profile.features) {
-            // Strict check: Only generate if hardware actually supports it
+            // ... (rest of local sensor generation logic remains the same)
             const hasSht4x = !!profile.features.sht4x;
             const hasSht3x = !!profile.features.sht3x;
             const hasShtc3 = !!profile.features.shtc3;
 
             if (hasSht4x || hasSht3x || hasShtc3) {
                 const shtId = hasSht4x ? "sht4x_sensor" : (hasSht3x ? "sht3x_sensor" : "shtc3_sensor");
-                // Fix: Hardware generator uses 'sht3xd' and 'shtcx' (for SHTC3)
                 const shtPlatform = hasSht4x ? "sht4x" : (hasSht3x ? "sht3xd" : "shtcx");
                 const tempId = hasSht4x ? "sht4x_temperature" : (hasSht3x ? "sht3x_temperature" : "shtc3_temperature");
 
@@ -394,20 +482,9 @@ export default {
                         context.seenSensorIds.add(tempId);
                     }
                     lines.push(`- platform: ${shtPlatform}`, `  id: ${shtId}`);
-                    // For shtcx/sht3xd we need address/i2c but hardware_generators.js usually handles the main block.
-                    // However, plugins add *extra* sensors.
-                    // If hardware_generators.js ALREADY generated the sensor block (checked by id), we skip.
-                    // But here we are checking if it's NOT present.
-                    // Note: hardware_generators.js generates these sensors if profile.features.sht* is present.
-                    // So we mostly need to ensure we don't duplicate or add if missing.
-                    // Actually, hardware_generators.js logic: if (hasSht4x) generate...
-                    // So if we are here, likely hardware_generators.js didn't run or we are adding it dynamically?
-                    // No, hardware_generators usually runs first.
-                    // But let's be safe and minimal.
                     lines.push(`  temperature:`, `    id: ${tempId}`, `    internal: true`);
                     lines.push(`  update_interval: 60s`);
 
-                    // Add required address/i2c if missing (simple fallback)
                     if (shtPlatform === "shtcx" && !lines.some(l => l.includes("address: 0x70"))) {
                         lines.push("    address: 0x70");
                         lines.push("    i2c_id: bus_a");
@@ -415,10 +492,6 @@ export default {
                     if (shtPlatform === "sht3xd" && !lines.some(l => l.includes("address: 0x44"))) {
                         lines.push("    address: 0x44");
                     }
-                } else {
-                    // SHT platform exists, check if temperature sub-component exists
-                    // This is hard to inject into existing block without parsing.
-                    // But typically if the platform exists, the sensors are defined.
                 }
             }
         }

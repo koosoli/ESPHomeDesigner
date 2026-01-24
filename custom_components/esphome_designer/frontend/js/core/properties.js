@@ -317,9 +317,12 @@ export class PropertiesPanel {
         }
 
         // Legacy Widget Specific Logic
-        // this.createSection("Widget Properties"); // Let legacy create its own sections
-        this.renderLegacyProperties(widget, type);
-        // this.endSection();
+        const mode = AppState.settings.renderingMode || 'lvgl';
+        if (mode === 'oepl' || mode === 'opendisplay') {
+            this.renderProtocolProperties(widget, type);
+        } else {
+            this.renderLegacyProperties(widget, type);
+        }
 
         // === GRID CELL PROPERTIES (for LVGL widgets in grid layout) ===
         this.createSection("Grid Layout", false);
@@ -536,6 +539,181 @@ export class PropertiesPanel {
             }
         };
         this.getContainer().appendChild(settingsBtn);
+    }
+
+    renderProtocolProperties(widget, type) {
+        const colors = getAvailableColors();
+        const props = widget.props || {};
+
+        const updateProp = (key, value) => {
+            const newProps = { ...widget.props, [key]: value };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        if (type === "text" || type === "label") {
+            this.createSection("Content", true);
+            this.addLabeledInput("Text", "text", props.text || "", (v) => updateProp("text", v));
+            this.endSection();
+
+            this.createSection("Appearance", true);
+            this.addLabeledInput("Font Size", "number", props.font_size || 20, (v) => updateProp("font_size", parseInt(v, 10)));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
+
+            const alignOptions = ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"];
+            this.addSelect("Align", props.text_align || "TOP_LEFT", alignOptions, (v) => updateProp("text_align", v));
+            this.endSection();
+        }
+        else if (type === "icon") {
+            this.createSection("Icon", true);
+            this.addLabeledInputWithIconPicker("Icon Code", "text", props.code || "F0595", (v) => updateProp("code", v), widget);
+            this.addLabeledInput("Size", "number", props.size || 48, (v) => updateProp("size", parseInt(v, 10)));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.endSection();
+        }
+        else if (type === "sensor_text") {
+            this.createSection("Data Source", true);
+            this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
+                AppState.updateWidget(widget.id, { entity_id: v });
+            }, widget);
+            this.addLabeledInput("Title/Label", "text", widget.title || "", (v) => {
+                AppState.updateWidget(widget.id, { title: v });
+            });
+            this.endSection();
+
+            this.createSection("Format", false);
+            this.addSelect("Display Format", props.value_format || "label_value", [
+                { value: "label_value", label: "Label: Value & Unit" },
+                { value: "label_value_no_unit", label: "Label: Value Only" },
+                { value: "label_newline_value", label: "Label [newline] Value & Unit" },
+                { value: "label_newline_value_no_unit", label: "Label [newline] Value Only" },
+                { value: "value_only", label: "Value & Unit" },
+                { value: "value_only_no_unit", label: "Value Only" }
+            ], (v) => updateProp("value_format", v));
+            this.addLabeledInput("Precision", "number", props.precision !== undefined ? props.precision : 2, (v) => updateProp("precision", parseInt(v, 10)));
+            this.addLabeledInput("Unit", "text", props.unit || "", (v) => updateProp("unit", v));
+            this.addCompactPropertyRow(() => {
+                this.addLabeledInput("Prefix", "text", props.prefix || "", (v) => updateProp("prefix", v));
+                this.addLabeledInput("Postfix", "text", props.postfix || "", (v) => updateProp("postfix", v));
+            });
+            this.endSection();
+
+            this.createSection("Appearance", true);
+            this.addLabeledInput("Label Size", "number", props.label_font_size || 14, (v) => updateProp("label_font_size", parseInt(v, 10)));
+            this.addLabeledInput("Value Size", "number", props.value_font_size || 20, (v) => updateProp("value_font_size", parseInt(v, 10)));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
+
+            const alignOptions = ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"];
+            this.addSelect("Align", props.text_align || "TOP_LEFT", alignOptions, (v) => updateProp("text_align", v));
+            this.endSection();
+        }
+        else if (type === "qr_code") {
+            this.createSection("QR Content", true);
+            this.addLabeledInput("Value / URL", "text", props.value || "", (v) => updateProp("value", v));
+            this.addSelect("Error Correction", props.ecc || "LOW", ["LOW", "MEDIUM", "QUARTILE", "HIGH"], (v) => updateProp("ecc", v));
+            this.endSection();
+
+            this.createSection("Appearance", true);
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Background", props.bg_color || "white", colors, (v) => updateProp("bg_color", v));
+            this.endSection();
+        }
+        else if (type === "datetime") {
+            this.createSection("Format", true);
+            this.addSelect("Display Format", props.format || "time_date", ["time_date", "time_only", "date_only", "weekday_day_month"], (v) => updateProp("format", v));
+            this.endSection();
+
+            this.createSection("Appearance", true);
+            this.addCompactPropertyRow(() => {
+                this.addLabeledInput("Time Font", "number", props.time_font_size || 28, (v) => updateProp("time_font_size", parseInt(v, 10)));
+                this.addLabeledInput("Date Font", "number", props.date_font_size || 16, (v) => updateProp("date_font_size", parseInt(v, 10)));
+            });
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addSelect("Align", props.text_align || "CENTER", ["LEFT", "CENTER", "RIGHT"], (v) => updateProp("text_align", v));
+            this.endSection();
+        }
+        else if (type === "image" || type === "online_image") {
+            this.createSection("Image Source", true);
+            if (type === "image") {
+                this.addLabeledInput("Asset Path", "text", props.path || "", (v) => updateProp("path", v));
+            } else {
+                this.addLabeledInput("Image URL", "text", props.url || "", (v) => updateProp("url", v));
+                this.addLabeledInput("Refresh (s)", "number", props.interval_s || 300, (v) => updateProp("interval_s", parseInt(v, 10)));
+            }
+            this.addCheckbox("Invert Colors", !!props.invert, (v) => updateProp("invert", v));
+            this.endSection();
+        }
+        else if (type === "weather_icon") {
+            this.createSection("Weather", true);
+            this.addLabeledInputWithPicker("Weather Entity", "text", widget.entity_id || props.weather_entity || "weather.forecast_home", (v) => {
+                AppState.updateWidget(widget.id, { entity_id: v });
+            }, widget);
+            this.endSection();
+
+            this.createSection("Appearance", true);
+            this.addLabeledInput("Icon Size", "number", props.size || 48, (v) => updateProp("size", parseInt(v, 10)));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.endSection();
+        }
+        else if (type === "weather_forecast") {
+            this.createSection("Forecasting", true);
+            this.addLabeledInputWithPicker("Weather Entity", "text", widget.entity_id || props.weather_entity || "weather.forecast_home", (v) => {
+                AppState.updateWidget(widget.id, { entity_id: v });
+            }, widget);
+            this.addLabeledInput("Days", "number", props.days || 5, (v) => updateProp("days", parseInt(v, 10)));
+            this.addSelect("Layout", props.layout || "horizontal", ["horizontal", "vertical"], (v) => updateProp("layout", v));
+            this.endSection();
+
+            this.createSection("Appearance", true);
+            this.addColorSelector("Text Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Background", props.background_color || "white", colors, (v) => updateProp("background_color", v));
+            this.addCheckbox("Show High/Low", props.show_high_low !== false, (v) => updateProp("show_high_low", v));
+            this.endSection();
+        }
+        else if (type.startsWith("shape_") || type === "line" || type === "rounded_rect") {
+            this.createSection("Shape Style", true);
+            this.addColorSelector("Fill/Line Color", props.color || "black", colors, (v) => updateProp("color", v));
+
+            if (type !== "line") {
+                this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
+                this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+            } else {
+                this.addLabeledInput("Thickness", "number", props.thickness || 2, (v) => updateProp("thickness", parseInt(v, 10)));
+            }
+
+            if (type === "rounded_rect" || props.radius !== undefined) {
+                this.addLabeledInput("Corner Radius", "number", props.radius || 4, (v) => updateProp("radius", parseInt(v, 10)));
+            }
+            this.endSection();
+        }
+        else {
+            // Smart Generic Fallback: Include Entity & Title if they likely exist
+            const hasEntity = widget.entity_id !== undefined || props.weather_entity !== undefined || type.includes("sensor") || type.includes("icon");
+
+            if (hasEntity) {
+                this.createSection("Data Source", true);
+                this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || props.weather_entity || "", (v) => {
+                    if (props.weather_entity !== undefined) updateProp("weather_entity", v);
+                    else AppState.updateWidget(widget.id, { entity_id: v });
+                }, widget);
+
+                if (widget.title !== undefined) {
+                    this.addLabeledInput("Title/Label", "text", widget.title || "", (v) => {
+                        AppState.updateWidget(widget.id, { title: v });
+                    });
+                }
+                this.endSection();
+            }
+
+            this.createSection("Appearance", true);
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            if (props.bg_color !== undefined) {
+                this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
+            }
+            if (props.size !== undefined) {
+                this.addLabeledInput("Size", "number", props.size || 24, (v) => updateProp("size", parseInt(v, 10)));
+            }
+            this.endSection();
+        }
     }
 
     renderLegacyProperties(widget, type) {
@@ -871,7 +1049,24 @@ export class PropertiesPanel {
             this.addLabeledInput("Duration", "text", props.duration || "1h", (v) => updateProp("duration", v));
             this.endSection();
 
+            this.createSection("Historical Data", false);
+            this.addCheckbox("Use HA History (Attribute)", !!props.use_ha_history, (v) => updateProp("use_ha_history", v));
+            if (props.use_ha_history) {
+                this.addLabeledInput("HA Attribute", "text", props.history_attribute || "history", (v) => updateProp("history_attribute", v));
+                this.addLabeledInput("Points to keep", "number", props.history_points || 100, (v) => updateProp("history_points", parseInt(v, 10)));
+                this.addCheckbox("Smooth Data (Moving Avg)", !!props.history_smoothing, (v) => updateProp("history_smoothing", v));
+                this.addHint("HA entity must have an attribute that is a JSON array of numbers.");
+            }
+            this.endSection();
+
             this.createSection("Appearance", true);
+            this.addCheckbox("Auto-scale Y Axis", props.auto_scale !== false, (v) => updateProp("auto_scale", v));
+            if (!(props.auto_scale !== false)) {
+                this.addCompactPropertyRow(() => {
+                    this.addLabeledInput("Min Value", "number", props.min_value || "0", (v) => updateProp("min_value", v));
+                    this.addLabeledInput("Max Value", "number", props.max_value || "100", (v) => updateProp("max_value", v));
+                });
+            }
             this.addColorSelector("Line Color", props.color || "black", colors, (v) => updateProp("color", v));
             this.addSelect("Line Type", props.line_type || "SOLID", ["SOLID", "DASHED", "DOTTED"], (v) => updateProp("line_type", v));
             this.addLabeledInput("Line Thickness", "number", props.line_thickness || 3, (v) => updateProp("line_thickness", parseInt(v, 10)));
@@ -879,10 +1074,6 @@ export class PropertiesPanel {
             this.addCheckbox("Show Grid", props.grid !== false, (v) => updateProp("grid", v));
             this.addLabeledInput("X Grid Interval", "text", props.x_grid || "1h", (v) => updateProp("x_grid", v));
             this.addLabeledInput("Y Grid Step", "text", props.y_grid || "auto", (v) => updateProp("y_grid", v));
-            this.addCompactPropertyRow(() => {
-                this.addLabeledInput("Min Value", "number", props.min_value || "", (v) => updateProp("min_value", v));
-                this.addLabeledInput("Max Value", "number", props.max_value || "", (v) => updateProp("max_value", v));
-            });
             this.endSection();
         }
         else if (type === "icon") {
@@ -1154,6 +1345,18 @@ export class PropertiesPanel {
             this.addCheckbox("Show Previous", props.show_prev !== false, (v) => updateProp("show_prev", v));
             this.addCheckbox("Show Home", props.show_home !== false, (v) => updateProp("show_home", v));
             this.addCheckbox("Show Next", props.show_next !== false, (v) => updateProp("show_next", v));
+            this.endSection();
+
+            this.createSection("Page Targets", false);
+            if (props.show_prev !== false) {
+                this.addPageSelector("Prev Button Target", props.prev_target || "relative_prev", (v) => updateProp("prev_target", v));
+            }
+            if (props.show_home !== false) {
+                this.addPageSelector("Home Button Target", props.home_target || "home", (v) => updateProp("home_target", v));
+            }
+            if (props.show_next !== false) {
+                this.addPageSelector("Next Button Target", props.next_target || "relative_next", (v) => updateProp("next_target", v));
+            }
             this.endSection();
 
             this.createSection("Appearance", true);
@@ -1990,6 +2193,28 @@ export class PropertiesPanel {
         wrap.appendChild(lbl);
         wrap.appendChild(select);
         this.getContainer().appendChild(wrap);
+    }
+
+    /**
+     * Specialized select for choosing a project page
+     */
+    addPageSelector(label, value, onChange) {
+        const pages = AppState.project?.pages || [];
+        const options = [
+            { value: "relative_prev", label: "« Previous (Automatic)" },
+            { value: "relative_next", label: "Next (Automatic) »" },
+            { value: "home", label: "🏠 Home / Dashboard" }
+        ];
+
+        // Add specific pages
+        pages.forEach((page, idx) => {
+            options.push({
+                value: idx.toString(),
+                label: `Page ${idx + 1}: ${page.name || 'Untitled'}`
+            });
+        });
+
+        this.addSelect(label, value, options, onChange);
     }
 
     addCheckbox(label, value, onChange) {

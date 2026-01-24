@@ -57,10 +57,18 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
     let rollerOptions = p.options || "";
     if (Array.isArray(rollerOptions)) rollerOptions = rollerOptions.map(String);
     else rollerOptions = String(rollerOptions).split("\n").filter(o => o.trim() !== "");
+
+    let selectedIdx = p.selected_index;
+    if (w.entity_id) {
+        const safeId = w.entity_id.replace(/[^a-zA-Z0-9_]/g, "_");
+        selectedIdx = `!lambda "return (int)id(${safeId}).state;"`;
+    }
+
     return {
         roller: {
             ...common,
             options: rollerOptions,
+            selected_index: selectedIdx,
             visible_row_count: p.visible_row_count,
             bg_color: convertColor(p.bg_color),
             text_color: convertColor(p.color),
@@ -69,6 +77,25 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
             opa: formatOpacity(p.opa)
         }
     };
+};
+
+const onExportNumericSensors = (context) => {
+    const { widgets, isLvgl, pendingTriggers } = context;
+    if (!widgets) return;
+
+    for (const w of widgets) {
+        if (w.type !== "lvgl_roller") continue;
+
+        const eid = (w.entity_id || w.props?.entity_id || "").trim();
+        if (!eid) continue;
+
+        if (isLvgl && pendingTriggers) {
+            if (!pendingTriggers.has(eid)) {
+                pendingTriggers.set(eid, new Set());
+            }
+            pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
+        }
+    }
 };
 
 export default {
@@ -86,5 +113,6 @@ export default {
         opa: 255
     },
     render,
-    exportLVGL
+    exportLVGL,
+    onExportNumericSensors
 };

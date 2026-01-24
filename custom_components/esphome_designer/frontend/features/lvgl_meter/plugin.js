@@ -111,14 +111,48 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
     return {
         meter: {
             ...common,
-            value: meterValue,
-            min_value: p.min || 0,
-            max_value: p.max || 100,
             bg_color: convertColor(p.bg_color || "lightgray"),
-            indicator: { color: convertColor(p.indicator_color || "red") },
-            opa: formatOpacity(p.opa)
+            opa: formatOpacity(p.opa),
+            scales: [{
+                range_from: p.min || 0,
+                range_to: p.max || 100,
+                indicators: [{
+                    line: {
+                        value: meterValue,
+                        color: convertColor(p.indicator_color || "red"),
+                        width: parseInt(p.indicator_width || 4, 10)
+                    }
+                }]
+            }]
         }
     };
+};
+
+const onExportNumericSensors = (context) => {
+    const { widgets, isLvgl, pendingTriggers } = context;
+    if (!widgets) return;
+
+    for (const w of widgets) {
+        if (w.type !== "lvgl_meter") continue;
+
+        let entityId = (w.entity_id || w.props?.entity_id || "").trim();
+        if (!entityId) continue;
+
+        // Ensure sensor. prefix if missing
+        if (!entityId.includes(".")) {
+            entityId = `sensor.${entityId}`;
+        }
+
+        if (isLvgl && pendingTriggers) {
+            if (!pendingTriggers.has(entityId)) {
+                pendingTriggers.set(entityId, new Set());
+            }
+            pendingTriggers.get(entityId).add(`- lvgl.widget.refresh: ${w.id}`);
+        }
+
+        // We let the safety fix handle the sensor generation for HA entities.
+        // It will deduplicate and merge triggers automatically.
+    }
 };
 
 export default {
@@ -137,5 +171,6 @@ export default {
         opa: 255
     },
     render,
-    exportLVGL
+    exportLVGL,
+    onExportNumericSensors
 };

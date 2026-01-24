@@ -38,7 +38,7 @@ const exportLVGL = (w, { common, convertColor }) => {
     const p = w.props || {};
     let src = (p.src || p.path || p.url || "symbol_image");
     return {
-        img: {
+        image: {
             ...common,
             src: src,
             angle: (p.rotation || 0),

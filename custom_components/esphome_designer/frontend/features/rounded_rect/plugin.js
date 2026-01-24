@@ -17,10 +17,8 @@ const render = (el, widget, { getColorStyle }) => {
     el.style.borderRadius = `${radius}px`;
     el.style.boxSizing = "border-box";
 
-    if (props.opacity && props.opacity < 100) {
+    if (props.opacity !== undefined && props.opacity < 100) {
         el.style.opacity = props.opacity / 100;
-    } else {
-        el.style.opacity = 1;
     }
 };
 
@@ -43,6 +41,7 @@ export default {
     id: "rounded_rect",
     name: "Rounded Rectangle",
     category: "Shapes",
+    supportedModes: ['lvgl', 'direct', 'oepl', 'opendisplay'],
     defaults: {
         width: 100,
         height: 100,
@@ -56,6 +55,34 @@ export default {
         opa: 255
     },
     render,
+    exportOpenDisplay: (w, { layout, page }) => {
+        const p = w.props || {};
+        return {
+            type: "draw_rect",
+            x: Math.round(w.x),
+            y: Math.round(w.y),
+            w: Math.round(w.width),
+            h: Math.round(w.height),
+            fill: p.fill ? (p.bg_color || p.color || "black") : null,
+            outline: p.border_color || p.color || "black",
+            width: p.border_width || 1,
+            radius: p.radius || 0
+        };
+    },
+    exportOEPL: (w, { layout, page }) => {
+        const p = w.props || {};
+        return {
+            type: "rectangle",
+            x_start: Math.round(w.x),
+            y_start: Math.round(w.y),
+            x_end: Math.round(w.x + w.width),
+            y_end: Math.round(w.y + w.height),
+            fill: p.fill ? (p.bg_color || p.color || "black") : null,
+            outline: p.border_color || p.color || "black",
+            width: p.border_width || 1,
+            radius: p.radius || 0
+        };
+    },
     exportLVGL,
     export: (w, context) => {
         const {

@@ -270,38 +270,57 @@ const exportDoc = (w, context) => {
 };
 
 const onExportNumericSensors = (context) => {
-    const { lines, widgets } = context;
-    const hasWeather = widgets.some(w => w.type === "weather_forecast");
+    // REGRESSION PROOF: Always destructure 'lines' from context to allow sensor generation
+    const { lines, widgets, isLvgl, pendingTriggers } = context;
+    const weatherWidgets = widgets.filter(w => w.type === "weather_forecast");
+    if (weatherWidgets.length === 0) return;
 
-    if (hasWeather) {
-        let addedAny = false;
+    weatherWidgets.forEach(w => {
+        // Register triggers for all 15 sensors
         for (let day = 0; day < 5; day++) {
+            const sensors = [
+                `sensor.weather_forecast_day_${day}_high`,
+                `sensor.weather_forecast_day_${day}_low`,
+                `sensor.weather_forecast_day_${day}_condition`
+            ];
+
+            sensors.forEach(sid => {
+                if (isLvgl && pendingTriggers) {
+                    if (!pendingTriggers.has(sid)) pendingTriggers.set(sid, new Set());
+                    pendingTriggers.get(sid).add(`- lvgl.widget.refresh: ${w.id}`);
+                }
+            });
+        }
+
+        // Explicitly export the Home Assistant sensor blocks for temperature highs and lows
+        const tempUnit = w.props?.temp_unit || "C";
+        const unitSymbol = tempUnit === "F" ? "°F" : "°C";
+
+        for (let day = 0; day < 5; day++) {
+            const highSid = `sensor.weather_forecast_day_${day}_high`;
+            const lowSid = `sensor.weather_forecast_day_${day}_low`;
             const highId = `weather_high_day${day}`;
             const lowId = `weather_low_day${day}`;
 
-            if (context.seenSensorIds && context.seenSensorIds.has(highId)) continue;
-
-            if (!addedAny) {
-                lines.push("");
-                lines.push("# Weather Forecast High/Low Sensors");
-                addedAny = true;
-            }
-
-            if (context.seenSensorIds) {
-                context.seenSensorIds.add(highId);
-                context.seenSensorIds.add(lowId);
-            }
-
-            lines.push("- platform: homeassistant");
-            lines.push(`  id: ${highId}`);
-            lines.push(`  entity_id: sensor.weather_forecast_day_${day}_high`);
-            lines.push(`  internal: true`);
-            lines.push("- platform: homeassistant");
-            lines.push(`  id: ${lowId}`);
-            lines.push(`  entity_id: sensor.weather_forecast_day_${day}_low`);
-            lines.push(`  internal: true`);
+            [
+                { eid: highSid, id: highId, name: `Weather High Day ${day}` },
+                { eid: lowSid, id: lowId, name: `Weather Low Day ${day}` }
+            ].forEach(s => {
+                if (context.seenSensorIds && !context.seenSensorIds.has(s.id)) {
+                    if (context.seenSensorIds.size === 0) {
+                        lines.push("");
+                        lines.push("# Weather Forecast Numeric Sensors");
+                    }
+                    context.seenSensorIds.add(s.id);
+                    lines.push("- platform: homeassistant");
+                    lines.push(`  id: ${s.id}`);
+                    lines.push(`  entity_id: ${s.eid}`);
+                    lines.push(`  unit_of_measurement: '${unitSymbol}'`);
+                    lines.push(`  internal: true`);
+                }
+            });
         }
-    }
+    });
 };
 
 const onExportTextSensors = (context) => {
@@ -370,13 +389,15 @@ const onExportTextSensors = (context) => {
     lines.push("# ============================================================================");
 };
 
-const collectRequirements = (w, { trackIcon, addFont }) => {
+const collectRequirements = (w, context) => {
+    const { trackIcon, addFont } = context;
     const p = w.props || {};
     const iconSize = parseInt(p.icon_size || 32, 10);
     const dayFS = parseInt(p.day_font_size || 12, 10);
     const tempFS = parseInt(p.temp_font_size || 14, 10);
     const family = p.font_family || "Roboto";
 
+    // Register fonts for both LVGL and Direct modes
     addFont(family, 700, dayFS);
     addFont(family, 400, tempFS);
     addFont("Material Design Icons", 400, iconSize);
@@ -388,6 +409,10 @@ export default {
     id: "weather_forecast",
     name: "Weather Forecast",
     category: "Sensors",
+    // CRITICAL ARCHITECTURAL NOTE: OEPL and OpenDisplay are excluded because this widget 
+    // requires complex HA template sensors which are not currently optimized for 
+    // those protocols.
+    supportedModes: ['lvgl', 'direct'],
     defaults: {
         weather_entity: "weather.forecast_home",
         days: 5,
@@ -501,6 +526,31 @@ export default {
                 layout: { type: "flex", flex_flow: isHorizontal ? "row" : "column", flex_align_main: "space_around", flex_align_cross: "center" },
                 widgets: widgets
             }
+        };
+    },
+    exportOpenDisplay: (w, { layout, page }) => {
+        const p = w.props || {};
+        // Return Today's summary as a single drawing object for now
+        return {
+            type: "draw_text",
+            x: Math.round(w.x),
+            y: Math.round(w.y),
+            text: "Forecast Summary",
+            size: p.day_font_size || 12,
+            color: p.color || "black"
+        };
+    },
+    exportOEPL: (w, { layout, page }) => {
+        const p = w.props || {};
+        const entityId = (w.entity_id || p.weather_entity || "weather.forecast_home").trim();
+        return {
+            type: "text",
+            value: `{{ states('${entityId}') }}`,
+            x: Math.round(w.x),
+            y: Math.round(w.y),
+            size: p.temp_font_size || 14,
+            color: p.color || "black",
+            anchor: "lt"
         };
     },
     export: exportDoc,

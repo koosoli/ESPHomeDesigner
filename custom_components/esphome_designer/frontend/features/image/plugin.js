@@ -224,6 +224,7 @@ export default {
     id: "image",
     name: "Image",
     category: "Graphics",
+    supportedModes: ['lvgl', 'direct', 'oepl', 'opendisplay'],
     defaults: {
         path: "",
         url: "",
@@ -231,6 +232,49 @@ export default {
         size: "native"
     },
     render,
+    exportOpenDisplay: (w, { layout, page }) => {
+        const p = w.props || {};
+        const url = (p.url || "").trim();
+        const path = (p.path || "").replace(/^"|"$/g, '').trim();
+
+        return {
+            type: "draw_image",
+            src: url || path || "",
+            x: Math.round(w.x),
+            y: Math.round(w.y),
+            w: Math.round(w.width),
+            h: Math.round(w.height)
+        };
+    },
+    exportOEPL: (w, { layout, page }) => {
+        const p = w.props || {};
+        const url = (p.url || "").trim();
+        const path = (p.path || "").replace(/^"|"$/g, '').trim();
+
+        if (url) {
+            return {
+                type: "online_image",
+                url: url,
+                x: Math.round(w.x),
+                y: Math.round(w.y),
+                width: Math.round(w.width),
+                height: Math.round(w.height)
+            };
+        }
+
+        if (path) {
+            return {
+                type: "image",
+                file: path,
+                x: Math.round(w.x),
+                y: Math.round(w.y),
+                width: Math.round(w.width),
+                height: Math.round(w.height)
+            };
+        }
+
+        return null;
+    },
     export: exportDoc,
     onExportComponents
 };

@@ -57,21 +57,19 @@ const render = (el, widget, { getColorStyle }) => {
 const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
     const p = w.props || {};
     return {
-        chart: {
+        lv_chart: {
             ...common,
             type: p.type || "line",
-            style: {
-                bg_color: convertColor(p.bg_color || "white"),
-                border_color: convertColor(p.color),
-                border_width: 1,
-                opa: formatOpacity(p.opa)
-            },
-            point_count: p.point_count,
+            bg_color: convertColor(p.bg_color || "white"),
+            border_color: convertColor(p.color),
+            border_width: 1,
+            opa: formatOpacity(p.opa),
+            point_count: p.point_count || 10,
             div_line_count: p.x_div_lines !== undefined || p.y_div_lines !== undefined ? {
                 x: p.x_div_lines,
                 y: p.y_div_lines
             } : undefined,
-            items: [{ line_color: convertColor(p.color), points: [0, 20, 50, 30, 80, 60, 40, 90, 50, 70] }],
+            series: [{ color: convertColor(p.color) }],
             widgets: [{
                 label: {
                     align: "top_mid",

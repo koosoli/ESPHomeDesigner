@@ -211,6 +211,21 @@ textarea {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
+.widget-list .item.incompatible {
+    opacity: 0.25 !important;
+    filter: grayscale(1) contrast(0.5) !important;
+    cursor: not-allowed !important;
+    pointer-events: auto !important;
+    border-color: transparent !important;
+    background: rgba(0, 0, 0, 0.05) !important;
+}
+
+.widget-list .item.incompatible:hover {
+    transform: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
 .widget-list .item .widget-icon {
     width: 32px;
     height: 32px;
@@ -303,6 +318,62 @@ textarea {
 
 .widget-category.expanded .category-icon {
     transform: rotate(90deg);
+}
+
+
+/* Settings Category Styles */
+.settings-category {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-3);
+    background: rgba(255, 255, 255, 0.02);
+    overflow: hidden;
+}
+
+.settings-category-header {
+    padding: var(--space-3) var(--space-4);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.03);
+    transition: background 0.2s;
+    user-select: none;
+}
+
+.settings-category-header:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.settings-category-header span:first-child {
+    font-size: 14px;
+    color: var(--accent);
+}
+
+.settings-category-header span:nth-child(2) {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.settings-category-content {
+    padding: var(--space-4);
+    display: none;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.settings-category.expanded .settings-category-content {
+    display: block;
+}
+
+.category-chevron {
+    font-size: 18px;
+    color: var(--text-muted);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.settings-category.expanded .category-chevron {
+    transform: rotate(180deg);
 }
 
 /* Hardware Group */
@@ -573,6 +644,54 @@ textarea {
     grid-template-columns: 1fr 1fr 1fr;
     gap: 6px 16px;
     margin-top: 10px;
+}
+
+.settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-8);
+    align-items: start;
+}
+
+.primary-settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4) var(--space-6);
+    grid-column: 1 / -1;
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-6);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.settings-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.settings-column.primary {
+    padding-right: var(--space-6);
+    border-right: 1px solid var(--border-subtle);
+}
+
+.settings-divider {
+    grid-column: 1 / -1;
+    height: 1px;
+    background: var(--border-subtle);
+    margin: var(--space-2) 0;
+}
+
+@media (max-width: 900px) {
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-column.primary {
+        padding-right: 0;
+        border-right: none;
+        border-bottom: 1px solid var(--border-subtle);
+        padding-bottom: var(--space-6);
+    }
 }
 
 .shortcut-item {
@@ -1041,8 +1160,9 @@ kbd {
 }
 
 .widget.hidden-widget {
-    opacity: 0.25;
-    pointer-events: none;
+    opacity: 0.2 !important;
+    filter: grayscale(1) !important;
+    pointer-events: none !important;
     /* Make it unclickable on canvas if hidden? Or maybe keep it clickable? */
     /* SquareLine makes it unclickable on canvas when hidden */
 }
@@ -1183,4 +1303,23 @@ kbd {
 
 .hierarchy-group-toggle.expanded i {
     transform: rotate(0deg);
+}
+
+/* ============================================
+   Drag Ghost (Smooth Cross-Page Dragging)
+   ============================================ */
+.drag-ghost-container {
+    filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.4));
+}
+
+.drag-ghost-widget {
+    border: 2px dashed var(--accent) !important;
+    background: rgba(var(--accent-rgb), 0.1) !important;
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.3) !important;
+}
+
+/* Source widget fades during drag */
+.widget.dragging-source {
+    opacity: 0.3 !important;
+    pointer-events: none !important;
 }

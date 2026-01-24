@@ -74,6 +74,14 @@ export class SnippetManager {
             });
         }
 
+        // Copy OEPL Service Button
+        const copyOEPLServiceBtn = document.getElementById('copyOEPLServiceBtn');
+        if (copyOEPLServiceBtn) {
+            copyOEPLServiceBtn.addEventListener('click', () => {
+                this.copyOEPLServiceToClipboard(copyOEPLServiceBtn);
+            });
+        }
+
         // Toggle YAML Panel
         const toggleYamlBtn = document.getElementById('toggleYamlBtn');
         const codePanel = document.querySelector('.code-panel');
@@ -194,6 +202,36 @@ export class SnippetManager {
                 }
 
                 try {
+                    const mode = this.adapter && this.adapter.constructor.name;
+                    const isOEPL = mode === 'OEPLAdapter';
+                    const isODP = mode === 'OpenDisplayAdapter';
+
+                    const oeplNotice = document.getElementById('oeplNotice');
+                    if (oeplNotice) oeplNotice.classList.toggle('hidden', !isOEPL);
+
+                    const odpNotice = document.getElementById('odpNotice');
+                    if (odpNotice) odpNotice.classList.toggle('hidden', !isODP);
+
+                    const titleEl = document.querySelector('.code-panel-title');
+                    if (titleEl) {
+                        // Keep the icon but change the text
+                        const b = titleEl.querySelector('button');
+                        titleEl.innerHTML = '';
+                        if (b) titleEl.appendChild(b);
+
+                        let titleText = ' ESPHome YAML';
+                        if (isOEPL) titleText = ' OpenEpaperLink JSON';
+                        if (isODP) titleText = ' OpenDisplay JSON (ODP)';
+
+                        titleEl.appendChild(document.createTextNode(titleText));
+                    }
+
+                    const copyOEPLBtn = document.getElementById('copyOEPLServiceBtn');
+                    if (copyOEPLBtn) copyOEPLBtn.style.display = isOEPL ? 'inline-block' : 'none';
+
+                    const importBtn = document.getElementById('updateLayoutBtn');
+                    if (importBtn) importBtn.style.display = 'inline-block';
+
                     const payload = window.AppState ? window.AppState.getPagesPayload() : { pages: [] };
                     this.adapter.generate(payload).then(yaml => {
                         this.lastGeneratedYaml = yaml;
@@ -460,6 +498,61 @@ export class SnippetManager {
         } catch (err) {
             Logger.error("Copy failed:", err);
             showToast("Unable to copy snippet", "error");
+        }
+    }
+
+    async copyOEPLServiceToClipboard(btnElement) {
+        const snippetBox = document.getElementById('snippetBox');
+        if (!snippetBox) return;
+
+        let jsonText = snippetBox.value || "";
+        let finalYaml = "";
+
+        try {
+            // Re-generate or parse to ensure we have the full structure
+            const serviceData = JSON.parse(jsonText);
+
+            // Apply project settings if possible
+            const entityId = AppState.settings.oeplEntityId || "open_epaper_link.0000000000000000";
+            serviceData.target.entity_id = entityId;
+            serviceData.data.dither = AppState.settings.oeplDither ?? 2;
+
+            // Simple manually formatted YAML for HA service call
+            finalYaml = `service: ${serviceData.service}\n`;
+            finalYaml += `target:\n  entity_id: ${serviceData.target.entity_id}\n`;
+            finalYaml += `data:\n`;
+            finalYaml += `  background: ${serviceData.data.background}\n`;
+            finalYaml += `  rotate: ${serviceData.data.rotate}\n`;
+            finalYaml += `  dither: ${serviceData.data.dither}\n`;
+            finalYaml += `  ttl: ${serviceData.data.ttl}\n`;
+            finalYaml += `  payload: >\n`;
+
+            // Format payload as a JSON string for the HA field (single line or nicely escapable)
+            const payloadJson = JSON.stringify(serviceData.data.payload);
+            finalYaml += `    ${payloadJson}`;
+
+            // Helper for copy
+            const originalText = btnElement.textContent;
+            if (navigator.clipboard) {
+                await navigator.clipboard.writeText(finalYaml);
+                showToast("HA Service call copied!", "success");
+            } else {
+                // Fallback for non-secure contexts
+                const textarea = document.createElement("textarea");
+                textarea.value = finalYaml;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand("copy");
+                document.body.removeChild(textarea);
+                showToast("HA Service call copied!", "success");
+            }
+
+            btnElement.textContent = "Copied!";
+            setTimeout(() => { btnElement.textContent = originalText; }, 2000);
+
+        } catch (err) {
+            Logger.error("Failed to format/copy OEPL service:", err);
+            showToast("Failed to format service call", "error");
         }
     }
 }

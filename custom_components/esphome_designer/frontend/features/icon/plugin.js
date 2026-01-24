@@ -1,6 +1,4 @@
-/**
- * MDI Icon Plugin
- */
+import { iconPickerData } from '../../js/core/constants_icons.js';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -37,6 +35,7 @@ export default {
     id: "icon",
     name: "MDI Icon",
     category: "Core",
+    supportedModes: ['lvgl', 'direct', 'oepl', 'opendisplay'],
     defaults: {
         code: "F07D0",
         width: 60,
@@ -48,11 +47,45 @@ export default {
     },
     collectRequirements: (w, context) => {
         const p = w.props || {};
+        const size = parseInt(p.size || 48, 10);
         if (p.code) {
-            context.trackIcon(p.code, p.size || 48);
+            context.trackIcon(p.code, size);
         }
+        // Register Font for LVGL and Direct
+        context.addFont("Material Design Icons", 400, size);
     },
     render,
+    exportOpenDisplay: (w, { layout, page }) => {
+        const p = w.props || {};
+        const code = (p.code || "F0595").toUpperCase().replace(/^0X/, "");
+        const entry = iconPickerData.find(d => d.code.toUpperCase() === code);
+        const name = entry ? entry.name : "information";
+
+        return {
+            type: "draw_icon",
+            value: name,
+            x: Math.round(w.x),
+            y: Math.round(w.y),
+            size: p.size || 48,
+            color: p.color || "black"
+        };
+    },
+    exportOEPL: (w, { layout, page }) => {
+        const p = w.props || {};
+        const code = (p.code || "F0595").toUpperCase().replace(/^0X/, "");
+        const entry = iconPickerData.find(d => d.code.toUpperCase() === code);
+        const name = entry ? entry.name : "information"; // Default fallback
+
+        return {
+            type: "icon",
+            value: name,
+            x: Math.round(w.x),
+            y: Math.round(w.y),
+            size: p.size || 48,
+            color: p.color || "black",
+            anchor: "lt"
+        };
+    },
     exportLVGL: (w, { common, convertColor, getLVGLFont }) => {
         const p = w.props || {};
         const code = (p.code || "F0595").replace(/^0x/i, "");

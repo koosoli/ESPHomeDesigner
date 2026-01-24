@@ -23,6 +23,11 @@ export class ProjectStore {
             deviceModel: "reterminal_e1001",
             currentLayoutId: "reterminal_e1001",
             customHardware: {},
+            protocolHardware: {
+                width: 400,
+                height: 300,
+                colorMode: 'bw'
+            },
             widgetsById: new Map()
         };
         this.reset();
@@ -49,6 +54,8 @@ export class ProjectStore {
     get deviceModel() { return this.state.deviceModel; }
     /** @returns {string} */
     get currentLayoutId() { return this.state.currentLayoutId; }
+    /** @returns {Object} */
+    get protocolHardware() { return this.state.protocolHardware; }
 
     /** @returns {import("../../types.js").PageConfig} */
     getCurrentPage() {
