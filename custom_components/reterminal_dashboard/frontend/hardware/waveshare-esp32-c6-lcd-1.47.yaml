@@ -3,10 +3,10 @@
 # ============================================================================
 # TARGET DEVICE: Waveshare ESP32-C6 LCD 1.47" 172x320
 #         - https://www.waveshare.com/esp32-c6-lcd-1.47.htm
-#         - Display Platform: ili9xxx
-#         - PSRAM: Yes (Octal, 80MHz)
-#         - Touchscreen: CST816S (I2C)
-#         - Framework: ESP-IDF with execute_from_psram
+#         - Display Platform: st7789v
+#         - PSRAM: No
+#         - Touchscreen: None
+#         - Framework: ESP-IDF
 # Name: Waveshare ESP32-C6 LCD 1.47"
 # Resolution: 172x320
 # Shape: rectangle
