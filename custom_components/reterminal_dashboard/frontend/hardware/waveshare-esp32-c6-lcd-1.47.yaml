@@ -193,39 +193,6 @@ light:
     # gamma_correct: 2.8
     default_transition_length: 2s
     restore_mode: RESTORE_DEFAULT_OFF
-    
-# Sync time with Home Assistant.
-time:
-  - platform: homeassistant
-    id: homeassistant_time
-
-sensor:
-  - platform: uptime
-    type: timestamp
-    name: Uptime
-    entity_category: diagnostic
-  # WiFi Signal sensor
-  - platform: wifi_signal
-    name: WiFi Signal
-    id: wifi_signal_db
-    icon: mdi:wifi-strength-outline
-    entity_category: diagnostic
-    update_interval: 30s
-    disabled_by_default: True
-  - platform: copy 
-    source_id: wifi_signal_db
-    name: "WiFi Signal Percent"
-    id: wifi_signal_percent
-    icon: mdi:wifi-strength-outline
-    unit_of_measurement: "%"
-    filters:
-      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
-    entity_category: "diagnostic"
-    device_class: ""
-    disabled_by_default: True
-  - platform: internal_temperature
-    entity_category: diagnostic
-    name: "Internal Temperature"
 
 output:
   - platform: ledc
