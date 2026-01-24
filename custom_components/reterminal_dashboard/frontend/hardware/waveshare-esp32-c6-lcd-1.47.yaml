@@ -219,7 +219,7 @@ display:
       ignore_strapping_warning: true
     reset_pin: $rstpin
     model: Waveshare 1.47in 172X320
-    id: tft_ha
+    id: my_display
     rotation: 0
     lambda: |-
     # __LAMBDA_PLACEHOLDER__
