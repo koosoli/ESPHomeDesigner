@@ -110,6 +110,9 @@ export class FontRegistry {
             if (glyphsets && glyphsets.length > 0) {
                 const sets = glyphsets.join(", ");
                 lines.push(`    glyphsets: [${sets}]`);
+                // Suppress warnings for glyphs in glyphsets that the font doesn't have
+                // (e.g., soft hyphen U+00AD in GF_Latin_Core missing from Inter font)
+                lines.push(`    ignore_missing_glyphs: true`);
             }
 
             // Only include manual extended glyphs if explicitly requested or if no glyphsets

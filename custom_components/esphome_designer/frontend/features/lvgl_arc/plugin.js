@@ -93,7 +93,6 @@ const render = (el, widget, { getColorStyle }) => {
         label.style.fontSize = "14px";
         label.style.color = color;
         label.style.pointerEvents = "none";
-        el.style.position = "relative";
         el.appendChild(label);
     }
 };

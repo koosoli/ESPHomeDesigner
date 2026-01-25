@@ -52,7 +52,7 @@ export function isRGBDevice() {
 export function getAvailableColors() {
     // 1. Protocol Mode Logic
     const AppState = window.AppState; // Use window ref to avoid circular import issues in utils
-    const mode = AppState?.settings?.renderingMode || 'lvgl';
+    const mode = AppState?.settings?.renderingMode || 'direct';
 
     if (mode === 'oepl' || mode === 'opendisplay') {
         const ph = AppState?.project?.protocolHardware || {};

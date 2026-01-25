@@ -9,7 +9,6 @@ const drawCalendarPreview = (el, widget, props) => {
 
     el.style.width = width + "px";
     el.style.height = height + "px";
-    el.style.position = "relative";
     el.style.backgroundColor = props.background_color || "white";
     el.style.color = props.text_color || "black";
     el.style.padding = "4px";

@@ -397,7 +397,7 @@ export class DeviceSettings {
         if (this.nameInput) this.nameInput.value = AppState.settings.device_name || "My E-Ink Display";
         if (this.modelInput) this.modelInput.value = AppState.settings.device_model || "reterminal_e1001";
 
-        if (this.renderingModeInput) this.renderingModeInput.value = AppState.settings.renderingMode || 'lvgl';
+        if (this.renderingModeInput) this.renderingModeInput.value = AppState.settings.renderingMode || 'direct';
         if (this.orientationInput) this.orientationInput.value = AppState.settings.orientation || "landscape";
         if (this.darkModeInput) this.darkModeInput.checked = !!AppState.settings.darkMode;
         if (this.extendedLatinGlyphsInput) this.extendedLatinGlyphsInput.checked = !!AppState.settings.extendedLatinGlyphs;
@@ -576,7 +576,7 @@ export class DeviceSettings {
         }
 
         // Protocol vs ESPHome Hardware Visibility
-        const mode = this.renderingModeInput ? this.renderingModeInput.value : (AppState.settings.renderingMode || 'lvgl');
+        const mode = this.renderingModeInput ? this.renderingModeInput.value : (AppState.settings.renderingMode || 'direct');
         const isProtocol = mode === 'oepl' || mode === 'opendisplay';
         const isESPHome = mode === 'lvgl' || mode === 'direct';
 
@@ -864,7 +864,7 @@ export class DeviceSettings {
         if (this.renderingModeField) {
             this.renderingModeField.style.display = 'block';
             if (this.renderingModeInput) {
-                this.renderingModeInput.value = AppState.settings.renderingMode || 'lvgl';
+                this.renderingModeInput.value = AppState.settings.renderingMode || 'direct';
             }
         }
 

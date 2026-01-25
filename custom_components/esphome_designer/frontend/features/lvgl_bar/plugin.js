@@ -11,7 +11,6 @@ const render = (el, widget, { getColorStyle }) => {
     el.style.backgroundColor = bgColor;
     el.style.borderRadius = "4px";
     el.style.overflow = "hidden";
-    el.style.position = "relative";
 
     const min = props.min || 0;
     const max = props.max || 100;

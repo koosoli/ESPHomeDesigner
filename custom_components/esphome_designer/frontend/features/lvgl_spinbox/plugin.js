@@ -32,7 +32,6 @@ const render = (el, widget, { getColorStyle }) => {
     cursor.style.width = "10px";
     cursor.style.height = "2px";
     cursor.style.backgroundColor = "blue";
-    el.style.position = "relative";
     el.appendChild(cursor);
 };
 

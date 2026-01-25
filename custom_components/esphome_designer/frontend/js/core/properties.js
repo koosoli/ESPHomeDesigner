@@ -317,7 +317,7 @@ export class PropertiesPanel {
         }
 
         // Legacy Widget Specific Logic
-        const mode = AppState.settings.renderingMode || 'lvgl';
+        const mode = AppState.settings.renderingMode || 'direct';
         if (mode === 'oepl' || mode === 'opendisplay') {
             this.renderProtocolProperties(widget, type);
         } else {

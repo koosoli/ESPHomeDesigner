@@ -17,7 +17,13 @@ export class PluginRegistry {
             "nav_next_page": "touch_area",
             "nav_previous_page": "touch_area",
             "nav_reload_page": "touch_area",
-            "puppet": "online_image"
+            "puppet": "online_image",
+            // ODP/OEPL-specific type aliases (for import compatibility)
+            "multiline": "odp_multiline",
+            "rectangle_pattern": "odp_rectangle_pattern",
+            "polygon": "odp_polygon",
+            "ellipse": "odp_ellipse",
+            "icon_sequence": "odp_icon_sequence"
         };
     }
 

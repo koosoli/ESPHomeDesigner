@@ -334,13 +334,30 @@ export function setupInteractions(canvasInstance) {
                 if (effectiveWidget.locked) return;
 
                 const selectedWidgets = AppState.getSelectedWidgets();
-                const widgetOffsets = selectedWidgets.map(w => ({
-                    id: w.id,
-                    startX: w.x,
-                    startY: w.y,
-                    clickOffsetX: (ev.clientX - rect.left) / zoom - w.x,
-                    clickOffsetY: (ev.clientY - rect.top) / zoom - w.y
-                }));
+                const widgetOffsets = selectedWidgets.map(w => {
+                    // DEBUG: Calculate widget element bounding rect vs widget data
+                    const widgetEl = canvasInstance.canvas.querySelector(`.widget[data-id="${w.id}"]`);
+                    const widgetRect = widgetEl ? widgetEl.getBoundingClientRect() : null;
+                    const expectedLeft = rect.left + w.x * zoom;
+                    const expectedTop = rect.top + w.y * zoom;
+                    
+                    if (widgetRect && (Math.abs(widgetRect.left - expectedLeft) > 2 || Math.abs(widgetRect.top - expectedTop) > 2)) {
+                        console.warn(`[DRAG DEBUG] Widget ${w.id} (${w.type}) position mismatch!`, {
+                            widgetData: { x: w.x, y: w.y },
+                            domRect: { left: widgetRect.left, top: widgetRect.top },
+                            expected: { left: expectedLeft, top: expectedTop },
+                            delta: { x: widgetRect.left - expectedLeft, y: widgetRect.top - expectedTop }
+                        });
+                    }
+                    
+                    return {
+                        id: w.id,
+                        startX: w.x,
+                        startY: w.y,
+                        clickOffsetX: (ev.clientX - rect.left) / zoom - w.x,
+                        clickOffsetY: (ev.clientY - rect.top) / zoom - w.y
+                    };
+                });
 
                 canvasInstance.dragState = {
                     mode: "move",

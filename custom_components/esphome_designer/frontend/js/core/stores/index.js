@@ -67,7 +67,7 @@ class AppStateFacade {
     }
 
     getCanvasDimensions() {
-        const mode = this.preferences.state.renderingMode || 'lvgl';
+        const mode = this.preferences.state.renderingMode || 'direct';
         if (mode === 'oepl' || mode === 'opendisplay') {
             const ph = this.project.protocolHardware;
             const orientation = this.preferences.state.orientation;
@@ -103,15 +103,22 @@ class AppStateFacade {
     // --- Persistence ---
     saveToLocalStorage() {
         if (!hasHaBackend()) {
-            localStorage.setItem('esphome-designer-layout', JSON.stringify(this.getPagesPayload()));
+            const payload = this.getPagesPayload();
+            console.log('[saveToLocalStorage] DEBUG renderingMode being saved:', payload.renderingMode);
+            localStorage.setItem('esphome-designer-layout', JSON.stringify(payload));
         }
     }
 
     loadFromLocalStorage() {
         try {
             const data = localStorage.getItem('esphome-designer-layout');
-            return data ? JSON.parse(data) : null;
+            const parsed = data ? JSON.parse(data) : null;
+            console.log('[loadFromLocalStorage] DEBUG raw data exists:', !!data);
+            console.log('[loadFromLocalStorage] DEBUG parsed renderingMode:', parsed?.renderingMode);
+            console.log('[loadFromLocalStorage] DEBUG parsed rendering_mode:', parsed?.rendering_mode);
+            return parsed;
         } catch (e) {
+            console.error('[loadFromLocalStorage] Parse error:', e);
             return null;
         }
     }
@@ -194,6 +201,12 @@ class AppStateFacade {
     }
 
     updateSettings(newSettings) {
+        // DEBUG: Track renderingMode changes
+        if (newSettings.renderingMode !== undefined) {
+            console.log('[updateSettings] DEBUG renderingMode changing to:', newSettings.renderingMode);
+            console.trace('[updateSettings] Call stack');
+        }
+
         const secretUpdates = {};
         const prefUpdates = {};
 
@@ -691,7 +704,7 @@ class AppStateFacade {
      * Incompatible widgets are marked as hidden.
      */
     syncWidgetVisibilityWithMode() {
-        const mode = this.preferences.state.renderingMode || 'lvgl';
+        const mode = this.preferences.state.renderingMode || 'direct';
         Logger.log(`[AppState] Syncing widget visibility for mode: ${mode}`);
 
         let changeCount = 0;
@@ -748,20 +761,32 @@ class AppStateFacade {
     }
 
     /**
-     * Internal check to switch rendering mode to LVGL if an LVGL-specific widget is added.
+     * Internal check to switch rendering mode if a specific widget is added.
      * @param {Object} w - The widget being added
      * @private
      */
     _checkRenderingModeForWidget(w) {
         if (!w || !w.type) return;
 
-        // Auto-detect if it's an LVGL widget
-        const isLvglWidget = w.type.startsWith('lvgl_');
+        const currentMode = this.preferences.state.renderingMode || 'direct';
 
-        if (isLvglWidget && this.preferences.state.renderingMode === 'direct') {
+        // Auto-detect if it's an LVGL, OEPL, or ODP widget
+        const isLvglWidget = w.type.startsWith('lvgl_');
+        const isOEPLWidget = w.type.startsWith('oepl_');
+        const isODPWidget = w.type.startsWith('odp_') || w.type.startsWith('opendisplay_');
+
+        if (isLvglWidget && currentMode === 'direct') {
             this.updateSettings({ renderingMode: 'lvgl' });
             Logger.log(`[AppState] Auto-switched to LVGL rendering mode because an LVGL widget (${w.type}) was added.`);
             showToast("Auto-switched to LVGL rendering mode", "info");
+        } else if (isOEPLWidget && currentMode !== 'oepl') {
+            this.updateSettings({ renderingMode: 'oepl' });
+            Logger.log(`[AppState] Auto-switched to OEPL rendering mode because an OEPL widget (${w.type}) was added.`);
+            showToast("Auto-switched to OEPL mode", "info");
+        } else if (isODPWidget && currentMode !== 'opendisplay') {
+            this.updateSettings({ renderingMode: 'opendisplay' });
+            Logger.log(`[AppState] Auto-switched to OpenDisplay (ODP) mode because an ODP widget (${w.type}) was added.`);
+            showToast("Auto-switched to ODP mode", "info");
         }
     }
 }

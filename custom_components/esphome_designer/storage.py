@@ -224,6 +224,7 @@ class DashboardStorage:
 
         Expected format is compatible with DeviceConfig.to_dict(), but we:
         - Force device_id/api_token from existing device when missing.
+        - Merge with existing data to preserve all fields.
         - Let DeviceConfig.from_dict handle defaults and validation.
         """
         # Ensure state loaded
@@ -231,22 +232,19 @@ class DashboardStorage:
             await self.async_load()
 
         existing = self.get_device(device_id)
-        base_payload: Dict[str, Any] = {}
+        
+        # Merge logic
+        merged: Dict[str, Any] = {}
         if existing:
-            base_payload = {
-                "device_id": existing.device_id,
-                "api_token": existing.api_token,
-            }
-        else:
-            base_payload = {
-                "device_id": device_id,
-                "api_token": raw_layout.get("api_token", ""),
-            }
+            merged = existing.to_dict()
+        
+        if raw_layout:
+            merged.update(raw_layout)
 
-        merged: Dict[str, Any] = {
-            **base_payload,
-            **(raw_layout or {}),
-        }
+        # Force identification
+        merged["device_id"] = device_id
+        if existing and not merged.get("api_token"):
+            merged["api_token"] = existing.api_token
 
         try:
             device = DeviceConfig.from_dict(merged)
@@ -274,8 +272,8 @@ class DashboardStorage:
         Update the default device layout from raw layout dict (from editor).
 
         This is the primary entrypoint for the editor's POST /layout.
-        Uses DeviceConfig.from_dict so new fields (orientation, dark_mode, refresh_s, props)
-        are handled automatically and remains backward compatible with older payloads.
+        Uses DeviceConfig.from_dict after merging with existing data to ensure
+        all fields (rendering_mode, hardware configs, etc.) are preserved.
         """
         # Ensure state loaded
         if self._state is None:
@@ -283,42 +281,32 @@ class DashboardStorage:
 
         # Existing default device (if any)
         existing = self.get_device("reterminal_e1001")
+        
+        # Start with current state to ensure no fields are lost when frontend omissions occur
+        merged_payload: Dict[str, Any] = {}
+        if existing:
+            merged_payload = existing.to_dict()
+        
+        # Override with all data from frontend (handles camelCase and snake_case via from_dict)
+        if raw_layout:
+            merged_payload.update(raw_layout)
 
-        # Start from existing values when available
-        base_payload: Dict[str, Any] = {
-            "device_id": (raw_layout.get("device_id") or (existing.device_id if existing else "reterminal_e1001")),
-            "api_token": raw_layout.get("api_token") or (existing.api_token if existing else ""),
-            "name": raw_layout.get("name") or (existing.name if existing else "Layout 1"),
-            "pages": raw_layout.get("pages") or (existing.pages if existing else []),
-            "current_page": raw_layout.get("current_page") if "current_page" in raw_layout else (existing.current_page if existing else 0),
-            # Pass through new root fields if present; from_dict will sanitize.
-            "orientation": raw_layout.get("orientation", getattr(existing, "orientation", "landscape") if existing else "landscape"),
-            "dark_mode": raw_layout.get("dark_mode", getattr(existing, "dark_mode", False) if existing else False),
-            
-            # Energy Saving / Night Mode
-            "sleep_enabled": raw_layout.get("sleep_enabled", getattr(existing, "sleep_enabled", False) if existing else False),
-            "sleep_start_hour": raw_layout.get("sleep_start_hour", getattr(existing, "sleep_start_hour", 0) if existing else 0),
-            "sleep_end_hour": raw_layout.get("sleep_end_hour", getattr(existing, "sleep_end_hour", 5) if existing else 5),
-            
-            # Deep Sleep
-            "deep_sleep_enabled": raw_layout.get("deep_sleep_enabled", getattr(existing, "deep_sleep_enabled", False) if existing else False),
-            "deep_sleep_interval": raw_layout.get("deep_sleep_interval", getattr(existing, "deep_sleep_interval", 600) if existing else 600),
-            
-            # Refresh Strategy
-            "manual_refresh_only": raw_layout.get("manual_refresh_only", getattr(existing, "manual_refresh_only", False) if existing else False),
-            "no_refresh_start_hour": raw_layout.get("no_refresh_start_hour", getattr(existing, "no_refresh_start_hour", None) if existing else None),
-            "no_refresh_end_hour": raw_layout.get("no_refresh_end_hour", getattr(existing, "no_refresh_end_hour", None) if existing else None),
-        }
+        # Ensure critical identification fields are present
+        if "device_id" not in merged_payload or not merged_payload["device_id"]:
+            merged_payload["device_id"] = "reterminal_e1001"
 
         try:
-            device = DeviceConfig.from_dict(base_payload)
+            device = DeviceConfig.from_dict(merged_payload)
         except Exception as exc:  # noqa: BLE001
             _LOGGER.error("%s: Failed to parse default layout: %s", DOMAIN, exc)
-            # Fall back to a minimal but valid default device
+            # Fall back to existing or a minimal but valid default device
+            if existing:
+                return existing
+                
             device = DeviceConfig(
-                device_id=base_payload["device_id"],
-                api_token=base_payload["api_token"],
-                name=base_payload["name"],
+                device_id=merged_payload.get("device_id", "reterminal_e1001"),
+                api_token=merged_payload.get("api_token", ""),
+                name=merged_payload.get("name", "Layout 1"),
                 pages=[],
                 current_page=0,
             )

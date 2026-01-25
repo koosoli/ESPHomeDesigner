@@ -84,6 +84,56 @@ export const WIDGET_CATEGORIES = [
         ]
     },
     {
+        id: 'opendisplay',
+        name: 'OpenDisplay / OEPL',
+        expanded: false,
+        icon: '<svg class="category-svg" viewBox="0 0 24 24" width="16" height="16"><rect x="3" y="4" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2" /><line x1="3" y1="9" x2="21" y2="9" stroke="currentColor" stroke-width="1" /><circle cx="6" cy="6.5" r="1" fill="currentColor" /><circle cx="9" cy="6.5" r="1" fill="currentColor" /></svg>',
+        widgets: [
+            {
+                type: 'odp_multiline',
+                label: 'Multiline Text',
+                tag: 'ODP',
+                icon: '<svg class="widget-icon" viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" /><line x1="4" y1="12" x2="18" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" /><line x1="4" y1="17" x2="14" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>'
+            },
+            {
+                type: 'odp_rectangle_pattern',
+                label: 'Rectangle Pattern',
+                tag: 'ODP',
+                icon: '<svg class="widget-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="6" height="6" fill="none" stroke="currentColor" stroke-width="1.5" /><rect x="11" y="4" width="6" height="6" fill="none" stroke="currentColor" stroke-width="1.5" /><rect x="3" y="12" width="6" height="6" fill="none" stroke="currentColor" stroke-width="1.5" /><rect x="11" y="12" width="6" height="6" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>'
+            },
+            {
+                type: 'odp_polygon',
+                label: 'Polygon',
+                tag: 'ODP',
+                icon: '<svg class="widget-icon" viewBox="0 0 24 24"><polygon points="12,3 21,10 18,20 6,20 3,10" fill="none" stroke="currentColor" stroke-width="2" /></svg>'
+            },
+            {
+                type: 'odp_ellipse',
+                label: 'Ellipse',
+                tag: 'ODP',
+                icon: '<svg class="widget-icon" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="6" fill="none" stroke="currentColor" stroke-width="2" /></svg>'
+            },
+            {
+                type: 'odp_arc',
+                label: 'Arc',
+                tag: 'ODP',
+                icon: '<svg class="widget-icon" viewBox="0 0 24 24"><path d="M6 18 A 9 9 0 0 1 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>'
+            },
+            {
+                type: 'odp_icon_sequence',
+                label: 'Icon Sequence',
+                tag: 'ODP',
+                icon: '<svg class="widget-icon" viewBox="0 0 24 24"><circle cx="5" cy="12" r="3" fill="currentColor" /><circle cx="12" cy="12" r="3" fill="currentColor" /><circle cx="19" cy="12" r="3" fill="currentColor" /></svg>'
+            },
+            {
+                type: 'odp_plot',
+                label: 'Sensor Plot',
+                tag: 'ODP',
+                icon: '<svg class="widget-icon" viewBox="0 0 24 24"><path d="M3 3v18h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /><path d="M6 15l4-6 4 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>'
+            }
+        ]
+    },
+    {
         id: 'advanced',
         name: 'Advanced',
         expanded: true,
@@ -244,7 +294,7 @@ export async function renderWidgetPalette(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    const currentMode = window.AppState?.settings?.renderingMode || 'lvgl';
+    const currentMode = window.AppState?.settings?.renderingMode || 'direct';
     Logger.log(`[Palette] Rendering palette for mode: ${currentMode}`);
 
     container.innerHTML = '<div class="palette-loading" style="padding: 20px; color: #999; text-align: center; font-size: 13px;">Loading widgets...</div>';
@@ -275,6 +325,9 @@ export async function renderWidgetPalette(containerId) {
         if (currentMode === 'lvgl') {
             // Force focus on LVGL components, collapse everything else
             isExpanded = (category.id === 'lvgl');
+        } else if (currentMode === 'oepl' || currentMode === 'opendisplay') {
+            // Force focus on OpenDisplay/OEPL widgets when in protocol mode
+            isExpanded = (category.id === 'opendisplay' || category.id === 'core' || category.id === 'shapes');
         }
 
         const categoryEl = document.createElement('div');

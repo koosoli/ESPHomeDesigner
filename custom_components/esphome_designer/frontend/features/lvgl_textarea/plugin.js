@@ -41,7 +41,6 @@ const render = (el, widget, { getColorStyle }) => {
     cursor.style.position = "absolute";
     cursor.style.left = "6px";
     cursor.style.top = "6px";
-    el.style.position = "relative";
     el.appendChild(cursor);
 };
 

@@ -1,5 +1,6 @@
 import { AppState } from '../core/state.js';
 import { Logger } from '../utils/logger.js';
+import { DEVICE_PROFILES } from './devices.js';
 
 /**
  * Creates a custom js-yaml schema that supports ESPHome tags like !lambda.
@@ -36,6 +37,408 @@ function getESPHomeSchema() {
     }
 }
 
+// Known OEPL/ODP widget types for detection
+const OEPL_WIDGET_TYPES = [
+    'text', 'rectangle', 'circle', 'icon', 'qrcode', 'progress_bar', 
+    'debug_grid', 'line', 'multiline', 'plot', 'dlimg', 'image',
+    // ODP-specific types
+    'rectangle_pattern', 'polygon', 'ellipse', 'arc', 'icon_sequence'
+];
+
+/**
+ * Checks if the YAML text is a bare OEPL array (starts with "- type: <oepl_type>")
+ * @param {string} yamlText - The YAML string to check.
+ * @returns {boolean} True if the text represents a bare OEPL array.
+ */
+export function isBareOEPLArray(yamlText) {
+    const trimmed = yamlText.trim();
+    // Check if it starts with "- type:" which is OEPL format
+    const firstItemMatch = trimmed.match(/^-\s*type:\s*(\w+)/);
+    if (firstItemMatch) {
+        const typeValue = firstItemMatch[1].toLowerCase();
+        return OEPL_WIDGET_TYPES.includes(typeValue);
+    }
+    return false;
+}
+
+/**
+ * Parses a bare OEPL YAML array into a layout object.
+ * @param {Array} oeplArray - The parsed OEPL array of widget definitions.
+ * @returns {Object} The layout object with pages and widgets.
+ */
+export function parseOEPLArrayToLayout(oeplArray) {
+    Logger.log("[parseOEPLArrayToLayout] Parsing OEPL array with", oeplArray.length, "items");
+    
+    const widgets = [];
+    let widgetIndex = 0;
+    
+    for (const item of oeplArray) {
+        if (!item || !item.type) continue;
+        
+        const oeplType = item.type.toLowerCase();
+        let widget = null;
+        
+        switch (oeplType) {
+            case 'text':
+                widget = {
+                    id: `oepl_text_${widgetIndex}`,
+                    type: 'text',
+                    x: parseInt(item.x || 0, 10),
+                    y: parseInt(item.y || 0, 10),
+                    width: parseInt(item.size || 20, 10) * 6, // Approximate width based on font size
+                    height: parseInt(item.size || 20, 10) * 1.5,
+                    title: '',
+                    entity_id: '',
+                    props: {
+                        text: item.value || item.text || '',
+                        font_size: parseInt(item.size || 20, 10),
+                        font_family: item.font ? item.font.replace('.ttf', '') : 'Roboto',
+                        color: item.fill || item.color || 'black'
+                    }
+                };
+                break;
+                
+            case 'multiline':
+                // ODP multiline text with delimiter
+                const delimiter = item.delimiter || '|';
+                const lines = (item.value || '').split(delimiter);
+                const lineCount = lines.length || 1;
+                widget = {
+                    id: `odp_multiline_${widgetIndex}`,
+                    type: 'odp_multiline',
+                    x: parseInt(item.x || 0, 10),
+                    y: parseInt(item.y || 0, 10),
+                    width: parseInt(item.size || 16, 10) * 10,
+                    height: parseInt(item.size || 16, 10) * lineCount * 1.5,
+                    title: '',
+                    entity_id: '',
+                    props: {
+                        text: item.value || 'Line 1|Line 2',
+                        delimiter: delimiter,
+                        font_size: parseInt(item.size || 16, 10),
+                        font_family: item.font ? item.font.replace('.ttf', '') : 'Roboto',
+                        color: item.fill || item.color || 'black',
+                        line_spacing: 4
+                    }
+                };
+                break;
+                
+            case 'rectangle':
+                widget = {
+                    id: `oepl_rect_${widgetIndex}`,
+                    type: 'shape_rect',
+                    x: parseInt(item.x_start || item.x || 0, 10),
+                    y: parseInt(item.y_start || item.y || 0, 10),
+                    width: Math.abs((parseInt(item.x_end || 100, 10)) - (parseInt(item.x_start || item.x || 0, 10))),
+                    height: Math.abs((parseInt(item.y_end || 50, 10)) - (parseInt(item.y_start || item.y || 0, 10))),
+                    title: '',
+                    entity_id: '',
+                    props: {
+                        fill: item.fill ? (item.fill !== 'white' && item.fill !== '#ffffff') : false,
+                        border_width: parseInt(item.width || 1, 10),
+                        color: item.fill || 'white',
+                        border_color: item.outline || 'black',
+                        opacity: 100
+                    }
+                };
+                break;
+                
+            case 'circle':
+                const radius = parseInt(item.radius || 25, 10);
+                widget = {
+                    id: `oepl_circle_${widgetIndex}`,
+                    type: 'shape_circle',
+                    x: parseInt(item.x || 0, 10) - radius,
+                    y: parseInt(item.y || 0, 10) - radius,
+                    width: radius * 2,
+                    height: radius * 2,
+                    title: '',
+                    entity_id: '',
+                    props: {
+                        fill: item.fill ? (item.fill !== 'white' && item.fill !== '#ffffff') : false,
+                        border_width: parseInt(item.width || 1, 10),
+                        color: item.fill || 'black',
+                        border_color: item.outline || item.fill || 'black',
+                        opacity: 100
+                    }
+                };
+                break;
+                
+            case 'icon':
+                widget = {
+                    id: `oepl_icon_${widgetIndex}`,
+                    type: 'icon',
+                    x: parseInt(item.x || 0, 10),
+                    y: parseInt(item.y || 0, 10),
+                    width: parseInt(item.size || 24, 10),
+                    height: parseInt(item.size || 24, 10),
+                    title: '',
+                    entity_id: '',
+                    props: {
+                        code: item.value || 'mdi:home',
+                        size: parseInt(item.size || 24, 10),
+                        color: item.fill || item.color || 'black',
+                        fit_icon_to_frame: true
+                    }
+                };
+                break;
+                
+            case 'qrcode':
+                const boxsize = parseInt(item.boxsize || 2, 10);
+                const border = parseInt(item.border || 1, 10);
+                // Approximate QR code size: ~25 modules + borders
+                const qrSize = (25 + border * 2) * boxsize;
+                widget = {
+                    id: `oepl_qr_${widgetIndex}`,
+                    type: 'qr_code',
+                    x: parseInt(item.x || 0, 10),
+                    y: parseInt(item.y || 0, 10),
+                    width: qrSize,
+                    height: qrSize,
+                    title: '',
+                    entity_id: '',
+                    props: {
+                        value: item.data || item.value || 'https://esphome.io',
+                        scale: boxsize,
+                        ecc: 'LOW',
+                        color: item.color || 'black'
+                    }
+                };
+                break;
+                
+            case 'progress_bar':
+                widget = {
+                    id: `oepl_progress_${widgetIndex}`,
+                    type: 'progress_bar',
+                    x: parseInt(item.x_start || item.x || 0, 10),
+                    y: parseInt(item.y_start || item.y || 0, 10),
+                    width: Math.abs((parseInt(item.x_end || 100, 10)) - (parseInt(item.x_start || item.x || 0, 10))),
+                    height: Math.abs((parseInt(item.y_end || 20, 10)) - (parseInt(item.y_start || item.y || 0, 10))),
+                    title: '',
+                    entity_id: '',
+                    props: {
+                        show_label: false,
+                        show_percentage: item.show_percentage === true || item.show_percentage === 'true',
+                        bar_height: Math.abs((parseInt(item.y_end || 20, 10)) - (parseInt(item.y_start || item.y || 0, 10))),
+                        border_width: parseInt(item.width || 1, 10),
+                        color: item.fill || 'black',
+                        progress_value: parseInt(item.progress || 0, 10)
+                    }
+                };
+                break;
+                
+            case 'line':
+                widget = {
+                    id: `oepl_line_${widgetIndex}`,
+                    type: 'line',
+                    x: parseInt(item.x_start || item.x || 0, 10),
+                    y: parseInt(item.y_start || item.y || 0, 10),
+                    width: Math.abs((parseInt(item.x_end || 100, 10)) - (parseInt(item.x_start || item.x || 0, 10))) || 1,
+                    height: Math.abs((parseInt(item.y_end || 0, 10)) - (parseInt(item.y_start || item.y || 0, 10))) || 1,
+                    title: '',
+                    entity_id: '',
+                    props: {
+                        stroke_width: parseInt(item.width || 1, 10),
+                        color: item.fill || item.color || 'black',
+                        orientation: Math.abs((parseInt(item.y_end || 0, 10)) - (parseInt(item.y_start || item.y || 0, 10))) >
+                                    Math.abs((parseInt(item.x_end || 100, 10)) - (parseInt(item.x_start || item.x || 0, 10)))
+                                    ? 'vertical' : 'horizontal'
+                    }
+                };
+                break;
+                
+            case 'debug_grid':
+                // Debug grid is not a visual widget in the designer, skip it
+                Logger.log("[parseOEPLArrayToLayout] Skipping debug_grid widget");
+                continue;
+                
+            case 'dlimg':
+            case 'image':
+                widget = {
+                    id: `oepl_img_${widgetIndex}`,
+                    type: 'online_image',
+                    x: parseInt(item.x || 0, 10),
+                    y: parseInt(item.y || 0, 10),
+                    width: parseInt(item.xsize || item.width || 100, 10),
+                    height: parseInt(item.ysize || item.height || 100, 10),
+                    title: '',
+                    entity_id: '',
+                    props: {
+                        url: item.url || '',
+                        invert: false,
+                        interval_s: 300
+                    }
+                };
+                break;
+                
+            case 'plot':
+                widget = {
+                    id: `oepl_graph_${widgetIndex}`,
+                    type: 'graph',
+                    x: parseInt(item.x_start || item.x || 0, 10),
+                    y: parseInt(item.y_start || item.y || 0, 10),
+                    width: Math.abs((parseInt(item.x_end || 200, 10)) - (parseInt(item.x_start || item.x || 0, 10))),
+                    height: Math.abs((parseInt(item.y_end || 100, 10)) - (parseInt(item.y_start || item.y || 0, 10))),
+                    title: '',
+                    entity_id: item.sensor || '',
+                    props: {
+                        duration: item.duration || '24h',
+                        border: true,
+                        grid: true,
+                        color: item.color || 'black'
+                    }
+                };
+                break;
+            
+            // ODP-specific widget types
+            case 'rectangle_pattern':
+                widget = {
+                    id: `odp_rectpat_${widgetIndex}`,
+                    type: 'odp_rectangle_pattern',
+                    x: parseInt(item.x_start || item.x || 0, 10),
+                    y: parseInt(item.y_start || item.y || 0, 10),
+                    width: Math.abs((parseInt(item.x_end || 120, 10)) - (parseInt(item.x_start || item.x || 0, 10))) || 120,
+                    height: Math.abs((parseInt(item.y_end || 80, 10)) - (parseInt(item.y_start || item.y || 0, 10))) || 80,
+                    title: '',
+                    entity_id: '',
+                    props: {
+                        x_size: parseInt(item.x_size || 30, 10),
+                        y_size: parseInt(item.y_size || 15, 10),
+                        x_offset: parseInt(item.x_offset || 5, 10),
+                        y_offset: parseInt(item.y_offset || 5, 10),
+                        x_repeat: parseInt(item.x_repeat || 3, 10),
+                        y_repeat: parseInt(item.y_repeat || 2, 10),
+                        fill: item.fill || 'white',
+                        outline: item.outline || 'black',
+                        border_width: parseInt(item.width || 1, 10)
+                    }
+                };
+                break;
+                
+            case 'polygon':
+                widget = {
+                    id: `odp_polygon_${widgetIndex}`,
+                    type: 'odp_polygon',
+                    x: parseInt(item.x || 0, 10),
+                    y: parseInt(item.y || 0, 10),
+                    width: 100,
+                    height: 100,
+                    title: '',
+                    entity_id: '',
+                    props: {
+                        points: item.points || [[0, 0], [100, 0], [100, 100], [0, 100]],
+                        fill: item.fill || 'red',
+                        outline: item.outline || 'black',
+                        border_width: parseInt(item.width || 1, 10)
+                    }
+                };
+                // Calculate size from points if available
+                if (Array.isArray(item.points) && item.points.length) {
+                    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                    item.points.forEach(([px, py]) => {
+                        minX = Math.min(minX, px);
+                        minY = Math.min(minY, py);
+                        maxX = Math.max(maxX, px);
+                        maxY = Math.max(maxY, py);
+                    });
+                    widget.x = minX;
+                    widget.y = minY;
+                    widget.width = maxX - minX || 100;
+                    widget.height = maxY - minY || 100;
+                    // Normalize points to be relative to widget position
+                    widget.props.points = item.points.map(([px, py]) => [px - minX, py - minY]);
+                }
+                break;
+                
+            case 'ellipse':
+                widget = {
+                    id: `odp_ellipse_${widgetIndex}`,
+                    type: 'odp_ellipse',
+                    x: parseInt(item.x_start || item.x || 0, 10),
+                    y: parseInt(item.y_start || item.y || 0, 10),
+                    width: Math.abs((parseInt(item.x_end || 150, 10)) - (parseInt(item.x_start || item.x || 0, 10))) || 150,
+                    height: Math.abs((parseInt(item.y_end || 80, 10)) - (parseInt(item.y_start || item.y || 0, 10))) || 80,
+                    title: '',
+                    entity_id: '',
+                    props: {
+                        fill: item.fill || null,
+                        outline: item.outline || 'black',
+                        border_width: parseInt(item.width || 1, 10)
+                    }
+                };
+                break;
+                
+            case 'arc':
+                const arcRadius = parseInt(item.radius || 50, 10);
+                widget = {
+                    id: `odp_arc_${widgetIndex}`,
+                    type: 'odp_arc',
+                    x: parseInt(item.x || 0, 10) - arcRadius,
+                    y: parseInt(item.y || 0, 10) - arcRadius,
+                    width: arcRadius * 2,
+                    height: arcRadius * 2,
+                    title: '',
+                    entity_id: '',
+                    props: {
+                        radius: arcRadius,
+                        start_angle: parseInt(item.start_angle || 0, 10),
+                        end_angle: parseInt(item.end_angle || 90, 10),
+                        outline: item.outline || 'black',
+                        border_width: parseInt(item.width || 2, 10)
+                    }
+                };
+                break;
+                
+            case 'icon_sequence':
+                const iconSize = parseInt(item.size || 24, 10);
+                const spacing = parseInt(item.spacing || 6, 10);
+                const icons = item.icons || ['mdi:home', 'mdi:arrow-right', 'mdi:office-building'];
+                const isVertical = item.direction === 'down';
+                widget = {
+                    id: `odp_iconseq_${widgetIndex}`,
+                    type: 'odp_icon_sequence',
+                    x: parseInt(item.x || 0, 10),
+                    y: parseInt(item.y || 0, 10),
+                    width: isVertical ? iconSize : (icons.length * (iconSize + spacing) - spacing),
+                    height: isVertical ? (icons.length * (iconSize + spacing) - spacing) : iconSize,
+                    title: '',
+                    entity_id: '',
+                    props: {
+                        icons: icons,
+                        size: iconSize,
+                        direction: item.direction || 'right',
+                        spacing: spacing,
+                        fill: item.fill || 'black'
+                    }
+                };
+                break;
+                
+            default:
+                Logger.warn(`[parseOEPLArrayToLayout] Unknown OEPL type: ${oeplType}`);
+                continue;
+        }
+        
+        if (widget) {
+            widgets.push(widget);
+            widgetIndex++;
+        }
+    }
+    
+    Logger.log(`[parseOEPLArrayToLayout] Created ${widgets.length} widgets from OEPL array`);
+    
+    return {
+        settings: {
+            orientation: 'landscape',
+            dark_mode: false
+        },
+        pages: [{
+            id: 'page_0',
+            name: 'Page 1',
+            widgets: widgets
+        }]
+    };
+}
+
 /**
  * Parses an ESPHome YAML snippet offline to extract the layout.
  * @param {string} yamlText - The YAML string to parse.
@@ -54,6 +457,12 @@ export function parseSnippetYamlOffline(yamlText) {
         }
     } catch (e) {
         Logger.error("[parseSnippetYamlOffline] YAML parse error:", e);
+    }
+
+    // Check for bare OEPL array format (e.g., "- type: text\n  value: ...")
+    if (isBareOEPLArray(yamlText) && Array.isArray(doc)) {
+        Logger.log("[parseSnippetYamlOffline] Detected bare OEPL array format");
+        return parseOEPLArrayToLayout(doc);
     }
 
     // 1. Extract Display Lambdas or LVGL blocks from the parsed doc
@@ -1416,55 +1825,101 @@ export function loadLayoutIntoState(layout) {
     const currentSettings = AppState.getSettings();
     const importedSettings = layout.settings || {};
 
-    // Extract root settings that we know about
-    const rootSettings = {};
-    const settingKeys = [
-        "orientation", "dark_mode", "sleep_enabled", "sleep_start_hour", "sleep_end_hour",
-        "manual_refresh_only", "deep_sleep_enabled", "deep_sleep_interval",
-        "daily_refresh_enabled", "daily_refresh_time", "no_refresh_start_hour", "no_refresh_end_hour",
-        "auto_cycle_enabled", "auto_cycle_interval_s", "refresh_interval",
-        "auto_cycle_enabled", "auto_cycle_interval_s", "refresh_interval",
-        "width", "height", "shape", "inverted_colors",
-        "renderingMode", "lcdEcoStrategy", "extendedLatinGlyphs"
-    ];
+    // Map of root keys to their AppState (camelCase) equivalents
+    const rootMapping = {
+        "orientation": "orientation",
+        "dark_mode": "darkMode",
+        "darkMode": "darkMode",
+        "sleep_enabled": "sleepEnabled",
+        "sleepEnabled": "sleepEnabled",
+        "sleep_start_hour": "sleepStartHour",
+        "sleepStartHour": "sleepStartHour",
+        "sleep_end_hour": "sleepEndHour",
+        "sleepEndHour": "sleepEndHour",
+        "manual_refresh_only": "manualRefreshOnly",
+        "manualRefreshOnly": "manualRefreshOnly",
+        "deep_sleep_enabled": "deepSleepEnabled",
+        "deepSleepEnabled": "deepSleepEnabled",
+        "deep_sleep_interval": "deepSleepInterval",
+        "deepSleepInterval": "deepSleepInterval",
+        "daily_refresh_enabled": "dailyRefreshEnabled",
+        "dailyRefreshEnabled": "dailyRefreshEnabled",
+        "daily_refresh_time": "dailyRefreshTime",
+        "dailyRefreshTime": "dailyRefreshTime",
+        "no_refresh_start_hour": "noRefreshStartHour",
+        "noRefreshStartHour": "noRefreshStartHour",
+        "no_refresh_end_hour": "noRefreshEndHour",
+        "noRefreshEndHour": "noRefreshEndHour",
+        "auto_cycle_enabled": "autoCycleEnabled",
+        "autoCycleEnabled": "autoCycleEnabled",
+        "auto_cycle_interval_s": "autoCycleIntervalS",
+        "autoCycleIntervalS": "autoCycleIntervalS",
+        "refresh_interval": "refreshInterval",
+        "refreshInterval": "refreshInterval",
+        "rendering_mode": "renderingMode",
+        "renderingMode": "renderingMode",
+        "lcd_eco_strategy": "lcdEcoStrategy",
+        "lcdEcoStrategy": "lcdEcoStrategy",
+        "extended_latin_glyphs": "extendedLatinGlyphs",
+        "extendedLatinGlyphs": "extendedLatinGlyphs",
+        "inverted_colors": "invertedColors",
+        "invertedColors": "invertedColors",
+        "width": "width",
+        "height": "height",
+        "shape": "shape",
+        "oepl_entity_id": "oeplEntityId",
+        "oeplEntityId": "oeplEntityId",
+        "oepl_dither": "oeplDither",
+        "oeplDither": "oeplDither"
+    };
 
-    settingKeys.forEach(key => {
-        if (layout[key] !== undefined) {
-            rootSettings[key] = layout[key];
+    // Extract root settings and normalize to camelCase
+    const rootSettings = {};
+    Object.entries(rootMapping).forEach(([layoutKey, appStateKey]) => {
+        if (layout[layoutKey] !== undefined) {
+            rootSettings[appStateKey] = layout[layoutKey];
         }
     });
 
-    const newSettings = { ...currentSettings, ...importedSettings, ...rootSettings };
+    // Also normalize importedSettings if they were nested
+    const normalizedImported = {};
+    Object.entries(importedSettings).forEach(([key, val]) => {
+        const mappedKey = rootMapping[key] || key;
+        normalizedImported[mappedKey] = val;
+    });
+
+    const newSettings = { ...currentSettings, ...normalizedImported, ...rootSettings };
+
+    // DEBUG: Log renderingMode sources
+    console.log('[loadLayoutIntoState] DEBUG renderingMode:', {
+        fromLayout: layout.renderingMode || layout.rendering_mode,
+        currentSettings: currentSettings.renderingMode,
+        normalizedImported: normalizedImported.renderingMode,
+        rootSettings: rootSettings.renderingMode,
+        finalNewSettings: newSettings.renderingMode
+    });
 
     // Ensure device_name is in settings too (for Device Settings modal)
     if (importedName) {
         newSettings.device_name = importedName;
+        newSettings.deviceName = importedName;
     }
 
     // Ensure device_model is in settings too
     if (deviceModel) {
         newSettings.device_model = deviceModel;
+        newSettings.deviceModel = deviceModel;
     }
-
-    // Ensure defaults for new or missing settings
-    if (newSettings.sleep_enabled === undefined) newSettings.sleep_enabled = false;
-    if (newSettings.sleep_start_hour === undefined) newSettings.sleep_start_hour = 0;
-    if (newSettings.sleep_end_hour === undefined) newSettings.sleep_end_hour = 5;
-    if (newSettings.manual_refresh_only === undefined) newSettings.manual_refresh_only = false;
-    if (newSettings.deep_sleep_enabled === undefined) newSettings.deep_sleep_enabled = false;
-    if (newSettings.deep_sleep_interval === undefined) newSettings.deep_sleep_interval = 600;
-    if (newSettings.daily_refresh_enabled === undefined) newSettings.daily_refresh_enabled = false;
-    if (newSettings.daily_refresh_time === undefined) newSettings.daily_refresh_time = "08:00";
-    if (newSettings.refresh_interval === undefined) newSettings.refresh_interval = 600;
 
     // --- LVGL Safety Fix for E-Paper ---
     // If the device is detected as E-Paper and doesn't explicitly support LVGL in its profile,
     // force it back to 'direct' mode to prevent generating invalid LVGL config.
-    const activeProfile = (window.DEVICE_PROFILES || {})[deviceModel];
+    const activeProfile = DEVICE_PROFILES[deviceModel];
     if (activeProfile && activeProfile.features) {
         const isEpaper = !!activeProfile.features.epaper;
         const hasLvgl = !!(activeProfile.features.lvgl || activeProfile.features.lv_display);
 
+        // Only repair if explicitly set to 'lvgl' but profile doesn't support it
         if (isEpaper && !hasLvgl && newSettings.renderingMode === 'lvgl') {
             // Smart Check: Only repair if NO LVGL widgets are actually used.
             // This preserves user intent if they intentionally added LVGL widgets to e-paper.
@@ -1495,10 +1950,5 @@ export function loadLayoutIntoState(layout) {
     // The legacy editor.js has a sync mechanism that listens for these events
     // to update its own 'pages' array for renderCanvas() compatibility.
     Logger.log(`[loadLayoutIntoState] Layout loaded with ${pages.length} pages. Current Layout ID: ${AppState.currentLayoutId}`);
-    Logger.log(`[loadLayoutIntoState] Power settings after merge:`, {
-        daily_refresh_enabled: newSettings.daily_refresh_enabled,
-        daily_refresh_time: newSettings.daily_refresh_time,
-        deep_sleep_enabled: newSettings.deep_sleep_enabled,
-        sleep_enabled: newSettings.sleep_enabled
-    });
+    Logger.log(`[loadLayoutIntoState] Rendering mode after merge: ${newSettings.renderingMode}`);
 }

@@ -266,9 +266,11 @@ class DeviceConfig:
     daily_refresh_time: str = "08:00"
     
     # Rendering and UI Settings
-    rendering_mode: str = "lvgl"
+    rendering_mode: str = "direct"
     extended_latin_glyphs: bool = False
     lcd_eco_strategy: str = "backlight_off"
+    oepl_entity_id: str = ""
+    oepl_dither: int = 2
 
     def ensure_pages(self, min_pages: int = DEFAULT_PAGES) -> None:
         """Ensure at least min_pages exist; add simple default pages if missing."""
@@ -327,8 +329,6 @@ class DeviceConfig:
             "sleep_end_hour": self.sleep_end_hour,
             "deep_sleep_enabled": self.deep_sleep_enabled,
             "deep_sleep_interval": self.deep_sleep_interval,
-            "deep_sleep_enabled": self.deep_sleep_enabled,
-            "deep_sleep_interval": self.deep_sleep_interval,
             "manual_refresh_only": self.manual_refresh_only,
             "no_refresh_start_hour": self.no_refresh_start_hour,
             "no_refresh_end_hour": self.no_refresh_end_hour,
@@ -337,6 +337,8 @@ class DeviceConfig:
             "rendering_mode": self.rendering_mode,
             "extended_latin_glyphs": self.extended_latin_glyphs,
             "lcd_eco_strategy": self.lcd_eco_strategy,
+            "oepl_entity_id": self.oepl_entity_id,
+            "oepl_dither": self.oepl_dither,
             "pages": [p.to_dict() for p in self.pages],
         }
 
@@ -346,41 +348,21 @@ class DeviceConfig:
         pages_data = data.get("pages", []) or []
         pages = [PageConfig.from_dict(p) for p in pages_data]
 
+        # Helper to prioritize camelCase (frontend) over snake_case (storage)
+        def get_v(snake, camel, default):
+            return data.get(camel, data.get(snake, default))
+
+        def get_i(snake, camel, default):
+            val = get_v(snake, camel, default)
+            try:
+                return int(val) if val is not None else default
+            except (TypeError, ValueError):
+                return default
+
         # Legacy configs may not have orientation/dark_mode; default them.
         orientation = str(data.get("orientation", "landscape")).lower()
         if orientation not in ("landscape", "portrait"):
             orientation = "landscape"
-
-        dark_mode_raw = data.get("dark_mode", False)
-        dark_mode = bool(dark_mode_raw)
-        
-        sleep_enabled = bool(data.get("sleep_enabled", False))
-        sleep_start_hour = int(data.get("sleep_start_hour", 0))
-        sleep_end_hour = int(data.get("sleep_end_hour", 5))
-
-        deep_sleep_enabled = bool(data.get("deep_sleep_enabled", False))
-        try:
-            deep_sleep_interval = int(data.get("deep_sleep_interval", 600))
-        except (TypeError, ValueError):
-            deep_sleep_interval = 600
-
-        manual_refresh_only = bool(data.get("manual_refresh_only", False))
-        
-        no_refresh_start_hour_raw = data.get("no_refresh_start_hour")
-        no_refresh_start_hour: Optional[int] = None
-        if no_refresh_start_hour_raw is not None:
-            try:
-                no_refresh_start_hour = int(no_refresh_start_hour_raw)
-            except (TypeError, ValueError):
-                no_refresh_start_hour = None
-
-        no_refresh_end_hour_raw = data.get("no_refresh_end_hour")
-        no_refresh_end_hour: Optional[int] = None
-        if no_refresh_end_hour_raw is not None:
-            try:
-                no_refresh_end_hour = int(no_refresh_end_hour_raw)
-            except (TypeError, ValueError):
-                no_refresh_end_hour = None
 
         try:
             current_page = int(data.get("current_page", 0))
@@ -388,28 +370,30 @@ class DeviceConfig:
             current_page = 0
 
         cfg = DeviceConfig(
-            device_id=str(data.get("device_id", "")),
+            device_id=str(data.get("device_id", data.get("currentLayoutId", ""))),
             api_token=str(data.get("api_token", "")),
-            name=str(data.get("name", "reTerminal")),
+            name=str(get_v("name", "deviceName", "reTerminal")),
             pages=pages,
             current_page=current_page,
             orientation=orientation,
-            device_model=str(data.get("device_model", "reterminal_e1001")),
+            device_model=str(get_v("device_model", "deviceModel", "reterminal_e1001")),
             model=str(data.get("model", "7.50inv2")),
-            dark_mode=dark_mode,
-            sleep_enabled=sleep_enabled,
-            sleep_start_hour=sleep_start_hour,
-            sleep_end_hour=sleep_end_hour,
-            deep_sleep_enabled=deep_sleep_enabled,
-            deep_sleep_interval=deep_sleep_interval,
-            manual_refresh_only=manual_refresh_only,
-            no_refresh_start_hour=no_refresh_start_hour,
-            no_refresh_end_hour=no_refresh_end_hour,
-            daily_refresh_enabled=bool(data.get("daily_refresh_enabled", False)),
-            daily_refresh_time=str(data.get("daily_refresh_time", "08:00")),
-            rendering_mode=str(data.get("rendering_mode", data.get("renderingMode", "lvgl"))),
-            extended_latin_glyphs=bool(data.get("extended_latin_glyphs", data.get("extendedLatinGlyphs", False))),
-            lcd_eco_strategy=str(data.get("lcd_eco_strategy", data.get("lcdEcoStrategy", "backlight_off"))),
+            dark_mode=bool(get_v("dark_mode", "darkMode", False)),
+            sleep_enabled=bool(get_v("sleep_enabled", "sleepEnabled", False)),
+            sleep_start_hour=get_i("sleep_start_hour", "sleepStartHour", 0),
+            sleep_end_hour=get_i("sleep_end_hour", "sleepEndHour", 5),
+            deep_sleep_enabled=bool(get_v("deep_sleep_enabled", "deepSleepEnabled", False)),
+            deep_sleep_interval=get_i("deep_sleep_interval", "deepSleepInterval", 600),
+            manual_refresh_only=bool(get_v("manual_refresh_only", "manualRefreshOnly", False)),
+            no_refresh_start_hour=get_i("no_refresh_start_hour", "noRefreshStartHour", None),
+            no_refresh_end_hour=get_i("no_refresh_end_hour", "noRefreshEndHour", None),
+            daily_refresh_enabled=bool(get_v("daily_refresh_enabled", "dailyRefreshEnabled", False)),
+            daily_refresh_time=str(get_v("daily_refresh_time", "dailyRefreshTime", "08:00")),
+            rendering_mode=str(get_v("rendering_mode", "renderingMode", "direct")),
+            extended_latin_glyphs=bool(get_v("extended_latin_glyphs", "extendedLatinGlyphs", False)),
+            lcd_eco_strategy=str(get_v("lcd_eco_strategy", "lcdEcoStrategy", "backlight_off")),
+            oepl_entity_id=str(get_v("oepl_entity_id", "oeplEntityId", "")),
+            oepl_dither=get_i("oepl_dither", "oeplDither", 2),
         )
         cfg.ensure_pages()
         return cfg

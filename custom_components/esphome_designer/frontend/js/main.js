@@ -284,7 +284,7 @@ export class App {
     }
 
     createAdapter() {
-        const mode = AppState.settings.renderingMode || 'lvgl';
+        const mode = AppState.settings.renderingMode || 'direct';
         let adapter;
         if (mode === 'oepl') {
             adapter = new OEPLAdapter();
