@@ -10,6 +10,9 @@
 # Name: Waveshare ESP32-C6 LCD 1.47"
 # Resolution: 172x320
 # Shape: rectangle
+# Inverted: false
+# Orrientation: portrait
+# Dark Mode: disabled
 # ============================================================================
 #
 # ============================================================================
