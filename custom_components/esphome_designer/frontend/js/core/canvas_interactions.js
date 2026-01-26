@@ -6,6 +6,7 @@ import { registry as PluginRegistry } from './plugin_registry.js';
 import { snapToGridCell, applySnapToPosition, clearSnapGuides, updateWidgetGridCell } from './canvas_snap.js';
 import { render, applyZoom, updateWidgetDOM, focusPage } from './canvas_renderer.js';
 import { highlightWidgetInSnippet } from '../io/yaml_export.js';
+import { getColorStyle } from '../utils/device.js'; // Import authentic color helper
 
 // Helper for manual double-click detection
 let lastClickTime = 0;
@@ -21,50 +22,97 @@ function createDragGhost(canvasInstance, widgets, clientX, clientY, zoom, widget
 
     const ghostContainer = document.createElement('div');
     ghostContainer.className = 'drag-ghost-container';
-    // Apply same zoom as artboard so cloned widgets match visual size
     ghostContainer.style.cssText = `
         position: fixed;
         pointer-events: none;
         z-index: 99999;
-        opacity: 0.85;
+        opacity: 1.0; 
         transform-origin: top left;
         transform: scale(${zoom});
         transition: none;
     `;
 
-    // Find the primary widget
-    const primaryOffset = widgetOffsets[0];
+    // Find the primary widget for relative coordinate calculation
+    // FIX: Use the specifically grabbed widget as anchor (primaryOffset.id)
+    // instead of defaulting to the first one in the list.
+    const grabbedId = canvasInstance.dragState?.id;
+    const primaryOffset = widgetOffsets.find(o => o.id === grabbedId) || widgetOffsets[0];
     const primaryWidget = widgets.find(w => w.id === primaryOffset?.id) || widgets[0];
     const primaryEl = document.querySelector(`.widget[data-id="${primaryWidget.id}"]`);
 
-    if (!primaryEl) {
-        return;
-    }
+    if (!primaryWidget || !primaryEl) return;
 
-    // Clone each selected widget's visual representation
-    widgets.forEach(widget => {
-        const widgetEl = document.querySelector(`.widget[data-id="${widget.id}"]`);
-        if (widgetEl) {
-            const clone = widgetEl.cloneNode(true);
+    // 1. Flatten selection: ensure children of groups are also ghosted
+    const allWidgetsToGhost = [];
+    const currentPage = AppState.getCurrentPage();
 
-            clone.style.position = 'absolute';
-            clone.style.margin = '0';
-            clone.style.transform = ''; // Clear any transform from original
-            clone.classList.remove('active');
-            clone.classList.add('drag-ghost-widget');
-
-            // Position relative to primary widget using canvas coordinates
-            clone.style.left = (widget.x - primaryWidget.x) + 'px';
-            clone.style.top = (widget.y - primaryWidget.y) + 'px';
-            // Use canvas dimensions explicitly
-            clone.style.width = widget.width + 'px';
-            clone.style.height = widget.height + 'px';
-
-            ghostContainer.appendChild(clone);
+    widgets.forEach(w => {
+        allWidgetsToGhost.push(w);
+        if (w.type === 'group') {
+            const children = currentPage.widgets.filter(child => child.parentId === w.id);
+            allWidgetsToGhost.push(...children);
         }
     });
 
-    // Store click offset for positioning (in screen pixels)
+    // 2. Clone each widget with full visual context
+    allWidgetsToGhost.forEach(widget => {
+        const widgetEl = document.querySelector(`.widget[data-id="${widget.id}"]`);
+        if (widgetEl) {
+            // Simulated Artboard Context (Ensures CSS variables like --accent, --white resolve)
+            const sourceArtboard = widgetEl.closest('.artboard');
+            const contextWrapper = document.createElement('div');
+            contextWrapper.className = (sourceArtboard ? sourceArtboard.className : 'artboard') + ' ghost-context-sim';
+
+            // Position wrapper relative to primary widget
+            contextWrapper.style.cssText = `
+                position: absolute;
+                left: ${(widget.x - primaryWidget.x)}px;
+                top: ${(widget.y - primaryWidget.y)}px;
+                width: ${widget.width}px;
+                height: ${widget.height}px;
+                pointer-events: none;
+                background: transparent !important;
+                box-shadow: none !important;
+                border: none !important;
+                transform: none !important;
+                overflow: visible;
+                display: block;
+            `;
+
+            // The Clone itself
+            const clone = document.createElement('div');
+
+            // Copy all attributes and most importantly the style attribute
+            for (const attr of widgetEl.attributes) {
+                clone.setAttribute(attr.name, attr.value);
+            }
+
+            // Clean state/interactive classes
+            clone.classList.remove('active', 'dragging-source', 'locked');
+            clone.classList.add('drag-ghost-widget');
+
+            // Copy raw computed styles for absolute safety on backgrounds/borders
+            const computed = window.getComputedStyle(widgetEl);
+            clone.style.cssText = widgetEl.style.cssText; // Base styles
+            clone.style.position = 'absolute';
+            clone.style.top = '0';
+            clone.style.left = '0';
+            clone.style.margin = '0';
+            clone.style.transform = 'none';
+            clone.style.setProperty('background', computed.background, 'important');
+            clone.style.setProperty('background-color', computed.backgroundColor, 'important');
+            clone.style.setProperty('border', computed.border, 'important');
+            clone.style.setProperty('border-radius', computed.borderRadius, 'important');
+
+            // Carry inner content (icons, labels, etc.)
+            clone.innerHTML = widgetEl.innerHTML;
+
+            contextWrapper.appendChild(clone);
+            ghostContainer.appendChild(contextWrapper);
+        }
+    });
+
+    // Store click offset in screen pixels
     if (primaryOffset) {
         canvasInstance.dragGhostOffset = {
             x: primaryOffset.clickOffsetX * zoom,
@@ -81,9 +129,7 @@ function createDragGhost(canvasInstance, widgets, clientX, clientY, zoom, widget
     // Fade out original widgets during drag
     widgets.forEach(widget => {
         const widgetEl = document.querySelector(`.widget[data-id="${widget.id}"]`);
-        if (widgetEl) {
-            widgetEl.classList.add('dragging-source');
-        }
+        if (widgetEl) widgetEl.classList.add('dragging-source');
     });
 }
 
@@ -340,7 +386,7 @@ export function setupInteractions(canvasInstance) {
                     const widgetRect = widgetEl ? widgetEl.getBoundingClientRect() : null;
                     const expectedLeft = rect.left + w.x * zoom;
                     const expectedTop = rect.top + w.y * zoom;
-                    
+
                     if (widgetRect && (Math.abs(widgetRect.left - expectedLeft) > 2 || Math.abs(widgetRect.top - expectedTop) > 2)) {
                         console.warn(`[DRAG DEBUG] Widget ${w.id} (${w.type}) position mismatch!`, {
                             widgetData: { x: w.x, y: w.y },
@@ -349,7 +395,7 @@ export function setupInteractions(canvasInstance) {
                             delta: { x: widgetRect.left - expectedLeft, y: widgetRect.top - expectedTop }
                         });
                     }
-                    
+
                     return {
                         id: w.id,
                         startX: w.x,

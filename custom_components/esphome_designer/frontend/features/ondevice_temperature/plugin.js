@@ -362,13 +362,13 @@ export default {
         // Standardized Centering Logic
         const centerX = `${w.x} + ${w.width} / 2`;
 
-        // Icon based on temperature
-        // Icon Y: (height - content_height) / 2
-        // Content Stack: Icon + Spacing + Value + (Label)
-        // This widget is a bit more complex vertical stack.
-        // We will stick to the existing "offset from Y" logic but clean up the X alignment.
+        const labelSize = p.label_font_size || 10;
+        const totalHeight = iconSize + 2 + fontSize + (p.show_label ? (1 + labelSize) : 0);
+        const paddingY = Math.max(0, Math.round((w.height - totalHeight) / 2));
 
-        const centerYIcon = `${w.y} + ${Math.round(iconSize / 2)}`;
+        const iconCenterY = `${w.y} + ${paddingY} + ${Math.round(iconSize / 2)}`;
+        const valueTopY = `${w.y} + ${paddingY} + ${iconSize} + 2`;
+        const labelTopY = `${w.y} + ${paddingY} + ${iconSize} + 2 + ${fontSize} + 1`;
 
         const supportsOnboard = profile.features && (profile.features.sht4x || profile.features.sht3x || profile.features.shtc3);
         const hasValidSensor = (isLocal && supportsOnboard && sensorId !== "onboard_temperature") || !!w.entity_id;
@@ -376,17 +376,17 @@ export default {
         if (hasValidSensor) {
             lines.push(`        if (id(${sensorId}).has_state()) {`);
             lines.push(`          if (id(${sensorId}).state <= 10) {`);
-            lines.push(`            it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F0E4C");`);
+            lines.push(`            it.printf(${centerX}, ${iconCenterY}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F0E4C");`);
             lines.push(`          } else if (id(${sensorId}).state <= 25) {`);
-            lines.push(`            it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F050F");`);
+            lines.push(`            it.printf(${centerX}, ${iconCenterY}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F050F");`);
             lines.push(`          } else {`);
-            lines.push(`            it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F10C2");`);
+            lines.push(`            it.printf(${centerX}, ${iconCenterY}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F10C2");`);
             lines.push(`          }`);
             lines.push(`        } else {`);
-            lines.push(`          it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F050F");`);
+            lines.push(`          it.printf(${centerX}, ${iconCenterY}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F050F");`);
             lines.push(`        }`);
         } else {
-            lines.push(`          it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F050F");`);
+            lines.push(`          it.printf(${centerX}, ${iconCenterY}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F050F");`);
         }
 
         // --- VALUE ---
@@ -396,17 +396,17 @@ export default {
                 tempExpr = `(id(${sensorId}).state * 9.0 / 5.0) + 32.0`;
             }
             lines.push(`        if (id(${sensorId}).has_state()) {`);
-            lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "%.1f${unit}", ${tempExpr});`);
+            lines.push(`          it.printf(${centerX}, ${valueTopY}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "%.1f${unit}", ${tempExpr});`);
             lines.push(`        } else {`);
-            lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
+            lines.push(`          it.printf(${centerX}, ${valueTopY}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
             lines.push(`        }`);
         } else {
-            lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
+            lines.push(`          it.printf(${centerX}, ${valueTopY}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
         }
 
         if (p.show_label) {
-            const labelFontId = addFont("Roboto", 400, p.label_font_size || 10);
-            lines.push(`        it.printf(${centerX}, ${w.y} + ${iconSize + fontSize + 8}, id(${labelFontId}), ${color}, TextAlign::TOP_CENTER, "Temperature");`);
+            const labelFontId = addFont("Roboto", 400, labelSize);
+            lines.push(`        it.printf(${centerX}, ${labelTopY}, id(${labelFontId}), ${color}, TextAlign::TOP_CENTER, "Temperature");`);
         }
 
         if (cond) lines.push(`        }`);

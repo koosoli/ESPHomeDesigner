@@ -2,7 +2,21 @@
 
 export function parseDuration(durationStr) {
     if (!durationStr) return 3600; // Default 1h
-    const match = durationStr.match(/^(\d+)([a-z]+)$/i);
+    
+    // Handle numeric values (already in seconds)
+    if (typeof durationStr === 'number') {
+        return durationStr;
+    }
+    
+    // Convert to string if needed
+    const str = String(durationStr);
+    
+    // If it's a pure number string, treat as seconds
+    if (/^\d+$/.test(str)) {
+        return parseInt(str, 10);
+    }
+    
+    const match = str.match(/^(\d+)([a-z]+)$/i);
     if (!match) return 3600;
     const val = parseInt(match[1], 10);
     const unit = match[2].toLowerCase();

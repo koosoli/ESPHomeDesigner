@@ -214,22 +214,31 @@ export function render(canvasInstance) {
     addPlaceholder.style.width = `${dims.width}px`;
     addPlaceholder.style.height = `${dims.height}px`;
     addPlaceholder.style.marginTop = "32px"; // Offset to align with artboard content, not header
+    addPlaceholder.style.position = "relative";
+    addPlaceholder.style.zIndex = "2000"; // Higher than overlays
+    addPlaceholder.style.pointerEvents = "auto"; // Explicitly enable clicks
 
     addPlaceholder.innerHTML = `
         <div class="plus-icon">+</div>
         <div class="label">Add Page</div>
     `;
 
-    addPlaceholder.onclick = (e) => {
+    // Click handler
+    const handleClick = (e) => {
+        Logger.log("[Canvas] Add Page placeholder clicked");
         e.stopPropagation();
+        e.preventDefault(); // Prevent accidental selection logic
         const newPage = AppState.addPage();
-        // Focus the new page
         if (newPage) {
             const newIndex = AppState.pages.length - 1;
             AppState.setCurrentPageIndex(newIndex);
             emit(EVENTS.STATE_CHANGED);
         }
     };
+
+    // Dual binding was causing double execution. Sticking to addEventListener only.
+    addPlaceholder.addEventListener('mousedown', (e) => e.stopPropagation()); // Prevent canvas drag start
+    addPlaceholder.addEventListener('click', handleClick);
 
     // Append to the end of the canvas (after the last page)
     canvasInstance.canvas.appendChild(addPlaceholder);

@@ -227,9 +227,21 @@ class AppStateFacade {
         emit(EVENTS.STATE_CHANGED);
     }
 
-    setDeviceName(name) { this.project.state.deviceName = name; this.updateLayoutIndicator(); }
-    setDeviceModel(model) { this.project.state.deviceModel = model; this.updateLayoutIndicator(); }
-    setCurrentLayoutId(id) { this.project.state.currentLayoutId = id; this.updateLayoutIndicator(); }
+    setDeviceName(name) {
+        this.project.state.deviceName = name;
+        this.updateLayoutIndicator();
+        emit(EVENTS.STATE_CHANGED);
+    }
+    setDeviceModel(model) {
+        this.project.state.deviceModel = model;
+        this.updateLayoutIndicator();
+        emit(EVENTS.STATE_CHANGED);
+    }
+    setCurrentLayoutId(id) {
+        this.project.state.currentLayoutId = id;
+        this.updateLayoutIndicator();
+        emit(EVENTS.STATE_CHANGED);
+    }
 
     updateLayoutIndicator() {
         const nameEl = document.getElementById('currentLayoutName');

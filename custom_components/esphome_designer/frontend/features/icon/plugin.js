@@ -121,8 +121,11 @@ export default {
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);
 
+        const centerX = Math.round(w.x + w.width / 2);
+        const centerY = Math.round(w.y + w.height / 2);
+
         // Use printf for icons to handle unicode safely
-        lines.push(`        it.printf(${w.x}, ${w.y}, id(${fontRef}), ${color}, "%s", "\\U000${code}");`);
+        lines.push(`        it.printf(${centerX}, ${centerY}, id(${fontRef}), ${color}, TextAlign::CENTER, "%s", "\\U000${code}");`);
 
         // Apply grey dithering if color is gray (e-paper specific)
         addDitherMask(lines, colorProp, isEpaper, w.x, w.y, size, size);

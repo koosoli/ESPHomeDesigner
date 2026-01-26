@@ -668,7 +668,12 @@ export class DeviceSettings {
             this.modelInput.addEventListener('change', async () => {
                 const newModel = this.modelInput.value;
                 window.currentDeviceModel = newModel;
-                AppState.setDeviceModel(newModel); // Update top-level deviceModel
+
+                // Force update on AppState
+                if (AppState.setDeviceModel) {
+                    AppState.setDeviceModel(newModel);
+                }
+
                 updateSetting('device_model', newModel); // Also persist to settings
 
                 this.updateStrategyGroupVisibility(); // Update strategy UI

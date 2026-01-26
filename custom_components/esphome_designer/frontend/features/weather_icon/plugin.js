@@ -89,6 +89,11 @@ const exportDoc = (w, context) => {
 
     if (entityId) {
         const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_") + "_text_sensor";
+
+        // Centering logic
+        const centerX = Math.round(w.x + w.width / 2);
+        const centerY = Math.round(w.y + w.height / 2);
+
         // Generate dynamic weather icon mapping based on entity state
         lines.push(`        {`);
         lines.push(`          std::string raw_state = id(${safeId}).state;`);
@@ -111,11 +116,13 @@ const exportDoc = (w, context) => {
         lines.push(`          else if (weather_state == "windy") icon = "\\U000F059D";`);
         lines.push(`          else if (weather_state == "windy-variant") icon = "\\U000F059E";`);
         lines.push(`          else if (weather_state != "" && weather_state != "unknown") ESP_LOGW("weather", "Unhandled weather state: %s", raw_state.c_str());`);
-        lines.push(`          it.printf(${w.x}, ${w.y}, id(${fontRef}), ${color}, "%s", icon);`);
+        lines.push(`          it.printf(${centerX}, ${centerY}, id(${fontRef}), ${color}, TextAlign::CENTER, "%s", icon);`);
         lines.push(`        }`);
     } else {
         // Fallback preview
-        lines.push(`        it.printf(${w.x}, ${w.y}, id(${fontRef}), ${color}, "\\U000F0595");`);
+        const centerX = Math.round(w.x + w.width / 2);
+        const centerY = Math.round(w.y + w.height / 2);
+        lines.push(`        it.printf(${centerX}, ${centerY}, id(${fontRef}), ${color}, TextAlign::CENTER, "\\U000F0595");`);
     }
 
     if (cond) lines.push(`        }`);

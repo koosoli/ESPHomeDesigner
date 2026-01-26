@@ -346,7 +346,14 @@ export default {
 
         // Standardized Centering Logic
         const centerX = `${w.x} + ${w.width} / 2`;
-        const centerYIcon = `${w.y} + ${Math.round(iconSize / 2)}`;
+
+        const labelSize = p.label_font_size || 10;
+        const totalHeight = iconSize + 2 + fontSize + (p.show_label ? (1 + labelSize) : 0);
+        const paddingY = Math.max(0, Math.round((w.height - totalHeight) / 2));
+
+        const iconCenterY = `${w.y} + ${paddingY} + ${Math.round(iconSize / 2)}`;
+        const valueTopY = `${w.y} + ${paddingY} + ${iconSize} + 2`;
+        const labelTopY = `${w.y} + ${paddingY} + ${iconSize} + 2 + ${fontSize} + 1`;
 
         // Icon based on humidity
         // Strict validation: Local sensor is only valid if hardware actually supports it
@@ -356,36 +363,36 @@ export default {
         // If no valid sensor, return static strings to avoid "ID not declared" errors
         if (!hasValidSensor) {
             // --- ICON ---
-            lines.push(`          it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058E");`);
+            lines.push(`          it.printf(${centerX}, ${iconCenterY}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058E");`);
         } else {
             // --- ICON ---
             lines.push(`        if (id(${sensorId}).has_state()) {`);
             lines.push(`          if (id(${sensorId}).state <= 30) {`);
-            lines.push(`            it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F0E7A");`);
+            lines.push(`            it.printf(${centerX}, ${iconCenterY}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F0E7A");`);
             lines.push(`          } else if (id(${sensorId}).state <= 60) {`);
-            lines.push(`            it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058E");`);
+            lines.push(`            it.printf(${centerX}, ${iconCenterY}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058E");`);
             lines.push(`          } else {`);
-            lines.push(`            it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058C");`);
+            lines.push(`            it.printf(${centerX}, ${iconCenterY}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058C");`);
             lines.push(`          }`);
             lines.push(`        } else {`);
-            lines.push(`          it.printf(${centerX}, ${centerYIcon}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058E");`);
+            lines.push(`          it.printf(${centerX}, ${iconCenterY}, id(${iconFontId}), ${color}, TextAlign::CENTER, "\\U000F058E");`);
             lines.push(`        }`);
         }
 
         // --- VALUE ---
         if (hasValidSensor) {
             lines.push(`        if (id(${sensorId}).has_state()) {`);
-            lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "%.0f${unit}", id(${sensorId}).state);`);
+            lines.push(`          it.printf(${centerX}, ${valueTopY}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "%.0f${unit}", id(${sensorId}).state);`);
             lines.push(`        } else {`);
-            lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
+            lines.push(`          it.printf(${centerX}, ${valueTopY}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
             lines.push(`        }`);
         } else {
-            lines.push(`          it.printf(${centerX}, ${w.y} + ${iconSize + 5}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
+            lines.push(`          it.printf(${centerX}, ${valueTopY}, id(${valueFontId}), ${color}, TextAlign::TOP_CENTER, "--${unit}");`);
         }
 
         if (p.show_label) {
-            const labelFontId = addFont("Roboto", 400, p.label_font_size || 10);
-            lines.push(`        it.printf(${centerX}, ${w.y} + ${iconSize + fontSize + 8}, id(${labelFontId}), ${color}, TextAlign::TOP_CENTER, "Humidity");`);
+            const labelFontId = addFont("Roboto", 400, labelSize);
+            lines.push(`        it.printf(${centerX}, ${labelTopY}, id(${labelFontId}), ${color}, TextAlign::TOP_CENTER, "Humidity");`);
         }
 
         if (cond) lines.push(`        }`);

@@ -81,7 +81,7 @@ const exportDoc = (w, context) => {
     } else {
         // Ensure sensor. prefix if missing (matching onExportNumericSensors logic)
         let normalizedEntityId = entityId;
-        if (normalizedEntityId && !normalizedEntityId.includes(".")) {
+        if (normalizedEntityId && !normalizedEntityId.includes(".") && normalizedEntityId !== "battery_level") {
             normalizedEntityId = `sensor.${normalizedEntityId}`;
         }
         sensorId = normalizedEntityId ? normalizedEntityId.replace(/[^a-zA-Z0-9_]/g, "_") : "battery_level";
@@ -108,7 +108,11 @@ const exportDoc = (w, context) => {
     lines.push(`        {`);
     lines.push(`          const char* bat_icon = "\\U000F0082"; // Default: battery-90`);
     lines.push(`          float bat_level = 0;`);
-    const idExists = (id) => context.seenSensorIds && context.seenSensorIds.has(id);
+
+    // Fix: Robust check also verifies if the device natively supports battery
+    const idExists = (id) => (context.seenSensorIds && context.seenSensorIds.has(id)) ||
+        (id === "battery_level" && context.profile?.pins?.batteryAdc);
+
     if (sensorId && idExists(sensorId)) {
         lines.push(`          if (id(${sensorId}).has_state()) {`);
         lines.push(`            bat_level = id(${sensorId}).state;`);

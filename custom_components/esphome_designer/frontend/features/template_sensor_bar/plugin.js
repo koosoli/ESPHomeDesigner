@@ -234,7 +234,8 @@ const exportDoc = (w, context) => {
         let currentX = w.x + spacing / 2;
         const centerY = w.y + w.height / 2;
 
-        const idExists = (id) => context.seenSensorIds && context.seenSensorIds.has(id);
+        const idExists = (id) => (context.seenSensorIds && context.seenSensorIds.has(id)) ||
+            (id === "battery_level" && context.profile?.pins?.batteryAdc);
 
         if (showWifi) {
             lines.push(`          {`);

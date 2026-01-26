@@ -233,6 +233,18 @@ export class SnippetManager {
                     if (importBtn) importBtn.style.display = 'inline-block';
 
                     const payload = window.AppState ? window.AppState.getPagesPayload() : { pages: [] };
+
+                    // FORCE SYNC: Ensure the generator uses the latest UI selection
+                    // This fixes an issue where AppState might be momentarily stale
+                    if (window.currentDeviceModel && window.currentDeviceModel !== payload.deviceModel) {
+                        Logger.log(`[SnippetManager] Overriding stale deviceModel '${payload.deviceModel}' with '${window.currentDeviceModel}'`);
+                        payload.deviceModel = window.currentDeviceModel;
+                        payload.device_model = window.currentDeviceModel;
+                        if (payload.settings) {
+                            payload.settings.device_model = window.currentDeviceModel;
+                        }
+                    }
+
                     this.adapter.generate(payload).then(yaml => {
                         this.lastGeneratedYaml = yaml;
                         snippetBox.value = yaml;
