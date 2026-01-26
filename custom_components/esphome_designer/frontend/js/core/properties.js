@@ -628,7 +628,8 @@ export class PropertiesPanel {
                 this.addLabeledInput("Date Font", "number", props.date_font_size || 16, (v) => updateProp("date_font_size", parseInt(v, 10)));
             });
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
-            this.addSelect("Align", props.text_align || "CENTER", ["LEFT", "CENTER", "RIGHT"], (v) => updateProp("text_align", v));
+            const alignOptions = ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"];
+            this.addSelect("Align", props.text_align || "CENTER", alignOptions, (v) => updateProp("text_align", v));
             this.endSection();
         }
         else if (type === "image" || type === "online_image") {

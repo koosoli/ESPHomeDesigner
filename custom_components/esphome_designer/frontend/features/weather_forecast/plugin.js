@@ -178,6 +178,8 @@ const exportDoc = (w, context) => {
     const fontFamily = p.font_family || "Roboto";
     const colorProp = p.color || "black";
     const color = getColorConst(colorProp);
+    const tempUnit = p.temp_unit || "C";
+    const unitSymbol = tempUnit === "F" ? "°F" : "°C";
 
     const dayFontId = addFont(fontFamily, 700, dayFontSize);
     const tempFontId = addFont(fontFamily, 400, tempFontSize);
@@ -253,11 +255,11 @@ const exportDoc = (w, context) => {
             lines.push(`            if (std::isnan(high) && std::isnan(low)) {`);
             lines.push(`                sprintf(temp_buf, "--/--");`);
             lines.push(`            } else if (std::isnan(high)) {`);
-            lines.push(`                sprintf(temp_buf, "--/%.0f", low);`);
+            lines.push(`                sprintf(temp_buf, "--/%.0f${unitSymbol}", low);`);
             lines.push(`            } else if (std::isnan(low)) {`);
-            lines.push(`                sprintf(temp_buf, "%.0f/--", high);`);
+            lines.push(`                sprintf(temp_buf, "%.0f${unitSymbol}/--", high);`);
             lines.push(`            } else {`);
-            lines.push(`                sprintf(temp_buf, "%.0f/%.0f", high, low);`);
+            lines.push(`                sprintf(temp_buf, "%.0f/%.0f${unitSymbol}", high, low);`);
             lines.push(`            }`);
             lines.push(`            it.printf(dx + ${centerOffset}, dy + ${dayFontSize + iconSize + 8}, id(${tempFontId}), ${color}, TextAlign::TOP_CENTER, "%s", temp_buf);`);
         }

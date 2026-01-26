@@ -12,14 +12,19 @@ const render = (el, widget, { getColorStyle }) => {
 
     const color = getColorStyle(props.color);
     const fontFamily = (props.font_family || "Roboto") + ", sans-serif";
-    const textAlign = props.text_align || "CENTER";
+    const textAlign = (props.text_align || "CENTER").toUpperCase();
 
-    const applyAlign = (align, element) => {
-        if (align === "LEFT") element.style.alignItems = "flex-start";
-        else if (align === "RIGHT") element.style.alignItems = "flex-end";
+    const applyFlexAlign = (align, element) => {
+        if (!align) return;
+        if (align.includes("LEFT")) element.style.alignItems = "flex-start";
+        else if (align.includes("RIGHT")) element.style.alignItems = "flex-end";
         else element.style.alignItems = "center";
+
+        if (align.includes("TOP")) element.style.justifyContent = "flex-start";
+        else if (align.includes("BOTTOM")) element.style.justifyContent = "flex-end";
+        else element.style.justifyContent = "center";
     };
-    applyAlign(textAlign, el);
+    applyFlexAlign(textAlign, el);
 
     const format = props.format || "time_date";
 
@@ -75,13 +80,15 @@ export default {
         color: "black",
         italic: false,
         font_family: "Roboto",
-        text_align: "CENTER"
+        text_align: "CENTER",
+        width: 120,
+        height: 50
     },
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};
         const format = p.format || "time_date";
-        const textAlign = p.text_align || "CENTER";
+        const textAlign = (p.text_align || "CENTER").toUpperCase();
 
         let text = "";
         const now = new Date();
@@ -93,10 +100,18 @@ export default {
             text = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
         }
 
+        const xCenter = textAlign.includes("CENTER") || textAlign === "CENTER";
+        const xRight = textAlign.includes("RIGHT");
+        const yCenter = textAlign.includes("CENTER") || (!textAlign.includes("TOP") && !textAlign.includes("BOTTOM"));
+        const yBottom = textAlign.includes("BOTTOM");
+
+        const x = Math.round(w.x + (xCenter ? w.width / 2 : (xRight ? w.width : 0)));
+        const y = Math.round(w.y + (yCenter ? w.height / 2 : (yBottom ? w.height : 0)));
+
         return {
             type: "draw_text",
-            x: Math.round(w.x + (textAlign === "CENTER" ? w.width / 2 : (textAlign === "RIGHT" ? w.width : 0))),
-            y: Math.round(w.y),
+            x: x,
+            y: y,
             text: text,
             size: p.time_font_size || 28,
             color: p.color || "black",
@@ -107,7 +122,7 @@ export default {
         const p = w.props || {};
         const format = p.format || "time_date";
         const color = p.color || "black";
-        const textAlign = p.text_align || "CENTER";
+        const textAlign = (p.text_align || "CENTER").toUpperCase();
 
         let template = "";
         if (format === "time_only") {
@@ -121,16 +136,24 @@ export default {
             template = "{{ now().strftime('%H:%M') }}\n{{ now().strftime('%a, %b %d') }}";
         }
 
+        const xCenter = textAlign.includes("CENTER") || textAlign === "CENTER";
+        const xRight = textAlign.includes("RIGHT");
+        const yCenter = textAlign.includes("CENTER") || (!textAlign.includes("TOP") && !textAlign.includes("BOTTOM"));
+        const yBottom = textAlign.includes("BOTTOM");
+
+        const x = Math.round(w.x + (xCenter ? w.width / 2 : (xRight ? w.width : 0)));
+        const y = Math.round(w.y + (yCenter ? w.height / 2 : (yBottom ? w.height : 0)));
+
         return {
             type: "text",
             value: template,
-            x: Math.round(w.x + (textAlign === "CENTER" ? w.width / 2 : (textAlign === "RIGHT" ? w.width : 0))),
-            y: Math.round(w.y),
+            x: x,
+            y: y,
             size: p.time_font_size || 28,
             font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf",
             color: color,
-            align: textAlign.toLowerCase(),
-            anchor: "lt"
+            align: textAlign.toLowerCase().replace("top_", "").replace("bottom_", "").replace("_", ""),
+            anchor: (yCenter ? "m" : (yBottom ? "b" : "t")) + (xCenter ? "c" : (xRight ? "r" : "l"))
         };
     },
     exportLVGL: (w, { common, convertColor, convertAlign, getLVGLFont, formatOpacity }) => {
@@ -187,7 +210,7 @@ export default {
         const dateSize = parseInt(p.date_font_size || 16, 10);
         const timeFontId = addFont(p.font_family || "Roboto", 700, timeSize, !!p.italic);
         const dateFontId = addFont(p.font_family || "Roboto", 400, dateSize, !!p.italic);
-        const textAlign = p.text_align || "CENTER";
+        const textAlign = (p.text_align || "CENTER").toUpperCase();
         const format = p.format || "time_date";
 
         lines.push(`        // widget:datetime id:${w.id} type:datetime x:${w.x} y:${w.y} w:${w.width} h:${w.height} fmt:${format} ${getCondProps(w)}`);
@@ -198,32 +221,48 @@ export default {
         lines.push(`        {`);
         lines.push(`          auto now = id(ha_time).now();`);
 
-        let x = Math.round(w.x + w.width / 2);
-        let align = "TextAlign::CENTER";
-        if (textAlign === "LEFT") {
-            x = w.x;
-            align = "TextAlign::TOP_LEFT";
-        } else if (textAlign === "RIGHT") {
-            x = w.x + w.width;
-            align = "TextAlign::TOP_RIGHT";
-        }
+        // Alignment Setup
+        let alignH = "LEFT";
+        if (textAlign.includes("CENTER")) alignH = "CENTER";
+        else if (textAlign.includes("RIGHT")) alignH = "RIGHT";
+
+        let alignV = "TOP";
+        if (textAlign.includes("BOTTOM")) alignV = "BOTTOM";
+        else if (textAlign.includes("CENTER") || textAlign === "CENTER" || (!textAlign.includes("TOP") && !textAlign.includes("BOTTOM"))) alignV = "CENTER";
+
+        // Map to ESPHome constants (explicit)
+        const getEspAlign = (h, v) => {
+            if (h === "CENTER" && v === "CENTER") return "TextAlign::CENTER";
+            return `TextAlign::${v}_${h}`;
+        };
+
+        const espAlign = getEspAlign(alignH, alignV);
+
+        // Positioning
+        let xVal = w.x;
+        if (alignH === "CENTER") xVal = Math.round(w.x + w.width / 2);
+        else if (alignH === "RIGHT") xVal = Math.round(w.x + w.width);
+
+        let yVal = w.y;
+        if (alignV === "CENTER") yVal = Math.round(w.y + w.height / 2);
+        else if (alignV === "BOTTOM") yVal = Math.round(w.y + w.height);
 
         if (format === "time_only") {
-            const y = getAlignY ? getAlignY(textAlign, w.y, w.height) : w.y;
-            lines.push(`          it.strftime(${x}, ${y}, id(${timeFontId}), ${color}, ${align}, "%H:%M", now);`);
+            lines.push(`          it.strftime(${xVal}, ${yVal}, id(${timeFontId}), ${color}, ${espAlign}, "%H:%M", now);`);
         } else if (format === "date_only") {
-            const y = getAlignY ? getAlignY(textAlign, w.y, w.height) : w.y;
-            lines.push(`          it.strftime(${x}, ${y}, id(${dateFontId}), ${color}, ${align}, "%d.%m.%Y", now);`);
+            lines.push(`          it.strftime(${xVal}, ${yVal}, id(${dateFontId}), ${color}, ${espAlign}, "%d.%m.%Y", now);`);
         } else if (format === "weekday_day_month") {
-            // International format: "Monday 01 January"
-            const y = getAlignY ? getAlignY(textAlign, w.y, w.height) : w.y;
-            lines.push(`          it.strftime(${x}, ${y}, id(${dateFontId}), ${color}, ${align}, "%A %d %B", now);`);
+            lines.push(`          it.strftime(${xVal}, ${yVal}, id(${dateFontId}), ${color}, ${espAlign}, "%A %d %B", now);`);
         } else {
-            // Multi-line
+            // Multi-line Positioning (Manual Y for consistency)
             const totalH = timeSize + dateSize + 2;
-            const startY = Math.round(w.y + (w.height - totalH) / 2);
-            lines.push(`          it.strftime(${x}, ${startY}, id(${timeFontId}), ${color}, ${align}, "%H:%M", now);`);
-            lines.push(`          it.strftime(${x}, ${startY} + ${timeSize} + 2, id(${dateFontId}), ${color}, ${align}, "%a, %b %d", now);`);
+            let startY = w.y; // Default Top
+            if (alignV === "CENTER") startY = Math.round(w.y + (w.height - totalH) / 2);
+            else if (alignV === "BOTTOM") startY = Math.round(w.y + w.height - totalH);
+
+            const multiAlign = `TextAlign::TOP_${alignH}`;
+            lines.push(`          it.strftime(${xVal}, ${startY}, id(${timeFontId}), ${color}, ${multiAlign}, "%H:%M", now);`);
+            lines.push(`          it.strftime(${xVal}, ${startY} + ${timeSize} + 2, id(${dateFontId}), ${color}, ${multiAlign}, "%a, %b %d", now);`);
         }
 
         lines.push(`        }`);

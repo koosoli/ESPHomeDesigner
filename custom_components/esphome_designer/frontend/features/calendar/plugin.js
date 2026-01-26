@@ -175,7 +175,7 @@ export default {
     // export implementations are insufficient for this complex widget.
     supportedModes: ['lvgl', 'direct'],
     defaults: {
-        entity_id: "sensor.esp_calendar_data",
+        entity_id: "input_text.esp_calendar_data_json",
         border_width: 2,
         show_border: true,
         border_color: "black",
@@ -204,7 +204,8 @@ export default {
 
         for (const w of calendarWidgets) {
             const p = w.props || {};
-            const entityId = (w.entity_id || p.entity_id || "sensor.esp_calendar_data").trim();
+            const entityId = (w.entity_id || p.entity_id || "input_text.esp_calendar_data_json").trim();
+            const isSensor = entityId.startsWith("sensor.");
             const safeId = `calendar_data_${w.id}`;
 
             const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(entityId)) ||
@@ -217,7 +218,9 @@ export default {
                 lines.push("- platform: homeassistant");
                 lines.push(`  id: ${safeId}`);
                 lines.push(`  entity_id: ${entityId}`);
-                lines.push(`  attribute: entries`);
+                if (isSensor) {
+                    lines.push(`  attribute: entries`);
+                }
                 lines.push(`  internal: true`);
             }
         }
@@ -227,7 +230,11 @@ export default {
         lines.push("# CALENDAR EVENTS SETUP (HOME ASSISTANT)");
         lines.push("# 1. Download the 'Helper Script' from the Calendar widget's properties panel.");
         lines.push("# 2. Place it in your /config/python_scripts/ folder.");
-        lines.push("# 3. Add this automation to your automations.yaml to update the sensor:");
+        lines.push("# 3. Create a 'Text' helper in Home Assistant (Settings > Devices > Helpers)");
+        lines.push("#    - Name: ESP Calendar Data JSON");
+        lines.push("#    - Entity ID: input_text.esp_calendar_data_json");
+        lines.push("#    - Max length: 255 (Note: 2-3 events max. Use Template Sensor for more).");
+        lines.push("# 4. Add this automation to your automations.yaml to update the sensor:");
         lines.push("#");
         lines.push("# automation:");
         lines.push("#   - alias: Update ESP Calendar Data");
@@ -235,13 +242,13 @@ export default {
         lines.push("#       - platform: time_pattern");
         lines.push("#         minutes: '/15'");
         lines.push("#     action:");
-        lines.push("#       - service: python_script.esp_calendar_data_conversion");
+        lines.push("#       - action: python_script.esp_calendar_data_conversion");
         lines.push("#         data:");
         lines.push("#           calendar:");
         lines.push("#             calendar.your_calendar: {}  # Add your calendars here");
         lines.push("#           now: \"{{ now().isoformat() }}\"");
         lines.push("#         response_variable: output");
-        lines.push("#       - service: input_text.set_value");
+        lines.push("#       - action: input_text.set_value");
         lines.push("#         target:");
         lines.push("#           entity_id: input_text.esp_calendar_data_json");
         lines.push("#         data:");
