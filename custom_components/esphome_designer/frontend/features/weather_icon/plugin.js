@@ -88,7 +88,15 @@ const exportDoc = (w, context) => {
     if (cond) lines.push(`        ${cond}`);
 
     if (entityId) {
-        const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_") + "_text_sensor";
+        // Helper to create safe ESPHome ID (max 59 chars before suffix for 63 char limit)
+        const makeSafeId = (eid, suffix = "") => {
+            let safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            const maxBase = 63 - suffix.length;
+            if (safe.length > maxBase) safe = safe.substring(0, maxBase);
+            return safe + suffix;
+        };
+
+        const safeId = makeSafeId(entityId, "_txt");
 
         // Centering logic
         const centerX = Math.round(w.x + w.width / 2);
@@ -143,7 +151,14 @@ const onExportTextSensors = (context) => {
     }
 
     weatherEntities.forEach(({ id, entity_id }) => {
-        const safeId = entity_id.replace(/[^a-zA-Z0-9_]/g, "_") + "_text_sensor";
+        // Helper to create safe ESPHome ID (max 59 chars)
+        const makeSafeId = (eid, suffix = "") => {
+            let safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            const maxBase = 63 - suffix.length;
+            if (safe.length > maxBase) safe = safe.substring(0, maxBase);
+            return safe + suffix;
+        };
+        const safeId = makeSafeId(entity_id, "_txt");
 
         if (isLvgl && pendingTriggers) {
             if (!pendingTriggers.has(safeId)) pendingTriggers.set(safeId, new Set());
@@ -266,7 +281,14 @@ export default {
 
         let lambdaStr = '"\\U000F0599"'; // Default: sunny
         if (entityId) {
-            const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_") + "_text_sensor";
+            // Helper to create safe ESPHome ID (max 59 chars)
+            const makeSafeId = (eid, suffix = "") => {
+                let safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+                const maxBase = 63 - suffix.length;
+                if (safe.length > maxBase) safe = safe.substring(0, maxBase);
+                return safe + suffix;
+            };
+            const safeId = makeSafeId(entityId, "_txt");
             lambdaStr = '!lambda |-\n';
             lambdaStr += `              std::string ws = id(${safeId}).state;\n`;
             lambdaStr += `              if (ws == "clear-night") return "\\U000F0594";\n`;

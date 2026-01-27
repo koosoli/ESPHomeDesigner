@@ -206,12 +206,16 @@ def render_page_to_png(
     - Returns PNG bytes suitable for direct response to the device.
     """
 
+    # Use dimensions from device config, falling back to defaults
+    width = device.width or IMAGE_WIDTH
+    height = device.height or IMAGE_HEIGHT
+
     # Base white canvas, 1-channel (L) for grayscale. E-ink can dither this.
-    image = Image.new("L", (IMAGE_WIDTH, IMAGE_HEIGHT), color=255)
+    image = Image.new("L", (width, height), color=255)
     draw = ImageDraw.Draw(image)
 
     # Optional: draw a subtle border
-    draw.rectangle((0, 0, IMAGE_WIDTH - 1, IMAGE_HEIGHT - 1), outline=0)
+    draw.rectangle((0, 0, width - 1, height - 1), outline=0)
 
     for w_cfg in page.widgets:
         # Ensure widget is in bounds

@@ -425,7 +425,6 @@ const onExportGlobals = (context) => {
         const points = w.props.history_points || 100;
         lines.push(`- id: ${histId}`);
         lines.push(`  type: float[${points}]`);
-        lines.push(`  initial_value: 'NAN'`);
         if (w.props.auto_scale !== false) {
             lines.push(`- id: ${histId}_min`);
             lines.push(`  type: float`);

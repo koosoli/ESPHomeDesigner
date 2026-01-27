@@ -39,7 +39,7 @@ function getESPHomeSchema() {
 
 // Known OEPL/ODP widget types for detection
 const OEPL_WIDGET_TYPES = [
-    'text', 'rectangle', 'circle', 'icon', 'qrcode', 'progress_bar', 
+    'text', 'rectangle', 'circle', 'icon', 'qrcode', 'progress_bar',
     'debug_grid', 'line', 'multiline', 'plot', 'dlimg', 'image',
     // ODP-specific types
     'rectangle_pattern', 'polygon', 'ellipse', 'arc', 'icon_sequence'
@@ -68,16 +68,16 @@ export function isBareOEPLArray(yamlText) {
  */
 export function parseOEPLArrayToLayout(oeplArray) {
     Logger.log("[parseOEPLArrayToLayout] Parsing OEPL array with", oeplArray.length, "items");
-    
+
     const widgets = [];
     let widgetIndex = 0;
-    
+
     for (const item of oeplArray) {
         if (!item || !item.type) continue;
-        
+
         const oeplType = item.type.toLowerCase();
         let widget = null;
-        
+
         switch (oeplType) {
             case 'text':
                 widget = {
@@ -97,7 +97,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     }
                 };
                 break;
-                
+
             case 'multiline':
                 // ODP multiline text with delimiter
                 const delimiter = item.delimiter || '|';
@@ -122,7 +122,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     }
                 };
                 break;
-                
+
             case 'rectangle':
                 widget = {
                     id: `oepl_rect_${widgetIndex}`,
@@ -142,7 +142,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     }
                 };
                 break;
-                
+
             case 'circle':
                 const radius = parseInt(item.radius || 25, 10);
                 widget = {
@@ -163,7 +163,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     }
                 };
                 break;
-                
+
             case 'icon':
                 widget = {
                     id: `oepl_icon_${widgetIndex}`,
@@ -182,7 +182,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     }
                 };
                 break;
-                
+
             case 'qrcode':
                 const boxsize = parseInt(item.boxsize || 2, 10);
                 const border = parseInt(item.border || 1, 10);
@@ -205,7 +205,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     }
                 };
                 break;
-                
+
             case 'progress_bar':
                 widget = {
                     id: `oepl_progress_${widgetIndex}`,
@@ -226,7 +226,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     }
                 };
                 break;
-                
+
             case 'line':
                 widget = {
                     id: `oepl_line_${widgetIndex}`,
@@ -241,17 +241,17 @@ export function parseOEPLArrayToLayout(oeplArray) {
                         stroke_width: parseInt(item.width || 1, 10),
                         color: item.fill || item.color || 'black',
                         orientation: Math.abs((parseInt(item.y_end || 0, 10)) - (parseInt(item.y_start || item.y || 0, 10))) >
-                                    Math.abs((parseInt(item.x_end || 100, 10)) - (parseInt(item.x_start || item.x || 0, 10)))
-                                    ? 'vertical' : 'horizontal'
+                            Math.abs((parseInt(item.x_end || 100, 10)) - (parseInt(item.x_start || item.x || 0, 10)))
+                            ? 'vertical' : 'horizontal'
                     }
                 };
                 break;
-                
+
             case 'debug_grid':
                 // Debug grid is not a visual widget in the designer, skip it
                 Logger.log("[parseOEPLArrayToLayout] Skipping debug_grid widget");
                 continue;
-                
+
             case 'dlimg':
             case 'image':
                 widget = {
@@ -270,7 +270,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     }
                 };
                 break;
-                
+
             case 'plot':
                 widget = {
                     id: `oepl_graph_${widgetIndex}`,
@@ -289,7 +289,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     }
                 };
                 break;
-            
+
             // ODP-specific widget types
             case 'rectangle_pattern':
                 widget = {
@@ -314,7 +314,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     }
                 };
                 break;
-                
+
             case 'polygon':
                 widget = {
                     id: `odp_polygon_${widgetIndex}`,
@@ -349,7 +349,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     widget.props.points = item.points.map(([px, py]) => [px - minX, py - minY]);
                 }
                 break;
-                
+
             case 'ellipse':
                 widget = {
                     id: `odp_ellipse_${widgetIndex}`,
@@ -367,7 +367,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     }
                 };
                 break;
-                
+
             case 'arc':
                 const arcRadius = parseInt(item.radius || 50, 10);
                 widget = {
@@ -388,7 +388,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     }
                 };
                 break;
-                
+
             case 'icon_sequence':
                 const iconSize = parseInt(item.size || 24, 10);
                 const spacing = parseInt(item.spacing || 6, 10);
@@ -412,20 +412,20 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     }
                 };
                 break;
-                
+
             default:
                 Logger.warn(`[parseOEPLArrayToLayout] Unknown OEPL type: ${oeplType}`);
                 continue;
         }
-        
+
         if (widget) {
             widgets.push(widget);
             widgetIndex++;
         }
     }
-    
+
     Logger.log(`[parseOEPLArrayToLayout] Created ${widgets.length} widgets from OEPL array`);
-    
+
     return {
         settings: {
             orientation: 'landscape',
@@ -1870,7 +1870,10 @@ export function loadLayoutIntoState(layout) {
         "oepl_entity_id": "oeplEntityId",
         "oeplEntityId": "oeplEntityId",
         "oepl_dither": "oeplDither",
-        "oeplDither": "oeplDither"
+        "oeplDither": "oeplDither",
+        "auto_cycle_interval_s": "autoCycleIntervalS",
+        "autoCycleIntervalS": "autoCycleIntervalS",
+        "glyphsets": "glyphsets"
     };
 
     // Extract root settings and normalize to camelCase

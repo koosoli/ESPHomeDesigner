@@ -40,7 +40,8 @@ class ReTerminalEntitiesView(DesignerBaseView):
                 "state": state.state,
                 "domain": state.domain,
                 "unit": state.attributes.get("unit_of_measurement"),
-                "icon": state.attributes.get("icon")
+                "icon": state.attributes.get("icon"),
+                "attributes": dict(state.attributes)  # Include full attributes for preview
             })
 
             if len(entities) >= 1000: # Safety cap

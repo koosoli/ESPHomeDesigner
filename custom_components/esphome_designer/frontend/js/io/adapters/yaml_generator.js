@@ -150,10 +150,10 @@ export class YamlGenerator {
         // Add Deep Sleep component if enabled (E-Ink Only)
         if (isEpaper && layout.deepSleepEnabled) {
             lines.push("");
-            lines.push("# deep_sleep:");
-            lines.push("#   id: deep_sleep_control");
-            lines.push("#   run_duration: 30s # Stay awake 30s on boot for OTA");
-            lines.push(`#   sleep_duration: ${layout.deepSleepInterval || 600}s`);
+            lines.push("deep_sleep:");
+            lines.push("  id: deep_sleep_control");
+            lines.push("  run_duration: 30s # Stay awake 30s on boot for OTA");
+            lines.push(`  sleep_duration: ${layout.deepSleepInterval || 600}s`);
         }
 
         lines.push("");

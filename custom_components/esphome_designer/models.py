@@ -272,6 +272,19 @@ class DeviceConfig:
     oepl_entity_id: str = ""
     oepl_dither: int = 2
 
+    # --- New Fields for Hardware Profile Persistence ---
+    auto_cycle_enabled: bool = False
+    auto_cycle_interval_s: int = 30
+    refresh_interval: int = 600
+    inverted_colors: bool = False
+    width: int = 800
+    height: int = 480
+    shape: str = "rect"
+    custom_hardware: Dict[str, Any] = field(default_factory=dict)
+    protocol_hardware: Dict[str, Any] = field(default_factory=dict)
+    glyphsets: List[str] = field(default_factory=lambda: ["GF_Latin_Kernel"])
+    # ----------------------------------------------------
+
     def ensure_pages(self, min_pages: int = DEFAULT_PAGES) -> None:
         """Ensure at least min_pages exist; add simple default pages if missing."""
         if not self.pages:
@@ -339,6 +352,16 @@ class DeviceConfig:
             "lcd_eco_strategy": self.lcd_eco_strategy,
             "oepl_entity_id": self.oepl_entity_id,
             "oepl_dither": self.oepl_dither,
+            "auto_cycle_enabled": self.auto_cycle_enabled,
+            "auto_cycle_interval_s": self.auto_cycle_interval_s,
+            "refresh_interval": self.refresh_interval,
+            "inverted_colors": self.inverted_colors,
+            "width": self.width,
+            "height": self.height,
+            "shape": self.shape,
+            "custom_hardware": self.custom_hardware,
+            "protocol_hardware": self.protocol_hardware,
+            "glyphsets": self.glyphsets,
             "pages": [p.to_dict() for p in self.pages],
         }
 
@@ -394,6 +417,16 @@ class DeviceConfig:
             lcd_eco_strategy=str(get_v("lcd_eco_strategy", "lcdEcoStrategy", "backlight_off")),
             oepl_entity_id=str(get_v("oepl_entity_id", "oeplEntityId", "")),
             oepl_dither=get_i("oepl_dither", "oeplDither", 2),
+            auto_cycle_enabled=bool(get_v("auto_cycle_enabled", "autoCycleEnabled", False)),
+            auto_cycle_interval_s=get_i("auto_cycle_interval_s", "autoCycleIntervalS", 30),
+            refresh_interval=get_i("refresh_interval", "refreshInterval", 600),
+            inverted_colors=bool(get_v("inverted_colors", "invertedColors", False)),
+            width=get_i("width", "resWidth", 800),
+            height=get_i("height", "resHeight", 480),
+            shape=str(get_v("shape", "shape", "rect")),
+            custom_hardware=get_v("custom_hardware", "customHardware", {}),
+            protocol_hardware=get_v("protocol_hardware", "protocolHardware", {}),
+            glyphsets=get_v("glyphsets", "glyphsets", ["GF_Latin_Kernel"]),
         )
         cfg.ensure_pages()
         return cfg

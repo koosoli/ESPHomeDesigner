@@ -134,11 +134,9 @@ export class ESPHomeAdapter extends BaseAdapter {
 
 
         // 1. Instructions & Setup Comments
-        if (!profile.isPackageBased) {
-            lines.push(...this.yaml.generateInstructionHeader(profile, layout));
-            lines.push(...this.yaml.generateSystemSections(profile, layout));
-            lines.push("");
-        }
+        lines.push(...this.yaml.generateInstructionHeader(profile, layout));
+        lines.push(...this.yaml.generateSystemSections(profile, layout));
+        lines.push("");
 
         // 2. Preparation
         const displayId = profile.features?.lcd ? "my_display" : "epaper_display";
@@ -212,9 +210,6 @@ export class ESPHomeAdapter extends BaseAdapter {
             PluginRegistry.onExportGlobals({ ...context, lines: globalLines });
 
             if (includeLines.length > 0) {
-                // We add the includes to the system sections via a dedicated param if we refactor it,
-                // or just inject it into the lines array before system sections.
-                // For now, let's pass it to generateSystemSections.
                 layout.plugin_includes = includeLines;
             }
 
@@ -329,7 +324,10 @@ export class ESPHomeAdapter extends BaseAdapter {
                 const isBinaryDomain = binaryDomains.some(d => entityId.startsWith(d));
 
                 if (isHaSensor && !isBinaryDomain && !seenEntityIds.has(entityId)) {
-                    const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_");
+                    // Safe ID truncated to 63 chars for ESPHome compatibility
+                    let safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_");
+                    if (safeId.length > 63) safeId = safeId.substring(0, 63);
+
                     if (!seenSensorIds.has(safeId)) {
                         seenEntityIds.add(entityId);
                         seenSensorIds.add(safeId);
@@ -831,7 +829,7 @@ export class ESPHomeAdapter extends BaseAdapter {
         if (!yaml) return "";
         // IMPORTANT: These keys are system-level and MUST be commented out in the final snippet.
         // This allows users to merge the generated YAML into their existing config without conflicts.
-        const systemKeys = ["esphome:", "esp32:", "psram:", "wifi:", "api:", "ota:", "logger:", "web_server:", "captive_portal:", "platformio_options:", "preferences:", "substitutions:"];
+        const systemKeys = ["esphome:", "esp32:", "psram:", "wifi:", "api:", "ota:", "logger:", "web_server:", "captive_portal:", "platformio_options:", "preferences:", "substitutions:", "deep_sleep:"];
         const lines = yaml.split('\n');
         const sanitized = [];
         let inSystemBlock = false;

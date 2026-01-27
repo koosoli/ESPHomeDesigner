@@ -113,14 +113,30 @@ const drawCalendarPreview = (el, widget, props) => {
     // Try to get live data from AppState
     let liveEvents = null;
     const entityId = (widget.entity_id || props.entity_id || "sensor.esp_calendar_data").trim();
+    console.log("[Calendar Preview] Looking for entity:", entityId);
     if (window.AppState && window.AppState.entityStates) {
-        const stateSet = window.AppState.entityStates[entityId];
-        if (stateSet && stateSet.state && stateSet.state !== "unknown" && stateSet.state.length > 5) {
+        const stateObj = window.AppState.entityStates[entityId];
+        console.log("[Calendar Preview] Found stateObj:", stateObj ? "yes" : "no", stateObj ? JSON.stringify(stateObj).substring(0, 300) : "");
+        if (stateObj) {
             try {
-                const doc = JSON.parse(stateSet.state);
-                liveEvents = doc.days || doc; // Handle both {days:[]} and [] formats
+                // STRATEGY 1: Check Attributes (The new "Sensor" way)
+                // Home Assistant attributes are often objects, so we check if entries exists
+                if (stateObj.attributes && stateObj.attributes.entries) {
+                    // It might be a string (if passed through some APIs) or already an object
+                    if (typeof stateObj.attributes.entries === 'string') {
+                        const parsed = JSON.parse(stateObj.attributes.entries);
+                        liveEvents = parsed.days || parsed;
+                    } else {
+                        liveEvents = stateObj.attributes.entries.days || stateObj.attributes.entries;
+                    }
+                }
+                // STRATEGY 2: Check State (The old "Input Text" way)
+                else if (stateObj.state && stateObj.state.length > 5 && stateObj.state !== "OK" && stateObj.state !== "unknown") {
+                    const doc = JSON.parse(stateObj.state);
+                    liveEvents = doc.days || doc;
+                }
             } catch (e) {
-                console.warn("[Calendar Widget] Failed to parse live state:", e);
+                console.warn("[Calendar Widget] Failed to parse live state/attributes:", e);
             }
         }
     }
@@ -175,7 +191,7 @@ export default {
     // export implementations are insufficient for this complex widget.
     supportedModes: ['lvgl', 'direct'],
     defaults: {
-        entity_id: "input_text.esp_calendar_data_json",
+        entity_id: "sensor.esp_calendar_data",
         border_width: 2,
         show_border: true,
         border_color: "black",
@@ -202,9 +218,11 @@ export default {
         const calendarWidgets = widgets.filter(w => w.type === "calendar");
         if (calendarWidgets.length === 0) return;
 
+        let needsInstruction = false;
+
         for (const w of calendarWidgets) {
             const p = w.props || {};
-            const entityId = (w.entity_id || p.entity_id || "input_text.esp_calendar_data_json").trim();
+            const entityId = (w.entity_id || p.entity_id || "sensor.esp_calendar_data").trim();
             const isSensor = entityId.startsWith("sensor.");
             const safeId = `calendar_data_${w.id}`;
 
@@ -212,6 +230,7 @@ export default {
                 (context.seenSensorIds && context.seenSensorIds.has(safeId));
 
             if (!alreadyDefined) {
+                needsInstruction = true; // Use this to toggle instruction block
                 if (context.seenEntityIds) context.seenEntityIds.add(entityId);
                 if (context.seenSensorIds) context.seenSensorIds.add(safeId);
 
@@ -225,34 +244,58 @@ export default {
             }
         }
 
+        // Generate Dynamic Instructions based on the first widget's properties (simplification)
+        const primaryWidget = calendarWidgets[0];
+        const sourceCalendars = (primaryWidget.props && primaryWidget.props.source_calendars)
+            ? primaryWidget.props.source_calendars
+            : "calendar.example_1, calendar.example_2";
+
+        // Generate calendar entity list for calendar.get_events
+        const calendarEntities = sourceCalendars.split(',')
+            .map(c => c.trim())
+            .filter(c => c);
+        const calendarEntityListYaml = calendarEntities
+            .map(c => `#           - ${c}`)
+            .join('\n');
+
         lines.push("");
         lines.push("# ============================================================================");
         lines.push("# CALENDAR EVENTS SETUP (HOME ASSISTANT)");
         lines.push("# 1. Download the 'Helper Script' from the Calendar widget's properties panel.");
         lines.push("# 2. Place it in your /config/python_scripts/ folder.");
-        lines.push("# 3. Create a 'Text' helper in Home Assistant (Settings > Devices > Helpers)");
-        lines.push("#    - Name: ESP Calendar Data JSON");
-        lines.push("#    - Entity ID: input_text.esp_calendar_data_json");
-        lines.push("#    - Max length: 255 (Note: 2-3 events max. Use Template Sensor for more).");
-        lines.push("# 4. Add this automation to your automations.yaml to update the sensor:");
+        lines.push("# 3. Enable the python_script integration by adding this line to configuration.yaml:");
         lines.push("#");
-        lines.push("# automation:");
-        lines.push("#   - alias: Update ESP Calendar Data");
-        lines.push("#     trigger:");
-        lines.push("#       - platform: time_pattern");
+        lines.push("#    python_script:");
+        lines.push("#");
+        lines.push("# 4. Add this template sensor configuration (configuration.yaml or packages):");
+        lines.push("#");
+        lines.push("# template:");
+        lines.push("#   - trigger:");
+        lines.push("#       - trigger: time_pattern");
         lines.push("#         minutes: '/15'");
         lines.push("#     action:");
+        lines.push("#       - action: calendar.get_events");
+        lines.push("#         target:");
+        lines.push("#           entity_id:");
+        lines.push(`${calendarEntityListYaml}`);
+        lines.push("#         data:");
+        lines.push("#           duration:");
+        lines.push("#             days: 14");
+        lines.push("#         response_variable: calendar_events");
         lines.push("#       - action: python_script.esp_calendar_data_conversion");
         lines.push("#         data:");
-        lines.push("#           calendar:");
-        lines.push("#             calendar.your_calendar: {}  # Add your calendars here");
-        lines.push("#           now: \"{{ now().isoformat() }}\"");
+        lines.push("#           calendar: \"{{ calendar_events }}\"");
+        lines.push("#           now: \"{{ now().isoformat().split('T')[0] }}\"");
         lines.push("#         response_variable: output");
-        lines.push("#       - action: input_text.set_value");
-        lines.push("#         target:");
-        lines.push("#           entity_id: input_text.esp_calendar_data_json");
-        lines.push("#         data:");
-        lines.push("#           value: \"{{ output.entries | to_json }}\"");
+        lines.push("#     sensor:");
+        lines.push("#       - name: ESP Calendar Data");
+        lines.push("#         unique_id: esp_calendar_data");
+        lines.push("#         state: \"OK\"");
+        lines.push("#         attributes:");
+        lines.push("#           entries: \"{{ output.entries }}\"");
+        lines.push("#           closest_end_time: \"{{ output.closest_end_time }}\"");
+        lines.push("#");
+        lines.push("# 5. Restart HA (required for python_script), then Reload Template Entities.");
         lines.push("# ============================================================================");
     },
 

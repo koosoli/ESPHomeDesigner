@@ -382,20 +382,41 @@ export default {
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);
 
+        // Helper to check if an entity's current state is non-numeric (auto-detect text sensor)
+        const isEntityStateNonNumeric = (eid) => {
+            if (!eid || !window.AppState?.entityStates) return false;
+            const entityObj = window.AppState.entityStates[eid];
+            if (!entityObj || entityObj.state === undefined) return false;
+            const stateStr = String(entityObj.state);
+            // Check if it's a number (including negative and decimals)
+            return isNaN(parseFloat(stateStr)) || !isFinite(parseFloat(stateStr));
+        };
+
+        // Helper to create safe ESPHome ID (max 59 chars before suffix for 63 char limit)
+        const makeSafeId = (eid, suffix = "") => {
+            let safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            const maxBase = 63 - suffix.length;
+            if (safe.length > maxBase) safe = safe.substring(0, maxBase);
+            return safe + suffix;
+        };
+
+        // Auto-detect: Check if entity state is non-numeric (like "pm25")
+        const autoDetectText1 = !p.is_local_sensor && isEntityStateNonNumeric(entityId);
+        const autoDetectText2 = !p.is_local_sensor && entityId2 && isEntityStateNonNumeric(entityId2);
+
+        const isText1 = p.is_text_sensor || autoDetectText1 || (entityId && (entityId.startsWith("text_sensor.") || entityId.startsWith("weather.")));
+        const isText2 = (entityId2 && (p.is_text_sensor || autoDetectText2 || entityId2.startsWith("text_sensor.") || entityId2.startsWith("weather.")));
+
         // Helper to get ESPHome variable name for an entity
         const getVarName = (eid, isText) => {
             if (p.is_local_sensor) return `id(${eid || "battery_level"})`;
-            const isTextSensor = isText || p.is_text_sensor || (eid && (eid.startsWith("text_sensor.") || eid.startsWith("weather.")));
-            const safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
-            if (isTextSensor) return `id(${safe}_txt)`;
-            return `id(${safe})`;
+            if (isText) return `id(${makeSafeId(eid, "_txt")})`;
+            return `id(${makeSafeId(eid)})`;
         };
 
-        const v1 = getVarName(entityId);
-        const v2 = entityId2 ? getVarName(entityId2) : null;
+        const v1 = getVarName(entityId, isText1);
+        const v2 = entityId2 ? getVarName(entityId2, isText2) : null;
 
-        const isText1 = p.is_text_sensor || (entityId && (entityId.startsWith("text_sensor.") || entityId.startsWith("weather.")));
-        const isText2 = entityId2 && (p.is_text_sensor || entityId2.startsWith("text_sensor.") || entityId2.startsWith("weather."));
         const valFmt1 = isText1 ? "%s" : `%.${precision}f`;
         const valFmt2 = isText2 ? "%s" : `%.${precision}f`;
         // Format parts
@@ -481,6 +502,23 @@ export default {
         const { lines, widgets } = context;
         if (!widgets) return;
 
+        // Helper to check if an entity's current state is non-numeric
+        const isEntityStateNonNumeric = (eid) => {
+            if (!eid || !window.AppState?.entityStates) return false;
+            const entityObj = window.AppState.entityStates[eid];
+            if (!entityObj || entityObj.state === undefined) return false;
+            const stateStr = String(entityObj.state);
+            return isNaN(parseFloat(stateStr)) || !isFinite(parseFloat(stateStr));
+        };
+
+        // Helper to create safe ESPHome ID (max 59 chars before suffix)
+        const makeSafeId = (eid, suffix = "") => {
+            let safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            const maxBase = 63 - suffix.length;
+            if (safe.length > maxBase) safe = safe.substring(0, maxBase);
+            return safe + suffix;
+        };
+
         const weatherEntities = new Set();
         const textEntities = new Set();
 
@@ -489,13 +527,24 @@ export default {
 
             const p = w.props || {};
             const entityId = (w.entity_id || "").trim();
-            if (entityId.startsWith("weather.")) weatherEntities.add(entityId);
-            else if (p.is_text_sensor || entityId.startsWith("text_sensor.")) textEntities.add(entityId);
+
+            // Auto-detect: check if entity has non-numeric state (like "pm25")
+            const isAutoText = !p.is_local_sensor && isEntityStateNonNumeric(entityId);
+
+            if (entityId.startsWith("weather.")) {
+                weatherEntities.add(entityId);
+            } else if (p.is_text_sensor || isAutoText || entityId.startsWith("text_sensor.")) {
+                textEntities.add(entityId);
+            }
 
             const entityId2 = (w.entity_id_2 || p.entity_id_2 || "").trim();
             if (entityId2) {
-                if (entityId2.startsWith("weather.")) weatherEntities.add(entityId2);
-                else if (p.is_text_sensor || entityId2.startsWith("text_sensor.")) textEntities.add(entityId2);
+                const isAutoText2 = !p.is_local_sensor && isEntityStateNonNumeric(entityId2);
+                if (entityId2.startsWith("weather.")) {
+                    weatherEntities.add(entityId2);
+                } else if (p.is_text_sensor || isAutoText2 || entityId2.startsWith("text_sensor.")) {
+                    textEntities.add(entityId2);
+                }
             }
         }
 
@@ -503,7 +552,7 @@ export default {
             let headerAdded = false;
             for (let entityId of weatherEntities) {
                 if (entityId && !entityId.includes(".")) entityId = `weather.${entityId}`;
-                const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_") + "_txt";
+                const safeId = makeSafeId(entityId, "_txt");
                 if (context.seenSensorIds && context.seenSensorIds.has(safeId)) continue;
                 if (context.seenTextEntityIds && context.seenTextEntityIds.has(entityId)) continue;
 
@@ -525,8 +574,8 @@ export default {
         if (textEntities.size > 0) {
             let headerAdded = false;
             for (let entityId of textEntities) {
-                if (entityId && !entityId.includes(".") && !entityId.startsWith("text_sensor.")) entityId = `text_sensor.${entityId}`;
-                const safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_") + "_txt";
+                // Don't add text_sensor prefix to sensor.* entities - just register them as text sensors
+                const safeId = makeSafeId(entityId, "_txt");
                 if (context.seenSensorIds && context.seenSensorIds.has(safeId)) continue;
                 if (context.seenTextEntityIds && context.seenTextEntityIds.has(entityId)) continue;
 
@@ -550,6 +599,15 @@ export default {
         const { widgets, isLvgl, pendingTriggers } = context;
         if (!widgets) return;
 
+        // Helper to check if an entity's current state is non-numeric
+        const isEntityStateNonNumeric = (eid) => {
+            if (!eid || !window.AppState?.entityStates) return false;
+            const entityObj = window.AppState.entityStates[eid];
+            if (!entityObj || entityObj.state === undefined) return false;
+            const stateStr = String(entityObj.state);
+            return isNaN(parseFloat(stateStr)) || !isFinite(parseFloat(stateStr));
+        };
+
         for (const w of widgets) {
             if (w.type !== "sensor_text") continue;
 
@@ -560,7 +618,10 @@ export default {
 
             for (let eid of entities) {
                 eid = eid.trim();
+
+                // Skip if explicitly a text sensor, weather entity, or auto-detected as text
                 if (p.is_text_sensor || eid.startsWith("weather.") || eid.startsWith("text_sensor.")) continue;
+                if (isEntityStateNonNumeric(eid)) continue; // Skip auto-detected text sensors
 
                 // Ensure sensor. prefix if missing
                 if (!eid.includes(".")) {

@@ -165,8 +165,13 @@ const render = (element, widget, helpers) => {
 };
 
 const exportLVGL = (w, { common, convertColor, getLVGLFont }) => {
-    const p = w.props || {};
-    const safeIdPrefix = `quote_${w.id.replace(/-/g, "_")}`;
+    const makeSafeId = (eid, suffix = "") => {
+        let safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+        const maxBase = 63 - suffix.length;
+        if (safe.length > maxBase) safe = safe.substring(0, maxBase);
+        return safe + suffix;
+    };
+    const safeIdPrefix = makeSafeId(`quote_${w.id}`, "");
     const quoteFontSize = parseInt(p.quote_font_size || 18, 10);
     const fontFamily = p.font_family || "Roboto";
     const fontWeight = parseInt(p.font_weight || 400, 10);
@@ -207,7 +212,15 @@ const exportDoc = (w, context) => {
     const italicQuote = p.italic_quote !== false;
     const wordWrap = p.word_wrap !== false;
 
-    const safeIdPrefix = `quote_${w.id.replace(/-/g, "_")}`;
+    // Helper to create safe ESPHome ID (max 59 chars)
+    const makeSafeId = (eid, suffix = "") => {
+        let safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+        const maxBase = 63 - suffix.length;
+        if (safe.length > maxBase) safe = safe.substring(0, maxBase);
+        return safe + suffix;
+    };
+
+    const safeIdPrefix = makeSafeId(`quote_${w.id}`, "");
     const quoteTextGlobal = `${safeIdPrefix}_text_global`;
     const quoteAuthorGlobal = `${safeIdPrefix}_author_global`;
 
@@ -283,7 +296,13 @@ const exportDoc = (w, context) => {
 const onExportGlobals = (context) => {
     const { lines, widgets } = context;
     widgets.filter(w => w.type === "quote_rss").forEach(w => {
-        const safeIdPrefix = `quote_${w.id.replace(/-/g, "_")}`;
+        const makeSafeId = (eid, suffix = "") => {
+            let safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            const maxBase = 63 - suffix.length;
+            if (safe.length > maxBase) safe = safe.substring(0, maxBase);
+            return safe + suffix;
+        };
+        const safeIdPrefix = makeSafeId(`quote_${w.id}`, "");
         lines.push(`- id: ${safeIdPrefix}_text_global`);
         lines.push(`  type: std::string`);
         lines.push(`  restore_value: true`);
@@ -318,7 +337,13 @@ const onExportComponents = (context) => {
         for (const w of targets) {
             const p = w.props || {};
             const refreshInterval = p.refresh_interval || "1h";
-            const safeIdPrefix = `quote_${w.id.replace(/-/g, "_")}`;
+            const makeSafeId = (eid, suffix = "") => {
+                let safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+                const maxBase = 63 - suffix.length;
+                if (safe.length > maxBase) safe = safe.substring(0, maxBase);
+                return safe + suffix;
+            };
+            const safeIdPrefix = makeSafeId(`quote_${w.id}`, "");
             const feedUrl = p.feed_url || "https://www.brainyquote.com/link/quotebr.rss";
             const random = p.random !== false;
 
@@ -385,11 +410,17 @@ const onExportTextSensors = (context) => {
         lines.push("# Quote RSS Widget Text Sensors (visible in Home Assistant)");
         for (const w of targets) {
             const p = w.props || {};
-            const safeIdPrefix = `quote_${w.id.replace(/-/g, "_")}`;
+            const makeSafeId = (eid, suffix = "") => {
+                let safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+                const maxBase = 63 - suffix.length;
+                if (safe.length > maxBase) safe = safe.substring(0, maxBase);
+                return safe + suffix;
+            };
+            const safeIdPrefix = makeSafeId(`quote_${w.id}`, "");
 
             // Quote text sensor
             lines.push(`- platform: template`);
-            lines.push(`  id: ${safeIdPrefix}_text_sensor`);
+            lines.push(`  id: ${safeIdPrefix}_txt`);
             lines.push(`  name: "Quote Text"`);
             lines.push(`  icon: "mdi:format-quote-close"`);
             lines.push(`  lambda: 'return id(${safeIdPrefix}_text_global);'`);
