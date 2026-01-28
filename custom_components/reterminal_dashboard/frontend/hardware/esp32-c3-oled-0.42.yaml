@@ -39,24 +39,11 @@ substitutions:
   device_description: "ESP32-C3 OLED 0.42 inch"
   project_name: "ESPHomeDesigner_ESP32-C3-OLED-0.42"
   project_version: "1.0.0"
-  #GPIO pins for the LCD screen and SD Card
-  rstpin: GPIO21
-  dcpin: GPIO15
-  blpin: GPIO22
-  clkpin: GPIO7
-  mosipin: GPIO6
-  misopin: GPIO5
-  cspin: GPIO14
   # GPIO pins for i2c
-  sdapin: GPIO1
-  sclpin: GPIO2
-  # SD Card
-  sd_cs_pin: GPIO4
+  sdapin: GPIO5
+  sclpin: GPIO6
   # LED
-  rgb_led:
-    GPIO8
-    # One Wire
-  one_wire: GPIO10
+  rgb_led: GPIO8
   logger: "DEBUG"
 
 esp32:
@@ -97,9 +84,8 @@ logger:
 captive_portal:
 
 i2c:
-  sda: GPIO5
-  scl: GPIO6
-  scan: true
+  sda: $sdapin
+  scl: $sclpin
   id: bus_a
   frequency: 800kHz
 
@@ -107,11 +93,5 @@ display:
   - platform: ssd1306_i2c
     model: "SSD1306 72x40"
     id: my_display
-    rotation: 0
-    update_interval: 1s
-    offset_y: 0
-    offset_x: 0
-    invert: false
-    address: 0x3C
     lambda: |-
     # __LAMBDA_PLACEHOLDER__
