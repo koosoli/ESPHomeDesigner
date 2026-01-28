@@ -23,7 +23,8 @@ export class PluginRegistry {
             "rectangle_pattern": "odp_rectangle_pattern",
             "polygon": "odp_polygon",
             "ellipse": "odp_ellipse",
-            "icon_sequence": "odp_icon_sequence"
+            "icon_sequence": "odp_icon_sequence",
+            "weather_forcast": "weather_forecast" // Handle common typo defensively
         };
     }
 

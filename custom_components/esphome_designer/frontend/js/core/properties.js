@@ -1269,6 +1269,11 @@ export class PropertiesPanel {
             this.addSelect("Layout", props.layout || "horizontal", ["horizontal", "vertical"], (v) => updateProp("layout", v));
             this.addCheckbox("Show High/Low Temp", props.show_high_low !== false, (v) => updateProp("show_high_low", v));
             this.addSelect("Temperature Unit", props.temp_unit || "C", ["C", "F"], (v) => updateProp("temp_unit", v));
+            this.addLabeledInput("Precision", "number", props.precision !== undefined ? props.precision : 1, (v) => {
+                let val = parseInt(v, 10);
+                if (isNaN(val)) val = 1;
+                updateProp("precision", val);
+            });
             this.addLabeledInput("Day Font Size", "number", props.day_font_size || 14, (v) => updateProp("day_font_size", parseInt(v, 10)));
             this.addLabeledInput("Temp Font Size", "number", props.temp_font_size || 14, (v) => updateProp("temp_font_size", parseInt(v, 10)));
             this.addLabeledInput("Icon Size", "number", props.icon_size || 24, (v) => updateProp("icon_size", parseInt(v, 10)));

@@ -11,6 +11,7 @@ const render = (el, widget, { getColorStyle }) => {
     const dayFontSize = parseInt(props.day_font_size, 10) || 12;
     const showHighLow = props.show_high_low !== false;
     const fontFamily = (props.font_family || "Roboto") + ", sans-serif";
+    const precision = (typeof props.precision === 'number' && !isNaN(props.precision)) ? props.precision : 1;
 
     // Theme awareness
     const color = props.color || "theme_auto";
@@ -142,12 +143,17 @@ const render = (el, widget, { getColorStyle }) => {
         const high = !isNaN(liveHigh) ? liveHigh : mockTemps[i % mockTemps.length].high;
         const low = !isNaN(liveLow) ? liveLow : mockTemps[i % mockTemps.length].low;
 
+        const formatTemp = (val) => {
+            if (typeof val !== 'number' || isNaN(val)) return "--";
+            return val.toFixed(precision);
+        };
+
         const tempUnit = props.temp_unit || "C";
         const unitSymbol = tempUnit === "F" ? "°F" : "°C";
         if (showHighLow) {
-            tempDiv.textContent = `${Math.round(high)}${unitSymbol}/${Math.round(low)}${unitSymbol}`;
+            tempDiv.textContent = `${formatTemp(high)}${unitSymbol}/${formatTemp(low)}${unitSymbol}`;
         } else {
-            tempDiv.textContent = `${Math.round(high)}${unitSymbol}`;
+            tempDiv.textContent = `${formatTemp(high)}${unitSymbol}`;
         }
         dayDiv.appendChild(tempDiv);
 
@@ -184,12 +190,13 @@ const exportDoc = (w, context) => {
     const color = getColorConst(colorProp);
     const tempUnit = p.temp_unit || "C";
     const unitSymbol = tempUnit === "F" ? "°F" : "°C";
+    const precision = (typeof p.precision === 'number' && !isNaN(p.precision)) ? p.precision : 1;
 
     const dayFontId = addFont(fontFamily, 700, dayFontSize);
     const tempFontId = addFont(fontFamily, 400, tempFontSize);
     const iconFontId = addFont("Material Design Icons", 400, iconSize);
 
-    lines.push(`        // widget:weather_forecast id:${w.id} type:weather_forecast x:${w.x} y:${w.y} w:${w.width} h:${w.height} weather_entity:"${weatherEntity}" layout:${layout} show_high_low:${showHighLow} day_font_size:${dayFontSize} temp_font_size:${tempFontSize} icon_size:${iconSize} font_family:"${fontFamily}" color:${colorProp} ${getCondProps(w)}`);
+    lines.push(`        // widget:weather_forecast id:${w.id} type:weather_forecast x:${w.x} y:${w.y} w:${w.width} h:${w.height} weather_entity:"${weatherEntity}" layout:${layout} show_high_low:${showHighLow} day_font_size:${dayFontSize} temp_font_size:${tempFontSize} icon_size:${iconSize} font_family:"${fontFamily}" color:${colorProp} precision:${precision} ${getCondProps(w)}`);
 
     const condFore = getConditionCheck(w);
     if (condFore) lines.push(`        ${condFore}`);
@@ -262,11 +269,11 @@ const exportDoc = (w, context) => {
             lines.push(`            if (std::isnan(high) && std::isnan(low)) {`);
             lines.push(`                sprintf(temp_buf, "--/--");`);
             lines.push(`            } else if (std::isnan(high)) {`);
-            lines.push(`                sprintf(temp_buf, "--/%.0f${unitSymbol}", low);`);
+            lines.push(`                sprintf(temp_buf, "--/%.*f${unitSymbol}", ${precision}, low);`);
             lines.push(`            } else if (std::isnan(low)) {`);
-            lines.push(`                sprintf(temp_buf, "%.0f${unitSymbol}/--", high);`);
+            lines.push(`                sprintf(temp_buf, "%.*f${unitSymbol}/--", ${precision}, high);`);
             lines.push(`            } else {`);
-            lines.push(`                sprintf(temp_buf, "%.0f/%.0f${unitSymbol}", high, low);`);
+            lines.push(`                sprintf(temp_buf, "%.*f/%.*f${unitSymbol}", ${precision}, high, ${precision}, low);`);
             lines.push(`            }`);
             lines.push(`            it.printf(dx + ${centerOffset}, dy + ${dayFontSize + iconSize + 8}, id(${tempFontId}), ${color}, TextAlign::TOP_CENTER, "%s", temp_buf);`);
         }
@@ -437,6 +444,7 @@ export default {
         border_color: "theme_auto",
         background_color: "transparent",
         temp_unit: "C",
+        precision: 1,
         width: 370,
         height: 90
     },
@@ -450,6 +458,7 @@ export default {
         const iconS = parseInt(p.icon_size || 32, 10);
         const tempFS = parseInt(p.temp_font_size || 14, 10);
         const showHighLow = p.show_high_low !== false;
+        const precision = (typeof p.precision === 'number' && !isNaN(p.precision)) ? p.precision : 1;
 
         const widgets = [];
 
@@ -506,7 +515,7 @@ export default {
                 {
                     label: {
                         align: "bottom_mid",
-                        text: showHighLow ? `!lambda "return str_sprintf(\'%.0f/%.0f\', id(weather_high_day${i}).state, id(weather_low_day${i}).state).c_str();"` : `!lambda "return str_sprintf(\'%.0f\', id(weather_high_day${i}).state).c_str();"`,
+                        text: showHighLow ? `!lambda "return str_sprintf(\'%.${precision}f/%.${precision}f\', id(weather_high_day${i}).state, id(weather_low_day${i}).state).c_str();"` : `!lambda "return str_sprintf(\'%.${precision}f\', id(weather_high_day${i}).state).c_str();"`,
                         text_font: getLVGLFont(p.font_family || "Roboto", tempFS, 400),
                         text_color: color
                     }
