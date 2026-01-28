@@ -1803,20 +1803,21 @@ export function loadLayoutIntoState(layout) {
     }
 
     // Set device model from layout (check multiple possible locations)
-    const deviceModel = layout.device_model || layout.deviceModel || layout.settings?.device_model;
+    const deviceModel = layout.device_model || layout.deviceModel || (layout.settings ? (layout.settings.device_model || layout.settings.deviceModel) : null);
     if (deviceModel) {
         AppState.setDeviceModel(deviceModel);
-        // window.currentDeviceModel = deviceModel; // Keep global in sync (Deprecated)
     }
 
     // Set custom hardware if present
-    if (layout.customHardware) {
-        AppState.setCustomHardware(layout.customHardware);
+    const customHardware = layout.custom_hardware || layout.customHardware;
+    if (customHardware) {
+        AppState.setCustomHardware(customHardware);
     }
 
     // Set protocol hardware if present
-    if (layout.protocolHardware) {
-        AppState.updateProtocolHardware(layout.protocolHardware);
+    const protocolHardware = layout.protocol_hardware || layout.protocolHardware;
+    if (protocolHardware) {
+        AppState.updateProtocolHardware(protocolHardware);
     }
 
     // Merge imported settings with existing settings
@@ -1865,14 +1866,14 @@ export function loadLayoutIntoState(layout) {
         "inverted_colors": "invertedColors",
         "invertedColors": "invertedColors",
         "width": "width",
+        "resWidth": "width",
         "height": "height",
+        "resHeight": "height",
         "shape": "shape",
         "oepl_entity_id": "oeplEntityId",
         "oeplEntityId": "oeplEntityId",
         "oepl_dither": "oeplDither",
         "oeplDither": "oeplDither",
-        "auto_cycle_interval_s": "autoCycleIntervalS",
-        "autoCycleIntervalS": "autoCycleIntervalS",
         "glyphsets": "glyphsets"
     };
 

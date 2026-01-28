@@ -44,7 +44,13 @@ class AppStateFacade {
         return {
             ...this.preferences.state,
             device_name: this.project.deviceName,
+            deviceName: this.project.deviceName,
             device_model: this.project.deviceModel,
+            deviceModel: this.project.deviceModel,
+            customHardware: this.project.customHardware,
+            custom_hardware: this.project.customHardware,
+            protocolHardware: this.project.protocolHardware,
+            protocol_hardware: this.project.protocolHardware,
             ...this.secrets.keys
         };
     }
@@ -84,12 +90,16 @@ class AppStateFacade {
     }
 
     getPagesPayload() {
-        return {
+        const payload = {
             ...this.project.getPagesPayload(),
             currentPageIndex: this.currentPageIndex,
-            protocolHardware: this.project.protocolHardware,
             ...this.settings
         };
+        // Ensure snake_case for HA compatibility
+        payload.device_model = this.project.deviceModel;
+        payload.custom_hardware = this.project.customHardware;
+        payload.protocol_hardware = this.project.protocolHardware;
+        return payload;
     }
 
     getSettings() { return this.settings; }

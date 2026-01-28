@@ -122,9 +122,9 @@ export class App {
         // Load initial data
         try {
             if (hasHaBackend()) {
-                Logger.log("HA Backend detected attempt. Loading layout from backend...");
-                await loadLayoutFromBackend();
-                await loadExternalProfiles(); // Load dynamic hardware templates
+                Logger.log("HA Backend detected attempt. Loading hardware then layout...");
+                await loadExternalProfiles(); // Load dynamic hardware templates FIRST
+                await loadLayoutFromBackend(); // Then load layout that might use them
                 await fetchEntityStates();
             } else {
                 Logger.log("Running in standalone/offline mode.");

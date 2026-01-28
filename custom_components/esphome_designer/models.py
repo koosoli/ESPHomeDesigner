@@ -378,9 +378,17 @@ class DeviceConfig:
         def get_i(snake, camel, default):
             val = get_v(snake, camel, default)
             try:
-                return int(val) if val is not None else default
+                if val is None or val == "":
+                    return default
+                return int(val)
             except (TypeError, ValueError):
                 return default
+
+        def get_d(snake, camel, default_factory):
+            val = get_v(snake, camel, None)
+            if val is None or not isinstance(val, dict):
+                return default_factory()
+            return val
 
         # Legacy configs may not have orientation/dark_mode; default them.
         orientation = str(data.get("orientation", "landscape")).lower()
@@ -424,8 +432,8 @@ class DeviceConfig:
             width=get_i("width", "resWidth", 800),
             height=get_i("height", "resHeight", 480),
             shape=str(get_v("shape", "shape", "rect")),
-            custom_hardware=get_v("custom_hardware", "customHardware", {}),
-            protocol_hardware=get_v("protocol_hardware", "protocolHardware", {}),
+            custom_hardware=get_d("custom_hardware", "customHardware", dict),
+            protocol_hardware=get_d("protocol_hardware", "protocolHardware", dict),
             glyphsets=get_v("glyphsets", "glyphsets", ["GF_Latin_Kernel"]),
         )
         cfg.ensure_pages()

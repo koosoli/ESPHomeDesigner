@@ -90,7 +90,7 @@ export const Utils = {
         }
 
         if (isGray) {
-            lines.push(`          apply_grey_dither_mask(${Math.round(x)}, ${Math.round(y)}, ${Math.round(w)}, ${Math.round(h)}, ${Math.round(radius)});`);
+            lines.push(`          apply_grey_dither_mask(${Math.round(x)}, ${Math.round(y)}, ${Math.round(w)}, ${Math.round(h)});`);
         }
     },
 
