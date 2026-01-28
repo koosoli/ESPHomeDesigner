@@ -9,7 +9,7 @@ const render = (el, widget, tools) => {
     const showPercentage = props.show_percentage !== false && props.show_percentage !== "false";
     const barHeight = props.bar_height || 15;
     const borderWidth = props.border_width || 1;
-    const color = props.color || "black";
+    const color = props.color || "theme_auto";
     const colorStyle = getColorStyle(color);
 
     let percentValue = 50;
@@ -106,7 +106,7 @@ const exportDoc = (w, context) => {
     const showLabel = p.show_label !== false;
     const showPercentage = p.show_percentage !== false;
     const barHeight = parseInt(p.bar_height || 15, 10);
-    const colorProp = p.color || "black";
+    const colorProp = p.color || "theme_auto";
     const color = getColorConst(colorProp);
 
     const fontId = addFont("Roboto", 400, 12);
@@ -194,7 +194,7 @@ export default {
         show_percentage: true,
         bar_height: 15,
         border_width: 1,
-        color: "black",
+        color: "theme_auto",
         bg_color: "white",
         min: 0,
         max: 100,

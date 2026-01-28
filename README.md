@@ -45,13 +45,13 @@ It enables you to build premium, touch-interactive dashboards for various ESP32-
 ## What Does It Do?
 
 - **Visual drag-and-drop editor** - Design layouts in your browser, see your actual HA entities update live on the canvas
-  <p align="center"><img src="screenshots/draganddrop.gif" width="800" alt="Drag & Drop Editor"></p>
-- **Multiple pages** - Navigate with hardware buttons, set different refresh rates per page
-- **Auto-generates ESPHome config** - Clean, readable YAML that you can paste into your existing ESPHome setup
-- **Round-trip editing** - Import existing ESPHome configs back into the editor
-- **AI-Powered Dashboard Assistant** - Generate entire layouts or individual widgets from simple text prompts (e.g., "Add a weather widget with bold large text")
-- **Full device integration** - Exposes buttons, buzzer, temperature, humidity sensors back to HA for automations
-- **Smart power management** - Battery monitoring, configurable refresh intervals, deep sleep support
+- **Multi-Platform Support** - Native ESPHome C++ generation, plus experimental support for **OpenEpaperLink** and **Open Display**.
+- **Multi-Page "World View"** - Manage all your project pages on a single unified stage with artboard-style rendering.
+- **Plugin-Based Architecture** - 55+ independent widget modules for everything from sensors and graphs to polygons and complex patterns.
+- **Round-trip editing** - Import existing ESPHome configs, OEPL YAML arrays, or ODP JSON payloads back into the editor.
+- **AI-Powered Dashboard Assistant** - Generate entire layouts or individual widgets from simple text prompts.
+- **Full device integration** - Exposes buttons, buzzer, temperature, and humidity sensors back to HA for automations.
+- **Smart power management** - Battery monitoring, configurable refresh intervals, and hardware-aware energy saving strategies.
 
 **Use case:** Display a weather page when you wake up, switch to a sensor dashboard during the day, show a specific alert page when the doorbell rings - all automated through Home Assistant.
 
@@ -190,9 +190,10 @@ For stable results, stick to **Native Mode** (standard widgets without LVGL pref
 - **Layout Manager** - Manage multiple devices, export/import layouts as files
 - **Entity Picker** - Browse and search your actual HA entities with real-time preview
 - **Multi-Page Support** - Create up to 10 pages, each with custom refresh intervals
-- **Page Management** - Drag & drop to reorder pages in the sidebar
-- **Productivity Tools** - Copy/Paste (Ctrl+C/V), Undo/Redo (Ctrl+Z/Y), and Z-Index layering support
-- **Canvas Controls** - Zoom in/out and recenter for precise editing
+- **Multi-Page "World View"** - Render all project pages side-by-side as distinct artboards for a unified project overview
+- **Precision Page Navigation** - One-click focusing (e.g., clicking "Overview") that instantly centers artboards with pixel-perfect accuracy
+- **Collapsible Page Selector** - Modern, space-saving accordion UI for page management with bespoke status icons
+- **Canvas Controls** - Zoom in/out, reset, and precision zoom-to-cursor for detailed pixel work
 - **Dark Mode Option** - Toggle "Dark Mode" in device settings for black backgrounds
 - **Hardware Integration** - Buttons, buzzer, temperature, humidity sensors exposed to HA
 - **Smart Generator** - Produces clean, additive YAML that doesn't conflict with your base config
@@ -202,12 +203,16 @@ For stable results, stick to **Native Mode** (standard widgets without LVGL pref
   <p align="center"><img src="screenshots/rgb_picker.gif" width="700" alt="RGB Color Picker"></p>
 - **Round-Trip Editing** - Import existing ESPHome code back into the editor (now supports LVGL widgets!)
   <p align="center"><img src="screenshots/yaml_parsing.gif" width="700" alt="YAML Round-Trip Import"></p>
-- **Modular Plugin Architecture (v0.9)** - A complete rewrite featuring a specialized plugin system with 50+ independent widget modules, making the core significantly faster and more maintainable
-- **Power & Battery Management** - Monitoring, deep sleep support, and configurable refresh intervals
-- **Modern Canvas Interaction** - Zoom with the mouse wheel and pan with the middle mouse button
-- **Drag & Drop Workflow** - Drag widgets directly from the sidebar onto the canvas
-- **Modular Hardware Profiles** - Support for loading hardware profiles from external YAML packages ([Learn how to write your own](hardware_recipes_guide.md))
-- **[New] Experimental: Custom Hardware Profiles** - Create and save your own hardware definitions (Chip, LCD/E-Ink, Pins) directly in the UI. No coding required to support new displays!
+- **Modular Plugin Architecture (v0.9)** - A complete rewrite featuring a specialized plugin system with 55+ independent widget modules, making the core significantly faster and more maintainable.
+- **Multi-Platform Canvas** - Design for ESPHome, OpenEpaperLink, or Open Display with platform-specific export adapters.
+- **High-Fidelity "World View" Rendering** - See your entire multi-page project at once on a unified stage with premium drop shadows.
+- **Visual Hierarchy Navigation** - A dedicated tree-view panel for managing complex layers, nested groups, and pixel-perfect selection.
+- **Precision Page Navigation** - Instant focusing and centering of artboards with pixel-perfect accuracy.
+- **Atomic Grouping** - Groups behave as solid containers, preserving hierarchy and layer order during cross-page moves.
+- **Smart Spacing & Alignment** - Contextual toolbars and guides for professional-grade layout design.
+- **Hardware-Aware Energy Strategies** - Dynamic strategy selection for LCD, OLED, and E-Ink technology.
+- **Drag & Drop Workflow** - Drag widgets directly from the sidebar onto any artboard in the project.
+- **Experimental: Custom Hardware Profiles** - Create and save your own hardware definitions directly in the UI.
 - **Experimental LVGL Support** - (Beta) Support for interactive LVGL widgets on capable devices
 - **Mobile Support** - Responsive UI designed to work on smaller screens and touch devices
 
@@ -305,3 +310,4 @@ Made with love ❤️ - free and Open Source under the GPL 3.0 license. Share th
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/koosoli)
 
 </div>
+

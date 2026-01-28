@@ -1145,45 +1145,118 @@ export function setupDragAndDrop(canvasInstance) {
     canvasInstance.canvas.addEventListener("dragover", (e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = "copy";
+
+        const wrapper = e.target.closest(".artboard-wrapper");
+        document.querySelectorAll(".artboard-wrapper.drag-over").forEach(el => {
+            if (el !== wrapper) el.classList.remove("drag-over");
+        });
+        if (wrapper) wrapper.classList.add("drag-over");
+
+        const placeholder = e.target.closest(".add-page-placeholder");
+        if (placeholder) placeholder.classList.add("drag-over");
+        else {
+            const el = document.querySelector(".add-page-placeholder.drag-over");
+            if (el) el.classList.remove("drag-over");
+        }
+    });
+
+    canvasInstance.canvas.addEventListener("dragleave", (e) => {
+        if (e.relatedTarget === null || !canvasInstance.canvas.contains(e.relatedTarget)) {
+            document.querySelectorAll(".artboard-wrapper.drag-over, .add-page-placeholder.drag-over").forEach(el => {
+                el.classList.remove("drag-over");
+            });
+        }
     });
 
     canvasInstance.canvas.addEventListener("drop", async (e) => {
         e.preventDefault();
-        const type = e.dataTransfer.getData("application/widget-type");
-        Logger.log("[Canvas] Drop detected type:", type);
 
-        const artboardEl = e.target.closest(".artboard");
-        if (!artboardEl) {
-            Logger.warn("[Canvas] Drop outside of any artboard");
-            return;
+        // Remove highlights immediately
+        document.querySelectorAll(".artboard-wrapper.drag-over, .add-page-placeholder.drag-over").forEach(el => {
+            el.classList.remove("drag-over");
+        });
+
+        // 1. Capture type and coordinates SYNCHRONOUSLY
+        const type = e.dataTransfer.getData("application/widget-type") || e.dataTransfer.getData("text/plain");
+        if (!type) return;
+
+        const clientX = e.clientX;
+        const clientY = e.clientY;
+        const artboardWrapper = e.target.closest(".artboard-wrapper");
+        const placeholder = e.target.closest(".add-page-placeholder");
+
+        let targetPageIndex = -1;
+        let targetRect = null;
+
+        // 2. Identify target page and rect SYNCHRONOUSLY
+        if (artboardWrapper) {
+            targetPageIndex = parseInt(artboardWrapper.dataset.index, 10);
+            const artboardEl = artboardWrapper.querySelector(".artboard");
+            if (artboardEl) targetRect = artboardEl.getBoundingClientRect();
+        } else if (placeholder) {
+            targetPageIndex = AppState.pages.length;
+        } else {
+            targetPageIndex = AppState.currentPageIndex;
+            const artboardEl = canvasInstance.canvas.querySelector(`.artboard[data-index="${targetPageIndex}"]`);
+            if (artboardEl) targetRect = artboardEl.getBoundingClientRect();
         }
 
-        // IMPORTANT: Capture the rect and page index BEFORE switching AppState.currentPageIndex.
-        // Switching the page triggers a synchronous re-render that might detach this artboardEl.
-        const pageIndex = parseInt(artboardEl.dataset.index, 10);
-        const rect = artboardEl.getBoundingClientRect();
-        const zoom = AppState.zoomLevel;
+        Logger.log("[Canvas] Atomic drop capture - type:", type, "page:", targetPageIndex);
 
-        if (AppState.currentPageIndex !== pageIndex) {
-            AppState.setCurrentPageIndex(pageIndex);
-        }
+        try {
+            // 3. Perform async work
+            const loadPromise = PluginRegistry.load(type);
 
-        if (type) {
-            // Calculate position relative to the target artboard (using the rect captured above)
-            const x = (e.clientX - rect.left) / zoom;
-            const y = (e.clientY - rect.top) / zoom;
+            if (placeholder) {
+                const newPage = AppState.addPage();
+                if (!newPage) return;
+                targetPageIndex = AppState.pages.length - 1;
+                // Defer to let DOM catch up
+                await new Promise(resolve => setTimeout(resolve, 50));
+                const newArtboard = canvasInstance.canvas.querySelector(`.artboard[data-index="${targetPageIndex}"]`);
+                if (newArtboard) targetRect = newArtboard.getBoundingClientRect();
+            }
 
-            try {
-                await PluginRegistry.load(type);
-                const widget = WidgetFactory.createWidget(type);
+            await loadPromise;
+
+            // 4. Final instantiation and placement
+            const widget = WidgetFactory.createWidget(type);
+            if (!widget) {
+                Logger.error("[Canvas] WidgetFactory.createWidget returned null for type:", type);
+                return;
+            }
+
+            const zoom = AppState.zoomLevel;
+            const dims = AppState.getCanvasDimensions();
+
+            if (targetRect) {
+                const x = (clientX - targetRect.left) / zoom;
+                const y = (clientY - targetRect.top) / zoom;
+
                 widget.x = Math.round(x - widget.width / 2);
                 widget.y = Math.round(y - widget.height / 2);
-
-                // Add to the specific page index we dropped on
-                AppState.addWidget(widget, pageIndex);
-            } catch (err) {
-                Logger.error("[Canvas] error creating widget from drop:", err);
+            } else {
+                // FALLBACK: No rect found, use a sensible default position
+                Logger.warn("[Canvas] No targetRect, using fallback position");
+                widget.x = 40;
+                widget.y = 40;
             }
+
+            // Clamp to canvas bounds
+            widget.x = Math.max(0, Math.min(dims.width - widget.width, widget.x));
+            widget.y = Math.max(0, Math.min(dims.height - widget.height, widget.y));
+
+            // ALWAYS add the widget (this was the bug - it was inside the if block)
+            AppState.addWidget(widget, targetPageIndex);
+
+            if (AppState.currentPageIndex !== targetPageIndex) {
+                AppState.setCurrentPageIndex(targetPageIndex);
+            }
+            AppState.selectWidget(widget.id, false);
+
+            Logger.log(`[Canvas] Successfully added ${type} at (${widget.x}, ${widget.y})`);
+        } catch (err) {
+            Logger.error("[Canvas] error creating widget from drop:", err);
         }
     });
 }

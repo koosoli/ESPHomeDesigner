@@ -5,7 +5,8 @@ const render = (el, widget, { getColorStyle }) => {
 
     let iconCode = "F0595"; // Default
     let size = props.size || 24;
-    const color = props.color || "black";
+    const color = props.color || "theme_auto";
+    const colorStyle = getColorStyle(color);
 
     const code = (props.code || "").trim().toUpperCase();
     if (code && code.match(/^F[0-9A-F]{4}$/i)) {
@@ -23,7 +24,7 @@ const render = (el, widget, { getColorStyle }) => {
 
     el.innerText = ch;
     el.style.fontSize = `${size}px`;
-    el.style.color = getColorStyle(color);
+    el.style.color = colorStyle;
     el.style.fontFamily = "MDI, system-ui, -apple-system, BlinkMacSystemFont, -sans-serif";
     el.style.lineHeight = "1";
     el.style.display = "flex";
@@ -41,7 +42,7 @@ export default {
         width: 60,
         height: 60,
         size: 48,
-        color: "black",
+        color: "theme_auto",
         font_ref: "font_mdi_medium",
         fit_icon_to_frame: true
     },
@@ -67,7 +68,7 @@ export default {
             x: Math.round(w.x),
             y: Math.round(w.y),
             size: p.size || 48,
-            color: p.color || "black"
+            color: p.color || "theme_auto"
         };
     },
     exportOEPL: (w, { layout, page }) => {
@@ -82,7 +83,7 @@ export default {
             x: Math.round(w.x),
             y: Math.round(w.y),
             size: p.size || 48,
-            color: p.color || "black",
+            color: p.color || "theme_auto",
             anchor: "lt"
         };
     },
@@ -90,7 +91,7 @@ export default {
         const p = w.props || {};
         const code = (p.code || "F0595").replace(/^0x/i, "");
         const size = parseInt(p.size || 48, 10);
-        const color = convertColor(p.color || "black");
+        const color = convertColor(p.color || "theme_auto");
 
         return {
             label: {
@@ -110,7 +111,7 @@ export default {
         const p = w.props || {};
         const code = (p.code || "F0595").replace(/^0x/i, "");
         const size = parseInt(p.size || 48, 10);
-        const colorProp = p.color || "black";
+        const colorProp = p.color || "theme_auto";
         const color = getColorConst(colorProp);
 
         // Register Icon Font

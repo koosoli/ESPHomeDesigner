@@ -20,7 +20,7 @@ const exportLVGL = (w, { common, convertColor }) => {
 const render = (element, widget, helpers) => {
     const props = widget.props || {};
     const value = props.value || "https://github.com/koosoli/ESPHomeDesigner/";
-    const color = props.color || "black";
+    const color = props.color || "theme_auto";
     const ecc = props.ecc || "LOW";
 
     element.style.boxSizing = "border-box";
@@ -55,7 +55,7 @@ const render = (element, widget, helpers) => {
         canvas.style.imageRendering = "pixelated";
 
         const ctx = canvas.getContext("2d");
-        const fillColor = color === "white" ? "#fff" : "#000";
+        const fillColor = helpers.getColorStyle(color);
         ctx.fillStyle = fillColor;
 
         for (let row = 0; row < moduleCount; row++) {
@@ -82,7 +82,7 @@ const exportDoc = (w, context) => {
     const p = w.props || {};
     const value = sanitize(p.value || "https://github.com/koosoli/ESPHomeDesigner/");
     const ecc = p.ecc || "LOW";
-    const colorProp = p.color || "black";
+    const colorProp = p.color || "theme_auto";
 
     const color = getColorConst(colorProp);
     const safeId = `qr_${w.id}`.replace(/-/g, "_");
@@ -131,7 +131,7 @@ export default {
     defaults: {
         value: "https://github.com/koosoli/ESPHomeDesigner/",
         ecc: "LOW",
-        color: "black",
+        color: "theme_auto",
         bg_color: "white",
         width: 130,
         height: 130

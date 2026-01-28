@@ -2,20 +2,24 @@
  * Calendar Plugin
  */
 
-const drawCalendarPreview = (el, widget, props) => {
+const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
     // Simple mock rendering for preview
     const width = widget.width || 400;
     const height = widget.height || 300;
 
+    const color = props.text_color || "theme_auto";
+    const colorStyle = getColorStyle(color);
+
     el.style.width = width + "px";
     el.style.height = height + "px";
-    el.style.backgroundColor = props.background_color || "white";
-    el.style.color = props.text_color || "black";
+    el.style.backgroundColor = props.background_color || "transparent";
+    el.style.color = colorStyle;
     el.style.padding = "4px";
     el.style.boxSizing = "border-box";
 
     if (props.show_border !== false) {
-        el.style.border = `${props.border_width || 2}px solid ${props.border_color || "black"}`;
+        const borderColor = props.border_color || color;
+        el.style.border = `${props.border_width || 2}px solid ${getColorStyle(borderColor)}`;
     }
 
     const now = new Date();
@@ -29,7 +33,7 @@ const drawCalendarPreview = (el, widget, props) => {
     const header = document.createElement("div");
     header.style.textAlign = "center";
     header.style.padding = "2px";
-    header.style.borderBottom = "1px solid " + (props.text_color || "black");
+    header.style.borderBottom = "1px solid " + colorStyle;
     header.style.flexShrink = "0";
 
     const bigDate = document.createElement("div");
@@ -92,7 +96,7 @@ const drawCalendarPreview = (el, widget, props) => {
         d.style.fontSize = gridFontSize;
 
         if (i === date) {
-            d.style.backgroundColor = props.text_color || "black";
+            d.style.backgroundColor = props.text_color || "theme_auto";
             d.style.color = props.background_color || "white";
             d.style.borderRadius = "50%";
             d.style.width = "1.5em";
@@ -194,9 +198,9 @@ export default {
         entity_id: "sensor.esp_calendar_data",
         border_width: 2,
         show_border: true,
-        border_color: "black",
-        background_color: "white",
-        text_color: "black",
+        border_color: "theme_auto",
+        background_color: "transparent",
+        text_color: "theme_auto",
         font_size_date: 100,
         font_size_day: 24,
         font_size_grid: 14,
@@ -205,10 +209,10 @@ export default {
         height: 340
     },
 
-    render: (el, widget) => {
+    render: (el, widget, context) => {
         const props = widget.props || {};
         el.innerHTML = "";
-        drawCalendarPreview(el, widget, props);
+        drawCalendarPreview(el, widget, props, context);
     },
 
     onExportTextSensors: (context) => {
@@ -224,7 +228,8 @@ export default {
             const p = w.props || {};
             const entityId = (w.entity_id || p.entity_id || "sensor.esp_calendar_data").trim();
             const isSensor = entityId.startsWith("sensor.");
-            const safeId = `calendar_data_${w.id}`;
+            // Use entity-based ID so all widgets sharing the same entity share one sensor
+            const safeId = `calendar_data_${entityId.replace(/[^a-zA-Z0-9_]/g, "_")}`;
 
             const alreadyDefined = (context.seenEntityIds && context.seenEntityIds.has(entityId)) ||
                 (context.seenSensorIds && context.seenSensorIds.has(safeId));
@@ -301,7 +306,7 @@ export default {
 
     exportLVGL: (w, { common, convertColor, getLVGLFont }) => {
         const p = w.props || {};
-        const color = convertColor(p.text_color || "black");
+        const color = convertColor(p.text_color || "theme_auto");
         const bgColor = convertColor(p.background_color || "white");
         const dateFS = Math.round(Math.min((p.font_size_date || 100) * 0.7, 80));
         const dayFS = parseInt(p.font_size_day || 24, 10);
@@ -372,7 +377,7 @@ export default {
                 bg_opa: "COVER",
                 radius: 8,
                 border_width: p.show_border !== false ? (p.border_width || 2) : 0,
-                border_color: convertColor(p.border_color || "black"),
+                border_color: convertColor(p.border_color || "theme_auto"),
                 widgets: widgets
             }
         };
@@ -385,9 +390,9 @@ export default {
 
         const p = w.props || {};
         const entityId = (w.entity_id || p.entity_id || "sensor.esp_calendar_data").trim();
-        const borderColorProp = p.border_color || "black";
-        const colorProp = p.text_color || "black";
-        const bgColorProp = p.background_color || "white";
+        const borderColorProp = p.border_color || "theme_auto";
+        const colorProp = p.text_color || "theme_auto";
+        const bgColorProp = p.background_color || "transparent";
         const color = getColorConst(colorProp);
         const borderColor = getColorConst(borderColorProp);
         const bgColor = getColorConst(bgColorProp);
@@ -480,9 +485,11 @@ export default {
         lines.push(`          const int event_limit = ${p.event_limit || 4};`);
         lines.push(`          `);
         lines.push(`          // Debug and parse JSON`);
-        lines.push(`          if (id(calendar_data_${w.id}).state.length() > 5 && id(calendar_data_${w.id}).state != "unknown") {`);
+        // Use entity-based sensor ID to match onExportTextSensors
+        const sensorSafeId = `calendar_data_${entityId.replace(/[^a-zA-Z0-9_]/g, "_")}`;
+        lines.push(`          if (id(${sensorSafeId}).state.length() > 5 && id(${sensorSafeId}).state != "unknown") {`);
         lines.push(`             JsonDocument doc;`);
-        lines.push(`             DeserializationError error = deserializeJson(doc, id(calendar_data_${w.id}).state);`);
+        lines.push(`             DeserializationError error = deserializeJson(doc, id(${sensorSafeId}).state);`);
         lines.push(``);
         lines.push(`             if (!error) {`);
         lines.push(`                 JsonVariant root = doc.as<JsonVariant>();`);

@@ -12,11 +12,27 @@ const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     const entityId = widget.entity_id || "";
     const borderEnabled = props.border !== false;
-    const color = props.color || "black";
+    const isDark = getColorStyle() === "#ffffff";
+
+    // Determine background color
+    let bgColor = props.background_color;
+    if (!bgColor || bgColor === "transparent" || bgColor === "inherit") {
+        bgColor = isDark ? "black" : "white";
+    }
+
+    // Determine line color
+    let color = props.color || "theme_auto";
+
+    // Safety check: Avoid same color for background and line
+    if (color === bgColor) {
+        color = bgColor === "white" || bgColor === "#ffffff" ? "black" : "white";
+    }
+
     const colorStyle = getColorStyle(color);
+    const bgStyle = getColorStyle(bgColor);
 
     el.style.boxSizing = "border-box";
-    el.style.backgroundColor = "#ffffff";
+    el.style.backgroundColor = bgStyle;
     el.style.overflow = "hidden";
 
     if (borderEnabled) {
@@ -30,7 +46,7 @@ const render = (el, widget, { getColorStyle }) => {
     svg.setAttribute("viewBox", `0 0 ${widget.width} ${widget.height}`);
     svg.style.display = "block";
 
-    drawInternalGrid(svg, widget.width, widget.height, props.x_grid, props.y_grid);
+    drawInternalGrid(svg, widget.width, widget.height, props.x_grid, props.y_grid, isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)");
 
     let minVal = props.auto_scale !== false ? NaN : (parseFloat(props.min_value) || 0);
     let maxVal = props.auto_scale !== false ? NaN : (parseFloat(props.max_value) || 100);
@@ -101,7 +117,7 @@ const render = (el, widget, { getColorStyle }) => {
         const widgetEl = el;
         const artboard = widgetEl.closest('.artboard');
         if (artboard) {
-            drawSmartAxisLabels(artboard, widget.x, widget.y, widget.width, widget.height, effectiveMin, effectiveMax, props.duration, widgetId);
+            drawSmartAxisLabels(artboard, widget.x, widget.y, widget.width, widget.height, effectiveMin, effectiveMax, props.duration, widgetId, isDark ? "#ffffff" : "#666666");
         }
     }, 0);
 
@@ -113,7 +129,7 @@ const render = (el, widget, { getColorStyle }) => {
         label.style.transform = "translateX(-50%)";
         label.style.fontSize = "10px";
         label.style.color = colorStyle;
-        label.style.backgroundColor = "rgba(255,255,255,0.7)";
+        label.style.backgroundColor = bgColor === "black" ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.7)";
         label.style.padding = "0 4px";
         label.style.borderRadius = "2px";
         label.style.whiteSpace = "nowrap";
@@ -126,8 +142,8 @@ const render = (el, widget, { getColorStyle }) => {
         label.style.left = "50%";
         label.style.transform = "translate(-50%, -50%)";
         label.style.fontSize = "10px";
-        label.style.color = "#999";
-        label.style.backgroundColor = "rgba(255,255,255,0.8)";
+        label.style.color = isDark ? "#ccc" : "#999";
+        label.style.backgroundColor = bgColor === "black" ? "rgba(0,0,0,0.8)" : "rgba(255,255,255,0.8)";
         label.style.padding = "2px 6px";
         label.textContent = "graph (No Entity)";
         el.appendChild(label);
@@ -144,7 +160,7 @@ const exportLVGL = (w, { common, convertColor }) => {
         id: chartId,
         type: "LINE",
         duration: p.duration || "1h",
-        bg_color: convertColor(p.bg_color || "white"),
+        bg_color: convertColor(p.background_color || (p.bg_color || "white")),
         series: [
             {
                 sensor: entityId,
@@ -177,7 +193,9 @@ const exportDoc = (w, context) => {
     const title = sanitize(w.title || "");
     const duration = p.duration || "1h";
     const borderEnabled = p.border !== false;
-    const colorProp = p.color || "black";
+    const backgroundProp = p.background_color || "transparent";
+    const bgColor = backgroundProp !== "transparent" ? getColorConst(backgroundProp) : null;
+    const colorProp = p.color || "theme_auto";
     const color = getColorConst(colorProp);
     const lineType = p.line_type || "SOLID";
     const lineThickness = parseInt(p.line_thickness || 3, 10);
@@ -220,10 +238,14 @@ const exportDoc = (w, context) => {
         }
     }
 
-    lines.push(`        // widget:graph id:${w.id} type:graph x:${w.x} y:${w.y} w:${w.width} h:${w.height} title:"${title}" entity:${entityId} local:${!!p.is_local_sensor} duration:${duration} border:${borderEnabled} color:${colorProp} x_grid:${xGrid} y_grid:${yGrid} line_type:${lineType} line_thickness:${lineThickness} continuous:${continuous} min_value:${minValue} max_value:${maxValue} min_range:${minRange} max_range:${maxRange} ${getCondProps(w)}`);
+    lines.push(`        // widget:graph id:${w.id} type:graph x:${w.x} y:${w.y} w:${w.width} h:${w.height} title:"${title}" entity:${entityId} local:${!!p.is_local_sensor} duration:${duration} border:${borderEnabled} color:${colorProp} background:${backgroundProp} x_grid:${xGrid} y_grid:${yGrid} line_type:${lineType} line_thickness:${lineThickness} continuous:${continuous} min_value:${minValue} max_value:${maxValue} min_range:${minRange} max_range:${maxRange} ${getCondProps(w)}`);
 
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
+
+    if (bgColor) {
+        lines.push(`        it.fill_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColor});`);
+    }
 
     if (entityId) {
         if (p.use_ha_history) {
@@ -532,10 +554,13 @@ export default {
     // in those modes.
     supportedModes: ['lvgl', 'direct'],
     defaults: {
+        width: 205,
+        height: 100,
         duration: "1h",
         border: true,
         grid: true,
-        color: "black",
+        color: "theme_auto",
+        background_color: "transparent",
         title: "",
         x_grid: "",
         y_grid: "",

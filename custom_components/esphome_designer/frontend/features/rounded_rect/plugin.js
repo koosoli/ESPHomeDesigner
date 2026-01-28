@@ -6,7 +6,7 @@ const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     const radius = parseInt(props.radius || 10, 10);
     const borderWidth = parseInt(props.border_width || 4, 10);
-    const color = props.color || "black";
+    const color = props.color || "theme_auto";
 
     el.style.backgroundColor = props.fill ? getColorStyle(color) : "transparent";
     const borderColor = (props.fill && (props.show_border === false || props.show_border === "false"))
@@ -48,9 +48,9 @@ export default {
         radius: 10,
         fill: false,
         border_width: 4,
-        color: "black",
-        bg_color: "black",
-        border_color: "black",
+        color: "theme_auto",
+        bg_color: "theme_auto",
+        border_color: "theme_auto",
         show_border: true,
         opa: 255
     },
@@ -94,7 +94,7 @@ export default {
         const showBorder = p.show_border !== false;
         const r = parseInt(p.radius || 10, 10);
         const thickness = parseInt(p.border_width || 4, 10);
-        const colorProp = p.color || "black";
+        const colorProp = p.color || "theme_auto";
         const borderColorProp = p.border_color || (fill ? "black" : colorProp);
         const color = getColorConst(colorProp);
         const borderColor = getColorConst(borderColorProp);

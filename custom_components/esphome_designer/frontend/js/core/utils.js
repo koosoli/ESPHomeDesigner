@@ -13,6 +13,8 @@ export const Utils = {
     getColorConst: (c) => {
         if (!c) return "COLOR_BLACK";
         const cl = c.toLowerCase();
+        if (cl === 'theme_auto') return "color_on";
+        if (cl === 'transparent') return "color_off";
 
         // Handle Hex Colors (#RRGGBB)
         if (cl.startsWith("#") && cl.length === 7) {

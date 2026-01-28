@@ -128,7 +128,10 @@ export class WidgetFactory {
 
             // Adjust colors based on dark mode if they were defaults
             if (widget.props.color === "black" || widget.props.color === "white") {
-                widget.props.color = defaultColor;
+                widget.props.color = "theme_auto";
+            }
+            if (widget.props.text_color === "black" || widget.props.text_color === "white") {
+                widget.props.text_color = "theme_auto";
             }
             if (widget.props.bg_color === "black" || widget.props.bg_color === "white") {
                 widget.props.bg_color = defaultBgColor;

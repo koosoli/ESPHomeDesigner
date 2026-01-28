@@ -143,6 +143,25 @@
     filter: none;
 }
 
+.artboard-wrapper.drag-over {
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+.artboard-wrapper.drag-over .artboard {
+    box-shadow:
+        0 0 0 4px var(--accent),
+        0 40px 100px rgba(0, 0, 0, 0.5);
+    transform: translateY(-8px) scale(1.01);
+}
+
+.add-page-placeholder.drag-over {
+    opacity: 1 !important;
+    border-color: var(--accent) !important;
+    background: var(--accent-soft) !important;
+    transform: scale(1.02);
+}
+
 .artboard-header {
     display: flex;
     justify-content: space-between;
@@ -261,7 +280,7 @@
     box-sizing: border-box;
 }
 
-.canvas.dark .widget {
+.artboard.dark .widget {
     color: var(--white);
 }
 

@@ -666,7 +666,7 @@ export class PropertiesPanel {
 
             this.createSection("Appearance", true);
             this.addColorSelector("Text Color", props.color || "black", colors, (v) => updateProp("color", v));
-            this.addColorSelector("Background", props.background_color || "white", colors, (v) => updateProp("background_color", v));
+            this.addColorSelector("Background", props.background_color || "white", ["transparent", ...colors], (v) => updateProp("background_color", v));
             this.addCheckbox("Show High/Low", props.show_high_low !== false, (v) => updateProp("show_high_low", v));
             this.endSection();
         }
@@ -1069,6 +1069,7 @@ export class PropertiesPanel {
                 });
             }
             this.addColorSelector("Line Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Background Color", props.background_color || "transparent", ["transparent", ...colors], (v) => updateProp("background_color", v));
             this.addSelect("Line Type", props.line_type || "SOLID", ["SOLID", "DASHED", "DOTTED"], (v) => updateProp("line_type", v));
             this.addLabeledInput("Line Thickness", "number", props.line_thickness || 3, (v) => updateProp("line_thickness", parseInt(v, 10)));
             this.addCheckbox("Show Border", props.border !== false, (v) => updateProp("border", v));
@@ -1295,7 +1296,7 @@ export class PropertiesPanel {
                 this.addLabeledInput("Border Width", "number", props.border_width !== undefined ? props.border_width : 1, (v) => updateProp("border_width", parseInt(v, 10)));
                 this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
             }
-            this.addColorSelector("Background Color", props.background_color || "transparent", colors, (v) => updateProp("background_color", v));
+            this.addColorSelector("Background Color", props.background_color || "transparent", ["transparent", ...colors], (v) => updateProp("background_color", v));
             this.endSection();
         }
         else if (type === "template_sensor_bar") {
@@ -1623,7 +1624,7 @@ export class PropertiesPanel {
             this.createSection("Appearance", true);
             this.addColorSelector("Text Color", props.text_color || "black", colors, (v) => updateProp("text_color", v));
             this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
-            this.addColorSelector("Background", props.background_color || "white", colors, (v) => updateProp("background_color", v));
+            this.addColorSelector("Background", props.background_color || "white", ["transparent", ...colors], (v) => updateProp("background_color", v));
 
             this.addLabeledInput("Border Width", "number", props.border_width || 2, (v) => updateProp("border_width", parseInt(v, 10)));
             this.addCheckbox("Show Border", props.show_border !== false, (v) => updateProp("show_border", v));
@@ -2157,7 +2158,7 @@ export class PropertiesPanel {
             item.title = opt.label || opt.value;
 
             if (opt.icon) {
-                item.innerHTML = `< i class="mdi ${opt.icon}" ></i > `;
+                item.innerHTML = `<i class="mdi ${opt.icon}"></i>`;
             } else {
                 item.textContent = opt.label || opt.value;
             }
@@ -2624,10 +2625,14 @@ export class PropertiesPanel {
     }
 
     addColorSelector(label, value, options, onChange) {
+        const mappedOptions = options.map(opt => {
+            if (opt === "theme_auto") return { value: "theme_auto", label: "Theme Default" };
+            return opt;
+        });
         if (typeof isRGBDevice === 'function' && isRGBDevice()) {
             this.addColorMixer(label, value, onChange);
         } else {
-            this.addSelect(label, value, options, onChange);
+            this.addSelect(label, value, mappedOptions, onChange);
         }
     }
 

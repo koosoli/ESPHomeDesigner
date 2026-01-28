@@ -2,20 +2,20 @@
 
 export function parseDuration(durationStr) {
     if (!durationStr) return 3600; // Default 1h
-    
+
     // Handle numeric values (already in seconds)
     if (typeof durationStr === 'number') {
         return durationStr;
     }
-    
+
     // Convert to string if needed
     const str = String(durationStr);
-    
+
     // If it's a pure number string, treat as seconds
     if (/^\d+$/.test(str)) {
         return parseInt(str, 10);
     }
-    
+
     const match = str.match(/^(\d+)([a-z]+)$/i);
     if (!match) return 3600;
     const val = parseInt(match[1], 10);
@@ -119,9 +119,9 @@ export function generateHistoricalDataPoints(width, height, min, max, historyDat
     return points;
 }
 
-export function drawInternalGrid(svg, width, height, xGridStr, yGridStr) {
+export function drawInternalGrid(svg, width, height, xGridStr, yGridStr, color = "rgba(0,0,0,0.1)") {
     const gridGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    gridGroup.setAttribute("stroke", "rgba(0,0,0,0.1)");
+    gridGroup.setAttribute("stroke", color);
     gridGroup.setAttribute("stroke-dasharray", "2,2");
     gridGroup.setAttribute("stroke-width", "1");
 
@@ -152,7 +152,7 @@ export function drawInternalGrid(svg, width, height, xGridStr, yGridStr) {
     svg.appendChild(gridGroup);
 }
 
-export function drawSmartAxisLabels(container, x, y, width, height, min, max, durationStr, widgetId) {
+export function drawSmartAxisLabels(container, x, y, width, height, min, max, durationStr, widgetId, color = "#666") {
     // container should be the ARTBOARD (div.artboard)
     if (!container) return;
 
@@ -194,7 +194,8 @@ export function drawSmartAxisLabels(container, x, y, width, height, min, max, du
 
         div.style.top = `${labelY - 6}px`; // Center vertically
         div.style.fontSize = "10px";
-        div.style.color = yLabelsInside ? "#888" : "#666"; // Slightly lighter if inside
+        div.style.color = color;
+        div.style.opacity = yLabelsInside ? "0.7" : "1.0";
         div.style.pointerEvents = "none";
         div.style.zIndex = "10";
         div.textContent = val.toFixed(1);
@@ -231,7 +232,8 @@ export function drawSmartAxisLabels(container, x, y, width, height, min, max, du
         }
 
         div.style.fontSize = "10px";
-        div.style.color = xLabelsInside ? "#888" : "#666";
+        div.style.color = color;
+        div.style.opacity = xLabelsInside ? "0.7" : "1.0";
         div.style.pointerEvents = "none";
         div.style.zIndex = "10";
 

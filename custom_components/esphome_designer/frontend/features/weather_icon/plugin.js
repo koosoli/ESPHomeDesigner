@@ -6,7 +6,7 @@ const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     let iconCode = "F0595"; // Default
     let size = props.size || 24;
-    const color = props.color || "black";
+    const color = props.color || "theme_auto";
 
     let weatherState = "sunny"; // Default preview
     const entityId = widget.entity_id || props.weather_entity || "weather.forecast_home";
@@ -77,8 +77,7 @@ const exportDoc = (w, context) => {
     const p = w.props || {};
     const entityId = (w.entity_id || p.weather_entity || "weather.forecast_home").trim();
     const size = parseInt(p.size || 48, 10);
-    const colorProp = p.color || "black";
-
+    const colorProp = p.color || "theme_auto";
     const color = getColorConst(colorProp);
     const fontRef = addFont("Material Design Icons", 400, size);
 
@@ -197,7 +196,7 @@ export default {
         width: 60,
         height: 60,
         size: 48,
-        color: "black",
+        color: "theme_auto",
         background_color: "transparent",
         weather_entity: "weather.forecast_home",
         fit_icon_to_frame: true
@@ -236,14 +235,14 @@ export default {
             x: Math.round(w.x),
             y: Math.round(w.y),
             size: p.size || 48,
-            color: p.color || "black"
+            color: p.color || "theme_auto"
         };
     },
     exportOEPL: (w, { layout, page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || p.weather_entity || "weather.forecast_home").trim();
         const size = p.size || 48;
-        const color = p.color || "black";
+        const color = p.color || "theme_auto";
 
         // OEPL has built-in weather icon support if we use their icon names
         // We can create a template that returns the icon name based on state
@@ -277,7 +276,7 @@ export default {
         const p = w.props || {};
         const entityId = (w.entity_id || p.weather_entity || "weather.forecast_home").trim();
         const size = parseInt(p.size || 48, 10);
-        const color = convertColor(p.color || "black");
+        const color = convertColor(p.color || "theme_auto");
 
         let lambdaStr = '"\\U000F0599"'; // Default: sunny
         if (entityId) {

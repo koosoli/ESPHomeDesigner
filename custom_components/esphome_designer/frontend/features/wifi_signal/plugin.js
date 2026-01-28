@@ -6,7 +6,7 @@ const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     let iconCode = "F0928"; // Default: wifi-strength-4 (excellent)
     let size = props.size || 24;
-    const color = props.color || "black";
+    const color = props.color || "theme_auto";
     const showDbm = props.show_dbm !== false;
 
     let signalLevel = -45; // Default preview (excellent signal)
@@ -66,7 +66,7 @@ const exportDoc = (w, context) => {
     const entityId = (w.entity_id || "").trim();
     const size = parseInt(p.size || 24, 10);
     const fontSize = parseInt(p.font_size || 12, 10);
-    const colorProp = p.color || "black";
+    const colorProp = p.color || "theme_auto";
 
     const showDbm = p.show_dbm !== false;
     const isLocal = p.is_local_sensor !== false;
@@ -145,7 +145,7 @@ export default {
     defaults: {
         size: 24,
         font_size: 12,
-        color: "black",
+        color: "theme_auto",
         show_dbm: true,
         fit_icon_to_frame: false,
         is_local_sensor: true

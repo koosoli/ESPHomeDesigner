@@ -614,7 +614,7 @@ export class ESPHomeAdapter extends BaseAdapter {
             lines.push(`  // page:refresh_time "${page.refresh_time || ""}"`);
 
             // Clear screen for this page
-            const isDarkMode = page.dark_mode === 'enabled' || (page.dark_mode === 'inherit' && layout.darkMode);
+            const isDarkMode = page.dark_mode === 'dark' || (page.dark_mode === 'inherit' && layout.darkMode);
             lines.push(`  // Clear screen for this page`);
             lines.push(`  it.fill(${isDarkMode ? 'COLOR_BLACK' : 'COLOR_WHITE'});`);
             lines.push(`  color_off = ${isDarkMode ? 'COLOR_BLACK' : 'COLOR_WHITE'};`);
@@ -626,7 +626,8 @@ export class ESPHomeAdapter extends BaseAdapter {
                         ...context,
                         layout,
                         adapter: this,
-                        isEpaper
+                        isEpaper,
+                        isDark: isDarkMode
                     });
 
                     if (widgetLines.length > 0) {

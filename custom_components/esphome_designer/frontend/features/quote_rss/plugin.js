@@ -11,8 +11,9 @@ const render = (element, widget, helpers) => {
     const authorFontSize = parseInt(props.author_font_size || 14, 10);
     const fontFamily = props.font_family || "Roboto";
     const fontWeight = parseInt(props.font_weight || 400, 10);
-    const color = props.color || "black";
+    const color = props.color || "theme_auto";
     const colorStyle = getColorStyle(color);
+    element.style.color = colorStyle;
     const textAlign = props.text_align || "TOP_LEFT";
     const italicQuote = props.italic_quote !== false;
 
@@ -206,7 +207,7 @@ const exportDoc = (w, context) => {
     const authorFontSize = parseInt(p.author_font_size || 14, 10);
     const fontFamily = p.font_family || "Roboto";
     const fontWeight = parseInt(p.font_weight || 400, 10);
-    const colorProp = p.color || "black";
+    const colorProp = p.color || "theme_auto";
     const color = getColorConst(colorProp);
     const textAlign = p.text_align || "TOP_LEFT";
     const italicQuote = p.italic_quote !== false;
@@ -453,7 +454,7 @@ export default {
         author_font_size: 14,
         font_family: "Roboto",
         font_weight: 400,
-        color: "black",
+        color: "theme_auto",
         text_align: "TOP_LEFT",
         show_author: true,
         italic_quote: true,

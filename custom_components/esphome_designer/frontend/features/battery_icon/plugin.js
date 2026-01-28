@@ -6,7 +6,8 @@ const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     let iconCode = "F0079"; // Default full battery
     let size = props.size || 24;
-    const color = props.color || "black";
+    const color = props.color || "theme_auto";
+    const colorStyle = getColorStyle(color);
 
     let batteryLevel = 75; // Default preview
 
@@ -44,7 +45,7 @@ const render = (el, widget, { getColorStyle }) => {
 
     el.innerText = ch;
     el.style.fontSize = `${size}px`;
-    el.style.color = getColorStyle(color);
+    el.style.color = colorStyle;
     el.style.fontFamily = "MDI, system-ui, -apple-system, BlinkMacSystemFont, -sans-serif";
     el.style.lineHeight = "1";
     el.style.display = "flex";
@@ -69,7 +70,8 @@ const exportDoc = (w, context) => {
     const entityId = (w.entity_id || "").trim();
     const size = parseInt(p.size || 24, 10);
     const fontSize = parseInt(p.font_size || 12, 10);
-    const colorProp = p.color || "black";
+    const isDark = context.isDark || (window.WidgetFactory?.getEffectiveDarkMode?.() || false);
+    const colorProp = p.color || "theme_auto";
     const color = getColorConst(colorProp);
 
     const fontRef = addFont("Material Design Icons", 400, size);
@@ -155,7 +157,7 @@ export default {
         height: 60,
         size: 36,
         font_size: 14,
-        color: "black"
+        color: "theme_auto",
     },
     render,
     exportOpenDisplay: (w, { layout, page }) => {

@@ -1,45 +1,44 @@
-## v0.9.0 - Major Overhaul: Modular Architecture & Redesigned UI
+## v0.9.0 - The "Grand Cleanup" & Modular Renaissance
+**Release Date:** January 28, 2026
 
-**Release Date:** January 7, 2026 (Updated Jan 11)
+### 🚀 Major Architectural Revolution
+- **Plugin-Based Widget Ecosystem:** A complete shift from a 3,800+ line monolithic exporter to a modular registry with **55+ independent widget plugins**. Every widget is now its own self-contained module, making the system faster, more stable, and easier to extend.
+- **Backend Modularization:** Massive backend refactor splitting the monolithic `http_api.py` and `yaml_parser.py` into dedicated `api/` and `yaml_parser/` directories. This improves stability and enables complex parsing logic for new platforms.
+- **Multi-Platform Rendering (Experimental):**
+  - **OpenEpaperLink (OEPL) Integration:** Full support for generating MQTT-based payloads for AP-flashed e-paper tags. Includes automated parsing of OEPL YAML arrays.
+  - **Open Display (ODP) v1 Protocol:** Initial support for the Open Display JSON standard for MQTT/HTTP based controllers.
+  - **Parsing Parity:** Both OEPL and ODP platforms support "Round-Trip" editing—import your existing payloads back into the designer canvas seamlessly.
+- **World View Canvas:** All project pages are now rendered as distinct artboards on a unified infinite stage. View your entire multi-page project at once for pixel-perfect cross-page consistency.
+- **Codebase Sanitization:** Removed 1450+ legacy files and consolidated 80+ redundant versions into a single, clean production-ready branch.
 
-### 🚀 Major Architectural Modernization
-- **Plugin-Based System:** Migrated from a 3,800+ line monolithic `yaml_export.js` to a modular architecture with **50+ independent widget plugins**.
-- **Multi-Page "World View":** All project pages are now rendered side-by-side as distinct artboards on a unified canvas stage, allowing for easy cross-page visual reference.
-- **Precision Page Centering:** Implemented a custom panning algorithm (`focusPage`) that instantly centers the active artboard in the viewport.
-- **Improved Zoom-to-Cursor:** Refactored the coordinate transformation math for perfect focal-point zooming without offset bias.
-- **Shared Constants Engine:** Centralized layout "magic numbers" into `layout_constants.js`, ensuring pixel-perfect consistency.
-- **Strict YAML Parity:** Introduced the "Time Machine" regression suite for bit-for-bit parity with legacy exports.
-- **Enhanced Deployment Pattern:** Optimized for HACS (Home Assistant) and GitHub Pages (Standalone) dual-deployment.
+### 🎨 GUI & Designer Enhancements
+- **Atomic Grouping Engine:** Groups now behave as unified containers. Draggable, resizable, and layer-persistent. Transporting a group between pages now preserves the entire internal hierarchy perfectly.
+- **Hierarchy Panel & Layer Management:** 
+  - **Full Synchronization:** Perfect real-time sync between the Canvas, the Hierarchy Tree View, and the YAML property editor.
+  - **Visual Layer Sorting:** Easily reorder widgets and groups via drag-and-drop in the hierarchy panel.
+  - **Relocated Layer Controls:** Quick-access "Front/Back" and "Up/Down" layer adjustment buttons integrated directly into the Hierarchy section.
+- **Interactive Precision Tools:** 
+  - **Canvas Rulers:** Pixel-accurate rulers that scale with zoom and highlight widget focal points.
+  - **Smart Spacing Guides:** Hold `Ctrl` to see real-time distance markers between widgets.
+  - **Batch Alignment:** New contextual toolbar for rapid Left/Center/Right/Top/Middle/Bottom alignment and distribution of multiple widgets.
+- **Focus Mode:** Custom panning algorithm (`focusPage`) that instantly centers any artboard in the viewport with a single click.
+- **Advanced Properties Accordion:** Semantic organization of widget settings (Transform, Appearance, Data, Events) with a redesigned UI for better readability.
+- **Refined Artboard Aesthetics:** High-fidelity triple-elevation drop shadows and active-page "lift" effects for a premium design feel.
 
-### 🎨 GUI Overhaul & User Experience
-- **Collapsible Page Selector:** Redesigned the "Pages" sidebar section into a collapsible accordion with bespoke icons and cleaner labeling.
-- **Premium Canvas Depth**: Added high-fidelity triple-elevation drop shadows to all artboards with a subtle "lift" effect for the active page.
-- **Responsive Widget Palette**: Redesigned the widget selector into a modern grid layout with large, high-fidelity icons and clear labeling.
-- **Accordion Properties Panel**: Organized widget settings into collapsible semantic sections (Transform, Appearance, Data Source, Common LVGL, etc.).
-- **Theme-Aware Visual Hierarchy**: Implemented a refined contrast system for both Light and Dark modes.
-- **Relocated Layer Controls**: Moved "Layer Order" buttons (Front/Back/Up/Down) to the Hierarchy panel.
-- **Inline Text Editing**: Double-click any text widget on the canvas to edit it instantly.
-- **Advanced Multi-Selection**: Full synchronization between Canvas, Hierarchy View, and YAML Editor.
-- **True Atomic Grouping**: Groups now behave as solid containers. Dragging a group to another page transports the entire hierarchy, and reordering a group moves all its children as a single unit, keeping layer orders perfectly synchronized.
-- **Drop Shadow Tool**: One-click "Create Drop Shadow" for shapes.
-- **Hardware-Aware Energy Strategies**: The "Power & Refresh Strategy" section now dynamically adapts to your display technology. LCD and OLED devices now feature specific "Always On", "Backlight Off Schedule", and "Ultra Eco" strategies that switch automatically based on the selected hardware profile.
-- **Experimental Plugin: Grouping & Layout Tools**:
-  - **Batch Alignment/Distribution:** Select multiple widgets to align them (Left/Center/Right/Top/Middle/Bottom) or distribute them evenly.
-  - **Contextual Layout Toolbar:** A smart toolbar appears above your selection for quick access to alignment and grouping actions.
-  - **Grouping Support:** Group multiple widgets into a single unit (`Ctrl+G`) to move, delete, or layer them together. Ungroup with `Ctrl+Shift+G`.
-  - **Smart Spacing Guides:** Hold `Ctrl` while dragging to see pixel-perfect distance markers between the active widget and its neighbors.
-  - **Interactive Canvas Rulers:** Precision top/left rulers that show absolute coordinates, scale with zoom, and highlight the selected widget's position.
+### 📦 New Specialist Widgets (ODP/Experimental)
+- **ODP Arc & Ellipse:** Native vector-based rendering for experimental platforms.
+- **ODP Polygon:** Define custom multi-point shapes with fill and stroke control.
+- **ODP Icon Sequence:** Easily create status bar sets or navigation rows.
+- **ODP Rectangle Pattern:** Advanced tiling for complex backgrounds.
+- **ODP Plot:** High-performance sensor history visualization for JSON-based displays.
 
-### 🐛 Bug Fixes & Improvements
+### 🐛 Bug Fixes & Refinements
 - **Viewport Scrollbar Cleanup:** Disabled conflicting native scrollbars in favor of 100% transform-based panning for smoother navigation.
-- **Redesigned Page Items:** Replaced technical ID tags with bespoke icons for a cleaner, professional sidebar experience.
-- **Touch Area Consolidation**: Unified duplicate touch logic into a single robust implementation with Normal/Pressed icon pickers and RGBA color support.
-- **Core Adapter Fixes**: Fixed lambda indentation, resolved LVGL display conflicts, and improved rotation/touch mapping for Waveshare 7" displays.
-- **Widget Specific Fixes**: Resolved rendering bugs for Progress Bars (sanitization), Shapes (border/fill), and Calendars (event overlapping).
-- **Improved Robustness**: Added global presence checks (`has_state()`) and automated sensor registration in YAML to prevent missing ID errors.
-- **Cross-Page Drag & Drop**: You can now seamlessly drag widgets from one page's canvas to another in the multi-page view.
-- **Smart Sidebar Navigation**: Dragging a widget over a page name in the sidebar automatically switches to that page, allowing for easy cross-page moves.
-- **Drag Stability**: Fixed "drift" and "jump" issues during drag operations, ensuring widgets stay perfectly under the cursor even when zooming or switching pages.
+- **Coordinate Math Overhaul:** Fixed "drift" and "jump" issues during drag-and-drop, especially when zoomed or switching pages in World View.
+- **Standardized Sensor IDs:** Fixed "NaN" and "ID Not Found" errors by unifying sensor registration across all widget types.
+- **Display Lambda Indentation:** Resolved long-standing YAML validation errors caused by inconsistent indentation in hardware recipes.
+- **Touch Calibration Fixes:** Improved rotation mapping for M5Paper and Waveshare 7" displays.
+
 
 > [!WARNING]
 > **BREAKING CHANGES**

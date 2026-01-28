@@ -10,16 +10,34 @@ A Hardware Recipe is essentially a full ESPHome configuration file with one spec
 
 When you design a UI in the Designer and click "Generate YAML", the Designer takes your Hardware Recipe and injects the UI drawing code exactly where that placeholder is located.
 
-### The Magic Marker: `__LAMBDA_PLACEHOLDER__`
-Every recipe **must** contain this exact string inside the `display:` block's lambda section.
+### The "Captive Portal" Breakpoint
+The Designer only uses the display configuration code located **after** the `captive_portal:` key in your YAML file.
+
+**CRITICAL RULE:**
+Everything **above** `captive_portal:` (wifi, api, captive_portal itself) **MUST BE COMMENTED OUT**.
+The Designer provides its own infrastructure settings, so keeping them active in your recipe will cause duplicate key errors.
 
 ```yaml
+# wifi:
+#   ssid: ...
+#
+# api:
+#
+# captive_portal:
+
 display:
   - platform: ...
     # ... other display settings ...
     lambda: |-
       # __LAMBDA_PLACEHOLDER__
 ```
+
+
+
+> [!IMPORTANT]
+> **Philosophy Alignment:** The Designer strictly separates hardware definition from application logic.
+> You **MUST** comment out all system-level configuration (`logger`, `wifi`, `api`, `captive_portal`, `ota`) in your recipe file.
+> The Designer guarantees it will only read and use the valid YAML found **after** the `captive_portal:` line.
 
 ---
 
@@ -58,12 +76,14 @@ The Designer looks for specific metadata in the form of comments at the top of y
 
 ---
 
-## 👩‍🍳 Creating Your Own Recipe
+## 👩‍🍳 Creating Your Own Recipe (The Easy Way)
 
 1. **Start with a working ESPHome YAML**: Take an existing, working configuration for your device.
 2. **Add Metadata**: Add the `# TARGET DEVICE`, `# Resolution`, and `# Shape` comments at the top.
-3. **Clean Up**: Remove any existing UI drawing logic (like `it.print`, `it.fill_screen`, etc.) from your `display` lambda.
-4. **Insert Placeholder**: Add `# __LAMBDA_PLACEHOLDER__` inside the lambda block.
+3. **Smart Sanitization**: **COMMENT OUT** all system infrastructure sections (`esphome:`, `wifi:`, `api:`, `ota:`, `captive_portal:`).
+4. **Valid YAML Only**: Ensure your display configuration appears **BELOW** the commented-out `captive_portal:` line. The Designer ignores everything above it.
+4. **Clean Up (Recommended)**: Remove any existing UI drawing logic (like `it.print`, `it.fill_screen`, etc.) from your `display` lambda.
+5. **Insert Placeholder**: Add `# __LAMBDA_PLACEHOLDER__` inside the lambda block.
 5. **Save**: Save the file with a `.yaml` extension (e.g., `my_awesome_device.yaml`).
 
 > [!IMPORTANT]
@@ -74,7 +94,7 @@ The Designer looks for specific metadata in the form of comments at the top of y
 ## 🚀 Uploading and Using
 
 ### Where are they saved?
-- **Online Mode**: Recipes are saved in the `custom_components/reterminal_dashboard/frontend/hardware/` directory on your Home Assistant machine.
+- **Online Mode**: Recipes are saved in the `custom_components/esphome_designer/frontend/hardware/` directory on your Home Assistant machine.
 - **Offline Mode**: If you use the Designer without a backend, recipes are loaded into your browser's memory and will be lost on refresh.
 
 ### How to Upload

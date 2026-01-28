@@ -49,7 +49,7 @@ export default {
         width: 100,
         height: 10,
         stroke_width: 3,
-        color: "black",
+        color: "theme_auto",
         orientation: "horizontal",
         opa: 255
     },
@@ -102,7 +102,7 @@ export default {
 
         const p = w.props || {};
         const strokeWidth = parseInt(p.stroke_width || 3, 10);
-        const colorProp = p.color || "black";
+        const colorProp = p.color || "theme_auto";
         const color = getColorConst(colorProp);
         const orientation = p.orientation || "horizontal";
 

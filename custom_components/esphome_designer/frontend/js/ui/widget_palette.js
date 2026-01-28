@@ -417,6 +417,7 @@ export async function renderWidgetPalette(containerId) {
             if (isCompatible) {
                 itemEl.addEventListener('dragstart', (e) => {
                     e.dataTransfer.setData('application/widget-type', widget.type);
+                    e.dataTransfer.setData('text/plain', widget.type); // Fallback for better reliability
                     e.dataTransfer.effectAllowed = 'copy';
                 });
             } else {

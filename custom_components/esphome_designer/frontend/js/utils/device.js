@@ -65,7 +65,7 @@ export function getAvailableColors() {
             // BWR/BWY displays
             return ["black", "white", "red", "yellow", "gray"];
         }
-        return ["black", "white", "gray"];
+        return ["theme_auto", "black", "white", "gray"];
     }
 
     // 2. ESPHome Mode Logic (Existing)
@@ -75,13 +75,13 @@ export function getAvailableColors() {
 
     const model = getDeviceModel();
     if (model === "reterminal_e1002") {
-        return ["black", "white", "gray", "red", "green", "blue", "yellow"];
+        return ["theme_auto", "black", "white", "gray", "red", "green", "blue", "yellow"];
     }
     if (model === "esp32_s3_photopainter") {
-        return ["black", "white", "gray", "red", "green", "blue", "yellow", "orange"];
+        return ["theme_auto", "black", "white", "gray", "red", "green", "blue", "yellow", "orange"];
     }
     // Default E1001 and TRMNL (True Monochrome)
-    return ["black", "white", "gray"];
+    return ["theme_auto", "black", "white", "gray"];
 }
 
 /**
@@ -97,6 +97,10 @@ export function getColorStyle(colorName) {
     if (colorName.startsWith("0x")) return "#" + colorName.substring(2);
 
     switch (colorName.toLowerCase()) {
+        case "theme_auto": {
+            const isDark = window.WidgetFactory?.getEffectiveDarkMode?.() || false;
+            return isDark ? "#ffffff" : "#000000";
+        }
         case "white": return "#ffffff";
         case "red": return "#ff0000";
         case "green": return "#00ff00";
@@ -104,6 +108,7 @@ export function getColorStyle(colorName) {
         case "yellow": return "#ffff00";
         case "orange": return "#ffa500";
         case "gray": return "#a0a0a0"; // Matched to Color(160,160,160)
+        case "transparent": return "transparent";
         case "black":
         default: return "#000000";
     }

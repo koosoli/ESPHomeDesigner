@@ -10,8 +10,12 @@ const render = (el, widget, { getColorStyle }) => {
     const tempFontSize = parseInt(props.temp_font_size, 10) || 14;
     const dayFontSize = parseInt(props.day_font_size, 10) || 12;
     const showHighLow = props.show_high_low !== false;
-    const colorStyle = getColorStyle(props.color || "black");
     const fontFamily = (props.font_family || "Roboto") + ", sans-serif";
+
+    // Theme awareness
+    const color = props.color || "theme_auto";
+    const colorStyle = getColorStyle(color);
+    el.style.color = colorStyle;
 
     const weatherIcons = [
         { code: "F0599", condition: "sunny" },
@@ -35,8 +39,8 @@ const render = (el, widget, { getColorStyle }) => {
     el.innerHTML = "";
     el.style.display = "flex";
     el.style.flexDirection = layout === "vertical" ? "column" : "row";
-    el.style.alignItems = "flex-start";
-    el.style.justifyContent = "flex-start";
+    el.style.alignItems = "center";
+    el.style.justifyContent = "center";
     el.style.gap = layout === "vertical" ? "4px" : "0px";
     el.style.overflow = "hidden";
     el.style.padding = "4px";
@@ -46,7 +50,7 @@ const render = (el, widget, { getColorStyle }) => {
     el.style.backgroundColor = getColorStyle(props.background_color || "transparent");
     if (props.show_border !== false) {
         const borderW = props.border_width !== undefined ? props.border_width : 1;
-        const borderColor = getColorStyle(props.border_color || props.color || "black");
+        const borderColor = getColorStyle(props.border_color || color);
         el.style.border = `${borderW}px solid ${borderColor}`;
     } else {
         el.style.border = "none";
@@ -65,9 +69,9 @@ const render = (el, widget, { getColorStyle }) => {
         dayDiv.style.display = "flex";
         dayDiv.style.flexDirection = "column";
         dayDiv.style.alignItems = "center";
-        dayDiv.style.justifyContent = "flex-start";
+        dayDiv.style.justifyContent = "center";
         dayDiv.style.width = `${itemWidth}px`;
-        dayDiv.style.minHeight = layout === "vertical" ? `${itemHeight}px` : "auto";
+        dayDiv.style.minHeight = layout === "vertical" ? `${itemHeight}px` : "100%";
         dayDiv.style.color = colorStyle;
         dayDiv.style.fontFamily = fontFamily;
 
@@ -176,7 +180,7 @@ const exportDoc = (w, context) => {
     const tempFontSize = parseInt(String(p.temp_font_size || 14), 10);
     const iconSize = parseInt(String(p.icon_size || 32), 10);
     const fontFamily = p.font_family || "Roboto";
-    const colorProp = p.color || "black";
+    const colorProp = p.color || "theme_auto";
     const color = getColorConst(colorProp);
     const tempUnit = p.temp_unit || "C";
     const unitSymbol = tempUnit === "F" ? "°F" : "°C";
@@ -214,11 +218,11 @@ const exportDoc = (w, context) => {
     lines.push(`          };`);
 
     // Background fill
-    const bgColor = p.background_color || "white";
-    if (bgColor && bgColor !== "transparent") {
-        const bgColorConst = getColorConst(bgColor);
+    const bgColorProp = p.background_color || "transparent";
+    if (bgColorProp && bgColorProp !== "transparent") {
+        const bgColorConst = getColorConst(bgColorProp);
         lines.push(`          it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
-        addDitherMask(lines, bgColor, isEpaper, w.x, w.y, w.width, w.height);
+        addDitherMask(lines, bgColorProp, isEpaper, w.x, w.y, w.width, w.height);
     }
 
     // Border
@@ -237,6 +241,9 @@ const exportDoc = (w, context) => {
     const yInc = isHorizontal ? 0 : Math.floor(w.height / 5);
     const centerOffset = isHorizontal ? Math.floor(xInc / 2) : Math.floor(w.width / 2);
 
+    const totalContentHeight = dayFontSize + 4 + iconSize + 4 + tempFontSize;
+    const verticalStartOffset = Math.max(0, Math.floor((w.height - totalContentHeight) / 2));
+
     for (let day = 0; day < 5; day++) {
         const condSensorId = `weather_cond_day${day}`;
         const highSensorId = `weather_high_day${day}`;
@@ -245,7 +252,7 @@ const exportDoc = (w, context) => {
         const dayY = w.y + day * yInc;
 
         lines.push(`          {`);
-        lines.push(`            int dx = ${dayX}; int dy = ${dayY};`);
+        lines.push(`            int dx = ${dayX}; int dy = ${dayY} + ${verticalStartOffset};`);
         lines.push(`            it.printf(dx + ${centerOffset}, dy, id(${dayFontId}), ${color}, TextAlign::TOP_CENTER, "%s", get_day_name(${day}).c_str());`);
         lines.push(`            std::string cond_day = id(${condSensorId}).state.c_str();`);
         lines.push(`            it.printf(dx + ${centerOffset}, dy + ${dayFontSize + 4}, id(${iconFontId}), ${color}, TextAlign::TOP_CENTER, "%s", get_icon(cond_day));`);
@@ -422,13 +429,13 @@ export default {
         icon_size: 32,
         temp_font_size: 14,
         day_font_size: 12,
-        color: "black",
+        color: "theme_auto",
         font_family: "Roboto",
         show_high_low: true,
-        show_border: false,
-        border_width: 1,
-        border_color: "black",
-        background_color: "white",
+        show_border: true,
+        border_width: 2,
+        border_color: "theme_auto",
+        background_color: "transparent",
         temp_unit: "C",
         width: 370,
         height: 90
@@ -438,7 +445,7 @@ export default {
         const p = w.props || {};
         const days = 5;
         const isHorizontal = (p.layout || "horizontal") === "horizontal";
-        const color = convertColor(p.color || "black");
+        const color = convertColor(p.color || "theme_auto");
         const dayFS = parseInt(p.day_font_size || 12, 10);
         const iconS = parseInt(p.icon_size || 32, 10);
         const tempFS = parseInt(p.temp_font_size || 14, 10);
@@ -524,7 +531,7 @@ export default {
                 bg_opa: "COVER",
                 radius: 8,
                 border_width: p.show_border !== false ? (p.border_width || 1) : 0,
-                border_color: convertColor(p.border_color || p.color || "black"),
+                border_color: convertColor(p.border_color || p.color || "theme_auto"),
                 layout: { type: "flex", flex_flow: isHorizontal ? "row" : "column", flex_align_main: "space_around", flex_align_cross: "center" },
                 widgets: widgets
             }
@@ -539,7 +546,7 @@ export default {
             y: Math.round(w.y),
             text: "Forecast Summary",
             size: p.day_font_size || 12,
-            color: p.color || "black"
+            color: p.color || "theme_auto"
         };
     },
     exportOEPL: (w, { layout, page }) => {
@@ -551,7 +558,7 @@ export default {
             x: Math.round(w.x),
             y: Math.round(w.y),
             size: p.temp_font_size || 14,
-            color: p.color || "black",
+            color: p.color || "theme_auto",
             anchor: "lt"
         };
     },

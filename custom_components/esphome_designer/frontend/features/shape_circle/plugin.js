@@ -6,7 +6,7 @@ const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
 
     el.style.backgroundColor = props.fill ? getColorStyle(props.color) : "transparent";
-    el.style.border = `${props.border_width || 1}px solid ${getColorStyle(props.border_color || props.color || "black")}`;
+    el.style.border = `${props.border_width || 1}px solid ${getColorStyle(props.border_color || props.color || "theme_auto")}`;
     el.style.borderRadius = "50%";
     el.style.boxSizing = "border-box";
 };
@@ -36,9 +36,9 @@ export default {
         height: 100,
         fill: false,
         border_width: 1,
-        color: "black",
-        bg_color: "black",
-        border_color: "black",
+        color: "theme_auto",
+        bg_color: "theme_auto",
+        border_color: "theme_auto",
         opa: 255
     },
     render,
@@ -86,7 +86,7 @@ export default {
         const cy = Math.floor(w.y + w.height / 2 + (typeof RECT_Y_OFFSET !== 'undefined' ? RECT_Y_OFFSET : 0));
         const fill = !!p.fill;
         const borderWidth = parseInt(p.border_width || 1, 10);
-        const colorProp = p.color || "black";
+        const colorProp = p.color || "theme_auto";
         const borderColorProp = p.border_color || colorProp;
         const color = getColorConst(colorProp);
         const borderColor = getColorConst(borderColorProp);

@@ -171,9 +171,10 @@ export function render(canvasInstance) {
                 el.innerHTML = ''; // Groups are mostly invisible containers
             } else if (feature && feature.render) {
                 try {
-                    const wrappedGetColorStyle = (color) => {
-                        if (!color) return isDark ? '#ffffff' : '#000000';
-                        return getColorStyle(color);
+                    const wrappedGetColorStyle = (colorName) => {
+                        const effectiveColor = (colorName === 'theme_auto') ? (isDark ? 'white' : 'black') : colorName;
+                        if (!effectiveColor) return isDark ? '#ffffff' : '#000000';
+                        return getColorStyle(effectiveColor);
                     };
 
                     const isSelected = AppState.selectedWidgetIds.includes(widget.id);

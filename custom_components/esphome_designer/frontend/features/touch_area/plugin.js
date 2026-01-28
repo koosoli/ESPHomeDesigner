@@ -86,7 +86,7 @@ const exportDoc = (w, context) => {
     const icon = (p.icon || "").replace("mdi:", "").toUpperCase();
     const iconPressed = (p.icon_pressed || "").replace("mdi:", "").toUpperCase();
     const iconSize = parseInt(p.icon_size || 40, 10);
-    const iconColorProp = p.icon_color || "black";
+    const iconColorProp = p.icon_color || "theme_auto";
     const iconColor = getColorConst(iconColorProp);
 
     lines.push(`        // widget:touch_area id:${w.id} type:touch_area x:${w.x} y:${w.y} w:${w.width} h:${w.height} icon:"${p.icon || ""}" icon_pressed:"${p.icon_pressed || ""}" icon_size:${iconSize} icon_color:${iconColorProp} ${getCondProps(w)}`);
@@ -182,7 +182,7 @@ export default {
         icon: "",
         icon_pressed: "",
         icon_size: 40,
-        icon_color: "black",
+        icon_color: "theme_auto",
         color: "rgba(0, 0, 255, 0.15)",
         border_color: "#0000ff",
         on_click: ""

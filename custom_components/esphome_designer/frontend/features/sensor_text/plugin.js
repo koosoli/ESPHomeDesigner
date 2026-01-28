@@ -13,7 +13,8 @@ const render = (el, widget, { getColorStyle }) => {
     const fontFamily = (props.font_family || "Roboto") + ", sans-serif";
     const fontWeight = String(props.font_weight || 400);
     const fontStyle = props.italic ? "italic" : "normal";
-    const colorStyle = getColorStyle(props.color);
+    const color = props.color || "theme_auto";
+    const colorStyle = getColorStyle(color);
 
     const entityId2 = widget.entity_id_2 || "";
     const separator = props.separator || " ~ ";
@@ -131,6 +132,7 @@ const render = (el, widget, { getColorStyle }) => {
     if ((format === "label_value" || format === "label_value_no_unit") && effectiveTitle) {
         body.style.display = "flex";
         body.style.alignItems = "baseline";
+        body.style.justifyContent = "flex-start";
         body.style.gap = "4px";
 
         const labelSpan = document.createElement("span");
@@ -208,6 +210,7 @@ export default {
         unit: "",
         precision: 2,
         text_align: "TOP_LEFT",
+        color: "theme_auto",
         font_family: "Roboto"
     },
 
@@ -358,7 +361,8 @@ export default {
         const family = p.font_family || "Roboto";
         const weight = p.font_weight || 400;
         const italic = !!p.italic;
-        const color = getColorConst(p.color || (context.isDark ? "white" : "black"));
+        const colorProp = p.color || "theme_auto";
+        const color = getColorConst(colorProp);
         const textAlign = p.text_align || "TOP_LEFT";
         const separator = p.separator || " ~ ";
         const prefix = p.prefix || "";
@@ -471,14 +475,17 @@ export default {
             // If fonts differ and we are left-aligned, split the print to support different sizes
             // We use get_width() to position the value immediately after the label
             if (labelFS !== valueFS && textAlign.includes("LEFT")) {
-                // Ensure we use the correct vertical alignment for both
                 const align = getAlign(textAlign);
-                // Use correct measure() method for ESPHome fonts
                 lines.push(`        {`);
-                lines.push(`          int w, h, xoff, bl;`);
-                lines.push(`          id(${labelFontId})->measure("${labelStr}", &w, &xoff, &bl, &h);`);
+                lines.push(`          int w1, h1, xoff1, bl1;`);
+                lines.push(`          int w2, h2, xoff2, bl2;`);
+                lines.push(`          char value_buf[64];`);
+                lines.push(`          sprintf(value_buf, "${finalValFmt}", ${args});`);
+                lines.push(`          id(${labelFontId})->measure("${labelStr}", &w1, &xoff1, &bl1, &h1);`);
+                lines.push(`          id(${valueFontId})->measure(value_buf, &w2, &xoff2, &bl2, &h2);`);
+                lines.push(`          // Align baselines: yVal + bl1 = yVal2 + bl2 => yVal2 = yVal + bl1 - bl2`);
                 lines.push(`          it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${color}, ${align}, "${labelStr}");`);
-                lines.push(`          it.printf(${xVal} + w, ${yVal}, id(${valueFontId}), ${color}, ${align}, "${finalValFmt}", ${args});`);
+                lines.push(`          it.printf(${xVal} + w1, ${yVal} + (bl1 - bl2), id(${valueFontId}), ${color}, ${align}, "%s", value_buf);`);
                 lines.push(`        }`);
             } else {
                 // Single printf for perfect alignment (same font or non-left align)

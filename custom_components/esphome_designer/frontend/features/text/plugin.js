@@ -55,7 +55,7 @@ export default {
         text: "Text",
         font_size: 20,
         font_family: "Roboto",
-        color: "black",
+        color: "theme_auto",
         font_weight: 400,
         italic: false,
         bpp: 1,
@@ -97,7 +97,7 @@ export default {
         } = context;
 
         const p = w.props || {};
-        const colorProp = p.color || "black";
+        const colorProp = p.color || "theme_auto";
         const fontSize = p.font_size || p.value_font_size || 20;
         const fontId = addFont(p.font_family || "Roboto", p.font_weight || 400, fontSize, p.italic);
         const text = p.text || w.title || "Text";
