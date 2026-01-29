@@ -31,20 +31,19 @@
 #
 # ============================================================================
 
-
 substitutions:
   name: "guiton_esp32_2432s028r"
-  friendly_name: "Guition ESP32-2.8-inch\" 2432S028 R"
+  friendly_name: 'Guition ESP32-2.8-inch" 2432S028 R'
   device_description: "Guition ESP32-2.8-inch resistor touch 240x320"
   project_name: "ESPHomeDesigner_Waveshare_Touch_Round_LCD_1.28"
   project_version: "1.0.0"
   #GPIO pins for the LCD screen
   misopin: GPIO12
   mosipin: GPIO13
-  sclkpin:  GPIO14 x
-  cspin:   GPIO15
-  dcpin:   GPIO2
-  blpin:   GPIO21
+  sclkpin: GPIO14 x
+  cspin: GPIO15
+  dcpin: GPIO2
+  blpin: GPIO21
   # GPIO pins for Touchpanel
   tp_irqpin: GPIO36
   tp_mosipin: GPIO32
@@ -58,8 +57,8 @@ substitutions:
   # GPIO LDR
   ldr_pin: GPIO34
   # GPIO pins for i2c
-  sdapin:  GPIO27
-  sclpin:  GPIO22
+  sdapin: GPIO27
+  sclpin: GPIO22
   # SD Card
   sd_cs_pin: GPIO4
 
@@ -113,7 +112,7 @@ light:
   - platform: monochromatic # Define a monochromatic, dimmable light for the backlight
     output: gpio_backlight_pwm
     name: Display Backlight
-    icon: mdi:lightbulb-on    
+    icon: mdi:lightbulb-on
     id: display_backlight
     restore_mode: ALWAYS_ON
   - platform: rgb # RGB Led on backside
@@ -147,12 +146,12 @@ touchscreen:
       mirror_x: true
     on_touch:
       - lambda: |-
-            ESP_LOGI("cal", "x=%d, y=%d, x_raw=%d, y_raw=%0d",
-              touch.x,
-              touch.y,
-              touch.x_raw,
-              touch.y_raw
-            );
+          ESP_LOGI("cal", "x=%d, y=%d, x_raw=%d, y_raw=%0d",
+            touch.x,
+            touch.y,
+            touch.x_raw,
+            touch.y_raw
+          );
 
 display:
   - id: my_display
@@ -163,7 +162,7 @@ display:
       number: $cspin
       ignore_strapping_warning: true
     dc_pin:
-      number:  $dcpin
+      number: $dcpin
       ignore_strapping_warning: true
     invert_colors: false
     update_interval: never
