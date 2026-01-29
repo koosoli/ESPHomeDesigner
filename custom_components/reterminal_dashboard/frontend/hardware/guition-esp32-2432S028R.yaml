@@ -31,39 +31,75 @@
 #
 # ============================================================================
 
+
+substitutions:
+  name: "guiton_esp32_2432s028r"
+  friendly_name: "Guition ESP32-2.8-inch\" 2432S028 R"
+  device_description: "Guition ESP32-2.8-inch resistor touch 240x320"
+  project_name: "ESPHomeDesigner_Waveshare_Touch_Round_LCD_1.28"
+  project_version: "1.0.0"
+  #GPIO pins for the LCD screen
+  misopin: GPIO12
+  mosipin: GPIO13
+  sclkpin:  GPIO14 x
+  cspin:   GPIO15
+  dcpin:   GPIO2
+  blpin:   GPIO21
+  # GPIO pins for Touchpanel
+  tp_irqpin: GPIO36
+  tp_mosipin: GPIO32
+  tp_misopin: GPIO39
+  tp_clkpin: GPIO25
+  tp_cspin: GPIO33
+  # GPIO pins for RGB LED
+  led_rpin: GPIO4
+  led_gpin: GPIO16
+  led_bpin: GPIO17
+  # GPIO LDR
+  ldr_pin: GPIO34
+  # GPIO pins for i2c
+  sdapin:  GPIO27
+  sclpin:  GPIO22
+  # SD Card
+  sd_cs_pin: GPIO4
+
 esphome:
-  min_version: 2025.12.0
+  friendly_name: $friendly_name
+  name: $name
   project:
-    name: "Guition.ESP32-2432S028R"
-    version: "1.0"
-  platformio_options:
-    board_build.flash_mode: dio
+    name: "${project_name}"
+    version: "${project_version}"
 
 esp32:
   board: esp32dev
   framework:
     type: esp-idf
 
+spi:
+  mosi_pin: $mosipin
+  miso_pin: $misopin
+  clk_pin: $clkpin
+
 i2c:
-  - sda: 27
-    scl: 22
+  sda: $sdapin
+  scl: $sclpin
 
 output:
   - platform: ledc
-    pin: 21
+    pin: $blpin
     frequency: 1000hz
     id: gpio_backlight_pwm
   - id: output_red
     platform: ledc
-    pin: 4
+    pin: $led_rpin
     inverted: true
   - id: output_green
     platform: ledc
-    pin: 16
+    pin: $led_gpin
     inverted: true
   - id: output_blue
     platform: ledc
-    pin: 17
+    pin: $led_bpin
     inverted: true
 
 light:
@@ -84,28 +120,28 @@ light:
 sensor:
   # Board LDR
   - platform: adc
-    pin: GPIO34
+    pin: $ldr_pin
     name: "board_ldr"
     update_interval: 1500ms
 
 spi:
   - id: tft
-    clk_pin: 14
-    mosi_pin: 13
+    clk_pin: $sclkpin
+    mosi_pin: $mosipin
     miso_pin:
-      number: 12
+      number: $misopin
       ignore_strapping_warning: true
   - id: touch
-    clk_pin: 25
-    mosi_pin: 32
-    miso_pin: 39
+    clk_pin: $tp_clkpin
+    mosi_pin: $tp_mosipin
+    miso_pin: $tp_misopin
 
 touchscreen:
   - id: my_touchscreen
     platform: xpt2046
     spi_id: touch
-    cs_pin: 33
-    interrupt_pin: 36
+    cs_pin: $tp_cspin
+    interrupt_pin: $tp_irqpin
     threshold: 400
     calibration:
       x_min: 280
@@ -129,10 +165,10 @@ display:
     model: ILI9341
     spi_id: tft
     cs_pin:
-      number: 15
+      number: $cspin
       ignore_strapping_warning: true
     dc_pin:
-      number:  2
+      number:  $dcpin
       ignore_strapping_warning: true
     invert_colors: false
     update_interval: never
