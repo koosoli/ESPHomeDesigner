@@ -76,9 +76,16 @@ esp32:
     type: esp-idf
 
 spi:
-  mosi_pin: $mosipin
-  miso_pin: $misopin
-  clk_pin: $clkpin
+  - id: tft
+    clk_pin: $sclkpin
+    mosi_pin: $mosipin
+    miso_pin:
+      number: $misopin
+      ignore_strapping_warning: true
+  - id: touch
+    clk_pin: $tp_clkpin
+    mosi_pin: $tp_mosipin
+    miso_pin: $tp_misopin
 
 i2c:
   sda: $sdapin
@@ -123,18 +130,6 @@ sensor:
     pin: $ldr_pin
     name: "board_ldr"
     update_interval: 1500ms
-
-spi:
-  - id: tft
-    clk_pin: $sclkpin
-    mosi_pin: $mosipin
-    miso_pin:
-      number: $misopin
-      ignore_strapping_warning: true
-  - id: touch
-    clk_pin: $tp_clkpin
-    mosi_pin: $tp_mosipin
-    miso_pin: $tp_misopin
 
 touchscreen:
   - id: my_touchscreen
