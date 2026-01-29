@@ -7,7 +7,7 @@
 #         - Display Platform: 2.8-inch color TFT display screen with ILI9341 driver chip
 #         - PSRAM: None
 #         - Touchscreen: XPT2046
-#         - Framework: ESP-IDF with execute_from_psram
+#         - Framework: ESP-IDF
 # Name: Guition ESP32-2.8-inch resistor touch 240x320
 # Resolution: 240x320
 # Shape: rectangle
