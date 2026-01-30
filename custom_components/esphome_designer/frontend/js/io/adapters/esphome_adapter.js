@@ -608,7 +608,7 @@ export class ESPHomeAdapter extends BaseAdapter {
         lines.push("        int ww, wh, wbl, wx;");
         lines.push("        font->measure(word.c_str(), &ww, &wx, &wbl, &wh);");
         lines.push("        int lw = 0, lx;");
-        lines.push("        if (!line.empty()) { font->measure(line.c_str(), &lw, &lx, &wbl, &wh); lw += font->measure(\" \", &ww, &wx, &wbl, &wh); }");
+        lines.push("        if (!line.empty()) { font->measure(line.c_str(), &lw, &lx, &wbl, &wh); int sw, sx, sbl, sh; font->measure(\" \", &sw, &sx, &sbl, &sh); lw += sw; }");
         lines.push("        if (lw + ww > max_w && !line.empty()) {");
         lines.push("          it.print(cx, cy, font, color, align, line.c_str());");
         lines.push("          cy += line_h;");
@@ -628,7 +628,7 @@ export class ESPHomeAdapter extends BaseAdapter {
         lines.push("    int ww, wh, wbl, wx;");
         lines.push("    font->measure(word.c_str(), &ww, &wx, &wbl, &wh);");
         lines.push("    int lw = 0, lx;");
-        lines.push("    if (!line.empty()) { font->measure(line.c_str(), &lw, &lx, &wbl, &wh); lw += font->measure(\" \", &ww, &wx, &wbl, &wh); }");
+        lines.push("    if (!line.empty()) { font->measure(line.c_str(), &lw, &lx, &wbl, &wh); int sw, sx, sbl, sh; font->measure(\" \", &sw, &sx, &sbl, &sh); lw += sw; }");
         lines.push("    if (lw + ww > max_w && !line.empty()) {");
         lines.push("      it.print(cx, cy, font, color, align, line.c_str());");
         lines.push("      cy += line_h;");
