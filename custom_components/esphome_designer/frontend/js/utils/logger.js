@@ -1,4 +1,4 @@
-const DEBUG = localStorage.getItem('esphome-designer-debug') === 'true';
+const DEBUG = (typeof localStorage !== 'undefined' ? localStorage.getItem('esphome-designer-debug') : process.env.DEBUG) === 'true';
 
 export const Logger = {
     log: (...args) => DEBUG && console.log('[ESPHomeDesigner]', ...args),

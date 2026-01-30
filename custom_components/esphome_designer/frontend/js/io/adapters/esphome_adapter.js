@@ -470,7 +470,7 @@ export class ESPHomeAdapter extends BaseAdapter {
                     while (j < lines.length && (lines[j].startsWith("  ") || lines[j].trim() === "")) j++;
                     if (!hasLvgl) {
                         // Fix #122: Use consistent indentation for lambda header
-                        lines.splice(j, 0, "    lambda: |-", ...lambdaContent.map(l => "      " + l));
+                        lines.splice(j, 0, "    lambda: |-", ...lambdaContent.map(l => l.trim() ? "      " + l : ""));
                     }
                     break;
                 }
@@ -492,7 +492,7 @@ export class ESPHomeAdapter extends BaseAdapter {
                 if (hasLvgl) {
                     packageContent = packageContent.replace(placeholderRegex, "");
                 } else {
-                    const replacement = (hasHeader ? "" : indent + "lambda: |-\n") + lambdaContent.map(l => indent + "  " + l).join("\n");
+                    const replacement = (hasHeader ? "" : indent + "lambda: |-\n") + lambdaContent.map(l => l.trim() ? indent + "  " + l : "").join("\n");
                     packageContent = packageContent.replace(placeholderRegex, replacement);
                 }
             }
@@ -522,7 +522,8 @@ export class ESPHomeAdapter extends BaseAdapter {
             return this.mergeYamlSections(sanitizedPackage, extraLines.join('\n'));
         }
 
-        return lines.join('\n');
+        // Fix: Sanitize all lines to remove trailing whitespace (YAML block scalars are sensitive to this)
+        return lines.map(l => l.trimEnd()).join('\n');
     }
 
     async preProcessWidgets(pages) {
@@ -698,9 +699,13 @@ export class ESPHomeAdapter extends BaseAdapter {
             // (e.g. on an e-paper device or if isLvgl=false), we MUST still export 
             // the marker comment so it doesn't get lost on Update.
             if (serializeWidget) {
-                widgetLines.push(serializeWidget(widget));
+                // FORCE SANITIZATION: Strip newlines here in case the import is cached/stale
+                const serialized = serializeWidget(widget);
+                widgetLines.push(serialized ? serialized.replace(/[\r\n]+/g, " ") : "");
             } else {
-                widgetLines.push(`// widget:${widget.type} id:${widget.id} x:${widget.x} y:${widget.y} w:${widget.width} h:${widget.height}`);
+                const safeMeta = `// widget:${widget.type} id:${widget.id} x:${widget.x} y:${widget.y} w:${widget.width} h:${widget.height}`;
+                // Sanitize to valid single line comment
+                widgetLines.push(safeMeta.replace(/[\r\n]+/g, ' '));
             }
         } else {
             widgetLines.push(`// widget:${widget.type} id:${widget.id} status:unsupported`);
@@ -1006,7 +1011,8 @@ export class ESPHomeAdapter extends BaseAdapter {
             result.push(line);
         }
 
-        return result.join('\n');
+        // Fix: Sanitize all lines to remove trailing whitespace
+        return result.map(l => l.trimEnd()).join('\n');
     }
 
     getCondProps(w) {

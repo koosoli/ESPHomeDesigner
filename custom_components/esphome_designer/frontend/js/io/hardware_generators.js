@@ -443,8 +443,6 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
                 lines.push("        - script.execute:");
                 lines.push("            id: change_page_to");
                 lines.push(`            target_page: !lambda 'return id(display_page) > 0 ? id(display_page) - 1 : ${numPages - 1};'`);
-                lines.push("        - script.stop: activity_timer");
-                lines.push("        - script.execute: activity_timer");
             } else {
                 lines.push("        - script.execute:");
                 lines.push("            id: change_page_to");
@@ -472,8 +470,6 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
                 lines.push("        - script.execute:");
                 lines.push("            id: change_page_to");
                 lines.push(`            target_page: !lambda 'return id(display_page) < ${numPages - 1} ? id(display_page) + 1 : 0;'`);
-                lines.push("        - script.stop: activity_timer");
-                lines.push("        - script.execute: activity_timer");
             } else {
                 lines.push("        - script.execute:");
                 lines.push("            id: change_page_to");
@@ -500,10 +496,7 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
             lines.push("    on_press:");
             lines.push("      then:");
             lines.push(`        - component.update: ${displayId}`);
-            if (isCoreInk) {
-                lines.push("        - script.stop: activity_timer");
-                lines.push("        - script.execute: activity_timer");
-            }
+
         }
         if (b.home) {
             lines.push("  - platform: gpio"); // Home / Reload Button
@@ -525,10 +518,7 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
             lines.push("            id: change_page_to");
             lines.push("            target_page: 0");
             lines.push("        - script.execute: manage_run_and_sleep");
-            if (isCoreInk) {
-                lines.push("        - script.stop: activity_timer");
-                lines.push("        - script.execute: activity_timer");
-            }
+
         }
     }
 

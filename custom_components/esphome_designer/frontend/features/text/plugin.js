@@ -14,32 +14,32 @@ const wordWrap = (text, maxWidth, fontSize, fontFamily = "Roboto") => {
     // Estimate average character width based on font
     // Proportional fonts (Roboto, etc.): ~0.5-0.55 of font size
     // Monospace fonts: ~0.6 of font size
-    const isMonospace = fontFamily.toLowerCase().includes("mono") || 
-                        fontFamily.toLowerCase().includes("courier") ||
-                        fontFamily.toLowerCase().includes("consolas");
+    const isMonospace = fontFamily.toLowerCase().includes("mono") ||
+        fontFamily.toLowerCase().includes("courier") ||
+        fontFamily.toLowerCase().includes("consolas");
     const avgCharWidth = fontSize * (isMonospace ? 0.6 : 0.52);
     const maxCharsPerLine = Math.floor(maxWidth / avgCharWidth);
-    
+
     if (maxCharsPerLine <= 0) return [text];
-    
+
     const result = [];
-    
+
     // First split by manual line breaks
     const paragraphs = text.split('\n');
-    
+
     for (const paragraph of paragraphs) {
         if (paragraph.length <= maxCharsPerLine) {
             result.push(paragraph);
             continue;
         }
-        
+
         // Word wrap this paragraph
         const words = paragraph.split(/\s+/);
         let currentLine = "";
-        
+
         for (const word of words) {
             if (!word) continue;
-            
+
             // If word itself is longer than max, we need to break it
             if (word.length > maxCharsPerLine) {
                 // Push current line if any
@@ -53,7 +53,7 @@ const wordWrap = (text, maxWidth, fontSize, fontFamily = "Roboto") => {
                 }
                 continue;
             }
-            
+
             // Check if adding this word exceeds the limit
             const testLine = currentLine ? currentLine + " " + word : word;
             if (testLine.length <= maxCharsPerLine) {
@@ -66,13 +66,13 @@ const wordWrap = (text, maxWidth, fontSize, fontFamily = "Roboto") => {
                 currentLine = word;
             }
         }
-        
+
         // Push remaining text
         if (currentLine) {
             result.push(currentLine.trim());
         }
     }
-    
+
     return result.length > 0 ? result : [""];
 };
 
@@ -97,7 +97,7 @@ const render = (el, widget, { getColorStyle }) => {
     const fontSize = props.font_size || props.value_font_size || 20;
     const fontFamily = props.font_family || "Roboto";
     const text = props.text || widget.title || "Text";
-    
+
     // Apply word-wrap based on widget width
     const wrappedLines = wordWrap(text, widget.width || 200, fontSize, fontFamily);
 
@@ -154,16 +154,16 @@ export default {
         const text = p.text || w.title || "Text";
         const fontSize = p.font_size || 20;
         const fontFamily = p.font_family || "Roboto";
-        
+
         // Convert theme_auto and internal colors to actual colors
         let color = p.color || "black";
         if (color === "theme_auto") {
             color = layout?.darkMode ? "white" : "black";
         }
-        
+
         // Check if text needs word wrapping based on widget width
         const wrappedLines = wordWrap(text, w.width || 200, fontSize, fontFamily);
-        
+
         // If multiple lines, use multiline type with \n delimiter
         if (wrappedLines.length > 1) {
             return {
@@ -177,7 +177,7 @@ export default {
                 font: fontFamily?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf"
             };
         }
-        
+
         // Single line - use draw_text
         return {
             type: "draw_text",
@@ -195,13 +195,13 @@ export default {
         const text = p.text || w.title || "Text";
         const fontSize = p.font_size || 20;
         const lineSpacing = 5; // Default spacing between lines
-        
+
         // Convert theme_auto and internal colors to actual colors
         let color = p.color || "black";
         if (color === "theme_auto") {
             color = layout?.darkMode ? "white" : "black";
         }
-        
+
         // OEPL supports max_width for automatic text wrapping
         // and \n characters for explicit line breaks
         const result = {
@@ -215,13 +215,13 @@ export default {
             align: (p.text_align || "TOP_LEFT").toLowerCase().replace("top_", "").replace("bottom_", "").replace("_", ""),
             anchor: "lt" // Start with left-top for simplicity
         };
-        
+
         // Add max_width for automatic text wrapping when widget has width
         if (w.width && w.width > 0) {
             result.max_width = Math.round(w.width);
             result.spacing = lineSpacing; // Line spacing for wrapped text
         }
-        
+
         return result;
     },
     export: (w, context) => {
@@ -241,7 +241,9 @@ export default {
         const isGrayOnEpaper = isEpaper && Utils && Utils.isGrayColor && Utils.isGrayColor(colorProp);
         const color = isGrayOnEpaper ? "COLOR_BLACK" : getColorConst(colorProp);
 
-        lines.push(`        // widget:text id:${w.id} type:text x:${w.x} y:${w.y} w:${w.width} h:${w.height} text:"${text.substring(0, 50)}${text.length > 50 ? '...' : ''}" ${getCondProps(w)}`);
+        // Sanitize text for comment (replace newlines to prevent YAML breakage)
+        const safeText = text.replace(/[\r\n]+/g, '\\n');
+        lines.push(`        // widget:text id:${w.id} type:text x:${w.x} y:${w.y} w:${w.width} h:${w.height} text:"${safeText.substring(0, 50)}${safeText.length > 50 ? '...' : ''}" ${getCondProps(w)}`);
 
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);

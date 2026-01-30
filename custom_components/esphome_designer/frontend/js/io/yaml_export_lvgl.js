@@ -259,7 +259,7 @@ export function serializeWidget(w) {
         });
     }
 
-    return parts.join(" ");
+    return parts.join(" ").replace(/[\r\n]+/g, " ");
 }
 
 /**

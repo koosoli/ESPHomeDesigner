@@ -483,7 +483,7 @@ export default {
         lines.push(`          int eventY = gridY + (r+1)*rowH + 10;`);
         lines.push(`          int max_y = y + h - 5;`);
         lines.push(`          const int event_limit = ${p.event_limit || 4};`);
-        lines.push(`          `);
+        lines.push(``);
         lines.push(`          // Debug and parse JSON`);
         // Use entity-based sensor ID to match onExportTextSensors
         const sensorSafeId = `calendar_data_${entityId.replace(/[^a-zA-Z0-9_]/g, "_")}`;
@@ -500,7 +500,7 @@ export default {
         lines.push(`                 } else if (root.is<JsonArray>()) {`);
         lines.push(`                     days = root;`);
         lines.push(`                 }`);
-        lines.push(`                 `);
+        lines.push(``);
         lines.push(`                 if (!days.isNull() && days.size() > 0) {`);
         lines.push(`                     int event_count = 0;`);
         lines.push(`                     // Separator line`);
@@ -517,7 +517,7 @@ export default {
         lines.push(``);
         lines.push(`                             // Draw Day Number`);
         lines.push(`                             it.printf(x + 10, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
-        lines.push(`                             `);
+        lines.push(``);
         lines.push(`                             // Draw Summary`);
         lines.push(`                             it.printf(x + 50, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_LEFT, "%.25s", summary);`);
         lines.push(``);
