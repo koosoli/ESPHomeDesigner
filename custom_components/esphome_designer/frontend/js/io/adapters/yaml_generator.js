@@ -67,7 +67,9 @@ export class YamlGenerator {
         lines.push(`# Refresh Interval: ${layout.refreshInterval || 600}`);
         const isLcd = !!(profile.features && (profile.features.lcd || profile.features.oled));
         let strategy;
-        if (isLcd) {
+        if (layout.manualRefreshOnly) {
+            strategy = "Manual Refresh Only";
+        } else if (isLcd) {
             const lcdStrategy = layout.lcdEcoStrategy || 'backlight_off';
             const map = { always_on: 'Always On', backlight_off: 'Backlight Off Schedule', halt_updates: 'Halt Updates', deep_sleep: 'Deep Sleep' };
             strategy = map[lcdStrategy] || lcdStrategy;
@@ -360,8 +362,15 @@ export class YamlGenerator {
         lines.push("          id(page_refresh_current_s) = interval;");
 
         lines.push(`      - component.update: ${displayId}`);
-        lines.push("      - delay: !lambda 'return id(page_refresh_current_s) * 1000;'");
-        lines.push("      - script.execute: manage_run_and_sleep");
+
+        // Manual Refresh Only: Do NOT loop. Stop after initial update.
+        const isManualRefresh = !!payload.manualRefreshOnly;
+        if (!isManualRefresh) {
+            lines.push("      - delay: !lambda 'return id(page_refresh_current_s) * 1000;'");
+            lines.push("      - script.execute: manage_run_and_sleep");
+        } else {
+            lines.push("      - logger.log: \"Manual Refresh Only mode: stopping automatic refresh loop.\"");
+        }
 
         // Auto Cycle Timer
         if (autoCycleEnabled) {
