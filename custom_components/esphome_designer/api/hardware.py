@@ -136,8 +136,6 @@ class ReTerminalHardwareUploadView(DesignerBaseView):
             filename = "".join(c for c in filename if c.isalnum() or c in "._-").strip()
             
             hardware_dir = Path(__file__).parent.parent / "frontend" / "hardware"
-            hardware_dir.mkdir(parents=True, exist_ok=True)
-            
             dest_path = hardware_dir / filename
             content = file_field.file.read()
             
@@ -148,6 +146,7 @@ class ReTerminalHardwareUploadView(DesignerBaseView):
                  }, status_code=HTTPStatus.BAD_REQUEST, request=request)
 
             def _write_file() -> None:
+                hardware_dir.mkdir(parents=True, exist_ok=True)
                 with open(dest_path, "wb") as f:
                     f.write(content)
 
