@@ -128,6 +128,9 @@ const render = (el, widget, { getColorStyle }) => {
     body.style.fontFamily = fontFamily;
     body.style.fontWeight = fontWeight;
     body.style.fontStyle = fontStyle;
+    body.style.wordWrap = "break-word";
+    body.style.overflowWrap = "break-word";
+    body.style.maxWidth = "100%";
 
     if ((format === "label_value" || format === "label_value_no_unit") && effectiveTitle) {
         body.style.display = "flex";
@@ -314,7 +317,7 @@ export default {
 
         const fontSize = p.value_font_size || 20;
         const lineSpacing = 5;
-        
+
         const result = {
             type: "text",
             value: text,
@@ -326,13 +329,13 @@ export default {
             align: (p.text_align || "TOP_LEFT").toLowerCase().replace("top_", "").replace("bottom_", "").replace("_", ""),
             anchor: "lt"
         };
-        
+
         // Add max_width for automatic text wrapping when widget has width
         if (w.width && w.width > 0) {
             result.max_width = Math.round(w.width);
             result.spacing = lineSpacing;
         }
-        
+
         return result;
     },
     collectRequirements: (w, { addFont }) => {
@@ -503,7 +506,18 @@ export default {
         if (format === "label_only") {
             lines.push(`        it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${color}, ${labelAlign}, "${title}");`);
         } else if (format === "value_only" || format === "value_only_no_unit" || !title) {
-            lines.push(`        it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${color}, ${valueAlign}, "${finalValFmt}", ${args});`);
+            // Use runtime word-wrap if widget has meaningful width
+            const useWrapping = w.width && w.width > 50;
+            if (useWrapping) {
+                const lineHeight = valueFS + 4;
+                lines.push(`        {`);
+                lines.push(`          char wrap_buf[256];`);
+                lines.push(`          sprintf(wrap_buf, "${finalValFmt}", ${args});`);
+                lines.push(`          print_wrapped_text(${xVal}, ${yVal}, ${w.width}, ${lineHeight}, id(${valueFontId}), ${color}, ${valueAlign}, wrap_buf);`);
+                lines.push(`        }`);
+            } else {
+                lines.push(`        it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${color}, ${valueAlign}, "${finalValFmt}", ${args});`);
+            }
         } else if (format === "label_value" || format === "label_value_no_unit") {
             // Horizontal layout: "Label: Value"
             const labelStr = `${title}${title.endsWith(":") ? "" : ":"} `;
