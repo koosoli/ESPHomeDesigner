@@ -1,6 +1,18 @@
 # ESPHome Designer
 
-**A visual drag-and-drop editor for ESPHome displays (E-Ink, OLED, LCD, Touch), running as a Home Assistant integration or a standalone web app.**
+**A visual drag-and-drop editor for smart displays, supporting ESPHome, OpenEpaperLink (OEPL), and OpenDisplay - running as a Home Assistant integration or a standalone web app.**
+
+<div align="center">
+  
+### 🖥️ Supported Platforms
+  
+| Platform | Output Format | Use Case |
+|----------|---------------|----------|
+| **ESPHome** | C++ Lambda / LVGL YAML | ESP32 devices with direct display control |
+| **OpenEpaperLink** | Home Assistant Service Call (JSON) | Wireless e-paper price tags (AP-based) |
+| **OpenDisplay** | JSON Actions | HTTP-driven e-paper displays |
+
+</div>
 
 <div align="center">
   <a href="https://github.com/sponsors/koosoli">
@@ -45,7 +57,10 @@ It enables you to build premium, touch-interactive dashboards for various ESP32-
 ## What Does It Do?
 
 - **Visual drag-and-drop editor** - Design layouts in your browser, see your actual HA entities update live on the canvas
-- **Multi-Platform Support** - Native ESPHome C++ generation, plus experimental support for **OpenEpaperLink** and **Open Display**.
+- **Multi-Platform Export** - One design, multiple outputs:
+  - **ESPHome**: Native C++ lambda code or LVGL YAML for ESP32 devices with direct display control
+  - **OpenEpaperLink (OEPL)**: JSON service calls for wireless e-paper tags via the OEPL Access Point
+  - **OpenDisplay (ODP)**: JSON action payloads for HTTP-driven displays
 - **Multi-Page "World View"** - Manage all your project pages on a single unified stage with artboard-style rendering.
 - **Plugin-Based Architecture** - 55+ independent widget modules for everything from sensors and graphs to polygons and complex patterns.
 - **Round-trip editing** - Import existing ESPHome configs, OEPL YAML arrays, or ODP JSON payloads back into the editor.
@@ -179,6 +194,15 @@ This tool includes experimental support for **LVGL (Light and Versatile Graphics
 
 For stable results, stick to **Native Mode** (standard widgets without LVGL prefix).
 
+## OpenEpaperLink & OpenDisplay Support
+
+Design once, export to wireless e-paper displays:
+
+- **[OpenEpaperLink](https://github.com/jjwbruijn/OpenEPaperLink)** - Select "OpenEpaperLink" mode, enter your tag's entity ID, copy the JSON for use in HA service calls
+- **[OpenDisplay](https://github.com/open-display/open-display)** - Select "OpenDisplay" mode, copy the JSON actions, send via HTTP POST
+
+Most widgets (text, shapes, images, icons, QR codes) work on all platforms. Graphs, touch areas, and LVGL are ESPHome-only.
+
 ## Features
 
 - **Hierarchy & Layer Management** - New panel to manage widget z-index, visibility, and locking with a drag-and-drop interface
@@ -204,7 +228,9 @@ For stable results, stick to **Native Mode** (standard widgets without LVGL pref
 - **Round-Trip Editing** - Import existing ESPHome code back into the editor (now supports LVGL widgets!)
   <p align="center"><img src="screenshots/yaml_parsing.gif" width="700" alt="YAML Round-Trip Import"></p>
 - **Modular Plugin Architecture (v0.9)** - A complete rewrite featuring a specialized plugin system with 55+ independent widget modules, making the core significantly faster and more maintainable.
-- **Multi-Platform Canvas** - Design for ESPHome, OpenEpaperLink, or Open Display with platform-specific export adapters.
+- **Multi-Platform Canvas** - Design once, export to ESPHome (C++/LVGL), OpenEpaperLink (JSON service calls), or OpenDisplay (JSON actions) with platform-specific adapters.
+- **OpenEpaperLink Integration** - Full support for OEPL wireless e-paper tags with automatic text wrapping, templates, and proper JSON formatting.
+- **OpenDisplay Integration** - Generate valid JSON action payloads including `multiline` support for text with line breaks.
 - **High-Fidelity "World View" Rendering** - See your entire multi-page project at once on a unified stage with premium drop shadows.
 - **Visual Hierarchy Navigation** - A dedicated tree-view panel for managing complex layers, nested groups, and pixel-perfect selection.
 - **Precision Page Navigation** - Instant focusing and centering of artboards with pixel-perfect accuracy.
