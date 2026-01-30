@@ -175,6 +175,7 @@ export const DEVICE_PROFILES = {
   // WAVESHARE DEVICES
   // ========================================================================
   esp32_s3_photopainter: {
+    id: "esp32_s3_photopainter",
     name: "Waveshare PhotoPainter (6-Color)",
     displayType: "color",
     displayModel: "7.30in-f",

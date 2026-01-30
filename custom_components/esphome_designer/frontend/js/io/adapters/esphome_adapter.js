@@ -570,11 +570,23 @@ export class ESPHomeAdapter extends BaseAdapter {
             lines.push("const auto COLOR_WHITE = Color(255, 255, 255);");
             lines.push("const auto COLOR_BLACK = Color(0, 0, 0);");
         }
-        lines.push("const auto COLOR_RED = Color(255, 0, 0);");
-        lines.push("const auto COLOR_GREEN = Color(0, 255, 0);");
-        lines.push("const auto COLOR_BLUE = Color(0, 0, 255);");
-        lines.push("const auto COLOR_YELLOW = Color(255, 255, 0);");
-        lines.push("const auto COLOR_ORANGE = Color(255, 165, 0);");
+
+        // Special Color Mapping for Waveshare PhotoPainter (6-color palette quirk)
+        // Note: Orange is NOT supported on the 6-color model. Mapped to Red as fallback.
+        if (profile.id === 'esp32_s3_photopainter' || (profile.name && profile.name.includes("PhotoPainter"))) {
+            lines.push("const auto COLOR_RED = Color(0, 0, 255);");
+            lines.push("const auto COLOR_GREEN = Color(255, 128, 0);");
+            lines.push("const auto COLOR_BLUE = Color(255, 255, 0);");
+            lines.push("const auto COLOR_YELLOW = Color(0, 255, 0);");
+            lines.push("const auto COLOR_ORANGE = Color(0, 0, 255); // Fallback to Red");
+        } else {
+            lines.push("const auto COLOR_RED = Color(255, 0, 0);");
+            lines.push("const auto COLOR_GREEN = Color(0, 255, 0);");
+            lines.push("const auto COLOR_BLUE = Color(0, 0, 255);");
+            lines.push("const auto COLOR_YELLOW = Color(255, 255, 0);");
+            lines.push("const auto COLOR_ORANGE = Color(255, 165, 0);");
+        }
+
         lines.push("auto color_off = COLOR_WHITE;");
         lines.push("auto color_on = COLOR_BLACK;");
         lines.push("");

@@ -5,8 +5,11 @@
 import { DEVICE_PROFILES } from '../io/devices.js';
 
 export function getDeviceModel() {
-    // Default to E1001 if not set
-    // TODO: Move currentDeviceModel to a proper state store
+    // Check AppState first (Source of Truth)
+    if (window.AppState && window.AppState.deviceModel) {
+        return window.AppState.deviceModel;
+    }
+    // Fallback to global or default
     return (window.currentDeviceModel || "reterminal_e1001");
 }
 
@@ -78,7 +81,7 @@ export function getAvailableColors() {
         return ["theme_auto", "black", "white", "gray", "red", "green", "blue", "yellow"];
     }
     if (model === "esp32_s3_photopainter") {
-        return ["theme_auto", "black", "white", "gray", "red", "green", "blue", "yellow", "orange"];
+        return ["theme_auto", "black", "white", "gray", "red", "green", "blue", "yellow"];
     }
     // Default E1001 and TRMNL (True Monochrome)
     return ["theme_auto", "black", "white", "gray"];

@@ -110,6 +110,21 @@ export class YamlGenerator {
 
         // Generic output logic (commented out by default)
         if (!isCoreInk) {
+            // Special handling for Waveshare PhotoPainter (AXP2101 Manual Config)
+            if (profile.id === 'esp32_s3_photopainter') {
+                lines.push("#       - lambda: |-");
+                lines.push("#           auto write_reg = [](uint8_t reg, uint8_t val) {");
+                lines.push("#             uint8_t data[2] = {reg, val};");
+                lines.push("#             id(bus_a)->write(0x34, data, 2);");
+                lines.push("#           };");
+                lines.push("#           write_reg(0x94, 0x1C); // ALDO3 3.3V");
+                lines.push("#           write_reg(0x95, 0x1C); // ALDO4 3.3V");
+                lines.push("#           write_reg(0x90, 0x1F); // Enable rails");
+                lines.push("#           ESP_LOGI(\"power\", \"AXP2101 Configured\");");
+                lines.push("#       - delay: 200ms");
+                lines.push("#       - component.update: epaper_display");
+            }
+
             if (profile.battery && profile.pins && profile.pins.batteryEnable) {
                 lines.push("#       - output.turn_on: bsp_battery_enable");
             }

@@ -662,6 +662,7 @@ export class PropertiesPanel {
             }, widget);
             this.addLabeledInput("Days", "number", props.days || 5, (v) => updateProp("days", parseInt(v, 10)));
             this.addSelect("Layout", props.layout || "horizontal", ["horizontal", "vertical"], (v) => updateProp("layout", v));
+            this.addLabeledInput("Precision", "number", props.precision !== undefined ? props.precision : 1, (v) => updateProp("precision", parseInt(v, 10)));
             this.endSection();
 
             this.createSection("Appearance", true);
@@ -1271,6 +1272,7 @@ export class PropertiesPanel {
             this.addLabeledInput("Day Font Size", "number", props.day_font_size || 14, (v) => updateProp("day_font_size", parseInt(v, 10)));
             this.addLabeledInput("Temp Font Size", "number", props.temp_font_size || 14, (v) => updateProp("temp_font_size", parseInt(v, 10)));
             this.addLabeledInput("Icon Size", "number", props.icon_size || 24, (v) => updateProp("icon_size", parseInt(v, 10)));
+            this.addLabeledInput("Precision", "number", props.precision !== undefined ? props.precision : 1, (v) => updateProp("precision", parseInt(v, 10)));
             const fontOptions2 = ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand", "Custom..."];
             const currentFont2 = props.font_family || "Roboto";
             const isCustom2 = !fontOptions2.slice(0, -1).includes(currentFont2);
