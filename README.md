@@ -95,6 +95,18 @@ You can use the designer without installing anything!
 3. Restart Home Assistant
 4. Add the integration via **Settings** → **Devices & Services**
 
+### Local Development Server
+
+Run the editor locally without Home Assistant:
+
+```bash
+cd custom_components/esphome_designer/frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173` in your browser. Connect to Home Assistant by entering your HA URL and a Long-Lived Access Token in Editor Settings.
+
 ### 3. Prepare Your ESPHome Device
 
 **Important:** Copy the Material Design Icons font file first!
