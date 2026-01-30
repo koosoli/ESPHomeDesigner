@@ -32,7 +32,7 @@
   <header class="main-header" role="banner">
     <div class="main-header-title">
       <img src="assets/logo_header.png" alt="ESPHome Designer" class="logo-image">
-      <span><small style="opacity: 0.5; margin-left: 8px;">Pre_0.9b296</small> <span id="currentLayoutDevice"
+      <span><small style="opacity: 0.5; margin-left: 8px;">Pre_0.9b303</small> <span id="currentLayoutDevice"
           style="margin-left:8px; color:var(--accent);"></span></span>
     </div>
     <div class="main-header-actions desktop-only">
@@ -410,8 +410,12 @@
               style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px; margin-bottom: 8px;">
               <div class="prop-label" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>Hardware Profile</span>
-                <button id="importHardwareBtn" class="btn btn-secondary btn-xs"
-                  style="font-size: 10px; padding: 2px 6px;">Import Recipe</button>
+                <div style="display: flex; gap: 4px;">
+                  <button id="reloadHardwareBtn" class="btn btn-secondary btn-xs"
+                    style="font-size: 10px; padding: 2px 6px;" title="Reload hardware profiles from server">⟳ Reload</button>
+                  <button id="importHardwareBtn" class="btn btn-secondary btn-xs"
+                    style="font-size: 10px; padding: 2px 6px;">Import Recipe</button>
+                </div>
               </div>
               <select id="deviceModel" class="prop-input">
                 <option value="custom">Custom Profile...</option>
@@ -488,13 +492,90 @@
                     </select>
                   </div>
                 </div>
+                <div style="display:flex; gap:16px; margin-top:8px;">
+                  <label style="display:flex; align-items:center; gap:6px; font-size:10px; cursor:pointer;">
+                    <input id="customPsram" type="checkbox" checked />
+                    <span>PSRAM</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:6px; font-size:10px; cursor:pointer;">
+                    <input id="customAntiburn" type="checkbox" />
+                    <span>Anti-burn (LCD)</span>
+                  </label>
+                </div>
               </div>
+
+              <!-- GPIO Pin Datalists (allows dropdown + free text) -->
+              <datalist id="gpio-pins-esp32">
+                <option value="">— None —</option>
+                <option value="GPIO0">GPIO0 (boot)</option>
+                <option value="GPIO1">GPIO1 (TX)</option>
+                <option value="GPIO2">GPIO2</option>
+                <option value="GPIO3">GPIO3 (RX)</option>
+                <option value="GPIO4">GPIO4</option>
+                <option value="GPIO5">GPIO5</option>
+                <option value="GPIO12">GPIO12</option>
+                <option value="GPIO13">GPIO13</option>
+                <option value="GPIO14">GPIO14</option>
+                <option value="GPIO15">GPIO15</option>
+                <option value="GPIO16">GPIO16</option>
+                <option value="GPIO17">GPIO17</option>
+                <option value="GPIO18">GPIO18 (VSPI CLK)</option>
+                <option value="GPIO19">GPIO19 (VSPI MISO)</option>
+                <option value="GPIO21">GPIO21 (I2C SDA)</option>
+                <option value="GPIO22">GPIO22 (I2C SCL)</option>
+                <option value="GPIO23">GPIO23 (VSPI MOSI)</option>
+                <option value="GPIO25">GPIO25</option>
+                <option value="GPIO26">GPIO26</option>
+                <option value="GPIO27">GPIO27</option>
+                <option value="GPIO32">GPIO32</option>
+                <option value="GPIO33">GPIO33</option>
+                <option value="GPIO34">GPIO34 (input only)</option>
+                <option value="GPIO35">GPIO35 (input only)</option>
+                <option value="GPIO36">GPIO36 (input only)</option>
+                <option value="GPIO39">GPIO39 (input only)</option>
+              </datalist>
+              <datalist id="gpio-pins-esp32s3">
+                <option value="">— None —</option>
+                <option value="GPIO0">GPIO0</option>
+                <option value="GPIO1">GPIO1</option>
+                <option value="GPIO2">GPIO2</option>
+                <option value="GPIO3">GPIO3</option>
+                <option value="GPIO4">GPIO4</option>
+                <option value="GPIO5">GPIO5</option>
+                <option value="GPIO6">GPIO6</option>
+                <option value="GPIO7">GPIO7</option>
+                <option value="GPIO8">GPIO8</option>
+                <option value="GPIO9">GPIO9</option>
+                <option value="GPIO10">GPIO10</option>
+                <option value="GPIO11">GPIO11</option>
+                <option value="GPIO12">GPIO12</option>
+                <option value="GPIO13">GPIO13</option>
+                <option value="GPIO14">GPIO14</option>
+                <option value="GPIO15">GPIO15</option>
+                <option value="GPIO16">GPIO16</option>
+                <option value="GPIO17">GPIO17</option>
+                <option value="GPIO18">GPIO18</option>
+                <option value="GPIO19">GPIO19</option>
+                <option value="GPIO20">GPIO20</option>
+                <option value="GPIO21">GPIO21</option>
+                <option value="GPIO38">GPIO38</option>
+                <option value="GPIO39">GPIO39</option>
+                <option value="GPIO40">GPIO40</option>
+                <option value="GPIO41">GPIO41</option>
+                <option value="GPIO42">GPIO42</option>
+                <option value="GPIO45">GPIO45</option>
+                <option value="GPIO46">GPIO46</option>
+                <option value="GPIO47">GPIO47</option>
+                <option value="GPIO48">GPIO48</option>
+              </datalist>
 
               <div class="hardware-group" style="margin-top:12px;">
                 <div class="prop-label" style="font-size:10px; margin-bottom:4px;">Display (SPI)</div>
                 <select id="customDisplayDriver" class="prop-input-sm" style="margin-bottom:8px;">
                   <option value="st7789v">ST7789 (LCD)</option>
                   <option value="ili9341">ILI9341 (LCD)</option>
+                  <option value="ili9342">ILI9342 (LCD)</option>
+                  <option value="ili9488">ILI9488 (LCD)</option>
                   <option value="waveshare_epaper">Waveshare E-Paper</option>
                   <option value="epaper_spi">Generic SPI E-Paper</option>
                   <option value="custom">Other (Custom YAML)</option>
@@ -502,27 +583,74 @@
                 <div id="spiPinsGrid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
                   <div class="field">
                     <div class="prop-label" style="font-size:9px;">CS</div>
-                    <input id="pin_cs" class="prop-input-sm" type="text" placeholder="GPIO10" />
+                    <input id="pin_cs" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="GPIO10" />
                   </div>
                   <div class="field">
                     <div class="prop-label" style="font-size:9px;">DC</div>
-                    <input id="pin_dc" class="prop-input-sm" type="text" placeholder="GPIO11" />
+                    <input id="pin_dc" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="GPIO11" />
                   </div>
                   <div class="field">
-                    <div class="prop-label" style="font-size:9px;">RST</div>
-                    <input id="pin_rst" class="prop-input-sm" type="text" placeholder="GPIO12" />
+                    <div class="prop-label" style="font-size:9px;">RST <span style="opacity:0.5">(opt)</span></div>
+                    <div style="display:flex; gap:2px;">
+                      <input id="pin_rst" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="(optional)" style="flex:1;" />
+                      <button type="button" class="clear-pin-btn" data-target="pin_rst" title="Clear" style="padding:0 4px; font-size:10px; background:#eee; border:1px solid #ccc; border-radius:3px; cursor:pointer;">×</button>
+                    </div>
                   </div>
                   <div class="field">
-                    <div class="prop-label" style="font-size:9px;">BUSY</div>
-                    <input id="pin_busy" class="prop-input-sm" type="text" />
+                    <div class="prop-label" style="font-size:9px;">BUSY <span style="opacity:0.5">(opt)</span></div>
+                    <div style="display:flex; gap:2px;">
+                      <input id="pin_busy" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="(optional)" style="flex:1;" />
+                      <button type="button" class="clear-pin-btn" data-target="pin_busy" title="Clear" style="padding:0 4px; font-size:10px; background:#eee; border:1px solid #ccc; border-radius:3px; cursor:pointer;">×</button>
+                    </div>
                   </div>
                   <div class="field">
                     <div class="prop-label" style="font-size:9px;">CLK</div>
-                    <input id="pin_clk" class="prop-input-sm" type="text" />
+                    <input id="pin_clk" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="GPIO18" />
                   </div>
                   <div class="field">
                     <div class="prop-label" style="font-size:9px;">MOSI</div>
-                    <input id="pin_mosi" class="prop-input-sm" type="text" />
+                    <input id="pin_mosi" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="GPIO23" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Backlight & I2C Pins -->
+              <div class="hardware-group" style="margin-top:12px;">
+                <div class="prop-label" style="font-size:10px; margin-bottom:4px;">Backlight & I2C</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
+                  <div class="field">
+                    <div class="prop-label" style="font-size:9px;">Backlight</div>
+                    <input id="pin_backlight" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="GPIO45" />
+                  </div>
+                  <div class="field">
+                    <div class="prop-label" style="font-size:9px;">I2C SDA</div>
+                    <input id="pin_sda" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="GPIO21" />
+                  </div>
+                  <div class="field">
+                    <div class="prop-label" style="font-size:9px;">I2C SCL</div>
+                    <input id="pin_scl" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="GPIO22" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Touch Controller -->
+              <div class="hardware-group" style="margin-top:12px;">
+                <div class="prop-label" style="font-size:10px; margin-bottom:4px;">Touch Controller</div>
+                <select id="customTouchTech" class="prop-input-sm" style="margin-bottom:8px;">
+                  <option value="none">None</option>
+                  <option value="gt911">GT911 (I2C)</option>
+                  <option value="cst816">CST816 (I2C)</option>
+                  <option value="ft5x06">FT5x06 (I2C)</option>
+                  <option value="xpt2046">XPT2046 (SPI)</option>
+                </select>
+                <div id="touchPinsGrid" style="display:none; grid-template-columns:1fr 1fr; gap:6px;">
+                  <div class="field">
+                    <div class="prop-label" style="font-size:9px;">Touch INT</div>
+                    <input id="pin_touch_int" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="GPIO4" />
+                  </div>
+                  <div class="field">
+                    <div class="prop-label" style="font-size:9px;">Touch RST</div>
+                    <input id="pin_touch_rst" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="GPIO5" />
                   </div>
                 </div>
               </div>

@@ -1,7 +1,6 @@
 import { BaseAdapter } from './base_adapter.js';
 import { Logger } from '../../utils/logger.js';
 import { registry as PluginRegistry } from '../../core/plugin_registry.js';
-import { serializeWidget } from '../yaml_export_lvgl.js';
 
 /**
  * OpenDisplay-specific adapter for generating ODP v1 JSON payloads.
@@ -31,7 +30,7 @@ export class OpenDisplayAdapter extends BaseAdapter {
             return "{}";
         }
 
-        const actionLines = [];
+        const actions = [];
 
         const ph = layout.protocolHardware || {};
         const width = (layout.orientation === 'portrait') ? Math.min(ph.width || 800, ph.height || 480) : Math.max(ph.width || 800, ph.height || 480);
@@ -40,56 +39,35 @@ export class OpenDisplayAdapter extends BaseAdapter {
         const background = (layout.darkMode ? "black" : "white");
 
         // Initial Background Clear action
-        actionLines.push('    {');
-        actionLines.push('      "type": "draw_rect",');
-        actionLines.push('      "x": 0,');
-        actionLines.push('      "y": 0,');
-        actionLines.push(`      "w": ${width},`);
-        actionLines.push(`      "h": ${height},`);
-        actionLines.push(`      "fill": "${background}"`);
-        actionLines.push('    }');
+        actions.push({
+            type: "draw_rect",
+            x: 0,
+            y: 0,
+            w: width,
+            h: height,
+            fill: background
+        });
 
         page.widgets.forEach(widget => {
             if (widget.hidden || widget.type === 'group') return;
 
             const element = this.generateWidget(widget, { layout, page });
             if (element) {
-                const marker = serializeWidget(widget).replace(/^#/, '//');
-                actionLines.push(`    ${marker}`);
+                // JSON does not support comments, so we skip adding widget markers
                 const elements = Array.isArray(element) ? element : [element];
                 elements.forEach(el => {
-                    const elJson = JSON.stringify(el, null, 2);
-                    const indented = elJson.split('\n').map(l => '    ' + l).join('\n');
-                    actionLines.push(indented);
+                    actions.push(el);
                 });
             }
         });
 
-        const lines = [
-            '{',
-            '  "version": 1,',
-            '  "actions": ['
-        ];
+        // Build proper JSON object - no comments allowed in JSON
+        const output = {
+            version: 1,
+            actions: actions
+        };
 
-        // Process segments with commas
-        for (let i = 0; i < actionLines.length; i++) {
-            let line = actionLines[i];
-            const isLast = i === actionLines.length - 1;
-            const nextIsComment = i + 1 < actionLines.length && actionLines[i + 1].trim().startsWith('//');
-            const nextIsJson = i + 1 < actionLines.length && !actionLines[i + 1].trim().startsWith('//');
-
-            if (!line.trim().startsWith('//')) {
-                if (nextIsJson || nextIsComment) {
-                    line += ",";
-                }
-            }
-            lines.push(line);
-        }
-
-        lines.push('  ]');
-        lines.push('}');
-
-        return lines.join('\n');
+        return JSON.stringify(output, null, 2);
     }
 
     /**

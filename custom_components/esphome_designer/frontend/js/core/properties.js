@@ -10,7 +10,7 @@ import { openIconPickerForWidget } from '../ui/icon_picker.js';
 
 
 const CALENDAR_HELPER_SCRIPT = `# Dictionary to map calendar keys to their corresponding names
-# One word calendars don't need to be added calendar.jobs would map to Jobs by default without adding it here
+# One word calandars don't need to be added calendar.jobs would map to Jobs by default without adding it here
 # calendar.hello_world should be added on the other hand
 CALENDAR_NAMES = {"calendar.x": "X", "calendar.Y": "Y"}
 # Day names (which are displayed in the calendar event list) can be translated here if required
@@ -21,7 +21,7 @@ MAX_ENTRIES = 8
 def convert_calendar_format(data, today):
     # Initialize a dictionary to store events grouped by date
     events_by_date = {}
-    entry_count = 0
+    entrie_count = 0
     
     # Variable to store the end time of the closest event that will end
     closest_end_time = None
@@ -50,7 +50,7 @@ def convert_calendar_format(data, today):
             # Parse location_name and location_address
             if 'location' in event:
                 # Split the 'location' string into lines based on the newline character
-                location_lines = event['location'].split('\\n')
+                location_lines = event['location'].split('\\\\n')
                 if len(location_lines) >= 2:
                     # If there are at least two lines, consider the first line as 'location_name' and the second line as 'location_address'
                     event['location_name'] = location_lines[0]
@@ -79,7 +79,7 @@ def convert_calendar_format(data, today):
         all_day_events = []
         other_events = []
         for event in events_by_date[date]:
-            if entry_count == MAX_ENTRIES:
+            if entrie_count == MAX_ENTRIES:
                 break
             
             # Check if the event lasts for the whole day
@@ -90,7 +90,7 @@ def convert_calendar_format(data, today):
             else:
                 other_events.append(event)
                 
-            entry_count = entry_count + 1
+            entrie_count = entrie_count + 1
         
         if other_events and date == today:
             closest_end_time = sorted(other_events, key=lambda item:dt_util.parse_datetime(item['end']), reverse=False)[0]["end"]
@@ -552,7 +552,8 @@ export class PropertiesPanel {
 
         if (type === "text" || type === "label") {
             this.createSection("Content", true);
-            this.addLabeledInput("Text", "text", props.text || "", (v) => updateProp("text", v));
+            this.addLabeledInput("Text", "textarea", props.text || "", (v) => updateProp("text", v));
+            this.addHint("Use Enter for line breaks. Line breaks will be preserved in YAML output.");
             this.endSection();
 
             this.createSection("Appearance", true);
@@ -628,8 +629,7 @@ export class PropertiesPanel {
                 this.addLabeledInput("Date Font", "number", props.date_font_size || 16, (v) => updateProp("date_font_size", parseInt(v, 10)));
             });
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
-            const alignOptions = ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"];
-            this.addSelect("Align", props.text_align || "CENTER", alignOptions, (v) => updateProp("text_align", v));
+            this.addSelect("Align", props.text_align || "CENTER", ["LEFT", "CENTER", "RIGHT"], (v) => updateProp("text_align", v));
             this.endSection();
         }
         else if (type === "image" || type === "online_image") {
@@ -666,7 +666,7 @@ export class PropertiesPanel {
 
             this.createSection("Appearance", true);
             this.addColorSelector("Text Color", props.color || "black", colors, (v) => updateProp("color", v));
-            this.addColorSelector("Background", props.background_color || "white", ["transparent", ...colors], (v) => updateProp("background_color", v));
+            this.addColorSelector("Background", props.background_color || "white", colors, (v) => updateProp("background_color", v));
             this.addCheckbox("Show High/Low", props.show_high_low !== false, (v) => updateProp("show_high_low", v));
             this.endSection();
         }
@@ -1069,7 +1069,6 @@ export class PropertiesPanel {
                 });
             }
             this.addColorSelector("Line Color", props.color || "black", colors, (v) => updateProp("color", v));
-            this.addColorSelector("Background Color", props.background_color || "transparent", ["transparent", ...colors], (v) => updateProp("background_color", v));
             this.addSelect("Line Type", props.line_type || "SOLID", ["SOLID", "DASHED", "DOTTED"], (v) => updateProp("line_type", v));
             this.addLabeledInput("Line Thickness", "number", props.line_thickness || 3, (v) => updateProp("line_thickness", parseInt(v, 10)));
             this.addCheckbox("Show Border", props.border !== false, (v) => updateProp("border", v));
@@ -1269,11 +1268,6 @@ export class PropertiesPanel {
             this.addSelect("Layout", props.layout || "horizontal", ["horizontal", "vertical"], (v) => updateProp("layout", v));
             this.addCheckbox("Show High/Low Temp", props.show_high_low !== false, (v) => updateProp("show_high_low", v));
             this.addSelect("Temperature Unit", props.temp_unit || "C", ["C", "F"], (v) => updateProp("temp_unit", v));
-            this.addLabeledInput("Precision", "number", props.precision !== undefined ? props.precision : 1, (v) => {
-                let val = parseInt(v, 10);
-                if (isNaN(val)) val = 1;
-                updateProp("precision", val);
-            });
             this.addLabeledInput("Day Font Size", "number", props.day_font_size || 14, (v) => updateProp("day_font_size", parseInt(v, 10)));
             this.addLabeledInput("Temp Font Size", "number", props.temp_font_size || 14, (v) => updateProp("temp_font_size", parseInt(v, 10)));
             this.addLabeledInput("Icon Size", "number", props.icon_size || 24, (v) => updateProp("icon_size", parseInt(v, 10)));
@@ -1301,7 +1295,7 @@ export class PropertiesPanel {
                 this.addLabeledInput("Border Width", "number", props.border_width !== undefined ? props.border_width : 1, (v) => updateProp("border_width", parseInt(v, 10)));
                 this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
             }
-            this.addColorSelector("Background Color", props.background_color || "transparent", ["transparent", ...colors], (v) => updateProp("background_color", v));
+            this.addColorSelector("Background Color", props.background_color || "transparent", colors, (v) => updateProp("background_color", v));
             this.endSection();
         }
         else if (type === "template_sensor_bar") {
@@ -1629,7 +1623,7 @@ export class PropertiesPanel {
             this.createSection("Appearance", true);
             this.addColorSelector("Text Color", props.text_color || "black", colors, (v) => updateProp("text_color", v));
             this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
-            this.addColorSelector("Background", props.background_color || "white", ["transparent", ...colors], (v) => updateProp("background_color", v));
+            this.addColorSelector("Background", props.background_color || "white", colors, (v) => updateProp("background_color", v));
 
             this.addLabeledInput("Border Width", "number", props.border_width || 2, (v) => updateProp("border_width", parseInt(v, 10)));
             this.addCheckbox("Show Border", props.show_border !== false, (v) => updateProp("show_border", v));
@@ -1646,53 +1640,6 @@ export class PropertiesPanel {
             this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "sensor.esp_calendar_data", (v) => {
                 AppState.updateWidget(widget.id, { entity_id: v });
             }, widget);
-            // Source Calendars with Multi-Select Picker
-            const calWrap = document.createElement("div");
-            calWrap.className = "field";
-
-            const lbl = document.createElement("div");
-            lbl.className = "prop-label";
-            lbl.textContent = "Source Calendars";
-
-            const row = document.createElement("div");
-            row.style.display = "flex";
-            row.style.gap = "4px";
-
-            const input = document.createElement("input");
-            input.className = "prop-input";
-            input.type = "text";
-            input.value = props.source_calendars || "";
-            input.style.flex = "1";
-            input.placeholder = "calendar.a, calendar.b";
-            input.addEventListener("change", () => updateProp("source_calendars", input.value));
-
-            const pickerBtn = document.createElement("button");
-            pickerBtn.className = "btn btn-secondary";
-            pickerBtn.innerHTML = "<b>+</b>";
-            pickerBtn.title = "Pick and Append Calendar";
-            pickerBtn.type = "button";
-            pickerBtn.style.minWidth = "32px";
-            pickerBtn.addEventListener("click", () => {
-                // Pass null for widget to prevent auto-updating the main entity_id
-                openEntityPickerForWidget(null, null, (pickedId) => {
-                    let current = input.value.trim();
-                    if (current && !current.endsWith(",")) {
-                        current += ", ";
-                    }
-                    if (!current.includes(pickedId)) {
-                        const newVal = current + pickedId;
-                        input.value = newVal;
-                        updateProp("source_calendars", newVal);
-                    }
-                });
-            });
-
-            row.appendChild(input);
-            row.appendChild(pickerBtn);
-            calWrap.appendChild(lbl);
-            calWrap.appendChild(row);
-            this.getContainer().appendChild(calWrap);
-            this.addHint("Comma-separated list (e.g. calendar.one, calendar.two).<br>Updates the instructions below.");
             this.addLabeledInput("Max Events", "number", props.max_events || 8, (v) => updateProp("max_events", parseInt(v, 10)));
             this.addHint("Must be a sensor with attribute 'entries'");
 
@@ -2163,7 +2110,7 @@ export class PropertiesPanel {
             item.title = opt.label || opt.value;
 
             if (opt.icon) {
-                item.innerHTML = `<i class="mdi ${opt.icon}"></i>`;
+                item.innerHTML = `< i class="mdi ${opt.icon}" ></i > `;
             } else {
                 item.textContent = opt.label || opt.value;
             }
@@ -2203,10 +2150,22 @@ export class PropertiesPanel {
         const lbl = document.createElement("div");
         lbl.className = "prop-label";
         lbl.textContent = label;
-        const input = document.createElement("input");
-        input.className = "prop-input";
-        input.type = type;
-        input.value = value;
+
+        let input;
+        if (type === "textarea") {
+            // Multi-line text input
+            input = document.createElement("textarea");
+            input.className = "prop-input";
+            input.style.minHeight = "60px";
+            input.style.resize = "vertical";
+            input.style.fontFamily = "inherit";
+            input.value = value || "";
+        } else {
+            input = document.createElement("input");
+            input.className = "prop-input";
+            input.type = type;
+            input.value = value;
+        }
 
         input.addEventListener("input", () => {
             onChange(input.value);
@@ -2630,14 +2589,10 @@ export class PropertiesPanel {
     }
 
     addColorSelector(label, value, options, onChange) {
-        const mappedOptions = options.map(opt => {
-            if (opt === "theme_auto") return { value: "theme_auto", label: "Theme Default" };
-            return opt;
-        });
         if (typeof isRGBDevice === 'function' && isRGBDevice()) {
             this.addColorMixer(label, value, onChange);
         } else {
-            this.addSelect(label, value, mappedOptions, onChange);
+            this.addSelect(label, value, options, onChange);
         }
     }
 

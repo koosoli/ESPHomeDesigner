@@ -2,6 +2,80 @@
  * Text / Label Plugin
  */
 
+/**
+ * Word-wrap text to fit within a given width
+ * @param {string} text - The text to wrap
+ * @param {number} maxWidth - Maximum width in pixels
+ * @param {number} fontSize - Font size in pixels
+ * @param {string} fontFamily - Font family name
+ * @returns {string[]} Array of wrapped lines
+ */
+const wordWrap = (text, maxWidth, fontSize, fontFamily = "Roboto") => {
+    // Estimate average character width based on font
+    // Proportional fonts (Roboto, etc.): ~0.5-0.55 of font size
+    // Monospace fonts: ~0.6 of font size
+    const isMonospace = fontFamily.toLowerCase().includes("mono") || 
+                        fontFamily.toLowerCase().includes("courier") ||
+                        fontFamily.toLowerCase().includes("consolas");
+    const avgCharWidth = fontSize * (isMonospace ? 0.6 : 0.52);
+    const maxCharsPerLine = Math.floor(maxWidth / avgCharWidth);
+    
+    if (maxCharsPerLine <= 0) return [text];
+    
+    const result = [];
+    
+    // First split by manual line breaks
+    const paragraphs = text.split('\n');
+    
+    for (const paragraph of paragraphs) {
+        if (paragraph.length <= maxCharsPerLine) {
+            result.push(paragraph);
+            continue;
+        }
+        
+        // Word wrap this paragraph
+        const words = paragraph.split(/\s+/);
+        let currentLine = "";
+        
+        for (const word of words) {
+            if (!word) continue;
+            
+            // If word itself is longer than max, we need to break it
+            if (word.length > maxCharsPerLine) {
+                // Push current line if any
+                if (currentLine) {
+                    result.push(currentLine.trim());
+                    currentLine = "";
+                }
+                // Break long word into chunks
+                for (let i = 0; i < word.length; i += maxCharsPerLine) {
+                    result.push(word.substring(i, i + maxCharsPerLine));
+                }
+                continue;
+            }
+            
+            // Check if adding this word exceeds the limit
+            const testLine = currentLine ? currentLine + " " + word : word;
+            if (testLine.length <= maxCharsPerLine) {
+                currentLine = testLine;
+            } else {
+                // Push current line and start new one
+                if (currentLine) {
+                    result.push(currentLine.trim());
+                }
+                currentLine = word;
+            }
+        }
+        
+        // Push remaining text
+        if (currentLine) {
+            result.push(currentLine.trim());
+        }
+    }
+    
+    return result.length > 0 ? result : [""];
+};
+
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     el.innerHTML = "";
@@ -20,13 +94,24 @@ const render = (el, widget, { getColorStyle }) => {
 
     applyAlign(props.text_align || "TOP_LEFT");
 
+    const fontSize = props.font_size || props.value_font_size || 20;
+    const fontFamily = props.font_family || "Roboto";
+    const text = props.text || widget.title || "Text";
+    
+    // Apply word-wrap based on widget width
+    const wrappedLines = wordWrap(text, widget.width || 200, fontSize, fontFamily);
+
     const body = document.createElement("div");
     body.style.color = getColorStyle(props.color);
-    body.style.fontSize = `${props.font_size || props.value_font_size || 20}px`;
-    body.style.fontFamily = (props.font_family || "Roboto") + ", sans-serif";
+    body.style.fontSize = `${fontSize}px`;
+    body.style.fontFamily = fontFamily + ", sans-serif";
     body.style.fontWeight = String(props.font_weight || 400);
     body.style.fontStyle = props.italic ? "italic" : "normal";
-    body.textContent = props.text || widget.title || "Text";
+    body.style.whiteSpace = "pre-wrap"; // Preserve line breaks in preview
+    body.style.lineHeight = `${fontSize + 4}px`;
+    body.style.wordBreak = "break-word";
+    body.style.overflowWrap = "break-word";
+    body.textContent = wrappedLines.join('\n');
 
     el.appendChild(body);
 };
@@ -66,30 +151,78 @@ export default {
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};
+        const text = p.text || w.title || "Text";
+        const fontSize = p.font_size || 20;
+        const fontFamily = p.font_family || "Roboto";
+        
+        // Convert theme_auto and internal colors to actual colors
+        let color = p.color || "black";
+        if (color === "theme_auto") {
+            color = layout?.darkMode ? "white" : "black";
+        }
+        
+        // Check if text needs word wrapping based on widget width
+        const wrappedLines = wordWrap(text, w.width || 200, fontSize, fontFamily);
+        
+        // If multiple lines, use multiline type with \n delimiter
+        if (wrappedLines.length > 1) {
+            return {
+                type: "multiline",
+                value: wrappedLines.join('\n'),
+                delimiter: "\n",
+                x: Math.round(w.x),
+                offset_y: fontSize + 5, // Line height
+                size: fontSize,
+                color: color,
+                font: fontFamily?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf"
+            };
+        }
+        
+        // Single line - use draw_text
         return {
             type: "draw_text",
             x: Math.round(w.x),
             y: Math.round(w.y),
-            text: p.text || w.title || "Text",
-            size: p.font_size || 20,
-            color: p.color || "black",
-            font: p.font_family?.toLowerCase() || "roboto"
+            text: text,
+            size: fontSize,
+            color: color,
+            font: fontFamily?.toLowerCase() || "roboto"
         };
     },
     exportLVGL,
     exportOEPL: (w, { layout, page }) => {
         const p = w.props || {};
-        return {
+        const text = p.text || w.title || "Text";
+        const fontSize = p.font_size || 20;
+        const lineSpacing = 5; // Default spacing between lines
+        
+        // Convert theme_auto and internal colors to actual colors
+        let color = p.color || "black";
+        if (color === "theme_auto") {
+            color = layout?.darkMode ? "white" : "black";
+        }
+        
+        // OEPL supports max_width for automatic text wrapping
+        // and \n characters for explicit line breaks
+        const result = {
             type: "text",
-            value: p.text || w.title || "Text",
+            value: text, // OEPL handles \n natively when max_width is set
             x: Math.round(w.x),
             y: Math.round(w.y),
-            size: p.font_size || 20,
+            size: fontSize,
             font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf",
-            color: p.color || "black",
+            color: color,
             align: (p.text_align || "TOP_LEFT").toLowerCase().replace("top_", "").replace("bottom_", "").replace("_", ""),
             anchor: "lt" // Start with left-top for simplicity
         };
+        
+        // Add max_width for automatic text wrapping when widget has width
+        if (w.width && w.width > 0) {
+            result.max_width = Math.round(w.width);
+            result.spacing = lineSpacing; // Line spacing for wrapped text
+        }
+        
+        return result;
     },
     export: (w, context) => {
         const {
@@ -99,7 +232,8 @@ export default {
         const p = w.props || {};
         const colorProp = p.color || "theme_auto";
         const fontSize = p.font_size || p.value_font_size || 20;
-        const fontId = addFont(p.font_family || "Roboto", p.font_weight || 400, fontSize, p.italic);
+        const fontFamily = p.font_family || "Roboto";
+        const fontId = addFont(fontFamily, p.font_weight || 400, fontSize, p.italic);
         const text = p.text || w.title || "Text";
         const textAlign = p.text_align || "TOP_LEFT";
 
@@ -107,7 +241,7 @@ export default {
         const isGrayOnEpaper = isEpaper && Utils && Utils.isGrayColor && Utils.isGrayColor(colorProp);
         const color = isGrayOnEpaper ? "COLOR_BLACK" : getColorConst(colorProp);
 
-        lines.push(`        // widget:text id:${w.id} type:text x:${w.x} y:${w.y} w:${w.width} h:${w.height} text:"${text}" ${getCondProps(w)}`);
+        lines.push(`        // widget:text id:${w.id} type:text x:${w.x} y:${w.y} w:${w.width} h:${w.height} text:"${text.substring(0, 50)}${text.length > 50 ? '...' : ''}" ${getCondProps(w)}`);
 
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);
@@ -136,7 +270,17 @@ export default {
 
         if (align === "TextAlign::CENTER_CENTER") align = "TextAlign::CENTER";
 
-        lines.push(`        it.printf(${x}, ${y}, id(${fontId}), ${color}, ${align}, "${text.replace(/"/g, '\\"')}");`);
+        // Apply word-wrap based on widget width
+        const wrappedLines = wordWrap(text, w.width || 200, fontSize, fontFamily);
+        const lineHeight = fontSize + 4; // Font size plus line spacing
+
+        // Output each wrapped line
+        let currentY = y;
+        for (const line of wrappedLines) {
+            const escapedLine = line.replace(/"/g, '\\"').replace(/%/g, '%%');
+            lines.push(`        it.printf(${x}, ${currentY}, id(${fontId}), ${color}, ${align}, "${escapedLine}");`);
+            currentY += lineHeight;
+        }
 
         // Apply dithering for gray text on e-paper
         if (isGrayOnEpaper) {

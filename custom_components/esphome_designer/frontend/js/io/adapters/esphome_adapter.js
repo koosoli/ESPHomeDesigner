@@ -518,7 +518,8 @@ export class ESPHomeAdapter extends BaseAdapter {
                 }
             }
 
-            return sanitizedPackage + "\n\n" + extraLines.join('\n');
+            // Fix #218: Merge sections like sensor:, binary_sensor:, text_sensor: instead of duplicating them
+            return this.mergeYamlSections(sanitizedPackage, extraLines.join('\n'));
         }
 
         return lines.join('\n');
@@ -893,6 +894,119 @@ export class ESPHomeAdapter extends BaseAdapter {
             }
         }
         return yaml;
+    }
+
+    /**
+     * Fix #218: Merges YAML sections to avoid duplicates like double sensor: blocks.
+     * Sections like sensor:, binary_sensor:, text_sensor:, font:, etc. will be merged
+     * if they appear in both the base YAML and the extra YAML.
+     * @param {string} baseYaml - The base YAML content (e.g., hardware package)
+     * @param {string} extraYaml - Additional YAML content to merge
+     * @returns {string} Merged YAML content
+     */
+    mergeYamlSections(baseYaml, extraYaml) {
+        if (!extraYaml || extraYaml.trim() === '') return baseYaml;
+        if (!baseYaml || baseYaml.trim() === '') return extraYaml;
+
+        // Sections that should be merged (list entries under these keys)
+        const mergeableSections = [
+            'sensor:', 'binary_sensor:', 'text_sensor:', 'font:', 'image:',
+            'output:', 'light:', 'switch:', 'button:', 'script:', 'globals:',
+            'i2c:', 'spi:', 'external_components:', 'time:', 'interval:'
+        ];
+
+        // Parse YAML into sections
+        const parseYamlSections = (yaml) => {
+            const sections = new Map();
+            const lines = yaml.split('\n');
+            let currentSection = null;
+            let currentContent = [];
+            let nonSectionLines = [];
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                // Check if this is a top-level section header (no leading whitespace, ends with :)
+                const isTopLevelHeader = trimmed.endsWith(':') && !line.startsWith(' ') && !line.startsWith('\t');
+
+                if (isTopLevelHeader && mergeableSections.includes(trimmed)) {
+                    // Save previous section
+                    if (currentSection) {
+                        sections.set(currentSection, currentContent);
+                    }
+                    currentSection = trimmed;
+                    currentContent = [];
+                } else if (isTopLevelHeader && !mergeableSections.includes(trimmed)) {
+                    // Non-mergeable top-level section - save to non-section lines
+                    if (currentSection) {
+                        sections.set(currentSection, currentContent);
+                        currentSection = null;
+                        currentContent = [];
+                    }
+                    nonSectionLines.push(line);
+                } else if (currentSection) {
+                    // Content belonging to current mergeable section
+                    currentContent.push(line);
+                } else {
+                    // Content not belonging to any mergeable section
+                    nonSectionLines.push(line);
+                }
+            }
+
+            // Save last section
+            if (currentSection) {
+                sections.set(currentSection, currentContent);
+            }
+
+            return { sections, nonSectionLines };
+        };
+
+        const baseParsed = parseYamlSections(baseYaml);
+        const extraParsed = parseYamlSections(extraYaml);
+
+        // Merge sections
+        const mergedSections = new Map(baseParsed.sections);
+
+        for (const [sectionKey, extraContent] of extraParsed.sections) {
+            if (mergedSections.has(sectionKey)) {
+                // Merge: append extra content to existing section
+                const existingContent = mergedSections.get(sectionKey);
+                mergedSections.set(sectionKey, [...existingContent, ...extraContent]);
+            } else {
+                // New section from extra
+                mergedSections.set(sectionKey, extraContent);
+            }
+        }
+
+        // Reconstruct YAML
+        const result = [];
+
+        // First, add base non-section lines (comments, headers, non-mergeable sections)
+        result.push(...baseParsed.nonSectionLines);
+
+        // Add merged sections
+        for (const [sectionKey, content] of mergedSections) {
+            // Add blank line before section if result isn't empty
+            if (result.length > 0 && result[result.length - 1].trim() !== '') {
+                result.push('');
+            }
+            result.push(sectionKey);
+            result.push(...content);
+        }
+
+        // Add extra non-section lines that aren't in base
+        for (const line of extraParsed.nonSectionLines) {
+            const trimmed = line.trim();
+            // Skip if empty or already present
+            if (trimmed === '' || trimmed.startsWith('#')) continue;
+            // Avoid duplicate top-level headers
+            if (trimmed.endsWith(':') && !line.startsWith(' ')) {
+                const alreadyPresent = baseParsed.nonSectionLines.some(bl => bl.trim() === trimmed);
+                if (alreadyPresent) continue;
+            }
+            result.push(line);
+        }
+
+        return result.join('\n');
     }
 
     getCondProps(w) {

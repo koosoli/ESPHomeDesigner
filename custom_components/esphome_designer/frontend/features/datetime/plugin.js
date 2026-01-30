@@ -108,21 +108,32 @@ export default {
         const x = Math.round(w.x + (xCenter ? w.width / 2 : (xRight ? w.width : 0)));
         const y = Math.round(w.y + (yCenter ? w.height / 2 : (yBottom ? w.height : 0)));
 
+        // Convert theme_auto to actual color
+        let color = p.color || "black";
+        if (color === "theme_auto") {
+            color = layout?.darkMode ? "white" : "black";
+        }
+
         return {
             type: "draw_text",
             x: x,
             y: y,
             text: text,
             size: p.time_font_size || 28,
-            color: p.color || "black",
+            color: color,
             font: p.font_family?.toLowerCase() || "roboto"
         };
     },
     exportOEPL: (w, { layout, page }) => {
         const p = w.props || {};
         const format = p.format || "time_date";
-        const color = p.color || "black";
         const textAlign = (p.text_align || "CENTER").toUpperCase();
+
+        // Convert theme_auto to actual color
+        let color = p.color || "black";
+        if (color === "theme_auto") {
+            color = layout?.darkMode ? "white" : "black";
+        }
 
         let template = "";
         if (format === "time_only") {
@@ -144,17 +155,28 @@ export default {
         const x = Math.round(w.x + (xCenter ? w.width / 2 : (xRight ? w.width : 0)));
         const y = Math.round(w.y + (yCenter ? w.height / 2 : (yBottom ? w.height : 0)));
 
-        return {
+        const fontSize = p.time_font_size || 28;
+        const lineSpacing = 5;
+        
+        const result = {
             type: "text",
             value: template,
             x: x,
             y: y,
-            size: p.time_font_size || 28,
+            size: fontSize,
             font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf",
             color: color,
             align: textAlign.toLowerCase().replace("top_", "").replace("bottom_", "").replace("_", ""),
             anchor: (yCenter ? "m" : (yBottom ? "b" : "t")) + (xCenter ? "c" : (xRight ? "r" : "l"))
         };
+        
+        // Add max_width for automatic text wrapping when widget has width
+        if (w.width && w.width > 0) {
+            result.max_width = Math.round(w.width);
+            result.spacing = lineSpacing;
+        }
+        
+        return result;
     },
     exportLVGL: (w, { common, convertColor, convertAlign, getLVGLFont, formatOpacity }) => {
         const p = w.props || {};

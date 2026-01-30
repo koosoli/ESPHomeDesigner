@@ -127,6 +127,91 @@ describe('ESPHomeAdapter', () => {
         expect(adapter).toBeDefined();
     });
 
+    // Fix #218: Test that mergeYamlSections correctly merges duplicate sections
+    describe('mergeYamlSections', () => {
+        it('should merge duplicate sensor sections', () => {
+            const baseYaml = `# Hardware Recipe
+sensor:
+  - platform: adc
+    pin: GPIO34
+    name: "board_ldr"
+    update_interval: 1500ms
+
+display:
+  - platform: ili9xxx
+    model: ILI9342`;
+            
+            const extraYaml = `sensor:
+  - platform: homeassistant
+    id: sensor_temp
+    entity_id: sensor.temperature
+    internal: true
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    id: wifi_signal_dbm`;
+            
+            const result = adapter.mergeYamlSections(baseYaml, extraYaml);
+            
+            // Should have only ONE sensor: section
+            const sensorMatches = result.match(/^sensor:$/gm);
+            expect(sensorMatches).toHaveLength(1);
+            
+            // Should contain all sensors
+            expect(result).toContain('platform: adc');
+            expect(result).toContain('board_ldr');
+            expect(result).toContain('platform: homeassistant');
+            expect(result).toContain('sensor_temp');
+            expect(result).toContain('platform: wifi_signal');
+            expect(result).toContain('WiFi Signal');
+        });
+
+        it('should handle empty extra yaml', () => {
+            const baseYaml = `sensor:
+  - platform: adc
+    pin: GPIO34`;
+            
+            const result = adapter.mergeYamlSections(baseYaml, '');
+            expect(result).toBe(baseYaml);
+        });
+
+        it('should handle empty base yaml', () => {
+            const extraYaml = `sensor:
+  - platform: homeassistant
+    id: test`;
+            
+            const result = adapter.mergeYamlSections('', extraYaml);
+            expect(result).toBe(extraYaml);
+        });
+
+        it('should merge multiple different section types', () => {
+            const baseYaml = `sensor:
+  - platform: adc
+    pin: GPIO34
+font:
+  - file: fonts/test.ttf
+    id: font_base`;
+
+            const extraYaml = `sensor:
+  - platform: homeassistant
+    id: extra_sensor
+font:
+  - file: fonts/roboto.ttf
+    id: font_extra`;
+
+            const result = adapter.mergeYamlSections(baseYaml, extraYaml);
+            
+            // Should have only ONE of each section
+            expect(result.match(/^sensor:$/gm)).toHaveLength(1);
+            expect(result.match(/^font:$/gm)).toHaveLength(1);
+            
+            // Should contain all entries
+            expect(result).toContain('platform: adc');
+            expect(result).toContain('platform: homeassistant');
+            expect(result).toContain('font_base');
+            expect(result).toContain('font_extra');
+        });
+    });
+
     it('should generate a basic YAML structure for a page', async () => {
         const projectState = {
             pages: [

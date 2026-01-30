@@ -1,7 +1,6 @@
 import { BaseAdapter } from './base_adapter.js';
 import { Logger } from '../../utils/logger.js';
 import { registry as PluginRegistry } from '../../core/plugin_registry.js';
-import { serializeWidget } from '../yaml_export_lvgl.js';
 
 /**
  * OpenEpaperLink-specific adapter for generating JSON configuration.
@@ -30,21 +29,17 @@ export class OEPLAdapter extends BaseAdapter {
             return "[]";
         }
 
-        const payloadLines = [];
+        const payloadItems = [];
 
         page.widgets.forEach(widget => {
             if (widget.hidden || widget.type === 'group') return;
 
             const element = this.generateWidget(widget, { layout, page });
             if (element) {
-                const marker = serializeWidget(widget).replace(/^#/, '//');
-                payloadLines.push(`      ${marker}`);
+                // JSON does not support comments, so we skip adding widget markers
                 const elements = Array.isArray(element) ? element : [element];
-                elements.forEach((el, elIdx) => {
-                    const elJson = JSON.stringify(el, null, 2);
-                    const indented = elJson.split('\n').map(l => '      ' + l).join('\n');
-                    const isLastInArray = false; // We'll handle commas at the end
-                    payloadLines.push(indented);
+                elements.forEach((el) => {
+                    payloadItems.push(el);
                 });
             }
         });
@@ -59,51 +54,26 @@ export class OEPLAdapter extends BaseAdapter {
             ? (layout.darkMode ? "black" : "white")
             : (layout.darkMode ? "black" : "white"); // Fallback
 
-        // Manually assemble full JSON with markers
-        // This is still valid JSON because we use // comments which can be stripped or ignored by some tools,
-        // but it's primarily for the designer's internal highlighter.
-        const lines = [
-            '{',
-            '  "service": "open_epaper_link.drawcustom",',
-            '  "target": {',
-            '    "entity_id": "open_epaper_link.0000000000000000"',
-            '  },',
-            '  "data": {',
-            `    "background": "${background}",`,
-            `    "rotate": ${rotate},`,
-            '    "dither": 2,',
-            '    "ttl": 60,',
-            '    "payload": ['
-        ];
+        // Get entity ID from settings, with fallback placeholder
+        const settings = layout.settings || {};
+        const entityId = settings.oeplEntityId || "open_epaper_link.0000000000000000";
 
-        // Process segments into lines with commas
-        for (let i = 0; i < payloadLines.length; i++) {
-            let line = payloadLines[i];
-            const nextIsComment = i + 1 < payloadLines.length && payloadLines[i + 1].trim().startsWith('//');
-            const isLast = i === payloadLines.length - 1;
-
-            // Add comma if this line is a JSON block and the next meaningful thing is another block or comment
-            if (!line.trim().startsWith('//')) {
-                if (!isLast && !nextIsComment) {
-                    // This segment is part of multiple elements for one widget? No, plugin usually returns single object or array of objects.
-                }
-                // If the NEXT line is not a comment AND we aren't at the very end
-                if (i + 1 < payloadLines.length && !payloadLines[i + 1].trim().startsWith('//')) {
-                    // Inside a widget's multi-element array
-                    line += ",";
-                } else if (i + 1 < payloadLines.length) {
-                    // Next is a new widget comment
-                    line += ",";
-                }
+        // Build proper JSON object - no comments allowed in JSON
+        const output = {
+            service: "open_epaper_link.drawcustom",
+            target: {
+                entity_id: entityId
+            },
+            data: {
+                background: background,
+                rotate: rotate,
+                dither: 2,
+                ttl: 60,
+                payload: payloadItems
             }
-            lines.push(line);
-        }
+        };
 
-        lines.push('    ]');
-        lines.push('  }');
-        lines.push('}');
-
-        return lines.join('\n');
+        return JSON.stringify(output, null, 2);
     }
 
     /**

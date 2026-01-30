@@ -101,6 +101,28 @@ export class DeviceSettings {
             this.closeBtn.addEventListener('click', () => this.close());
         }
 
+        // Reload Hardware Profiles Button
+        const reloadBtn = document.getElementById('reloadHardwareBtn');
+        if (reloadBtn) {
+            reloadBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await this.reloadHardwareProfiles();
+            });
+        }
+
+        // Clear pin buttons (× buttons for optional pins)
+        document.querySelectorAll('.clear-pin-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = btn.getAttribute('data-target');
+                const input = document.getElementById(targetId);
+                if (input) {
+                    input.value = '';
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+        });
+
         // Import Hardware Recipe
         const importBtn = document.getElementById('importHardwareBtn');
         const fileInput = document.getElementById('hardwareFileInput');
@@ -144,6 +166,13 @@ export class DeviceSettings {
         if (this.customTech) {
             this.customTech.addEventListener('change', () => {
                 this.updateStrategyGroupVisibility();
+            });
+        }
+
+        // Switch GPIO datalist based on chip type
+        if (this.customChip) {
+            this.customChip.addEventListener('change', () => {
+                this.updatePinDatalist();
             });
         }
 
@@ -252,21 +281,21 @@ export class DeviceSettings {
     }
 
     getCustomHardwareConfig() {
-        const res = (this.customRes.value || "800x480").split('x');
+        const res = (this.customRes?.value || "800x480").split('x');
         const getVal = (id) => {
             const el = document.getElementById(id);
             return el ? el.value : "";
         };
 
         return {
-            chip: this.customChip.value,
-            tech: this.customTech.value,
+            chip: this.customChip?.value || 'esp32-s3',
+            tech: this.customTech?.value || 'lcd',
             resWidth: parseInt(res[0]) || 800,
             resHeight: parseInt(res[1]) || 480,
-            shape: this.customShape.value,
-            psram: this.customPsram.checked,
-            displayDriver: this.customDisplayDriver.value,
-            touchTech: this.customTouchTech.value,
+            shape: this.customShape?.value || 'rect',
+            psram: this.customPsram?.checked ?? true,
+            displayDriver: this.customDisplayDriver?.value || 'st7789v',
+            touchTech: this.customTouchTech?.value || 'none',
             backlightMinPower: parseFloat(getVal('customBacklightMinPower')) || 0.07,
             backlightInitial: parseFloat(getVal('customBacklightInitial')) || 0.8,
             antiburn: !!document.getElementById('customAntiburn')?.checked,
@@ -292,6 +321,29 @@ export class DeviceSettings {
         }
     }
 
+    /**
+     * Updates the GPIO pin datalist based on the selected chip type.
+     * ESP32 has different available pins than ESP32-S3/C3/C6.
+     */
+    updatePinDatalist() {
+        const chip = this.customChip?.value || 'esp32-s3';
+        // ESP32-S3, C3, C6 use S3-style GPIO numbering; classic ESP32 uses different pins
+        const datalistId = chip === 'esp32' ? 'gpio-pins-esp32' : 'gpio-pins-esp32s3';
+        
+        const pinInputIds = [
+            'pin_cs', 'pin_dc', 'pin_rst', 'pin_busy', 'pin_clk', 'pin_mosi',
+            'pin_backlight', 'pin_sda', 'pin_scl',
+            'pin_touch_int', 'pin_touch_rst'
+        ];
+        
+        pinInputIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.setAttribute('list', datalistId);
+        });
+        
+        Logger.log(`[DeviceSettings] Updated pin datalists to: ${datalistId}`);
+    }
+
     async handleSaveCustomProfile() {
         Logger.log("[DeviceSettings] handleSaveCustomProfile called");
 
@@ -304,7 +356,7 @@ export class DeviceSettings {
             }
 
 
-            const res = (this.customRes.value || "800x480").split('x');
+            const res = (this.customRes?.value || "800x480").split('x');
             const getVal = (id) => {
                 const el = document.getElementById(id);
                 return el ? el.value : "";
@@ -312,14 +364,14 @@ export class DeviceSettings {
 
             const config = {
                 name: name,
-                chip: this.customChip.value,
-                tech: this.customTech.value,
+                chip: this.customChip?.value || 'esp32-s3',
+                tech: this.customTech?.value || 'lcd',
                 resWidth: parseInt(res[0]) || 800,
                 resHeight: parseInt(res[1]) || 480,
-                shape: this.customShape.value,
-                psram: this.customPsram.checked,
-                displayDriver: this.customDisplayDriver.value,
-                touchTech: this.customTouchTech.value,
+                shape: this.customShape?.value || 'rect',
+                psram: this.customPsram?.checked ?? true,
+                displayDriver: this.customDisplayDriver?.value || 'st7789v',
+                touchTech: this.customTouchTech?.value || 'none',
                 pins: {
                     cs: getVal('pin_cs'),
                     dc: getVal('pin_dc'),
@@ -381,6 +433,44 @@ export class DeviceSettings {
         } catch (err) {
             Logger.error("Failed to save custom profile:", err);
             showToast("Failed to create profile: " + err.message, "error");
+        }
+    }
+
+    /**
+     * Force reload hardware profiles from the server, bypassing any caches.
+     * Useful when editing hardware recipe files directly on the server.
+     */
+    async reloadHardwareProfiles() {
+        const reloadBtn = document.getElementById('reloadHardwareBtn');
+        const originalText = reloadBtn ? reloadBtn.textContent : '';
+        
+        try {
+            if (reloadBtn) {
+                reloadBtn.disabled = true;
+                reloadBtn.textContent = '⟳ Loading...';
+            }
+            
+            showToast('Reloading hardware profiles...', 'info');
+            Logger.log('[DeviceSettings] Force reloading hardware profiles...');
+            
+            // Clear any cached profile data
+            // The loadExternalProfiles function already uses cache: "no-store",
+            // but we need to ensure the profiles are re-fetched
+            await loadExternalProfiles();
+            
+            // Repopulate the dropdown with fresh data
+            this.populateDeviceSelect();
+            
+            showToast('Hardware profiles reloaded successfully!', 'success');
+            Logger.log('[DeviceSettings] Hardware profiles reloaded, dropdown refreshed');
+        } catch (err) {
+            Logger.error('[DeviceSettings] Failed to reload hardware profiles:', err);
+            showToast('Failed to reload profiles: ' + err.message, 'error');
+        } finally {
+            if (reloadBtn) {
+                reloadBtn.disabled = false;
+                reloadBtn.textContent = originalText;
+            }
         }
     }
 
@@ -668,12 +758,7 @@ export class DeviceSettings {
             this.modelInput.addEventListener('change', async () => {
                 const newModel = this.modelInput.value;
                 window.currentDeviceModel = newModel;
-
-                // Force update on AppState
-                if (AppState.setDeviceModel) {
-                    AppState.setDeviceModel(newModel);
-                }
-
+                AppState.setDeviceModel(newModel); // Update top-level deviceModel
                 updateSetting('device_model', newModel); // Also persist to settings
 
                 this.updateStrategyGroupVisibility(); // Update strategy UI

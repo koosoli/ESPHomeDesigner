@@ -219,6 +219,13 @@ export default {
         const p = w.props || {};
         const entityId = (w.entity_id || "").trim();
         const format = p.value_format || "label_value";
+        const fontSize = p.value_font_size || 20;
+
+        // Convert theme_auto to actual color
+        let color = p.color || "black";
+        if (color === "theme_auto") {
+            color = layout?.darkMode ? "white" : "black";
+        }
 
         let value = "";
         if (window.AppState && window.AppState.entityStates && entityId) {
@@ -238,6 +245,18 @@ export default {
             text = title;
         } else if (format === "label_value") {
             text = `${title}: ${value}`;
+        } else if (format === "label_newline_value" || format === "label_newline_value_no_unit") {
+            // Use multiline type for newline formats
+            return {
+                type: "multiline",
+                value: `${title}\n${value}`,
+                delimiter: "\n",
+                x: Math.round(w.x),
+                offset_y: fontSize + 5,
+                size: fontSize,
+                color: color,
+                font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf"
+            };
         } else {
             text = value;
         }
@@ -247,8 +266,8 @@ export default {
             x: Math.round(w.x),
             y: Math.round(w.y),
             text: text,
-            size: p.value_font_size || 20,
-            color: p.color || "black",
+            size: fontSize,
+            color: color,
             font: p.font_family?.toLowerCase() || "roboto"
         };
     },
@@ -262,6 +281,12 @@ export default {
         const prefix = p.prefix || "";
         const postfix = p.postfix || "";
         const unit = (p.unit || "").trim();
+
+        // Convert theme_auto to actual color
+        let color = p.color || "black";
+        if (color === "theme_auto") {
+            color = layout?.darkMode ? "white" : "black";
+        }
 
         const val1 = TemplateConverter.toHATemplate(entityId, { precision, isNumeric: !p.is_text_sensor });
         const val2 = entityId2 ? TemplateConverter.toHATemplate(entityId2, { precision, isNumeric: !p.is_text_sensor }) : null;
@@ -287,17 +312,28 @@ export default {
             text = fullValue;
         }
 
-        return {
+        const fontSize = p.value_font_size || 20;
+        const lineSpacing = 5;
+        
+        const result = {
             type: "text",
             value: text,
             x: Math.round(w.x),
             y: Math.round(w.y),
-            size: p.value_font_size || 20,
+            size: fontSize,
             font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf",
-            color: p.color || "black",
+            color: color,
             align: (p.text_align || "TOP_LEFT").toLowerCase().replace("top_", "").replace("bottom_", "").replace("_", ""),
             anchor: "lt"
         };
+        
+        // Add max_width for automatic text wrapping when widget has width
+        if (w.width && w.width > 0) {
+            result.max_width = Math.round(w.width);
+            result.spacing = lineSpacing;
+        }
+        
+        return result;
     },
     collectRequirements: (w, { addFont }) => {
         const p = w.props || {};
