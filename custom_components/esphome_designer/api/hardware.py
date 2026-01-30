@@ -147,8 +147,11 @@ class ReTerminalHardwareUploadView(DesignerBaseView):
                      "message": "Template must contain '__LAMBDA_PLACEHOLDER__' in the display lambda section."
                  }, status_code=HTTPStatus.BAD_REQUEST, request=request)
 
-            with open(dest_path, "wb") as f:
-                f.write(content)
+            def _write_file() -> None:
+                with open(dest_path, "wb") as f:
+                    f.write(content)
+
+            await self.hass.async_add_executor_job(_write_file)
 
             _LOGGER.info("Saved new hardware template: %s", filename)
             return self.json({"success": True, "filename": filename}, request=request)
