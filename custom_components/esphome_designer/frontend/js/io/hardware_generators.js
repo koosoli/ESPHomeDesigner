@@ -279,7 +279,7 @@ export function generateDisplaySection(profile, layout = {}, isLvgl = false) {
         const modelsWithFullUpdate = [
             "1.54in", "1.54inv2", "2.13in", "2.13in-ttgo", "2.13in-ttgo-b1",
             "2.13in-ttgo-b73", "2.13in-ttgo-b74", "2.13in-ttgo-dke", "2.13inv2", "2.13inv3",
-            "2.90in", "2.90in-dke", "2.90inv2", "2.90inv2-r2", "7.50inv2", "7.50inv2p",
+            "2.90in", "2.90in-dke", "2.90inv2", "2.90inv2-r2", "7.50inv2p",
             "gdew029t5", "gdey029t94", "gdey042t81", "gdey0583t81"
         ];
         if (profile.displayModel && modelsWithFullUpdate.includes(profile.displayModel)) {
