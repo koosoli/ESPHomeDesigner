@@ -29,6 +29,13 @@ export class RadialMenu {
                 }
             }, true);
 
+            // Close on touch outside (for mobile/touch devices)
+            window.addEventListener('touchstart', (e) => {
+                if (this.active && !this.element.contains(e.target)) {
+                    this.hide();
+                }
+            }, true);
+
             // Close on escape
             window.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && this.active) {

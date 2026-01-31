@@ -511,7 +511,7 @@ export default {
             if (useWrapping) {
                 const lineHeight = valueFS + 4;
                 lines.push(`        {`);
-                lines.push(`          char wrap_buf[256];`);
+                lines.push(`          char wrap_buf[512];`);
                 lines.push(`          sprintf(wrap_buf, "${finalValFmt}", ${args});`);
                 lines.push(`          print_wrapped_text(${xVal}, ${yVal}, ${w.width}, ${lineHeight}, id(${valueFontId}), ${color}, ${valueAlign}, wrap_buf);`);
                 lines.push(`        }`);
@@ -522,20 +522,34 @@ export default {
             // Horizontal layout: "Label: Value"
             const labelStr = `${title}${title.endsWith(":") ? "" : ":"} `;
 
-            // If fonts differ and we are left-aligned, split the print to support different sizes
+            // If fonts differ and we are left-aligned, OR if we need to wrap the value, we must split the print
             // We use get_width() to position the value immediately after the label
-            if (labelFS !== valueFS && textAlign.includes("LEFT")) {
+            const useWrapping = w.width && w.width > 50;
+            if ((labelFS !== valueFS && textAlign.includes("LEFT")) || useWrapping) {
                 const align = getAlign(textAlign);
                 lines.push(`        {`);
                 lines.push(`          int w1, h1, xoff1, bl1;`);
                 lines.push(`          int w2, h2, xoff2, bl2;`);
-                lines.push(`          char value_buf[64];`);
+                lines.push(`          char value_buf[512];`);
                 lines.push(`          sprintf(value_buf, "${finalValFmt}", ${args});`);
                 lines.push(`          id(${labelFontId})->measure("${labelStr}", &w1, &xoff1, &bl1, &h1);`);
-                lines.push(`          id(${valueFontId})->measure(value_buf, &w2, &xoff2, &bl2, &h2);`);
-                lines.push(`          // Align baselines: yVal + bl1 = yVal2 + bl2 => yVal2 = yVal + bl1 - bl2`);
-                lines.push(`          it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${color}, ${align}, "${labelStr}");`);
-                lines.push(`          it.printf(${xVal} + w1, ${yVal} + (bl1 - bl2), id(${valueFontId}), ${color}, ${align}, "%s", value_buf);`);
+                if (useWrapping) {
+                    const lineHeight = valueFS + 4;
+                    lines.push(`          // Align baselines for first line: yVal + bl1 = yVal2 + bl2`);
+                    lines.push(`          // Note: we can't easily align baselines perfectly without measuring the value's first line first,`);
+                    lines.push(`          // but we can approximate or just use top-aligned reference.`);
+                    lines.push(`          // For wrapped text, we print the label, then wrap the rest.`);
+                    lines.push(`          it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${color}, ${align}, "${labelStr}");`);
+                    lines.push(`          int val_max_w = ${w.width} - w1;`);
+                    lines.push(`          // Heuristic: if label is taller than value font, adjust y? mostly fine to align tops or just let baselines float.`);
+                    lines.push(`          // Let's assume top alignment is safer for multi-line flow.`);
+                    lines.push(`          print_wrapped_text(${xVal} + w1, ${yVal} + (bl1 - ${Math.round(valueFS * 0.8)}), val_max_w, ${lineHeight}, id(${valueFontId}), ${color}, ${align}, value_buf);`);
+                } else {
+                    lines.push(`          id(${valueFontId})->measure(value_buf, &w2, &xoff2, &bl2, &h2);`);
+                    lines.push(`          // Align baselines: yVal + bl1 = yVal2 + bl2 => yVal2 = yVal + bl1 - bl2`);
+                    lines.push(`          it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${color}, ${align}, "${labelStr}");`);
+                    lines.push(`          it.printf(${xVal} + w1, ${yVal} + (bl1 - bl2), id(${valueFontId}), ${color}, ${align}, "%s", value_buf);`);
+                }
                 lines.push(`        }`);
             } else {
                 // Single printf for perfect alignment (same font or non-left align)

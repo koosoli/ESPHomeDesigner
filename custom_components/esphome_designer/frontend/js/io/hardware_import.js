@@ -79,28 +79,28 @@ export async function uploadHardwareTemplate(file) {
         return await handleOfflineHardwareImport(file);
     }
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
+        const content = await file.text();
         const url = `${HA_API_BASE}/hardware/upload`;
+        const payload = {
+            filename: file.name,
+            content: content
+        };
 
-        // FIX: FormData requires the browser to set the Content-Type with the boundary.
-        // getHaHeaders() adds "Content-Type": "application/json", which breaks this.
-        const headers = getHaHeaders();
-        delete headers["Content-Type"];
+        Logger.log("[HardwareImport] Uploading via JSON:", file.name);
 
         const response = await fetch(url, {
             method: "POST",
-            headers: headers,
-            body: formData
+            headers: getHaHeaders(),
+            body: JSON.stringify(payload)
         });
 
-        const data = await response.json();
         if (!response.ok) {
-            throw new Error(data.message || data.error || "Upload failed");
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || data.error || `Upload failed: ${response.status}`);
         }
 
+        const data = await response.json();
         showToast("Hardware template uploaded successfully!", "success");
 
         // Refresh profiles
@@ -110,10 +110,10 @@ export async function uploadHardwareTemplate(file) {
         }
 
         return data;
-    } catch (e) {
-        Logger.error("Hardware upload failed:", e);
-        showToast(`Upload failed: ${e.message}`, "error");
-        throw e;
+    } catch (err) {
+        Logger.error("Hardware upload failed:", err);
+        showToast(`Upload failed: ${err.message}`, "error");
+        throw err;
     }
 }
 

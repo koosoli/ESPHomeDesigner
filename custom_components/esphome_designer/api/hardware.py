@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import yaml
 import re
+import json
 from http import HTTPStatus
 from typing import Any
 from pathlib import Path
@@ -108,6 +109,19 @@ class ReTerminalHardwareListView(DesignerBaseView):
         return self.json({"templates": templates}, request=request)
 
 
+async def _parse_json_body(request):
+    """Parse JSON body from request, handling any Content-Type."""
+    try:
+        body_bytes = await request.read()
+        if not body_bytes:
+            return {}
+        body_text = body_bytes.decode('utf-8')
+        return json.loads(body_text)
+    except Exception as e:
+        _LOGGER.warning("Failed to parse JSON body: %s", e)
+        return {}
+
+
 class ReTerminalHardwareUploadView(DesignerBaseView):
     """Handle uploading a new hardware template YAML."""
 
@@ -118,18 +132,15 @@ class ReTerminalHardwareUploadView(DesignerBaseView):
         self.hass = hass
 
     async def post(self, request) -> Any:
-        """Save an uploaded YAML file to the hardware directory."""
+        """Save an uploaded YAML template from JSON body."""
         try:
-            data = await request.post()
-            file_field = data.get("file")
+            body = await _parse_json_body(request)
+            filename = body.get("filename")
+            content_str = body.get("content")
             
-            if not file_field:
-                return self.json({"error": "no_file"}, status_code=HTTPStatus.BAD_REQUEST, request=request)
+            if not filename or not content_str:
+                return self.json({"error": "missing_fields"}, status_code=HTTPStatus.BAD_REQUEST, request=request)
 
-            if isinstance(file_field, str):
-                 return self.json({"error": "invalid_file_field"}, status_code=HTTPStatus.BAD_REQUEST, request=request)
-
-            filename = file_field.filename
             if not filename.endswith(".yaml"):
                 return self.json({"error": "invalid_extension"}, status_code=HTTPStatus.BAD_REQUEST, request=request)
 
@@ -137,7 +148,7 @@ class ReTerminalHardwareUploadView(DesignerBaseView):
             
             hardware_dir = Path(__file__).parent.parent / "frontend" / "hardware"
             dest_path = hardware_dir / filename
-            content = file_field.file.read()
+            content = content_str.encode("utf-8")
             
             if b"__LAMBDA_PLACEHOLDER__" not in content:
                  return self.json({
@@ -145,12 +156,9 @@ class ReTerminalHardwareUploadView(DesignerBaseView):
                      "message": "Template must contain '__LAMBDA_PLACEHOLDER__' in the display lambda section."
                  }, status_code=HTTPStatus.BAD_REQUEST, request=request)
 
-            def _write_file() -> None:
-                hardware_dir.mkdir(parents=True, exist_ok=True)
-                with open(dest_path, "wb") as f:
-                    f.write(content)
-
-            await self.hass.async_add_executor_job(_write_file)
+            hardware_dir.mkdir(parents=True, exist_ok=True)
+            with open(dest_path, "wb") as f:
+                f.write(content)
 
             _LOGGER.info("Saved new hardware template: %s", filename)
             return self.json({"success": True, "filename": filename}, request=request)
