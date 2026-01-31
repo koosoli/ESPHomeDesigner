@@ -118,6 +118,7 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
                 range_to: p.max || 100,
                 indicators: [{
                     line: {
+                        id: `${w.id}_ind`,
                         value: meterValue,
                         color: convertColor(p.indicator_color || "red"),
                         width: parseInt(p.indicator_width || 4, 10)
@@ -147,7 +148,7 @@ const onExportNumericSensors = (context) => {
             if (!pendingTriggers.has(entityId)) {
                 pendingTriggers.set(entityId, new Set());
             }
-            pendingTriggers.get(entityId).add(`- lvgl.widget.refresh: ${w.id}`);
+            pendingTriggers.get(entityId).add(`- lvgl.indicator.update:\n          id: ${w.id}_ind\n          value: !lambda "return x;"`);
         }
 
         // We let the safety fix handle the sensor generation for HA entities.
