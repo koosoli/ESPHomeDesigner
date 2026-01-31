@@ -50,7 +50,7 @@ export function formatOpacity(opa) {
  * @param {string} deviceModel - The device model.
  * @returns {Array} The generated lines of YAML.
  */
-export function generateLVGLSnippet(pages, deviceModel, profileOverride = null) {
+export function generateLVGLSnippet(pages, deviceModel, profileOverride = null, layout = {}) {
     const lines = [];
     const profile = profileOverride || (DEVICE_PROFILES ? (DEVICE_PROFILES[deviceModel] || {}) : {});
 
@@ -74,6 +74,15 @@ export function generateLVGLSnippet(pages, deviceModel, profileOverride = null) 
     if (profile.touch) {
         lines.push("  touchscreens:");
         lines.push("    - my_touchscreen");
+    }
+
+    if (layout.lcdEcoStrategy === 'dim_after_timeout') {
+        const timeout = (layout.dimTimeout || 10) + "s";
+        lines.push("  on_idle:");
+        lines.push(`    timeout: ${timeout}`);
+        lines.push("    then:");
+        lines.push("      - light.turn_off: display_backlight");
+        lines.push("      - lvgl.pause:");
     }
     lines.push("");
 

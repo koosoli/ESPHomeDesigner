@@ -59,6 +59,7 @@ export const DEFAULT_PREFERENCES = {
     darkMode: false,
     invertedColors: false,
     lcdEcoStrategy: "backlight_off",
+    dimTimeout: 10,
     sleepEnabled: false,
     sleepStartHour: 0,
     sleepEndHour: 5,

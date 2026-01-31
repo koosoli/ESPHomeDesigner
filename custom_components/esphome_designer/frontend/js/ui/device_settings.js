@@ -47,6 +47,10 @@ export class DeviceSettings {
         this.noRefreshStart = document.getElementById('setting-no-refresh-start');
         this.noRefreshEnd = document.getElementById('setting-no-refresh-end');
 
+        // Dim Timeout (Used by LCD Dim after timeout)
+        this.dimTimeoutInput = document.getElementById('setting-dim-timeout');
+        this.dimTimeoutRow = document.getElementById('dim-timeout-row');
+
         // Auto-Cycle
         this.autoCycleEnabled = document.getElementById('setting-auto-cycle');
         this.autoCycleInterval = document.getElementById('setting-auto-cycle-interval');
@@ -316,9 +320,13 @@ export class DeviceSettings {
     }
 
     updateCustomSectionVisibility() {
-        if (this.customHardwareSection) {
-            this.customHardwareSection.style.display = this.modelInput.value === 'custom' ? 'block' : 'none';
-        }
+        if (!this.customHardwareSection) return;
+
+        const mode = this.renderingModeInput ? this.renderingModeInput.value : (AppState.settings.renderingMode || 'direct');
+        const isProtocol = mode === 'oepl' || mode === 'opendisplay';
+        const isCustom = this.modelInput && this.modelInput.value === 'custom';
+
+        this.customHardwareSection.style.display = (!isProtocol && isCustom) ? 'block' : 'none';
     }
 
     /**
@@ -329,18 +337,18 @@ export class DeviceSettings {
         const chip = this.customChip?.value || 'esp32-s3';
         // ESP32-S3, C3, C6 use S3-style GPIO numbering; classic ESP32 uses different pins
         const datalistId = chip === 'esp32' ? 'gpio-pins-esp32' : 'gpio-pins-esp32s3';
-        
+
         const pinInputIds = [
             'pin_cs', 'pin_dc', 'pin_rst', 'pin_busy', 'pin_clk', 'pin_mosi',
             'pin_backlight', 'pin_sda', 'pin_scl',
             'pin_touch_int', 'pin_touch_rst'
         ];
-        
+
         pinInputIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.setAttribute('list', datalistId);
         });
-        
+
         Logger.log(`[DeviceSettings] Updated pin datalists to: ${datalistId}`);
     }
 
@@ -443,24 +451,24 @@ export class DeviceSettings {
     async reloadHardwareProfiles() {
         const reloadBtn = document.getElementById('reloadHardwareBtn');
         const originalText = reloadBtn ? reloadBtn.textContent : '';
-        
+
         try {
             if (reloadBtn) {
                 reloadBtn.disabled = true;
                 reloadBtn.textContent = '⟳ Loading...';
             }
-            
+
             showToast('Reloading hardware profiles...', 'info');
             Logger.log('[DeviceSettings] Force reloading hardware profiles...');
-            
+
             // Clear any cached profile data
             // The loadExternalProfiles function already uses cache: "no-store",
             // but we need to ensure the profiles are re-fetched
             await loadExternalProfiles();
-            
+
             // Repopulate the dropdown with fresh data
             this.populateDeviceSelect();
-            
+
             showToast('Hardware profiles reloaded successfully!', 'success');
             Logger.log('[DeviceSettings] Hardware profiles reloaded, dropdown refreshed');
         } catch (err) {
@@ -513,6 +521,7 @@ export class DeviceSettings {
         if (this.dailyRefreshTime) this.dailyRefreshTime.value = s.dailyRefreshTime || "08:00";
         if (this.deepSleepInterval) this.deepSleepInterval.value = s.deepSleepInterval ?? 600;
         if (this.refreshIntervalInput) this.refreshIntervalInput.value = s.refreshInterval ?? 600;
+        if (this.dimTimeoutInput) this.dimTimeoutInput.value = s.dimTimeout ?? 10;
 
         // Silent Hours
         if (this.noRefreshStart) this.noRefreshStart.value = s.noRefreshStartHour ?? "";
@@ -658,6 +667,23 @@ export class DeviceSettings {
         if (this.dailyRefreshRow) this.dailyRefreshRow.style.display = isDaily ? 'flex' : 'none';
         if (this.deepSleepRow) this.deepSleepRow.style.display = isDeepSleep ? 'block' : 'none';
 
+        // LCD Eco Strategy: Determine current selection to show/hide sub-rows
+        const lcdStrategy = AppState.settings.lcdEcoStrategy || 'backlight_off';
+        const isDimTimeout = lcdStrategy === 'dim_after_timeout';
+        const isBacklightOff = lcdStrategy === 'backlight_off';
+
+        if (this.dimTimeoutRow) this.dimTimeoutRow.style.display = isDimTimeout ? 'flex' : 'none';
+
+        // Ensure sleep times row is also shown for backlight_off in LCD mode
+        const modelId = this.modelInput ? this.modelInput.value : null;
+        const profiles = window.DEVICE_PROFILES || DEVICE_PROFILES || {};
+        const profile = modelId ? profiles[modelId] : null;
+        const isLcd = !!(profile && profile.features && (profile.features.lcd || profile.features.oled));
+
+        if (this.sleepRow && isLcd) {
+            this.sleepRow.style.display = isBacklightOff ? 'flex' : 'none';
+        }
+
         const needsRefreshInterval = !isDaily && !isManual;
         if (this.refreshIntervalRow) this.refreshIntervalRow.style.display = needsRefreshInterval ? 'block' : 'none';
 
@@ -676,9 +702,8 @@ export class DeviceSettings {
         if (this.deviceModelField) {
             this.deviceModelField.style.display = isProtocol ? 'none' : 'block';
         }
-        if (this.customHardwareSection && isProtocol) {
-            this.customHardwareSection.style.display = 'none';
-        }
+
+        this.updateCustomSectionVisibility();
 
         // ESPHome-Only Features Visibility
         if (this.powerStrategySection) {
@@ -911,13 +936,24 @@ export class DeviceSettings {
             radio.addEventListener('change', () => {
                 if (radio.checked) {
                     updateSetting('lcdEcoStrategy', radio.value);
-                    // Show sleep times row if backlight_off is selected
+                    // Show/hide sub-settings based on strategy
                     if (this.sleepRow) {
                         this.sleepRow.style.display = (radio.value === 'backlight_off') ? 'flex' : 'none';
+                    }
+                    if (this.dimTimeoutRow) {
+                        this.dimTimeoutRow.style.display = (radio.value === 'dim_after_timeout') ? 'flex' : 'none';
                     }
                 }
             });
         });
+
+        // Dim Timeout
+        if (this.dimTimeoutInput) {
+            this.dimTimeoutInput.addEventListener('input', () => {
+                const val = parseInt(this.dimTimeoutInput.value) || 10;
+                updateSetting('dimTimeout', val);
+            });
+        }
     }
 
     updateStrategyGroupVisibility() {
@@ -948,6 +984,21 @@ export class DeviceSettings {
                 const radioToSelect = document.querySelector(`input[name="lcdEcoStrategy"][value="${currentStrategy}"]`);
                 if (radioToSelect) radioToSelect.checked = true;
             }
+
+            // Hide "Dim after timeout" if not in LVGL mode
+            const currentMode = this.renderingModeInput ? this.renderingModeInput.value : (AppState.settings.renderingMode || 'direct');
+            const dimRow = document.getElementById('lcd-strategy-dim-row');
+            if (dimRow) {
+                dimRow.style.display = (currentMode === 'lvgl') ? 'block' : 'none';
+
+                // If it was selected but now hidden, fallback to backlight_off
+                if (currentMode !== 'lvgl' && AppState.settings.lcdEcoStrategy === 'dim_after_timeout') {
+                    updateSetting('lcdEcoStrategy', 'backlight_off');
+                    const fallbackRadio = document.querySelector('input[name="lcdEcoStrategy"][value="backlight_off"]');
+                    if (fallbackRadio) fallbackRadio.checked = true;
+                    this.updateVisibility();
+                }
+            }
         }
 
         // Show rendering mode field (now always visible to allow switching to OEPL)
@@ -964,6 +1015,8 @@ export class DeviceSettings {
                 AppState.settings.renderingMode === 'oepl';
             this.oeplSettingsSection.style.display = isOEPL ? 'block' : 'none';
         }
+
+        this.updateCustomSectionVisibility();
     }
 
     // Modal Logic

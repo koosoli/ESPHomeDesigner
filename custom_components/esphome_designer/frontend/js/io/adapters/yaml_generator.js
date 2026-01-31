@@ -71,7 +71,13 @@ export class YamlGenerator {
             strategy = "Manual Refresh Only";
         } else if (isLcd) {
             const lcdStrategy = layout.lcdEcoStrategy || 'backlight_off';
-            const map = { always_on: 'Always On', backlight_off: 'Backlight Off Schedule', halt_updates: 'Halt Updates', deep_sleep: 'Deep Sleep' };
+            const map = {
+                always_on: 'Always On',
+                backlight_off: 'Backlight Off Schedule',
+                halt_updates: 'Halt Updates',
+                deep_sleep: 'Deep Sleep',
+                dim_after_timeout: 'Dim after timeout'
+            };
             strategy = map[lcdStrategy] || lcdStrategy;
         } else {
             strategy = layout.deepSleepEnabled ? "Ultra Eco (Deep Sleep)" : (layout.sleepEnabled ? "Eco (Light Sleep)" : "Always On");

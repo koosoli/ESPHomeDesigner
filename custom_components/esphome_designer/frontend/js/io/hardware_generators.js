@@ -2,7 +2,7 @@
 // HARDWARE SECTION GENERATORS
 // ============================================================================
 
-export function generateTouchscreenSection(profile, displayId = "my_display", displayRotation = 0) {
+export function generateTouchscreenSection(profile, displayId = "my_display", displayRotation = 0, layout = {}, isLvgl = false) {
     if (!profile || !profile.touch) return []; // E-paper usually has no touch or handled differently
 
     const t = profile.touch;
@@ -34,17 +34,33 @@ export function generateTouchscreenSection(profile, displayId = "my_display", di
     addPin("cs_pin", t.cs_pin);
 
     // Calc/Transform
-    const transform = [];
     // Support both nested t.transform.* and flat t.* properties (Backwards compatibility)
     const tx = t.transform || {};
 
-    if (t.mirror_x || tx.mirror_x) transform.push("mirror_x: true");
-    if (t.mirror_y || tx.mirror_y) transform.push("mirror_y: true");
-    if (t.swap_xy || tx.swap_xy) transform.push("swap_xy: true");
-
-    if (transform.length > 0) {
+    // New transform logic: prioritize t.transform object, then fallback to flat properties
+    const hasTransform = t.transform || t.mirror_x || t.mirror_y || t.swap_xy;
+    if (hasTransform) {
         lines.push("    transform:");
-        transform.forEach(l => lines.push(`      ${l}`));
+        if (t.transform) {
+            if (t.transform.swap_xy) lines.push("      swap_xy: true");
+            if (t.transform.mirror_x) lines.push("      mirror_x: true");
+            if (t.transform.mirror_y) lines.push("      mirror_y: true");
+        } else {
+            // Backwards compatibility for flat properties
+            if (t.mirror_x || tx.mirror_x) lines.push("      mirror_x: true");
+            if (t.mirror_y || tx.mirror_y) lines.push("      mirror_y: true");
+            if (t.swap_xy || tx.swap_xy) lines.push("      swap_xy: true");
+        }
+    }
+
+    if (isLvgl && layout.lcdEcoStrategy === 'dim_after_timeout') {
+        lines.push("    on_release:");
+        lines.push("      - if:");
+        lines.push("          condition: lvgl.is_paused");
+        lines.push("          then:");
+        lines.push("            - lvgl.resume:");
+        lines.push("            - lvgl.widget.redraw:");
+        lines.push("            - light.turn_on: display_backlight");
     }
 
     if (t.calibration) {
@@ -289,7 +305,7 @@ export function generateDisplaySection(profile, layout = {}, isLvgl = false) {
     }
 
     const linkedDisplayId = profile.display_config ? "my_display" : "epaper_display";
-    lines.push(...generateTouchscreenSection(profile, linkedDisplayId, displayRotation));
+    lines.push(...generateTouchscreenSection(profile, linkedDisplayId, displayRotation, layout, isLvgl));
 
     return lines;
 }

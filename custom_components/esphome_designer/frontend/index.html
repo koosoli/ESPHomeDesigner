@@ -32,7 +32,7 @@
   <header class="main-header" role="banner">
     <div class="main-header-title">
       <img src="assets/logo_header.png" alt="ESPHome Designer" class="logo-image">
-      <span><small style="opacity: 0.5; margin-left: 8px;">Pre_0.9b317</small> <span id="currentLayoutDevice"
+      <span><small style="opacity: 0.5; margin-left: 8px;">Pre_0.9b318</small> <span id="currentLayoutDevice"
           style="margin-left:8px; color:var(--accent);"></span></span>
     </div>
     <div class="main-header-actions desktop-only">
@@ -412,7 +412,8 @@
                 <span>Hardware Profile</span>
                 <div style="display: flex; gap: 4px;">
                   <button id="reloadHardwareBtn" class="btn btn-secondary btn-xs"
-                    style="font-size: 10px; padding: 2px 6px;" title="Reload hardware profiles from server">⟳ Reload</button>
+                    style="font-size: 10px; padding: 2px 6px;" title="Reload hardware profiles from server">⟳
+                    Reload</button>
                   <button id="importHardwareBtn" class="btn btn-secondary btn-xs"
                     style="font-size: 10px; padding: 2px 6px;">Import Recipe</button>
                 </div>
@@ -583,33 +584,41 @@
                 <div id="spiPinsGrid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
                   <div class="field">
                     <div class="prop-label" style="font-size:9px;">CS</div>
-                    <input id="pin_cs" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="GPIO10" />
+                    <input id="pin_cs" class="prop-input-sm" type="text" list="gpio-pins-esp32s3"
+                      placeholder="GPIO10" />
                   </div>
                   <div class="field">
                     <div class="prop-label" style="font-size:9px;">DC</div>
-                    <input id="pin_dc" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="GPIO11" />
+                    <input id="pin_dc" class="prop-input-sm" type="text" list="gpio-pins-esp32s3"
+                      placeholder="GPIO11" />
                   </div>
                   <div class="field">
                     <div class="prop-label" style="font-size:9px;">RST <span style="opacity:0.5">(opt)</span></div>
                     <div style="display:flex; gap:2px;">
-                      <input id="pin_rst" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="(optional)" style="flex:1;" />
-                      <button type="button" class="clear-pin-btn" data-target="pin_rst" title="Clear" style="padding:0 4px; font-size:10px; background:#eee; border:1px solid #ccc; border-radius:3px; cursor:pointer;">×</button>
+                      <input id="pin_rst" class="prop-input-sm" type="text" list="gpio-pins-esp32s3"
+                        placeholder="(optional)" style="flex:1;" />
+                      <button type="button" class="clear-pin-btn" data-target="pin_rst" title="Clear"
+                        style="padding:0 4px; font-size:10px; background:#eee; border:1px solid #ccc; border-radius:3px; cursor:pointer;">×</button>
                     </div>
                   </div>
                   <div class="field">
                     <div class="prop-label" style="font-size:9px;">BUSY <span style="opacity:0.5">(opt)</span></div>
                     <div style="display:flex; gap:2px;">
-                      <input id="pin_busy" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="(optional)" style="flex:1;" />
-                      <button type="button" class="clear-pin-btn" data-target="pin_busy" title="Clear" style="padding:0 4px; font-size:10px; background:#eee; border:1px solid #ccc; border-radius:3px; cursor:pointer;">×</button>
+                      <input id="pin_busy" class="prop-input-sm" type="text" list="gpio-pins-esp32s3"
+                        placeholder="(optional)" style="flex:1;" />
+                      <button type="button" class="clear-pin-btn" data-target="pin_busy" title="Clear"
+                        style="padding:0 4px; font-size:10px; background:#eee; border:1px solid #ccc; border-radius:3px; cursor:pointer;">×</button>
                     </div>
                   </div>
                   <div class="field">
                     <div class="prop-label" style="font-size:9px;">CLK</div>
-                    <input id="pin_clk" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="GPIO18" />
+                    <input id="pin_clk" class="prop-input-sm" type="text" list="gpio-pins-esp32s3"
+                      placeholder="GPIO18" />
                   </div>
                   <div class="field">
                     <div class="prop-label" style="font-size:9px;">MOSI</div>
-                    <input id="pin_mosi" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="GPIO23" />
+                    <input id="pin_mosi" class="prop-input-sm" type="text" list="gpio-pins-esp32s3"
+                      placeholder="GPIO23" />
                   </div>
                 </div>
               </div>
@@ -620,15 +629,18 @@
                 <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
                   <div class="field">
                     <div class="prop-label" style="font-size:9px;">Backlight</div>
-                    <input id="pin_backlight" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="GPIO45" />
+                    <input id="pin_backlight" class="prop-input-sm" type="text" list="gpio-pins-esp32s3"
+                      placeholder="GPIO45" />
                   </div>
                   <div class="field">
                     <div class="prop-label" style="font-size:9px;">I2C SDA</div>
-                    <input id="pin_sda" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="GPIO21" />
+                    <input id="pin_sda" class="prop-input-sm" type="text" list="gpio-pins-esp32s3"
+                      placeholder="GPIO21" />
                   </div>
                   <div class="field">
                     <div class="prop-label" style="font-size:9px;">I2C SCL</div>
-                    <input id="pin_scl" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="GPIO22" />
+                    <input id="pin_scl" class="prop-input-sm" type="text" list="gpio-pins-esp32s3"
+                      placeholder="GPIO22" />
                   </div>
                 </div>
               </div>
@@ -646,11 +658,13 @@
                 <div id="touchPinsGrid" style="display:none; grid-template-columns:1fr 1fr; gap:6px;">
                   <div class="field">
                     <div class="prop-label" style="font-size:9px;">Touch INT</div>
-                    <input id="pin_touch_int" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="GPIO4" />
+                    <input id="pin_touch_int" class="prop-input-sm" type="text" list="gpio-pins-esp32s3"
+                      placeholder="GPIO4" />
                   </div>
                   <div class="field">
                     <div class="prop-label" style="font-size:9px;">Touch RST</div>
-                    <input id="pin_touch_rst" class="prop-input-sm" type="text" list="gpio-pins-esp32s3" placeholder="GPIO5" />
+                    <input id="pin_touch_rst" class="prop-input-sm" type="text" list="gpio-pins-esp32s3"
+                      placeholder="GPIO5" />
                   </div>
                 </div>
               </div>
@@ -817,7 +831,6 @@
             </div>
           </div>
 
-          <!-- LCD Specific Strategies -->
           <div id="strategy-lcd-group" style="display:none; flex-direction:column; gap:12px; margin-top:8px;">
             <div
               style="font-size:10px; font-weight:bold; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">
@@ -841,6 +854,16 @@
                 (recommended for LCD).</div>
             </div>
 
+            <div id="lcd-strategy-dim-row">
+              <label
+                style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
+                <input type="radio" name="lcdEcoStrategy" value="dim_after_timeout" onchange="togglePowerSettings()">
+                Eco (Dim after timeout)
+              </label>
+              <div style="font-size:10px; opacity:0.6; margin-left:24px;">Turns off backlight and pauses LVGL after
+                period of inactivity. Resume on touch.</div>
+            </div>
+
             <div>
               <label
                 style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
@@ -859,6 +882,15 @@
               </label>
               <div style="font-size:10px; opacity:0.6; margin-left:24px;">Power down between updates.</div>
             </div>
+          </div>
+
+          <!-- Dim Timeout (Used by LCD Dim after timeout) -->
+          <div id="dim-timeout-row"
+            style="display:none; align-items:center; gap:8px; margin-left:24px; margin-top:8px; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px;">
+            <span style="font-size: 11px; opacity: 0.7;">Dim after</span>
+            <input type="number" id="setting-dim-timeout" class="prop-input" placeholder="10" style="width:80px;"
+              min="1" value="10">
+            <span style="font-size: 11px; opacity: 0.7;">seconds</span>
           </div>
 
           <!-- Common Sleep Times (Used by both) -->

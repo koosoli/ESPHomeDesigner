@@ -449,7 +449,7 @@ export class ESPHomeAdapter extends BaseAdapter {
 
         // 6.5 LVGL (If supported)
         if (isLvgl && generateLVGLSnippet) {
-            const lvglSnippet = generateLVGLSnippet(pages, model, profile);
+            const lvglSnippet = generateLVGLSnippet(pages, model, profile, layout);
             if (lvglSnippet && lvglSnippet.length > 0) {
                 lines.push(...lvglSnippet);
             }
@@ -497,7 +497,7 @@ export class ESPHomeAdapter extends BaseAdapter {
                 }
             }
 
-            packageContent = this.applyPackageOverrides(packageContent, profile, layout.orientation, hasLvgl);
+            packageContent = this.applyPackageOverrides(packageContent, profile, layout.orientation, hasLvgl, layout);
 
             // Fix: Standardize section merging. We want to avoid double headers like "sensor:"
             // but we MUST NOT filter out content lines like "- platform:" which are shared.
@@ -922,13 +922,14 @@ export class ESPHomeAdapter extends BaseAdapter {
         return sanitized.join('\n');
     }
 
-    applyPackageOverrides(yaml, profile, orientation, isLvgl = false) {
+    applyPackageOverrides(yaml, profile, orientation, isLvgl = false, layout = {}) {
         if (isLvgl) {
             // Fix: ESPHome 2025.12.7 compatibility - LVGL cannot have auto_clear_enabled: true
             yaml = yaml.replace(/auto_clear_enabled:\s*true/g, "auto_clear_enabled: false");
         }
 
-        if (profile.name?.toLowerCase().includes("waveshare touch lcd 7")) {
+        if ((profile.id && profile.id === "waveshare_esp32_s3_touch_lcd_7") ||
+            (profile.name && profile.name.toLowerCase().includes("waveshare touch lcd 7"))) {
             // Fix #182: Native resolution is 800x480 (Landscape), so rotation should be 0 for landscape.
             let rotation = 0;
             if (orientation === "portrait") rotation = 90;
@@ -940,7 +941,7 @@ export class ESPHomeAdapter extends BaseAdapter {
             yaml = yaml.replace(/(display:[\s\S]*?rotation:\s*)\d+/g, `$1${rotation}`);
 
             // Also update the Captive Portal hotspot name in the header if present
-            const deviceName = profile.name.replace(/["\\]/g, "").split(" ")[0] || "ESPHome-Device";
+            const deviceName = (profile.name || "ESPHome-Device").replace(/["\\]/g, "").split(" ")[0];
             yaml = yaml.replace(/"Waveshare-7-Inch"/g, `"${deviceName}-Hotspot"`);
 
             // Fix #129: Indentation-aware GT911 transform logic
@@ -957,9 +958,56 @@ export class ESPHomeAdapter extends BaseAdapter {
 
                 if (transform) {
                     // Remove existing transform if present to avoid duplication
-                    const transformRegex = new RegExp(`^${indent}transform:[\\s\\S]*?^(?=\\S|\\s{${indent.length},${indent.length}}\\S)`, 'm');
-                    // We'll just replace the ID line with ID + transform
-                    yaml = yaml.replace(/^(\s*)id:\s*my_touchscreen.*$/m, `$1id: my_touchscreen\n$1${transform}`);
+                    // Check if transform block already exists
+                    const hasTransform = new RegExp(`^${indent}transform:`, 'm').test(yaml);
+                    if (hasTransform) {
+                        // Replace existing transform block
+                        // This is tricky with regex, simpler to just replace the whole touchscreen block or 
+                        // trust that the previous ID replace approach works if the block is immediately after ID
+                        // But often it's not. 
+                        // Let's stick to the ID injection but we must clean up old transform if needed?
+                        // Actually, if we just append, YAML usually takes the last key if duplicated? No, that's JSON. YAML errs.
+
+                        // Let's use a simpler approach: replace "transform:\n ... swap_xy: true" with our new block
+                        // Finding the specific 2-line block:
+                        const oldTransformRegex = new RegExp(`^${indent}transform:[\\s\\S]*?swap_xy: true`, 'm');
+                        if (oldTransformRegex.test(yaml)) {
+                            // Fix: Prepend indent because 'transform' variable starts with 'transform:', not '  transform:'
+                            yaml = yaml.replace(oldTransformRegex, `${indent}${transform}`);
+                        }
+                    } else {
+                        // Inject after ID
+                        yaml = yaml.replace(idMatch[0], `${idMatch[0]}\n${indent}${transform}`);
+                    }
+                }
+
+                // Inject LVGL Dimming Wakeup Trigger
+                if (isLvgl && layout.lcdEcoStrategy === 'dim_after_timeout') {
+                    // Check if on_release already exists to avoid duplication
+                    if (!yaml.includes("on_release:")) {
+                        const wakeupTrigger = `\n${indent}on_release:\n${indent}  - if:\n${indent}      condition: lvgl.is_paused\n${indent}      then:\n${indent}        - lvgl.resume:\n${indent}        - lvgl.widget.redraw:\n${indent}        - light.turn_on: display_backlight`;
+
+                        // Append to the end of the touchscreen component
+                        // We find the 'touchscreen:' block start, then look for the next top-level key (start of line)
+                        // IF touchscreen is the last block, we append to end of file.
+
+                        const tsBlockStart = yaml.search(/^touchscreen:/m);
+                        if (tsBlockStart !== -1) {
+                            const afterTsBlock = yaml.slice(tsBlockStart);
+                            // Find next top-level key (start of line with non-space)
+                            // Skip the first line (touchscreen:)
+                            const nextKeyMatch = afterTsBlock.slice(12).match(/^\w/m);
+
+                            if (nextKeyMatch) {
+                                // Insert before next key
+                                const insertIdx = tsBlockStart + 12 + nextKeyMatch.index;
+                                yaml = yaml.slice(0, insertIdx) + wakeupTrigger + "\n\n" + yaml.slice(insertIdx);
+                            } else {
+                                // End of file
+                                yaml = yaml.trimEnd() + wakeupTrigger + "\n";
+                            }
+                        }
+                    }
                 }
             }
         }
