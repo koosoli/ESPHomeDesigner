@@ -53,12 +53,40 @@ export function highlightWidgetInSnippet(widgetIds) {
 
     ids.forEach(id => {
         // Search for the widget ID in the metadata comments
-        const targetStr = `id:${id}`;
-        const index = yaml.indexOf(targetStr);
+        let targetStr = `id:${id}`;
+        let index = yaml.indexOf(targetStr);
+
+        // Fallback 1: Check for spaced ID (common in YAML body)
+        if (index === -1) {
+            targetStr = `id: ${id}`;
+            index = yaml.indexOf(targetStr);
+        }
+
+        // Fallback 2: Check for JSON format (common in OEPL/ODP)
+        if (index === -1) {
+            targetStr = `"id":"${id}"`;
+            index = yaml.indexOf(targetStr);
+        }
+        if (index === -1) {
+            targetStr = `"id": "${id}"`;
+            index = yaml.indexOf(targetStr);
+        }
 
         if (index !== -1) {
             // Find the start of the line containing the ID
-            const lineStart = yaml.lastIndexOf('\n', index) + 1;
+            let lineStart = yaml.lastIndexOf('\n', index) + 1;
+
+            // SPECIAL HANDLING FOR JSON:
+            // If the match was a JSON string (contains "id"), we likely found the ID *inside* the object.
+            // We need to walk backwards to find the opening brace '{'
+            if (targetStr.includes('"')) {
+                const openBraceIndex = yaml.lastIndexOf('{', index);
+                if (openBraceIndex !== -1) {
+                    // Use the indentation of the brace line
+                    const braceLineStart = yaml.lastIndexOf('\n', openBraceIndex) + 1;
+                    lineStart = braceLineStart;
+                }
+            }
 
             // Find the next widget or page marker to determine block end
             const nextMarkers = ["# widget:", "// widget:", "// page:"];
@@ -75,29 +103,57 @@ export function highlightWidgetInSnippet(widgetIds) {
                 "  ]", "    ]", "  }", "    }"
             ];
 
-            let nextMarkerIndex = -1;
+            let blockEnd = -1;
+            const isJson = targetStr.includes('"');
 
-            // Check standard markers
-            nextMarkers.forEach(m => {
-                const idx = yaml.indexOf(m, index + targetStr.length);
-                if (idx !== -1 && (nextMarkerIndex === -1 || idx < nextMarkerIndex)) {
-                    nextMarkerIndex = idx;
+            if (isJson) {
+                // Brace balancing for JSON objects
+                let braceCount = 0;
+                let foundStart = false;
+
+                // Start scanning from the calculated lineStart (which should be the open brace line)
+                // We re-scan to ensure we catch the opening brace if it wasn't exactly at lineStart
+                for (let i = lineStart; i < yaml.length; i++) {
+                    const char = yaml[i];
+                    if (char === '{') {
+                        braceCount++;
+                        foundStart = true;
+                    } else if (char === '}') {
+                        braceCount--;
+                    }
+
+                    if (foundStart && braceCount === 0) {
+                        blockEnd = i + 1; // Include the closing brace
+                        // Optional: Include trailing comma if present
+                        if (yaml[i + 1] === ',') blockEnd++;
+                        break;
+                    }
                 }
-            });
+            }
 
-            // Check stop keys (must be at start of line)
-            stopKeys.forEach(key => {
-                const searchStr = "\n" + key;
-                const idx = yaml.indexOf(searchStr, index + targetStr.length);
-                if (idx !== -1 && (nextMarkerIndex === -1 || idx < nextMarkerIndex)) {
-                    // Include the newline in the count, so we stop BEFORE the key
-                    // But wait, the selection range end is exclusive? 
-                    // Usually we want to stop exactly at the newline before.
-                    nextMarkerIndex = idx + 1; // +1 to capture the newline character itself but stop before key
-                }
-            });
+            // Fallback to marker search if strict JSON balancing failed or wasn't applicable
+            if (blockEnd === -1) {
+                let nextMarkerIndex = -1;
 
-            const blockEnd = nextMarkerIndex !== -1 ? nextMarkerIndex : yaml.length;
+                // Check standard markers
+                nextMarkers.forEach(m => {
+                    const idx = yaml.indexOf(m, index + targetStr.length);
+                    if (idx !== -1 && (nextMarkerIndex === -1 || idx < nextMarkerIndex)) {
+                        nextMarkerIndex = idx;
+                    }
+                });
+
+                // Check stop keys (must be at start of line)
+                stopKeys.forEach(key => {
+                    const searchStr = "\n" + key;
+                    const idx = yaml.indexOf(searchStr, index + targetStr.length);
+                    if (idx !== -1 && (nextMarkerIndex === -1 || idx < nextMarkerIndex)) {
+                        nextMarkerIndex = idx + 1;
+                    }
+                });
+
+                blockEnd = nextMarkerIndex !== -1 ? nextMarkerIndex : yaml.length;
+            }
 
             if (minStart === -1 || lineStart < minStart) minStart = lineStart;
             if (blockEnd > maxEnd) maxEnd = blockEnd;

@@ -37,8 +37,12 @@ export class OEPLAdapter extends BaseAdapter {
             const element = this.generateWidget(widget, { layout, page });
             if (element) {
                 // JSON does not support comments, so we skip adding widget markers
+                // BUT we inject the ID into the object so the highlighter can find it
                 const elements = Array.isArray(element) ? element : [element];
                 elements.forEach((el) => {
+                    if (el && typeof el === 'object' && !el.id) {
+                        el.id = widget.id;
+                    }
                     payloadItems.push(el);
                 });
             }
