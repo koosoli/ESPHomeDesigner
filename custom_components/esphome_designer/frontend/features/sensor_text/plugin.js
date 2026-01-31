@@ -218,6 +218,130 @@ export default {
     },
 
     render,
+    exportLVGL: (w, { common, convertColor, convertAlign, getLVGLFont, formatOpacity }) => {
+        const p = w.props || {};
+        const format = p.value_format || "label_value";
+        let entityId = (w.entity_id || "").trim();
+        let entityId2 = (w.entity_id_2 || "").trim();
+
+        // Ensure sensor. prefix if missing (reuse logic from export)
+        if (entityId && !p.is_local_sensor && !entityId.includes(".") && !entityId.startsWith("text_sensor.")) {
+            entityId = `sensor.${entityId}`;
+        }
+        if (entityId2 && !p.is_local_sensor && !entityId2.includes(".") && !entityId2.startsWith("text_sensor.")) {
+            entityId2 = `sensor.${entityId2}`;
+        }
+
+        let unit = (p.unit || "").trim();
+        // Auto-detect unit (simplified check)
+        if (!unit && !p.hide_unit && !format.endsWith("_no_unit") && entityId) {
+            const eid = entityId.toLowerCase();
+            // Simple fallback heuristics if app state not available during static export
+            if (eid.includes("temp")) unit = "°C";
+            else if (eid.includes("humid")) unit = "%";
+            else if (eid.includes("batt")) unit = "%";
+            else if (eid.includes("volt")) unit = "V";
+            else if (eid.includes("power")) unit = "W";
+        }
+
+        // Helper to formatting strings
+        const escapeFmt = (str) => (str || "").replace(/"/g, '\\"').replace(/%/g, "%%");
+
+        let precision = parseInt(p.precision, 10);
+        if (isNaN(precision) || precision < 0) precision = 2;
+
+        const isText1 = p.is_text_sensor || (entityId && (entityId.startsWith("text_sensor.") || entityId.startsWith("weather.")));
+        const isText2 = p.is_text_sensor || (entityId2 && (entityId2.startsWith("text_sensor.") || entityId2.startsWith("weather.")));
+
+        // Helper to get safe ID
+        const makeSafeId = (eid, suffix = "") => {
+            let safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            const maxBase = 63 - suffix.length;
+            if (safe.length > maxBase) safe = safe.substring(0, maxBase);
+            return safe + suffix;
+        };
+
+        const v1 = p.is_local_sensor ? `id(${entityId || "battery_level"}).state` :
+            (isText1 ? `id(${makeSafeId(entityId, "_txt")}).state.c_str()` : `id(${makeSafeId(entityId)}).state`);
+
+        const v2 = entityId2 ? (isText2 ? `id(${makeSafeId(entityId2, "_txt")}).state.c_str()` : `id(${makeSafeId(entityId2)}).state`) : null;
+
+        const valFmt1 = isText1 ? "%s" : `%.${precision}f`;
+        const valFmt2 = isText2 ? "%s" : `%.${precision}f`;
+
+        const displayUnitStr = (p.hide_unit || format.endsWith("_no_unit")) ? "" : escapeFmt(unit);
+        const prefixEsc = escapeFmt(p.prefix || "");
+        const postfixEsc = escapeFmt(p.postfix || "");
+        const separatorEsc = escapeFmt(p.separator || " ~ ");
+
+        let title = (w.title || p.title || "").trim();
+        if (!title && format.startsWith("label_")) {
+            title = entityId.split('.').pop().replace(/_/g, ' ');
+        }
+        const titleEsc = escapeFmt(title);
+
+        // Construct Format String
+        let fmt = "";
+        let args = "";
+
+        // Combine value parts
+        const fullValueFmt = `${prefixEsc}${valFmt1}${v2 ? separatorEsc + valFmt2 : ""}${displayUnitStr ? " " + displayUnitStr : ""}${postfixEsc}`;
+
+        const arg1 = v1;
+        const arg2 = v2;
+        const valueArgs = v2 ? `${arg1}, ${arg2}` : arg1;
+
+        if (format === "label_only") {
+            fmt = titleEsc;
+            args = ""; // No dynamic args
+        } else if (format === "value_only" || format === "value_only_no_unit") {
+            fmt = fullValueFmt;
+            args = valueArgs;
+        } else if (format === "label_value" || format === "label_value_no_unit") {
+            fmt = `${titleEsc}: ${fullValueFmt}`;
+            args = valueArgs;
+        } else if (format === "value_label") {
+            fmt = `${fullValueFmt} ${titleEsc}`;
+            args = valueArgs;
+        } else if (format === "label_newline_value" || format === "label_newline_value_no_unit") {
+            fmt = `${titleEsc}\\n${fullValueFmt}`;
+            args = valueArgs;
+        } else {
+            fmt = fullValueFmt;
+            args = valueArgs;
+        }
+
+        // Generate Lambda
+        let textLambda;
+        if (!entityId && !p.is_local_sensor) {
+            textLambda = `"${titleEsc}"`;
+        } else if (args) {
+            // Use floating point buffer size safety if needed, but return string directly via str_sprintf provided by ESPHome
+            textLambda = `!lambda |-
+          return str_sprintf("${fmt}", ${args}).c_str();`;
+        } else {
+            textLambda = `"${fmt}"`;
+        }
+
+        const alignMap = {
+            "CENTER": "CENTER", "LEFT": "LEFT", "RIGHT": "RIGHT",
+            "TOP": "CENTER", "BOTTOM": "CENTER",
+            "TOP_LEFT": "LEFT", "TOP_RIGHT": "RIGHT", "top_left": "LEFT"
+        };
+        const textAlign = alignMap[p.text_align] || alignMap[p.value_align] || "CENTER";
+
+        return {
+            label: {
+                ...common,
+                text: textLambda,
+                text_font: getLVGLFont(p.font_family, p.font_size || p.value_font_size, p.font_weight, p.italic),
+                text_color: convertColor(p.color),
+                text_align: textAlign,
+                bg_color: p.bg_color === "transparent" ? undefined : convertColor(p.bg_color),
+                opa: formatOpacity(p.opa)
+            }
+        };
+    },
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "").trim();
