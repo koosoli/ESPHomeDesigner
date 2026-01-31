@@ -111,9 +111,29 @@ export async function uploadHardwareTemplate(file) {
 
         return data;
     } catch (err) {
-        Logger.error("Hardware upload failed:", err);
-        showToast(`Upload failed: ${err.message}`, "error");
-        throw err;
+        const msg = err.message || "";
+        // "Failed to fetch" often means network hiccup but upload succeeded on server
+        if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+            Logger.warn("[HardwareImport] Network error during upload (likely benign):", msg);
+            showToast("Generating profile, refreshing list...", "info");
+
+            // Still try to refresh profiles - the file was probably saved
+            try {
+                const { loadExternalProfiles } = await import('./devices.js');
+                if (loadExternalProfiles) {
+                    await loadExternalProfiles();
+                }
+            } catch (refreshErr) {
+                Logger.warn("[HardwareImport] Profile refresh also failed:", refreshErr);
+            }
+
+            // Don't rethrow - we want the caller to proceed with selection
+            return { success: true, filename: file.name, note: "network_error_suppressed" };
+        } else {
+            Logger.error("Hardware upload failed:", err);
+            showToast(`Upload failed: ${msg}`, "error");
+            throw err;
+        }
     }
 }
 

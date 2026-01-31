@@ -160,16 +160,35 @@ class ESPHomeDesignerStaticView(HomeAssistantView):
             _LOGGER.warning("Blocked path traversal attempt: %s", path)
             return web.Response(status=403, text="Forbidden")
 
-        # Look in integration's frontend/ directory
-        integration_dir = Path(__file__).parent / "frontend"
-        file_path = (integration_dir / path).resolve()
+        # Special handling for persistent hardware profiles
+        # URL path: /esphome-designer/editor/static/esphomedesigner_custom_profiles/{filename}
+        if path.startswith("esphomedesigner_custom_profiles/"):
+             profile_filename = path.replace("esphomedesigner_custom_profiles/", "").strip("/")
+             
+             # Security: Block traversal
+             if ".." in profile_filename or "/" in profile_filename or "\\" in profile_filename:
+                 _LOGGER.warning("Blocked profile path traversal: %s", profile_filename)
+                 return web.Response(status=403, text="Forbidden")
+             
+             custom_profiles_dir = Path(self.hass.config.path("esphomedesigner_custom_profiles"))
+             file_path = (custom_profiles_dir / profile_filename).resolve()
+             
+             # Security: Ensure still in correct dir
+             try:
+                 file_path.relative_to(custom_profiles_dir.resolve())
+             except ValueError:
+                  return web.Response(status=403, text="Forbidden")
+        else:
+             # Look in integration's frontend/ directory (standard assets)
+             integration_dir = Path(__file__).parent / "frontend"
+             file_path = (integration_dir / path).resolve()
 
-        # Security: Ensure resolved path is still under integration_dir
-        try:
-            file_path.relative_to(integration_dir.resolve())
-        except ValueError:
-            _LOGGER.warning("Blocked path escape attempt: %s -> %s", path, file_path)
-            return web.Response(status=403, text="Forbidden")
+             # Security: Ensure resolved path is still under integration_dir
+             try:
+                 file_path.relative_to(integration_dir.resolve())
+             except ValueError:
+                 _LOGGER.warning("Blocked path escape attempt: %s -> %s", path, file_path)
+                 return web.Response(status=403, text="Forbidden")
 
         if not file_path.exists() or not file_path.is_file():
             _LOGGER.debug("Static file not found: %s", file_path)

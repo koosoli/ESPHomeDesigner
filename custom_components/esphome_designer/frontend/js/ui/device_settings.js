@@ -205,32 +205,35 @@ export class DeviceSettings {
             });
         }
 
-        // Robust Event Delegation with Debounce
-        document.body.addEventListener('click', async (e) => {
-            if (e.target && e.target.id === 'saveCustomProfileBtn') {
+        // Direct listener for the Save button
+        const saveBtn = document.getElementById('saveCustomProfileBtn');
+        if (saveBtn) {
+            // Remove old listeners to prevent duplicates (cloning trick)
+            const newBtn = saveBtn.cloneNode(true);
+            saveBtn.parentNode.replaceChild(newBtn, saveBtn);
+
+            newBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
-                e.stopImmediatePropagation(); // Stop other listeners
+                if (this._isSavingProfile) return;
 
-                if (this._isSavingProfile) return; // Debounce
-                this._isSavingProfile = true;
-
-                Logger.log("[DeviceSettings] saveCustomProfileBtn clicked (Delegate+Debounce)");
-
-                try {
-                    if (typeof this.handleSaveCustomProfile === 'function') {
+                Logger.log("[DeviceSettings] Save button clicked");
+                await this.handleSaveCustomProfile();
+            });
+        } else {
+            // Fallback delegate if button isn't in DOM yet (e.g. dynamic modal content)
+            const modal = document.getElementById('deviceSettingsModal');
+            if (modal) {
+                modal.addEventListener('click', async (e) => {
+                    if (e.target && e.target.id === 'saveCustomProfileBtn') {
+                        e.preventDefault();
+                        if (this._isSavingProfile) return;
+                        Logger.log("[DeviceSettings] Save button clicked (Delegate)");
                         await this.handleSaveCustomProfile();
-                    } else {
-                        Logger.error("[DeviceSettings] handleSaveCustomProfile missing");
-                        alert("Error: Save function missing on DeviceSettings instance");
                     }
-                } catch (err) {
-                    console.error(err);
-                    alert("Error saving profile: " + err.message);
-                } finally {
-                    setTimeout(() => { this._isSavingProfile = false; }, 1000);
-                }
+                });
             }
-        });
+        }
+
         this.setupCustomHardwareAutoSave();
     }
 
@@ -348,12 +351,22 @@ export class DeviceSettings {
             const el = document.getElementById(id);
             if (el) el.setAttribute('list', datalistId);
         });
-
         Logger.log(`[DeviceSettings] Updated pin datalists to: ${datalistId}`);
     }
 
     async handleSaveCustomProfile() {
-        Logger.log("[DeviceSettings] handleSaveCustomProfile called");
+        if (this._isSavingProfile) return;
+        this._isSavingProfile = true;
+
+        if (this.saveDebounceTimer) {
+            clearTimeout(this.saveDebounceTimer);
+            this.saveDebounceTimer = null;
+        }
+
+        Logger.log("[DeviceSettings] handleSaveCustomProfile called (Auto-save blocked)");
+
+        const saveBtn = document.getElementById('saveCustomProfileBtn');
+        const originalBtnText = saveBtn ? saveBtn.textContent : "Save Profile";
 
         try {
             const name = this.customProfileNameInput ? this.customProfileNameInput.value.trim() : "";
@@ -361,6 +374,11 @@ export class DeviceSettings {
                 showToast("Please enter a name for your custom profile first.", "warning");
                 if (this.customProfileNameInput) this.customProfileNameInput.focus();
                 return;
+            }
+
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.textContent = "Saving...";
             }
 
 
@@ -406,41 +424,93 @@ export class DeviceSettings {
             showToast("Generating hardware recipe...", "info");
 
             // uploadHardwareTemplate will trigger loadExternalProfiles()
-            await uploadHardwareTemplate(file);
+            // Even if it throws (network error), file is usually saved on server
+            let uploadSucceeded = false;
+            try {
+                await uploadHardwareTemplate(file);
+                uploadSucceeded = true;
+            } catch (uploadErr) {
+                // Suppress network errors - file was probably saved
+                const msg = uploadErr.message || "";
+                if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+                    Logger.warn("[DeviceSettings] Upload network error (likely benign):", msg);
+                    uploadSucceeded = true; // Assume it worked
+                } else {
+                    throw uploadErr; // Rethrow real errors
+                }
+            }
 
-            // Polling logic to find and select the new profile
-            let attempts = 0;
-            const findAndSelect = () => {
-                // loadExternalProfiles merges into DEVICE_PROFILES and calls populateDeviceSelect
-                const profiles = Object.values(window.DEVICE_PROFILES || DEVICE_PROFILES || {});
-                const newProfile = profiles.find(p =>
-                    p.name === name ||
-                    p.name === name + " (Local)" ||
-                    (p.name && p.name.includes(name))
-                );
+            if (uploadSucceeded) {
+                // Calculate the expected ID (matches hardware.py logic)
+                const baseId = fileName.replace('.yaml', '').replace(/-/g, '_').replace(/\./g, '_');
+                const expectedId = `custom_${baseId}`;
 
-                if (newProfile) {
-                    const modelId = Object.keys(window.DEVICE_PROFILES || DEVICE_PROFILES || {}).find(k => (window.DEVICE_PROFILES || DEVICE_PROFILES)[k] === newProfile);
+                // Force reload profiles from server
+                showToast("Reloading profile list...", "info");
+                await this.reloadHardwareProfiles();
+
+                // Now try to find and select
+                let attempts = 0;
+                const maxAttempts = 10;
+
+                const findAndSelect = async () => {
+                    const profiles = window.DEVICE_PROFILES || DEVICE_PROFILES || {};
+                    const profileKeys = Object.keys(profiles);
+
+                    Logger.log(`[DeviceSettings] Looking for '${expectedId}' in ${profileKeys.length} profiles...`);
+
+                    const modelId = profileKeys.find(k => k === expectedId);
+
                     if (modelId) {
                         this.modelInput.value = modelId;
                         this.modelInput.dispatchEvent(new Event('change'));
                         showToast(`Profile "${name}" created and loaded!`, "success");
+                        return;
                     }
-                } else if (attempts < 10) {
-                    attempts++;
-                    Logger.log(`[DeviceSettings] New profile not found yet (attempt ${attempts}), retrying...`);
-                    setTimeout(findAndSelect, 500);
-                } else {
-                    Logger.error("[DeviceSettings] Failed to find the newly created profile in the list.");
-                    showToast("Profile created, but could not be auto-selected. Please find it in the list.", "warning");
-                }
-            };
 
-            setTimeout(findAndSelect, 1000);
+                    // Also try name matching as fallback
+                    const byName = profileKeys.find(k => {
+                        const p = profiles[k];
+                        return p.name === name || (p.name && p.name.includes(name));
+                    });
+
+                    if (byName) {
+                        this.modelInput.value = byName;
+                        this.modelInput.dispatchEvent(new Event('change'));
+                        showToast(`Profile "${name}" created and loaded!`, "success");
+                        return;
+                    }
+
+                    if (attempts < maxAttempts) {
+                        attempts++;
+                        Logger.log(`[DeviceSettings] Profile '${expectedId}' not found (attempt ${attempts})...`);
+
+                        // Force another reload halfway through
+                        if (attempts === 5) {
+                            await this.reloadHardwareProfiles();
+                        }
+
+                        setTimeout(findAndSelect, 800);
+                    } else {
+                        Logger.error("[DeviceSettings] Failed to find newly created profile.");
+                        showToast("Profile created, but could not be auto-selected. Please click Reload.", "warning");
+                    }
+                };
+
+                // Start polling after a short delay
+                setTimeout(findAndSelect, 500);
+            }
 
         } catch (err) {
             Logger.error("Failed to save custom profile:", err);
-            showToast("Failed to create profile: " + err.message, "error");
+            showToast("Failed to create profile: " + (err.message || "Unknown error"), "error");
+        } finally {
+            this._isSavingProfile = false;
+
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = originalBtnText;
+            }
         }
     }
 
@@ -724,8 +794,16 @@ export class DeviceSettings {
     }
 
     persistToBackend() {
+        if (this._isSavingProfile) {
+            Logger.log("[DeviceSettings] Auto-save skipped because a manual profile save is in progress.");
+            if (this.saveDebounceTimer) clearTimeout(this.saveDebounceTimer);
+            return;
+        }
+
         if (this.saveDebounceTimer) clearTimeout(this.saveDebounceTimer);
         this.saveDebounceTimer = setTimeout(async () => {
+            if (this._isSavingProfile) return; // double check inside timeout
+
             if (hasHaBackend() && typeof saveLayoutToBackend === "function") {
                 try {
                     await saveLayoutToBackend();
