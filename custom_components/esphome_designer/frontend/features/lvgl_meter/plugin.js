@@ -108,6 +108,12 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
         const safeId = w.entity_id.replace(/[^a-zA-Z0-9_]/g, "_");
         meterValue = `!lambda "return id(${safeId}).state;"`;
     }
+
+    const tickCount = parseInt(p.tick_count || 11, 10);
+    const tickLength = parseInt(p.tick_length || 10, 10);
+    const scaleWidth = parseInt(p.scale_width || 10, 10);
+    const labelGap = parseInt(p.label_gap || 10, 10);
+
     return {
         meter: {
             ...common,
@@ -116,12 +122,28 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
             scales: [{
                 range_from: p.min || 0,
                 range_to: p.max || 100,
+                angle_range: 270,
+                rotation: 135,
+                ticks: {
+                    count: tickCount,
+                    length: tickLength,
+                    width: 2,
+                    color: convertColor(p.color || "black"),
+                    major: {
+                        stride: Math.max(1, Math.floor(tickCount / 5)),
+                        length: tickLength + 5,
+                        width: 3,
+                        color: convertColor(p.color || "black"),
+                        label_gap: labelGap
+                    }
+                },
                 indicators: [{
                     line: {
                         id: `${w.id}_ind`,
                         value: meterValue,
                         color: convertColor(p.indicator_color || "red"),
-                        width: parseInt(p.indicator_width || 4, 10)
+                        width: parseInt(p.indicator_width || 4, 10),
+                        r_mod: -scaleWidth
                     }
                 }]
             }]
