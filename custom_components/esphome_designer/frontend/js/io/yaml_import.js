@@ -933,6 +933,7 @@ export function parseSnippetYamlOffline(yamlText) {
                     condition_state: p.cond_state || "",
                     condition_min: p.cond_min || "",
                     condition_max: p.cond_max || "",
+                    locked: (p.locked === "true"),
                     props: {}
                 };
 

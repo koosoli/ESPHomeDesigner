@@ -247,6 +247,9 @@ export function serializeWidget(w) {
     // Entity mapping
     if (w.entity_id) parts.push(`entity:${w.entity_id}`);
 
+    // Locked state (only serialize if true to keep YAML clean)
+    if (w.locked) parts.push(`locked:true`);
+
     // Extended properties
     if (w.props) {
         Object.entries(w.props).forEach(([k, v]) => {
