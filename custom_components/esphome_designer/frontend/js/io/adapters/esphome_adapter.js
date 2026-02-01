@@ -319,6 +319,9 @@ export class ESPHomeAdapter extends BaseAdapter {
                 // Fix #198: Skip if this is a sensor_text widget explicitly marked as a text sensor
                 if (w.type === "sensor_text" && p.is_text_sensor) return;
 
+                // Fix #240: Skip calendar widgets as they are complex text sensors (json) handled by the plugin
+                if (w.type === "calendar") return;
+
                 const isHaSensor = entityId.includes(".") && !entityId.startsWith("weather.") && !entityId.startsWith("text_sensor.") && !entityId.startsWith("binary_sensor.");
                 const binaryDomains = ["switch.", "light.", "fan.", "input_boolean.", "cover.", "lock."];
                 const isBinaryDomain = binaryDomains.some(d => entityId.startsWith(d));
