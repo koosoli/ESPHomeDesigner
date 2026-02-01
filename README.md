@@ -96,7 +96,6 @@ You can use the designer without installing anything!
 Run the editor locally without Home Assistant:
 
 ```bash
-cd custom_components/esphome_designer/frontend
 npm install
 npm run dev
 ```
