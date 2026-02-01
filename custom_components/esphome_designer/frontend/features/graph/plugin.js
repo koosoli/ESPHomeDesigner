@@ -2,7 +2,7 @@
  * Graph Plugin
  */
 import { drawInternalGrid, generateMockData, drawSmartAxisLabels, generateHistoricalDataPoints } from '../../js/utils/graph_helpers.js';
-import { fetchEntityHistory } from '../../js/io/ha_api.js';
+import { fetchEntityHistory, getEntityAttributes } from '../../js/io/ha_api.js';
 import { emit, EVENTS } from '../../js/core/events.js';
 
 const historyCache = new Map(); // cacheKey -> { data, timestamp }
@@ -54,22 +54,75 @@ const render = (el, widget, { getColorStyle }) => {
     // Check for historical data
     let historyData = null;
     if (entityId) {
-        const duration = props.duration || "1h";
-        const cacheKey = `${entityId}_${duration}`;
-        const cached = historyCache.get(cacheKey);
+        if (props.use_ha_history) {
+            // Live Preview for HA Attribute mode
+            const attrs = getEntityAttributes(entityId);
+            const attrName = props.history_attribute || 'history';
+            if (attrs && attrs[attrName]) {
+                const rawData = attrs[attrName];
+                // Parse similarly to C++ logic
+                const values = [];
+                if (Array.isArray(rawData)) {
+                    rawData.forEach(item => {
+                        // Handle simple numbers
+                        if (typeof item === 'number') values.push(item);
+                        // Handle string numbers
+                        else if (typeof item === 'string') {
+                            const f = parseFloat(item);
+                            if (!isNaN(f)) values.push(f);
+                        }
+                        // Handle structured objects (value: X)
+                        else if (typeof item === 'object' && item !== null) {
+                            if (item.value !== undefined) {
+                                const f = parseFloat(item.value);
+                                if (!isNaN(f)) values.push(f);
+                            }
+                        }
+                    });
+                } else if (typeof rawData === 'string') {
+                    // Handle stringified JSON or CSV
+                    try {
+                        const parsed = JSON.parse(rawData);
+                        if (Array.isArray(parsed)) {
+                            parsed.forEach(p => {
+                                if (typeof p === 'number') values.push(p);
+                                else if (p.value !== undefined) values.push(parseFloat(p.value));
+                            });
+                        }
+                    } catch (e) {
+                        // Fallback: regex for value:
+                        const regex = /value\s*:\s*([\d\.-]+)/g;
+                        let match;
+                        while ((match = regex.exec(rawData)) !== null) {
+                            values.push(parseFloat(match[1]));
+                        }
+                    }
+                }
 
-        if (cached && (Date.now() - cached.timestamp < 60000)) {
-            historyData = cached.data;
-        } else if (!fetchInProgress.has(cacheKey)) {
-            fetchInProgress.add(cacheKey);
-            fetchEntityHistory(entityId, duration).then(data => {
-                historyCache.set(cacheKey, { data, timestamp: Date.now() });
-                fetchInProgress.delete(cacheKey);
-                // Trigger re-render
-                emit(EVENTS.WIDGET_UPDATED, widget.id);
-            }).catch(() => {
-                fetchInProgress.delete(cacheKey);
-            });
+                // Map to format expected by generateHistoricalDataPoints
+                if (values.length > 0) {
+                    historyData = values.map(v => ({ state: v, last_changed: Date.now() }));
+                }
+            }
+        } else {
+            // Standard History API mode
+            const duration = props.duration || "1h";
+            const cacheKey = `${entityId}_${duration}`;
+            const cached = historyCache.get(cacheKey);
+
+            if (cached && (Date.now() - cached.timestamp < 60000)) {
+                historyData = cached.data;
+            } else if (!fetchInProgress.has(cacheKey)) {
+                fetchInProgress.add(cacheKey);
+                fetchEntityHistory(entityId, duration).then(data => {
+                    historyCache.set(cacheKey, { data, timestamp: Date.now() });
+                    fetchInProgress.delete(cacheKey);
+                    // Trigger re-render
+                    emit(EVENTS.WIDGET_UPDATED, widget.id);
+                }).catch(() => {
+                    fetchInProgress.delete(cacheKey);
+                });
+            }
         }
     }
 
@@ -464,6 +517,8 @@ const onExportEsphome = (context) => {
     if (hasHistoryGraph) {
         if (!lines.includes("<sstream>")) lines.push("<sstream>");
         if (!lines.includes("<algorithm>")) lines.push("<algorithm>");
+        if (!lines.includes("<regex>")) lines.push("<regex>");
+        if (!lines.includes("<vector>")) lines.push("<vector>");
     }
 };
 
@@ -488,16 +543,43 @@ const onExportTextSensors = (context) => {
         lines.push(`      - lambda: |-`);
         lines.push(`          std::string input = x;`);
         lines.push(`          if (input.empty()) return;`);
-        lines.push(`          if (input.front() == '[') input.erase(0, 1);`);
-        lines.push(`          if (input.back() == ']') input.pop_back();`);
-        lines.push(`          std::replace(input.begin(), input.end(), ',', ' ');`);
-        lines.push(`          std::stringstream ss(input);`);
-        lines.push(`          float val;`);
+        lines.push(`          `);
+        lines.push(`          std::vector<float> values;`);
+        lines.push(`          `);
+        lines.push(`          // Check if structured format (contains "value:")`);
+        lines.push(`          if (input.find("value:") != std::string::npos || input.find("value :") != std::string::npos) {`);
+        lines.push(`            // Extract numbers after "value:" using regex`);
+        lines.push(`            std::regex re("value\\\\s*:\\\\s*([\\\\d\\\\.\\\\-]+)");`);
+        lines.push(`            std::sregex_iterator it(input.begin(), input.end(), re);`);
+        lines.push(`            std::sregex_iterator end;`);
+        lines.push(`            while (it != end) {`);
+        lines.push(`              try {`);
+        lines.push(`                float val = std::stof((*it)[1].str());`);
+        lines.push(`                values.push_back(val);`);
+        lines.push(`              } catch (...) {}`);
+        lines.push(`              ++it;`);
+        lines.push(`            }`);
+        lines.push(`          } else {`);
+        lines.push(`            // Simple array format: [10, 11, 12] or ["10", "11"]`);
+        lines.push(`            input.erase(std::remove(input.begin(), input.end(), '['), input.end());`);
+        lines.push(`            input.erase(std::remove(input.begin(), input.end(), ']'), input.end());`);
+        lines.push(`            input.erase(std::remove(input.begin(), input.end(), '"'), input.end());`);
+        lines.push(`            input.erase(std::remove(input.begin(), input.end(), '\\''), input.end());`);
+        lines.push(`            std::replace(input.begin(), input.end(), ',', ' ');`);
+        lines.push(`            std::stringstream ss(input);`);
+        lines.push(`            float val;`);
+        lines.push(`            while (ss >> val) {`);
+        lines.push(`              values.push_back(val);`);
+        lines.push(`            }`);
+        lines.push(`          }`);
+        lines.push(`          `);
+        lines.push(`          // Populate global array`);
         lines.push(`          int idx = 0;`);
         if (p.auto_scale !== false) {
             lines.push(`          float min_v = 1e30, max_v = -1e30;`);
         }
-        lines.push(`          while (ss >> val && idx < ${points}) {`);
+        lines.push(`          for (float val : values) {`);
+        lines.push(`            if (idx >= ${points}) break;`);
         lines.push(`            id(${histId})[idx++] = val;`);
         if (p.auto_scale !== false) {
             lines.push(`            if (val < min_v) min_v = val;`);
