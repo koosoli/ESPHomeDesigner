@@ -40,7 +40,7 @@ substitutions:
   #GPIO pins for the LCD screen
   misopin: GPIO12
   mosipin: GPIO13
-  sclkpin: GPIO14 x
+  sclkpin: GPIO14
   cspin: GPIO15
   dcpin: GPIO2
   blpin: GPIO21
