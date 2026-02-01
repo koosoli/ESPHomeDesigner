@@ -680,9 +680,15 @@ export default {
                 lines.push(`        it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${color}, ${valueAlign}, "${labelStr}${finalValFmt}", ${args});`);
             }
         } else if (format === "label_newline_value" || format === "label_newline_value_no_unit") {
-            // Vertical layout
-            lines.push(`        it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${color}, ${labelAlign}, "${title}");`);
-            lines.push(`        it.printf(${xVal}, ${yVal} + ${labelFS + 4}, id(${valueFontId}), ${color}, ${valueAlign}, "${finalValFmt}", ${args});`);
+            // Vertical layout: calculate offsets for centering
+            // lineDist is the distance between the center/baseline of line 1 and line 2
+            const lineDist = labelFS + 4;
+            let yOff = 0;
+            if (textAlign.includes("BOTTOM")) yOff = -lineDist;
+            else if (!textAlign.includes("TOP")) yOff = -lineDist / 2;
+
+            lines.push(`        it.printf(${xVal}, ${yVal} + ${yOff}, id(${labelFontId}), ${color}, ${labelAlign}, "${title}");`);
+            lines.push(`        it.printf(${xVal}, ${yVal} + ${yOff} + ${lineDist}, id(${valueFontId}), ${color}, ${valueAlign}, "${finalValFmt}", ${args});`);
         } else if (format === "value_label") {
             lines.push(`        it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${color}, ${valueAlign}, "${finalValFmt}", ${args});`);
 
