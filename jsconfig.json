@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "checkJs": true,
+    "baseUrl": "./custom_components/esphome_designer/frontend",
+    "paths": {
+      "@core/*": [
+        "js/core/*"
+      ],
+      "@features/*": [
+        "features/*"
+      ],
+      "@io/*": [
+        "js/io/*"
+      ]
+    }
+  },
+  "include": [
+    "custom_components/esphome_designer/frontend/js/**/*",
+    "custom_components/esphome_designer/frontend/features/**/*",
+    "tests_frontend/**/*",
+    "global.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "custom_components/esphome_designer/frontend/dist"
+  ]
+}

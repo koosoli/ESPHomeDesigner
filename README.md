@@ -95,12 +95,29 @@ You can use the designer without installing anything!
 
 Run the editor locally without Home Assistant:
 
+**Option A: Full Repository Clone (with npm/bun)**
+
+If you cloned the full repository, run from the project root:
+
 ```bash
 npm install
 npm run dev
 ```
 
-Open `http://localhost:5173` in your browser. Connect to Home Assistant by entering your HA URL and a Long-Lived Access Token in Editor Settings.
+Open `http://localhost:5174` in your browser.
+
+**Option B: Frontend-Only (Python HTTP Server)**
+
+If you only have the `custom_components` folder (e.g., HACS install), serve the frontend directly:
+
+```bash
+cd custom_components/esphome_designer/frontend
+python3 -m http.server 8000
+```
+
+Open `http://localhost:8000` in your browser.
+
+Connect to Home Assistant by entering your HA URL and a Long-Lived Access Token in Editor Settings.
 
 ### Setup (ESPHome devices)
 
