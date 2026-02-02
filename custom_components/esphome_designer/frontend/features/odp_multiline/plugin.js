@@ -48,20 +48,20 @@ export default {
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};
-        
+
         // Convert theme_auto to actual color
         let color = p.color || "black";
         if (color === "theme_auto") {
             color = layout?.darkMode ? "white" : "black";
         }
-        
+
         return {
             type: "multiline",
-            visible: true,
             value: p.text || "Line 1|Line 2",
             delimiter: p.delimiter || "|",
             x: Math.round(w.x),
             y: Math.round(w.y),
+            offset_y: (p.font_size || 16) + (p.line_spacing || 4),
             size: p.font_size || 16,
             color: color,
             font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf"
@@ -69,20 +69,24 @@ export default {
     },
     exportOEPL: (w, { layout, page }) => {
         const p = w.props || {};
-        
+
         // Convert theme_auto to actual color
         let color = p.color || "black";
         if (color === "theme_auto") {
             color = layout?.darkMode ? "white" : "black";
         }
-        
+
+        const size = p.font_size || 16;
+        const lineSpacing = p.line_spacing || 4;
+
         return {
             type: "multiline",
             value: p.text || "Line 1|Line 2",
             delimiter: p.delimiter || "|",
             x: Math.round(w.x),
             y: Math.round(w.y),
-            size: p.font_size || 16,
+            offset_y: size + lineSpacing,
+            size: size,
             color: color,
             font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf"
         };

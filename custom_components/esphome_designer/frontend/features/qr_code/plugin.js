@@ -142,12 +142,12 @@ export default {
         const value = p.value || "https://github.com/koosoli/ESPHomeDesigner/";
 
         return {
-            type: "draw_qrcode",
+            type: "qrcode",
             data: value,
             x: Math.round(w.x),
             y: Math.round(w.y),
-            w: Math.round(w.width),
-            h: Math.round(w.height)
+            color: p.color || "black",
+            bgcolor: p.bg_color || "white"
         };
     },
     exportOEPL: (w, { layout, page }) => {

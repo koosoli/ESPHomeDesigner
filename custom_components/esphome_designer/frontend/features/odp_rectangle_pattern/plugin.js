@@ -58,7 +58,6 @@ export default {
         const p = w.props || {};
         return {
             type: "rectangle_pattern",
-            visible: true,
             x_start: Math.round(w.x),
             y_start: Math.round(w.y),
             x_size: p.x_size || 30,

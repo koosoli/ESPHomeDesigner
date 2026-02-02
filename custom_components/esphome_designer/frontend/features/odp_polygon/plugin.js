@@ -78,7 +78,6 @@ export default {
         const offsetPoints = points.map(([x, y]) => [Math.round(w.x + x), Math.round(w.y + y)]);
         return {
             type: "polygon",
-            visible: true,
             points: offsetPoints,
             fill: p.fill || "red",
             outline: p.outline || "black",

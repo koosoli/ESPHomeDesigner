@@ -65,12 +65,12 @@ export default {
         let y_end = Math.round(w.y + (orientation === "vertical" ? w.height : 0));
 
         return {
-            type: "draw_line",
+            type: "line",
             x_start: x_start,
             y_start: y_start,
             x_end: x_end,
             y_end: y_end,
-            color: p.color || "black",
+            fill: p.color || "black",
             width: strokeWidth
         };
     },

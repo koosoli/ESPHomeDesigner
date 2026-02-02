@@ -38,23 +38,11 @@ export class OpenDisplayAdapter extends BaseAdapter {
 
         const background = (layout.darkMode ? "black" : "white");
 
-        // Initial Background Clear action
-        actions.push({
-            type: "draw_rect",
-            x: 0,
-            y: 0,
-            w: width,
-            h: height,
-            fill: background
-        });
-
         page.widgets.forEach(widget => {
             if (widget.hidden || widget.type === 'group') return;
 
             const element = this.generateWidget(widget, { layout, page });
             if (element) {
-                // JSON does not support comments, so we skip adding widget markers
-                // BUT we inject the ID into the object so the highlighter can find it
                 const elements = Array.isArray(element) ? element : [element];
                 elements.forEach(el => {
                     if (el && typeof el === 'object' && !el.id) {
@@ -65,13 +53,7 @@ export class OpenDisplayAdapter extends BaseAdapter {
             }
         });
 
-        // Build proper JSON object - no comments allowed in JSON
-        const output = {
-            version: 1,
-            actions: actions
-        };
-
-        return JSON.stringify(output, null, 2);
+        return JSON.stringify(actions, null, 2);
     }
 
     /**

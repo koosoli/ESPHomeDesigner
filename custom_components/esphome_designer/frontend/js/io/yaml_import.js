@@ -93,7 +93,8 @@ export function parseOEPLArrayToLayout(oeplArray) {
                         text: item.value || item.text || '',
                         font_size: parseInt(item.size || 20, 10),
                         font_family: item.font ? item.font.replace('.ttf', '') : 'Roboto',
-                        color: item.fill || item.color || 'black'
+                        color: item.fill || item.color || 'black',
+                        parse_colors: item.parse_colors === true || item.parse_colors === 'true'
                     }
                 };
                 break;
@@ -118,7 +119,8 @@ export function parseOEPLArrayToLayout(oeplArray) {
                         font_size: parseInt(item.size || 16, 10),
                         font_family: item.font ? item.font.replace('.ttf', '') : 'Roboto',
                         color: item.fill || item.color || 'black',
-                        line_spacing: 4
+                        line_spacing: 4,
+                        parse_colors: item.parse_colors === true || item.parse_colors === 'true'
                     }
                 };
                 break;

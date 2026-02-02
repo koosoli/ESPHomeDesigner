@@ -85,7 +85,6 @@ export default {
         const p = w.props || {};
         return {
             type: "plot",
-            visible: true,
             x_start: Math.round(w.x),
             y_start: Math.round(w.y),
             x_end: Math.round(w.x + w.width),

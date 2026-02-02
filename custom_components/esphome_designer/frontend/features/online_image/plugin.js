@@ -212,13 +212,16 @@ export default {
         const p = w.props || {};
         const url = (p.url || "").trim();
 
+        if (!url) return null;
+
         return {
-            type: "draw_image",
-            src: url || "",
+            type: "dlimg",
+            url: url,
             x: Math.round(w.x),
             y: Math.round(w.y),
-            w: Math.round(w.width),
-            h: Math.round(w.height)
+            xsize: Math.round(w.width),
+            ysize: Math.round(w.height),
+            rotate: p.rotation || 0
         };
     },
     exportOEPL: (w, { layout, page }) => {
@@ -227,12 +230,13 @@ export default {
 
         if (url) {
             return {
-                type: "online_image",
+                type: "dlimg",
                 url: url,
                 x: Math.round(w.x),
                 y: Math.round(w.y),
-                width: Math.round(w.width),
-                height: Math.round(w.height)
+                xsize: Math.round(w.width),
+                ysize: Math.round(w.height),
+                rotate: p.rotation || 0
             };
         }
 

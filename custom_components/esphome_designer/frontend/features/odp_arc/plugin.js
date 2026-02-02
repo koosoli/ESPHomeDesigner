@@ -67,7 +67,6 @@ export default {
         const cy = Math.round(w.y + w.height / 2);
         return {
             type: "arc",
-            visible: true,
             x: cx,
             y: cy,
             radius: p.radius || Math.round(Math.min(w.width, w.height) / 2),

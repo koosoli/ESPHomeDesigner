@@ -63,12 +63,12 @@ export default {
         const name = entry ? entry.name : "information";
 
         return {
-            type: "draw_icon",
+            type: "icon",
             value: name,
             x: Math.round(w.x),
             y: Math.round(w.y),
             size: p.size || 48,
-            color: p.color || "theme_auto"
+            fill: p.color || "black"
         };
     },
     exportOEPL: (w, { layout, page }) => {

@@ -132,6 +132,12 @@ export const WIDGET_CATEGORIES = [
                 label: 'Sensor Plot',
                 tag: 'ODP',
                 icon: '<svg class="widget-icon" viewBox="0 0 24 24"><path d="M3 3v18h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /><path d="M6 15l4-6 4 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>'
+            },
+            {
+                type: 'odp_debug_grid',
+                label: 'Debug Grid',
+                tag: 'Debug',
+                icon: '<svg class="widget-icon" viewBox="0 0 24 24"><path d="M3 3v18h18M3 9h18M3 15h18M9 3v18M15 3v18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>'
             }
         ]
     },

@@ -76,6 +76,67 @@ const wordWrap = (text, maxWidth, fontSize, fontFamily = "Roboto") => {
     return result.length > 0 ? result : [""];
 };
 
+// Helper to parse color tags: "Text [red]Color[/red]" -> HTML
+const parseColorMarkup = (text, defaultColor, getColorStyle) => {
+    // Escape HTML first to prevent injection, but we'll rebuild it safely
+    // simple parse: split by tags
+    const parts = text.split(/(\[[a-zA-Z0-9#_]+\]|\[\/[a-zA-Z0-9#_]+\])/g);
+    const root = document.createDocumentFragment();
+
+    // Stack to keep track of colors. Start with default.
+    const colorStack = [defaultColor];
+
+    parts.forEach(part => {
+        if (!part) return;
+
+        // Check if closing tag [/color] - actually we just pop the stack for any closing tag 
+        // assuming well-formed or simple nesting
+        if (part.startsWith("[/") && part.endsWith("]")) {
+            if (colorStack.length > 1) colorStack.pop();
+            return;
+        }
+
+        // Check if opening tag [color]
+        if (part.startsWith("[") && part.endsWith("]")) {
+            const colorName = part.substring(1, part.length - 1);
+            // Check if it looks like a color (or accent)
+            // We'll accept anything as a potential color key, or just raw hex
+            // Special handling for HA templates inside tags? The user example showed:
+            // [{{ ... }}] - The regex above might not catch complex templates perfectly 
+            // if they contain spaces, but standard [red] is caught.
+            // For simple visualization, we support basic standard colors
+            colorStack.push(colorName);
+            return;
+        }
+
+        // It's text
+        const span = document.createElement("span");
+        let currentColor = colorStack[colorStack.length - 1];
+
+        // Handle "accent" mapping if needed, or valid CSS colors
+        if (currentColor === 'accent') currentColor = 'red'; // Default accent preview
+
+        // Resolve color using getColorStyle if it's a known theme color, or pass through
+        // getColorStyle usually handles palette keys. If raw hex or string, it might return default.
+        // We'll try to set color directly if it looks like a color.
+
+        let cssColor = getColorStyle(currentColor);
+        // If getColorStyle returns default black/white for unknown strings but we have "red",
+        // we want actual red.
+        if (["red", "yellow", "blue", "green", "orange", "purple", "gray", "grey"].includes(currentColor)) {
+            cssColor = currentColor;
+        } else if (currentColor.startsWith("#")) {
+            cssColor = currentColor;
+        }
+
+        span.style.color = cssColor;
+        span.textContent = part;
+        root.appendChild(span);
+    });
+
+    return root;
+};
+
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     el.innerHTML = "";
@@ -98,11 +159,17 @@ const render = (el, widget, { getColorStyle }) => {
     const fontFamily = props.font_family || "Roboto";
     const text = props.text || widget.title || "Text";
 
+    // Check if we should parse colors
+    const shouldParseColors = !!props.parse_colors;
+
     // Apply word-wrap based on widget width
     const wrappedLines = wordWrap(text, widget.width || 200, fontSize, fontFamily);
 
     const body = document.createElement("div");
-    body.style.color = getColorStyle(props.color);
+    // body.style.color = getColorStyle(props.color); // Done via spans if parsing
+    const baseColor = getColorStyle(props.color);
+    body.style.color = baseColor;
+
     body.style.fontSize = `${fontSize}px`;
     body.style.fontFamily = fontFamily + ", sans-serif";
     body.style.fontWeight = String(props.font_weight || 400);
@@ -111,7 +178,16 @@ const render = (el, widget, { getColorStyle }) => {
     body.style.lineHeight = `${fontSize + 4}px`;
     body.style.wordBreak = "break-word";
     body.style.overflowWrap = "break-word";
-    body.textContent = wrappedLines.join('\n');
+
+    if (shouldParseColors) {
+        // Render each line with parsing
+        wrappedLines.forEach((line, i) => {
+            if (i > 0) body.appendChild(document.createTextNode("\n"));
+            body.appendChild(parseColorMarkup(line, props.color || "black", getColorStyle));
+        });
+    } else {
+        body.textContent = wrappedLines.join('\n');
+    }
 
     el.appendChild(body);
 };
@@ -178,15 +254,16 @@ export default {
             };
         }
 
-        // Single line - use draw_text
+        // Single line - use text
         return {
-            type: "draw_text",
+            type: "text",
             x: Math.round(w.x),
             y: Math.round(w.y),
-            text: text,
+            value: text,
             size: fontSize,
             color: color,
-            font: fontFamily?.toLowerCase() || "roboto"
+            font: fontFamily?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf",
+            parse_colors: !!p.parse_colors
         };
     },
     exportLVGL,
@@ -213,7 +290,8 @@ export default {
             font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf",
             color: color,
             align: (p.text_align || "TOP_LEFT").toLowerCase().replace("top_", "").replace("bottom_", "").replace("_", ""),
-            anchor: "lt" // Start with left-top for simplicity
+            anchor: "lt", // Start with left-top for simplicity
+            parse_colors: !!p.parse_colors
         };
 
         // Add max_width for automatic text wrapping when widget has width

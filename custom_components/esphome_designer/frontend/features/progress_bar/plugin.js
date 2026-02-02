@@ -202,49 +202,21 @@ export default {
     },
     render,
     exportOpenDisplay: (w, { layout, page }) => {
-        const p = w.props || {};
-        const title = w.title || "";
-        const showLabel = p.show_label !== false;
-        const barHeight = parseInt(p.bar_height || 15, 10);
-        const color = p.color || "black";
+        const entityId = (w.entity_id || "").trim();
+        const template = TemplateConverter.toHATemplate(entityId, { precision: 0, isNumeric: true });
 
-        const actions = [];
-
-        // Outline rect for bar
-        const barY = Math.round(w.y + (w.height - barHeight));
-        actions.push({
-            type: "draw_rect",
-            x: Math.round(w.x),
-            y: barY,
-            w: Math.round(w.width),
-            h: barHeight,
-            fill: null,
+        return {
+            type: "progress_bar",
+            x_start: Math.round(w.x),
+            y_start: Math.round(w.y),
+            x_end: Math.round(w.x + w.width),
+            y_end: Math.round(w.y + w.height),
+            progress: template || 50,
+            fill: color,
             outline: color,
-            width: 1
-        });
-
-        // Fill half as placeholder
-        actions.push({
-            type: "draw_rect",
-            x: Math.round(w.x + 2),
-            y: barY + 2,
-            w: Math.round((w.width - 4) * 0.5),
-            h: barHeight - 4,
-            fill: color
-        });
-
-        if (showLabel && title) {
-            actions.push({
-                type: "draw_text",
-                x: Math.round(w.x),
-                y: Math.round(w.y),
-                text: title,
-                size: 12,
-                color: color
-            });
-        }
-
-        return actions;
+            width: 1,
+            show_percentage: p.show_percentage !== false
+        };
     },
     exportOEPL: (w, { layout, page }) => {
         const p = w.props || {};

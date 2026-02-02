@@ -45,14 +45,15 @@ export default {
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};
         return {
-            type: "draw_rect",
-            x: Math.round(w.x),
-            y: Math.round(w.y),
-            w: Math.round(w.width),
-            h: Math.round(w.height),
+            type: "rectangle",
+            x_start: Math.round(w.x),
+            y_start: Math.round(w.y),
+            x_end: Math.round(w.x + w.width),
+            y_end: Math.round(w.y + w.height),
             fill: p.fill ? (p.bg_color || p.color || "black") : null,
             outline: p.border_color || p.color || "black",
-            width: p.border_width || 1
+            width: p.border_width || 1,
+            radius: p.radius || 0
         };
     },
     exportLVGL,
