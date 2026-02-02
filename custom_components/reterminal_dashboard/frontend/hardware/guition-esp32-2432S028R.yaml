@@ -166,7 +166,6 @@ display:
       number: $dcpin
       ignore_strapping_warning: true
     invert_colors: false
-    update_interval: never
     auto_clear_enabled: false
     color_order: BGR
     color_palette: 8BIT
