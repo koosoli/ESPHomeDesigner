@@ -11,7 +11,7 @@ const render = (el, widget, { getColorStyle }) => {
     el.style.flexDirection = "column";
     el.style.alignItems = "flex-start";
     el.style.justifyContent = "flex-start";
-    el.style.overflow = "hidden";
+    el.style.overflow = "visible";
 
     const text = props.text || "Line 1|Line 2";
     const delimiter = props.delimiter || "|";

@@ -81,11 +81,12 @@ const wordWrap = (text, maxWidth, fontSize, fontFamily = "Roboto") => {
 
 // Helper to parse color tags: "Text [red]Color[/red]" -> HTML
 const parseColorMarkup = (text, defaultColor, getColorStyle) => {
-    // Updated to allow complex HA templates inside tags, e.g. [{{ ... }}]
-    const parts = text.split(/(\[\/?(?:{{.*?}}|[^\]])+\])/g);
     const root = document.createDocumentFragment();
+    if (!text) return root;
 
-    // Stack to keep track of colors. Start with default.
+    // More robust regex for splitting tags [color] or [/color], even with templates inside
+    // Matches [ followed by optional / then (anything inside {{}} OR anything that is not ]) followed by ]
+    const parts = text.split(/(\[\/?(?:{{.*?}}|[^\]])+\])/g);
     const colorStack = [defaultColor];
 
     parts.forEach(part => {
@@ -93,13 +94,17 @@ const parseColorMarkup = (text, defaultColor, getColorStyle) => {
 
         // Check if closing tag [/color]
         if (part.startsWith("[/") && part.endsWith("]")) {
-            if (colorStack.length > 1) colorStack.pop();
+            if (colorStack.length > 1) {
+                colorStack.pop();
+            }
             return;
         }
 
         // Check if opening tag [color]
         if (part.startsWith("[") && part.endsWith("]")) {
-            const colorName = part.substring(1, part.length - 1);
+            const colorName = part.substring(1, part.length - 1).trim();
+            // Basic validation: ignore if it looks like it might be literal text [ ... ] that isn't a tag
+            // But for ODP/OEPL, we assume it IS a tag if it's in brackets
             colorStack.push(colorName);
             return;
         }
@@ -108,13 +113,18 @@ const parseColorMarkup = (text, defaultColor, getColorStyle) => {
         const span = document.createElement("span");
         let currentColor = colorStack[colorStack.length - 1];
 
+        // Handle "accent" alias
         if (currentColor === 'accent') currentColor = 'red';
 
-        let cssColor = getColorStyle(currentColor);
-        if (["red", "yellow", "blue", "green", "orange", "purple", "gray", "grey", "black", "white"].includes(currentColor.toLowerCase())) {
-            cssColor = currentColor;
-        } else if (currentColor.startsWith("#")) {
-            cssColor = currentColor;
+        // Handle templates in color tags: if it looks like {{ ... }}, use a placeholder or default
+        // because we can't evaluate it here. We'll use the default color or 'red' as a hint.
+        let cssColor;
+        if (currentColor.startsWith("{{")) {
+            // It's a template. For the preview, let's use a subtle variation or just the default.
+            // If it's on a dark background it might be hard to see if black, etc.
+            cssColor = getColorStyle(defaultColor);
+        } else {
+            cssColor = getColorStyle(currentColor);
         }
 
         span.style.color = cssColor;
@@ -129,44 +139,47 @@ const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     el.innerHTML = "";
     el.style.display = "flex";
-    el.style.overflow = "visible"; // Prevent clipping of scaled drawing
+    el.style.flexDirection = "column";
+    el.style.overflow = "visible"; // Ensure widget frame doesn't clip
 
-    const applyAlign = (align, element = el) => {
-        if (!align) return;
-        if (align.includes("LEFT")) element.style.justifyContent = "flex-start";
-        else if (align.includes("RIGHT")) element.style.justifyContent = "flex-end";
-        else element.style.justifyContent = "center";
-
-        if (align.includes("TOP")) element.style.alignItems = "flex-start";
-        else if (align.includes("BOTTOM")) element.style.alignItems = "flex-end";
-        else element.style.alignItems = "center";
-    };
-
-    applyAlign(props.text_align || "TOP_LEFT");
-
-    const fontSize = props.font_size || props.value_font_size || 20;
-    const fontFamily = props.font_family || "Roboto";
     const text = props.text || props.value || widget.title || "Text";
+    const fontSize = props.font_size || 20;
+    const fontFamily = props.font_family || "Roboto";
+    const textAlign = props.text_align || "TOP_LEFT";
+
+    const body = document.createElement("div");
+    body.style.fontSize = `${fontSize}px`;
+    body.style.fontFamily = `${fontFamily}, sans-serif`;
+    body.style.fontWeight = String(props.font_weight || 400);
+    body.style.fontStyle = props.italic ? "italic" : "normal";
+    body.style.whiteSpace = "pre-wrap"; // Preserve line breaks in preview
+    body.style.width = "100%";
+    body.style.minHeight = "100%";
+    body.style.display = "flex";
+    body.style.flexDirection = "column";
+    body.style.overflow = "visible"; // Ensure inner body doesn't clip
+    body.style.flexShrink = "0";
+
+    // Set alignment
+    if (textAlign.includes("CENTER")) body.style.alignItems = "center";
+    else if (textAlign.includes("RIGHT")) body.style.alignItems = "flex-end";
+    else body.style.alignItems = "flex-start";
+
+    if (textAlign.startsWith("CENTER")) body.style.justifyContent = "center";
+    else if (textAlign.startsWith("BOTTOM")) body.style.justifyContent = "flex-end";
+    else body.style.justifyContent = "flex-start";
+
+    // Text alignment
+    if (textAlign.includes("CENTER")) body.style.textAlign = "center";
+    else if (textAlign.includes("RIGHT")) body.style.textAlign = "right";
+    else body.style.textAlign = "left";
 
     // Check if we should parse colors
     const shouldParseColors = !!props.parse_colors;
 
-    // Apply word-wrap based on widget width
-    const wrappedLines = wordWrap(text, widget.width || 200, fontSize, fontFamily);
-
-    const body = document.createElement("div");
-    const baseColor = getColorStyle(props.color || "black");
-    body.style.color = baseColor;
-
-    body.style.fontSize = `${fontSize}px`;
-    body.style.fontFamily = fontFamily + ", sans-serif";
-    body.style.fontWeight = String(props.font_weight || 400);
-    body.style.fontStyle = props.italic ? "italic" : "normal";
-    body.style.whiteSpace = "pre-wrap";
-    body.style.lineHeight = `${fontSize + 4}px`;
-    body.style.wordBreak = "break-word";
-    body.style.flexShrink = "0"; // Prevent shrinking in flex container
-    body.style.minWidth = "100%";
+    // Calculate wrapping
+    const maxWidth = widget.width || 200;
+    const wrappedLines = shouldParseColors ? wordWrap(text, maxWidth, fontSize, fontFamily) : text.split("\n");
 
     if (shouldParseColors) {
         wrappedLines.forEach((line, i) => {
@@ -174,7 +187,10 @@ const render = (el, widget, { getColorStyle }) => {
             body.appendChild(parseColorMarkup(line, props.color || "black", getColorStyle));
         });
     } else {
-        body.textContent = wrappedLines.join('\n');
+        const span = document.createElement("span");
+        span.style.color = getColorStyle(props.color || "black");
+        span.textContent = wrappedLines.join('\n');
+        body.appendChild(span);
     }
 
     el.appendChild(body);
