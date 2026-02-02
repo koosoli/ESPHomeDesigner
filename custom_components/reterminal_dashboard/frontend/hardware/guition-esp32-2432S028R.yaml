@@ -61,6 +61,7 @@ substitutions:
   sclpin: GPIO22
   # SD Card
   sd_cs_pin: GPIO4
+  logger: DEBUG
 
 esphome:
   friendly_name: $friendly_name
