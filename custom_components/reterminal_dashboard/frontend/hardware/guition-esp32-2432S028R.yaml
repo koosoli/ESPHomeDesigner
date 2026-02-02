@@ -35,7 +35,7 @@ substitutions:
   name: "guiton_2432s028r_esp32"
   friendly_name: 'Guition 2432S028R ESP32-2.8" '
   device_description: "Guition 2432S028R ESP32-2.8-inch resistor touch 240x320"
-  project_name: "ESPHomeDesigner_Guition_2432S028R_240x320"
+  project_name: "karl-petter.ESPHomeDesigner_Guition_2432S028R_240x320"
   project_version: "1.0.0"
   #GPIO pins for the LCD screen
   misopin: GPIO12
