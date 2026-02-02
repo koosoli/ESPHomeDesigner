@@ -11,11 +11,15 @@ A Hardware Recipe is essentially a full ESPHome configuration file with one spec
 When you design a UI in the Designer and click "Generate YAML", the Designer takes your Hardware Recipe and injects the UI drawing code exactly where that placeholder is located.
 
 ### The "Captive Portal" Breakpoint
-The Designer only uses the display configuration code located **after** the `captive_portal:` key in your YAML file.
 
-**CRITICAL RULE:**
-Everything **above** `captive_portal:` (wifi, api, captive_portal itself) **MUST BE COMMENTED OUT**.
-The Designer provides its own infrastructure settings, so keeping them active in your recipe will cause duplicate key errors.
+Historically, the Designer used `captive_portal:` as a marker to split the file. **This is no longer strictly true.**
+The Designer now uses a "smart sanitization" process that scans the entire file and automatically disable system-level configuration keys (like `wifi`, `api`, `ota`, `captive_portal`) to prevent conflicts with the Designer's internal configuration.
+
+**Naming your Sections:**
+You can now safely use comments in your section headers (e.g., `sensor: # My LDR`), and the Designer will correctly identify and merge them.
+
+**Recommended Practice:**
+While the Designer *can* auto-sanitize your file, we still **strongly recommend** commenting out the system infrastructure sections yourself. This ensures that your recipe is visually valid and you know exactly what is being excluded.
 
 ```yaml
 # wifi:
@@ -32,12 +36,10 @@ display:
       # __LAMBDA_PLACEHOLDER__
 ```
 
-
-
-> [!IMPORTANT]
+> [!NOTE]
 > **Philosophy Alignment:** The Designer strictly separates hardware definition from application logic.
-> You **MUST** comment out all system-level configuration (`logger`, `wifi`, `api`, `captive_portal`, `ota`) in your recipe file.
-> The Designer guarantees it will only read and use the valid YAML found **after** the `captive_portal:` line.
+> Attempts to include system-level configuration (`logger`, `wifi`, `api`, `captive_portal`, `ota`) in your recipe will be ignored (commented out) by the import process.
+> The only exception is if you are using `packages`, where some shared configuration might be allowed.
 
 ---
 

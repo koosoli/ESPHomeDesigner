@@ -1033,7 +1033,10 @@ export class ESPHomeAdapter extends BaseAdapter {
         const mergeableSections = [
             'sensor:', 'binary_sensor:', 'text_sensor:', 'font:', 'image:',
             'output:', 'light:', 'switch:', 'button:', 'script:', 'globals:',
-            'i2c:', 'spi:', 'external_components:', 'time:', 'interval:'
+            'i2c:', 'spi:', 'external_components:', 'time:', 'interval:',
+            // New sections added to prevent duplicates
+            'fan:', 'cover:', 'climate:', 'number:', 'select:', 'datetime:',
+            'lock:', 'alarm_control_panel:', 'siren:', 'media_player:'
         ];
 
         // Parse YAML into sections
@@ -1047,16 +1050,20 @@ export class ESPHomeAdapter extends BaseAdapter {
             for (const line of lines) {
                 const trimmed = line.trim();
                 // Check if this is a top-level section header (no leading whitespace, ends with :)
-                const isTopLevelHeader = trimmed.endsWith(':') && !line.startsWith(' ') && !line.startsWith('\t');
+                // Fix: Ignore comments when checking for header match (e.g. "sensor: # My Sensor" -> "sensor:")
+                const headerMatch = line.match(/^([a-z0-9_]+:)(\s*#.*)?$/);
+                const isTopLevelHeader = headerMatch && !line.startsWith(' ') && !line.startsWith('\t');
 
-                if (isTopLevelHeader && mergeableSections.includes(trimmed)) {
+                const cleanHeader = isTopLevelHeader ? headerMatch[1] : trimmed;
+
+                if (isTopLevelHeader && mergeableSections.includes(cleanHeader)) {
                     // Save previous section
                     if (currentSection) {
                         sections.set(currentSection, currentContent);
                     }
-                    currentSection = trimmed;
+                    currentSection = cleanHeader;
                     currentContent = [];
-                } else if (isTopLevelHeader && !mergeableSections.includes(trimmed)) {
+                } else if (isTopLevelHeader && !mergeableSections.includes(cleanHeader)) {
                     // Non-mergeable top-level section - save to non-section lines
                     if (currentSection) {
                         sections.set(currentSection, currentContent);
@@ -1119,11 +1126,20 @@ export class ESPHomeAdapter extends BaseAdapter {
             const trimmed = line.trim();
             // Skip if empty or already present
             if (trimmed === '' || trimmed.startsWith('#')) continue;
-            // Avoid duplicate top-level headers
-            if (trimmed.endsWith(':') && !line.startsWith(' ')) {
-                const alreadyPresent = baseParsed.nonSectionLines.some(bl => bl.trim() === trimmed);
-                if (alreadyPresent) continue;
+
+            // Fix: Check for header duplication using clean headers
+            let isDuplicateHeader = false;
+            const headerMatch = line.match(/^([a-z0-9_]+:)(\s*#.*)?$/);
+            if (headerMatch && !line.startsWith(' ')) {
+                const cleanHeader = headerMatch[1];
+                // Check if this header exists in base non-section lines (ignoring comments)
+                isDuplicateHeader = baseParsed.nonSectionLines.some(bl => {
+                    const blMatch = bl.match(/^([a-z0-9_]+:)(\s*#.*)?$/);
+                    return blMatch && blMatch[1] === cleanHeader;
+                });
             }
+
+            if (isDuplicateHeader) continue;
             result.push(line);
         }
 
