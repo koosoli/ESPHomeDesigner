@@ -166,6 +166,7 @@ const render = (element, widget, helpers) => {
 };
 
 const exportLVGL = (w, { common, convertColor, getLVGLFont }) => {
+    const p = w.props || {};
     const makeSafeId = (eid, suffix = "") => {
         let safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
         const maxBase = 63 - suffix.length;
@@ -186,13 +187,15 @@ const exportLVGL = (w, { common, convertColor, getLVGLFont }) => {
       return ("\\"" + q + "\\"\\n— " + a).c_str();
     `;
 
+    const textAlign = (p.text_align || "CENTER").replace("TOP_", "").replace("BOTTOM_", "").toLowerCase();
+
     return {
         label: {
             ...common,
             text: textLambda,
             text_font: getLVGLFont(fontFamily, quoteFontSize, fontWeight, p.italic_quote !== false),
             text_color: color,
-            text_align: "center"
+            text_align: textAlign === "left" || textAlign === "right" || textAlign === "center" ? textAlign : "center"
         }
     };
 };
@@ -240,9 +243,11 @@ const exportDoc = (w, context) => {
     }
 
     if (wordWrap) {
+        const alignX = getAlignX(textAlign, w.x, w.width);
+        const esphomeAlign = `TextAlign::${textAlign}`;
         lines.push(`          int max_w = ${w.width - 16};`);
         lines.push(`          int q_h = ${quoteFontSize + 4};`);
-        lines.push(`          std::string display_text = "\\"" + q_text + "\\"";`);
+        lines.push(`          std::string display_text = "\\\"" + q_text + "\\\"";`);
 
         lines.push(`          auto print_q = [&](esphome::font::Font *f, int line_h, bool draw) -> int {`);
         lines.push(`            int y_curr = ${w.y + 8};`);
@@ -264,13 +269,13 @@ const exportDoc = (w, context) => {
         lines.push(`                int w_m, h_m, xoff_m, bl_m;`);
         lines.push(`                f->measure(test_line.c_str(), &w_m, &xoff_m, &bl_m, &h_m);`);
         lines.push(`                if (w_m > max_w && !curr_line.empty()) {`);
-        lines.push(`                    if (draw) it.printf(${w.x + 8}, y_curr, f, ${color}, "%s", curr_line.c_str());`);
+        lines.push(`                    if (draw) it.printf(${alignX}, y_curr, f, ${color}, ${esphomeAlign}, "%s", curr_line.c_str());`);
         lines.push(`                    y_curr += line_h;`);
         lines.push(`                    curr_line = word;`);
         lines.push(`                } else { curr_line = test_line; }`);
         lines.push(`            }`);
         lines.push(`            if (!curr_line.empty()) {`);
-        lines.push(`                if (draw) it.printf(${w.x + 8}, y_curr, f, ${color}, "%s", curr_line.c_str());`);
+        lines.push(`                if (draw) it.printf(${alignX}, y_curr, f, ${color}, ${esphomeAlign}, "%s", curr_line.c_str());`);
         lines.push(`                y_curr += line_h;`);
         lines.push(`            }`);
         lines.push(`            return y_curr - ${w.y + 8};`);
@@ -278,7 +283,7 @@ const exportDoc = (w, context) => {
         lines.push(`          print_q(id(${quoteFontId}), q_h, true);`);
 
         if (p.show_author !== false) {
-            lines.push(`          if (!q_author.empty()) it.printf(${w.x + 8}, ${w.y} + ${w.height} - ${authorFontSize + 4}, id(${authorFontId}), ${color}, "— %s", q_author.c_str());`);
+            lines.push(`          if (!q_author.empty()) it.printf(${alignX}, ${w.y} + ${w.height} - ${authorFontSize + 4}, id(${authorFontId}), ${color}, ${esphomeAlign}, "— %s", q_author.c_str());`);
         }
     } else {
         const alignX = getAlignX(textAlign, w.x, w.width);
