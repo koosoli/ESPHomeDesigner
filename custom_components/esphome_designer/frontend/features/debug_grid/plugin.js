@@ -59,7 +59,7 @@ export default {
     id: "odp_debug_grid",
     name: "Debug Grid",
     category: "OpenDisplay",
-    supportedModes: ['opendisplay'],
+    supportedModes: ['opendisplay', 'oepl'],
     defaults: {
         width: 400,
         height: 300,

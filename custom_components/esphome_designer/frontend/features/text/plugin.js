@@ -80,7 +80,8 @@ const wordWrap = (text, maxWidth, fontSize, fontFamily = "Roboto") => {
 const parseColorMarkup = (text, defaultColor, getColorStyle) => {
     // Escape HTML first to prevent injection, but we'll rebuild it safely
     // simple parse: split by tags
-    const parts = text.split(/(\[[a-zA-Z0-9#_]+\]|\[\/[a-zA-Z0-9#_]+\])/g);
+    // Updated to allow complex HA templates inside tags, e.g. [{{ ... }}]
+    const parts = text.split(/(\[\/?[^\]]+\])/g);
     const root = document.createDocumentFragment();
 
     // Stack to keep track of colors. Start with default.

@@ -51,9 +51,11 @@ const OEPL_WIDGET_TYPES = [
  * @returns {boolean} True if the text represents a bare OEPL array.
  */
 export function isBareOEPLArray(yamlText) {
-    const trimmed = yamlText.trim();
+    // Remove comments and leading whitespace to find the first real line
+    const cleanText = yamlText.replace(/^\s*([#\/].*)?$\r?\n/gm, "").trim();
+
     // Check if it starts with "- type:" which is OEPL format
-    const firstItemMatch = trimmed.match(/^-\s*type:\s*(\w+)/);
+    const firstItemMatch = cleanText.match(/^-\s*type:\s*(\w+)/);
     if (firstItemMatch) {
         const typeValue = firstItemMatch[1].toLowerCase();
         return OEPL_WIDGET_TYPES.includes(typeValue);
@@ -104,22 +106,25 @@ export function parseOEPLArrayToLayout(oeplArray) {
                 const delimiter = item.delimiter || '|';
                 const lines = (item.value || '').split(delimiter);
                 const lineCount = lines.length || 1;
+                const mFontSize = parseInt(item.size || 16, 10);
+                const offsetY = parseInt(item.offset_y || (mFontSize + 4), 10);
+
                 widget = {
                     id: `odp_multiline_${widgetIndex}`,
                     type: 'odp_multiline',
                     x: parseInt(item.x || 0, 10),
                     y: parseInt(item.y || 0, 10),
-                    width: parseInt(item.size || 16, 10) * 10,
-                    height: parseInt(item.size || 16, 10) * lineCount * 1.5,
+                    width: mFontSize * 10,
+                    height: offsetY * lineCount,
                     title: '',
                     entity_id: '',
                     props: {
                         text: item.value || 'Line 1|Line 2',
                         delimiter: delimiter,
-                        font_size: parseInt(item.size || 16, 10),
+                        font_size: mFontSize,
                         font_family: item.font ? item.font.replace('.ttf', '') : 'Roboto',
                         color: item.fill || item.color || 'black',
-                        line_spacing: 4,
+                        line_spacing: Math.max(0, offsetY - mFontSize),
                         parse_colors: item.parse_colors === true || item.parse_colors === 'true'
                     }
                 };
@@ -224,7 +229,8 @@ export function parseOEPLArrayToLayout(oeplArray) {
                         bar_height: Math.abs((parseInt(item.y_end || 20, 10)) - (parseInt(item.y_start || item.y || 0, 10))),
                         border_width: parseInt(item.width || 1, 10),
                         color: item.fill || 'black',
-                        progress_value: parseInt(item.progress || 0, 10)
+                        progress_value: parseInt(item.progress || 0, 10),
+                        direction: item.direction || 'right'
                     }
                 };
                 break;
@@ -250,9 +256,28 @@ export function parseOEPLArrayToLayout(oeplArray) {
                 break;
 
             case 'debug_grid':
-                // Debug grid is not a visual widget in the designer, skip it
-                Logger.log("[parseOEPLArrayToLayout] Skipping debug_grid widget");
-                continue;
+                widget = {
+                    id: `odp_grid_${widgetIndex}`,
+                    type: 'odp_debug_grid',
+                    x: 0,
+                    y: 0,
+                    width: 800, // Full screen usually
+                    height: 480,
+                    title: '',
+                    entity_id: '',
+                    props: {
+                        spacing: parseInt(item.spacing || 20, 10),
+                        line_color: item.line_color || 'black',
+                        dashed: item.dashed !== false,
+                        dash_length: parseInt(item.dash_length || 2, 10),
+                        space_length: parseInt(item.space_length || 4, 10),
+                        show_labels: item.show_labels !== false,
+                        label_step: parseInt(item.label_step || 40, 10),
+                        label_color: item.label_color || 'black',
+                        label_font_size: parseInt(item.label_font_size || 12, 10)
+                    }
+                };
+                break;
 
             case 'dlimg':
             case 'image':
@@ -268,7 +293,8 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     props: {
                         url: item.url || '',
                         invert: false,
-                        interval_s: 300
+                        interval_s: 300,
+                        rotation: parseInt(item.rotate || 0, 10)
                     }
                 };
                 break;
@@ -276,18 +302,18 @@ export function parseOEPLArrayToLayout(oeplArray) {
             case 'plot':
                 widget = {
                     id: `oepl_graph_${widgetIndex}`,
-                    type: 'graph',
+                    type: 'odp_plot',
                     x: parseInt(item.x_start || item.x || 0, 10),
                     y: parseInt(item.y_start || item.y || 0, 10),
                     width: Math.abs((parseInt(item.x_end || 200, 10)) - (parseInt(item.x_start || item.x || 0, 10))),
                     height: Math.abs((parseInt(item.y_end || 100, 10)) - (parseInt(item.y_start || item.y || 0, 10))),
                     title: '',
-                    entity_id: item.sensor || '',
+                    entity_id: '',
                     props: {
-                        duration: item.duration || '24h',
-                        border: true,
-                        grid: true,
-                        color: item.color || 'black'
+                        duration: item.duration || 86400,
+                        data: item.data || [{ entity: "sensor.temperature", color: "black", width: 1 }],
+                        background: 'white',
+                        outline: item.outline || '#ccc'
                     }
                 };
                 break;

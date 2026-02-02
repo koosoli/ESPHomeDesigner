@@ -6,6 +6,7 @@ import { hasHaBackend } from '../utils/env.js';
 import { showToast } from '../utils/dom.js';
 import { generateCustomHardwareYaml } from '../io/hardware_generator.js';
 import { uploadHardwareTemplate } from '../io/hardware_import.js';
+import { saveLayoutToBackend } from '../io/ha_api.js';
 
 export class DeviceSettings {
     constructor() {
