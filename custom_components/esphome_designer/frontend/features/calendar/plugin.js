@@ -147,7 +147,7 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
 
     if (liveEvents && Array.isArray(liveEvents) && liveEvents.length > 0) {
         events.innerHTML = "";
-        const limit = props.event_limit || 4;
+        const limit = props.max_events || props.event_limit || 8;
         let count = 0;
         for (const dayEntry of liveEvents) {
             if (count >= limit) break;
@@ -482,7 +482,7 @@ export default {
         lines.push(``);
         lines.push(`          int eventY = gridY + (r+1)*rowH + 10;`);
         lines.push(`          int max_y = y + h - 5;`);
-        lines.push(`          const int event_limit = ${p.event_limit || 4};`);
+        lines.push(`          const int event_limit = ${p.max_events || p.event_limit || 8};`);
         lines.push(``);
         lines.push(`          // Debug and parse JSON`);
         // Use entity-based sensor ID to match onExportTextSensors
