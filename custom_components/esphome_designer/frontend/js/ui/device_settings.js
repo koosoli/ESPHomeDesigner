@@ -565,7 +565,13 @@ export class DeviceSettings {
             // Repopulate the dropdown with fresh data
             this.populateDeviceSelect();
 
-            showToast('Hardware profiles reloaded successfully!', 'success');
+            // Re-trigger profile selection to refresh form fields with new data
+            if (this.modelInput) {
+                this.modelInput.dispatchEvent(new Event('change'));
+            }
+
+            const count = Object.keys(DEVICE_PROFILES || {}).length;
+            showToast(`Reloaded ${count} hardware profiles successfully!`, 'success');
             Logger.log('[DeviceSettings] Hardware profiles reloaded, dropdown refreshed');
         } catch (err) {
             Logger.error('[DeviceSettings] Failed to reload hardware profiles:', err);

@@ -52,7 +52,9 @@ export async function fetchDynamicHardwareProfiles() {
 
     for (const filename of FALLBACK_HARDWARE_FILES) {
         try {
-            const response = await fetch(`hardware/${filename}`);
+            // Cache-busting: Append timestamp to force fresh load
+            const url = `hardware/${filename}?_t=${Date.now()}`;
+            const response = await fetch(url);
             if (response.ok) {
                 const text = await response.text();
                 // We reuse the client-side parser used for offline import
@@ -216,6 +218,19 @@ function parseHardwareRecipeClientSide(yaml, filename) {
     const modelMatch = yaml.match(/^\s*model:\s*"?([^"\n]+)"?/m);
     const displayModel = modelMatch ? modelMatch[1].trim() : undefined;
 
+    // Extract display-specific settings from YAML content
+    const colorPaletteMatch = yaml.match(/^\s*color_palette:\s*(\S+)/m);
+    const colorPalette = colorPaletteMatch ? colorPaletteMatch[1].trim() : undefined;
+
+    const colorOrderMatch = yaml.match(/^\s*color_order:\s*(\S+)/m);
+    const colorOrder = colorOrderMatch ? colorOrderMatch[1].trim() : undefined;
+
+    const updateIntervalMatch = yaml.match(/^\s*update_interval:\s*(\S+)/m);
+    const updateInterval = updateIntervalMatch ? updateIntervalMatch[1].trim() : undefined;
+
+    const invertColorsMatch = yaml.match(/^\s*invert_colors:\s*(true|false)/mi);
+    const invertColors = invertColorsMatch ? invertColorsMatch[1].toLowerCase() === 'true' : undefined;
+
     return {
         id: id,
         name: name + " (Local)",
@@ -223,6 +238,10 @@ function parseHardwareRecipeClientSide(yaml, filename) {
         shape: shape,
         displayPlatform: displayPlatform,
         displayModel: displayModel,
+        colorPalette: colorPalette,
+        colorOrder: colorOrder,
+        updateInterval: updateInterval,
+        invertColors: invertColors,
         isPackageBased: true,
         isOfflineImport: true,
         content: yaml, // Store content for later use if needed

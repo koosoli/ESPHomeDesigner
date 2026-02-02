@@ -96,6 +96,16 @@ class ReTerminalHardwareListView(DesignerBaseView):
                                     width = disp["dimensions"].get("width", width)
                                     height = disp["dimensions"].get("height", height)
                                 
+                                # Extract display-specific settings
+                                if "color_palette" in disp:
+                                    features["color_palette"] = disp["color_palette"]
+                                if "color_order" in disp:
+                                    features["color_order"] = disp["color_order"]
+                                if "update_interval" in disp:
+                                    features["update_interval"] = disp["update_interval"]
+                                if "invert_colors" in disp:
+                                    features["invert_colors"] = disp["invert_colors"]
+                                
                                 platform = disp.get("platform", "")
                                 if "epaper" in platform or "waveshare_epaper" in platform:
                                     features["epaper"] = True
