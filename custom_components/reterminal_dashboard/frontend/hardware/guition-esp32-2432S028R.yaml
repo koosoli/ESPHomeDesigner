@@ -168,7 +168,7 @@ display:
     invert_colors: false
     update_interval: never
     auto_clear_enabled: false
-    color_order: RGB
+    color_order: BGR
     color_palette: 8BIT
     dimensions:
       width: 240
