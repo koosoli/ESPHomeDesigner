@@ -1,7 +1,9 @@
 import { TemplateConverter } from '../../js/utils/template_converter.js';
+import { wordWrap, parseColorMarkup, evaluateTemplatePreview } from '../../js/utils/text_utils.js';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
+    const entityStates = window.AppState?.entityStates || {};
     const entityId = widget.entity_id || "";
     const title = widget.title || "";
     const format = props.value_format || "label_value";
@@ -84,21 +86,25 @@ const render = (el, widget, { getColorStyle }) => {
         displayUnit = "";
     }
 
-    let effectiveTitle = title;
-    if (!effectiveTitle && (format.startsWith("label_") || format === "value_label")) {
+    const prefixRaw = props.prefix || "";
+    const postfixRaw = props.postfix || "";
+    const prefix = evaluateTemplatePreview(prefixRaw, entityStates);
+    const postfix = evaluateTemplatePreview(postfixRaw, entityStates);
+    const fullValue = `${prefix}${displayValue}${displayUnit ? " " + displayUnit : ""}${postfix}`.trim();
+
+    // Evaluate title template
+    let effectiveTitleRaw = title;
+    if (!effectiveTitleRaw && (format.startsWith("label_") || format === "value_label")) {
         if (window.AppState && window.AppState.entityStates && entityId) {
             const eObj = window.AppState.entityStates[entityId];
             if (eObj && eObj.attributes && eObj.attributes.friendly_name) {
-                effectiveTitle = eObj.attributes.friendly_name;
+                effectiveTitleRaw = eObj.attributes.friendly_name;
             } else if (entityId) {
-                effectiveTitle = entityId.split('.').pop().replace(/_/g, ' ');
+                effectiveTitleRaw = entityId.split('.').pop().replace(/_/g, ' ');
             }
         }
     }
-
-    const prefix = props.prefix || "";
-    const postfix = props.postfix || "";
-    const fullValue = `${prefix}${displayValue}${displayUnit ? " " + displayUnit : ""}${postfix}`.trim();
+    const effectiveTitle = evaluateTemplatePreview(effectiveTitleRaw, entityStates);
 
     el.innerHTML = "";
     el.style.display = "flex";
@@ -140,11 +146,19 @@ const render = (el, widget, { getColorStyle }) => {
 
         const labelSpan = document.createElement("span");
         labelSpan.style.fontSize = `${labelFontSize}px`;
-        labelSpan.textContent = effectiveTitle + ":";
+        if (props.parse_colors) {
+            labelSpan.appendChild(parseColorMarkup(effectiveTitle + ":", colorStyle, getColorStyle));
+        } else {
+            labelSpan.textContent = effectiveTitle + ":";
+        }
 
         const valueSpan = document.createElement("span");
         valueSpan.style.fontSize = `${valueFontSize}px`;
-        valueSpan.textContent = fullValue;
+        if (props.parse_colors) {
+            valueSpan.appendChild(parseColorMarkup(fullValue, colorStyle, getColorStyle));
+        } else {
+            valueSpan.textContent = fullValue;
+        }
 
         const align = props.label_align || props.text_align || "TOP_LEFT";
         if (align.includes("CENTER")) body.style.justifyContent = "center";
@@ -161,12 +175,20 @@ const render = (el, widget, { getColorStyle }) => {
 
         const labelDiv = document.createElement("div");
         labelDiv.style.fontSize = `${labelFontSize}px`;
-        labelDiv.textContent = effectiveTitle;
+        if (props.parse_colors) {
+            labelDiv.appendChild(parseColorMarkup(effectiveTitle, colorStyle, getColorStyle));
+        } else {
+            labelDiv.textContent = effectiveTitle;
+        }
         applyAlign(props.label_align || props.text_align || "TOP_LEFT", labelDiv);
 
         const valueDiv = document.createElement("div");
         valueDiv.style.fontSize = `${valueFontSize}px`;
-        valueDiv.textContent = fullValue;
+        if (props.parse_colors) {
+            valueDiv.appendChild(parseColorMarkup(fullValue, colorStyle, getColorStyle));
+        } else {
+            valueDiv.textContent = fullValue;
+        }
         applyAlign(props.value_align || props.text_align || "TOP_LEFT", valueDiv);
 
         body.appendChild(labelDiv);
@@ -178,21 +200,41 @@ const render = (el, widget, { getColorStyle }) => {
 
         const valueSpan = document.createElement("span");
         valueSpan.style.fontSize = `${valueFontSize}px`;
-        valueSpan.textContent = fullValue;
+        if (props.parse_colors) {
+            valueSpan.appendChild(parseColorMarkup(fullValue, colorStyle, getColorStyle));
+        } else {
+            valueSpan.textContent = fullValue;
+        }
 
         const labelSpan = document.createElement("span");
         labelSpan.style.fontSize = `${labelFontSize}px`;
-        labelSpan.textContent = effectiveTitle;
+        if (props.parse_colors) {
+            labelSpan.appendChild(parseColorMarkup(effectiveTitle, colorStyle, getColorStyle));
+        } else {
+            labelSpan.textContent = effectiveTitle;
+        }
 
         body.appendChild(valueSpan);
         body.appendChild(labelSpan);
     } else if (format === "label_only") {
         body.style.fontSize = `${labelFontSize}px`;
-        body.textContent = effectiveTitle;
+        if (props.parse_colors) {
+            body.appendChild(parseColorMarkup(effectiveTitle, colorStyle, getColorStyle));
+        } else {
+            body.textContent = effectiveTitle;
+        }
         applyAlign(props.text_align || "TOP_LEFT", body);
     } else {
         body.style.fontSize = `${valueFontSize}px`;
-        body.textContent = fullValue;
+        if (props.parse_colors) {
+            const wrappedLines = wordWrap(fullValue, widget.width || 200, valueFontSize, fontFamily);
+            wrappedLines.forEach((line, i) => {
+                if (i > 0) body.appendChild(document.createElement("br"));
+                body.appendChild(parseColorMarkup(line, colorStyle, getColorStyle));
+            });
+        } else {
+            body.textContent = fullValue;
+        }
         applyAlign(props.value_align || props.text_align || "TOP_LEFT", body);
     }
 
@@ -214,7 +256,8 @@ export default {
         precision: 2,
         text_align: "TOP_LEFT",
         color: "theme_auto",
-        font_family: "Roboto"
+        font_family: "Roboto",
+        parse_colors: false
     },
 
     render,
@@ -379,10 +422,10 @@ export default {
                 value: `${title}\n${value}`,
                 delimiter: "\n",
                 x: Math.round(w.x),
-                offset_y: fontSize + 5,
                 size: fontSize,
                 color: color,
-                font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf"
+                font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf",
+                parse_colors: !!p.parse_colors
             };
         } else {
             text = value;
@@ -395,7 +438,8 @@ export default {
             text: text,
             size: fontSize,
             color: color,
-            font: p.font_family?.toLowerCase() || "roboto"
+            font: p.font_family?.toLowerCase() || "roboto",
+            parse_colors: !!p.parse_colors
         };
     },
     exportOEPL: (w, { layout, page }) => {
@@ -451,7 +495,8 @@ export default {
             font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf",
             color: color,
             align: (p.text_align || "TOP_LEFT").toLowerCase().replace("top_", "").replace("bottom_", "").replace("_", ""),
-            anchor: "lt"
+            anchor: "lt",
+            parse_colors: !!p.parse_colors
         };
 
         // Add max_width for automatic text wrapping when widget has width

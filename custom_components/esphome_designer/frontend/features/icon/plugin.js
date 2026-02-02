@@ -1,4 +1,5 @@
 import { iconPickerData } from '../../js/core/constants_icons.js';
+import { evaluateTemplatePreview } from '../../js/utils/text_utils.js';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -6,9 +7,29 @@ const render = (el, widget, { getColorStyle }) => {
     let iconCode = "F0595"; // Default
     let size = props.size || 24;
     const color = props.color || "theme_auto";
-    const colorStyle = getColorStyle(color);
 
-    const code = (props.code || "").trim().toUpperCase();
+    // Handle template colors in preview: use a fallback if it looks like a template
+    let effectiveColor = color;
+    if (typeof color === 'string' && color.includes('{{')) {
+        // If it's a template, use a default visible color for the designer
+        effectiveColor = 'black';
+    }
+
+    const colorStyle = getColorStyle(effectiveColor);
+
+    const codeRaw = props.code || "";
+    // Handle template in icon code
+    const code = evaluateTemplatePreview(codeRaw, window.AppState?.entityStates).trim().toUpperCase();
+
+    if (code.includes('{{')) {
+        // Still has template - show placeholder
+        el.innerText = "?";
+        el.style.fontSize = `${size}px`;
+        el.style.color = colorStyle;
+        el.style.fontFamily = "inherit";
+        return;
+    }
+
     if (code && code.match(/^F[0-9A-F]{4}$/i)) {
         iconCode = code;
     }

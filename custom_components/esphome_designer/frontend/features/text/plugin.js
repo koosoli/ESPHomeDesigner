@@ -1,139 +1,4 @@
-/**
- * Text / Label Plugin
- */
-
-/**
- * Word-wrap text to fit within a given width
- * @param {string} text - The text to wrap
- * @param {number} maxWidth - Maximum width in pixels
- * @param {number} fontSize - Font size in pixels
- * @param {string} fontFamily - Font family name
- * @returns {string[]} Array of wrapped lines
- */
-const wordWrap = (text, maxWidth, fontSize, fontFamily = "Roboto") => {
-    // Estimate average character width based on font
-    const isMonospace = fontFamily.toLowerCase().includes("mono") ||
-        fontFamily.toLowerCase().includes("courier") ||
-        fontFamily.toLowerCase().includes("consolas");
-    const avgCharWidth = fontSize * (isMonospace ? 0.6 : 0.52);
-    const maxCharsPerLine = Math.floor(maxWidth / avgCharWidth);
-
-    if (maxCharsPerLine <= 0) return [text];
-
-    // Tokenize string into tags, spaces, and words
-    // Regex: match [tag] or whitespace or non-whitespace-non-tag
-    const tokens = text.match(/(\[\/?(?:{{.*?}}|[^\]])+\]|\s+|[^\s[\]]+|\[|\])/g) || [];
-
-    const lines = [];
-    let currentLine = "";
-    let currentVisibleLength = 0;
-    let activeTags = []; // Stack of currently open tags
-
-    const getClosingTags = (tags) => [...tags].reverse().map(t => {
-        // [red] -> [/red], [{{ ... }}] -> [/{{ ... }}]
-        return t.replace("[", "[/");
-    }).join("");
-
-    const getOpeningTags = (tags) => tags.join("");
-
-    tokens.forEach(token => {
-        if (token.includes("\n")) {
-            // Manual break
-            lines.push(currentLine + getClosingTags(activeTags));
-            currentLine = getOpeningTags(activeTags);
-            currentVisibleLength = 0;
-            return;
-        }
-
-        if (token.startsWith("[") && token.endsWith("]")) {
-            // It's a tag
-            if (token.startsWith("[/")) {
-                activeTags.pop();
-            } else {
-                activeTags.push(token);
-            }
-            currentLine += token;
-            return;
-        }
-
-        // It's text (space or word)
-        const visibleLength = token.length;
-
-        if (currentVisibleLength + visibleLength > maxCharsPerLine && currentVisibleLength > 0) {
-            // Wrap before this token
-            lines.push(currentLine + getClosingTags(activeTags));
-            // Start next line with active tags preserved
-            currentLine = getOpeningTags(activeTags) + (token.trim() ? token : "");
-            currentVisibleLength = token.trim() ? visibleLength : 0;
-        } else {
-            currentLine += token;
-            // Only count non-tag characters for width
-            currentVisibleLength += visibleLength;
-        }
-    });
-
-    if (currentLine.replace(/\[\/?(?:{{.*?}}|[^\]])+\]/g, "").trim() || activeTags.length > 0) {
-        lines.push(currentLine + getClosingTags(activeTags));
-    }
-
-    return lines.length > 0 ? lines : [""];
-};
-
-// Helper to parse color tags: "Text [red]Color[/red]" -> HTML
-const parseColorMarkup = (text, defaultColor, getColorStyle) => {
-    const root = document.createDocumentFragment();
-    if (!text) return root;
-
-    // More robust regex for splitting tags [color] or [/color], even with templates inside
-    // Matches [ followed by optional / then (anything inside {{}} OR anything that is not ]) followed by ]
-    const parts = text.split(/(\[\/?(?:{{.*?}}|[^\]])+\])/g);
-    const colorStack = [defaultColor];
-
-    parts.forEach(part => {
-        if (!part) return;
-
-        // Check if closing tag [/color]
-        if (part.startsWith("[/") && part.endsWith("]")) {
-            if (colorStack.length > 1) {
-                colorStack.pop();
-            }
-            return;
-        }
-
-        // Check if opening tag [color]
-        if (part.startsWith("[") && part.endsWith("]")) {
-            const colorName = part.substring(1, part.length - 1).trim();
-            // Basic validation: ignore if it looks like it might be literal text [ ... ] that isn't a tag
-            // But for ODP/OEPL, we assume it IS a tag if it's in brackets
-            colorStack.push(colorName);
-            return;
-        }
-
-        // It's text
-        const span = document.createElement("span");
-        let currentColor = colorStack[colorStack.length - 1];
-
-        // Handle "accent" alias
-        if (currentColor === 'accent') currentColor = 'red';
-
-        // Handle templates in color tags: if it looks like {{ ... }}, use a placeholder or default
-        // because we can't evaluate it here. We'll use the default color or 'red' as a hint.
-        let cssColor;
-        if (currentColor.startsWith("{{")) {
-            // It's a template. For the preview, let's use a subtle variation or just the default.
-            // If it's on a dark background it might be hard to see if black, etc.
-            cssColor = getColorStyle(defaultColor);
-        } else {
-            cssColor = getColorStyle(currentColor);
-        }
-
-        span.style.color = cssColor;
-        span.textContent = part;
-        root.appendChild(span);
-    });
-
-    return root;
-};
+import { wordWrap, parseColorMarkup, evaluateTemplatePreview } from '../../js/utils/text_utils.js';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -142,10 +7,19 @@ const render = (el, widget, { getColorStyle }) => {
     el.style.flexDirection = "column";
     el.style.overflow = "visible"; // Ensure widget frame doesn't clip
 
-    const text = props.text || props.value || widget.title || "Text";
+    const textRaw = props.text || props.value || widget.title || "Text";
+    // Evaluate template for designer preview
+    const text = evaluateTemplatePreview(textRaw, window.AppState?.entityStates);
+
     const fontSize = props.font_size || 20;
     const fontFamily = props.font_family || "Roboto";
     const textAlign = props.text_align || "TOP_LEFT";
+
+    // Handle template colors in preview
+    let effectiveColor = props.color || "black";
+    if (typeof effectiveColor === 'string' && effectiveColor.includes('{{')) {
+        effectiveColor = 'black';
+    }
 
     const body = document.createElement("div");
     body.style.fontSize = `${fontSize}px`;
@@ -184,11 +58,11 @@ const render = (el, widget, { getColorStyle }) => {
     if (shouldParseColors) {
         wrappedLines.forEach((line, i) => {
             if (i > 0) body.appendChild(document.createTextNode("\n"));
-            body.appendChild(parseColorMarkup(line, props.color || "black", getColorStyle));
+            body.appendChild(parseColorMarkup(line, effectiveColor, getColorStyle));
         });
     } else {
         const span = document.createElement("span");
-        span.style.color = getColorStyle(props.color || "black");
+        span.style.color = getColorStyle(effectiveColor);
         span.textContent = wrappedLines.join('\n');
         body.appendChild(span);
     }

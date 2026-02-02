@@ -64,6 +64,28 @@ export function isBareOEPLArray(yamlText) {
 }
 
 /**
+ * Extracts basic entity and surrounding text from a simple HA template.
+ * @param {string} template - e.g. "{{ states('sensor.temp') }}°C"
+ * @returns {Object|null}
+ */
+function extractInfoFromTemplate(template) {
+    if (!template || typeof template !== 'string') return null;
+    if (!template.includes('{{')) return null;
+
+    // Matches any characters, then states('...'), then any characters.
+    // Group 1: Prefix, Group 2: Entity ID, Group 3: Postfix
+    const statesMatch = template.match(/^(.*?){{\s*states\(['"]([^'"]+)['"]\)\s*}}(.*)$/s);
+    if (statesMatch) {
+        return {
+            prefix: statesMatch[1], // Preserving spaces and formatting
+            entity_id: statesMatch[2].trim(),
+            postfix: statesMatch[3]  // Preserving spaces
+        };
+    }
+    return null;
+}
+
+/**
  * Parses a bare OEPL YAML array into a layout object.
  * @param {Array} oeplArray - The parsed OEPL array of widget definitions.
  * @returns {Object} The layout object with pages and widgets.
@@ -82,23 +104,49 @@ export function parseOEPLArrayToLayout(oeplArray) {
 
         switch (oeplType) {
             case 'text':
-                widget = {
-                    id: `oepl_text_${widgetIndex}`,
-                    type: 'text',
-                    x: parseInt(item.x || 0, 10),
-                    y: parseInt(item.y || 0, 10),
-                    width: parseInt(item.size || 20, 10) * 6, // Approximate width based on font size
-                    height: parseInt(item.size || 20, 10) * 1.5,
-                    title: '',
-                    entity_id: '',
-                    props: {
-                        text: item.value || item.text || '',
-                        font_size: parseInt(item.size || 20, 10),
-                        font_family: item.font ? item.font.replace('.ttf', '') : 'Roboto',
-                        color: item.fill || item.color || 'black',
-                        parse_colors: item.parse_colors === true || item.parse_colors === 'true'
-                    }
-                };
+                const textVal = item.value || item.text || '';
+                const templateInfo = extractInfoFromTemplate(textVal);
+
+                if (templateInfo) {
+                    widget = {
+                        id: `sensor_text_${widgetIndex}`,
+                        type: 'sensor_text',
+                        x: parseInt(item.x || 0, 10),
+                        y: parseInt(item.y || 0, 10),
+                        width: parseInt(item.size || 20, 10) * 8, // Wider for sensor data
+                        height: parseInt(item.size || 20, 10) * 1.5,
+                        title: '',
+                        entity_id: templateInfo.entity_id,
+                        props: {
+                            value_font_size: parseInt(item.size || 20, 10),
+                            font_family: item.font ? item.font.replace('.ttf', '') : 'Roboto',
+                            color: item.fill || item.color || 'black',
+                            prefix: templateInfo.prefix,
+                            postfix: templateInfo.postfix,
+                            value_format: "value_only",
+                            hide_unit: true,
+                            parse_colors: item.parse_colors === true || item.parse_colors === 'true'
+                        }
+                    };
+                } else {
+                    widget = {
+                        id: `oepl_text_${widgetIndex}`,
+                        type: 'text',
+                        x: parseInt(item.x || 0, 10),
+                        y: parseInt(item.y || 0, 10),
+                        width: parseInt(item.size || 20, 10) * 6, // Approximate width based on font size
+                        height: parseInt(item.size || 20, 10) * 1.5,
+                        title: '',
+                        entity_id: '',
+                        props: {
+                            text: textVal,
+                            font_size: parseInt(item.size || 20, 10),
+                            font_family: item.font ? item.font.replace('.ttf', '') : 'Roboto',
+                            color: item.fill || item.color || 'black',
+                            parse_colors: item.parse_colors === true || item.parse_colors === 'true'
+                        }
+                    };
+                }
                 break;
 
             case 'multiline':
