@@ -340,7 +340,12 @@ export class DeviceSettings {
     updatePinDatalist() {
         const chip = this.customChip?.value || 'esp32-s3';
         // ESP32-S3, C3, C6 use S3-style GPIO numbering; classic ESP32 uses different pins
-        const datalistId = chip === 'esp32' ? 'gpio-pins-esp32' : 'gpio-pins-esp32s3';
+        let datalistId = 'gpio-pins-esp32s3';
+        if (chip === 'esp32') {
+            datalistId = 'gpio-pins-esp32';
+        } else if (chip === 'esp8266') {
+            datalistId = 'gpio-pins-esp8266';
+        }
 
         const pinInputIds = [
             'pin_cs', 'pin_dc', 'pin_rst', 'pin_busy', 'pin_clk', 'pin_mosi',

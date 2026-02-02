@@ -46,6 +46,10 @@ export function generateCustomHardwareYaml(config) {
         lines.push("#         - Select: ESP32");
         lines.push("#         - Board: esp32dev (or specific board)");
         lines.push("#         - Framework: esp-idf (Recommended) or arduino");
+    } else if (chip === "esp8266") {
+        lines.push("#         - Select: ESP8266");
+        lines.push("#         - Board: nodemcuv2 (or specific board)");
+        lines.push("#         - Framework: arduino (Default)");
     } else {
         lines.push("#         - Select: ESP32-S3");
         lines.push("#         - Board: esp32-s3-devkitc-1");
@@ -61,10 +65,18 @@ export function generateCustomHardwareYaml(config) {
     lines.push("# esphome: # (Auto-commented)");
     lines.push(`#   name: ${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`);
     lines.push("#");
-    lines.push("# esp32: # (Auto-commented)");
+    if (chip === "esp8266") {
+        lines.push("# esp8266: # (Auto-commented)");
+    } else {
+        lines.push("# esp32: # (Auto-commented)");
+    }
     lines.push(`#   board: ${getBoardForChip(chip)}`);
-    lines.push("#   framework:");
-    lines.push("#     type: esp-idf");
+    lines.push(`#   board: ${getBoardForChip(chip)}`);
+
+    if (chip !== "esp8266") {
+        lines.push("#   framework:");
+        lines.push("#     type: esp-idf");
+    }
     if (psram && chip.includes("s3")) {
         lines.push("#     # For stability on S3 devices with high-res displays/LVGL:");
         lines.push("#     advanced:");
@@ -216,6 +228,7 @@ function getBoardForChip(chip) {
         case 'esp32-c3': return 'esp32-c3-devkitm-1';
         case 'esp32-c6': return 'esp32-c6-devkitc-1';
         case 'esp32': return 'esp32dev';
+        case 'esp8266': return 'nodemcuv2';
         default: return 'esp32-s3-devkitc-1';
     }
 }

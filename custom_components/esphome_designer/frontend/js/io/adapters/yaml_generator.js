@@ -169,15 +169,21 @@ export class YamlGenerator {
             // Keep this commented for now as it's optional
             lines.push("#       - script.execute: auto_cycle_timer");
         }
-        lines.push("#");
-        lines.push("# esp32:");
-        lines.push(`#   board: ${board}`);
-        lines.push("#   framework:");
-        lines.push("#     type: esp-idf");
-        if (chip.includes("s3")) {
-            lines.push("#     sdkconfig_options:");
-            lines.push("#       CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: y");
-            lines.push("#       CONFIG_ESP32S3_DATA_CACHE_64KB: y");
+        if (chip === 'esp8266') {
+            lines.push("#");
+            lines.push("# esp8266:");
+            lines.push(`#   board: ${board || 'nodemcuv2'}`);
+        } else {
+            lines.push("#");
+            lines.push("# esp32:");
+            lines.push(`#   board: ${board}`);
+            lines.push("#   framework:");
+            lines.push("#     type: esp-idf");
+            if (chip.includes("s3")) {
+                lines.push("#     sdkconfig_options:");
+                lines.push("#       CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: y");
+                lines.push("#       CONFIG_ESP32S3_DATA_CACHE_64KB: y");
+            }
         }
         lines.push("#");
         lines.push("# logger:");
