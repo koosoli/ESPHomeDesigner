@@ -69,6 +69,8 @@ export class DeviceSettings {
         this.customShape = document.getElementById('customShape');
         this.customPsram = document.getElementById('customPsram');
         this.customDisplayDriver = document.getElementById('customDisplayDriver');
+        this.customDisplayModel = document.getElementById('customDisplayModel');
+        this.customDisplayModelField = document.getElementById('customDisplayModelField');
         this.customTouchTech = document.getElementById('customTouchTech');
         this.touchPinsGrid = document.getElementById('touchPinsGrid');
 
@@ -181,6 +183,12 @@ export class DeviceSettings {
             });
         }
 
+        if (this.customDisplayDriver) {
+            this.customDisplayDriver.addEventListener('change', () => {
+                this.updateDisplayModelVisibility();
+            });
+        }
+
         if (this.customTouchTech) {
             this.customTouchTech.addEventListener('change', () => {
                 if (this.touchPinsGrid) {
@@ -267,7 +275,7 @@ export class DeviceSettings {
     setupCustomHardwareAutoSave() {
         const customInputs = [
             this.customChip, this.customTech, this.customRes, this.customShape,
-            this.customPsram, this.customDisplayDriver, this.customTouchTech,
+            this.customPsram, this.customDisplayDriver, this.customDisplayModel, this.customTouchTech,
             'pin_cs', 'pin_dc', 'pin_rst', 'pin_busy', 'pin_clk', 'pin_mosi',
             'pin_backlight', 'pin_sda', 'pin_scl', 'pin_touch_int', 'pin_touch_rst'
         ];
@@ -303,6 +311,7 @@ export class DeviceSettings {
             shape: this.customShape?.value || 'rect',
             psram: this.customPsram?.checked ?? true,
             displayDriver: this.customDisplayDriver?.value || 'st7789v',
+            displayModel: this.customDisplayModel?.value || '',
             touchTech: this.customTouchTech?.value || 'none',
             backlightMinPower: parseFloat(getVal('customBacklightMinPower')) || 0.07,
             backlightInitial: parseFloat(getVal('customBacklightInitial')) || 0.8,
@@ -331,6 +340,16 @@ export class DeviceSettings {
         const isCustom = this.modelInput && this.modelInput.value === 'custom';
 
         this.customHardwareSection.style.display = (!isProtocol && isCustom) ? 'block' : 'none';
+
+        // Also update sub-visibility
+        this.updateDisplayModelVisibility();
+    }
+
+    updateDisplayModelVisibility() {
+        if (this.customDisplayModelField && this.customDisplayDriver) {
+            const isWaveshare = this.customDisplayDriver.value === 'waveshare_epaper';
+            this.customDisplayModelField.style.display = isWaveshare ? 'block' : 'none';
+        }
     }
 
     /**
@@ -403,6 +422,7 @@ export class DeviceSettings {
                 shape: this.customShape?.value || 'rect',
                 psram: this.customPsram?.checked ?? true,
                 displayDriver: this.customDisplayDriver?.value || 'st7789v',
+                displayModel: this.customDisplayModel?.value || '',
                 touchTech: this.customTouchTech?.value || 'none',
                 pins: {
                     cs: getVal('pin_cs'),
@@ -641,6 +661,10 @@ export class DeviceSettings {
         if (this.customPsram) this.customPsram.checked = !!ch.psram;
 
         if (this.customDisplayDriver) this.customDisplayDriver.value = ch.displayDriver || "generic_st7789";
+        if (this.customDisplayModel) this.customDisplayModel.value = ch.displayModel || "";
+
+        this.updateDisplayModelVisibility();
+
         if (this.customTouchTech) {
             this.customTouchTech.value = ch.touchTech || "none";
             if (this.touchPinsGrid) {

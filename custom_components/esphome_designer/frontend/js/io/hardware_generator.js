@@ -121,15 +121,25 @@ export function generateCustomHardwareYaml(config) {
     if (pins.rst) lines.push(`    reset_pin: ${pins.rst}`);
     if (pins.busy) lines.push(`    busy_pin: ${pins.busy}`);
 
+    // Model specific configuration
+    if (config.displayModel) {
+        lines.push(`    model: "${config.displayModel}"`);
+    }
+
     // Resolution specifics (often handled by the designer but useful in template)
     // For many drivers, we need model or specific init
-    if (displayDriver === "st7789v") {
+    if (displayDriver === "st7789v" && !config.displayModel) {
         lines.push("    model: Custom");
         lines.push("    id: my_display");
         lines.push(`    width: ${resWidth}`);
         lines.push(`    height: ${resHeight}`);
         lines.push("    offset_height: 0");
         lines.push("    offset_width: 0");
+    } else if (displayDriver === "st7789v") {
+        // If model IS provided for st7789v (rare but possible custom), still might need dims
+        lines.push("    id: my_display");
+        lines.push(`    width: ${resWidth}`);
+        lines.push(`    height: ${resHeight}`);
     }
 
     lines.push("    lambda: |-");

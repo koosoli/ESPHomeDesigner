@@ -208,11 +208,21 @@ function parseHardwareRecipeClientSide(yaml, filename) {
     const invertedMatch = yaml.match(/#\s*Inverted:\s*(true|yes|1)/i);
     const isInverted = !!invertedMatch;
 
+    // Detect display platform
+    const platformMatch = yaml.match(/^\s*-\s*platform:\s*([a-z0-9_]+)/m) || yaml.match(/^\s*platform:\s*([a-z0-9_]+)/m);
+    const displayPlatform = platformMatch ? platformMatch[1].trim() : undefined;
+
+    // Detect display model (generic search, typically found in display section)
+    const modelMatch = yaml.match(/^\s*model:\s*"?([^"\n]+)"?/m);
+    const displayModel = modelMatch ? modelMatch[1].trim() : undefined;
+
     return {
         id: id,
         name: name + " (Local)",
         resolution: { width, height },
         shape: shape,
+        displayPlatform: displayPlatform,
+        displayModel: displayModel,
         isPackageBased: true,
         isOfflineImport: true,
         content: yaml, // Store content for later use if needed
@@ -220,7 +230,6 @@ function parseHardwareRecipeClientSide(yaml, filename) {
             psram: yaml.includes("psram:"),
             lcd: !yaml.includes("waveshare_epaper") && !yaml.includes("epaper_spi"),
             lvgl: yaml.includes("lvgl:") || (!yaml.includes("waveshare_epaper") && !yaml.includes("epaper_spi")), // Most LCDs support LVGL
-
             epaper: yaml.includes("waveshare_epaper") || yaml.includes("epaper_spi"),
             touch: yaml.includes("touchscreen:"),
             inverted_colors: isInverted

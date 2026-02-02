@@ -64,6 +64,7 @@ export class ESPHomeAdapter extends BaseAdapter {
                 name: "Custom Device",
                 chip: ch.chip || "esp32-s3",
                 displayPlatform: ch.displayDriver || "generic_st7789",
+                displayModel: ch.displayModel, // Passed through from custom hardware settings
                 resolution: { width: ch.resWidth || 800, height: ch.resHeight || 480 },
                 shape: ch.shape || "rect",
                 pins: {

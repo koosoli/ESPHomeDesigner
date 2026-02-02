@@ -597,6 +597,39 @@
                   <option value="epaper_spi">Generic SPI E-Paper</option>
                   <option value="custom">Other (Custom YAML)</option>
                 </select>
+
+                <div id="customDisplayModelField" class="field" style="display:none; margin-bottom:8px;">
+                  <div class="prop-label" style="font-size:10px;">Display Model</div>
+                  <input id="customDisplayModel" class="prop-input-sm" type="text" placeholder="e.g. 7.50inV2"
+                    list="waveshare_models" />
+                  <div style="font-size:9px; color:var(--muted);">Required for Waveshare E-Paper</div>
+
+                  <datalist id="waveshare_models">
+                    <option value="1.54in">1.54"</option>
+                    <option value="1.54inv2">1.54" V2</option>
+                    <option value="2.13in">2.13"</option>
+                    <option value="2.13inv2">2.13" V2</option>
+                    <option value="2.13inv3">2.13" V3</option>
+                    <option value="2.13in-ttgo">2.13" TTGO</option>
+                    <option value="2.66in">2.66"</option>
+                    <option value="2.70in">2.70"</option>
+                    <option value="2.90in">2.90"</option>
+                    <option value="2.90inv2">2.90" V2</option>
+                    <option value="2.90in-dke">2.90" DKE</option>
+                    <option value="3.52in">3.52"</option>
+                    <option value="3.70in">3.70"</option>
+                    <option value="4.20in">4.20"</option>
+                    <option value="4.20inv2">4.20" V2</option>
+                    <option value="5.65in">5.65" (Color)</option>
+                    <option value="5.83in">5.83"</option>
+                    <option value="5.83inv2">5.83" V2</option>
+                    <option value="7.50in">7.50"</option>
+                    <option value="7.50inv2">7.50" V2</option>
+                    <option value="7.50inv2p">7.50" V2 (Partial Refresh)</option>
+                    <option value="7.50hd">7.50" HD</option>
+                  </datalist>
+                </div>
+
                 <div id="spiPinsGrid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
                   <div class="field">
                     <div class="prop-label" style="font-size:9px;">CS</div>
