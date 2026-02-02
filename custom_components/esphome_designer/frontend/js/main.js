@@ -130,9 +130,13 @@ export class App {
                 Logger.log("Running in standalone/offline mode.");
                 this.loadFromLocalStorage();
             }
+
+            // Sync rendering mode after loading
+            this.refreshAdapter();
         } catch (err) {
             Logger.error("[App] Failed to load from backend, falling back to local storage:", err);
             this.loadFromLocalStorage();
+            this.refreshAdapter();
         }
 
         // Update the layout indicator after loading
@@ -245,16 +249,7 @@ export class App {
         import('./core/events.js').then(({ on, EVENTS }) => {
             on(EVENTS.STATE_CHANGED, () => {
                 // If rendering mode changed, we might need to swap the adapter
-                const currentMode = AppState.settings.renderingMode;
-                if (this.adapter && this.adapter.mode !== currentMode) {
-                    this.refreshAdapter();
-                }
-
-                // Skip auto-save during initial load to prevent spurious errors
-                if (this.isInitializing) {
-                    Logger.log("[AutoSave] Skipping during initialization...");
-                    return;
-                }
+                this.refreshAdapter();
 
                 // Background save to appropriate storage
                 if (autoSaveTimer) clearTimeout(autoSaveTimer);
@@ -276,9 +271,7 @@ export class App {
 
             // Re-render palette when mode might have changed
             on(EVENTS.STATE_CHANGED, () => {
-                if (!this.isInitializing) {
-                    renderWidgetPalette('widgetPalette');
-                }
+                renderWidgetPalette('widgetPalette');
             });
         });
     }
@@ -298,12 +291,15 @@ export class App {
     }
 
     refreshAdapter() {
-        Logger.log("[App] Refreshing adapter due to mode change...");
+        const mode = AppState.settings.renderingMode || 'direct';
+        if (this.adapter && this.adapter.mode === mode) return;
+
+        Logger.log(`[App] Refreshing adapter: ${this.adapter?.mode} -> ${mode}`);
         this.adapter = this.createAdapter();
         if (this.snippetManager) {
             this.snippetManager.adapter = this.adapter;
+            this.snippetManager.updateSnippetBox(); // Force immediate update
         }
-        emit(EVENTS.STATE_CHANGED); // Trigger a snippet update
     }
 }
 

@@ -75,34 +75,63 @@ export default {
     defaults: {
         width: 200,
         height: 100,
-        duration: 36000,
-        data: [{ entity: "sensor.temperature", color: "black", width: 1 }],
+        duration: 36400,
+        data: [{ entity: "sensor.temperature", color: "black", width: 1, smooth: true, show_points: true }],
         background: "white",
-        outline: "#ccc"
+        outline: "#ccc",
+        ylegend: null
     },
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};
-        return {
+        const exportData = (Array.isArray(p.data) ? p.data : [p.data]).map(item => ({
+            entity: item.entity || "",
+            color: item.color || "black",
+            width: item.width || 1,
+            smooth: item.smooth !== false,
+            show_points: !!item.show_points,
+            point_size: item.point_size || 3,
+            point_color: item.point_color || "black",
+            value_scale: item.value_scale || 1.0
+        }));
+
+        const result = {
             type: "plot",
             x_start: Math.round(w.x),
             y_start: Math.round(w.y),
             x_end: Math.round(w.x + w.width),
             y_end: Math.round(w.y + w.height),
-            duration: p.duration || 36000,
-            data: p.data || [{ entity: "sensor.temperature", color: "black", width: 1 }]
+            duration: p.duration || 36400,
+            data: exportData
         };
+
+        if (p.ylegend) result.ylegend = p.ylegend;
+        return result;
     },
     exportOEPL: (w, { layout, page }) => {
         const p = w.props || {};
-        return {
+        const exportData = (Array.isArray(p.data) ? p.data : [p.data]).map(item => ({
+            entity: item.entity || "",
+            color: item.color || "black",
+            width: item.width || 1,
+            smooth: item.smooth !== false,
+            show_points: !!item.show_points,
+            point_size: item.point_size || 3,
+            point_color: item.point_color || "black",
+            value_scale: item.value_scale || 1.0
+        }));
+
+        const result = {
             type: "plot",
             x_start: Math.round(w.x),
             y_start: Math.round(w.y),
             x_end: Math.round(w.x + w.width),
             y_end: Math.round(w.y + w.height),
-            duration: p.duration || 36000,
-            data: p.data || [{ entity: "sensor.temperature", color: "black", width: 1 }]
+            duration: p.duration || 36400,
+            data: exportData
         };
+
+        if (p.ylegend) result.ylegend = p.ylegend;
+        return result;
     }
 };

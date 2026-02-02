@@ -54,8 +54,8 @@ export function isBareOEPLArray(yamlText) {
     // Remove comments and leading whitespace to find the first real line
     const cleanText = yamlText.replace(/^\s*([#\/].*)?$\r?\n/gm, "").trim();
 
-    // Check if it starts with "- type:" which is OEPL format
-    const firstItemMatch = cleanText.match(/^-\s*type:\s*(\w+)/);
+    // Check if it starts with "- type:" (allows quotes around the type)
+    const firstItemMatch = cleanText.match(/^-\s*type:\s*["']?(\w+)["']?/);
     if (firstItemMatch) {
         const typeValue = firstItemMatch[1].toLowerCase();
         return OEPL_WIDGET_TYPES.includes(typeValue);
@@ -205,7 +205,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     title: '',
                     entity_id: '',
                     props: {
-                        value: item.data || item.value || 'https://esphome.io',
+                        value: item.data || item.value || 'https://github.com/koosoli/ESPHomeDesigner/',
                         scale: boxsize,
                         ecc: 'LOW',
                         color: item.color || 'black'
@@ -301,7 +301,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
 
             case 'plot':
                 widget = {
-                    id: `oepl_graph_${widgetIndex}`,
+                    id: `odp_plot_${widgetIndex}`,
                     type: 'odp_plot',
                     x: parseInt(item.x_start || item.x || 0, 10),
                     y: parseInt(item.y_start || item.y || 0, 10),
@@ -311,9 +311,10 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     entity_id: '',
                     props: {
                         duration: item.duration || 86400,
-                        data: item.data || [{ entity: "sensor.temperature", color: "black", width: 1 }],
-                        background: 'white',
-                        outline: item.outline || '#ccc'
+                        data: Array.isArray(item.data) ? item.data : (item.data ? [item.data] : [{ entity: "sensor.temperature", color: "black", width: 1 }]),
+                        background: item.background || 'white',
+                        outline: item.outline || '#ccc',
+                        ylegend: item.ylegend || null
                     }
                 };
                 break;
