@@ -562,6 +562,8 @@ export class PropertiesPanel {
 
             const alignOptions = ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"];
             this.addSelect("Align", props.text_align || "TOP_LEFT", alignOptions, (v) => updateProp("text_align", v));
+            this.addCheckbox("Parse Color Tags", !!props.parse_colors, (v) => updateProp("parse_colors", v));
+            this.addHint("Enable to use [color]text[/color] markup, also supports HA templates.");
             this.endSection();
         }
         else if (type === "icon") {
@@ -874,6 +876,8 @@ export class PropertiesPanel {
 
             this.addSelect("BPP (Anti-aliasing)", String(props.bpp || 1), ["1", "2", "4", "8"], (v) => updateProp("bpp", parseInt(v, 10)));
             this.addHint("1=no AA, 2=4 levels, 4=16 levels, 8=256 levels");
+            this.addCheckbox("Parse Color Tags", !!props.parse_colors, (v) => updateProp("parse_colors", v));
+            this.addHint("Enable to use [color]text[/color] markup, also supports HA templates.");
             this.endSection();
         }
         else if (type === "sensor_text") {

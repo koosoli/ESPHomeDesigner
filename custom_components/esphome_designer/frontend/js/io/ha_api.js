@@ -342,7 +342,8 @@ export async function loadLayoutFromBackend() {
             name: layout.name,
             device_model: layout.device_model,
             pages: layout.pages?.length,
-            widgets: layout.pages?.reduce((sum, p) => sum + (p.widgets?.length || 0), 0)
+            widgets: layout.pages?.reduce((sum, p) => sum + (p.widgets?.length || 0), 0),
+            renderingMode: layout.renderingMode || layout.rendering_mode  // DEBUG: Track loaded renderingMode
         });
 
         // Set the current layout ID BEFORE loading into state
@@ -411,7 +412,8 @@ export async function saveLayoutToBackend() {
         Logger.log(`[saveLayoutToBackend] Saving to layout '${layoutId}':`, {
             device_model: deviceModel,
             pages: layoutData.pages?.length,
-            widgets: layoutData.pages?.reduce((sum, p) => sum + (p.widgets?.length || 0), 0)
+            widgets: layoutData.pages?.reduce((sum, p) => sum + (p.widgets?.length || 0), 0),
+            renderingMode: layoutData.renderingMode  // DEBUG: Track renderingMode
         });
 
         // Use AbortController for timeout

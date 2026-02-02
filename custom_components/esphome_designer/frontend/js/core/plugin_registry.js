@@ -24,7 +24,8 @@ export class PluginRegistry {
             "polygon": "odp_polygon",
             "ellipse": "odp_ellipse",
             "icon_sequence": "odp_icon_sequence",
-            "weather_forcast": "weather_forecast" // Handle common typo defensively
+            "weather_forcast": "weather_forecast", // Handle common typo defensively
+            "odp_debug_grid": "debug_grid" // Debug grid widget mapping
         };
     }
 

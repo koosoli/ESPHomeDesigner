@@ -8,7 +8,8 @@ const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     el.innerHTML = "";
     el.style.backgroundColor = "transparent";
-    el.style.pointerEvents = "none"; // Don't block clicking through
+    // el.style.pointerEvents = "all"; // Allow selection
+    el.style.overflow = "visible"; // Prevent clipping of grid lines
 
     const spacing = props.spacing || 20;
     const color = getColorStyle(props.line_color || "black");
@@ -56,7 +57,7 @@ const render = (el, widget, { getColorStyle }) => {
 };
 
 export default {
-    id: "odp_debug_grid",
+    id: "debug_grid",
     name: "Debug Grid",
     category: "OpenDisplay",
     supportedModes: ['opendisplay', 'oepl'],
