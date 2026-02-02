@@ -89,7 +89,9 @@ export default {
         text: "https://github.com/koosoli/ESPHomeDesigner/",
         color: "black",
         bg_color: "white",
-        scale: 4
+        scale: 4,
+        width: 130,
+        height: 130
     },
     render,
     exportLVGL,
