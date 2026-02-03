@@ -773,10 +773,21 @@ export function onMouseUp(ev, canvasInstance) {
 
             // 1. Check if dropped onto another artboard (canvas page)
             const targetArtboard = targetEl?.closest(".artboard");
+            const targetPlaceholder = targetEl?.closest(".add-page-placeholder");
+            const sourcePageIndex = AppState.currentPageIndex;
             let targetPageIndex = -1;
 
             if (targetArtboard) {
                 targetPageIndex = parseInt(targetArtboard.dataset.index, 10);
+            } else if (targetPlaceholder) {
+                // DROP ONTO "+ ADD PAGE" PLACEHOLDER
+                // Create the page at the end of the list, but DON'T switch to it yet
+                const pageCount = AppState.pages.length;
+                const newPage = AppState.addPage(pageCount);
+                if (newPage) {
+                    targetPageIndex = pageCount;
+                    Logger.log(`[Canvas] Created new page ${targetPageIndex} at index ${targetPageIndex}. Source was ${sourcePageIndex}`);
+                }
             } else {
                 // 2. Check if dropped onto a page list item in the sidebar
                 const pageListItem = targetEl?.closest("#pageList .item");
@@ -787,9 +798,13 @@ export function onMouseUp(ev, canvasInstance) {
                 }
             }
 
-            if (targetPageIndex !== -1 && targetPageIndex !== AppState.currentPageIndex) {
+            if (targetPageIndex !== -1 && targetPageIndex !== sourcePageIndex) {
                 const widgetsToMove = canvasInstance.dragState.widgets;
-                const targetArtboard = canvasInstance.canvas.querySelector(`.artboard[data-index="${targetPageIndex}"]`);
+
+                // FORCE RENDER to ensure the new artboard exists in DOM if we just added it
+                if (targetPlaceholder) render(canvasInstance);
+
+                let targetArtboardEl = canvasInstance.canvas.querySelector(`.artboard[data-index="${targetPageIndex}"]`);
                 let moveCount = 0;
 
                 // Clean up interactions first
@@ -799,20 +814,17 @@ export function onMouseUp(ev, canvasInstance) {
                 canvasInstance.dragState = null;
                 clearSnapGuides();
 
-                // Cache target rect and zoom BEFORE the loop to avoid reflows and detached DOM issues during re-renders
+                // Cache target rect and zoom BEFORE the loop
                 let targetRect = null;
                 const zoom = AppState.zoomLevel;
-                if (targetArtboard) {
-                    targetRect = targetArtboard.getBoundingClientRect();
+                if (targetArtboardEl) {
+                    targetRect = targetArtboardEl.getBoundingClientRect();
                 }
 
-                // Filter to identify "root movers" - widgets whose parents are NOT in the move list
-                // This prevents moveWidgetToPage from being called for both a group and its children,
-                // which would cause coordinate corruption as the group move already handles children.
+                // Filter to identify "root movers"
                 const allMovedIds = new Set(widgetsToMove.map(w => w.id));
                 const rootMovers = widgetsToMove.filter(wInfo => {
                     const widget = AppState.getWidgetById(wInfo.id);
-                    // It's a root mover if it has no parent, OR if its parent is NOT being moved with it
                     return !widget.parentId || !allMovedIds.has(widget.parentId);
                 });
 
@@ -820,30 +832,30 @@ export function onMouseUp(ev, canvasInstance) {
                     let dropX = widgetInfo.startX;
                     let dropY = widgetInfo.startY;
 
-                    // If dropped onto a specific artboard, calculate position relative to that artboard
                     if (targetRect) {
                         const widget = AppState.getWidgetById(widgetInfo.id);
                         const dims = AppState.getCanvasDimensions();
 
-                        // Use mouse position relative to target artboard, applying the original click offset
                         dropX = Math.round((ev.clientX - targetRect.left) / zoom - widgetInfo.clickOffsetX);
                         dropY = Math.round((ev.clientY - targetRect.top) / zoom - widgetInfo.clickOffsetY);
 
-                        // Full bounds clamping: ensure widget stays within canvas
                         const widgetW = widget?.width || 50;
                         const widgetH = widget?.height || 50;
                         dropX = Math.max(0, Math.min(dims.width - widgetW, dropX));
                         dropY = Math.max(0, Math.min(dims.height - widgetH, dropY));
+                    } else if (targetPlaceholder) {
+                        dropX = 40;
+                        dropY = 40;
                     }
 
-                    // Attempt move
                     if (AppState.moveWidgetToPage(widgetInfo.id, targetPageIndex, dropX, dropY)) {
                         moveCount++;
                     }
                 });
 
                 if (moveCount > 0) {
-                    Logger.log(`[Canvas] Moved ${moveCount} widgets to page ${targetPageIndex}`);
+                    Logger.log(`[Canvas] Successfully moved ${moveCount} widgets to page ${targetPageIndex}`);
+                    AppState.setCurrentPageIndex(targetPageIndex);
                     render(canvasInstance);
                     return;
                 }
