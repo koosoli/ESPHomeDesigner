@@ -33,11 +33,6 @@
 #         - System sections (esphome, esp32, psram, etc.) are auto-commented
 #           to avoid conflicts with your existing setup.
 #
-# CAPTIVE PORTAL:
-#         - If WiFi connection fails, look for a hotspot named:
-#           "Waveshare-7-Inch"
-#         - Connect and go to http://192.168.4.1 to configure WiFi.
-#
 # ============================================================================
 
 esphome:
