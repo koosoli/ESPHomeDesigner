@@ -29,8 +29,6 @@
 # STEP 3: PASTE this snippet into your device YAML
 #         - Paste this snippet at the end of your configuration.
 #         - System sections (esphome, esp32, psram, etc.) are auto-commented
-#           to avoid conflicts with your existing setup.figuration.
-#         - System sections (esphome, esp32, psram, etc.) are auto-commented
 #           to avoid conflicts with your existing setup.
 #
 # CAPTIVE PORTAL:
