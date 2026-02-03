@@ -237,9 +237,10 @@ export async function fetchEntityHistory(entityId, duration = "24h") {
         });
 
         if (!resp.ok) {
+            const errorText = await resp.text().catch(() => "Unknown error");
             // Only log once to avoid console spam - history is non-critical (preview only)
             if (!historyFetchWarned) {
-                Logger.log("[EntityHistory] History fetch unavailable (graph preview will use mock data)");
+                Logger.log(`[EntityHistory] History fetch failed for ${entityId}: ${errorText}`);
                 historyFetchWarned = true;
             }
             return [];

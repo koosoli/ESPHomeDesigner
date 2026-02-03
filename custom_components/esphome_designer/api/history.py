@@ -40,13 +40,15 @@ class HistoryProxyView(DesignerBaseView):
         start_time = datetime.now(timezone.utc) - timedelta(seconds=duration_seconds)
         end_time = datetime.now(timezone.utc)
 
+        _LOGGER.debug("Fetching history for %s (duration=%s, start=%s)", entity_id, duration_str, start_time)
+
         try:
             # Try the new async history API first (HA 2023.5+)
             states = await self._get_history_async(entity_id, start_time, end_time)
             return self.json(states, request=request)
 
         except Exception as err:
-            _LOGGER.warning("Failed to fetch history for %s: %s", entity_id, err)
+            _LOGGER.error("Fatal error in HistoryProxyView for %s: %s", entity_id, err, exc_info=True)
             return self.json({"error": str(err)}, status_code=500, request=request)
 
     async def _get_history_async(self, entity_id: str, start_time: datetime, end_time: datetime) -> list:
@@ -57,6 +59,9 @@ class HistoryProxyView(DesignerBaseView):
             from homeassistant.components.recorder import get_instance
             
             recorder = get_instance(self.hass)
+            if not recorder:
+                _LOGGER.debug("Recorder not found/not ready yet, using fallback for %s", entity_id)
+                raise ImportError("Recorder not found")
             
             # Use the async wrapper for get_significant_states
             history_data = await recorder.async_add_executor_job(
@@ -74,8 +79,8 @@ class HistoryProxyView(DesignerBaseView):
             
             return self._format_history(history_data, entity_id)
             
-        except (ImportError, TypeError) as err:
-            _LOGGER.debug("get_significant_states failed (%s), trying alternate method", err)
+        except (ImportError, TypeError, AttributeError) as err:
+            _LOGGER.debug("get_significant_states unavailable or failed (%s), trying alternate method for %s", err, entity_id)
             
             # Fallback: Try state_changes_during_period with newer signature
             try:
@@ -83,7 +88,9 @@ class HistoryProxyView(DesignerBaseView):
                 from homeassistant.components.recorder import get_instance
                 
                 recorder = get_instance(self.hass)
-                
+                if not recorder:
+                    raise ImportError("Recorder still missing")
+
                 history_data = await recorder.async_add_executor_job(
                     state_changes_during_period,
                     self.hass,
@@ -99,16 +106,20 @@ class HistoryProxyView(DesignerBaseView):
                 return self._format_history(history_data, entity_id)
                 
             except Exception as inner_err:
-                _LOGGER.debug("state_changes_during_period also failed (%s), using state history", inner_err)
+                _LOGGER.debug("state_changes_during_period also failed (%s) for %s, using current state fallback", inner_err, entity_id)
                 
                 # Final fallback: just return current state as single-item history
-                state = self.hass.states.get(entity_id)
-                if state:
-                    return [{
-                        "state": state.state,
-                        "last_changed": state.last_changed.isoformat() if state.last_changed else None,
-                        "last_updated": state.last_updated.isoformat() if state.last_updated else None,
-                    }]
+                try:
+                    state = self.hass.states.get(entity_id)
+                    if state:
+                        return [{
+                            "state": state.state,
+                            "last_changed": state.last_changed.isoformat() if state.last_changed else None,
+                            "last_updated": state.last_updated.isoformat() if state.last_updated else None,
+                        }]
+                except Exception as final_err:
+                    _LOGGER.error("Failed to even get current state for %s: %s", entity_id, final_err)
+                
                 return []
 
     def _format_history(self, history_data: dict, entity_id: str) -> list:
