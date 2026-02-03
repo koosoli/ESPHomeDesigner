@@ -43,12 +43,10 @@ export class YamlGenerator {
         lines.push("#         - Select: ESP32-S3 (or appropriate for your board)");
         lines.push("#         - Framework: ESP-IDF (Essential for S3 stability)");
         lines.push("#");
-        lines.push("# STEP 3: MERGE this snippet into your YAML");
+        lines.push("# STEP 3: PASTE this snippet into your device YAML");
         lines.push("#         - Paste this snippet at the end of your configuration.");
-        lines.push("#         - IF YOUR HARDWARE PROFILE INCLUDES 'esphome' or 'esp32' SECTIONS:");
-        lines.push("#           You MUST manually merge them into your existing config.");
-        lines.push("#         - System sections (wifi, logger) are commented");
-        lines.push("#           out to avoid conflicts with your existing base setup.");
+        lines.push("#         - System sections (esphome, esp32, psram) are auto-commented");
+        lines.push("#           to avoid conflicts with your existing base setup.");
         lines.push("#");
         lines.push("# CAPTIVE PORTAL:");
         lines.push("#         - If WiFi connection fails, the device will create a hotspot.");
