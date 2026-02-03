@@ -10,6 +10,8 @@ import { Logger } from '../utils/logger.js';
 
 export function convertColor(hex) {
     if (!hex || hex === "transparent") return '"0x000000"';
+    // Handle theme_auto (dynamic theming value from WidgetFactory) - fallback to black
+    if (hex === "theme_auto") return '"0x000000"';
     if (hex.startsWith("#")) {
         return '"0x' + hex.substring(1).toUpperCase() + '"';
     }

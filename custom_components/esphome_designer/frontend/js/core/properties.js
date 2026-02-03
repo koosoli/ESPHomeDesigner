@@ -1794,6 +1794,16 @@ export class PropertiesPanel {
                     AppState.updateWidget(widget.id, { entity_id: v });
                 }, widget);
 
+                this.createSection("Size", false);
+                // Auto-lock square aspect ratio for meter widgets
+                const currentSize = Math.max(widget.width, widget.height);
+                this.addLabeledInput("Size (px)", "number", currentSize, (v) => {
+                    const size = parseInt(v, 10) || 100;
+                    AppState.updateWidget(widget.id, { width: size, height: size });
+                });
+                this.addHint("⚠️ Meter widgets must be square. Width and height are locked together.");
+                this.endSection();
+
                 this.createSection("Scale", false);
                 this.addLabeledInput("Min Value", "number", props.min || 0, (v) => updateProp("min", parseInt(v, 10)));
                 this.addLabeledInput("Max Value", "number", props.max || 100, (v) => updateProp("max", parseInt(v, 10)));
