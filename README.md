@@ -144,7 +144,7 @@ Then create a new ESPHome device:
 4. Add your sensors, weather entities, icons, shapes
 5. Create multiple pages with different refresh rates
 6. **Live Preview**: Your YAML is generated on the fly as you design! Just look at the YAML snippet box.
-   <p align="center"><img src="screenshots/modern_canvas.gif" width="800" alt="Modern Canvas Interaction"></p>
+   <p align="center"><img src="screenshots/canvas.gif" width="800" alt="Modern Canvas Interaction"></p>
 
 #### 7. Flash It
 
