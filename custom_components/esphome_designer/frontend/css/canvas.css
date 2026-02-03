@@ -175,6 +175,23 @@
     font-size: 10px;
     font-weight: 600;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    cursor: grab; /* Indicates page can be moved */
+}
+
+.artboard-header:active {
+    cursor: grabbing;
+}
+
+.artboard-wrapper.reordering {
+    opacity: 0.15 !important;
+    filter: blur(2px) grayscale(1) !important;
+    transform: scale(0.95);
+    pointer-events: none;
+}
+
+.page-drag-ghost {
+    pointer-events: none;
+    z-index: 100000;
 }
 
 .artboard-name {

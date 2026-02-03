@@ -175,6 +175,65 @@ function removeDragGhost(canvasInstance) {
 }
 
 
+/**
+ * Creates a floating ghost of the artboard header for page reordering.
+ */
+function createPageDragGhost(canvasInstance, pageIndex, clientX, clientY) {
+    const wrapper = canvasInstance.canvas.querySelector(`.artboard-wrapper[data-index="${pageIndex}"]`);
+    if (!wrapper) return;
+
+    const header = wrapper.querySelector('.artboard-header');
+    if (!header) return;
+
+    const ghost = header.cloneNode(true);
+    ghost.classList.add('page-drag-ghost');
+
+    const rect = header.getBoundingClientRect();
+    const clickOffsetX = clientX - rect.left;
+    const clickOffsetY = clientY - rect.top;
+
+    ghost.style.cssText = `
+        position: fixed;
+        left: ${clientX}px;
+        top: ${clientY}px;
+        width: ${rect.width}px;
+        pointer-events: none;
+        z-index: 100000;
+        opacity: 0.9;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+        border: 2px solid var(--accent);
+        border-radius: 10px;
+        background: var(--bg-surface);
+        transform: translate(-${clickOffsetX}px, -${clickOffsetY}px) scale(1.05);
+        transition: none;
+    `;
+
+    document.body.appendChild(ghost);
+    canvasInstance.pageDragGhost = ghost;
+    canvasInstance.pageDragOffset = { x: clickOffsetX, y: clickOffsetY };
+
+    // Dim the original artboard wrapper
+    wrapper.classList.add('reordering');
+}
+
+function updatePageDragGhost(canvasInstance, clientX, clientY) {
+    if (!canvasInstance.pageDragGhost) return;
+    canvasInstance.pageDragGhost.style.left = clientX + 'px';
+    canvasInstance.pageDragGhost.style.top = clientY + 'px';
+}
+
+function removePageDragGhost(canvasInstance, pageIndex) {
+    if (canvasInstance.pageDragGhost) {
+        canvasInstance.pageDragGhost.remove();
+        canvasInstance.pageDragGhost = null;
+    }
+    const wrapper = canvasInstance.canvas.querySelector(`.artboard-wrapper[data-index="${pageIndex}"]`);
+    if (wrapper) {
+        wrapper.classList.remove('reordering');
+    }
+}
+
+
 function startInlineEdit(canvasInstance, widgetId) {
     const widget = AppState.getWidgetById(widgetId);
     if (!widget) return;
@@ -306,8 +365,22 @@ export function setupInteractions(canvasInstance) {
             // Re-query artboard after potential re-render
             const newArtboard = canvasInstance.canvas.querySelector(`.artboard[data-index="${pageIndex}"]`);
             if (newArtboard) currentArtboardEl = newArtboard;
-        } else if (isHeaderClick || isBackgroundClick) {
-            // Re-center current page if header or background clicked
+        } else if (isHeaderClick) {
+            // INITIATE PAGE REORDERING
+            canvasInstance.dragState = {
+                mode: "reorder-page",
+                pageIndex: pageIndex,
+                startX: ev.clientX,
+                startY: ev.clientY
+            };
+            createPageDragGhost(canvasInstance, pageIndex, ev.clientX, ev.clientY);
+
+            window.addEventListener("mousemove", canvasInstance._boundMouseMove);
+            window.addEventListener("mouseup", canvasInstance._boundMouseUp);
+            ev.preventDefault();
+            return;
+        } else if (isBackgroundClick) {
+            // Re-center current page if background clicked
             focusPage(canvasInstance, pageIndex, true);
         }
 
@@ -682,6 +755,18 @@ export function onMouseMove(ev, canvasInstance) {
                     x: widget.x, y: widget.y, w: widget.width, h: widget.height
                 });
             }
+        } else if (canvasInstance.dragState.mode === "reorder-page") {
+            // Update ghost
+            updatePageDragGhost(canvasInstance, ev.clientX, ev.clientY);
+
+            // Visual feedback for drop targets
+            document.querySelectorAll('.artboard-wrapper').forEach(el => el.classList.remove('drag-over'));
+
+            const targetEl = document.elementFromPoint(ev.clientX, ev.clientY);
+            const targetWrapper = targetEl?.closest('.artboard-wrapper');
+            if (targetWrapper && parseInt(targetWrapper.dataset.index, 10) !== canvasInstance.dragState.pageIndex) {
+                targetWrapper.classList.add('drag-over');
+            }
         }
         // render calls skipped for perf
     } else if (canvasInstance.lassoState) {
@@ -858,6 +943,23 @@ export function onMouseUp(ev, canvasInstance) {
                     AppState.setCurrentPageIndex(targetPageIndex);
                     render(canvasInstance);
                     return;
+                }
+            }
+        } else if (dragMode === "reorder-page") {
+            const sourceIndex = canvasInstance.dragState.pageIndex;
+            const targetEl = document.elementFromPoint(ev.clientX, ev.clientY);
+            const targetWrapper = targetEl?.closest('.artboard-wrapper');
+
+            removePageDragGhost(canvasInstance, sourceIndex);
+            document.querySelectorAll('.artboard-wrapper').forEach(el => el.classList.remove('drag-over'));
+
+            if (targetWrapper) {
+                const targetIndex = parseInt(targetWrapper.dataset.index, 10);
+                if (targetIndex !== sourceIndex) {
+                    AppState.reorderPage(sourceIndex, targetIndex);
+                    // focusPage will be called via EVENTS.PAGE_CHANGED listener in canvas.js if index changes
+                    // or we might need a manual call if it stays same but contents moved.
+                    // reorderPage emits STATE_CHANGED which triggers render.
                 }
             }
         }
