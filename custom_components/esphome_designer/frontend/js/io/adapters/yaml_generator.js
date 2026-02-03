@@ -45,7 +45,9 @@ export class YamlGenerator {
         lines.push("#");
         lines.push("# STEP 3: MERGE this snippet into your YAML");
         lines.push("#         - Paste this snippet at the end of your configuration.");
-        lines.push("#         - System sections (esphome, esp32, wifi, logger) are commented");
+        lines.push("#         - IF YOUR HARDWARE PROFILE INCLUDES 'esphome' or 'esp32' SECTIONS:");
+        lines.push("#           You MUST manually merge them into your existing config.");
+        lines.push("#         - System sections (wifi, logger) are commented");
         lines.push("#           out to avoid conflicts with your existing base setup.");
         lines.push("#");
         lines.push("# CAPTIVE PORTAL:");

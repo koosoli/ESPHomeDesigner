@@ -26,8 +26,10 @@
 #         - Select: ESP32-S3
 #         - Framework: ESP-IDF (Required for this device)
 #
-# STEP 3: REPLACE your entire YAML with this generated output
-#         (This profile includes full esphome: and esp32: sections)
+# STEP 3: MERGE this content into your device YAML
+#         - This profile contains 'esphome' and 'esp32' sections.
+#         - You MUST manually merge them into your existing config
+#           to avoid duplicate key errors.
 #
 # ============================================================================
 
