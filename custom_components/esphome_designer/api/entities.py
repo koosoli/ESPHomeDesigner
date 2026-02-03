@@ -44,7 +44,7 @@ class ReTerminalEntitiesView(DesignerBaseView):
                 "attributes": dict(state.attributes)  # Include full attributes for preview
             })
 
-            if len(entities) >= 1000: # Safety cap
+            if len(entities) >= 5000: # Safety cap
                 break
 
         return self.json(entities, request=request)

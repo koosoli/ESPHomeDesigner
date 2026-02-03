@@ -85,7 +85,7 @@ export async function fetchEntityStates() {
         const token = getHaToken();
 
         // First try the custom component endpoint
-        apiUrl = `${HA_API_BASE}/entities?domains=sensor,binary_sensor,weather,light,switch,fan,cover,climate,media_player,input_number,number,input_boolean,input_text,input_select,button,input_button,scene,script`;
+        apiUrl = `${HA_API_BASE}/entities?domains=sensor,binary_sensor,weather,light,switch,fan,cover,climate,media_player,input_number,number,input_boolean,input_text,input_select,button,input_button`;
 
         Logger.log("[EntityStates] Fetching from:", apiUrl);
 
@@ -128,7 +128,7 @@ export async function fetchEntityStates() {
             const allowedDomains = ['sensor', 'binary_sensor', 'weather', 'light', 'switch',
                 'fan', 'cover', 'climate', 'media_player', 'input_number',
                 'number', 'input_boolean', 'input_text', 'input_select',
-                'button', 'input_button', 'scene', 'script'];
+                'button', 'input_button'];
             entities = entities
                 .filter(e => {
                     const domain = e.entity_id?.split('.')[0];
