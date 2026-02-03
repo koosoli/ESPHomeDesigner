@@ -141,8 +141,12 @@ class ReTerminalHardwareListView(DesignerBaseView):
                         "shape": shape,
                         "features": features
                     })
+                    _LOGGER.debug(f"Loaded profile '{clean_id}' from {yaml_file}")
+
                 except Exception as e:  # noqa: BLE001
                     _LOGGER.error("Failed to parse hardware template %s: %s", yaml_file, e)
+            
+            _LOGGER.debug(f"Scanned {scan_dir}: found {len([t for t in templates if (t['isCustomProfile'] == is_custom)])} templates")
 
         return self.json({"templates": templates}, request=request)
 

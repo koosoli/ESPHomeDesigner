@@ -1107,7 +1107,7 @@ export class DeviceSettings {
 
                 // If it was selected but now hidden, fallback to backlight_off
                 if (currentMode !== 'lvgl' && AppState.settings.lcdEcoStrategy === 'dim_after_timeout') {
-                    updateSetting('lcdEcoStrategy', 'backlight_off');
+                    AppState.updateSettings({ lcdEcoStrategy: 'backlight_off' });
                     const fallbackRadio = document.querySelector('input[name="lcdEcoStrategy"][value="backlight_off"]');
                     if (fallbackRadio) fallbackRadio.checked = true;
                     this.updateVisibility();
