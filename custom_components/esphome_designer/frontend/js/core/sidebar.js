@@ -170,12 +170,31 @@ export class Sidebar {
                 item.style.backgroundColor = "";
 
                 const widgetId = e.dataTransfer.getData("application/widget-id");
-                Logger.log(`[Sidebar] Drop detected on page ${index}. Widget ID:`, widgetId);
+                const widgetType = e.dataTransfer.getData("application/widget-type");
+
                 if (widgetId) {
+                    Logger.log(`[Sidebar] Drop detected on page ${index}. Widget ID:`, widgetId);
                     const targetPageIndex = index;
                     if (targetPageIndex !== AppState.currentPageIndex) {
                         AppState.moveWidgetToPage(widgetId, targetPageIndex);
                         Logger.log(`[Sidebar] Moved widget ${widgetId} to page ${targetPageIndex}`);
+                    }
+                    return;
+                }
+
+                if (widgetType) {
+                    Logger.log(`[Sidebar] Drop detected on page ${index}. Widget Type:`, widgetType);
+                    const targetPageIndex = index;
+                    try {
+                        const widget = WidgetFactory.createWidget(widgetType);
+                        widget.x = 40;
+                        widget.y = 40;
+                        AppState.addWidget(widget, targetPageIndex);
+                        AppState.setCurrentPageIndex(targetPageIndex);
+                        AppState.selectWidget(widget.id, false);
+                        Logger.log(`[Sidebar] Added new ${widgetType} to page ${targetPageIndex}`);
+                    } catch (err) {
+                        Logger.error("[Sidebar] Error creating widget from drop:", err);
                     }
                     return;
                 }
