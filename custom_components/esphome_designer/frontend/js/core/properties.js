@@ -196,7 +196,11 @@ export class PropertiesPanel {
                 const tag = active.tagName.toLowerCase();
                 const type = active.type ? active.type.toLowerCase() : "";
 
-                if (tag === "input" || tag === "textarea" || tag === "select" || active.classList.contains("prop-input")) {
+                // Allow re-renders for controls that toggle layout (checkbox, radio, select)
+                // Block only for text/number inputs to prevent focus loss while typing
+                const isLayoutControl = (tag === "input" && ["checkbox", "radio", "button"].includes(type)) || tag === "select";
+
+                if (!isLayoutControl && (tag === "input" || tag === "textarea" || active.classList.contains("prop-input"))) {
                     // Don't re-render while user is interacting with form elements
                     // This prevents focus loss and "kick out" during typing or arrow use
                     return;
