@@ -96,30 +96,6 @@ esphome:
       - "-Wl,-Map,output.map"
     board_build.arduino.memory_type: qio_opi
 
-# Enable Home Assistant API
-api:
-  encryption:
-    key: !secret encryption_key
-
-ota:
-  - platform: esphome
-    id: my_ota
-    password: !secret ota_password
-
-wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
-
-# Enable fallback hotspot (captive portal) in case wifi connection fails
-  ap:
-    ssid: "${name}"
-    password: !secret wifi_fallback_password
-
-logger:
-  level: $logger
-
-captive_portal:
-
 spi:
   mosi_pin: $mosipin
   miso_pin: $misopin
