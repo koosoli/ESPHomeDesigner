@@ -59,6 +59,7 @@ substitutions:
   tprstpin: GPIO13
   # GPIO pins battery
   batadcpin: GPIO1
+  logger: DEBUG
 
 esphome:
   min_version: 2025.12.0
