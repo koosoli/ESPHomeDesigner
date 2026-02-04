@@ -1,6 +1,19 @@
 ## v1.0.0 RC1 - The "Grand Cleanup" & Modular Renaissance
 **Release Date:** January 28, 2026
 
+> [!CAUTION]
+> **🚨 CRITICAL UPDATE INSTRUCTION (For HACS Users)**
+> 
+> HACS caches the old repository domain (`reterminal_dashboard`). To install this update correctly, you **MUST** perform a clean reinstall:
+> 1. In HACS, go to Integrations → Find **ESPHome Designer** (or reTerminal Dashboard) → Click **Wait** (three dots) → **Remove**.
+> 2. Go to **Integrations** → **Three dots** (top right) → **Custom repositories**.
+> 3. Find `https://github.com/koosoli/ESPHomeDesigner` and **delete it** (Trash icon).
+> 4. **Restart Home Assistant** (This is critical to clear the cache).
+> 5. Go back to HACS → **Custom repositories** → Re-add `https://github.com/koosoli/ESPHomeDesigner`.
+> 6. Install **ESPHome Designer** fresh.
+> 
+> *Failing to do this will cause HACS to re-download the old version!*
+
 ### 🚀 Major Architectural Revolution
 - **Plugin-Based Widget Ecosystem:** A complete shift from a 3,800+ line monolithic exporter to a modular registry with **55+ independent widget plugins**. Every widget is now its own self-contained module, making the system faster, more stable, and easier to extend.
 - **Backend Modularization:** Massive backend refactor splitting the monolithic `http_api.py` and `yaml_parser.py` into dedicated `api/` and `yaml_parser/` directories. This improves stability and enables complex parsing logic for new platforms.
@@ -41,6 +54,7 @@
 > **BREAKING CHANGES**
 > - **Project Compatibility:** Saved projects from versions prior to 0.9.0 will **not be automatically imported**. We strongly recommend backing up your old project JSON files or YAML snippets before updating.
 > - **Branding Rename:** The legacy `reterminal_dashboard` domain has been retired. The integration is now officially **`esphome_designer`**.
+
 
 
 ---
