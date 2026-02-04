@@ -44,7 +44,7 @@ substitutions:
   id: esp32_c6_lcd_147
   friendly_name: "Waveshare ESP32-C6-LCD-1.47\""
   device_description: "Waveshare ESP32-C6 LCD 1.47 inch"
-  project_name: "ESPHomeDesigner_Waveshare_LCD_1.47"
+  project_name: "karl-petter.ESPHomeDesigner_Waveshare_LCD_1_47"
   project_version: "1.0.0"
   #GPIO pins for the LCD screen and SD Card
   rstpin:  GPIO21
