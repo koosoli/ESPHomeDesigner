@@ -35,7 +35,7 @@
 # ============================================================================
 
 substitutions:
-  name: "waveshare_esp32s3_touch_round_lcd_128"
+  name: "waveshare_esp32s3_round_lcd_128"
   friendly_name: "Waveshare Touch Round LCD 1.28\""
   device_description: "Waveshare ESP32-S3 Touch Round LCD 1.28 inch"
   project_name: "karl-petter.ESPHomeDesigner_Waveshare_Touch_Round_LCD_1_28"
