@@ -3,6 +3,7 @@ import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, ORIENTATIONS } from '../co
 import { DEVICE_PROFILES } from '../../io/devices.js';
 import { Logger } from '../../utils/logger.js';
 import { hasHaBackend } from '../../utils/env.js';
+import { generateId, deepClone } from '../../utils/helpers.js';
 
 export class ProjectStore {
     constructor() {
@@ -165,6 +166,50 @@ export class ProjectStore {
         this.rebuildWidgetsIndex();
         emit(EVENTS.STATE_CHANGED);
         emit(EVENTS.PAGE_CHANGED, { index: this.state.currentPageIndex });
+    }
+
+    /**
+     * @param {number} index 
+     */
+    duplicatePage(index) {
+        if (index < 0 || index >= this.state.pages.length) return null;
+
+        const sourcePage = this.state.pages[index];
+        // Deep clone the page
+        const newPage = deepClone(sourcePage);
+
+        // Update page metadata
+        newPage.id = `page_${Date.now()}_${this.state.pages.length}`;
+        newPage.name = `${sourcePage.name} (Copy)`;
+
+        // Map old widget IDs to new ones to preserve parent/child relationships
+        const idMap = new Map();
+
+        // First pass: Generate new IDs for all widgets
+        newPage.widgets.forEach(widget => {
+            const oldId = widget.id;
+            const newId = generateId();
+            widget.id = newId;
+            idMap.set(oldId, newId);
+        });
+
+        // Second pass: Update parentId references
+        newPage.widgets.forEach(widget => {
+            if (widget.parentId && idMap.has(widget.parentId)) {
+                widget.parentId = idMap.get(widget.parentId);
+            }
+        });
+
+        // Insert after the source page
+        const targetIndex = index + 1;
+        this.state.pages.splice(targetIndex, 0, newPage);
+        this.state.currentPageIndex = targetIndex;
+
+        this.rebuildWidgetsIndex();
+        emit(EVENTS.STATE_CHANGED);
+        emit(EVENTS.PAGE_CHANGED, { index: this.state.currentPageIndex });
+
+        return newPage;
     }
 
     /** 

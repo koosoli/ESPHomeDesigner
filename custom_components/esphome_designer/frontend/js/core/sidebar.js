@@ -240,6 +240,18 @@ export class Sidebar {
             };
             actions.appendChild(editBtn);
 
+            const dupeBtn = document.createElement("button");
+            dupeBtn.textContent = "⧉";
+            dupeBtn.className = "btn btn-secondary";
+            dupeBtn.style.padding = "1px 4px";
+            dupeBtn.style.fontSize = "8px";
+            dupeBtn.title = "Duplicate Page";
+            dupeBtn.onclick = (e) => {
+                e.stopPropagation();
+                AppState.duplicatePage(index);
+            };
+            actions.appendChild(dupeBtn);
+
             if (pages.length > 1) {
                 const delBtn = document.createElement("button");
                 delBtn.textContent = "✕";

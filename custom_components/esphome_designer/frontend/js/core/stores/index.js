@@ -169,6 +169,12 @@ class AppStateFacade {
         this.recordHistory();
     }
 
+    duplicatePage(index) {
+        const page = this.project.duplicatePage(index);
+        this.recordHistory();
+        return page;
+    }
+
     selectWidget(id, multi) {
         if (!id) {
             this.editor.selectWidget(null, multi);
