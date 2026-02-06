@@ -25,15 +25,15 @@
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
   <link rel="icon" href="./assets/favicon-BFR8sXii.png" type="image/x-icon">
-  <script type="module" crossorigin src="./assets/main-C7VF_5em.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/main-C9aN5nfP.css">
+  <script type="module" crossorigin src="./assets/main-Dr6l1TYF.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/main-1OkGAQ6K.css">
 </head>
 
 <body>
   <header class="main-header" role="banner">
     <div class="main-header-title">
       <img src="./assets/logo_header-CUGdaeC6.png" alt="ESPHome Designer" class="logo-image">
-      <span><small style="opacity: 0.5; margin-left: 8px;">Pre_0.9b313</small> <span id="currentLayoutDevice"
+      <span><small style="opacity: 0.5; margin-left: 8px;">v1.0.0 RC2.3</small> <span id="currentLayoutDevice"
           style="margin-left:8px; color:var(--accent);"></span></span>
     </div>
     <div class="main-header-actions desktop-only">
@@ -47,6 +47,9 @@
         </svg>
         GitHub
       </a>
+      <a href="https://buymeacoffee.com/koosoli" target="_blank" class="btn btn-secondary" title="Buy me a coffee">
+        <span class="mdi mdi-coffee" style="font-size: 16px;"></span>
+      </a>
       <button id="deviceSettingsBtn" class="btn btn-secondary">📱 Device Settings</button>
       <button id="editorSettingsBtn" class="btn btn-secondary">⚙ Editor Settings</button>
     </div>
@@ -59,6 +62,10 @@
           <rect x="3" y="14" width="7" height="7"></rect>
         </svg></button>
       <button id="mobileDeviceBtn" class="btn btn-secondary">📱</button>
+      <button id="mobileEditorSettingsBtn" class="btn btn-secondary">⚙</button>
+      <a href="https://buymeacoffee.com/koosoli" target="_blank" class="btn btn-secondary" title="Buy me a coffee">
+        <span class="mdi mdi-coffee" style="font-size: 18px;"></span>
+      </a>
       <button id="mobilePropsBtn" class="btn btn-secondary"><svg viewBox="0 0 24 24" width="18" height="18" fill="none"
           stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="3"></circle>
@@ -75,12 +82,13 @@
     <aside class="sidebar" role="complementary" aria-label="Editor Sidebar">
       <div id="pagesSection" class="sidebar-section collapsible expanded">
         <div class="sidebar-section-label" id="pagesHeader"
-          style="padding: 12px 16px 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+          style="padding: 12px 16px 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; border-radius: 4px;"
+          title="Click to view all pages">
           <div style="display: flex; align-items: center; gap: 8px;">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
             </svg>
-            <span>Pages</span>
+            <span style="font-weight: 600;">PAGES</span>
           </div>
           <svg class="chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor"
             stroke-width="3" style="transition: transform 0.2s; transform: rotate(0deg);">
@@ -164,6 +172,9 @@
             </button>
             <button id="zoomOutBtn" class="btn-icon" title="Zoom Out">−</button>
             <button id="zoomResetBtn" class="btn-icon" title="Reset View (Ctrl+0)">⌂</button>
+            <button id="zoomToFitAllBtn" class="btn-icon" title="Zoom to Fit All Pages">
+              <span class="mdi mdi-view-grid-outline" style="font-size: 16px;"></span>
+            </button>
             <button id="zoomInBtn" class="btn-icon" title="Zoom In">+</button>
           </div>
         </div>
@@ -195,7 +206,9 @@
             <button id="aiPromptBtn" class="btn btn-secondary btn-xs">AI Assistant</button>
             <button id="copySnippetBtn" class="btn btn-secondary btn-xs">Copy</button>
             <button id="copyOEPLServiceBtn" class="btn btn-secondary btn-xs" style="display:none;"
-              title="Copy full HA Service Call">HA Service</button>
+              title="Copy full HA Service Call">HA Service (OEPL)</button>
+            <button id="copyODPServiceBtn" class="btn btn-secondary btn-xs" style="display:none;"
+              title="Copy full HA Service Call">HA Service (ODP)</button>
             <button id="fullscreenSnippetBtn" class="btn btn-secondary btn-xs">Full</button>
             <button id="updateLayoutBtn" class="btn btn-secondary btn-xs"
               title="Import YAML back to canvas">Update</button>
@@ -448,6 +461,35 @@
               </div>
             </div>
 
+            <!-- OpenDisplay Settings -->
+            <div id="odpSettingsSection" style="display:none;">
+              <div style="font-size: 11px; font-weight: bold; color: var(--accent); margin-bottom: 8px;">
+                OpenDisplay Configuration (ODP)</div>
+              <div class="field">
+                <div class="prop-label">ODP Display Entity ID</div>
+                <input id="opendisplayEntityId" class="prop-input" type="text"
+                  placeholder="opendisplay.0000000000000000" />
+              </div>
+              <div class="field">
+                <div class="prop-label">Dithering Algorithm</div>
+                <select id="opendisplayDither" class="prop-input">
+                  <option value="0">None (Faster)</option>
+                  <option value="1">Ordered</option>
+                  <option value="2" selected>Burkes (Recommended)</option>
+                  <option value="3">Atkinson</option>
+                  <option value="4">Floyd-Steinberg</option>
+                  <option value="5">Jarvis-Judice-Ninke</option>
+                  <option value="6">Stucki</option>
+                  <option value="7">Sierra</option>
+                </select>
+              </div>
+              <div class="field">
+                <div class="prop-label">Update Interval (TTL)</div>
+                <input id="opendisplayTtl" class="prop-input" type="number" min="0" placeholder="60" />
+                <div style="font-size:9px; color:var(--muted); margin-top:4px;">In seconds. 0 = never expires.</div>
+              </div>
+            </div>
+
             <!-- Custom Hardware Section -->
             <div id="customHardwareSection"
               style="display:none; border:1px solid var(--accent); border-radius:8px; padding:12px; background: rgba(82, 199, 234, 0.03);">
@@ -470,6 +512,7 @@
                       <option value="esp32">ESP32</option>
                       <option value="esp32-c3">ESP32-C3</option>
                       <option value="esp32-c6">ESP32-C6</option>
+                      <option value="esp8266">ESP8266 (Experimental)</option>
                     </select>
                   </div>
                   <div class="field">
@@ -482,8 +525,32 @@
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                   <div class="field">
-                    <div class="prop-label" style="font-size:10px;">Resolution</div>
-                    <input id="customRes" class="prop-input-sm" type="text" placeholder="800x480" value="800x480" />
+                    <div class="prop-label" style="font-size:10px;">Resolution Preset</div>
+                    <select id="customResPreset" class="prop-input-sm">
+                      <option value="custom">Manual...</option>
+                      <!-- LCD / OLED -->
+                      <optgroup label="LCD / OLED">
+                        <option value="128x64">128x64 (0.96")</option>
+                        <option value="128x128">128x128 (1.44")</option>
+                        <option value="240x240">240x240 (1.3/1.54")</option>
+                        <option value="320x240">320x240 (2.4/2.8")</option>
+                        <option value="320x480">320x480 (3.5")</option>
+                        <option value="480x320">480x320 (3.5" alt)</option>
+                        <option value="480x480">480x480 (Round/Square)</option>
+                        <option value="800x480">800x480 (4-7")</option>
+                        <option value="1024x600">1024x600 (7-10")</option>
+                      </optgroup>
+                      <!-- E-Paper -->
+                      <optgroup label="E-Paper">
+                        <option value="250x122">2.13" (250x122)</option>
+                        <option value="296x128">2.9" (296x128)</option>
+                        <option value="400x300">4.2" (400x300)</option>
+                        <option value="600x448">5.65" (600x448 7-Color)</option>
+                        <option value="640x384">5.83" (640x384)</option>
+                        <option value="800x480">7.5" (800x480)</option>
+                        <option value="880x528">7.5" HD (880x528)</option>
+                      </optgroup>
+                    </select>
                   </div>
                   <div class="field">
                     <div class="prop-label" style="font-size:10px;">Shape</div>
@@ -492,6 +559,10 @@
                       <option value="round">Round</option>
                     </select>
                   </div>
+                </div>
+                <div class="field">
+                  <div class="prop-label" style="font-size:10px;">Manual Resolution</div>
+                  <input id="customRes" class="prop-input-sm" type="text" placeholder="800x480" value="800x480" />
                 </div>
                 <div style="display:flex; gap:16px; margin-top:8px;">
                   <label style="display:flex; align-items:center; gap:6px; font-size:10px; cursor:pointer;">
@@ -569,6 +640,22 @@
                 <option value="GPIO47">GPIO47</option>
                 <option value="GPIO48">GPIO48</option>
               </datalist>
+              <datalist id="gpio-pins-esp8266">
+                <option value="">— None —</option>
+                <option value="GPIO16">GPIO16 (D0 - Wake)</option>
+                <option value="GPIO5">GPIO5 (D1 - SCL)</option>
+                <option value="GPIO4">GPIO4 (D2 - SDA)</option>
+                <option value="GPIO0">GPIO0 (D3 - Flash)</option>
+                <option value="GPIO2">GPIO2 (D4 - LED)</option>
+                <option value="GPIO14">GPIO14 (D5 - SCK)</option>
+                <option value="GPIO12">GPIO12 (D6 - MISO)</option>
+                <option value="GPIO13">GPIO13 (D7 - MOSI)</option>
+                <option value="GPIO15">GPIO15 (D8 - CS)</option>
+                <option value="GPIO3">GPIO3 (RX)</option>
+                <option value="GPIO1">GPIO1 (TX)</option>
+                <option value="GPIO10">GPIO10 (SD3 - Flash)</option>
+                <option value="GPIO9">GPIO9 (SD2 - Flash)</option>
+              </datalist>
 
               <div class="hardware-group" style="margin-top:12px;">
                 <div class="prop-label" style="font-size:10px; margin-bottom:4px;">Display (SPI)</div>
@@ -581,6 +668,39 @@
                   <option value="epaper_spi">Generic SPI E-Paper</option>
                   <option value="custom">Other (Custom YAML)</option>
                 </select>
+
+                <div id="customDisplayModelField" class="field" style="display:none; margin-bottom:8px;">
+                  <div class="prop-label" style="font-size:10px;">Display Model</div>
+                  <input id="customDisplayModel" class="prop-input-sm" type="text" placeholder="e.g. 7.50inV2"
+                    list="waveshare_models" />
+                  <div style="font-size:9px; color:var(--muted);">Required for Waveshare E-Paper</div>
+
+                  <datalist id="waveshare_models">
+                    <option value="1.54in">1.54"</option>
+                    <option value="1.54inv2">1.54" V2</option>
+                    <option value="2.13in">2.13"</option>
+                    <option value="2.13inv2">2.13" V2</option>
+                    <option value="2.13inv3">2.13" V3</option>
+                    <option value="2.13in-ttgo">2.13" TTGO</option>
+                    <option value="2.66in">2.66"</option>
+                    <option value="2.70in">2.70"</option>
+                    <option value="2.90in">2.90"</option>
+                    <option value="2.90inv2">2.90" V2</option>
+                    <option value="2.90in-dke">2.90" DKE</option>
+                    <option value="3.52in">3.52"</option>
+                    <option value="3.70in">3.70"</option>
+                    <option value="4.20in">4.20"</option>
+                    <option value="4.20inv2">4.20" V2</option>
+                    <option value="5.65in">5.65" (Color)</option>
+                    <option value="5.83in">5.83"</option>
+                    <option value="5.83inv2">5.83" V2</option>
+                    <option value="7.50in">7.50"</option>
+                    <option value="7.50inv2">7.50" V2</option>
+                    <option value="7.50inv2p">7.50" V2 (Partial Refresh)</option>
+                    <option value="7.50hd">7.50" HD</option>
+                  </datalist>
+                </div>
+
                 <div id="spiPinsGrid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
                   <div class="field">
                     <div class="prop-label" style="font-size:9px;">CS</div>
@@ -831,7 +951,6 @@
             </div>
           </div>
 
-          <!-- LCD Specific Strategies -->
           <div id="strategy-lcd-group" style="display:none; flex-direction:column; gap:12px; margin-top:8px;">
             <div
               style="font-size:10px; font-weight:bold; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">
@@ -855,6 +974,16 @@
                 (recommended for LCD).</div>
             </div>
 
+            <div id="lcd-strategy-dim-row">
+              <label
+                style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
+                <input type="radio" name="lcdEcoStrategy" value="dim_after_timeout" onchange="togglePowerSettings()">
+                Eco (Dim after timeout)
+              </label>
+              <div style="font-size:10px; opacity:0.6; margin-left:24px;">Turns off backlight and pauses LVGL after
+                period of inactivity. Resume on touch.</div>
+            </div>
+
             <div>
               <label
                 style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
@@ -873,6 +1002,15 @@
               </label>
               <div style="font-size:10px; opacity:0.6; margin-left:24px;">Power down between updates.</div>
             </div>
+          </div>
+
+          <!-- Dim Timeout (Used by LCD Dim after timeout) -->
+          <div id="dim-timeout-row"
+            style="display:none; align-items:center; gap:8px; margin-left:24px; margin-top:8px; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px;">
+            <span style="font-size: 11px; opacity: 0.7;">Dim after</span>
+            <input type="number" id="setting-dim-timeout" class="prop-input" placeholder="10" style="width:80px;"
+              min="1" value="10">
+            <span style="font-size: 11px; opacity: 0.7;">seconds</span>
           </div>
 
           <!-- Common Sleep Times (Used by both) -->

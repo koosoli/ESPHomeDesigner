@@ -1,7 +1,7 @@
 /**
  * Graph Plugin
  */
-import { drawInternalGrid, generateMockData, drawSmartAxisLabels, generateHistoricalDataPoints } from '../../js/utils/graph_helpers.js';
+import { drawInternalGrid, generateMockData, drawSmartAxisLabels, generateHistoricalDataPoints, parseDuration } from '../../js/utils/graph_helpers.js';
 import { fetchEntityHistory, getEntityAttributes } from '../../js/io/ha_api.js';
 import { emit, EVENTS } from '../../js/core/events.js';
 
@@ -90,18 +90,35 @@ const render = (el, widget, { getColorStyle }) => {
                             });
                         }
                     } catch (e) {
-                        // Fallback: regex for value:
-                        const regex = /value\s*:\s*([\d\.-]+)/g;
-                        let match;
-                        while ((match = regex.exec(rawData)) !== null) {
-                            values.push(parseFloat(match[1]));
+                        // Fallback parsing
+                        if (rawData.includes('value:') || rawData.includes('value :')) {
+                            // Structured format with "value:" keys
+                            const regex = /value\s*:\s*([\d\.-]+)/g;
+                            let match;
+                            while ((match = regex.exec(rawData)) !== null) {
+                                values.push(parseFloat(match[1]));
+                            }
+                        } else {
+                            // Simple CSV: strip brackets/quotes, split by comma
+                            const cleaned = rawData.replace(/[\[\]"']/g, '');
+                            cleaned.split(',').forEach(s => {
+                                const f = parseFloat(s.trim());
+                                if (!isNaN(f)) values.push(f);
+                            });
                         }
                     }
                 }
 
                 // Map to format expected by generateHistoricalDataPoints
+                // Distribute synthetic timestamps evenly across the duration
                 if (values.length > 0) {
-                    historyData = values.map(v => ({ state: v, last_changed: Date.now() }));
+                    const durationMs = parseDuration(props.duration || '1h') * 1000;
+                    const now = Date.now();
+                    const step = durationMs / Math.max(values.length - 1, 1);
+                    historyData = values.map((v, i) => ({
+                        state: v,
+                        last_changed: now - durationMs + (i * step)
+                    }));
                 }
             }
         } else {
@@ -322,12 +339,14 @@ const exportDoc = (w, context) => {
                 lines.push(`          float g_range = g_max - g_min;`);
             }
             lines.push(`          if (g_range == 0) g_range = 1.0;`);
-            lines.push(`          for (int i = 0; i < ${points} - 1; i++) {`);
+            lines.push(`          int hist_count = id(${histId}_count);`);
+            lines.push(`          if (hist_count < 2) hist_count = 2;`);
+            lines.push(`          for (int i = 0; i < hist_count - 1; i++) {`);
             lines.push(`            float val1 = id(${histId})[i];`);
             lines.push(`            float val2 = id(${histId})[i+1];`);
             lines.push(`            if (isnan(val1) || isnan(val2)) continue;`);
-            lines.push(`            int x1 = ${w.x} + (i * ${w.width}) / (${points}-1);`);
-            lines.push(`            int x2 = ${w.x} + ((i+1) * ${w.width}) / (${points}-1);`);
+            lines.push(`            int x1 = ${w.x} + (i * ${w.width}) / (hist_count - 1);`);
+            lines.push(`            int x2 = ${w.x} + ((i + 1) * ${w.width}) / (hist_count - 1);`);
             lines.push(`            int y1 = ${w.y} + ${w.height} - (int)((val1 - g_min) / g_range * ${w.height});`);
             lines.push(`            int y2 = ${w.y} + ${w.height} - (int)((val2 - g_min) / g_range * ${w.height});`);
             lines.push(`            it.line(x1, y1, x2, y2, ${color});`);
@@ -500,6 +519,10 @@ const onExportGlobals = (context) => {
         const points = w.props.history_points || 100;
         lines.push(`- id: ${histId}`);
         lines.push(`  type: float[${points}]`);
+        // Track actual number of values stored
+        lines.push(`- id: ${histId}_count`);
+        lines.push(`  type: int`);
+        lines.push(`  initial_value: '0'`);
         if (w.props.auto_scale !== false) {
             lines.push(`- id: ${histId}_min`);
             lines.push(`  type: float`);
@@ -599,6 +622,8 @@ const onExportTextSensors = (context) => {
             lines.push(`            if (val > max_v) max_v = val;`);
         }
         lines.push(`          }`);
+        // Store the actual count of values
+        lines.push(`          id(${histId}_count) = idx;`);
         if (p.auto_scale !== false) {
             lines.push(`          id(${histId}_min) = min_v;`);
             lines.push(`          id(${histId}_max) = max_v;`);

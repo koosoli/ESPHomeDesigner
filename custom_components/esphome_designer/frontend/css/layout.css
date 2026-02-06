@@ -380,6 +380,36 @@
   }
 }
 
+/* Very small mobile screens - hide coffee icon and shrink logo */
+@media (max-width: 500px) {
+  .main-header .mobile-only .mdi-coffee {
+    display: none !important;
+  }
+  
+  /* Hide the coffee link container on very small screens */
+  .main-header .mobile-only a[href*="buymeacoffee"] {
+    display: none !important;
+  }
+  
+  /* Shrink logo for tiny screens */
+  .logo-image {
+    height: 18px;
+  }
+  
+  /* Reduce button sizes slightly */
+  .main-header .btn,
+  .main-header .btn-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+  }
+  
+  /* Reduce header padding */
+  .main-header {
+    padding: 0 4px;
+  }
+}
+
 /* Touch device improvements - larger targets for coarse pointers */
 @media (pointer: coarse) {
   .widget-resize-handle {
