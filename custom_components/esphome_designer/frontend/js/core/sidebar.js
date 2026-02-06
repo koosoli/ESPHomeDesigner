@@ -208,6 +208,15 @@ export class Sidebar {
                 AppState.setCurrentPageIndex(index);
             };
 
+            item.ondblclick = (e) => {
+                e.stopPropagation();
+                const oldName = page.name || "";
+                const newName = prompt("Rename Page:", oldName);
+                if (newName !== null && newName.trim() !== "" && newName !== oldName) {
+                    AppState.renamePage(index, newName);
+                }
+            };
+
             // Content
             const icon = document.createElement("span");
             icon.className = "item-icon";

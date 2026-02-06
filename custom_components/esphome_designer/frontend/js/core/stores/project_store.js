@@ -168,9 +168,6 @@ export class ProjectStore {
         emit(EVENTS.PAGE_CHANGED, { index: this.state.currentPageIndex });
     }
 
-    /**
-     * @param {number} index 
-     */
     duplicatePage(index) {
         if (index < 0 || index >= this.state.pages.length) return null;
 
@@ -210,6 +207,18 @@ export class ProjectStore {
         emit(EVENTS.PAGE_CHANGED, { index: this.state.currentPageIndex });
 
         return newPage;
+    }
+
+    /**
+     * @param {number} index 
+     * @param {string} newName 
+     */
+    renamePage(index, newName) {
+        if (index < 0 || index >= this.state.pages.length) return;
+        if (!newName || newName.trim() === "") return;
+
+        this.state.pages[index].name = newName.trim();
+        emit(EVENTS.STATE_CHANGED);
     }
 
     /** 

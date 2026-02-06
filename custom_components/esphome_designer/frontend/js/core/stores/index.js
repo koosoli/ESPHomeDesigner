@@ -175,6 +175,11 @@ class AppStateFacade {
         return page;
     }
 
+    renamePage(index, newName) {
+        this.project.renamePage(index, newName);
+        this.recordHistory();
+    }
+
     selectWidget(id, multi) {
         if (!id) {
             this.editor.selectWidget(null, multi);
