@@ -295,3 +295,38 @@ export function forceSnapWidget(widgetId) {
         AppState.recordHistory();
     }
 }
+
+export function snapResizeValue(value, axis, widgetId, altKey, dims, artboardEl) {
+    if (!AppState.snapEnabled || altKey) {
+        return value; // No snapping
+    }
+
+    // Get snap lines excluding the current widget
+    const snapLines = getSnapLines(widgetId, dims);
+    const lines = axis === 'v' ? snapLines.vertical : snapLines.horizontal;
+
+    let bestDelta = SNAP_DISTANCE + 1;
+    let snappedValue = value;
+    let snappedLine = null;
+
+    // Check against all snap lines
+    for (const line of lines) {
+        const delta = Math.abs(value - line);
+        if (delta <= SNAP_DISTANCE && delta < bestDelta) {
+            bestDelta = delta;
+            snappedValue = line;
+            snappedLine = line;
+        }
+    }
+
+    // Draw snap guide if we snapped
+    if (snappedLine !== null) {
+        if (axis === 'v') {
+            addSnapGuideVertical({ canvas: artboardEl }, snappedLine, artboardEl);
+        } else {
+            addSnapGuideHorizontal({ canvas: artboardEl }, snappedLine, artboardEl);
+        }
+    }
+
+    return snappedValue;
+}

@@ -3,7 +3,7 @@ import { Logger } from '../utils/logger.js';
 import { emit, EVENTS } from './events.js';
 import { WidgetFactory } from './widget_factory.js';
 import { registry as PluginRegistry } from './plugin_registry.js';
-import { snapToGridCell, applySnapToPosition, clearSnapGuides, updateWidgetGridCell } from './canvas_snap.js';
+import { snapToGridCell, applySnapToPosition, clearSnapGuides, updateWidgetGridCell, snapResizeValue } from './canvas_snap.js';
 import { render, applyZoom, updateWidgetDOM, focusPage } from './canvas_renderer.js';
 import { highlightWidgetInSnippet } from '../io/yaml_export.js';
 import { getColorStyle } from '../utils/device.js'; // Import authentic color helper
@@ -695,18 +695,26 @@ export function onMouseMove(ev, canvasInstance) {
 
             // Horizontal resize
             if (handle.includes('l')) {
-                newW = ds.startW - dx;
-                newX = ds.startWidgetX + dx;
+                const rawLeft = ds.startWidgetX + dx;
+                const snappedLeft = snapResizeValue(rawLeft, 'v', widget.id, ev.altKey, dims, ds.artboardEl);
+                newX = snappedLeft;
+                newW = (ds.startWidgetX + ds.startW) - newX;
             } else if (handle.includes('r')) {
-                newW = ds.startW + dx;
+                const rawRight = ds.startWidgetX + ds.startW + dx;
+                const snappedRight = snapResizeValue(rawRight, 'v', widget.id, ev.altKey, dims, ds.artboardEl);
+                newW = snappedRight - ds.startWidgetX;
             }
 
             // Vertical resize
             if (handle.includes('t')) {
-                newH = ds.startH - dy;
-                newY = ds.startWidgetY + dy;
+                const rawTop = ds.startWidgetY + dy;
+                const snappedTop = snapResizeValue(rawTop, 'h', widget.id, ev.altKey, dims, ds.artboardEl);
+                newY = snappedTop;
+                newH = (ds.startWidgetY + ds.startH) - newY;
             } else if (handle.includes('b')) {
-                newH = ds.startH + dy;
+                const rawBottom = ds.startWidgetY + ds.startH + dy;
+                const snappedBottom = snapResizeValue(rawBottom, 'h', widget.id, ev.altKey, dims, ds.artboardEl);
+                newH = snappedBottom - ds.startWidgetY;
             }
 
             // NaN Safety and Minimum Clamping
