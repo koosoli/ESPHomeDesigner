@@ -596,19 +596,11 @@ class AppStateFacade {
         emit(EVENTS.STATE_CHANGED);
     }
 
-    createDropShadow(widgetId) {
-        const widget = this.getWidgetById(widgetId);
-        if (!widget) return;
+    createDropShadow(widgetIdOrIds) {
+        const ids = Array.isArray(widgetIdOrIds) ? widgetIdOrIds : [widgetIdOrIds];
+        if (ids.length === 0) return;
 
-        // 1. Create Shadow
-        const shadow = JSON.parse(JSON.stringify(widget));
-        shadow.id = generateId();
-        shadow.x = (shadow.x || 0) + 5;
-        shadow.y = (shadow.y || 0) + 5;
-
-        if (!shadow.props) shadow.props = {};
-
-        // Determine effective dark mode first (needed for both shadow and original)
+        // Determine effective dark mode once for the batch
         const page = this.project.getCurrentPage();
         const pageDarkMode = page ? page.dark_mode : undefined;
         let isDark = false;
@@ -616,54 +608,86 @@ class AppStateFacade {
         else if (pageDarkMode === "light") isDark = false;
         else isDark = !!this.settings.dark_mode;
 
-        // Shadow color: Black in light mode, White in dark mode
+        // Colors for shadow and fills
         const shadowColor = isDark ? "white" : "black";
+        const fillColor = isDark ? "black" : "white";
+        const defaultForeground = isDark ? "white" : "black";
 
-        // Configure Shadow: Solid color based on theme
-        shadow.props.color = shadowColor;
-        shadow.props.border_color = shadowColor;
-        shadow.props.background_color = shadowColor;
-        shadow.props.bg_color = shadowColor;
-        shadow.props.fill = true;
+        ids.forEach(id => {
+            const widget = this.getWidgetById(id);
+            if (!widget) return;
 
-        if (shadow.props.name) shadow.props.name = shadow.props.name + " Shadow";
+            // 1. Dynamic Shape Detection
+            const radius = parseInt(widget.props?.border_radius || widget.props?.radius || widget.props?.corner_radius || 0, 10);
+            let shadowType = "shape_rect";
 
-        this.project.addWidget(shadow);
+            if (widget.type === "shape_circle" || widget.type === "circle") {
+                shadowType = "shape_circle";
+            } else if (radius > 0) {
+                shadowType = "rounded_rect";
+            }
 
-        // 2. Modify Original Widget (Only for Shapes)
-        const shapeTypes = ["shape_rect", "rounded_rect", "shape_circle", "rectangle", "rrect", "circle"];
-        if (shapeTypes.includes(widget.type)) {
-            // Fill color matches background (opposite of shadow)
-            const fillColor = isDark ? "black" : "white";
+            // 2. Create Shadow Widget
+            const shadow = {
+                id: generateId(),
+                type: shadowType,
+                x: (widget.x || 0) + 5,
+                y: (widget.y || 0) + 5,
+                width: widget.width,
+                height: widget.height,
+                props: {
+                    name: (widget.props?.name || widget.type) + " Shadow",
+                    color: shadowColor,
+                    background_color: shadowColor,
+                    bg_color: shadowColor,
+                    fill: true,
+                }
+            };
 
+            // Add radius for rounded rects
+            if (shadowType === "rounded_rect") {
+                shadow.props.radius = radius;
+            }
+
+            this.project.addWidget(shadow);
+
+            // 2. Modify Original Widget (Apply fill so it blocks the shadow behind it)
             if (!widget.props) widget.props = {};
 
+            // Determine if this is a "shape" widget vs a "content" widget
+            const isPureShape = ["shape_rect", "rounded_rect", "shape_circle", "rectangle", "rrect", "circle"].includes(widget.type);
+
             // Preserve original border color (if it was using 'color' property)
-            // In dark mode, undefined color means WHITE (foreground)
-            // In light mode, undefined color means BLACK (foreground)
-            const defaultForeground = isDark ? "white" : "black";
             const originalColor = widget.props.color || defaultForeground;
             if (!widget.props.border_color) {
                 widget.props.border_color = originalColor;
             }
 
-            // Apply Fill
+            // Apply Infill to original
             widget.props.fill = true;
-            widget.props.color = fillColor;
-            // Also set other common background props to be sure
             widget.props.background_color = fillColor;
             widget.props.bg_color = fillColor;
-        }
 
-        // 3. Reorder Logic (Shadow behind)
-        // Note: 'page' is already defined above
-        const originalIndex = page.widgets.findIndex(w => w.id === widgetId);
-        const shadowIndex = page.widgets.findIndex(w => w.id === shadow.id); // Should be last
+            // If it's a pure shape, the main 'color' IS the fill color
+            if (isPureShape) {
+                widget.props.color = fillColor;
+            } else {
+                // For text/content widgets, DO NOT overwrite 'color' as it is the text/foreground color
+                // We've already set background_color/bg_color above which handles the opaque fill
+            }
 
-        if (originalIndex !== -1 && shadowIndex !== -1) {
-            // move shadow to originalIndex (which pushes original and subsequent up by 1)
-            this.project.reorderWidget(this.project.currentPageIndex, shadowIndex, originalIndex);
-        }
+            // EXPLICIT UPDATE: Ensure the project store knows the original widget changed
+            this.project.updateWidget(id, { props: { ...widget.props } });
+
+            // 3. Reorder Logic (Shadow behind)
+            const originalIndex = page.widgets.findIndex(w => w.id === id);
+            const shadowIndex = page.widgets.findIndex(w => w.id === shadow.id);
+
+            if (originalIndex !== -1 && shadowIndex !== -1) {
+                // move shadow to originalIndex (which pushes original and subsequent up by 1)
+                this.project.reorderWidget(this.project.currentPageIndex, shadowIndex, originalIndex);
+            }
+        });
 
         this.recordHistory();
         emit(EVENTS.STATE_CHANGED);

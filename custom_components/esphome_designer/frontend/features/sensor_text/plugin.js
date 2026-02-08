@@ -261,15 +261,25 @@ const render = (el, widget, { getColorStyle }) => {
         applyAlign(props.value_align || props.text_align || "TOP_LEFT", body);
     }
 
-    // Apply Border
+    // Apply Border & Background
     const borderWidth = props.border_width !== undefined ? props.border_width : 0;
-    if (borderWidth > 0) {
+    const hasBackground = props.fill || (props.bg_color && props.bg_color !== "transparent") || (props.background_color && props.background_color !== "transparent");
+
+    if (borderWidth > 0 || hasBackground) {
         let resolvedBorderColor = props.border_color || "theme_auto";
         if (resolvedBorderColor === "theme_auto") {
             resolvedBorderColor = (window.AppState?.settings?.darkMode) ? "white" : "black";
         }
 
-        body.style.border = `${borderWidth}px solid ${getColorStyle(resolvedBorderColor)}`;
+        if (borderWidth > 0) {
+            body.style.border = `${borderWidth}px solid ${getColorStyle(resolvedBorderColor)}`;
+        }
+
+        if (hasBackground) {
+            const bgCol = props.background_color || props.bg_color || (props.fill ? "white" : "transparent");
+            body.style.backgroundColor = getColorStyle(bgCol);
+        }
+
         body.style.borderRadius = `${props.border_radius || 0}px`;
         body.style.boxSizing = "border-box";
     }

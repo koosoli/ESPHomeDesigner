@@ -32,6 +32,37 @@ const render = (el, widget, { getColorStyle }) => {
 
     const format = props.format || "time_date";
 
+    const body = document.createElement("div");
+    body.style.display = "flex";
+    body.style.flexDirection = "column";
+    body.style.justifyContent = "center";
+    body.style.alignItems = "center";
+    body.style.width = "100%";
+    body.style.height = "100%";
+
+    // Apply Border & Background
+    const borderWidth = props.border_width !== undefined ? props.border_width : 0;
+    const hasBackground = props.fill || (props.bg_color && props.bg_color !== "transparent") || (props.background_color && props.background_color !== "transparent");
+
+    if (borderWidth > 0 || hasBackground) {
+        let resolvedBorderColor = props.border_color || "theme_auto";
+        if (resolvedBorderColor === "theme_auto") {
+            resolvedBorderColor = (window.AppState?.settings?.darkMode) ? "white" : "black";
+        }
+
+        if (borderWidth > 0) {
+            body.style.border = `${borderWidth}px solid ${getColorStyle(resolvedBorderColor)}`;
+        }
+
+        if (hasBackground) {
+            const bgCol = props.background_color || props.bg_color || (props.fill ? "white" : "transparent");
+            body.style.backgroundColor = getColorStyle(bgCol);
+        }
+
+        body.style.borderRadius = `${props.border_radius || 0}px`;
+        body.style.boxSizing = "border-box";
+    }
+
     const timeDiv = document.createElement("div");
     timeDiv.style.fontSize = `${props.time_font_size || 28}px`;
     timeDiv.style.color = color;
@@ -58,18 +89,20 @@ const render = (el, widget, { getColorStyle }) => {
     timeDiv.textContent = timeStr;
 
     if (format === "time_only") {
-        el.appendChild(timeDiv);
+        body.appendChild(timeDiv);
     } else if (format === "date_only") {
         dateDiv.textContent = dateStrDots;
-        el.appendChild(dateDiv);
+        body.appendChild(dateDiv);
     } else if (format === "weekday_day_month") {
         dateDiv.textContent = dateStrFull;
-        el.appendChild(dateDiv);
+        body.appendChild(dateDiv);
     } else {
         dateDiv.textContent = dateStrShort;
-        el.appendChild(timeDiv);
-        el.appendChild(dateDiv);
+        body.appendChild(timeDiv);
+        body.appendChild(dateDiv);
     }
+
+    el.appendChild(body);
 };
 
 export default {

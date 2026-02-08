@@ -265,17 +265,7 @@ export class PropertiesPanel {
 
         // Lock Toggle state is already updated above in the general selection handling
 
-        // === ACTIONS ===
-        const shapeTypes = ["shape_rect", "rounded_rect", "shape_circle", "rectangle", "rrect", "circle"];
-        if (shapeTypes.includes(widget.type)) {
-            const shadowBtn = document.createElement("button");
-            shadowBtn.className = "btn btn-secondary";
-            shadowBtn.style.marginBottom = "16px";
-            shadowBtn.style.width = "100%";
-            shadowBtn.innerHTML = `<span class="mdi mdi-box-shadow"></span> Create Drop Shadow`;
-            shadowBtn.onclick = () => AppState.createDropShadow(widget.id);
-            this.panel.appendChild(shadowBtn);
-        }
+        // Actions consolidated into sections (Border Style / Appearance)
 
         // === COMMON PROPERTIES ===
         this.createSection("Transform", false);
@@ -442,6 +432,15 @@ export class PropertiesPanel {
 
         // --- Operations ---
         this.createSection("Operations", false);
+
+        const shadowBtn = document.createElement("button");
+        shadowBtn.className = "btn btn-secondary btn-full btn-xs";
+        shadowBtn.style.width = "100%";
+        shadowBtn.style.marginTop = "8px";
+        shadowBtn.innerHTML = `<span class="mdi mdi-box-shadow"></span> Create Shadows for All Selected`;
+        shadowBtn.onclick = () => AppState.createDropShadow(ids);
+        this.getContainer().appendChild(shadowBtn);
+
         const delBtn = document.createElement("button");
         delBtn.className = "btn btn-secondary btn-xs";
         delBtn.style.background = "var(--danger)";
@@ -727,10 +726,6 @@ export class PropertiesPanel {
             ], (v) => updateProp("value_format", v));
             this.addLabeledInput("Precision", "number", props.precision !== undefined ? props.precision : 2, (v) => updateProp("precision", parseInt(v, 10)));
             this.addLabeledInput("Unit", "text", props.unit || "", (v) => updateProp("unit", v));
-            this.addCompactPropertyRow(() => {
-                this.addLabeledInput("Prefix", "text", props.prefix || "", (v) => updateProp("prefix", v));
-                this.addLabeledInput("Postfix", "text", props.postfix || "", (v) => updateProp("postfix", v));
-            });
             this.endSection();
 
             this.createSection("Appearance", true);
@@ -745,6 +740,8 @@ export class PropertiesPanel {
             this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
             this.addColorSelector("Border Color", props.border_color || "theme_auto", colors, (v) => updateProp("border_color", v));
             this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
+            this.addDropShadowButton(this.getContainer(), widget.id);
             this.endSection();
 
             this.endSection();
@@ -769,6 +766,7 @@ export class PropertiesPanel {
             this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
             this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
             this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+            this.addDropShadowButton(this.getContainer(), widget.id);
             this.endSection();
 
             this.endSection();
@@ -782,6 +780,7 @@ export class PropertiesPanel {
             this.createSection("Appearance", true);
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
             this.addColorSelector("Background", props.bg_color || "white", colors, (v) => updateProp("bg_color", v));
+            this.addDropShadowButton(this.getContainer(), widget.id);
             this.endSection();
         }
         else if (type === "datetime") {
@@ -796,6 +795,8 @@ export class PropertiesPanel {
             });
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
             this.addSelect("Align", props.text_align || "CENTER", ["LEFT", "CENTER", "RIGHT"], (v) => updateProp("text_align", v));
+            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
+            this.addDropShadowButton(this.getContainer(), widget.id);
             this.endSection();
         }
         else if (type === "image" || type === "online_image") {
@@ -808,6 +809,11 @@ export class PropertiesPanel {
             }
             this.addCheckbox("Invert Colors", !!props.invert, (v) => updateProp("invert", v));
             this.endSection();
+
+            this.createSection("Appearance", true);
+            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
+            this.addDropShadowButton(this.getContainer(), widget.id);
+            this.endSection();
         }
         else if (type === "weather_icon") {
             this.createSection("Weather", true);
@@ -819,6 +825,8 @@ export class PropertiesPanel {
             this.createSection("Appearance", true);
             this.addLabeledInput("Icon Size", "number", props.size || 48, (v) => updateProp("size", parseInt(v, 10)));
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
+            this.addDropShadowButton(this.getContainer(), widget.id);
             this.endSection();
         }
         else if (type === "weather_forecast") {
@@ -835,6 +843,7 @@ export class PropertiesPanel {
             this.addColorSelector("Text Color", props.color || "black", colors, (v) => updateProp("color", v));
             this.addColorSelector("Background", props.background_color || "white", colors, (v) => updateProp("background_color", v));
             this.addCheckbox("Show High/Low", props.show_high_low !== false, (v) => updateProp("show_high_low", v));
+            this.addDropShadowButton(this.getContainer(), widget.id);
             this.endSection();
         }
         else if (type.startsWith("shape_") || type === "line" || type === "rounded_rect") {
@@ -851,6 +860,7 @@ export class PropertiesPanel {
             if (type === "rounded_rect" || props.radius !== undefined) {
                 this.addLabeledInput("Corner Radius", "number", props.radius || 4, (v) => updateProp("radius", parseInt(v, 10)));
             }
+            this.addDropShadowButton(this.getContainer(), widget.id);
             this.endSection();
         }
         else {
@@ -903,6 +913,7 @@ export class PropertiesPanel {
             this.addLabeledInput("Border Width", "number", props.border_width || 1, (v) => updateProp("border_width", parseInt(v, 10)));
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
             this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
+            this.addDropShadowButton(this.getContainer(), widget.id);
             this.endSection();
         }
         else if (type === "rounded_rect") {
@@ -920,6 +931,7 @@ export class PropertiesPanel {
             });
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
             this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
+            this.addDropShadowButton(this.getContainer(), widget.id);
             this.endSection();
         }
         else if (type === "line") {
@@ -1047,6 +1059,8 @@ export class PropertiesPanel {
             this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
             this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
             this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
+            this.addDropShadowButton(this.getContainer(), widget.id);
             this.endSection();
 
             this.endSection();
@@ -1141,6 +1155,8 @@ export class PropertiesPanel {
             this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
             this.addColorSelector("Border Color", props.border_color || "theme_auto", colors, (v) => updateProp("border_color", v));
             this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
+            this.addDropShadowButton(this.getContainer(), widget.id);
             this.endSection();
 
             this.endSection();
@@ -1186,6 +1202,8 @@ export class PropertiesPanel {
                 "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"
             ];
             this.addSelect("Align", props.text_align || "CENTER", alignOptions, (v) => updateProp("text_align", v));
+            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
+            this.addDropShadowButton(this.getContainer(), widget.id);
             this.endSection();
         }
         else if (type === "lvgl_label") {
@@ -1309,6 +1327,8 @@ export class PropertiesPanel {
             });
             this.addSelect("Font Reference", props.font_ref || "font_mdi_medium", ["font_mdi_medium", "font_mdi_large"], (v) => updateProp("font_ref", v));
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
+            this.addDropShadowButton(this.getContainer(), widget.id);
             this.endSection();
         }
         else if (type === "battery_icon") {
@@ -1475,6 +1495,8 @@ export class PropertiesPanel {
                 updateProp("size", n);
             });
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
+            this.addDropShadowButton(this.getContainer(), widget.id);
             this.endSection();
         }
         else if (type === "weather_forecast") {
@@ -1521,6 +1543,7 @@ export class PropertiesPanel {
                 this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
             }
             this.addColorSelector("Background Color", props.background_color || "transparent", colors, (v) => updateProp("background_color", v));
+            this.addDropShadowButton(this.getContainer(), widget.id);
             this.endSection();
         }
         else if (type === "template_sensor_bar") {
@@ -2504,6 +2527,19 @@ export class PropertiesPanel {
         this.addSelect(label, value, options, onChange);
     }
 
+    addDropShadowButton(container, widgetId) {
+        const wrap = document.createElement("div");
+        wrap.className = "field";
+        wrap.style.marginTop = "8px";
+
+        const btn = document.createElement("button");
+        btn.className = "btn btn-secondary btn-full btn-xs";
+        btn.innerHTML = `<span class="mdi mdi-box-shadow"></span> Create Drop Shadow`;
+        btn.onclick = () => AppState.createDropShadow(widgetId);
+
+        wrap.appendChild(btn);
+        container.appendChild(wrap);
+    }
     addCheckbox(label, value, onChange) {
         const wrap = document.createElement("div");
         wrap.className = "field";

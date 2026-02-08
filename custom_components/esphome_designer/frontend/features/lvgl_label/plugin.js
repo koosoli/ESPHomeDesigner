@@ -18,7 +18,7 @@ const render = (el, widget, { getColorStyle }) => {
     el.innerText = text;
     el.style.fontSize = (props.font_size || 20) + "px";
     el.style.color = getColorStyle(props.color || "black");
-    el.style.backgroundColor = props.bg_color || "transparent";
+    el.style.backgroundColor = (props.bg_color && props.bg_color !== "transparent") ? getColorStyle(props.bg_color) : "transparent";
     el.style.display = "flex";
 
     const align = props.text_align || "CENTER";

@@ -67,18 +67,27 @@ const render = (el, widget, { getColorStyle }) => {
     const maxWidth = widget.width || 200;
     const wrappedLines = shouldParseColors ? wordWrap(text, maxWidth, fontSize, fontFamily) : text.split("\n");
 
-    // Apply Border
+    // Apply Border & Background
     const borderWidth = props.border_width !== undefined ? props.border_width : 0;
-    if (borderWidth > 0) {
-        // Resolve theme colors manually for the border if needed
+    const hasBackground = props.fill || (props.bg_color && props.bg_color !== "transparent") || (props.background_color && props.background_color !== "transparent");
+
+    if (borderWidth > 0 || hasBackground) {
+        // Resolve theme colors manually
         const borderColorProp = props.border_color || "black";
-        // Simple heuristic for theme_auto in preview
         let resolvedBorderColor = borderColorProp;
         if (borderColorProp === "theme_auto") {
             resolvedBorderColor = (window.AppState?.settings?.darkMode) ? "white" : "black";
         }
 
-        body.style.border = `${borderWidth}px solid ${getColorStyle(resolvedBorderColor)}`;
+        if (borderWidth > 0) {
+            body.style.border = `${borderWidth}px solid ${getColorStyle(resolvedBorderColor)}`;
+        }
+
+        if (hasBackground) {
+            const bgCol = props.background_color || props.bg_color || (props.fill ? (props.color || "white") : "transparent");
+            body.style.backgroundColor = getColorStyle(bgCol);
+        }
+
         body.style.borderRadius = `${props.border_radius || 0}px`;
         body.style.boxSizing = "border-box"; // Include border in width/height
     }
