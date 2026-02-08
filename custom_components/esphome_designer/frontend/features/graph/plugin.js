@@ -239,7 +239,11 @@ const exportLVGL = (w, { common, convertColor }) => {
             }
         ],
         y_min: p.min_value || 0,
-        y_max: p.max_value || 100
+        y_max: p.max_value || 100,
+        y_axis: {
+            show_labels: true,
+            num_ticks: 5
+        }
     };
 
     // If using history, we indicate it so the LVGL generator can potentially handle it
@@ -354,9 +358,41 @@ const exportDoc = (w, context) => {
                 lines.push(`            it.line(x1, y1+1, x2, y2+1, ${color});`);
             }
             lines.push(`          }`);
+            lines.push("");
+            lines.push(`          // Y-axis labels (Dynamic)`);
+            lines.push(`          for (int i = 0; i <= 4; i++) {`);
+            lines.push(`            float val = g_min + (g_range * i / 4.0);`);
+            lines.push(`            int yOffset = ${w.height} * (4 - i) / 4;`);
+            lines.push(`            const char* fmt = g_range >= 10 ? "%.0f" : "%.1f";`);
+            lines.push(`            it.printf(${w.x} - 4, ${w.y} + yOffset - 6, id(${fontId}), ${color}, TextAlign::TOP_RIGHT, fmt, val);`);
+            lines.push(`          }`);
             lines.push(`        }`);
         } else {
             lines.push(`        it.graph(${w.x}, ${w.y}, id(${safeId}));`);
+            lines.push("");
+
+            // Refined Static Fallback logic
+            if (p.auto_scale !== false && (!minValue && !maxValue)) {
+                // Case: Auto-scale ON, No Min/Max provided. 
+                // We don't know the range, so we can't draw meaningful labels.
+                lines.push(`        // [Designer] Graph is auto-scaled without HA History or static Min/Max bounds.`);
+                lines.push(`        // Y-axis labels are omitted because the scale is unknown at compile time.`);
+            } else {
+                lines.push(`        // Y-axis labels (Static Reference)`);
+                // If auto-scale is ON, these are just reference labels based on the designer's bounds
+                // They might not perfectly match the auto-scaled line if it exceeds these bounds.
+                const minY = parseFloat(minValue) || 0;
+                const maxY = parseFloat(maxValue) || 100;
+                const yRange = maxY - minY;
+                const ySteps = 4;
+                for (let i = 0; i <= ySteps; i++) {
+                    const ratio = i / ySteps;
+                    const val = minY + (yRange * ratio);
+                    const yOffset = Math.round(w.height * (1 - ratio));
+                    const fmt = yRange >= 10 ? "%.0f" : "%.1f";
+                    lines.push(`        it.printf(${w.x} - 4, ${w.y} + ${yOffset} - 6, id(${fontId}), ${color}, TextAlign::TOP_RIGHT, "${fmt}", (float)${val});`);
+                }
+            }
         }
 
         if (borderEnabled) {
@@ -388,25 +424,6 @@ const exportDoc = (w, context) => {
 
         if (title) {
             lines.push(`        it.printf(${w.x}+4, ${w.y}+2, id(${fontId}), ${color}, TextAlign::TOP_LEFT, "${title}");`);
-        }
-
-        // Only draw Y-axis labels when auto-scale is OFF (explicit min/max values set)
-        // When auto-scale is ON, labels would be misleading since ESPHome scales dynamically
-        const hasExplicitBounds = minValue !== "" && maxValue !== "";
-        if (hasExplicitBounds) {
-            const minY = parseFloat(minValue) || 0;
-            const maxY = parseFloat(maxValue) || 100;
-            const yRange = maxY - minY;
-            const ySteps = 4;
-            for (let i = 0; i <= ySteps; i++) {
-                const ratio = i / ySteps;
-                const val = minY + (yRange * ratio);
-                const yOffset = Math.round(w.height * (1 - ratio));
-                const fmt = yRange >= 10 ? "%.0f" : "%.1f";
-                lines.push(`        it.printf(${w.x} - 4, ${w.y} + ${yOffset} - 6, id(${fontId}), ${color}, TextAlign::TOP_RIGHT, "${fmt}", (float)${val});`);
-            }
-        } else {
-            lines.push(`        // Y-axis labels are disabled for auto-scaled graphs. Set Min/Max overrides to enable them.`);
         }
 
         let durationSec = 3600;

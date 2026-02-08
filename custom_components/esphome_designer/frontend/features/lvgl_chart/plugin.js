@@ -70,6 +70,10 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
                 y: p.y_div_lines
             } : undefined,
             series: [{ color: convertColor(p.color) }],
+            y_axis: {
+                show_labels: true,
+                num_ticks: p.y_div_lines !== undefined ? p.y_div_lines + 1 : 5
+            },
             widgets: [{
                 label: {
                     align: "top_mid",

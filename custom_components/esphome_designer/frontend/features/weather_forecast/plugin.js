@@ -250,7 +250,8 @@ const exportDoc = (w, context) => {
     const centerOffset = isHorizontal ? Math.floor(xInc / 2) : Math.floor(w.width / 2);
 
     const totalContentHeight = dayFontSize + 4 + iconSize + 4 + tempFontSize;
-    const verticalStartOffset = Math.max(0, Math.floor((w.height - totalContentHeight) / 2));
+    const slotHeight = isHorizontal ? w.height : yInc;
+    const verticalStartOffset = Math.max(0, Math.floor((slotHeight - totalContentHeight) / 2));
 
     for (let day = 0; day < days; day++) {
         const condSensorId = `weather_cond_day${day}`;
