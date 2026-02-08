@@ -2,7 +2,7 @@
  * Hardware Import and Dynamic Profile Management
  * 
  * Handles fetching dynamic hardware templates from the backend
- * and uploading new YAML templates.
+ * and uploading new custom YAML templates.
  */
 
 import { Logger } from '../utils/logger.js';
@@ -29,9 +29,9 @@ export async function fetchDynamicHardwareProfiles() {
         }
     }
 
-    // Fallback: Try to load known local files (for standalone/local mode)
-    Logger.log("[HardwareDiscovery] Attempting to load local profiles via glob...");
-    const localTemplates = [];
+    // Fallback: Try to load known bundled files (for standalone/offline mode)
+    Logger.log("[HardwareDiscovery] Attempting to load bundled profiles via glob...");
+    const bundledTemplates = [];
 
     // Use Vite's import.meta.glob to find all YAML files in the hardware directory
     // This works at build time / dev server time to map files
@@ -54,14 +54,14 @@ export async function fetchDynamicHardwareProfiles() {
             // But preserving the 'hardware/filename' path convention for the UI/logic.
             profile.hardwarePackage = `hardware/${filename}`;
 
-            localTemplates.push(profile);
+            bundledTemplates.push(profile);
         } catch (err) {
-            Logger.warn(`[HardwareDiscovery] Failed to parse local file ${path}:`, err);
+            Logger.warn(`[HardwareDiscovery] Failed to parse bundled file ${path}:`, err);
         }
     }
 
-    Logger.log(`[HardwareDiscovery] Loaded ${localTemplates.length} local fallback profiles.`);
-    return localTemplates;
+    Logger.log(`[HardwareDiscovery] Loaded ${bundledTemplates.length} bundled fallback profiles.`);
+    return bundledTemplates;
 }
 
 export async function uploadHardwareTemplate(file) {

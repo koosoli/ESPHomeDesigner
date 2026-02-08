@@ -781,15 +781,14 @@ export class DeviceSettings {
 
             // Separate profiles into groups for better organization
             const builtInProfiles = [];
-            const localProfiles = [];
+            const userProfiles = [];
 
             Object.entries(DEVICE_PROFILES).forEach(([key, profile]) => {
-                // Determine if this is a local/custom profile
-                const isLocal = profile.isCustomProfile || profile.isOfflineImport ||
-                    (profile.isPackageBased && !supportedIds.includes(key));
+                // Determine if this is a user-imported or custom profile
+                const isUser = profile.isCustomProfile || profile.isOfflineImport;
 
-                if (isLocal) {
-                    localProfiles.push([key, profile]);
+                if (isUser) {
+                    userProfiles.push([key, profile]);
                 } else {
                     builtInProfiles.push([key, profile]);
                 }
@@ -808,9 +807,9 @@ export class DeviceSettings {
                 // Build suffix based on profile properties
                 const suffixes = [];
 
-                // Mark local/custom profiles
+                // Mark user profiles
                 if (profile.isCustomProfile || profile.isOfflineImport) {
-                    suffixes.push("Local");
+                    suffixes.push("Imported");
                 }
 
                 // Mark untested profiles (not in SUPPORTED_DEVICE_IDS)
@@ -831,18 +830,18 @@ export class DeviceSettings {
                 this.modelInput.appendChild(createOption(key, profile));
             });
 
-            // Add separator if we have local profiles
-            if (localProfiles.length > 0 && builtInProfiles.length > 0) {
+            // Add separator if we have user profiles
+            if (userProfiles.length > 0 && builtInProfiles.length > 0) {
                 const separator = document.createElement("option");
                 separator.disabled = true;
-                separator.textContent = "── Local Profiles ──";
+                separator.textContent = "── User-Imported / Custom ──";
                 separator.style.fontWeight = "bold";
                 separator.style.color = "var(--text-dim)";
                 this.modelInput.appendChild(separator);
             }
 
-            // Add local profiles
-            localProfiles.forEach(([key, profile]) => {
+            // Add user profiles
+            userProfiles.forEach(([key, profile]) => {
                 this.modelInput.appendChild(createOption(key, profile));
             });
 

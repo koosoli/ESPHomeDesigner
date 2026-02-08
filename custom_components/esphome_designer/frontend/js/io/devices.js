@@ -354,7 +354,7 @@ export const DEVICE_PROFILES = {
 export async function loadExternalProfiles() {
   try {
     const dynamicTemplates = await fetchDynamicHardwareProfiles();
-    Logger.log(`[Devices] Loaded ${dynamicTemplates.length} dynamic hardware templates.`);
+    Logger.log(`[Devices] Loaded ${dynamicTemplates.length} hardware profiles from backend/bundle.`);
 
     dynamicTemplates.forEach(template => {
       // Backend templates are the source of truth for YAML-based devices,
