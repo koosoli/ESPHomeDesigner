@@ -85,6 +85,13 @@ const exportDoc = (w, context) => {
 
     lines.push(`        // widget:wifi_signal id:${w.id} type:wifi_signal x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId || "wifi_signal_dbm"} size:${size} font_size:${fontSize} color:${colorProp} show_dbm:${showDbm} local:${isLocal} ${getCondProps(w)}`);
 
+    // Background fill
+    const bgColorProp = p.bg_color || p.background_color || "transparent";
+    if (bgColorProp && bgColorProp !== "transparent") {
+        const bgColorConst = getColorConst(bgColorProp);
+        lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+    }
+
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
     lines.push(`        {`);

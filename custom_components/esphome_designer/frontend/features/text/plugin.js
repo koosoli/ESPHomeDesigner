@@ -282,6 +282,13 @@ export default {
         let x = w.x;
         let y = w.y;
 
+        // Background fill
+        const bgColorProp = p.bg_color || p.background_color || "transparent";
+        if (bgColorProp && bgColorProp !== "transparent") {
+            const bgColorConst = getColorConst(bgColorProp);
+            lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+        }
+
         // Horizontal Component
         let alignH = "LEFT";
         if (textAlign.includes("RIGHT")) {

@@ -267,7 +267,7 @@ const exportDoc = (w, context) => {
     const title = sanitize(w.title || "");
     const duration = p.duration || "1h";
     const borderEnabled = p.border !== false;
-    const backgroundProp = p.background_color || "transparent";
+    const backgroundProp = p.bg_color || p.background_color || "transparent";
     const bgColor = backgroundProp !== "transparent" ? getColorConst(backgroundProp) : null;
     const colorProp = p.color || "theme_auto";
     const color = getColorConst(colorProp);

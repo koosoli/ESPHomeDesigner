@@ -113,6 +113,72 @@ export default {
     },
     render,
     exportLVGL,
+    export: (w, context) => {
+        const {
+            lines, getColorConst, addFont, getCondProps, getConditionCheck, Utils
+        } = context;
+
+        const p = w.props || {};
+        const colorProp = p.color || "black";
+        const fontSize = p.font_size || 20;
+        const fontFamily = p.font_family || "Roboto";
+        const fontId = addFont(fontFamily, p.font_weight || 400, fontSize, p.italic);
+        const text = p.text || "Label";
+        const textAlign = p.text_align || "CENTER";
+
+        lines.push(`        // widget:lvgl_label id:${w.id} type:lvgl_label x:${w.x} y:${w.y} w:${w.width} h:${w.height} align:${textAlign} text:"${text.substring(0, 50)}" ${getCondProps(w)}`);
+
+        // Background fill
+        const bgColorProp = p.bg_color || p.background_color || "transparent";
+        if (bgColorProp && bgColorProp !== "transparent") {
+            const bgColorConst = getColorConst(bgColorProp);
+            lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+        }
+
+        const cond = getConditionCheck(w);
+        if (cond) lines.push(`        ${cond}`);
+
+        // Horizontal Component
+        let x = w.x;
+        let alignH = "LEFT";
+        if (textAlign.includes("RIGHT")) {
+            x = Math.round(w.x + w.width);
+            alignH = "RIGHT";
+        } else if (textAlign.includes("CENTER")) {
+            x = Math.round(w.x + w.width / 2);
+            alignH = "CENTER";
+        }
+
+        // Vertical Component
+        let y = w.y;
+        let alignV = "TOP";
+        if (textAlign.includes("BOTTOM")) {
+            y = Math.round(w.y + w.height);
+            alignV = "BOTTOM";
+        } else if (textAlign === "CENTER" || (!textAlign.includes("TOP") && !textAlign.includes("BOTTOM"))) {
+            y = Math.round(w.y + w.height / 2);
+            alignV = "CENTER";
+        }
+
+        // Construct ESPHome Enum
+        let esphomeAlign = `TextAlign::${alignV}_${alignH}`;
+        if (esphomeAlign === "TextAlign::CENTER_CENTER") esphomeAlign = "TextAlign::CENTER";
+
+        const color = getColorConst(colorProp);
+        const escapedLine = text.replace(/"/g, '\\"').replace(/%/g, '%%');
+        lines.push(`        it.printf(${x}, ${y}, id(${fontId}), ${color}, ${esphomeAlign}, "${escapedLine}");`);
+
+        // Draw Border if defined
+        const borderWidth = p.border_width || 0;
+        if (borderWidth > 0) {
+            const borderColor = getColorConst(p.border_color || "black");
+            for (let i = 0; i < borderWidth; i++) {
+                lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColor});`);
+            }
+        }
+
+        if (cond) lines.push(`        }`);
+    },
     onExportNumericSensors: (context) => {
         const { widgets, isLvgl, pendingTriggers } = context;
         if (!widgets) return;

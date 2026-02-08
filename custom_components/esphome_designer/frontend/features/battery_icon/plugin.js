@@ -93,6 +93,13 @@ const exportDoc = (w, context) => {
 
     lines.push(`        // widget:battery_icon id:${w.id} type:battery_icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId || "battery_level"} size:${size} font_size:${fontSize} color:${colorProp} local:${!!p.is_local_sensor} ${getCondProps(w)}`);
 
+    // Background fill
+    const bgColorProp = p.bg_color || p.background_color || "transparent";
+    if (bgColorProp && bgColorProp !== "transparent") {
+        const bgColorConst = getColorConst(bgColorProp);
+        lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+    }
+
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
 

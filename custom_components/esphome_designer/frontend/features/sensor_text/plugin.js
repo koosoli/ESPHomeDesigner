@@ -689,6 +689,13 @@ export default {
 
         lines.push(`        // widget:sensor_text id:${w.id} type:sensor_text x:${w.x} y:${w.y} w:${w.width} h:${w.height} align:${textAlign} entity:"${entityId}" format:"${format}" ${getCondProps(w)}`);
 
+        // Background fill
+        const bgColorProp = p.bg_color || p.background_color || "transparent";
+        if (bgColorProp && bgColorProp !== "transparent") {
+            const bgColorConst = getColorConst(bgColorProp);
+            lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+        }
+
         // Draw Border if defined
         const borderWidth = p.border_width || 0;
         if (borderWidth > 0) {

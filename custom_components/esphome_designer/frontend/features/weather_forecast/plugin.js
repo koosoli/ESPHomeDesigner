@@ -225,7 +225,7 @@ const exportDoc = (w, context) => {
     lines.push(`          };`);
 
     // Background fill
-    const bgColorProp = p.background_color || "transparent";
+    const bgColorProp = p.bg_color || p.background_color || "transparent";
     if (bgColorProp && bgColorProp !== "transparent") {
         const bgColorConst = getColorConst(bgColorProp);
         lines.push(`          it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);

@@ -118,6 +118,13 @@ const exportDoc = (w, context) => {
 
     lines.push(`        // widget:progress_bar id:${w.id} type:progress_bar x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} title:"${title}" show_label:${showLabel} show_pct:${showPercentage} bar_height:${barHeight} color:${colorProp} local:${!!p.is_local_sensor} ${getCondProps(w)}`);
 
+    // Background fill
+    const bgColorProp = p.bg_color || p.background_color || "transparent";
+    if (bgColorProp && bgColorProp !== "transparent") {
+        const bgColorConst = getColorConst(bgColorProp);
+        lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+    }
+
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
 

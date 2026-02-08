@@ -9,6 +9,16 @@ export function detectHaBackendBaseUrl() {
     let manualUrl = getHaManualUrl();
     if (manualUrl) {
         manualUrl = manualUrl.trim();
+
+        // MIGRATION: If the manual URL contains the old reterminal_dashboard path,
+        // automatically update it to the new esphome_designer path.
+        if (manualUrl.includes('reterminal_dashboard')) {
+            Logger.log("[Env] Migrating legacy manual URL to new domain");
+            manualUrl = manualUrl.replace('reterminal_dashboard', 'esphome_designer');
+            // Persist the migrated URL so we don't do this every time
+            setHaManualUrl(manualUrl);
+        }
+
         if (manualUrl.endsWith('/')) {
             manualUrl = manualUrl.slice(0, -1);
         }

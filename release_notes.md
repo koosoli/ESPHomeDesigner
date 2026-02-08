@@ -7,9 +7,9 @@
 
 ### 🎭 Visual Depth & Precision (Drop Shadows)
 - **Shape-Accurate Shadows**: The "Create Drop Shadow" feature now dynamically detects the widget geometry. It perfectly matches **Circles**, **Rounded Rectangles** (respecting your radius), and **Rectangles** for pixel-perfect depth.
-- **Intelligent Infill & Masking**: Creating a shadow now automatically applies a solid background fill (White in light mode, Black in dark mode) to the original widget. This ensures the shadow is correctly masked behind the widget without "bleeding through" transparent areas.
-- **Preserved Content Colors**: For text and sensor widgets, the new background logic **preserves your chosen text color** while providing the necessary opaque fill for the shadow effect.
-- **Designer Preview Parity**: Updated rendering logic for Text, Sensor Text, DateTime, and Shape widgets to ensure background fills are visible in the designer's preview, matching the on-device look.
+- **Intelligent Infill & Masking (Device Parity)**: Creating a shadow now automatically applies a solid, opaque background fill to the original widget. This ensures the shadow is correctly masked behind the widget on your physical device without "bleeding through" transparent text or icons.
+- **Preserved Content Colors**: For text and sensor widgets, our new logic **preserves your chosen text color** while providing the necessary opaque fill for the shadow effect.
+- **Unified Preview**: All content-bearing widgets (Text, Sensors, DateTime, Icons) have been updated to ensure the designer preview exactly matches the on-device rendering for background fills.
 - **Multi-Select & Batch Creation**: You can now create shadows for multiple selected widgets simultaneously via the new **"Operations"** section in the properties panel.
 
 ### � Seeedstudio SenseCAP Indicator Support
@@ -43,6 +43,8 @@
 - **In-YAML Documentation**: Auto-scaled graphs now include a helpful comment in the generated YAML explaining how to enable Y-axis labels via overrides.
 
 ### 🐛 Bug Fixes
+- **Shadow Bleed-through Fix**: Implemented automatic background "masking" for widgets with drop shadows. This ensures that text and icons remain legible on physical devices by preventing shadows from showing through transparent areas.
+- **Enhanced Widget Rendering**: Added Direct Rendering background fill support to `Text`, `Sensor Text`, `DateTime`, `Icon`, `Weather`, `WiFi`, `Battery`, `Progress Bar`, `Graph`, and `Sensor Bar` widgets.
 - **Image Resize Handles**: Fixed an issue where resize handles were invisible on both `Image` and `LVGL Image` widgets due to `overflow: hidden` clipping.
 
 ---

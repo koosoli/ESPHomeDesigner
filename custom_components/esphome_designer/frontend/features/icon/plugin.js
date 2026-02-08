@@ -141,6 +141,13 @@ export default {
 
         lines.push(`        // widget:icon id:${w.id} type:icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} code:${code} size:${size} color:${colorProp} ${getCondProps(w)}`);
 
+        // Background fill
+        const bgColorProp = p.bg_color || p.background_color || "transparent";
+        if (bgColorProp && bgColorProp !== "transparent") {
+            const bgColorConst = getColorConst(bgColorProp);
+            lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+        }
+
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);
 

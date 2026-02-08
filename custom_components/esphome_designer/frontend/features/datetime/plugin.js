@@ -286,6 +286,13 @@ export default {
 
         lines.push(`        // widget:datetime id:${w.id} type:datetime x:${w.x} y:${w.y} w:${w.width} h:${w.height} align:${textAlign} fmt:${format} ${getCondProps(w)}`);
 
+        // Background fill
+        const bgColorProp = p.bg_color || p.background_color || "transparent";
+        if (bgColorProp && bgColorProp !== "transparent") {
+            const bgColorConst = getColorConst(bgColorProp);
+            lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+        }
+
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);
 
