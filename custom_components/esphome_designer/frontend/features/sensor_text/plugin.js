@@ -653,7 +653,7 @@ export default {
         // Escaping helper for printf
         const escapeFmt = (str) => (str || "").replace(/%/g, "%%");
 
-        lines.push(`        // widget:sensor_text id:${w.id} type:sensor_text x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:"${entityId}" format:"${format}" ${getCondProps(w)}`);
+        lines.push(`        // widget:sensor_text id:${w.id} type:sensor_text x:${w.x} y:${w.y} w:${w.width} h:${w.height} align:${textAlign} entity:"${entityId}" format:"${format}" ${getCondProps(w)}`);
 
         if (!entityId && !p.is_local_sensor) {
             lines.push(`        // Sensor ID missing for this widget`);

@@ -251,7 +251,7 @@ export default {
         const textAlign = (p.text_align || "CENTER").toUpperCase();
         const format = p.format || "time_date";
 
-        lines.push(`        // widget:datetime id:${w.id} type:datetime x:${w.x} y:${w.y} w:${w.width} h:${w.height} fmt:${format} ${getCondProps(w)}`);
+        lines.push(`        // widget:datetime id:${w.id} type:datetime x:${w.x} y:${w.y} w:${w.width} h:${w.height} align:${textAlign} fmt:${format} ${getCondProps(w)}`);
 
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);
