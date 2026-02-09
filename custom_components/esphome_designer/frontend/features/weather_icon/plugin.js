@@ -78,7 +78,12 @@ const exportDoc = (w, context) => {
     const entityId = (w.entity_id || p.weather_entity || "weather.forecast_home").trim();
     const size = parseInt(p.size || 48, 10);
     const colorProp = p.color || "theme_auto";
-    const color = getColorConst(colorProp);
+
+    // Dynamic Color Logic
+    let color = getColorConst(colorProp);
+    if (colorProp === "theme_auto") color = "color_on";
+    if (colorProp === "white") color = "color_off";
+    if (colorProp === "black") color = "color_on";
     const fontRef = addFont("Material Design Icons", 400, size);
 
     lines.push(`        // widget:weather_icon id:${w.id} type:weather_icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} size:${size} color:${colorProp} ${getCondProps(w)}`);

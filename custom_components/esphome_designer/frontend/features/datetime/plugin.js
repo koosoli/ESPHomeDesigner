@@ -276,7 +276,13 @@ export default {
         } = context;
 
         const p = w.props || {};
-        const color = getColorConst(p.color || "black");
+        const colorProp = p.color || "black";
+
+        // Dynamic Color Logic
+        let color = getColorConst(colorProp);
+        if (colorProp === "theme_auto") color = "color_on";
+        if (colorProp === "white") color = "color_off"; // Background (Dynamic)
+        if (colorProp === "black") color = "color_on";  // Text (Dynamic)
         const timeSize = parseInt(p.time_font_size || 28, 10);
         const dateSize = parseInt(p.date_font_size || 16, 10);
         const timeFontId = addFont(p.font_family || "Roboto", 700, timeSize, !!p.italic);

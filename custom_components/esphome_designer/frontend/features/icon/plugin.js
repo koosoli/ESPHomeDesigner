@@ -134,7 +134,12 @@ export default {
         const code = (p.code || "F0595").replace(/^0x/i, "");
         const size = parseInt(p.size || 48, 10);
         const colorProp = p.color || "theme_auto";
-        const color = getColorConst(colorProp);
+
+        // Dynamic Color Logic
+        let color = getColorConst(colorProp);
+        if (colorProp === "theme_auto") color = "color_on";
+        if (colorProp === "white") color = "color_off"; // Background (Dynamic)
+        if (colorProp === "black") color = "color_on";  // Text (Dynamic)
 
         // Register Icon Font
         const fontRef = addFont("Material Design Icons", 400, size);
