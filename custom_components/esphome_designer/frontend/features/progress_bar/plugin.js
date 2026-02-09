@@ -25,12 +25,32 @@ const render = (el, widget, tools) => {
         }
     }
 
+    const isDark = tools.isDark;
+
+    // Helper for simple inversion
+    const getRenderColor = (c) => {
+        if (c === "theme_auto") return isDark ? "#ffffff" : "#000000"; // Text default
+        if (c === "white" || c === "#ffffff") return isDark ? "#000000" : "#ffffff";
+        if (c === "black" || c === "#000000") return isDark ? "#ffffff" : "#000000";
+        return getColorStyle(c);
+    };
+
+    // Text Color is determined by `color` prop (default theme_auto)
+    // If it's a progress bar, `color` usually means the FILLED part?
+    // Let's check:
+    // barFill.style.backgroundColor = colorStyle; (line 71)
+    // el.style.color = colorStyle; (line 33)
+
+    // So `color` is BOTH Text and Fill.
+
+    let renderColor = getRenderColor(color);
+
     el.innerHTML = "";
     el.style.display = "flex";
     el.style.flexDirection = "column";
     el.style.justifyContent = "center";
     el.style.gap = "4px";
-    el.style.color = colorStyle;
+    el.style.color = renderColor;
 
     if (showLabel && (label || showPercentage)) {
         const labelRow = document.createElement("div");
@@ -59,16 +79,26 @@ const render = (el, widget, tools) => {
     const barContainer = document.createElement("div");
     barContainer.style.width = "100%";
     barContainer.style.height = `${barHeight}px`;
-    barContainer.style.border = `${borderWidth}px solid ${colorStyle}`;
+    barContainer.style.border = `${borderWidth}px solid ${renderColor}`;
     barContainer.style.borderRadius = "2px";
     barContainer.style.position = "relative";
     barContainer.style.overflow = "hidden";
-    barContainer.style.backgroundColor = color === "white" ? "#000" : "#fff";
+
+    // Background of the bar container
+    // Default logic was: color === "white" ? "#000" : "#fff";
+    // Now we want dynamic.
+    // If Fill/Border is White (Dark Mode), Bg should be Black.
+    // If Fill/Border is Black (Light Mode), Bg should be White.
+    // If Fill is Red, Bg should be White/Black depending on theme?
+    // Let's stick to the previous simple logic but adapted for dynamic `renderColor`.
+
+    const isRenderColorLight = (c) => c === "#ffffff" || c === "white" || c === "#fff";
+    barContainer.style.backgroundColor = isRenderColorLight(renderColor) ? "#000000" : "#ffffff";
 
     const barFill = document.createElement("div");
     barFill.style.width = `${percentValue}%`;
     barFill.style.height = "100%";
-    barFill.style.backgroundColor = colorStyle;
+    barFill.style.backgroundColor = renderColor;
     barFill.style.transition = "width 0.3s ease";
 
     barContainer.appendChild(barFill);
@@ -107,7 +137,15 @@ const exportDoc = (w, context) => {
     const showPercentage = p.show_percentage !== false;
     const barHeight = parseInt(p.bar_height || 15, 10);
     const colorProp = p.color || "theme_auto";
-    const color = getColorConst(colorProp);
+
+    const getDynamicColor = (c) => {
+        if (c === "theme_auto") return "color_on";
+        if (c === "white" || c === "#ffffff") return "color_off";
+        if (c === "black" || c === "#000000") return "color_on";
+        return getColorConst(c);
+    };
+
+    const color = getDynamicColor(colorProp);
 
     const fontId = addFont("Roboto", 400, 12);
 
@@ -121,7 +159,7 @@ const exportDoc = (w, context) => {
     // Background fill
     const bgColorProp = p.bg_color || p.background_color || "transparent";
     if (bgColorProp && bgColorProp !== "transparent") {
-        const bgColorConst = getColorConst(bgColorProp);
+        const bgColorConst = getDynamicColor(bgColorProp);
         lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
     }
 

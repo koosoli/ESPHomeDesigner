@@ -204,7 +204,8 @@ export function render(canvasInstance) {
                     feature.render(el, widget, {
                         getColorStyle: wrappedGetColorStyle,
                         selected: isSelected,
-                        profile: profile
+                        profile: profile,
+                        isDark: isDark
                     });
                 } catch (err) {
                     el.textContent = `Error: ${type}`;
@@ -513,7 +514,8 @@ export function updateWidgetDOM(canvasInstance, widget, skipPluginRender = false
                 feature.render(el, widget, {
                     getColorStyle: wrappedGetColorStyle,
                     selected: isSelected,
-                    profile: profile
+                    profile: profile,
+                    isDark: getEffectiveDarkMode()
                 });
             } catch (err) {
                 // Silent fail for minor real-time updates to keep performance high

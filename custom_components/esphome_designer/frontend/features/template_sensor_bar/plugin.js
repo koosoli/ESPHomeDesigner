@@ -2,7 +2,7 @@
  * Template Sensor Bar Plugin
  */
 
-const render = (el, widget, { getColorStyle }) => {
+const render = (el, widget, { getColorStyle, isDark }) => {
     const props = widget.props || {};
     const color = props.color || "black";
     const iconSize = props.icon_size || 20;
@@ -14,24 +14,65 @@ const render = (el, widget, { getColorStyle }) => {
     el.style.justifyContent = "space-around";
     el.style.padding = "0 10px";
     el.style.boxSizing = "border-box";
-    let cssColor = getColorStyle(color);
+
+    const getDynamicColorRender = (c) => {
+        if (c === "theme_auto") return isDark ? "#ffffff" : "#000000";
+        if (c === "white" || c === "#ffffff") return isDark ? "#000000" : "#ffffff"; // White becomes Black in Dark Mode (Background)
+        if (c === "black" || c === "#000000") return isDark ? "#ffffff" : "#000000"; // Black becomes White in Dark Mode (Text)
+        return getColorStyle(c);
+    };
+
+    // Helper: We need to distinguish between Background usage (White->Black) and Text usage (Black->White)
+    // BUT, the YAML logic was:
+    // White -> color_off (Bg)
+    // Black -> color_on (Text)
+
+    // So for Background Propertys:
+    const getBgColorRender = (c) => {
+        if (c === "white" || c === "#ffffff") return isDark ? "#000000" : "#ffffff";
+        if (c === "black" || c === "#000000") return isDark ? "#ffffff" : "#000000"; // Rare but possible
+        return getColorStyle(c);
+    };
+
+    // For Text/Icon Propertys:
+    const getTextColorRender = (c) => {
+        if (c === "black" || c === "#000000") return isDark ? "#ffffff" : "#000000";
+        if (c === "white" || c === "#ffffff") return isDark ? "#000000" : "#ffffff";
+        return getColorStyle(c);
+    };
+
+    el.style.display = "flex";
+    el.style.alignItems = "center";
+    el.style.justifyContent = "space-around";
+    el.style.padding = "0 10px";
+    el.style.boxSizing = "border-box";
+
+    // Main Text Color
+    let cssColor = getTextColorRender(color);
     el.style.overflow = "hidden";
 
     if (props.show_background) {
-        const cssBgColor = getColorStyle(props.background_color || "white");
+        let cssBgColor = getBgColorRender(props.background_color || "white");
+
+        // Special Case: widget defaults say bg="black", color="white". 
+        // If user left defaults:
+        // Bg "black" -> Dark Mode -> White? No, that would be a flashbang.
+        // Wait, the default "black" background on the sensor bar is meant to be a "Dark Pill".
+        // In Dark Mode (Black Page), a Dark Pill is invisible.
+        // So usually in Dark Mode, we want a White/Light Pill? Or an Outlined Pill?
+        // E-Paper usually inverts.
+        // Let's stick to the literal inversion:
+        // Bg Black -> Bg White.
+        // Text White -> Text Black.
+        // This maintains contrast.
+
         el.style.backgroundColor = cssBgColor;
         el.style.borderRadius = (props.border_radius || 8) + "px";
 
         if (borderWidth > 0) {
-            el.style.border = `${borderWidth}px solid ${getColorStyle(props.border_color || "white")}`;
+            el.style.border = `${borderWidth}px solid ${getBgColorRender(props.border_color || "white")}`;
         } else {
             el.style.border = "none";
-        }
-
-        // Smart Preview: If Black on Black (common for inverted e-paper profiles), 
-        // invert text color for preview visibility.
-        if (cssColor === "#000000" && cssBgColor === "#000000") {
-            cssColor = "#ffffff";
         }
 
         if (!props.background_color || props.background_color === "transparent") {
@@ -156,16 +197,92 @@ const exportDoc = (w, context) => {
     const iconSize = parseInt(p.icon_size || 20, 10);
     const fontSize = parseInt(p.font_size || 14, 10);
     const colorProp = ensureHex(p.color || "white");
-    const color = getColorConst(colorProp);
+
+    // DYNAMIC COLOR LOGIC:
+    // If color is "white" (default text), use color_on (White in Light, Black in Dark? No, wait.)
+    // Standard ESPHome Dark Mode:
+    //  - Background: Black (color_off)
+    //  - Text/Foreground: White (color_on)
+    // Light Mode:
+    //  - Background: White (color_off)
+    //  - Text/Foreground: Black (color_on)
+
+    // So:
+    //  - "black" -> usually text -> color_on
+    //  - "white" -> usually background -> color_off
+    // But defaults are inverted for e-paper compared to LCD usually.
+    // Let's stick to the user's explicit choice unless it's the DEFAULT.
+
+    // For Sensor Bar:
+    // Default background is "black". In Dark Mode (inverted), black background becomes white? 
+    // No, Dark Mode usually means White Text on Black Background.
+    // Light Mode means Black Text on White Background.
+
+    // The previous code was:
+    // const COLOR_WHITE = Color(255, 255, 255);
+    // const COLOR_BLACK = Color(0, 0, 0);
+    // auto color_off = COLOR_WHITE; // Background
+    // auto color_on = COLOR_BLACK;  // Text
+
+    // In Dark Mode:
+    // color_off = COLOR_BLACK;
+    // color_on = COLOR_WHITE;
+
+    // Current Widget Defaults:
+    // background_color: "black"
+    // color: "white"
+
+    // This implies the widget is ALREADY designed for Dark Mode (White on Black).
+    // If the global theme is Light (Black on White), this widget looks like a dark pill.
+    // If the global theme is Dark (White on Black), this widget looks like a dark pill (same).
+
+    // ISSUE: The user says "white icons on white background".
+    // This implies that while the background became White (maybe?), the icons stayed White.
+
+    // Let's look at the generated YAML in the user request:
+    // it.fill(COLOR_BLACK);  <-- Page Background is Black
+    // color_off = COLOR_BLACK;
+    // color_on = COLOR_WHITE;
+
+    // Widget YAML:
+    // draw_filled_rrect(..., COLOR_WHITE); <-- Background is forced WHITE!
+
+    // Why? 
+    // Because p.background_color defaults to "black". 
+    // And getColorConst("black") -> COLOR_BLACK?
+    // Wait, let's check the code:
+    // const bgColor = getColorConst(ensureHex(p.background_color || "black"));
+
+    // If p.background_color is "white" (user selected white?), it returns COLOR_WHITE.
+    // If p.background_color is "black", it returns COLOR_BLACK.
+
+    // The user's widget has: bg_color:white
+    // So they explicitly set it to white.
+    // But they want it to invert in Dark Mode?
+
+    // If they set it to "Theme Auto" (if that exists?), it should be `color_off`.
+    // The widget defaults say: background_color: "black".
+
+    // If the user wants dynamic adaptation, they should probably map:
+    // "white" -> color_off (Background)
+
+    const getDynamicColor = (c) => {
+        if (c === "white" || c === "#ffffff") return "color_off"; // Background (White/Black)
+        if (c === "black" || c === "#000000") return "color_on";  // Text (Black/White)
+        if (c === "transparent") return "color_off"; // Fallback to bg?
+        return getColorConst(c);
+    };
+
+    const color = getDynamicColor(colorProp);
     const showWifi = p.show_wifi !== false;
     const showTemp = p.show_temperature !== false;
     const showHum = p.show_humidity !== false;
     const showBat = p.show_battery !== false;
     const showBg = p.show_background !== false;
-    const bgColor = getColorConst(ensureHex(p.background_color || "black"));
+    const bgColor = getDynamicColor(ensureHex(p.background_color || "black"));
     const radius = parseInt(p.border_radius || 8, 10);
     const thickness = parseInt(p.border_thickness || 0, 10);
-    const borderColor = getColorConst(ensureHex(p.border_color || "white"));
+    const borderColor = getDynamicColor(ensureHex(p.border_color || "white"));
 
     // Entity IDs
     const wifiId = ((p.wifi_is_local ? "wifi_signal_dbm" : p.wifi_entity) || "wifi_signal_dbm").replace(/[^a-zA-Z0-9_]/g, "_");
@@ -231,12 +348,12 @@ const exportDoc = (w, context) => {
         addDitherMask(lines, p.border_color || "white", isEpaper, w.x, w.y, w.width, w.height, radius);
     }
 
-    // E-ink Smart Contrast: If icons are "gray" and background is "black", use White text for crispness.
+    // E-ink Smart Contrast:
     let effectiveColor = color;
     if (isEpaper && (p.color === "gray" || p.color === "grey" || p.color === "#808080" || p.color === "#a0a0a0")) {
         // If background is dark, forcing white text is the standard way to fix unreadable dithered text.
         if (p.background_color === "black" || p.background_color === "#000000") {
-            effectiveColor = "COLOR_WHITE";
+            effectiveColor = "color_on"; // Use dynamic foreground, usually White in Dark mode
         }
     }
 
