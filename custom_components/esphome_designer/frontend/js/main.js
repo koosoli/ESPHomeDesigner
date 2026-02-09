@@ -269,10 +269,6 @@ export class App {
                 }, SAVE_DEBOUNCE_MS);
             });
 
-            // Re-render palette when mode might have changed
-            on(EVENTS.STATE_CHANGED, () => {
-                renderWidgetPalette('widgetPalette');
-            });
         });
     }
 
