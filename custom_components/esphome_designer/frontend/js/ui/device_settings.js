@@ -871,7 +871,7 @@ export class DeviceSettings {
         const isDeepSleep = this.modeDeepSleep && this.modeDeepSleep.checked;
         const isManual = this.modeManual && this.modeManual.checked;
 
-        if (this.sleepRow) this.sleepRow.style.display = isSleep ? 'flex' : 'none';
+        if (this.sleepRow) this.sleepRow.style.display = (isSleep || isDeepSleep) ? 'flex' : 'none';
         if (this.dailyRefreshRow) this.dailyRefreshRow.style.display = isDaily ? 'flex' : 'none';
         if (this.deepSleepRow) this.deepSleepRow.style.display = isDeepSleep ? 'block' : 'none';
 

@@ -202,7 +202,7 @@ export class YamlGenerator {
             lines.push("");
             lines.push("deep_sleep:");
             lines.push("  id: deep_sleep_control");
-            lines.push("  run_duration: 30s # Stay awake 30s on boot for OTA");
+            lines.push("  run_duration: 120s # Stay awake 120s on boot for OTA");
             lines.push(`  sleep_duration: ${layout.deepSleepInterval || 600}s`);
         }
 
@@ -280,8 +280,39 @@ export class YamlGenerator {
             lines.push("            lambda: 'return id(ha_time).now().is_valid() && api_is_connected();'");
             lines.push("          timeout: 60s");
             lines.push("      - delay: 5s");
-            lines.push(`      - component.update: ${displayId}`);
-            lines.push("      - delay: 5s # Ensure refresh starts before sleep");
+
+            const sStart = parseInt(payload.noRefreshStartHour ?? payload.sleepStartHour) || 0;
+            const sEnd = parseInt(payload.noRefreshEndHour ?? payload.sleepEndHour) || 0;
+
+
+            const sEnabled = (
+                payload.sleepEnabled === true || payload.sleepEnabled === "true" || payload.sleepEnabled === 1 || payload.sleepEnabled === "1" ||
+                payload.deepSleepEnabled === true || payload.deepSleepEnabled === "true" || payload.deepSleepEnabled === 1 || payload.deepSleepEnabled === "1"
+            );
+
+            if (sEnabled) {
+                lines.push("      - if:");
+                lines.push("          condition:");
+                lines.push("            lambda: |-");
+                lines.push("              auto time = id(ha_time).now();");
+                lines.push("              if (time.is_valid()) {");
+                lines.push(`                  int hour = time.hour;`);
+                lines.push(`                  int start = ${sStart};`);
+                lines.push(`                  int end = ${sEnd};`);
+                lines.push("                  if (start < end) {");
+                lines.push("                      if (hour >= start && hour < end) return false;");
+                lines.push("                  } else {");
+                lines.push("                      if (hour >= start || hour < end) return false;");
+                lines.push("                  }");
+                lines.push("              }");
+                lines.push("              return true;");
+                lines.push("          then:");
+                lines.push(`            - component.update: ${displayId}`);
+                lines.push("            - delay: 5s # Ensure refresh starts before sleep");
+            } else {
+                lines.push(`      - component.update: ${displayId}`);
+                lines.push("      - delay: 5s # Ensure refresh starts before sleep");
+            }
             lines.push("      - logger.log: \"Entering Deep Sleep now...\"");
             lines.push("      - deep_sleep.enter: deep_sleep_control");
         }
@@ -312,9 +343,12 @@ export class YamlGenerator {
         lines.push("          bool is_sleep_time = false;");
 
         // Date/Time Check
-        const sStart = parseInt(payload.sleepStartHour) || 0;
-        const sEnd = parseInt(payload.sleepEndHour) || 0;
-        const sEnabled = !!payload.sleepEnabled;
+        const sStart = parseInt(payload.noRefreshStartHour ?? payload.sleepStartHour) || 0;
+        const sEnd = parseInt(payload.noRefreshEndHour ?? payload.sleepEndHour) || 0;
+        const sEnabled = (
+            payload.sleepEnabled === true || payload.sleepEnabled === "true" || payload.sleepEnabled === 1 || payload.sleepEnabled === "1" ||
+            payload.deepSleepEnabled === true || payload.deepSleepEnabled === "true" || payload.deepSleepEnabled === 1 || payload.deepSleepEnabled === "1"
+        );
 
         lines.push("          auto time = id(ha_time).now();");
         lines.push("          if (time.is_valid()) {");
