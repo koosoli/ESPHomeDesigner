@@ -278,7 +278,7 @@ export class YamlGenerator {
             lines.push("      - wait_until:");
             lines.push("          condition:");
             lines.push("            lambda: 'return id(ha_time).now().is_valid() && api_is_connected();'");
-            lines.push("          timeout: 60s");
+            lines.push("          timeout: 120s");
             lines.push("      - delay: 5s");
 
             const sStart = parseInt(payload.noRefreshStartHour ?? payload.sleepStartHour) || 0;
@@ -333,7 +333,7 @@ export class YamlGenerator {
         lines.push("      - wait_until:");
         lines.push("          condition:");
         lines.push("            lambda: 'return id(ha_time).now().is_valid() && api_is_connected();'");
-        lines.push("          timeout: 60s");
+        lines.push("          timeout: 120s");
         lines.push("      - delay: 5s");
 
         // Logic for Sleep & Refresh
