@@ -13,7 +13,12 @@ const polarToCartesian = (centerX, centerY, radius, angleInDegrees) => {
 const startToPath = (x, y, r, startAngle, endAngle) => {
     const start = polarToCartesian(x, y, r, endAngle);
     const end = polarToCartesian(x, y, r, startAngle);
-    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+
+    let diff = endAngle - startAngle;
+    while (diff < 0) diff += 360;
+    while (diff >= 360) diff -= 360;
+
+    const largeArcFlag = diff <= 180 ? "0" : "1";
     return [
         "M", start.x, start.y,
         "A", r, r, 0, largeArcFlag, 0, end.x, end.y
@@ -38,8 +43,35 @@ const render = (el, widget, { getColorStyle }) => {
     const cy = height / 2;
     const radius = Math.min(width, height) / 2 - thickness / 2;
 
+    // Default to LVGL defaults (135 -> 45) if not set
+    const pStart = props.start_angle !== undefined ? parseInt(props.start_angle) : 135;
+    const pEnd = props.end_angle !== undefined ? parseInt(props.end_angle) : 45;
+
+    // Convert LVGL angles (0=Right) to Plugin/SVG angles (0=Top implicitly in polarToCartesian with -90)
+    // Actually, polarToCartesian(..., deg) does (deg-90).
+    // If we want 0 -> Right.
+    // Right is x+, y0.
+    // cos(0) = 1.
+    // If input is 0. (0-90) = -90. cos(-90)=0. X=0. Incorrect.
+    // So we need to add 90 to LVGL angle before passing to polarToCartesian?
+    // 0 + 90 = 90. (90-90)=0. cos(0)=1. Correct.
+    const startAngle = pStart + 90;
+    const endAngle = pEnd + 90;
+
     const bgPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    bgPath.setAttribute("d", startToPath(cx, cy, radius, -135, 135));
+    // We draw from startAngle to endAngle (Counter-Clockwise visual in SVG path command? No, A command is usually wrapper dependent).
+    // startToPath draws from endAngle param to startAngle param.
+    // If we want arc from Start -> End (Clockwise),
+    // and startToPath draws (End -> Start) which is usually CCW in SVG 'A'?
+    // Wait. A command with sweep-flag 0 (default in startToPath?)
+    // Let's stick to the logic:
+    // startToPath(..., start, end) calculates flag based on (end - start).
+    // It draws M (end point) -> A (start point). 
+    // This is CCW?
+    // If LVGL arc is CW (Start -> End).
+    // We want to draw path matching that.
+
+    bgPath.setAttribute("d", startToPath(cx, cy, radius, startAngle, endAngle));
     bgPath.setAttribute("fill", "none");
     bgPath.setAttribute("stroke", "#eee");
     bgPath.setAttribute("stroke-width", thickness);
@@ -62,17 +94,25 @@ const render = (el, widget, { getColorStyle }) => {
     }
 
     val = Math.max(min, Math.min(max, val));
-    const angleSpan = 270;
+
+    // Calculate span
+    let angleSpan = pEnd - pStart;
+    while (angleSpan < 0) angleSpan += 360;
+    while (angleSpan >= 360) angleSpan -= 360; // Should be < 360 for full circle check?
+    // LVGL full circle is unlikely implicitly, usually 0-360.
+
     let percentage = 0;
     if (max > min) {
         percentage = (val - min) / (max - min);
     }
 
-    const endAngle = -135 + (percentage * angleSpan);
+    if (percentage > 0.001) {
+        const currentSpan = angleSpan * percentage;
+        const valEndRaw = pStart + currentSpan; // LVGL angle
+        const valEndAngle = valEndRaw + 90; // Converted
 
-    if (percentage > 0.01) {
         const valPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        valPath.setAttribute("d", startToPath(cx, cy, radius, -135, endAngle));
+        valPath.setAttribute("d", startToPath(cx, cy, radius, startAngle, valEndAngle));
         valPath.setAttribute("fill", "none");
         valPath.setAttribute("stroke", color);
         valPath.setAttribute("stroke-width", thickness);
