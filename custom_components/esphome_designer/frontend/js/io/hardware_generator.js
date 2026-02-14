@@ -162,7 +162,7 @@ export function generateCustomHardwareYaml(config) {
         lines.push("light:");
         lines.push("  - platform: monochromatic");
         lines.push("    output: backlight_brightness_output");
-        lines.push("    id: lcdbacklight_brightness");
+        lines.push("    id: display_backlight");
         lines.push("    name: LCD Backlight");
         lines.push("    icon: mdi:wall-sconce-flat-outline");
         lines.push("    restore_mode: ALWAYS_ON");
@@ -223,6 +223,15 @@ export function generateCustomHardwareYaml(config) {
         lines.push(`  - platform: ${touchTech}`);
         if (pins.touch_int) lines.push(`    interrupt_pin: ${pins.touch_int}`);
         if (pins.touch_rst) lines.push(`    reset_pin: ${pins.touch_rst}`);
+
+        // Wake up logic for LVGL
+        lines.push("    on_release:");
+        lines.push("      - if:");
+        lines.push("          condition: lvgl.is_paused");
+        lines.push("          then:");
+        lines.push("            - lvgl.resume:");
+        lines.push("            - lvgl.widget.redraw:");
+        lines.push("            - light.turn_on: display_backlight");
         lines.push("");
     }
 

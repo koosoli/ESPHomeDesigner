@@ -95,6 +95,13 @@ touchscreen:
     transform:
       mirror_x: true
       swap_xy: true
+    on_release:
+      - if:
+          condition: lvgl.is_paused
+          then:
+            - lvgl.resume:
+            - lvgl.widget.redraw:
+            - light.turn_on: display_backlight
 
 display:
   - platform: rpi_dpi_rgb

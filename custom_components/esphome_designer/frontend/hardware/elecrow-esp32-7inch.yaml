@@ -96,6 +96,13 @@ touchscreen:
       mirror_y: false
     update_interval: 50ms
     address: 0x5D
+    on_release:
+      - if:
+          condition: lvgl.is_paused
+          then:
+            - lvgl.resume:
+            - lvgl.widget.redraw:
+            - light.turn_on: display_backlight
 
 display:
   - platform: rpi_dpi_rgb

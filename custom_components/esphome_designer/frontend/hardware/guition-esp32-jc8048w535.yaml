@@ -88,6 +88,13 @@ touchscreen:
   - platform: axs15231
     id: my_touchscreen
     i2c_id: bus_a
+    on_release:
+      - if:
+          condition: lvgl.is_paused
+          then:
+            - lvgl.resume:
+            - lvgl.widget.redraw:
+            - light.turn_on: display_backlight
 
 spi:
   - type: quad

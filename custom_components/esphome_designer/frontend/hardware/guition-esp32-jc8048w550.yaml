@@ -94,6 +94,13 @@ touchscreen:
     i2c_id: bus_a
     address: 0x5D
     update_interval: 16ms
+    on_release:
+      - if:
+          condition: lvgl.is_paused
+          then:
+            - lvgl.resume:
+            - lvgl.widget.redraw:
+            - light.turn_on: display_backlight
 
 #-------------------------------------------
 # Display

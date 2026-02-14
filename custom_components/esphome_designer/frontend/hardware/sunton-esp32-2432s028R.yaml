@@ -113,6 +113,13 @@ touchscreen:
       y_max: 3860
     transform:
       mirror_x: true
+    on_release:
+      - if:
+          condition: lvgl.is_paused
+          then:
+            - lvgl.resume:
+            - lvgl.widget.redraw:
+            - light.turn_on: display_backlight
 
 display:
   - id: my_display

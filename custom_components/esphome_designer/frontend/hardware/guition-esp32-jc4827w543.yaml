@@ -88,6 +88,13 @@ touchscreen:
       number: 3
       ignore_strapping_warning: true
     reset_pin: GPIO38
+    on_release:
+      - if:
+          condition: lvgl.is_paused
+          then:
+            - lvgl.resume:
+            - lvgl.widget.redraw:
+            - light.turn_on: display_backlight
 
 spi:
   id: quad_spi

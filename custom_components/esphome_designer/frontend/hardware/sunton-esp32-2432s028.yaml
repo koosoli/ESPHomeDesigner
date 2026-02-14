@@ -114,6 +114,13 @@ touchscreen:
       mirror_x: false
       mirror_y: true
       swap_xy: false
+    on_release:
+      - if:
+          condition: lvgl.is_paused
+          then:
+            - lvgl.resume:
+            - lvgl.widget.redraw:
+            - light.turn_on: display_backlight
 
 display:
   - id: my_display
