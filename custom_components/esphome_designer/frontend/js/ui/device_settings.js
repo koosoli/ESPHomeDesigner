@@ -313,7 +313,8 @@ export class DeviceSettings {
             this.customChip, this.customTech, this.customResPreset, this.customRes, this.customShape,
             this.customPsram, this.customDisplayDriver, this.customDisplayModel, this.customTouchTech,
             'pin_cs', 'pin_dc', 'pin_rst', 'pin_busy', 'pin_clk', 'pin_mosi',
-            'pin_backlight', 'pin_sda', 'pin_scl', 'pin_touch_int', 'pin_touch_rst'
+            'pin_backlight', 'pin_sda', 'pin_scl', 'pin_touch_int', 'pin_touch_rst',
+            'pin_battery_adc', 'pin_battery_enable'
         ];
 
         const triggerSave = () => {
@@ -363,7 +364,9 @@ export class DeviceSettings {
                 sda: getVal('pin_sda'),
                 scl: getVal('pin_scl'),
                 touch_int: getVal('pin_touch_int'),
-                touch_rst: getVal('pin_touch_rst')
+                touch_rst: getVal('pin_touch_rst'),
+                batteryAdc: getVal('pin_battery_adc'),
+                batteryEnable: getVal('pin_battery_enable')
             }
         };
     }
@@ -405,7 +408,8 @@ export class DeviceSettings {
         const pinInputIds = [
             'pin_cs', 'pin_dc', 'pin_rst', 'pin_busy', 'pin_clk', 'pin_mosi',
             'pin_backlight', 'pin_sda', 'pin_scl',
-            'pin_touch_int', 'pin_touch_rst'
+            'pin_touch_int', 'pin_touch_rst',
+            'pin_battery_adc', 'pin_battery_enable'
         ];
 
         pinInputIds.forEach(id => {
@@ -471,7 +475,9 @@ export class DeviceSettings {
                     sda: getVal('pin_sda'),
                     scl: getVal('pin_scl'),
                     touch_int: getVal('pin_touch_int'),
-                    touch_rst: getVal('pin_touch_rst')
+                    touch_rst: getVal('pin_touch_rst'),
+                    batteryAdc: getVal('pin_battery_adc'),
+                    batteryEnable: getVal('pin_battery_enable')
                 }
             };
 
@@ -749,6 +755,8 @@ export class DeviceSettings {
         setPin('pin_scl', pins.scl);
         setPin('pin_touch_int', pins.touch_int);
         setPin('pin_touch_rst', pins.touch_rst);
+        setPin('pin_battery_adc', pins.batteryAdc);
+        setPin('pin_battery_enable', pins.batteryEnable);
     }
 
     populateProtocolFields() {
