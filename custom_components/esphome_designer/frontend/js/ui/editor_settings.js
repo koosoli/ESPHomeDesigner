@@ -18,6 +18,7 @@ export class EditorSettings {
         this.refreshEntitiesBtn = document.getElementById('editorRefreshEntities');
         this.entityCountLabel = document.getElementById('editorEntityCount');
         this.gridOpacity = document.getElementById('editorGridOpacity');
+        this.extendedLatinGlyphs = document.getElementById('editorExtendedLatinGlyphs');
 
         // HA Connection
         this.haManualUrl = document.getElementById('haManualUrl');
@@ -94,6 +95,11 @@ export class EditorSettings {
         document.querySelectorAll('.glyphset-checkbox').forEach(cb => {
             cb.checked = selectedGlyphsets.includes(cb.value);
         });
+
+        // Extended Latin Glyphs
+        if (this.extendedLatinGlyphs) {
+            this.extendedLatinGlyphs.checked = !!settings.extendedLatinGlyphs;
+        }
 
         // HA Connection
         if (this.haManualUrl) this.haManualUrl.value = getHaManualUrl() || "";
@@ -320,6 +326,13 @@ export class EditorSettings {
                 AppState.updateSettings({ glyphsets: checked });
             });
         });
+
+        // Extended Latin Glyphs
+        if (this.extendedLatinGlyphs) {
+            this.extendedLatinGlyphs.addEventListener('change', () => {
+                AppState.updateSettings({ extendedLatinGlyphs: this.extendedLatinGlyphs.checked });
+            });
+        }
 
         // Collapsible Categories logic
         const categoryHeaders = this.modal.querySelectorAll('.settings-category-header');

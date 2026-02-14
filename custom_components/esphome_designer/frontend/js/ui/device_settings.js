@@ -21,7 +21,7 @@ export class DeviceSettings {
         this.modelInput = document.getElementById('deviceModel');
         this.orientationInput = document.getElementById('deviceOrientation');
         this.darkModeInput = document.getElementById('deviceDarkMode');
-        this.extendedLatinGlyphsInput = document.getElementById('deviceExtendedLatinGlyphs');
+
         this.invertedColorsInput = document.getElementById('deviceInvertedColors');
 
         // Power Strategy
@@ -107,7 +107,7 @@ export class DeviceSettings {
 
         // ESPHome Only Fields
         this.powerStrategySection = document.getElementById('powerStrategySection');
-        this.deviceExtendedLatinGlyphsField = document.getElementById('deviceExtendedLatinGlyphsField');
+
         this.deviceInvertedColorsField = document.getElementById('deviceInvertedColorsField');
     }
     init() {
@@ -636,7 +636,7 @@ export class DeviceSettings {
         if (this.renderingModeInput) this.renderingModeInput.value = AppState.settings.renderingMode || 'direct';
         if (this.orientationInput) this.orientationInput.value = AppState.settings.orientation || "landscape";
         if (this.darkModeInput) this.darkModeInput.checked = !!AppState.settings.darkMode;
-        if (this.extendedLatinGlyphsInput) this.extendedLatinGlyphsInput.checked = !!AppState.settings.extendedLatinGlyphs;
+
         if (this.invertedColorsInput) this.invertedColorsInput.checked = !!AppState.settings.invertedColors;
 
         // Determine power mode
@@ -917,9 +917,7 @@ export class DeviceSettings {
         if (this.powerStrategySection) {
             this.powerStrategySection.style.display = isESPHome ? 'block' : 'none';
         }
-        if (this.deviceExtendedLatinGlyphsField) {
-            this.deviceExtendedLatinGlyphsField.style.display = isESPHome ? 'block' : 'none';
-        }
+
         if (this.deviceInvertedColorsField) {
             // Only show for ESPHome AND when it's an E-Paper display
             const currentModel = this.modelInput ? this.modelInput.value : null;
@@ -1021,12 +1019,7 @@ export class DeviceSettings {
             });
         }
 
-        // Extended Latin Glyphs (diacritics)
-        if (this.extendedLatinGlyphsInput) {
-            this.extendedLatinGlyphsInput.addEventListener('change', () => {
-                updateSetting('extendedLatinGlyphs', this.extendedLatinGlyphsInput.checked);
-            });
-        }
+
 
         // Inverted Colors (for e-paper displays with swapped black/white)
         if (this.invertedColorsInput) {
