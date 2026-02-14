@@ -1943,6 +1943,12 @@ export class PropertiesPanel {
             this.addLabeledInput("Event Text Size", "number", props.font_size_event || 18, (v) => updateProp("font_size_event", parseInt(v, 10)));
             this.endSection();
 
+            this.createSection("Visibility", true);
+            this.addCheckbox("Show Header", props.show_header !== false, (v) => updateProp("show_header", v));
+            this.addCheckbox("Show Grid", props.show_grid !== false, (v) => updateProp("show_grid", v));
+            this.addCheckbox("Show Events", props.show_events !== false, (v) => updateProp("show_events", v));
+            this.endSection();
+
             this.createSection("Data Source", true);
             this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "sensor.esp_calendar_data", (v) => {
                 AppState.updateWidget(widget.id, { entity_id: v });

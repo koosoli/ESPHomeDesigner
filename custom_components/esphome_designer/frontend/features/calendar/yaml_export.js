@@ -158,117 +158,131 @@ text_sensor:
           // Calculate layout relative to ${x}, ${y}
           
           int cx = ${x} + (${w} / 2);
-          
-          // Date
-          it.printf(cx, ${y} + 0, id(font_roboto_70), color_content, TextAlign::TOP_CENTER, "%d", time.day_of_month);
-          it.printf(cx, ${y} + 50, id(font_roboto_24), color_content, TextAlign::TOP_CENTER, "%s", id(todays_day_name_${id}).state.c_str());
-          it.printf(cx, ${y} + 72, id(font_roboto_14), color_content, TextAlign::TOP_CENTER, "%s", id(todays_date_month_year_${id}).state.c_str());
-          
-          // Calendar Grid
           int calendar_y_pos = ${y} + 115;
           
+          // Date
+          if (${widget.properties.show_header !== false}) {
+              it.printf(cx, ${y} + 0, id(font_roboto_70), color_content, TextAlign::TOP_CENTER, "%d", time.day_of_month);
+              it.printf(cx, ${y} + 50, id(font_roboto_24), color_content, TextAlign::TOP_CENTER, "%s", id(todays_day_name_${id}).state.c_str());
+              it.printf(cx, ${y} + 72, id(font_roboto_14), color_content, TextAlign::TOP_CENTER, "%s", id(todays_date_month_year_${id}).state.c_str());
+          } else {
+              calendar_y_pos = ${y}; // Move up if header hidden
+          }
+          
+          // Calendar Grid
+          
           // 2. Mock-ish Calendar Rendering for ESPHome (simplified from reference)
-          char cal[7][7][3];
-          get_calendar_matrix(time.year, time.month, cal);
-          
-          int cell_width = (${w} - 40) / 7;
           int cell_height = 17;
-          int start_x = ${x} + 20;
-          
-          for (int i = 0; i < 7; i++) {
-              for (int j = 0; j < 7; j++) {
-                  int px = start_x + (j * cell_width) + (cell_width / 2);
-                  int py = calendar_y_pos + (i * cell_height);
-                  
-                  if (i == 0) {
-                      it.printf(px, py, id(font_roboto_14), color_content, TextAlign::TOP_CENTER, "%s", cal[i][j]);
-                  } else {
-                      // Day Num
-                      if (atoi(cal[i][j]) == time.day_of_month) {
-                           it.filled_circle(px, py + 12, 10, color_content);
-                           it.printf(px, py + 5, id(font_roboto_14), color_background, TextAlign::TOP_CENTER, "%s", cal[i][j]);
+          if (${widget.properties.show_grid !== false}) {
+              char cal[7][7][3];
+              get_calendar_matrix(time.year, time.month, cal);
+              
+              int cell_width = (${w} - 40) / 7;
+              int start_x = ${x} + 20;
+              
+              for (int i = 0; i < 7; i++) {
+                  for (int j = 0; j < 7; j++) {
+                      int px = start_x + (j * cell_width) + (cell_width / 2);
+                      int py = calendar_y_pos + (i * cell_height);
+                      
+                      if (i == 0) {
+                          it.printf(px, py, id(font_roboto_14), color_content, TextAlign::TOP_CENTER, "%s", cal[i][j]);
                       } else {
-                           it.printf(px, py + 5, id(font_roboto_14), color_content, TextAlign::TOP_CENTER, "%s", cal[i][j]);
+                          // Day Num
+                          if (atoi(cal[i][j]) == time.day_of_month) {
+                               it.filled_circle(px, py + 12, 10, color_content);
+                               it.printf(px, py + 5, id(font_roboto_14), color_background, TextAlign::TOP_CENTER, "%s", cal[i][j]);
+                          } else {
+                               it.printf(px, py + 5, id(font_roboto_14), color_content, TextAlign::TOP_CENTER, "%s", cal[i][j]);
+                          }
                       }
                   }
               }
+              it.line(start_x, calendar_y_pos + cell_height, ${x} + ${w} - 20, calendar_y_pos + cell_height, color_content);
+          } else {
+              cell_height = 0; // Collapse if hidden
           }
-          it.line(start_x, calendar_y_pos + cell_height, ${x} + ${w} - 20, calendar_y_pos + cell_height, color_content);
           
-          // 3. Events List from JSON
+           // 3. Events List from JSON
           // Requires built-in JSON support in ESPHome (json component)
           // Data source: id(calendar_json_${id}).state
           
-           // Robust Manual Parsing for Mixed Types (Array/Object)
-           ESP_LOGD("calendar", "Raw JSON: %s", id(calendar_json_${id}).state.c_str());
-           if (id(calendar_json_${id}).state.length() > 5 && id(calendar_json_${id}).state != "unknown") {
-              StaticJsonDocument<2048> doc;
-              DeserializationError error = deserializeJson(doc, id(calendar_json_${id}).state);
-
-              if (!error) {
-                  JsonVariant root = doc.as<JsonVariant>();
-                  JsonArray days;
-
-                  if (root.is<JsonObject>() && root["days"].is<JsonArray>()) {
-                      days = root["days"];
-                  } else if (root.is<JsonArray>()) {
-                      days = root;
+          if (${widget.properties.show_events !== false}) {
+               // Robust Manual Parsing for Mixed Types (Array/Object)
+               ESP_LOGD("calendar", "Raw JSON: %s", id(calendar_json_${id}).state.c_str());
+               if (id(calendar_json_${id}).state.length() > 5 && id(calendar_json_${id}).state != "unknown") {
+                  StaticJsonDocument<2048> doc;
+                  DeserializationError error = deserializeJson(doc, id(calendar_json_${id}).state);
+    
+                  if (!error) {
+                      JsonVariant root = doc.as<JsonVariant>();
+                      JsonArray days;
+    
+                      if (root.is<JsonObject>() && root["days"].is<JsonArray>()) {
+                          days = root["days"];
+                      } else if (root.is<JsonArray>()) {
+                          days = root;
+                      } else {
+                          ESP_LOGW("calendar", "Invalid JSON structure: neither object with 'days' nor array");
+                          return;
+                      }
+    
+                      if (days.isNull() || days.size() == 0) {
+                           ESP_LOGD("calendar", "No days found in JSON");
+                           return; 
+                      }
+                      ESP_LOGD("calendar", "Processing %d days", days.size());
+    
+                      int y_cursor = calendar_y_pos + (7 * cell_height) + 10;
+                      if (${widget.properties.show_grid === false}) {
+                          y_cursor = calendar_y_pos + 10; // Reset if grid hidden
+                      }
+                      
+                      int max_y = ${y} + ${h} - 5;
+    
+                      // Safety: Ensure we have enough space for at least one event
+                      if (y_cursor >= max_y) { ESP_LOGW("calendar", "Widget too small for events"); return; }
+    
+                      it.filled_rectangle(${x} + 20, y_cursor - 5, ${w} - 40, 2, color_content);
+    
+                      for (JsonVariant dayEntry : days) {
+                          if (y_cursor > max_y) break;
+                          int currentDayNum = dayEntry["day"].as<int>();
+    
+                          auto draw_row = [&](JsonVariant event, bool is_all_day) {
+                              if (y_cursor > max_y) return;
+                              const char* summary = event["summary"] | "No Title";
+                              const char* start = event["start"] | "";
+    
+                              it.printf(${x} + 20, y_cursor, id(font_event_day), color_content, TextAlign::TOP_LEFT, "%d", currentDayNum);
+                              it.printf(${x} + 60, y_cursor + 4, id(font_event), color_content, TextAlign::TOP_LEFT, "%.25s", summary);
+    
+                              if (is_all_day) {
+                                  it.printf(${x} + ${w} - 20, y_cursor + 4, id(font_event), color_content, TextAlign::TOP_RIGHT, "All Day");
+                              } else {
+                                  std::string timeStr = extract_time(start);
+                                  it.printf(${x} + ${w} - 20, y_cursor + 4, id(font_event), color_content, TextAlign::TOP_RIGHT, "%s", timeStr.c_str());
+                              }
+                              y_cursor += 25;
+                          };
+    
+                          if (dayEntry["all_day"].is<JsonArray>()) {
+                              for (JsonVariant event : dayEntry["all_day"].as<JsonArray>()) {
+                                  draw_row(event, true);
+                                  if (y_cursor > max_y) break;
+                              }
+                          }
+                          if (dayEntry["other"].is<JsonArray>()) {
+                              for (JsonVariant event : dayEntry["other"].as<JsonArray>()) {
+                                  draw_row(event, false);
+                                  if (y_cursor > max_y) break;
+                              }
+                          }
+                      }
                   } else {
-                      ESP_LOGW("calendar", "Invalid JSON structure: neither object with 'days' nor array");
-                      return;
+                       ESP_LOGW("calendar", "JSON Parse Error: %s", error.c_str());
                   }
-
-                  if (days.isNull() || days.size() == 0) {
-                       ESP_LOGD("calendar", "No days found in JSON");
-                       return; 
-                  }
-                  ESP_LOGD("calendar", "Processing %d days", days.size());
-
-                  int y_cursor = calendar_y_pos + (7 * cell_height) + 10;
-                  int max_y = ${y} + ${h} - 5;
-
-                  // Safety: Ensure we have enough space for at least one event
-                  if (y_cursor >= max_y) { ESP_LOGW("calendar", "Widget too small for events"); return; }
-
-                  it.filled_rectangle(${x} + 20, y_cursor - 5, ${w} - 40, 2, color_content);
-
-                  for (JsonVariant dayEntry : days) {
-                      if (y_cursor > max_y) break;
-                      int currentDayNum = dayEntry["day"].as<int>();
-
-                      auto draw_row = [&](JsonVariant event, bool is_all_day) {
-                          if (y_cursor > max_y) return;
-                          const char* summary = event["summary"] | "No Title";
-                          const char* start = event["start"] | "";
-
-                          it.printf(${x} + 20, y_cursor, id(font_event_day), color_content, TextAlign::TOP_LEFT, "%d", currentDayNum);
-                          it.printf(${x} + 60, y_cursor + 4, id(font_event), color_content, TextAlign::TOP_LEFT, "%.25s", summary);
-
-                          if (is_all_day) {
-                              it.printf(${x} + ${w} - 20, y_cursor + 4, id(font_event), color_content, TextAlign::TOP_RIGHT, "All Day");
-                          } else {
-                              std::string timeStr = extract_time(start);
-                              it.printf(${x} + ${w} - 20, y_cursor + 4, id(font_event), color_content, TextAlign::TOP_RIGHT, "%s", timeStr.c_str());
-                          }
-                          y_cursor += 25;
-                      };
-
-                      if (dayEntry["all_day"].is<JsonArray>()) {
-                          for (JsonVariant event : dayEntry["all_day"].as<JsonArray>()) {
-                              draw_row(event, true);
-                              if (y_cursor > max_y) break;
-                          }
-                      }
-                      if (dayEntry["other"].is<JsonArray>()) {
-                          for (JsonVariant event : dayEntry["other"].as<JsonArray>()) {
-                              draw_row(event, false);
-                              if (y_cursor > max_y) break;
-                          }
-                      }
-                  }
-              } else {
-                   ESP_LOGW("calendar", "JSON Parse Error: %s", error.c_str());
-              }
+               }
            }
       }
     `;

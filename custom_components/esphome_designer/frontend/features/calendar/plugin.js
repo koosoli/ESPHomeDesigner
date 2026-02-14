@@ -57,7 +57,9 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
 
     el.style.display = "flex";
     el.style.flexDirection = "column";
-    el.appendChild(header);
+    if (props.show_header !== false) {
+        el.appendChild(header);
+    }
 
     const grid = document.createElement("div");
     grid.style.display = "grid";
@@ -96,17 +98,50 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
         d.style.fontSize = gridFontSize;
 
         if (i === date) {
-            d.style.backgroundColor = props.text_color || "theme_auto";
-            d.style.color = props.background_color || "white";
+            d.style.backgroundColor = colorStyle;
+            const bgProp = props.background_color || "transparent";
+
+            // High Contrast Logic for Preview:
+            // IF background is transparent, the circle color is `colorStyle` (text color).
+            // We need text inside the circle to contrast with `colorStyle`.
+            // If `colorStyle` is light/white, text should be black.
+            // If `colorStyle` is dark/black, text should be white.
+            // This is a simplified check.
+            let textCol = "black";
+            if (colorStyle === "white" || colorStyle === "#ffffff" || colorStyle === "#fff" || colorStyle.startsWith("rgb(255")) {
+                textCol = "black";
+            } else if (colorStyle === "black" || colorStyle === "#000000" || colorStyle === "#000") {
+                textCol = "white";
+            } else {
+                // Fallback: if transparent, assume themed. 
+                // If theme is dark (white text), use black inside.
+                // If theme is light (black text), use white inside.
+                // Since `colorStyle` is resolved, we just guess based on likely values.
+                // safe default is usually page background if we can't tell, but black is safer for white text.
+                textCol = (bgProp === "transparent") ? "var(--bg-base)" : getColorStyle(bgProp);
+            }
+
+            // Override with simple inversion if transparent
+            if (bgProp === "transparent") {
+                // If the main text color is light, we want dark text inside the bubble
+                // We can roughly check if colorStyle is 'white' or similar
+                d.style.color = (colorStyle.includes("white") || colorStyle.includes("#f") || colorStyle.includes("255")) ? "black" : "white";
+            } else {
+                d.style.color = getColorStyle(bgProp);
+            }
+
             d.style.borderRadius = "50%";
             d.style.width = "1.5em";
             d.style.height = "1.5em";
             d.style.lineHeight = "1.5em";
             d.style.margin = "0 auto";
+            d.style.fontWeight = "bold";
         }
         grid.appendChild(d);
     }
-    el.appendChild(grid);
+    if (props.show_grid !== false) {
+        el.appendChild(grid);
+    }
 
     const events = document.createElement("div");
     events.style.padding = "5px";
@@ -183,7 +218,9 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
             <div><b>${Math.min(date + 2, daysInMonth)}</b> Dentist Appointment</div>
         `;
     }
-    el.appendChild(events);
+    if (props.show_events !== false) {
+        el.appendChild(events);
+    }
 };
 
 
@@ -205,6 +242,9 @@ export default {
         font_size_day: 24,
         font_size_grid: 14,
         font_size_event: 18,
+        show_header: true,
+        show_grid: true,
+        show_events: true,
         width: 335,
         height: 340
     },
@@ -319,56 +359,65 @@ export default {
         // complex C++ logic or a custom LVGL widget type not yet standard in ESPHome.
         // We provide a functional header (Date/Day/Month) and a static day-name row.
 
-        const widgets = [
-            {
-                label: {
-                    align: "TOP_MID", y: 2, height: dateFS + 4,
-                    text: '!lambda "char buf[4]; id(ha_time).now().strftime(buf, sizeof(buf), \'%d\'); return buf;"',
-                    text_font: getLVGLFont(family, dateFS, 100), text_color: color
+        const widgets = [];
+
+        if (p.show_header !== false) {
+            widgets.push(
+                {
+                    label: {
+                        align: "TOP_MID", y: 2, height: dateFS + 4,
+                        text: '!lambda "char buf[4]; id(ha_time).now().strftime(buf, sizeof(buf), \'%d\'); return buf;"',
+                        text_font: getLVGLFont(family, dateFS, 100), text_color: color
+                    }
+                },
+                {
+                    label: {
+                        align: "TOP_MID", y: dateFS + 6, height: dayFS + 4,
+                        text: '!lambda "char buf[16]; id(ha_time).now().strftime(buf, sizeof(buf), \'%A\'); return buf;"',
+                        text_font: getLVGLFont(family, dayFS, 700), text_color: color
+                    }
+                },
+                {
+                    label: {
+                        align: "TOP_MID", y: dateFS + dayFS + 10, height: gridFS + 4,
+                        text: '!lambda "char buf[32]; id(ha_time).now().strftime(buf, sizeof(buf), \'%B %Y\'); return buf;"',
+                        text_font: getLVGLFont(family, gridFS, 400), text_color: color
+                    }
+                },
+                {
+                    obj: {
+                        width: "100%", height: 1, y: headH, bg_color: color, border_width: 0
+                    }
                 }
-            },
-            {
-                label: {
-                    align: "TOP_MID", y: dateFS + 6, height: dayFS + 4,
-                    text: '!lambda "char buf[16]; id(ha_time).now().strftime(buf, sizeof(buf), \'%A\'); return buf;"',
-                    text_font: getLVGLFont(family, dayFS, 700), text_color: color
-                }
-            },
-            {
-                label: {
-                    align: "TOP_MID", y: dateFS + dayFS + 10, height: gridFS + 4,
-                    text: '!lambda "char buf[32]; id(ha_time).now().strftime(buf, sizeof(buf), \'%B %Y\'); return buf;"',
-                    text_font: getLVGLFont(family, gridFS, 400), text_color: color
-                }
-            },
-            {
-                obj: {
-                    width: "100%", height: 1, y: headH, bg_color: color, border_width: 0
-                }
-            }
-        ];
+            );
+        }
 
         // Day grid row (Mo Tu We...)
-        widgets.push({
-            obj: {
-                width: "100%", height: "SIZE_CONTENT", y: headH + 5,
-                bg_opa: "transp", border_width: 0,
-                layout: { type: "flex", flex_flow: "row_wrap", flex_align_main: "space_around" },
-                widgets: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map(d => ({
-                    label: { text: `"${d}"`, text_font: getLVGLFont(family, gridFS, 700), text_color: color, width: "14%", align: "center" }
-                }))
-            }
-        });
+        // Day grid row (Mo Tu We...)
+        if (p.show_grid !== false) {
+            widgets.push({
+                obj: {
+                    width: "100%", height: "SIZE_CONTENT", y: headH + 5,
+                    bg_opa: "transp", border_width: 0,
+                    layout: { type: "flex", flex_flow: "row_wrap", flex_align_main: "space_around" },
+                    widgets: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map(d => ({
+                        label: { text: `"${d}"`, text_font: getLVGLFont(family, gridFS, 700), text_color: color, width: "14%", align: "center" }
+                    }))
+                }
+            });
 
-        // Placeholder for the grid body to avoid emptiness
-        widgets.push({
-            label: {
-                y: headH + 40, align: "TOP_MID",
-                text: "\"Calendar Grid Not Supported in LVGL Mode\"",
-                text_font: getLVGLFont("Roboto", 12, 400),
-                text_color: "0x888888"
-            }
-        });
+            // Placeholder for the grid body to avoid emptiness
+            widgets.push({
+                label: {
+                    y: headH + 40, align: "TOP_MID",
+                    text: "\"Calendar Grid Not Supported in LVGL Mode\"",
+                    text_font: getLVGLFont("Roboto", 12, 400),
+                    text_color: "0x888888"
+                }
+            });
+        }
+
+
 
         return {
             obj: {
@@ -426,134 +475,153 @@ export default {
         }
 
         // Header
+        const showHeader = p.show_header !== false;
         lines.push(`          // Header`);
         lines.push(`          int headH = ${dateFontSize + dayFontSize + gridFontSize + 15};`);
-        lines.push(`          it.strftime(x + w/2, y + 2, id(${dateFontId}), ${color}, TextAlign::TOP_CENTER, "%d", now);`);
-        lines.push(`          it.strftime(x + w/2, y + ${dateFontSize + 6}, id(${dayFontId}), ${color}, TextAlign::TOP_CENTER, "%A", now);`);
-        lines.push(`          it.strftime(x + w/2, y + ${dateFontSize + dayFontSize + 10}, id(${gridFontId}), ${color}, TextAlign::TOP_CENTER, "%B %Y", now);`);
-        lines.push(`          it.line(x, y + headH, x + w, y + headH, ${color});`);
+
+        if (showHeader) {
+            lines.push(`          it.strftime(x + w/2, y + 2, id(${dateFontId}), ${color}, TextAlign::TOP_CENTER, "%d", now);`);
+            lines.push(`          it.strftime(x + w/2, y + ${dateFontSize + 6}, id(${dayFontId}), ${color}, TextAlign::TOP_CENTER, "%A", now);`);
+            lines.push(`          it.strftime(x + w/2, y + ${dateFontSize + dayFontSize + 10}, id(${gridFontId}), ${color}, TextAlign::TOP_CENTER, "%B %Y", now);`);
+            lines.push(`          it.line(x, y + headH, x + w, y + headH, ${color});`);
+        } else {
+            lines.push(`          headH = 0;`); // Reset headH if hidden so subsequent elements flow up
+        }
 
         // Grid
+        const showGrid = p.show_grid !== false;
         lines.push(`          // Days Grid`);
         lines.push(`          int gridY = y + headH + 5;`);
         lines.push(`          int cellW = w / 7;`);
-        lines.push(`          const char* days[] = {"Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"};`);
-        lines.push(`          for(int i=0; i<7; i++) {`);
-        lines.push(`            it.print(x + i*cellW + cellW/2, gridY, id(${gridFontId}), ${color}, TextAlign::TOP_CENTER, days[i]);`);
-        lines.push(`          }`);
-
-        // Calendar Logic (Simplified for static display or needs helper)
-        // Since we don't have a full calendar helper in C++ easily available without including heavy libs,
-        // we will render a placeholder or basic static grid for the current month if possible.
-        // For now, let's mimic the preview's logic best we can with available time info.
-
-        lines.push(`          // Simple logic to find start of month`);
-        lines.push(`          time_t t = now.timestamp;`);
-        lines.push(`          struct tm *tm = localtime(&t);`);
-        lines.push(`          tm->tm_mday = 1;`);
-        lines.push(`          mktime(tm);`);
-        lines.push(`          int startDay = (tm->tm_wday + 6) % 7; // 0=Mon`);
-        lines.push(`          int daysInMonth = 31; // Simplified`);
-        lines.push(`          if(now.month == 2) daysInMonth = (now.year % 4 == 0) ? 29 : 28;`);
-        lines.push(`          else if(now.month == 4 || now.month == 6 || now.month == 9 || now.month == 11) daysInMonth = 30;`);
-
-        lines.push(`          int r = 1; int c = startDay;`);
         lines.push(`          int rowH = ${gridFontSize + 4};`);
-        lines.push(`          for(int d=1; d<=daysInMonth; d++) {`);
-        lines.push(`            if(d == now.day_of_month) {`);
-        lines.push(`               it.filled_circle(x + c*cellW + cellW/2, gridY + r*rowH + 6, ${Math.floor(gridFontSize / 1.5)}, ${color});`);
-        lines.push(`               it.printf(x + c*cellW + cellW/2, gridY + r*rowH, id(${gridFontId}), ${bgColor}, TextAlign::TOP_CENTER, "%d", d);`);
-        lines.push(`            } else {`);
-        lines.push(`               it.printf(x + c*cellW + cellW/2, gridY + r*rowH, id(${gridFontId}), ${color}, TextAlign::TOP_CENTER, "%d", d);`);
-        lines.push(`            }`);
-        lines.push(`            c++; if(c>6) { c=0; r++; }`);
-        lines.push(`          }`);
+        lines.push(`          int r = 1;`); // Init r for layout calculation later even if grid hidden
+
+        if (showGrid) {
+            lines.push(`          const char* days[] = {"Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"};`);
+            lines.push(`          for(int i=0; i<7; i++) {`);
+            lines.push(`            it.print(x + i*cellW + cellW/2, gridY, id(${gridFontId}), ${color}, TextAlign::TOP_CENTER, days[i]);`);
+            lines.push(`          }`);
+
+            // Calendar Logic (Simplified for static display or needs helper)
+            // Since we don't have a full calendar helper in C++ easily available without including heavy libs,
+            // we will render a placeholder or basic static grid for the current month if possible.
+            // For now, let's mimic the preview's logic best we can with available time info.
+
+            lines.push(`          // Simple logic to find start of month`);
+            lines.push(`          time_t t = now.timestamp;`);
+            lines.push(`          struct tm *tm = localtime(&t);`);
+            lines.push(`          tm->tm_mday = 1;`);
+            lines.push(`          mktime(tm);`);
+            lines.push(`          int startDay = (tm->tm_wday + 6) % 7; // 0=Mon`);
+            lines.push(`          int daysInMonth = 31; // Simplified`);
+            lines.push(`          if(now.month == 2) daysInMonth = (now.year % 4 == 0) ? 29 : 28;`);
+            lines.push(`          else if(now.month == 4 || now.month == 6 || now.month == 9 || now.month == 11) daysInMonth = 30;`);
+
+            lines.push(`          int c = startDay;`);
+            lines.push(`          for(int d=1; d<=daysInMonth; d++) {`);
+            lines.push(`            if(d == now.day_of_month) {`);
+            lines.push(`               it.filled_circle(x + c*cellW + cellW/2, gridY + r*rowH + 6, ${Math.floor(gridFontSize / 1.5)}, ${color});`);
+            lines.push(`               it.printf(x + c*cellW + cellW/2, gridY + r*rowH, id(${gridFontId}), ${bgColorProp === "transparent" ? (colorProp.includes('black') || colorProp.includes('000000') ? "Color::WHITE" : "Color::BLACK") : bgColor}, TextAlign::TOP_CENTER, "%d", d);`);
+            lines.push(`            } else {`);
+            lines.push(`               it.printf(x + c*cellW + cellW/2, gridY + r*rowH, id(${gridFontId}), ${color}, TextAlign::TOP_CENTER, "%d", d);`);
+            lines.push(`            }`);
+            lines.push(`            c++; if(c>6) { c=0; r++; }`);
+            lines.push(`          }`);
+        } else {
+            lines.push(`          r = 0;`); // Reset rows if hidden
+            lines.push(`          gridY = y + headH;`); // Reset gridY so events move up
+        }
 
         // Events
-        lines.push(`          // Events (Real Data from Sensor)`);
-        lines.push(`          auto extract_time = [](const char* datetime) -> std::string {`);
-        lines.push(`              std::string datetimeStr(datetime);`);
-        lines.push(`              size_t pos = datetimeStr.find('T');`);
-        lines.push(`              if (pos != std::string::npos && pos + 3 < datetimeStr.size()) {`);
-        lines.push(`                  return datetimeStr.substr(pos + 1, 5);`);
-        lines.push(`              }`);
-        lines.push(`              return "";`);
-        lines.push(`          };`);
-        lines.push(``);
-        lines.push(`          int eventY = gridY + (r+1)*rowH + 10;`);
-        lines.push(`          int max_y = y + h - 5;`);
-        lines.push(`          const int event_limit = ${p.max_events || p.event_limit || 8};`);
-        lines.push(``);
-        lines.push(`          // Debug and parse JSON`);
-        // Use entity-based sensor ID to match onExportTextSensors
-        const sensorSafeId = `calendar_data_${entityId.replace(/[^a-zA-Z0-9_]/g, "_")}`;
-        lines.push(`          if (id(${sensorSafeId}).state.length() > 5 && id(${sensorSafeId}).state != "unknown") {`);
-        lines.push(`             JsonDocument doc;`);
-        lines.push(`             DeserializationError error = deserializeJson(doc, id(${sensorSafeId}).state);`);
-        lines.push(``);
-        lines.push(`             if (!error) {`);
-        lines.push(`                 JsonVariant root = doc.as<JsonVariant>();`);
-        lines.push(`                 JsonArray days;`);
-        lines.push(``);
-        lines.push(`                 if (root.is<JsonObject>() && root["days"].is<JsonArray>()) {`);
-        lines.push(`                     days = root["days"];`);
-        lines.push(`                 } else if (root.is<JsonArray>()) {`);
-        lines.push(`                     days = root;`);
-        lines.push(`                 }`);
-        lines.push(``);
-        lines.push(`                 if (!days.isNull() && days.size() > 0) {`);
-        lines.push(`                     int event_count = 0;`);
-        lines.push(`                     // Separator line`);
-        lines.push(`                     it.filled_rectangle(x + 10, eventY - 5, w - 20, 2, ${color});`);
-        lines.push(``);
-        lines.push(`                     for (JsonVariant dayEntry : days) {`);
-        lines.push(`                         if (eventY > max_y || event_count >= event_limit) break;`);
-        lines.push(`                         int currentDayNum = dayEntry["day"].as<int>();`);
-        lines.push(``);
-        lines.push(`                         auto draw_row = [&](JsonVariant event, bool is_all_day) {`);
-        lines.push(`                             if (eventY > max_y || event_count >= event_limit) return;`);
-        lines.push(`                             const char* summary = event["summary"] | "No Title";`);
-        lines.push(`                             const char* start = event["start"] | "";`);
-        lines.push(``);
-        lines.push(`                             // Draw Day Number`);
-        lines.push(`                             it.printf(x + 10, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
-        lines.push(``);
-        lines.push(`                             // Draw Summary`);
-        lines.push(`                             it.printf(x + 50, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_LEFT, "%.25s", summary);`);
-        lines.push(``);
-        lines.push(`                             // Draw Time`);
-        lines.push(`                             if (is_all_day) {`);
-        lines.push(`                                 it.printf(x + w - 10, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_RIGHT, "All Day");`);
-        lines.push(`                             } else {`);
-        lines.push(`                                 std::string timeStr = extract_time(start);`);
-        lines.push(`                                 it.printf(x + w - 10, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_RIGHT, "%s", timeStr.c_str());`);
-        lines.push(`                             }`);
-        lines.push(`                             eventY += ${eventFontSize + 6};`);
-        lines.push(`                             event_count++;`);
-        lines.push(`                         };`);
-        lines.push(``);
-        lines.push(`                         if (dayEntry["all_day"].is<JsonArray>()) {`);
-        lines.push(`                             for (JsonVariant event : dayEntry["all_day"].as<JsonArray>()) {`);
-        lines.push(`                                 draw_row(event, true);`);
-        lines.push(`                             }`);
-        lines.push(`                         }`);
-        lines.push(`                         if (dayEntry["other"].is<JsonArray>()) {`);
-        lines.push(`                             for (JsonVariant event : dayEntry["other"].as<JsonArray>()) {`);
-        lines.push(`                                 draw_row(event, false);`);
-        lines.push(`                             }`);
-        lines.push(`                         }`);
-        lines.push(`                     }`);
-        lines.push(`                 }`);
-        lines.push(`             } else {`);
-        lines.push(`                 ESP_LOGW("calendar", "JSON Parse Error: %s", error.c_str());`);
-        lines.push(`             }`);
-        lines.push(`          }`);
+        const showEvents = p.show_events !== false;
+
+        if (showEvents) {
+            lines.push(`          // Events (Real Data from Sensor)`);
+            lines.push(`          auto extract_time = [](const char* datetime) -> std::string {`);
+            lines.push(`              std::string datetimeStr(datetime);`);
+            lines.push(`              size_t pos = datetimeStr.find('T');`);
+            lines.push(`              if (pos != std::string::npos && pos + 3 < datetimeStr.size()) {`);
+            lines.push(`                  return datetimeStr.substr(pos + 1, 5);`);
+            lines.push(`              }`);
+            lines.push(`              return "";`);
+            lines.push(`          };`);
+            lines.push(``);
+            lines.push(`          int eventY = gridY + (r+1)*rowH + 10;`);
+            lines.push(`          int max_y = y + h - 5;`);
+            lines.push(`          const int event_limit = ${p.max_events || p.event_limit || 8};`);
+            lines.push(``);
+            lines.push(`          // Debug and parse JSON`);
+            // Use entity-based sensor ID to match onExportTextSensors
+            const sensorSafeId = `calendar_data_${entityId.replace(/[^a-zA-Z0-9_]/g, "_")}`;
+            lines.push(`          if (id(${sensorSafeId}).state.length() > 5 && id(${sensorSafeId}).state != "unknown") {`);
+            lines.push(`             JsonDocument doc;`);
+            lines.push(`             DeserializationError error = deserializeJson(doc, id(${sensorSafeId}).state);`);
+            lines.push(``);
+            lines.push(`             if (!error) {`);
+            lines.push(`                 JsonVariant root = doc.as<JsonVariant>();`);
+            lines.push(`                 JsonArray days;`);
+            lines.push(``);
+            lines.push(`                 if (root.is<JsonObject>() && root["days"].is<JsonArray>()) {`);
+            lines.push(`                     days = root["days"];`);
+            lines.push(`                 } else if (root.is<JsonArray>()) {`);
+            lines.push(`                     days = root;`);
+            lines.push(`                 }`);
+            lines.push(``);
+            lines.push(`                 if (!days.isNull() && days.size() > 0) {`);
+            lines.push(`                     int event_count = 0;`);
+            lines.push(`                     // Separator line`);
+            lines.push(`                     it.filled_rectangle(x + 10, eventY - 5, w - 20, 2, ${color});`);
+            lines.push(``);
+            lines.push(`                     for (JsonVariant dayEntry : days) {`);
+            lines.push(`                         if (eventY > max_y || event_count >= event_limit) break;`);
+            lines.push(`                         int currentDayNum = dayEntry["day"].as<int>();`);
+            lines.push(``);
+            lines.push(`                         auto draw_row = [&](JsonVariant event, bool is_all_day) {`);
+            lines.push(`                             if (eventY > max_y || event_count >= event_limit) return;`);
+            lines.push(`                             const char* summary = event["summary"] | "No Title";`);
+            lines.push(`                             const char* start = event["start"] | "";`);
+            lines.push(``);
+            lines.push(`                             // Draw Day Number`);
+            lines.push(`                             it.printf(x + 10, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
+            lines.push(``);
+            lines.push(`                             // Draw Summary`);
+            lines.push(`                             it.printf(x + 50, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_LEFT, "%.25s", summary);`);
+            lines.push(``);
+            lines.push(`                             // Draw Time`);
+            lines.push(`                             if (is_all_day) {`);
+            lines.push(`                                 it.printf(x + w - 10, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_RIGHT, "All Day");`);
+            lines.push(`                             } else {`);
+            lines.push(`                                 std::string timeStr = extract_time(start);`);
+            lines.push(`                                 it.printf(x + w - 10, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_RIGHT, "%s", timeStr.c_str());`);
+            lines.push(`                             }`);
+            lines.push(`                             eventY += ${eventFontSize + 6};`);
+            lines.push(`                             event_count++;`);
+            lines.push(`                         };`);
+            lines.push(``);
+            lines.push(`                         if (dayEntry["all_day"].is<JsonArray>()) {`);
+            lines.push(`                             for (JsonVariant event : dayEntry["all_day"].as<JsonArray>()) {`);
+            lines.push(`                                 draw_row(event, true);`);
+            lines.push(`                             }`);
+            lines.push(`                         }`);
+            lines.push(`                         if (dayEntry["other"].is<JsonArray>()) {`);
+            lines.push(`                             for (JsonVariant event : dayEntry["other"].as<JsonArray>()) {`);
+            lines.push(`                                 draw_row(event, false);`);
+            lines.push(`                             }`);
+            lines.push(`                         }`);
+            lines.push(`                     }`);
+            lines.push(`                 }`);
+            lines.push(`             } else {`);
+            lines.push(`                 ESP_LOGW("calendar", "JSON Parse Error: %s", error.c_str());`);
+            lines.push(`             }`);
+            lines.push(`          }`);
+        }
 
 
         if (borderEnabled) {
-            lines.push(`          for (int i = 0; i < ${borderWidth}; i++) {`);
-            lines.push(`            it.rectangle(x + i, y + i, w - 2*i, h - 2*i, ${borderColor});`);
-            lines.push(`          }`);
+            lines.push(`          for (int i = 0; i < ${borderWidth}; i++) {
+            `);
+            lines.push(`            it.rectangle(x + i, y + i, w - 2 * i, h - 2 * i, ${borderColor}); `);
+            lines.push(`          } `);
         }
 
         addDitherMask(lines, colorProp, isEpaper, w.x, w.y, w.width, w.height);
