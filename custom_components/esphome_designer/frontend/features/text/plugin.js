@@ -315,8 +315,9 @@ export default {
         let esphomeAlign = `TextAlign::${alignV}_${alignH}`;
         if (esphomeAlign === "TextAlign::CENTER_CENTER") esphomeAlign = "TextAlign::CENTER";
 
-        // Apply word-wrap based on widget width
-        const wrappedLines = wordWrap(text, w.width || 200, fontSize, fontFamily);
+        // Apply word-wrap based on widget width (skip for narrow widgets where wrapping is nonsensical)
+        const effectiveWidth = w.width || 200;
+        const wrappedLines = effectiveWidth >= fontSize * 3 ? wordWrap(text, effectiveWidth, fontSize, fontFamily) : [text];
         const lineHeight = fontSize + 4; // Font size plus line spacing
 
         // Output each wrapped line
