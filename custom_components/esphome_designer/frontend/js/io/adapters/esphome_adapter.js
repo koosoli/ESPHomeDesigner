@@ -1063,19 +1063,33 @@ export class ESPHomeAdapter extends BaseAdapter {
             const isNativePortrait = res.height > res.width;
             const isRequestedPortrait = orientation === 'portrait' || orientation === 'portrait_inverted';
             const isRequestedInverted = orientation === 'landscape_inverted' || orientation === 'portrait_inverted';
+            const needsOrientationSwap = isNativePortrait !== isRequestedPortrait;
 
-            let rotation = 0;
-            if (isNativePortrait) {
-                rotation = isRequestedPortrait ? 0 : 90;
-            } else {
-                rotation = isRequestedPortrait ? 90 : 0;
-            }
+            // Detect the base rotation already present in the hardware YAML
+            const baseRotationMatch = yaml.match(/display:[\s\S]*?rotation:\s*(\d+)/);
+            const baseRotation = baseRotationMatch ? parseInt(baseRotationMatch[1], 10) : 0;
 
-            if (isRequestedInverted) rotation = (rotation + 180) % 360;
-            if (profile.rotation_offset) rotation = (rotation + profile.rotation_offset) % 360;
+            // Calculate the additional rotation needed on top of the base
+            // Base rotation is the hardware's default (e.g. 180 for Guition jc4827w543)
+            // We only need to add an offset when switching orientation or requesting inverted
+            let rotationOffset = 0;
+            if (needsOrientationSwap) rotationOffset += 90;
+            if (isRequestedInverted) rotationOffset += 180;
+
+            const rotation = (baseRotation + rotationOffset) % 360;
+
+            Logger.log(`[Adapter] Orientation: ${orientation}, base rotation: ${baseRotation}, offset: ${rotationOffset}, final: ${rotation}`);
 
             // Apply rotation to YAML
             yaml = yaml.replace(/(display:[\s\S]*?rotation:\s*)\d+/g, `$1${rotation}`);
+
+            // Swap width/height in dimensions block when orientation requires it
+            if (needsOrientationSwap) {
+                yaml = yaml.replace(
+                    /(dimensions:\s*\n\s*width:\s*)(\d+)(\s*\n\s*height:\s*)(\d+)/,
+                    (match, wPrefix, w, hPrefix, h) => `${wPrefix}${h}${hPrefix}${w}`
+                );
+            }
 
             // Specific Fix for Waveshare 7" Hotspot Name
             if (profile.name && profile.name.toLowerCase().includes("waveshare touch lcd 7")) {
@@ -1097,22 +1111,14 @@ export class ESPHomeAdapter extends BaseAdapter {
 
                 if (transform) {
                     // Remove existing transform if present to avoid duplication
-                    // Check if transform block already exists
                     const hasTransform = new RegExp(`^${indent}transform:`, 'm').test(yaml);
                     if (hasTransform) {
-                        // Replace existing transform block
-                        // This is tricky with regex, simpler to just replace the whole touchscreen block or 
-                        // trust that the previous ID replace approach works if the block is immediately after ID
-                        // But often it's not. 
-                        // Let's stick to the ID injection but we must clean up old transform if needed?
-                        // Actually, if we just append, YAML usually takes the last key if duplicated? No, that's JSON. YAML errs.
-
-                        // Let's use a simpler approach: replace "transform:\n ... swap_xy: true" with our new block
-                        // Finding the specific 2-line block:
-                        const oldTransformRegex = new RegExp(`^${indent}transform:[\\s\\S]*?swap_xy: true`, 'm');
+                        // Replace existing transform block (match from transform: through all indented children)
+                        const oldTransformRegex = new RegExp(
+                            `^${indent}transform:\\n(${indent}  \\S+[^\\n]*\\n?)+`, 'm'
+                        );
                         if (oldTransformRegex.test(yaml)) {
-                            // Fix: Prepend indent because 'transform' variable starts with 'transform:', not '  transform:'
-                            yaml = yaml.replace(oldTransformRegex, `${indent}${transform}`);
+                            yaml = yaml.replace(oldTransformRegex, `${indent}${transform}\n`);
                         }
                     } else {
                         // Inject after ID
@@ -1126,23 +1132,15 @@ export class ESPHomeAdapter extends BaseAdapter {
                     if (!yaml.includes("on_release:")) {
                         const wakeupTrigger = `\n${indent}on_release:\n${indent}  - if:\n${indent}      condition: lvgl.is_paused\n${indent}      then:\n${indent}        - lvgl.resume:\n${indent}        - lvgl.widget.redraw:\n${indent}        - light.turn_on: display_backlight`;
 
-                        // Append to the end of the touchscreen component
-                        // We find the 'touchscreen:' block start, then look for the next top-level key (start of line)
-                        // IF touchscreen is the last block, we append to end of file.
-
                         const tsBlockStart = yaml.search(/^touchscreen:/m);
                         if (tsBlockStart !== -1) {
                             const afterTsBlock = yaml.slice(tsBlockStart);
-                            // Find next top-level key (start of line with non-space)
-                            // Skip the first line (touchscreen:)
                             const nextKeyMatch = afterTsBlock.slice(12).match(/^\w/m);
 
                             if (nextKeyMatch) {
-                                // Insert before next key
                                 const insertIdx = tsBlockStart + 12 + nextKeyMatch.index;
                                 yaml = yaml.slice(0, insertIdx) + wakeupTrigger + "\n\n" + yaml.slice(insertIdx);
                             } else {
-                                // End of file
                                 yaml = yaml.trimEnd() + wakeupTrigger + "\n";
                             }
                         }

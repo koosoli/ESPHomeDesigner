@@ -219,7 +219,8 @@ export function generateDisplaySection(profile, layout = {}, isLvgl = false) {
     const orientation = layout.orientation || 'landscape';
     const resolution = profile.resolution || { width: 800, height: 480 };
     const isNativePortrait = resolution.height > resolution.width;
-    const isRequestedPortrait = orientation === 'portrait';
+    const isRequestedPortrait = orientation === 'portrait' || orientation === 'portrait_inverted';
+    const isRequestedInverted = orientation === 'landscape_inverted' || orientation === 'portrait_inverted';
 
     let displayRotation = 0;
     if (isNativePortrait) {
@@ -228,6 +229,7 @@ export function generateDisplaySection(profile, layout = {}, isLvgl = false) {
         displayRotation = isRequestedPortrait ? 90 : 0;
     }
 
+    if (isRequestedInverted) displayRotation = (displayRotation + 180) % 360;
     if (profile.rotation_offset) {
         displayRotation = (displayRotation + profile.rotation_offset) % 360;
     }

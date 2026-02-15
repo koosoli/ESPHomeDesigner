@@ -145,7 +145,8 @@ export function generateCustomHardwareYaml(config) {
     // Rotation Logic
     // Native Portrait detection (Height > Width)
     const isNativePortrait = resHeight > resWidth;
-    const isRequestedPortrait = config.orientation === 'portrait';
+    const isRequestedPortrait = config.orientation === 'portrait' || config.orientation === 'portrait_inverted';
+    const isRequestedInverted = config.orientation === 'landscape_inverted' || config.orientation === 'portrait_inverted';
 
     let rotation = 0;
     if (isNativePortrait) {
@@ -155,6 +156,8 @@ export function generateCustomHardwareYaml(config) {
         // If native is landscape, and we want portrait, we rotate 90
         rotation = isRequestedPortrait ? 90 : 0;
     }
+
+    if (isRequestedInverted) rotation = (rotation + 180) % 360;
 
     // Apply rotation
     lines.push(`    rotation: ${rotation}`);
