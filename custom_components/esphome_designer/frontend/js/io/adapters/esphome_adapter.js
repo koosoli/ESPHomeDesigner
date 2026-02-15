@@ -352,9 +352,57 @@ export class ESPHomeAdapter extends BaseAdapter {
                 lines.push(...mergedSafetyLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
             }
 
+            // Safety Fix: Auto-register any HA text sensors used in conditions or linked to widgets
+            const allWidgetsForText = pages.flatMap(p => (p.widgets || []).filter(w => !w.hidden));
+            const textSensorLinesExtra = [];
+
+            allWidgetsForText.forEach(w => {
+                const condEnt = (w.condition_entity || "").trim();
+                const primaryEnt = (w.entity_id || "").trim();
+                const p = w.props || {};
+
+                [condEnt, primaryEnt].forEach(ent => {
+                    if (!ent || p.is_local_sensor) return;
+
+                    const isTextHa = ent.startsWith("text_sensor.") || ent.startsWith("weather.");
+                    let isStringCond = false;
+
+                    // Check if this entity is used in a string condition
+                    if (ent === condEnt && w.condition_operator !== "range") {
+                        const state = w.condition_state;
+                        // Heuristic: If condition state is not numeric and not a boolean keyword, treat as string
+                        const stateLower = (state || "").toLowerCase();
+                        const booleanKeywords = ["on", "off", "true", "false", "online", "offline"];
+                        if (state && isNaN(parseFloat(state)) && !booleanKeywords.includes(stateLower)) {
+                            isStringCond = true;
+                        }
+                    }
+
+                    if ((isTextHa || isStringCond) && !seenEntityIds.has(ent)) {
+                        // Text sensors traditionally use _txt suffix in this adapter for safety/differentiation
+                        const safeId = ent.replace(/[^a-zA-Z0-9_]/g, "_") + "_txt";
+
+                        if (!seenSensorIds.has(safeId)) {
+                            seenEntityIds.add(ent);
+                            seenSensorIds.add(safeId);
+                            textSensorLinesExtra.push("- platform: homeassistant");
+                            textSensorLinesExtra.push(`  id: ${safeId}`);
+                            textSensorLinesExtra.push(`  entity_id: ${ent}`);
+                            textSensorLinesExtra.push(`  internal: true`);
+                        }
+                    }
+                });
+            });
+
             // Text Sensors
             const textSensorLinesOrig = [];
             PluginRegistry.onExportTextSensors({ ...context, lines: textSensorLinesOrig });
+
+            // Merge extra text sensors
+            if (textSensorLinesExtra.length > 0) {
+                textSensorLinesOrig.push(...textSensorLinesExtra);
+            }
+
             const textSensorLines = this.processPendingTriggers(textSensorLinesOrig, pendingTriggers, isLvgl, "on_value");
             if (textSensorLines.length > 0) {
                 lines.push("text_sensor:");
@@ -1276,11 +1324,12 @@ export class ESPHomeAdapter extends BaseAdapter {
         }
 
         // Standardized naming convention - plugins should follow this too
-        let valExpr = `id(${safeId}).state`;
+        let valExpr;
         if (isText && !ent.startsWith("text_sensor.")) {
-            // Only use _txt if it was auto-detected as text and isn't already prefixed
-            // But for consistency with sensor_text plugin, we might need it.
-            // Actually, let's keep it simple: id(safeId).state is usually enough if registered correctly.
+            // Fix #298: Use _txt suffix for auto-detected text sensors to match registration
+            valExpr = `id(${safeId}_txt).state`;
+        } else {
+            valExpr = `id(${safeId}).state`;
         }
 
         let cond = "";
