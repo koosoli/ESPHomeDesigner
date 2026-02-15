@@ -1009,21 +1009,31 @@ export class ESPHomeAdapter extends BaseAdapter {
             yaml = yaml.replace(/auto_clear_enabled:\s*true/g, "auto_clear_enabled: false");
         }
 
-        if ((profile.id && profile.id === "waveshare_esp32_s3_touch_lcd_7") ||
-            (profile.name && profile.name.toLowerCase().includes("waveshare touch lcd 7"))) {
-            // Fix #182: Native resolution is 800x480 (Landscape), so rotation should be 0 for landscape.
-            let rotation = 0;
-            if (orientation === "portrait") rotation = 90;
-            else if (orientation === "landscape") rotation = 0;
-            else if (orientation === "portrait_inverted") rotation = 270;
-            else if (orientation === "landscape_inverted") rotation = 180;
+        // Generic Rotation Logic for all package-based hardware
+        if (profile.resolution) {
+            const res = profile.resolution;
+            const isNativePortrait = res.height > res.width;
+            const isRequestedPortrait = orientation === 'portrait' || orientation === 'portrait_inverted';
+            const isRequestedInverted = orientation === 'landscape_inverted' || orientation === 'portrait_inverted';
 
-            // More robust replacement: look for rotation inside display platform
+            let rotation = 0;
+            if (isNativePortrait) {
+                rotation = isRequestedPortrait ? 0 : 90;
+            } else {
+                rotation = isRequestedPortrait ? 90 : 0;
+            }
+
+            if (isRequestedInverted) rotation = (rotation + 180) % 360;
+            if (profile.rotation_offset) rotation = (rotation + profile.rotation_offset) % 360;
+
+            // Apply rotation to YAML
             yaml = yaml.replace(/(display:[\s\S]*?rotation:\s*)\d+/g, `$1${rotation}`);
 
-            // Also update the Captive Portal hotspot name in the header if present
-            const deviceName = (profile.name || "ESPHome-Device").replace(/["\\]/g, "").split(" ")[0];
-            yaml = yaml.replace(/"Waveshare-7-Inch"/g, `"${deviceName}-Hotspot"`);
+            // Specific Fix for Waveshare 7" Hotspot Name
+            if (profile.name && profile.name.toLowerCase().includes("waveshare touch lcd 7")) {
+                const deviceName = (profile.name || "ESPHome-Device").replace(/["\\]/g, "").split(" ")[0];
+                yaml = yaml.replace(/"Waveshare-7-Inch"/g, `"${deviceName}-Hotspot"`);
+            }
 
             // Fix #129: Indentation-aware GT911 transform logic
             // Match any whitespace before id: my_touchscreen

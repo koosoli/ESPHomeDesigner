@@ -367,7 +367,8 @@ export class DeviceSettings {
                 touch_rst: getVal('pin_touch_rst'),
                 batteryAdc: getVal('pin_battery_adc'),
                 batteryEnable: getVal('pin_battery_enable')
-            }
+            },
+            orientation: this.orientationInput?.value || 'landscape'
         };
     }
 
@@ -478,7 +479,8 @@ export class DeviceSettings {
                     touch_rst: getVal('pin_touch_rst'),
                     batteryAdc: getVal('pin_battery_adc'),
                     batteryEnable: getVal('pin_battery_enable')
-                }
+                },
+                orientation: this.orientationInput?.value || 'landscape'
             };
 
 

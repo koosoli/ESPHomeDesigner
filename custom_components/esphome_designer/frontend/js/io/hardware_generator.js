@@ -142,6 +142,23 @@ export function generateCustomHardwareYaml(config) {
         lines.push(`    height: ${resHeight}`);
     }
 
+    // Rotation Logic
+    // Native Portrait detection (Height > Width)
+    const isNativePortrait = resHeight > resWidth;
+    const isRequestedPortrait = config.orientation === 'portrait';
+
+    let rotation = 0;
+    if (isNativePortrait) {
+        // If native is portrait, and we want landscape, we rotate 90
+        rotation = isRequestedPortrait ? 0 : 90;
+    } else {
+        // If native is landscape, and we want portrait, we rotate 90
+        rotation = isRequestedPortrait ? 90 : 0;
+    }
+
+    // Apply rotation
+    lines.push(`    rotation: ${rotation}`);
+
     lines.push("    lambda: |-");
     lines.push("      # __LAMBDA_PLACEHOLDER__");
     lines.push("");
