@@ -135,6 +135,28 @@ export function hasHaBackend() {
     return !!HA_API_BASE;
 }
 
+/**
+ * Checks if the application is running within the Home Assistant environment.
+ * @returns {boolean}
+ */
+export function isDeployedInHa() {
+    try {
+        const loc = window.location;
+        // If we're not running on file:// and the hostname or path suggests HA,
+        // we are "deployed" in HA (either via Addon or Custom Component).
+        if (loc.protocol === "file:") return false;
+
+        return (
+            loc.hostname === "homeassistant" ||
+            loc.hostname === "hassio" ||
+            loc.pathname.includes("/api/esphome_designer") ||
+            loc.pathname.includes("/esphome-designer")
+        );
+    } catch (e) {
+        return false;
+    }
+}
+
 // Global exposure for transition
 window.detectHaBackendBaseUrl = detectHaBackendBaseUrl;
 window.getHaManualUrl = getHaManualUrl;
@@ -144,3 +166,4 @@ window.setHaToken = setHaToken;
 window.HA_API_BASE = HA_API_BASE;
 window.refreshHaBaseUrl = refreshHaBaseUrl;
 window.hasHaBackend = hasHaBackend;
+window.isDeployedInHa = isDeployedInHa;

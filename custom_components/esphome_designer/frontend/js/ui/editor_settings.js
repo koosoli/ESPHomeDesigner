@@ -1,6 +1,6 @@
 import { AppState } from '../core/state.js';
 import { emit, EVENTS } from '../core/events.js';
-import { setHaManualUrl, refreshHaBaseUrl, setHaToken, getHaManualUrl, getHaToken } from '../utils/env.js';
+import { setHaManualUrl, refreshHaBaseUrl, setHaToken, getHaManualUrl, getHaToken, isDeployedInHa } from '../utils/env.js';
 import { showToast } from '../utils/dom.js';
 import { fetchEntityStates } from '../io/ha_api.js';
 import { Logger } from '../utils/logger.js';
@@ -25,6 +25,9 @@ export class EditorSettings {
         this.haLlatToken = document.getElementById('haLlatToken');
         this.testHaBtn = document.getElementById('editorTestHaBtn');
         this.haTestResult = document.getElementById('haTestResult');
+        this.haDeployedWarning = document.getElementById('haDeployedWarning');
+        this.haCorsTip = document.getElementById('haCorsTip');
+
 
         // AI Settings
         this.aiProvider = document.getElementById('aiProvider');
@@ -102,8 +105,24 @@ export class EditorSettings {
         }
 
         // HA Connection
-        if (this.haManualUrl) this.haManualUrl.value = getHaManualUrl() || "";
-        if (this.haLlatToken) this.haLlatToken.value = getHaToken() || "";
+        const deployedInHa = isDeployedInHa();
+        if (this.haManualUrl) {
+            this.haManualUrl.value = getHaManualUrl() || "";
+            this.haManualUrl.disabled = deployedInHa;
+            this.haManualUrl.style.opacity = deployedInHa ? "0.5" : "1";
+        }
+        if (this.haLlatToken) {
+            this.haLlatToken.value = getHaToken() || "";
+            this.haLlatToken.disabled = deployedInHa;
+            this.haLlatToken.style.opacity = deployedInHa ? "0.5" : "1";
+        }
+        if (this.haDeployedWarning) {
+            this.haDeployedWarning.classList.toggle('hidden', !deployedInHa);
+        }
+        if (this.haCorsTip) {
+            this.haCorsTip.classList.toggle('hidden', deployedInHa);
+        }
+
         if (this.haTestResult) this.haTestResult.textContent = "";
         if (this.aiTestResult) this.aiTestResult.textContent = "";
 

@@ -1396,6 +1396,12 @@
                   <div class="prop-label" style="font-size: 10px;">Long-Lived Access Token</div>
                   <input type="password" id="haLlatToken" class="prop-input" placeholder="Paste your token here..." />
                 </div>
+                <!-- Warning shown only when deployed within HA -->
+                <div id="haDeployedWarning" class="hidden"
+                  style="background: rgba(46, 204, 113, 0.1); border-left: 3px solid #2ecc71; padding: 10px; border-radius: 4px; font-size: 10px; line-height: 1.4; color: #2ecc71;">
+                  <strong>✅ Deployed in Home Assistant:</strong><br>
+                  Connection is handled automatically. These settings are locked to prevent configuration errors.
+                </div>
                 <div style="display:flex; gap:8px; align-items:center;">
                   <button id="editorTestHaBtn" class="btn btn-secondary btn-xs" style="flex:1;">Test Connection</button>
                   <div id="haTestResult" style="font-size:10px; line-height: 1.2;"></div>
