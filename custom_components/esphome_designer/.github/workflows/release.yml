@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'custom_components/esphome_designer/manifest.json'
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Read version from manifest.json
+        id: version
+        run: |
+          VERSION=$(jq -r .version custom_components/esphome_designer/manifest.json)
+          echo "version=v$VERSION" >> $GITHUB_OUTPUT
+          if [[ $VERSION == *"rc"* || $VERSION == *"beta"* || $VERSION == *"alpha"* ]]; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Create Zip for HACS
+        run: |
+          cd custom_components/esphome_designer
+          zip -r ../../esphome_designer.zip .
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: ${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ steps.version.outputs.prerelease == 'true' }}
+          files: esphome_designer.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

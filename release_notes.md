@@ -1,3 +1,22 @@
+## v1.0.0 RC5 - Graph Precision & Security
+**Release Date:** February 16, 2026
+
+### 🎨 Graph & Chart Widget
+- **Fixed Invisible Traces**: Resolved an issue where graph lines were invisible (white-on-white) on e-paper displays, particularly when using `theme_auto` or specific color combinations.
+- **Improved Color Support**: The "Line Color" setting now correctly supports all named colors (e.g., `gray`, `yellow`, `orange`, `purple`) and hexadecimal values. Previously, many colors silently defaulted to black.
+- **Enhanced Dark Mode Contrast**: `theme_auto` now intelligently adapts to the per-page Dark Mode setting, ensuring traces are always visible against the background.
+
+### 🏠 Home Assistant Integration
+- **Token Security**: The "Long-Lived Access Token" input field is now **hidden** when the editor is deployed as a Home Assistant Add-on. This prevents accidental configuration errors where users would manually enter a token, breaking the internal authentication flow.
+
+### 📱 Display & Hardware
+- **Orientation Fix (Issue #297)**: Fixed a bug where selecting portrait mode on LCD panels incorrectly swapped the `dimensions:` width/height in the generated YAML, conflicting with the `rotation:` setting. The `dimensions:` block now always reflects the physical panel hardware specs — only the `rotation:` value changes to handle orientation.
+
+### 👁️ Widget Visibility
+- **Visibility Options**: Fixed various visibility toggles (e.g., for Calendar header/grid/events) that were not correctly updating the generated YAML configuration.
+
+---
+
 ## v1.0.0 RC4 - Polishing & Stability
 **Release Date:** February 11, 2026
 
