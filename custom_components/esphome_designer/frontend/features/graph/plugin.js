@@ -466,30 +466,57 @@ const onExportComponents = (context) => {
     const graphWidgets = widgets.filter(w => w.type === 'graph');
     const useInvertedColors = !!(profile?.features?.inverted_colors || layout?.invertedColors);
 
+    // Named color → RGB lookup (aligned with getColorStyle in device.js)
+    const COLOR_MAP = {
+        black: [0, 0, 0],
+        white: [255, 255, 255],
+        red: [255, 0, 0],
+        green: [0, 255, 0],
+        blue: [0, 0, 255],
+        yellow: [255, 255, 0],
+        orange: [255, 165, 0],
+        gray: [160, 160, 160],
+        grey: [160, 160, 160],
+        purple: [128, 0, 128],
+        cyan: [0, 255, 255],
+        magenta: [255, 0, 255],
+    };
+
     if (graphWidgets.length > 0) {
         // First, define colors for all graph traces
         lines.push("color:");
         graphWidgets.forEach(w => {
             const p = w.props || {};
             const colorId = `graph_color_${w.id}`.replace(/-/g, "_");
-            // Determine color based on widget settings
-            let r = 0, g = 0, b = 0; // Default black
-            if (p.color && p.color !== 'theme_auto') {
-                if (p.color.startsWith('#')) {
-                    const hex = p.color.substring(1);
-                    r = parseInt(hex.substring(0, 2), 16) || 0;
-                    g = parseInt(hex.substring(2, 4), 16) || 0;
-                    b = parseInt(hex.substring(4, 6), 16) || 0;
-                } else if (p.color === 'white') {
-                    r = 255; g = 255; b = 255;
-                } else if (p.color === 'red') {
-                    r = 255; g = 0; b = 0;
-                } else if (p.color === 'green') {
-                    r = 0; g = 255; b = 0;
-                } else if (p.color === 'blue') {
-                    r = 0; g = 0; b = 255;
-                }
+
+            // Resolve page dark mode state (needed for theme_auto)
+            const pageIndex = w._pageIndex || 0;
+            const page = (layout?.pages || [])[pageIndex] || {};
+            const isDarkMode = !!(page.dark_mode === 'dark' || (page.dark_mode === 'inherit' && layout?.darkMode));
+
+            // Determine RGB from the color property
+            let r = 0, g = 0, b = 0;
+            const colorVal = p.color || 'theme_auto';
+
+            if (colorVal === 'theme_auto') {
+                // theme_auto: contrast against page background
+                if (isDarkMode) { r = 255; g = 255; b = 255; }
+                // else stays (0,0,0) = black
+            } else if (colorVal.startsWith('#')) {
+                const hex = colorVal.substring(1);
+                r = parseInt(hex.substring(0, 2), 16) || 0;
+                g = parseInt(hex.substring(2, 4), 16) || 0;
+                b = parseInt(hex.substring(4, 6), 16) || 0;
+            } else if (colorVal.startsWith('0x')) {
+                const hex = colorVal.substring(2);
+                r = parseInt(hex.substring(0, 2), 16) || 0;
+                g = parseInt(hex.substring(2, 4), 16) || 0;
+                b = parseInt(hex.substring(4, 6), 16) || 0;
+            } else if (COLOR_MAP[colorVal.toLowerCase()]) {
+                [r, g, b] = COLOR_MAP[colorVal.toLowerCase()];
             }
+            // else: unknown color → stays (0,0,0) = black
+
             // XOR: Invert when inverted_colors and page dark mode disagree.
             // This ensures the graph trace always contrasts against the page background.
             // | Inverted | Dark | Invert? | Result on screen        |
@@ -498,9 +525,6 @@ const onExportComponents = (context) => {
             // | true     | true | NO      | trace=WHITE on BLACK bg |
             // | false    | false| NO      | trace=BLACK on WHITE bg |
             // | false    | true | YES     | trace=WHITE on BLACK bg |
-            const pageIndex = w._pageIndex || 0;
-            const page = (layout?.pages || [])[pageIndex] || {};
-            const isDarkMode = !!(page.dark_mode === 'dark' || (page.dark_mode === 'inherit' && layout?.darkMode));
             const shouldInvert = useInvertedColors !== isDarkMode;
             if (shouldInvert) {
                 r = 255 - r;
