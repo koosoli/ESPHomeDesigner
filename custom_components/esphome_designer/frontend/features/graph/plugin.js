@@ -462,8 +462,9 @@ const exportDoc = (w, context) => {
 };
 
 const onExportComponents = (context) => {
-    const { lines, widgets } = context;
+    const { lines, widgets, profile, layout } = context;
     const graphWidgets = widgets.filter(w => w.type === 'graph');
+    const useInvertedColors = !!(profile?.features?.inverted_colors || layout?.invertedColors);
 
     if (graphWidgets.length > 0) {
         // First, define colors for all graph traces
@@ -488,6 +489,23 @@ const onExportComponents = (context) => {
                 } else if (p.color === 'blue') {
                     r = 0; g = 0; b = 255;
                 }
+            }
+            // XOR: Invert when inverted_colors and page dark mode disagree.
+            // This ensures the graph trace always contrasts against the page background.
+            // | Inverted | Dark | Invert? | Result on screen        |
+            // |----------|------|---------|-------------------------|
+            // | true     | false| YES     | trace=BLACK on WHITE bg |
+            // | true     | true | NO      | trace=WHITE on BLACK bg |
+            // | false    | false| NO      | trace=BLACK on WHITE bg |
+            // | false    | true | YES     | trace=WHITE on BLACK bg |
+            const pageIndex = w._pageIndex || 0;
+            const page = (layout?.pages || [])[pageIndex] || {};
+            const isDarkMode = !!(page.dark_mode === 'dark' || (page.dark_mode === 'inherit' && layout?.darkMode));
+            const shouldInvert = useInvertedColors !== isDarkMode;
+            if (shouldInvert) {
+                r = 255 - r;
+                g = 255 - g;
+                b = 255 - b;
             }
             lines.push(`  - id: ${colorId}`);
             lines.push(`    red_int: ${r}`);

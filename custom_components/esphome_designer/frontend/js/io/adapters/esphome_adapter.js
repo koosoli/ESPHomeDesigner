@@ -180,6 +180,7 @@ export class ESPHomeAdapter extends BaseAdapter {
         const context = {
             widgets: allWidgets,
             profile,
+            layout,
             displayId,
             adapter: this,
             isLvgl,
