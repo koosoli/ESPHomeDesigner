@@ -1084,13 +1084,10 @@ export class ESPHomeAdapter extends BaseAdapter {
             // Apply rotation to YAML
             yaml = yaml.replace(/(display:[\s\S]*?rotation:\s*)\d+/g, `$1${rotation}`);
 
-            // Swap width/height in dimensions block when orientation requires it
-            if (needsOrientationSwap) {
-                yaml = yaml.replace(
-                    /(dimensions:\s*\n\s*width:\s*)(\d+)(\s*\n\s*height:\s*)(\d+)/,
-                    (match, wPrefix, w, hPrefix, h) => `${wPrefix}${h}${hPrefix}${w}`
-                );
-            }
+            // Note: Do NOT swap width/height in the dimensions block.
+            // The dimensions: block describes the physical panel hardware specs.
+            // ESPHome's rotation: property handles logical canvas orientation.
+            // Swapping dimensions conflicts with rotation (see GitHub issue #297).
 
             // Specific Fix for Waveshare 7" Hotspot Name
             if (profile.name && profile.name.toLowerCase().includes("waveshare touch lcd 7")) {

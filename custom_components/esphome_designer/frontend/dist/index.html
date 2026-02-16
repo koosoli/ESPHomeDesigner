@@ -24,16 +24,16 @@
     rel="stylesheet">
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
-  <link rel="icon" href="./assets/favicon-BFR8sXii.png" type="image/x-icon">
-  <script type="module" crossorigin src="./assets/main-B2dJ33k7.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/main-1OkGAQ6K.css">
+  <link rel="icon" href="/assets/favicon-BFR8sXii.png" type="image/x-icon">
+  <script type="module" crossorigin src="/assets/index-CwC0zESX.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-gxormkqd.css">
 </head>
 
 <body>
   <header class="main-header" role="banner">
     <div class="main-header-title">
-      <img src="./assets/logo_header-CUGdaeC6.png" alt="ESPHome Designer" class="logo-image">
-      <span><small style="opacity: 0.5; margin-left: 8px;">v1.0.0 RC3</small> <span id="currentLayoutDevice"
+      <img src="/assets/logo_header-CUGdaeC6.png" alt="ESPHome Designer" class="logo-image">
+      <span><small style="opacity: 0.5; margin-left: 8px;">v1.0.0 RC5</small> <span id="currentLayoutDevice"
           style="margin-left:8px; color:var(--accent);"></span></span>
     </div>
     <div class="main-header-actions desktop-only">
@@ -806,6 +806,35 @@
                 </div>
               </div>
 
+              <!-- Power / Battery -->
+              <div class="hardware-group" style="margin-top:12px;">
+                <div class="prop-label" style="font-size:10px; margin-bottom:4px;">Power / Battery</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                  <div class="field">
+                    <div class="prop-label" style="font-size:9px;">Battery ADC <span style="opacity:0.5">(opt)</span>
+                    </div>
+                    <div style="display:flex; gap:2px;">
+                      <input id="pin_battery_adc" class="prop-input-sm" type="text" list="gpio-pins-esp32s3"
+                        placeholder="e.g. GPIO1" style="flex:1;" />
+                      <button type="button" class="clear-pin-btn" data-target="pin_battery_adc" title="Clear"
+                        style="padding:0 4px; font-size:10px; background:#eee; border:1px solid #ccc; border-radius:3px; cursor:pointer;">×</button>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <div class="prop-label" style="font-size:9px;">Battery Enable <span style="opacity:0.5">(opt)</span>
+                    </div>
+                    <div style="display:flex; gap:2px;">
+                      <input id="pin_battery_enable" class="prop-input-sm" type="text" list="gpio-pins-esp32s3"
+                        placeholder="e.g. GPIO21" style="flex:1;" />
+                      <button type="button" class="clear-pin-btn" data-target="pin_battery_enable" title="Clear"
+                        style="padding:0 4px; font-size:10px; background:#eee; border:1px solid #ccc; border-radius:3px; cursor:pointer;">×</button>
+                    </div>
+                  </div>
+                </div>
+                <div style="font-size:9px; color:var(--muted); margin-top:4px;">ADC pin reads battery voltage. Enable
+                  pin powers battery circuit (optional).</div>
+              </div>
+
               <div class="field" style="margin-top:12px; border-top:1px solid var(--border-subtle); padding-top:8px;">
                 <div class="prop-label" style="font-size:10px;">Recipe Name</div>
                 <input id="customProfileName" class="prop-input-sm" type="text" placeholder="e.g. My Custom S3" />
@@ -1367,6 +1396,12 @@
                 <div>
                   <div class="prop-label" style="font-size: 10px;">Long-Lived Access Token</div>
                   <input type="password" id="haLlatToken" class="prop-input" placeholder="Paste your token here..." />
+                </div>
+                <!-- Warning shown only when deployed within HA -->
+                <div id="haDeployedWarning" class="hidden"
+                  style="background: rgba(46, 204, 113, 0.1); border-left: 3px solid #2ecc71; padding: 10px; border-radius: 4px; font-size: 10px; line-height: 1.4; color: #2ecc71;">
+                  <strong>✅ Deployed in Home Assistant:</strong><br>
+                  Connection is handled automatically. These settings are locked to prevent configuration errors.
                 </div>
                 <div style="display:flex; gap:8px; align-items:center;">
                   <button id="editorTestHaBtn" class="btn btn-secondary btn-xs" style="flex:1;">Test Connection</button>
