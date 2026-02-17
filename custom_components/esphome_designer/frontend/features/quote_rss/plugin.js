@@ -3,8 +3,18 @@
  */
 
 const render = (element, widget, helpers) => {
-    const props = widget.props || {};
     const { getColorStyle } = helpers;
+    const props = widget.props || {};
+
+    // Apply Border & Background
+    if (props.border_width) {
+        const bColor = getColorStyle(props.border_color || "black");
+        element.style.border = `${props.border_width}px solid ${bColor}`;
+        element.style.borderRadius = `${props.border_radius || 0}px`;
+    }
+    if (props.bg_color) {
+        element.style.backgroundColor = getColorStyle(props.bg_color);
+    }
 
     const showAuthor = props.show_author !== false;
     const quoteFontSize = parseInt(props.quote_font_size || 18, 10);
@@ -232,6 +242,22 @@ const exportDoc = (w, context) => {
     const authorFontId = addFont(fontFamily, fontWeight, authorFontSize, false);
 
     lines.push(`        // widget:quote_rss id:${w.id} type:quote_rss x:${w.x} y:${w.y} w:${w.width} h:${w.height} color:${colorProp} align:${textAlign} ${getCondProps(w)}`);
+
+    // Background fill
+    const bgColorProp = p.bg_color || p.background_color || "transparent";
+    if (bgColorProp && bgColorProp !== "transparent") {
+        const bgColorConst = getColorConst(bgColorProp);
+        lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+    }
+
+    // Draw Border if defined
+    const borderWidth = p.border_width || 0;
+    if (borderWidth > 0) {
+        const borderColor = getColorConst(p.border_color || "theme_auto");
+        for (let i = 0; i < borderWidth; i++) {
+            lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColor});`);
+        }
+    }
 
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
@@ -468,7 +494,11 @@ export default {
         height: 120,
         refresh_interval: "1h",
         ha_url: "http://homeassistant.local:8123",
-        random: true
+        random: true,
+        bg_color: "transparent",
+        border_width: 0,
+        border_color: "theme_auto",
+        border_radius: 0
     },
     render,
     onExportGlobals,

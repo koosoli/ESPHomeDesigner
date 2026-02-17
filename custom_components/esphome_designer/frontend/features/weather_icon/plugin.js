@@ -4,6 +4,17 @@
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
+
+    // Apply Border & Background
+    if (props.border_width) {
+        const borderColor = getColorStyle(props.border_color || "black");
+        el.style.border = `${props.border_width}px solid ${borderColor}`;
+        el.style.borderRadius = `${props.border_radius || 0}px`;
+        el.style.boxSizing = "border-box";
+    }
+    if (props.bg_color) {
+        el.style.backgroundColor = getColorStyle(props.bg_color);
+    }
     let iconCode = "F0595"; // Default
     let size = props.size || 24;
     const color = props.color || "theme_auto";
@@ -102,6 +113,15 @@ const exportDoc = (w, context) => {
     if (bgColorProp && bgColorProp !== "transparent") {
         const bgColorConst = getColorConst(bgColorProp);
         lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+    }
+
+    // Draw Border if defined
+    const borderWidth = p.border_width || 0;
+    if (borderWidth > 0) {
+        const borderColor = getColorConst(p.border_color || "theme_auto");
+        for (let i = 0; i < borderWidth; i++) {
+            lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColor});`);
+        }
     }
 
     const cond = getConditionCheck(w);
@@ -226,8 +246,12 @@ export default {
         size: 48,
         color: "theme_auto",
         background_color: "transparent",
+        background_color: "transparent",
         weather_entity: "weather.forecast_home",
-        fit_icon_to_frame: true
+        fit_icon_to_frame: true,
+        border_width: 0,
+        border_color: "theme_auto",
+        border_radius: 0
     },
     render,
     exportOpenDisplay: (w, { layout, page }) => {

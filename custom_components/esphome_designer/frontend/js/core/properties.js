@@ -959,6 +959,27 @@ export class PropertiesPanel {
         const updateProp = (key, value) => {
             const newProps = { ...widget.props, [key]: value };
             AppState.updateWidget(widget.id, { props: newProps });
+
+            // Sync border radius to shadow if it exists (User Request: mirror corner radius)
+            if (key === "border_radius" || key === "radius" || key === "corner_radius") {
+                const page = AppState.getCurrentPage();
+                if (page && page.widgets) {
+                    const r = parseInt(value, 10) || 0;
+                    const shadowName = (widget.props?.name || widget.type) + " Shadow";
+                    const shadow = page.widgets.find(w =>
+                        (w.props && w.props.name === shadowName) ||
+                        (w.x === (widget.x || 0) + 5 && w.y === (widget.y || 0) + 5 && w.width === widget.width && w.height === widget.height)
+                    );
+
+                    if (shadow) {
+                        if (shadow.type === "shape_rect" && r > 0) {
+                            AppState.updateWidget(shadow.id, { type: "rounded_rect", props: { ...shadow.props, radius: r } });
+                        } else if (shadow.type === "rounded_rect") {
+                            AppState.updateWidget(shadow.id, { props: { ...shadow.props, radius: r } });
+                        }
+                    }
+                }
+            }
         };
 
         if (type === "shape_rect" || type === "shape_circle") {
@@ -1262,7 +1283,14 @@ export class PropertiesPanel {
             ];
             this.addSelect("Align", props.text_align || "CENTER", alignOptions, (v) => updateProp("text_align", v));
             this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
+
+            this.createSection("Border Style", false);
+            this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+            this.addColorSelector("Border Color", props.border_color || "theme_auto", colors, (v) => updateProp("border_color", v));
+            this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
             this.addDropShadowButton(this.getContainer(), widget.id);
+            this.endSection();
+
             this.endSection();
         }
         else if (type === "lvgl_label") {
@@ -1448,6 +1476,30 @@ export class PropertiesPanel {
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
             this.endSection();
         }
+        else if (type === "quote_rss") {
+            this.createSection("Data Source", true);
+            this.addLabeledInput("Feed URL", "text", props.feed_url || "https://www.brainyquote.com/link/quotebr.rss", (v) => updateProp("feed_url", v));
+            this.addLabeledInput("Refresh", "text", props.refresh_interval || "1h", (v) => updateProp("refresh_interval", v));
+            this.addCheckbox("Randomize", props.random !== false, (v) => updateProp("random", v));
+            this.endSection();
+
+            this.createSection("Appearance", true);
+            this.addCheckbox("Show Author", props.show_author !== false, (v) => updateProp("show_author", v));
+            this.addCheckbox("Italic Quote", props.italic_quote !== false, (v) => updateProp("italic_quote", v));
+            this.addLabeledInput("Quote Font Size", "number", props.quote_font_size || 18, (v) => updateProp("quote_font_size", parseInt(v, 10)));
+            this.addLabeledInput("Author Font Size", "number", props.author_font_size || 14, (v) => updateProp("author_font_size", parseInt(v, 10)));
+            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
+
+            this.createSection("Border Style", false);
+            this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+            this.addColorSelector("Border Color", props.border_color || "theme_auto", colors, (v) => updateProp("border_color", v));
+            this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+            this.addDropShadowButton(this.getContainer(), widget.id);
+            this.endSection();
+
+            this.endSection();
+        }
         else if (type === "ondevice_temperature") {
             this.createSection("Data Source", true);
             this.addLabeledInputWithPicker("Temperature Entity ID", "text", widget.entity_id || "", (v) => {
@@ -1564,7 +1616,14 @@ export class PropertiesPanel {
             });
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
             this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
+
+            this.createSection("Border Style", false);
+            this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+            this.addColorSelector("Border Color", props.border_color || "theme_auto", colors, (v) => updateProp("border_color", v));
+            this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
             this.addDropShadowButton(this.getContainer(), widget.id);
+            this.endSection();
+
             this.endSection();
         }
         else if (type === "weather_forecast") {

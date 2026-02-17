@@ -119,7 +119,11 @@ export default {
         font_family: "Roboto",
         text_align: "CENTER",
         width: 120,
-        height: 50
+        height: 50,
+        bg_color: "transparent",
+        border_width: 0,
+        border_color: "theme_auto",
+        border_radius: 0
     },
     render,
     exportOpenDisplay: (w, { layout, page }) => {
@@ -297,6 +301,15 @@ export default {
         if (bgColorProp && bgColorProp !== "transparent") {
             const bgColorConst = getColorConst(bgColorProp);
             lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+        }
+
+        // Draw Border if defined
+        const borderWidth = p.border_width || 0;
+        if (borderWidth > 0) {
+            const borderColor = getColorConst(p.border_color || "theme_auto");
+            for (let i = 0; i < borderWidth; i++) {
+                lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColor});`);
+            }
         }
 
         const cond = getConditionCheck(w);
