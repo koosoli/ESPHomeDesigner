@@ -1533,6 +1533,8 @@ export class PropertiesPanel {
             this.addLabeledInputWithPicker("Weather Entity ID", "text", widget.entity_id || props.weather_entity || "weather.forecast_home", (v) => {
                 AppState.updateWidget(widget.id, { entity_id: v });
             }, widget);
+            this.addLabeledInput("Attribute (optional)", "text", props.attribute || "", (v) => updateProp("attribute", v.trim()));
+            this.addHint("Read a specific attribute for weather state (e.g. forecast).");
             this.endSection();
 
             this.createSection("Appearance", true);

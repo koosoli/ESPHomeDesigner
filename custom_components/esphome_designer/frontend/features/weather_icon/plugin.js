@@ -13,9 +13,18 @@ const render = (el, widget, { getColorStyle }) => {
 
     if (entityId && window.AppState && window.AppState.entityStates) {
         const stateSet = window.AppState.entityStates[entityId];
-        const state = (stateSet && stateSet.state !== undefined) ? stateSet.state : null;
-        if (state !== null && state !== undefined) {
-            weatherState = String(state).toLowerCase();
+        const attribute = (props.attribute || "").trim();
+
+        if (stateSet) {
+            let state = stateSet.state;
+            // If attribute is specified, try to read it
+            if (attribute && stateSet.attributes && stateSet.attributes[attribute] !== undefined) {
+                state = stateSet.attributes[attribute];
+            }
+
+            if (state !== null && state !== undefined) {
+                weatherState = String(state).toLowerCase();
+            }
         }
     }
 
@@ -100,8 +109,10 @@ const exportDoc = (w, context) => {
 
     if (entityId) {
         // Helper to create safe ESPHome ID (max 59 chars before suffix for 63 char limit)
+        const attribute = (p.attribute || "").trim();
         const makeSafeId = (eid, suffix = "") => {
-            let safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            const base = attribute ? (eid + "_" + attribute) : eid;
+            let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");
             const maxBase = 63 - suffix.length;
             if (safe.length > maxBase) safe = safe.substring(0, maxBase);
             return safe + suffix;
@@ -156,15 +167,17 @@ const onExportTextSensors = (context) => {
     for (const w of widgets) {
         if (w.type !== "weather_icon") continue;
         const entityId = (w.entity_id || w.props?.weather_entity || "weather.forecast_home").trim();
+        const attribute = (w.props?.attribute || "").trim();
         if (entityId) {
-            weatherEntities.add({ id: w.id, entity_id: entityId });
+            weatherEntities.add({ id: w.id, entity_id: entityId, attribute });
         }
     }
 
-    weatherEntities.forEach(({ id, entity_id }) => {
+    weatherEntities.forEach(({ id, entity_id, attribute }) => {
         // Helper to create safe ESPHome ID (max 59 chars)
         const makeSafeId = (eid, suffix = "") => {
-            let safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            const base = attribute ? (eid + "_" + attribute) : eid;
+            let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");
             const maxBase = 63 - suffix.length;
             if (safe.length > maxBase) safe = safe.substring(0, maxBase);
             return safe + suffix;
@@ -187,6 +200,9 @@ const onExportTextSensors = (context) => {
             lines.push("- platform: homeassistant");
             lines.push(`  id: ${safeId}`);
             lines.push(`  entity_id: ${entity_id}`);
+            if (attribute) {
+                lines.push(`  attribute: ${attribute}`);
+            }
             lines.push(`  internal: true`);
         }
     });
@@ -294,8 +310,10 @@ export default {
         let lambdaStr = '"\\U000F0599"'; // Default: sunny
         if (entityId) {
             // Helper to create safe ESPHome ID (max 59 chars)
+            const attribute = (p.attribute || "").trim();
             const makeSafeId = (eid, suffix = "") => {
-                let safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+                const base = attribute ? (eid + "_" + attribute) : eid;
+                let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");
                 const maxBase = 63 - suffix.length;
                 if (safe.length > maxBase) safe = safe.substring(0, maxBase);
                 return safe + suffix;
