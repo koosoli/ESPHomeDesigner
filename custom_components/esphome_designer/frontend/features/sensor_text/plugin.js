@@ -896,8 +896,10 @@ export default {
         };
 
         // Helper to create safe ESPHome ID (max 59 chars before suffix)
-        const makeSafeId = (eid, suffix = "") => {
-            let safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+        // Helper to create safe ESPHome ID (max 59 chars before suffix)
+        const makeSafeId = (eid, attr, suffix = "") => {
+            const base = attr ? (eid + "_" + attr) : eid;
+            let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");
             const maxBase = 63 - suffix.length;
             if (safe.length > maxBase) safe = safe.substring(0, maxBase);
             return safe + suffix;
@@ -914,31 +916,38 @@ export default {
 
             // Auto-detect: check if entity has non-numeric state (like "pm25")
             const isAutoText = !p.is_local_sensor && isEntityStateNonNumeric(entityId);
+            const attribute = (p.attribute || "").trim();
 
             if (entityId.startsWith("weather.")) {
-                weatherEntities.add(entityId);
+                weatherEntities.add(JSON.stringify({ entity_id: entityId, attribute }));
             } else if (p.is_text_sensor || isAutoText || entityId.startsWith("text_sensor.")) {
-                textEntities.add(entityId);
+                textEntities.add(JSON.stringify({ entity_id: entityId, attribute }));
             }
 
             const entityId2 = (w.entity_id_2 || p.entity_id_2 || "").trim();
             if (entityId2) {
                 const isAutoText2 = !p.is_local_sensor && isEntityStateNonNumeric(entityId2);
                 if (entityId2.startsWith("weather.")) {
-                    weatherEntities.add(entityId2);
+                    weatherEntities.add(JSON.stringify({ entity_id: entityId2, attribute: "" }));
                 } else if (p.is_text_sensor || isAutoText2 || entityId2.startsWith("text_sensor.")) {
-                    textEntities.add(entityId2);
+                    textEntities.add(JSON.stringify({ entity_id: entityId2, attribute: "" }));
                 }
             }
         }
 
         if (weatherEntities.size > 0) {
             let headerAdded = false;
-            for (let entityId of weatherEntities) {
+            for (let json of weatherEntities) {
+                const { entity_id: rawId, attribute } = JSON.parse(json);
+                let entityId = rawId;
+
                 if (entityId && !entityId.includes(".")) entityId = `weather.${entityId}`;
-                const safeId = makeSafeId(entityId, "_txt");
+                const safeId = makeSafeId(entityId, attribute, "_txt");
+
                 if (context.seenSensorIds && context.seenSensorIds.has(safeId)) continue;
-                if (context.seenTextEntityIds && context.seenTextEntityIds.has(entityId)) continue;
+                // Unique key includes attribute now
+                const entityKey = attribute ? `${entityId}__attr__${attribute}` : entityId;
+                if (context.seenTextEntityIds && context.seenTextEntityIds.has(entityKey)) continue;
 
                 if (!headerAdded) {
                     lines.push("# Weather Entity Sensors (Detected from Sensor Text)");
@@ -946,22 +955,30 @@ export default {
                 }
 
                 if (context.seenSensorIds) context.seenSensorIds.add(safeId);
-                if (context.seenTextEntityIds) context.seenTextEntityIds.add(entityId);
+                if (context.seenTextEntityIds) context.seenTextEntityIds.add(entityKey);
 
                 lines.push("- platform: homeassistant");
                 lines.push(`  id: ${safeId}`);
                 lines.push(`  entity_id: ${entityId}`);
+                if (attribute) {
+                    lines.push(`  attribute: ${attribute}`);
+                }
                 lines.push(`  internal: true`);
             }
         }
 
         if (textEntities.size > 0) {
             let headerAdded = false;
-            for (let entityId of textEntities) {
+            for (let json of textEntities) {
+                const { entity_id: entityId, attribute } = JSON.parse(json);
+
                 // Don't add text_sensor prefix to sensor.* entities - just register them as text sensors
-                const safeId = makeSafeId(entityId, "_txt");
+                const safeId = makeSafeId(entityId, attribute, "_txt");
+
                 if (context.seenSensorIds && context.seenSensorIds.has(safeId)) continue;
-                if (context.seenTextEntityIds && context.seenTextEntityIds.has(entityId)) continue;
+
+                const entityKey = attribute ? `${entityId}__attr__${attribute}` : entityId;
+                if (context.seenTextEntityIds && context.seenTextEntityIds.has(entityKey)) continue;
 
                 if (!headerAdded) {
                     lines.push("# Text Sensors (Detected from Sensor Text)");
@@ -969,11 +986,14 @@ export default {
                 }
 
                 if (context.seenSensorIds) context.seenSensorIds.add(safeId);
-                if (context.seenTextEntityIds) context.seenTextEntityIds.add(entityId);
+                if (context.seenTextEntityIds) context.seenTextEntityIds.add(entityKey);
 
                 lines.push("- platform: homeassistant");
                 lines.push(`  id: ${safeId}`);
                 lines.push(`  entity_id: ${entityId}`);
+                if (attribute) {
+                    lines.push(`  attribute: ${attribute}`);
+                }
                 lines.push(`  internal: true`);
             }
         }
