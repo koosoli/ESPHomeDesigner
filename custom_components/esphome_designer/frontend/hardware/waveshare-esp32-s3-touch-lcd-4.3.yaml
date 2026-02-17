@@ -66,6 +66,35 @@ preferences:
   flash_write_interval: 5min
 
 ch422g:
+  - id: ch422g_hub
+
+switch:
+  - platform: gpio
+    id: lcdbacklight
+    name: lcdbacklight
+    pin:
+      ch422g: ch422g_hub
+      number: 2
+      mode:
+        output: true
+      inverted: false
+    restore_mode: ALWAYS_ON
+
+light:
+  - platform: monochromatic
+    name: "Display Backlight"
+    output: fake_backlight_output
+    id: display_backlight
+    default_transition_length: 1s
+    gamma_correct: 2.8
+
+output:
+  - platform: template
+    id: fake_backlight_output
+    type: float
+    write_action:
+      - lambda: |-
+          ESP_LOGD("fake_light", "Fake brightness level: %.2f", state);
 
 i2c:
   - id: bus_a
@@ -78,7 +107,7 @@ touchscreen:
     i2c_id: bus_a
     interrupt_pin: 4
     reset_pin:
-      ch422g:
+      ch422g: ch422g_hub
       number: 1
     transform:
       swap_xy: true
@@ -101,10 +130,10 @@ display:
       width: 800
       height: 480
     reset_pin:
-      ch422g:
+      ch422g: ch422g_hub
       number: 3
     enable_pin:
-      ch422g:
+      ch422g: ch422g_hub
       number: 2
     de_pin:
       number: 5
