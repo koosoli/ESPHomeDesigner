@@ -703,6 +703,15 @@ export class PropertiesPanel {
             this.addLabeledInputWithIconPicker("Icon Code", "text", props.code || "F0595", (v) => updateProp("code", v), widget);
             this.addLabeledInput("Size", "number", props.size || 48, (v) => updateProp("size", parseInt(v, 10)));
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
+
+            this.createSection("Border Style", false);
+            this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+            this.addColorSelector("Border Color", props.border_color || "theme_auto", colors, (v) => updateProp("border_color", v));
+            this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+            this.addDropShadowButton(this.getContainer(), widget.id);
+            this.endSection();
+
             this.endSection();
         }
         else if (type === "sensor_text") {
@@ -910,6 +919,7 @@ export class PropertiesPanel {
             this.addSelect("Font", props.font_family || "Roboto", ["Roboto", "Inter", "Roboto Mono"], (v) => updateProp("font_family", v));
             this.endSection();
         }
+
         else {
             // Smart Generic Fallback: Include Entity & Title if they likely exist
             const hasEntity = widget.entity_id !== undefined || props.weather_entity !== undefined || type.includes("sensor") || type.includes("icon");
@@ -1377,7 +1387,14 @@ export class PropertiesPanel {
             this.addSelect("Font Reference", props.font_ref || "font_mdi_medium", ["font_mdi_medium", "font_mdi_large"], (v) => updateProp("font_ref", v));
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
             this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
+
+            this.createSection("Border Style", false);
+            this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+            this.addColorSelector("Border Color", props.border_color || "theme_auto", colors, (v) => updateProp("border_color", v));
+            this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
             this.addDropShadowButton(this.getContainer(), widget.id);
+            this.endSection();
+
             this.endSection();
         }
         else if (type === "battery_icon") {

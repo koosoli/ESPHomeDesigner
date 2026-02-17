@@ -7,6 +7,7 @@ const render = (el, widget, { getColorStyle }) => {
     let iconCode = "F0595"; // Default
     let size = props.size || 24;
     const color = props.color || "theme_auto";
+    const bgColor = props.bg_color || "transparent";
 
     // Handle template colors in preview: use a fallback if it looks like a template
     let effectiveColor = color;
@@ -16,6 +17,7 @@ const render = (el, widget, { getColorStyle }) => {
     }
 
     const colorStyle = getColorStyle(effectiveColor);
+    const bgColorStyle = getColorStyle(bgColor);
 
     const codeRaw = props.code || "";
     // Handle template in icon code
@@ -46,11 +48,20 @@ const render = (el, widget, { getColorStyle }) => {
     el.innerText = ch;
     el.style.fontSize = `${size}px`;
     el.style.color = colorStyle;
+    el.style.backgroundColor = bgColorStyle;
     el.style.fontFamily = "MDI, system-ui, -apple-system, BlinkMacSystemFont, -sans-serif";
     el.style.lineHeight = "1";
     el.style.display = "flex";
     el.style.alignItems = "center";
     el.style.justifyContent = "center";
+
+    // Border
+    if (props.border_width) {
+        const borderColor = getColorStyle(props.border_color || "black");
+        el.style.border = `${props.border_width}px solid ${borderColor}`;
+        el.style.borderRadius = `${props.border_radius || 0}px`;
+        el.style.boxSizing = "border-box";
+    }
 };
 
 export default {
@@ -64,8 +75,12 @@ export default {
         height: 60,
         size: 48,
         color: "theme_auto",
+        bg_color: "transparent",
         font_ref: "font_mdi_medium",
-        fit_icon_to_frame: true
+        fit_icon_to_frame: true,
+        border_width: 0,
+        border_color: "theme_auto",
+        border_radius: 0
     },
     collectRequirements: (w, context) => {
         const p = w.props || {};
@@ -151,6 +166,15 @@ export default {
         if (bgColorProp && bgColorProp !== "transparent") {
             const bgColorConst = getColorConst(bgColorProp);
             lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+        }
+
+        // Draw Border if defined
+        const borderWidth = p.border_width || 0;
+        if (borderWidth > 0) {
+            const borderColor = getColorConst(p.border_color || "theme_auto");
+            for (let i = 0; i < borderWidth; i++) {
+                lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColor});`);
+            }
         }
 
         const cond = getConditionCheck(w);
