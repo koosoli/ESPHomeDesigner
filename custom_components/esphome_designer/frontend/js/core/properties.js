@@ -1121,6 +1121,8 @@ export class PropertiesPanel {
                     this.autoPopulateTitleFromEntity(widget.id, v);
                 }
             }, widget);
+            this.addLabeledInput("Attribute (optional)", "text", props.attribute || "", (v) => updateProp("attribute", v.trim()));
+            this.addHint("Read a specific attribute instead of the entity state, e.g. 'temperature' or 'forecast'.");
             // Text Sensor toggle (auto-detected when entity is selected)
             this.addCheckbox("Text Sensor (string value)", props.is_text_sensor || false, (v) => updateProp("is_text_sensor", v));
             this.addHint("Enable if entity returns text instead of numbers.");

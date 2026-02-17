@@ -330,18 +330,29 @@ export class ESPHomeAdapter extends BaseAdapter {
                 const binaryDomains = ["switch.", "light.", "fan.", "input_boolean.", "cover.", "lock."];
                 const isBinaryDomain = binaryDomains.some(d => entityId.startsWith(d));
 
-                if (isHaSensor && !isBinaryDomain && !seenEntityIds.has(entityId)) {
-                    // Safe ID truncated to 63 chars for ESPHome compatibility
-                    let safeId = entityId.replace(/[^a-zA-Z0-9_]/g, "_");
-                    if (safeId.length > 63) safeId = safeId.substring(0, 63);
+                if (isHaSensor && !isBinaryDomain) {
+                    const attribute = (p.attribute || "").trim();
+                    // Build a unique key: entity + attribute combination
+                    const entityKey = attribute ? `${entityId}__attr__${attribute}` : entityId;
 
-                    if (!seenSensorIds.has(safeId)) {
-                        seenEntityIds.add(entityId);
-                        seenSensorIds.add(safeId);
-                        numericSensorLinesExtra.push("- platform: homeassistant");
-                        numericSensorLinesExtra.push(`  id: ${safeId}`);
-                        numericSensorLinesExtra.push(`  entity_id: ${entityId}`);
-                        numericSensorLinesExtra.push(`  internal: true`);
+                    if (!seenEntityIds.has(entityKey)) {
+                        // Safe ID truncated to 63 chars for ESPHome compatibility
+                        let safeId = attribute
+                            ? (entityId + "_" + attribute).replace(/[^a-zA-Z0-9_]/g, "_")
+                            : entityId.replace(/[^a-zA-Z0-9_]/g, "_");
+                        if (safeId.length > 63) safeId = safeId.substring(0, 63);
+
+                        if (!seenSensorIds.has(safeId)) {
+                            seenEntityIds.add(entityKey);
+                            seenSensorIds.add(safeId);
+                            numericSensorLinesExtra.push("- platform: homeassistant");
+                            numericSensorLinesExtra.push(`  id: ${safeId}`);
+                            numericSensorLinesExtra.push(`  entity_id: ${entityId}`);
+                            if (attribute) {
+                                numericSensorLinesExtra.push(`  attribute: ${attribute}`);
+                            }
+                            numericSensorLinesExtra.push(`  internal: true`);
+                        }
                     }
                 }
             });
@@ -379,17 +390,26 @@ export class ESPHomeAdapter extends BaseAdapter {
                         }
                     }
 
-                    if ((isTextHa || isStringCond) && !seenEntityIds.has(ent)) {
-                        // Text sensors traditionally use _txt suffix in this adapter for safety/differentiation
-                        const safeId = ent.replace(/[^a-zA-Z0-9_]/g, "_") + "_txt";
+                    if ((isTextHa || isStringCond)) {
+                        const attribute = (p.attribute || "").trim();
+                        const entityKey = attribute ? `${ent}__attr__${attribute}` : ent;
 
-                        if (!seenSensorIds.has(safeId)) {
-                            seenEntityIds.add(ent);
-                            seenSensorIds.add(safeId);
-                            textSensorLinesExtra.push("- platform: homeassistant");
-                            textSensorLinesExtra.push(`  id: ${safeId}`);
-                            textSensorLinesExtra.push(`  entity_id: ${ent}`);
-                            textSensorLinesExtra.push(`  internal: true`);
+                        if (!seenEntityIds.has(entityKey)) {
+                            // Text sensors traditionally use _txt suffix in this adapter for safety/differentiation
+                            const base = attribute ? (ent + "_" + attribute) : ent;
+                            const safeId = base.replace(/[^a-zA-Z0-9_]/g, "_") + "_txt";
+
+                            if (!seenSensorIds.has(safeId)) {
+                                seenEntityIds.add(entityKey);
+                                seenSensorIds.add(safeId);
+                                textSensorLinesExtra.push("- platform: homeassistant");
+                                textSensorLinesExtra.push(`  id: ${safeId}`);
+                                textSensorLinesExtra.push(`  entity_id: ${ent}`);
+                                if (attribute) {
+                                    textSensorLinesExtra.push(`  attribute: ${attribute}`);
+                                }
+                                textSensorLinesExtra.push(`  internal: true`);
+                            }
                         }
                     }
                 });

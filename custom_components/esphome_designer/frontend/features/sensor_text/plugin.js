@@ -30,6 +30,17 @@ const render = (el, widget, { getColorStyle }) => {
         if (window.AppState && window.AppState.entityStates && eId) {
             const entityObj = window.AppState.entityStates[eId];
             if (entityObj && entityObj.state !== undefined) {
+                // If an attribute is specified, read that instead of the state
+                const attribute = (props.attribute || "").trim();
+                if (attribute && entityObj.attributes && entityObj.attributes[attribute] !== undefined) {
+                    const attrVal = entityObj.attributes[attribute];
+                    const numVal = parseFloat(attrVal);
+                    if (!isNaN(numVal)) {
+                        return (!isNaN(precision) && precision >= 0) ? numVal.toFixed(precision) : numVal.toString();
+                    }
+                    return String(attrVal);
+                }
+
                 const strState = entityObj.formatted || String(entityObj.state);
                 const rawState = entityObj.state;
 
@@ -366,9 +377,11 @@ export default {
         const isText1 = p.is_text_sensor || (entityId && (entityId.startsWith("text_sensor.") || entityId.startsWith("weather.")));
         const isText2 = p.is_text_sensor || (entityId2 && (entityId2.startsWith("text_sensor.") || entityId2.startsWith("weather.")));
 
-        // Helper to get safe ID
+        // Helper to get safe ID (includes attribute in name when present)
+        const attribute = (p.attribute || "").trim();
         const makeSafeId = (eid, suffix = "") => {
-            let safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            const base = attribute ? (eid + "_" + attribute) : eid;
+            let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");
             const maxBase = 63 - suffix.length;
             if (safe.length > maxBase) safe = safe.substring(0, maxBase);
             return safe + suffix;
@@ -727,8 +740,10 @@ export default {
         };
 
         // Helper to create safe ESPHome ID (max 59 chars before suffix for 63 char limit)
+        const attribute = (p.attribute || "").trim();
         const makeSafeId = (eid, suffix = "") => {
-            let safe = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            const base = attribute ? (eid + "_" + attribute) : eid;
+            let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");
             const maxBase = 63 - suffix.length;
             if (safe.length > maxBase) safe = safe.substring(0, maxBase);
             return safe + suffix;
