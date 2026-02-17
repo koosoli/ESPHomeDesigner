@@ -192,7 +192,9 @@ export function render(canvasInstance) {
             } else if (feature && feature.render) {
                 try {
                     const wrappedGetColorStyle = (colorName) => {
-                        const effectiveColor = (colorName === 'theme_auto') ? (isDark ? 'white' : 'black') : colorName;
+                        if (colorName === 'theme_auto') return isDark ? '#ffffff' : '#000000';
+                        if (colorName === 'theme_auto_inverse') return isDark ? '#000000' : '#ffffff';
+                        const effectiveColor = colorName;
                         if (!effectiveColor) return isDark ? '#ffffff' : '#000000';
                         return getColorStyle(effectiveColor);
                     };
@@ -499,12 +501,12 @@ export function updateWidgetDOM(canvasInstance, widget, skipPluginRender = false
             el.classList.add('widget-group');
         } else if (!skipPluginRender && feature && feature.render) {
             try {
-                const wrappedGetColorStyle = (color) => {
-                    const pageTheme = getEffectiveDarkMode() ? 'dark' : 'light';
-                    if (!color) {
-                        return pageTheme === 'dark' ? '#ffffff' : '#000000';
-                    }
-                    return getColorStyle(color);
+                const wrappedGetColorStyle = (colorName) => {
+                    if (colorName === 'theme_auto') return getEffectiveDarkMode() ? '#ffffff' : '#000000';
+                    if (colorName === 'theme_auto_inverse') return getEffectiveDarkMode() ? '#000000' : '#ffffff';
+
+                    if (!colorName) return getEffectiveDarkMode() ? '#ffffff' : '#000000';
+                    return getColorStyle(colorName);
                 };
 
                 const isSelected = AppState.selectedWidgetIds.includes(widget.id);

@@ -76,8 +76,8 @@ export default {
     supportedModes: ['lvgl'],
     defaults: {
         text: "Button",
-        bg_color: "white",
-        color: "black",
+        bg_color: "theme_auto_inverse",
+        color: "theme_auto",
         border_width: 2,
         radius: 5
     },

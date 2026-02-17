@@ -104,6 +104,10 @@ export function getColorStyle(colorName) {
             const isDark = window.WidgetFactory?.getEffectiveDarkMode?.() || false;
             return isDark ? "#ffffff" : "#000000";
         }
+        case "theme_auto_inverse": {
+            const isDark = window.WidgetFactory?.getEffectiveDarkMode?.() || false;
+            return isDark ? "#000000" : "#ffffff";
+        }
         case "white": return "#ffffff";
         case "red": return "#ff0000";
         case "green": return "#00ff00";

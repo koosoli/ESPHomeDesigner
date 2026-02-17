@@ -8,10 +8,12 @@ import { Logger } from '../utils/logger.js';
 
 // --- Helpers (Exported for plugins and other adapters) ---
 
-export function convertColor(hex) {
+export function convertColor(hex, darkMode = false) {
     if (!hex || hex === "transparent") return '"0x000000"';
-    // Handle theme_auto (dynamic theming value from WidgetFactory) - fallback to black
-    if (hex === "theme_auto") return '"0x000000"';
+    // Handle theme_auto (dynamic theming value from WidgetFactory) - fallback to black (or white in Dark Mode)
+    if (hex === "theme_auto") return darkMode ? '"0xFFFFFF"' : '"0x000000"';
+    // Handle theme_auto_inverse - fallback to white (or black in Dark Mode)
+    if (hex === "theme_auto_inverse") return darkMode ? '"0x000000"' : '"0xFFFFFF"';
     if (hex.startsWith("#")) {
         return '"0x' + hex.substring(1).toUpperCase() + '"';
     }
@@ -65,7 +67,11 @@ export function generateLVGLSnippet(pages, deviceModel, profileOverride = null, 
     lines.push("lvgl:");
     lines.push("  id: my_lvgl");
     lines.push("  log_level: WARN");
-    lines.push('  bg_color: "0xFFFFFF"');
+
+    // Propagate Dark Mode to LVGL background
+    const isDarkMode = !!layout.darkMode;
+    const bgColor = isDarkMode ? '"0x000000"' : '"0xFFFFFF"';
+    lines.push(`  bg_color: ${bgColor}`);
     lines.push("  displays:");
 
     // Dynamic display ID based on device type
@@ -111,7 +117,7 @@ export function generateLVGLSnippet(pages, deviceModel, profileOverride = null, 
             // Generate widget marker comment for import/parsing
             lines.push(`        ${serializeWidget(w)}`);
 
-            const lvglWidget = transpileToLVGL(w, profile);
+            const lvglWidget = transpileToLVGL(w, profile, isDarkMode);
             if (lvglWidget) {
                 // Determine widget type key (e.g., 'label:', 'obj:', 'button:')
                 const typeKey = Object.keys(lvglWidget)[0];
@@ -280,9 +286,10 @@ export function serializeWidget(w) {
  * Transpiles a designer widget JSON to an LVGL YAML object
  * @param {Object} w - The widget object.
  * @param {Object} profile - The device profile.
+ * @param {boolean} darkMode - Whether Dark Mode is enabled.
  * @returns {Object|null} The LVGL YAML object or null.
  */
-function transpileToLVGL(w, profile) {
+function transpileToLVGL(w, profile, darkMode = false) {
     const p = w.props || {};
     const hasTouch = profile?.touch || (profile?.features && profile.features.touch);
 
@@ -322,7 +329,7 @@ function transpileToLVGL(w, profile) {
             const result = plugin.exportLVGL(w, {
                 profile,
                 common: common,
-                convertColor,
+                convertColor: (c) => convertColor(c, darkMode),
                 convertAlign,
                 getLVGLFont,
                 formatOpacity,
@@ -341,7 +348,7 @@ function transpileToLVGL(w, profile) {
     // Fallback for generic LVGL widgets or warning
     if (w.type && (w.type.startsWith("lvgl_") || w.type.startsWith("shape_") || w.type === "rounded_rect" || w.type === "line" || w.type === "text" || w.type === "progress_bar" || w.type === "qr_code")) {
         Logger.warn(`[transpileToLVGL] Widget type ${w.type} has no exportLVGL function. Falling back to generic obj.`);
-        return { obj: { ...common, bg_color: convertColor(p.bg_color || p.color || "white") } };
+        return { obj: { ...common, bg_color: convertColor(p.bg_color || p.color || "white", darkMode) } };
     }
 
     return null;

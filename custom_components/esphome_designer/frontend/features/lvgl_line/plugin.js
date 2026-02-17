@@ -95,7 +95,7 @@ export default {
     category: "LVGL",
     defaults: {
         line_width: 3,
-        line_color: "black",
+        line_color: "theme_auto",
         orientation: "horizontal",
         line_rounded: true,
         opa: 255

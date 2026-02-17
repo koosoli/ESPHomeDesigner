@@ -7,6 +7,7 @@ const render = (el, widget, { getColorStyle }) => {
     const color = getColorStyle(props.color || "blue");
     const checked = props.checked || false;
     const text = props.text || "Checkbox";
+    const textColor = getColorStyle("theme_auto");
 
     el.innerHTML = "";
     el.style.display = "flex";
@@ -38,7 +39,7 @@ const render = (el, widget, { getColorStyle }) => {
 
     const label = document.createElement("span");
     label.textContent = text;
-    label.style.color = "#000";
+    label.style.color = textColor;
     label.style.fontSize = "14px";
     label.style.fontFamily = "Roboto, sans-serif";
     el.appendChild(label);
