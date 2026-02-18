@@ -1,3 +1,34 @@
+## v1.0.0 RC6 - Visual Polish & Widget Upgrades
+**Release Date:** February 18, 2026
+
+### 🎨 Visual Upgrades
+
+#### Enhanced Border & Shadow System
+Added standardized **Border Style** controls (Width, Color, Radius, Drop Shadow) to:
+- **Weather Forecast**, **Calendar**, **Date & Time** (`datetime`), **Weather Icon**, **Quote / RSS Feed**
+
+#### Smart Drop Shadows
+- **Auto-Sync Radius:** Shadows now inherit the parent widget's corner radius.
+- **Multi-Select:** Create shadows for multiple widgets at once.
+- **Auto-Grouping:** Shadows are now automatically grouped with their parent widget.
+
+### 📅 Calendar Widget
+- Added full support for **Borders**, **Rounded Backgrounds**, and **Drop Shadows**.
+
+### 📱 Hardware Support
+- **Waveshare 4.3" (#304):** Added missing `display_backlight` switch (CH422G).
+
+### ✨ Improvements
+- **Sensor Attributes:** `text_sensor` and `weather_icon` now support HA attributes.
+- **LVGL Auto Color:** Automatic color handling for all LVGL widgets.
+
+### 🐛 Bug Fixes
+- **LVGL Dark Mode:** Fixed invalid YAML generation for LVGL widgets.
+- **Quote Widget:** Fixed a critical `ReferenceError` preventing rendering.
+
+
+---
+
 ## v1.0.0 RC5 - Graph Precision & Security
 **Release Date:** February 16, 2026
 
