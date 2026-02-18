@@ -13,13 +13,16 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
     el.style.width = width + "px";
     el.style.height = height + "px";
     el.style.backgroundColor = props.background_color || "transparent";
+    el.style.borderRadius = `${props.border_radius || 0}px`;
     el.style.color = colorStyle;
     el.style.padding = "4px";
     el.style.boxSizing = "border-box";
 
-    if (props.show_border !== false) {
+    if (props.border_width) {
         const borderColor = props.border_color || color;
-        el.style.border = `${props.border_width || 2}px solid ${getColorStyle(borderColor)}`;
+        el.style.border = `${props.border_width}px solid ${getColorStyle(borderColor)}`;
+    } else {
+        el.style.border = "none";
     }
 
     const now = new Date();
@@ -233,9 +236,10 @@ export default {
     supportedModes: ['lvgl', 'direct'],
     defaults: {
         entity_id: "sensor.esp_calendar_data",
-        border_width: 2,
-        show_border: true,
+        entity_id: "sensor.esp_calendar_data",
+        border_width: 0,
         border_color: "theme_auto",
+        border_radius: 0,
         background_color: "transparent",
         text_color: "theme_auto",
         font_size_date: 100,
@@ -424,8 +428,8 @@ export default {
                 ...common,
                 bg_color: bgColor,
                 bg_opa: "COVER",
-                radius: 8,
-                border_width: p.show_border !== false ? (p.border_width || 2) : 0,
+                radius: p.border_radius || 0,
+                border_width: p.border_width || 0,
                 border_color: convertColor(p.border_color || "theme_auto"),
                 widgets: widgets
             }
@@ -446,8 +450,8 @@ export default {
         const borderColor = getColorConst(borderColorProp);
         const bgColor = getColorConst(bgColorProp);
 
-        const borderEnabled = p.show_border !== false;
-        const borderWidth = parseInt(p.border_width || 2, 10);
+        const borderWidth = parseInt(p.border_width || 0, 10);
+        const radius = p.border_radius || 0;
 
         const dateFontSize = Math.round(Math.min(parseInt(p.font_size_date || 100, 10) * 0.7, 80));
         const dayFontSize = parseInt(p.font_size_day || 24, 10);
@@ -471,7 +475,11 @@ export default {
 
         // Background
         if (bgColorProp !== "transparent") {
-            lines.push(`          it.filled_rectangle(x, y, w, h, ${bgColor});`);
+            if (radius > 0) {
+                lines.push(`          it.filled_rounded_rectangle(x, y, w, h, ${radius}, ${bgColor});`);
+            } else {
+                lines.push(`          it.filled_rectangle(x, y, w, h, ${bgColor});`);
+            }
         }
 
         // Header
@@ -617,11 +625,17 @@ export default {
         }
 
 
-        if (borderEnabled) {
-            lines.push(`          for (int i = 0; i < ${borderWidth}; i++) {
-            `);
-            lines.push(`            it.rectangle(x + i, y + i, w - 2 * i, h - 2 * i, ${borderColor}); `);
-            lines.push(`          } `);
+        if (borderWidth > 0) {
+            if (radius > 0) {
+                // Fallback to sharp borders for now as per established pattern or use primitive if available
+                for (let i = 0; i < borderWidth; i++) {
+                    lines.push(`            it.rectangle(x + i, y + i, w - 2 * i, h - 2 * i, ${borderColor}); `);
+                }
+            } else {
+                for (let i = 0; i < borderWidth; i++) {
+                    lines.push(`            it.rectangle(x + i, y + i, w - 2 * i, h - 2 * i, ${borderColor}); `);
+                }
+            }
         }
 
         addDitherMask(lines, colorProp, isEpaper, w.x, w.y, w.width, w.height);

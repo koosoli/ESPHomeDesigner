@@ -2010,11 +2010,14 @@ export class PropertiesPanel {
         else if (type === "calendar") {
             this.createSection("Appearance", true);
             this.addColorSelector("Text Color", props.text_color || "black", colors, (v) => updateProp("text_color", v));
-            this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
             this.addColorSelector("Background", props.background_color || "white", colors, (v) => updateProp("background_color", v));
+            this.endSection();
 
-            this.addLabeledInput("Border Width", "number", props.border_width || 2, (v) => updateProp("border_width", parseInt(v, 10)));
-            this.addCheckbox("Show Border", props.show_border !== false, (v) => updateProp("show_border", v));
+            this.createSection("Border Style", false);
+            this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+            this.addColorSelector("Border Color", props.border_color || "theme_auto", colors, (v) => updateProp("border_color", v));
+            this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+            this.addDropShadowButton(this.getContainer(), widget.id);
             this.endSection();
 
             this.createSection("Font Sizes", false);
