@@ -613,6 +613,8 @@ class AppStateFacade {
         const fillColor = isDark ? "black" : "white";
         const defaultForeground = isDark ? "white" : "black";
 
+        const newGroupIds = [];
+
         ids.forEach(id => {
             const widget = this.getWidgetById(id);
             if (!widget) return;
@@ -651,7 +653,7 @@ class AppStateFacade {
 
             this.project.addWidget(shadow);
 
-            // 2. Modify Original Widget (Apply fill so it blocks the shadow behind it)
+            // 3. Modify Original Widget (Apply fill so it blocks the shadow behind it)
             if (!widget.props) widget.props = {};
 
             // Determine if this is a "shape" widget vs a "content" widget
@@ -671,24 +673,57 @@ class AppStateFacade {
             // If it's a pure shape, the main 'color' IS the fill color
             if (isPureShape) {
                 widget.props.color = fillColor;
-            } else {
-                // For text/content widgets, DO NOT overwrite 'color' as it is the text/foreground color
-                // We've already set background_color/bg_color above which handles the opaque fill
             }
 
             // EXPLICIT UPDATE: Ensure the project store knows the original widget changed
             this.project.updateWidget(id, { props: { ...widget.props } });
 
-            // 3. Reorder Logic (Shadow behind)
-            const originalIndex = page.widgets.findIndex(w => w.id === id);
-            const shadowIndex = page.widgets.findIndex(w => w.id === shadow.id);
+            // 4. Reorder Logic (Shadow behind Widget)
+            // Recalculate index because adding widgets changes length/order
+            const currentOriginalIndex = page.widgets.findIndex(w => w.id === id);
+            const currentShadowIndex = page.widgets.findIndex(w => w.id === shadow.id);
 
-            if (originalIndex !== -1 && shadowIndex !== -1) {
+            if (currentOriginalIndex !== -1 && currentShadowIndex !== -1) {
                 // move shadow to originalIndex (which pushes original and subsequent up by 1)
-                this.project.reorderWidget(this.project.currentPageIndex, shadowIndex, originalIndex);
+                this.project.reorderWidget(this.project.currentPageIndex, currentShadowIndex, currentOriginalIndex);
             }
+
+            // 5. Create Group for this pair
+            const groupId = "group_" + generateId();
+            const minX = Math.min(widget.x, shadow.x);
+            const minY = Math.min(widget.y, shadow.y);
+            // We use the union of bounds. 
+            // shadow is offset by 5, so max is widget+5
+            const maxX = Math.max(widget.x + widget.width, shadow.x + shadow.width);
+            const maxY = Math.max(widget.y + widget.height, shadow.y + shadow.height);
+
+            const group = {
+                id: groupId,
+                type: 'group',
+                title: widget.props?.name ? `${widget.props.name} Group` : 'Shadow Group',
+                x: minX,
+                y: minY,
+                width: maxX - minX,
+                height: maxY - minY,
+                props: {},
+                expanded: true
+            };
+
+            this.project.addWidget(group);
+
+            // Assign members
+            this.project.updateWidget(shadow.id, { parentId: groupId });
+            this.project.updateWidget(widget.id, { parentId: groupId });
+
+            newGroupIds.push(groupId);
         });
 
+        // 6. Select the new group(s)
+        if (newGroupIds.length > 0) {
+            this.selectWidgets(newGroupIds);
+        }
+
+        this.syncWidgetOrderWithHierarchy();
         this.recordHistory();
         emit(EVENTS.STATE_CHANGED);
     }

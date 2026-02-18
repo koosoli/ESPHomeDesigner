@@ -1664,12 +1664,13 @@ export class PropertiesPanel {
                 this.addHint('Browse <a href="https://fonts.google.com" target="_blank">fonts.google.com</a>');
             }
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
-            this.addCheckbox("Show Border", props.show_border !== false, (v) => updateProp("show_border", v));
-            if (props.show_border !== false) {
-                this.addLabeledInput("Border Width", "number", props.border_width !== undefined ? props.border_width : 1, (v) => updateProp("border_width", parseInt(v, 10)));
-                this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
-            }
             this.addColorSelector("Background Color", props.background_color || "transparent", colors, (v) => updateProp("background_color", v));
+            this.endSection();
+
+            this.createSection("Border Style", false);
+            this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+            this.addColorSelector("Border Color", props.border_color || "theme_auto", colors, (v) => updateProp("border_color", v));
+            this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
             this.addDropShadowButton(this.getContainer(), widget.id);
             this.endSection();
         }
@@ -2668,7 +2669,14 @@ export class PropertiesPanel {
         const btn = document.createElement("button");
         btn.className = "btn btn-secondary btn-full btn-xs";
         btn.innerHTML = `<span class="mdi mdi-box-shadow"></span> Create Drop Shadow`;
-        btn.onclick = () => AppState.createDropShadow(widgetId);
+        btn.onclick = () => {
+            const selected = AppState.selectedWidgetIds || [];
+            if (selected.includes(widgetId)) {
+                AppState.createDropShadow(selected);
+            } else {
+                AppState.createDropShadow(widgetId);
+            }
+        };
 
         wrap.appendChild(btn);
         container.appendChild(wrap);

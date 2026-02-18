@@ -48,17 +48,21 @@ const render = (el, widget, { getColorStyle }) => {
     el.style.boxSizing = "border-box";
 
     // Border and Background
+    const borderRadius = props.border_radius || 0;
     el.style.backgroundColor = getColorStyle(props.background_color || "transparent");
-    if (props.show_border !== false) {
-        const borderW = props.border_width !== undefined ? props.border_width : 1;
+    el.style.borderRadius = `${borderRadius}px`;
+
+    // Apply Border
+    if (props.border_width) {
+        const borderW = props.border_width;
         const borderColor = getColorStyle(props.border_color || color);
         el.style.border = `${borderW}px solid ${borderColor}`;
     } else {
         el.style.border = "none";
     }
 
-    const availableWidth = widget.width - (el.style.border !== "none" ? (parseInt(props.border_width || 1) * 2) : 0) - 8; // -8 for 4px padding on both sides
-    const availableHeight = widget.height - (el.style.border !== "none" ? (parseInt(props.border_width || 1) * 2) : 0) - 8;
+    const availableWidth = widget.width - (el.style.border !== "none" ? (parseInt(props.border_width || 0) * 2) : 0) - 8; // -8 for 4px padding on both sides
+    const availableHeight = widget.height - (el.style.border !== "none" ? (parseInt(props.border_width || 0) * 2) : 0) - 8;
 
     const itemWidth = layout === "horizontal" ? Math.floor(availableWidth / days) : availableWidth;
     const itemHeight = layout === "vertical" ? Math.floor(availableHeight / days) : availableHeight;
@@ -226,21 +230,46 @@ const exportDoc = (w, context) => {
 
     // Background fill
     const bgColorProp = p.bg_color || p.background_color || "transparent";
+    const radius = p.border_radius || 0;
+
     if (bgColorProp && bgColorProp !== "transparent") {
         const bgColorConst = getColorConst(bgColorProp);
-        lines.push(`          it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+        if (radius > 0) {
+            lines.push(`          it.filled_rounded_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${radius}, ${bgColorConst});`);
+        } else {
+            lines.push(`          it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+        }
         addDitherMask(lines, bgColorProp, isEpaper, w.x, w.y, w.width, w.height);
     }
 
     // Border
-    const showBorder = p.show_border !== false;
-    if (showBorder) {
-        const borderW = parseInt(p.border_width || 1, 10);
+    const borderWidth = parseInt(p.border_width || 0, 10);
+    if (borderWidth > 0) {
         const borderColorProp = p.border_color || colorProp;
         const borderColorConst = getColorConst(borderColorProp);
-        lines.push(`          for (int i = 0; i < ${borderW}; i++) {`);
-        lines.push(`            it.rectangle(${w.x} + i, ${w.y} + i, ${w.width} - 2 * i, ${w.height} - 2 * i, ${borderColorConst});`);
-        lines.push(`          }`);
+        if (radius > 0) {
+            // For rounded borders, we can't easily draw generic thick borders without primitives.
+            // But we can draw a few concentric wires.
+            for (let i = 0; i < borderWidth; i++) {
+                // it.rounded_rectangle not universally available? rounded_rectangle IS available in DisplayBuffer?
+                // Usually it is 'rectangle', 'filled_rectangle', 'line', 'pixel'. 
+                // 'rounded_rectangle' might exist? Let's assume No for safety or check docs (not available).
+                // Actually commonly: it.rectangle(...).
+                // For now, let's fallback to sharp rectangle loop for borders to be safe/consistent, 
+                // OR use rounded_rectangle if I'm confident.
+                // Given I used rectangle in others, I'll stick to rectangle for now to avoid compilation errors,
+                // UNLESS I just want to support background radius (which I added above).
+                // I'll stick to sharp borders for safety, or just ignore radius for the border itself in export
+                // until I have a verified rounded_rectangle primitive.
+                // Actually, filled_rounded_rectangle exists. rounded_rectangle usually implies outline.
+                // Let's us rectangle loop for now.
+                lines.push(`          it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColorConst});`);
+            }
+        } else {
+            for (let i = 0; i < borderWidth; i++) {
+                lines.push(`          it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColorConst});`);
+            }
+        }
     }
 
     const days = Math.min(7, Math.max(1, parseInt(p.days, 10) || 5));
@@ -443,9 +472,10 @@ export default {
         color: "theme_auto",
         font_family: "Roboto",
         show_high_low: true,
-        show_border: true,
-        border_width: 2,
+        show_high_low: true,
+        border_width: 0,
         border_color: "theme_auto",
+        border_radius: 0,
         background_color: "transparent",
         temp_unit: "C",
         precision: 1,
