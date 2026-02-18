@@ -1,4 +1,4 @@
-## v1.0.0 RC6 - Visual Polish & Widget Upgrades
+## v1.0.0 RC6.1 - Hotfix & Widget Upgrades
 **Release Date:** February 18, 2026
 
 ### 🎨 Visual Upgrades
@@ -24,7 +24,8 @@ Added standardized **Border Style** controls (Width, Color, Radius, Drop Shadow)
 
 ### 🐛 Bug Fixes
 - **LVGL Dark Mode:** Fixed invalid YAML generation for LVGL widgets.
-- **Quote Widget:** Fixed a critical `ReferenceError` preventing rendering.
+- **Selection Mode:** Removed the selection-based YAML filtering in the snippet box. Full layout is now always visible.
+
 
 
 ---
