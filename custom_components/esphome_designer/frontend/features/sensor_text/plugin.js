@@ -119,6 +119,7 @@ const render = (el, widget, { getColorStyle }) => {
 
     el.innerHTML = "";
     el.style.display = "flex";
+    el.style.overflow = "hidden";
 
     const applyAlign = (align, element) => {
         if (!align) return;
@@ -296,6 +297,26 @@ const render = (el, widget, { getColorStyle }) => {
     }
 
     el.appendChild(body);
+
+    // Patch: Auto-resize width when HA data is available to prevent misleading clipping
+    if ((format === "label_value" || format === "label_value_no_unit" || format === "value_label") && effectiveTitle) {
+        requestAnimationFrame(() => {
+            const contentWidth = body.scrollWidth;
+            const currentWidth = widget.width || 0;
+            // Only auto-expand if connected to HA (placeholder "--" usually fits)
+            // and if the content actually exceeds the frame.
+            if (contentWidth > currentWidth && contentWidth > 0 && displayValue !== "--") {
+                const newWidth = Math.ceil(contentWidth) + 8; // 8px safety padding
+                widget.width = newWidth;
+                el.style.width = newWidth + "px";
+
+                // Emit event to update property panels if open
+                if (window.emit) {
+                    window.emit('widget:resized', { id: widget.id, width: newWidth, height: widget.height });
+                }
+            }
+        });
+    }
 };
 
 export default {

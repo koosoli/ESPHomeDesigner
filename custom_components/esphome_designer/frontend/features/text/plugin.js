@@ -5,7 +5,7 @@ const render = (el, widget, { getColorStyle }) => {
     el.innerHTML = "";
     el.style.display = "flex";
     el.style.flexDirection = "column";
-    el.style.overflow = "visible"; // Ensure widget frame doesn't clip
+    el.style.overflow = "hidden"; // Match device behavior: clip text at widget boundary
 
     const textRaw = props.text || props.value || widget.title || "Text";
     // Evaluate template for designer preview
@@ -31,7 +31,7 @@ const render = (el, widget, { getColorStyle }) => {
     body.style.minHeight = "100%";
     body.style.display = "flex";
     body.style.flexDirection = "column";
-    body.style.overflow = "visible"; // Ensure inner body doesn't clip
+    body.style.overflow = "visible"; // Let text flow naturally; parent el clips at boundary
     body.style.flexShrink = "0";
 
     // Set alignment
