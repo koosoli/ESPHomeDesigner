@@ -77,6 +77,11 @@ light:
     restore_mode: ALWAYS_ON
     icon: mdi:lightbulb-on
 
+i2c:
+  sda: 4
+  scl: 8
+  frequency: 400kHz
+
 touchscreen:
   - id: my_touchscreen
     platform: axs15231
