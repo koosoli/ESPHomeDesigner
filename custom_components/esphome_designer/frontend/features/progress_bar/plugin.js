@@ -54,7 +54,8 @@ const render = (el, widget, tools) => {
     const labelRow = document.createElement("div");
     labelRow.style.display = "flex";
     labelRow.style.flexDirection = isVertical ? "column" : "row";
-    labelRow.style.justifyContent = isVertical ? "space-between" : (textAlign === "CENTER" ? "space-between" : (textAlign === "LEFT" ? "flex-start" : "flex-end"));
+    const bothLabelsShown = (showLabel && label) && showPercentage;
+    labelRow.style.justifyContent = isVertical ? "space-between" : (bothLabelsShown ? "space-between" : (textAlign === "CENTER" ? "center" : (textAlign === "LEFT" ? "flex-start" : "flex-end")));
     labelRow.style.alignItems = "center";
     labelRow.style.fontSize = `${fontSize}px`;
     labelRow.style.paddingBottom = isVertical ? "0" : "2px";
@@ -212,15 +213,43 @@ const exportDoc = (w, context) => {
             lines.push(`          it.filled_rectangle(${barX + 2}, ${barStartY} + ${totalBarH} - 2 - bar_h, ${barHeight - 4}, bar_h, ${color});`);
             lines.push(`        }`);
         } else {
-            const labelAlign = textAlign === "RIGHT" ? "TextAlign::TOP_RIGHT" : (textAlign === "CENTER" ? "TextAlign::TOP_LEFT" : "TextAlign::TOP_LEFT");
-            const pctAlign = textAlign === "LEFT" ? "TextAlign::TOP_LEFT" : "TextAlign::TOP_RIGHT";
-            const labelX = textAlign === "RIGHT" ? `${w.x} + ${w.width}` : `${w.x}`;
-            const pctX = textAlign === "LEFT" ? `${w.x}` : `${w.x} + ${w.width}`;
+            // When both label AND percentage are shown, they must be spatially separated:
+            // label on left side, percentage on right side (like the canvas preview's space-between).
+            // When only one is shown, textAlign controls its position.
+            const bothShown = (showLabel && title) && showPercentage;
 
             if (showLabel && title) {
+                let labelAlign, labelX;
+                if (bothShown) {
+                    labelAlign = "TextAlign::TOP_LEFT";
+                    labelX = `${w.x}`;
+                } else if (textAlign === "CENTER") {
+                    labelAlign = "TextAlign::TOP_CENTER";
+                    labelX = `${w.x} + ${w.width} / 2`;
+                } else if (textAlign === "RIGHT") {
+                    labelAlign = "TextAlign::TOP_RIGHT";
+                    labelX = `${w.x} + ${w.width}`;
+                } else {
+                    labelAlign = "TextAlign::TOP_LEFT";
+                    labelX = `${w.x}`;
+                }
                 lines.push(`        it.printf(${labelX}, ${w.y}, id(${fontId}), ${color}, ${labelAlign}, "${title}");`);
             }
             if (showPercentage) {
+                let pctAlign, pctX;
+                if (bothShown) {
+                    pctAlign = "TextAlign::TOP_RIGHT";
+                    pctX = `${w.x} + ${w.width}`;
+                } else if (textAlign === "CENTER") {
+                    pctAlign = "TextAlign::TOP_CENTER";
+                    pctX = `${w.x} + ${w.width} / 2`;
+                } else if (textAlign === "LEFT") {
+                    pctAlign = "TextAlign::TOP_LEFT";
+                    pctX = `${w.x}`;
+                } else {
+                    pctAlign = "TextAlign::TOP_RIGHT";
+                    pctX = `${w.x} + ${w.width}`;
+                }
                 lines.push(`        it.printf(${pctX}, ${w.y}, id(${fontId}), ${color}, ${pctAlign}, "%d%%", pct_${idSuffix});`);
             }
             const barY = w.y + (w.height - barHeight);
