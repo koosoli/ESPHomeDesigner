@@ -417,6 +417,19 @@ export class DeviceSettings {
             const el = document.getElementById(id);
             if (el) el.setAttribute('list', datalistId);
         });
+
+        // Fix #311: Disable/uncheck PSRAM if chip doesn't support it
+        const unsupportedChips = ["esp32-c3", "esp32-c6", "esp8266"];
+        if (this.customPsram) {
+            const isUnsupported = unsupportedChips.some(c => chip.toLowerCase().includes(c));
+            if (isUnsupported) {
+                this.customPsram.checked = false;
+                this.customPsram.disabled = true;
+            } else {
+                this.customPsram.disabled = false;
+            }
+        }
+
         Logger.log(`[DeviceSettings] Updated pin datalists to: ${datalistId}`);
     }
 

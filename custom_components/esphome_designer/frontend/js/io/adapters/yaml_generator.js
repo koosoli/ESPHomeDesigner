@@ -353,13 +353,52 @@ export class YamlGenerator {
         lines.push("          auto time = id(ha_time).now();");
         lines.push("          if (time.is_valid()) {");
         lines.push(`             int hour = time.hour;`);
+        lines.push(`             int minute = time.minute;`);
+        lines.push(`             int curr_min = hour * 60 + minute;`);
         lines.push(`             int start = ${sStart};`);
         lines.push(`             int end = ${sEnd};`);
         lines.push("             if (start < end) {");
         lines.push("                 if (hour >= start && hour < end) is_sleep_time = true;");
-        lines.push("             } else {");
+        lines.push("             } else if (start > end) {");
         lines.push("                 if (hour >= start || hour < end) is_sleep_time = true;");
         lines.push("             } ");
+        lines.push("");
+        lines.push("             // Visibility Logic: Find best page for current time");
+        lines.push("             int best_page = -1;");
+
+        const getMin = (ts) => {
+            if (!ts) return null;
+            const parts = ts.split(':');
+            return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+        };
+
+        // 1. Prioritize pages with specific visibility windows
+        pages.forEach((page, idx) => {
+            const from = getMin(page.visible_from);
+            const to = getMin(page.visible_to);
+            if (from !== null && to !== null) {
+                if (from < to) {
+                    lines.push(`             if (best_page == -1 && curr_min >= ${from} && curr_min < ${to}) best_page = ${idx};`);
+                } else {
+                    lines.push(`             if (best_page == -1 && (curr_min >= ${from} || curr_min < ${to})) best_page = ${idx};`);
+                }
+            }
+        });
+
+        // 2. Fallback to pages without visibility windows
+        pages.forEach((page, idx) => {
+            if (!page.visible_from && !page.visible_to) {
+                lines.push(`             if (best_page == -1) best_page = ${idx};`);
+            }
+        });
+
+        lines.push("");
+        lines.push("             // If current page is invisible OR another should be shown, switch");
+        lines.push("             if (best_page != -1 && best_page != p) {");
+        lines.push("                 ESP_LOGI(\"display\", \"Auto-switching to scheduled page %d\", best_page);");
+        lines.push("                 id(change_page_to).execute(best_page);");
+        lines.push("                 return;");
+        lines.push("             }");
         lines.push("          }");
 
         // LCD vs E-Paper Strategy in the loop
@@ -379,10 +418,7 @@ export class YamlGenerator {
                 lines.push("          }");
                 lines.push("          #endif");
             } else if (isOled && sEnabled) {
-                // OLED OFF Strategy (using component.update suppression or similar?)
-                // For now, let's just use the interval skip
                 lines.push("          if (is_sleep_time) {");
-                lines.push("              // OLED specific: Blank screen or similar would go here");
                 lines.push(`              interval = 3600;`);
                 lines.push("          }");
             }
@@ -398,9 +434,19 @@ export class YamlGenerator {
         // Inject per-page refresh settings (Only if NOT sleeping)
         lines.push(`          if (!is_sleep_time) {`);
         pages.forEach((p, idx) => {
-            const refresh = parseInt(p.refresh_s);
-            if (!isNaN(refresh) && refresh > 0) {
-                lines.push(`            if (p == ${idx}) interval = ${refresh};`);
+            if (p.refresh_type === 'daily' && p.refresh_time) {
+                const targetMin = getMin(p.refresh_time);
+                lines.push(`            if (p == ${idx}) {`);
+                lines.push(`               int target_min = ${targetMin};`);
+                lines.push(`               int diff = target_min - curr_min;`);
+                lines.push(`               if (diff <= 0) diff += 1440; // Next day`);
+                lines.push(`               interval = diff * 60;`);
+                lines.push(`            }`);
+            } else {
+                const refresh = parseInt(p.refresh_s);
+                if (!isNaN(refresh) && refresh > 0) {
+                    lines.push(`            if (p == ${idx}) interval = ${refresh};`);
+                }
             }
         });
         lines.push(`          }`);

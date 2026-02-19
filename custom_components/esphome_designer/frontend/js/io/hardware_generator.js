@@ -85,7 +85,10 @@ export function generateCustomHardwareYaml(config) {
     lines.push("");
 
     // PSRAM (Commented out by default)
-    if (psram) {
+    const unsupportedChips = ["esp32-c3", "esp32-c6", "esp8266"];
+    const isUnsupported = unsupportedChips.some(c => chip.toLowerCase().includes(c));
+
+    if (psram && !isUnsupported) {
         lines.push("# psram: # (Auto-commented)");
         if (chip.includes("s3")) {
             lines.push("#   # Quad or Octal depending on your board");

@@ -15,6 +15,8 @@ import { COLORS, ALIGNMENT } from '../../core/constants.js';
 import { FontRegistry } from './font_registry.js';
 import { YamlGenerator } from './yaml_generator.js';
 
+const HA_TEXT_DOMAINS = ["text_sensor.", "weather.", "calendar.", "person.", "device_tracker.", "sun.", "update.", "scene."];
+
 /**
  * ESPHome-specific adapter for generating YAML configuration.
  * Extends BaseAdapter to implement the ESPHome-specific orchestration logic.
@@ -190,6 +192,22 @@ export class ESPHomeAdapter extends BaseAdapter {
             pendingTriggers
         };
 
+        // Helper to check if an entity's current state (or a specific attribute) is non-numeric
+        const isEntityStateNonNumeric = (eid, attr = null) => {
+            if (!eid || !window.AppState?.entityStates) return false;
+            const entityObj = window.AppState.entityStates[eid];
+            if (!entityObj) return false;
+
+            const val = attr ? entityObj.attributes?.[attr] : entityObj.state;
+            if (val === undefined || val === null) return false;
+
+            const str = String(val).trim();
+            if (str === "") return false;
+
+            // Strict number check: Number("5:24pm") -> NaN
+            return isNaN(Number(str));
+        };
+
         if (PluginRegistry) {
             // 1. ESPHome Section & Globals
             const globalLines = [];
@@ -321,12 +339,18 @@ export class ESPHomeAdapter extends BaseAdapter {
                 }
 
                 // Fix #198: Skip if this is a sensor_text widget explicitly marked as a text sensor
-                if (w.type === "sensor_text" && p.is_text_sensor) return;
+                // OR if it's using a non-numeric attribute (which makes it a text sensor)
+                if (w.type === "sensor_text") {
+                    if (p.is_text_sensor) return;
+                    if (p.attribute && isEntityStateNonNumeric(entityId, p.attribute)) return;
+                }
 
                 // Fix #240: Skip calendar widgets as they are complex text sensors (json) handled by the plugin
                 if (w.type === "calendar") return;
 
-                const isHaSensor = entityId.includes(".") && !entityId.startsWith("weather.") && !entityId.startsWith("text_sensor.") && !entityId.startsWith("binary_sensor.");
+                const isHaSensor = entityId.includes(".") &&
+                    !entityId.startsWith("binary_sensor.") &&
+                    !HA_TEXT_DOMAINS.some(d => entityId.startsWith(d));
                 const binaryDomains = ["switch.", "light.", "fan.", "input_boolean.", "cover.", "lock."];
                 const isBinaryDomain = binaryDomains.some(d => entityId.startsWith(d));
 
@@ -371,32 +395,40 @@ export class ESPHomeAdapter extends BaseAdapter {
             allWidgetsForText.forEach(w => {
                 const condEnt = (w.condition_entity || "").trim();
                 const primaryEnt = (w.entity_id || "").trim();
+                const secondaryEnt = (w.entity_id_2 || "").trim();
                 const p = w.props || {};
 
-                [condEnt, primaryEnt].forEach(ent => {
+                [
+                    { ent: condEnt, attr: p.attribute },
+                    { ent: primaryEnt, attr: p.attribute },
+                    { ent: secondaryEnt, attr: p.attribute2 }
+                ].forEach(({ ent, attr }) => {
                     if (!ent || p.is_local_sensor) return;
 
-                    const isTextHa = ent.startsWith("text_sensor.") || ent.startsWith("weather.");
+                    const isTextHa = HA_TEXT_DOMAINS.some(d => ent.startsWith(d));
                     let isStringCond = false;
 
                     // Check if this entity is used in a string condition
                     if (ent === condEnt && w.condition_operator !== "range") {
                         const state = w.condition_state;
-                        // Heuristic: If condition state is not numeric and not a boolean keyword, treat as string
                         const stateLower = (state || "").toLowerCase();
                         const booleanKeywords = ["on", "off", "true", "false", "online", "offline"];
-                        if (state && isNaN(parseFloat(state)) && !booleanKeywords.includes(stateLower)) {
+                        if (state && isNaN(Number(state)) && !booleanKeywords.includes(stateLower)) {
                             isStringCond = true;
                         }
                     }
 
-                    if ((isTextHa || isStringCond)) {
-                        const attribute = (p.attribute || "").trim();
-                        const entityKey = attribute ? `${ent}__attr__${attribute}` : ent;
+                    const attribute = (attr || "").trim();
+                    const isNonNumericAttr = (ent === primaryEnt || ent === secondaryEnt) && attribute && isEntityStateNonNumeric(ent, attribute);
+
+                    if ((isTextHa || isStringCond || isNonNumericAttr)) {
+                        const isNested = attribute.includes(".") || attribute.includes("[");
+                        const rootAttr = isNested ? attribute.split(/[.\[]/)[0] : attribute;
+
+                        const entityKey = rootAttr ? `${ent}__attr__${rootAttr}` : ent;
 
                         if (!seenEntityIds.has(entityKey)) {
-                            // Text sensors traditionally use _txt suffix in this adapter for safety/differentiation
-                            const base = attribute ? (ent + "_" + attribute) : ent;
+                            const base = rootAttr ? (ent + "_" + rootAttr) : ent;
                             const safeId = base.replace(/[^a-zA-Z0-9_]/g, "_") + "_txt";
 
                             if (!seenSensorIds.has(safeId)) {
@@ -405,8 +437,8 @@ export class ESPHomeAdapter extends BaseAdapter {
                                 textSensorLinesExtra.push("- platform: homeassistant");
                                 textSensorLinesExtra.push(`  id: ${safeId}`);
                                 textSensorLinesExtra.push(`  entity_id: ${ent}`);
-                                if (attribute) {
-                                    textSensorLinesExtra.push(`  attribute: ${attribute}`);
+                                if (rootAttr) {
+                                    textSensorLinesExtra.push(`  attribute: ${rootAttr}`);
                                 }
                                 textSensorLinesExtra.push(`  internal: true`);
                             }
@@ -811,6 +843,8 @@ export class ESPHomeAdapter extends BaseAdapter {
             lines.push(`  // page:dark_mode "${page.dark_mode || "inherit"}"`);
             lines.push(`  // page:refresh_type "${page.refresh_type || "interval"}"`);
             lines.push(`  // page:refresh_time "${page.refresh_time || ""}"`);
+            lines.push(`  // page:visible_from "${page.visible_from || ""}"`);
+            lines.push(`  // page:visible_to "${page.visible_to || ""}"`);
 
             // Clear screen for this page
             const isDarkMode = page.dark_mode === 'dark' || (page.dark_mode === 'inherit' && layout.darkMode);

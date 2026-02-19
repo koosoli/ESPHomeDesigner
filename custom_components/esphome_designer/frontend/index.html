@@ -32,7 +32,7 @@
   <header class="main-header" role="banner">
     <div class="main-header-title">
       <img src="assets/logo_header.png" alt="ESPHome Designer" class="logo-image">
-      <span><small style="opacity: 0.5; margin-left: 8px;">v1.0.0 RC6.1</small> <span id="currentLayoutDevice"
+      <span><small style="opacity: 0.5; margin-left: 8px;">v1.0.0 RC7</small> <span id="currentLayoutDevice"
           style="margin-left:8px; color:var(--accent);"></span></span>
     </div>
     <div class="main-header-actions desktop-only">
@@ -369,6 +369,19 @@
         <div class="field" id="field-refresh-time" style="display:none;">
           <div class="prop-label">Wake-up Time (HH:MM)</div>
           <input id="pageSettingsRefreshTime" class="prop-input" type="time" />
+        </div>
+        <div class="field">
+          <div class="prop-label">Visibility Window</div>
+          <div style="display: flex; gap: 8px;">
+            <div style="flex: 1;">
+              <div style="font-size: 10px; color: var(--muted); margin-bottom: 2px;">Start (Optional)</div>
+              <input id="pageSettingsVisibleFrom" class="prop-input" type="time" />
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 10px; color: var(--muted); margin-bottom: 2px;">End (Optional)</div>
+              <input id="pageSettingsVisibleTo" class="prop-input" type="time" />
+            </div>
+          </div>
         </div>
         <div class="field">
           <div class="prop-label">Visual Style</div>

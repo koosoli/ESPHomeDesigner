@@ -4,7 +4,7 @@
   "documentation": "https://github.com/koosoli/ESPHomeDesigner",
   "issue_tracker": "https://github.com/koosoli/ESPHomeDesigner/issues",
   "configuration_url": "/esphome-designer",
-  "version": "1.0.0-rc.6.1",
+  "version": "1.0.0-rc.7",
   "after_dependencies": [
     "http",
     "frontend",

@@ -1,6 +1,4 @@
-/**
- * Weather Icon Plugin
- */
+import { getNestedValue } from '../../js/utils/helpers.js';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -28,9 +26,12 @@ const render = (el, widget, { getColorStyle }) => {
 
         if (stateSet) {
             let state = stateSet.state;
-            // If attribute is specified, try to read it
-            if (attribute && stateSet.attributes && stateSet.attributes[attribute] !== undefined) {
-                state = stateSet.attributes[attribute];
+            // If attribute is specified, try to read it. Supports nested paths.
+            if (attribute && stateSet.attributes) {
+                const attrVal = getNestedValue(stateSet.attributes, attribute);
+                if (attrVal !== undefined) {
+                    state = attrVal;
+                }
             }
 
             if (state !== null && state !== undefined) {
@@ -128,10 +129,10 @@ const exportDoc = (w, context) => {
     if (cond) lines.push(`        ${cond}`);
 
     if (entityId) {
-        // Helper to create safe ESPHome ID (max 59 chars before suffix for 63 char limit)
-        const attribute = (p.attribute || "").trim();
+        const attributePath = (p.attribute || "").trim();
+        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.\[]/)[0] : attributePath;
         const makeSafeId = (eid, suffix = "") => {
-            const base = attribute ? (eid + "_" + attribute) : eid;
+            const base = rootAttr ? (eid + "_" + rootAttr) : eid;
             let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");
             const maxBase = 63 - suffix.length;
             if (safe.length > maxBase) safe = safe.substring(0, maxBase);
@@ -194,9 +195,10 @@ const onExportTextSensors = (context) => {
     }
 
     weatherEntities.forEach(({ id, entity_id, attribute }) => {
-        // Helper to create safe ESPHome ID (max 59 chars)
+        const attributePath = (attribute || "").trim();
+        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.\[]/)[0] : attributePath;
         const makeSafeId = (eid, suffix = "") => {
-            const base = attribute ? (eid + "_" + attribute) : eid;
+            const base = rootAttr ? (eid + "_" + rootAttr) : eid;
             let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");
             const maxBase = 63 - suffix.length;
             if (safe.length > maxBase) safe = safe.substring(0, maxBase);
@@ -220,8 +222,8 @@ const onExportTextSensors = (context) => {
             lines.push("- platform: homeassistant");
             lines.push(`  id: ${safeId}`);
             lines.push(`  entity_id: ${entity_id}`);
-            if (attribute) {
-                lines.push(`  attribute: ${attribute}`);
+            if (rootAttr) {
+                lines.push(`  attribute: ${rootAttr}`);
             }
             lines.push(`  internal: true`);
         }
@@ -334,9 +336,10 @@ export default {
         let lambdaStr = '"\\U000F0599"'; // Default: sunny
         if (entityId) {
             // Helper to create safe ESPHome ID (max 59 chars)
-            const attribute = (p.attribute || "").trim();
+            const attributePath = (p.attribute || "").trim();
+            const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.\[]/)[0] : attributePath;
             const makeSafeId = (eid, suffix = "") => {
-                const base = attribute ? (eid + "_" + attribute) : eid;
+                const base = rootAttr ? (eid + "_" + rootAttr) : eid;
                 let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");
                 const maxBase = 63 - suffix.length;
                 if (safe.length > maxBase) safe = safe.substring(0, maxBase);

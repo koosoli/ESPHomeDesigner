@@ -45,6 +45,17 @@ class HistoryProxyView(DesignerBaseView):
         try:
             # Try the new async history API first (HA 2023.5+)
             states = await self._get_history_async(entity_id, start_time, end_time)
+            
+            # Check for CSV format request (used by ESPHome devices)
+            if request.query.get("format") == "csv":
+                points_str = request.query.get("points")
+                try:
+                    target_points = int(points_str) if points_str else 0
+                except (ValueError, TypeError):
+                    target_points = 0
+                
+                return self._render_csv(states, target_points)
+
             return self.json(states, request=request)
 
         except Exception as err:
@@ -133,6 +144,31 @@ class HistoryProxyView(DesignerBaseView):
                     "last_updated": state.last_updated.isoformat() if state.last_updated else None,
                 })
         return states
+
+    def _render_csv(self, states: list, target_points: int = 0) -> web.Response:
+        """Render states as a simple comma-separated string of values."""
+        values = []
+        for s in states:
+            try:
+                # Only include numeric states
+                val = float(s["state"])
+                values.append(val)
+            except (ValueError, TypeError):
+                continue
+
+        # Downsample if requested
+        if target_points > 0 and len(values) > target_points:
+            # Simple downsampling: take evenly spaced indices
+            indices = [int(i * (len(values) - 1) / (target_points - 1)) for i in range(target_points)]
+            values = [values[i] for i in indices]
+
+        csv_content = ",".join(f"{v:.2f}" if v % 1 != 0 else f"{int(v)}" for v in values)
+        
+        return web.Response(
+            text=csv_content,
+            content_type="text/plain",
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
 
     def _parse_duration(self, duration_str: str) -> int:
         """Parse duration string like '24h', '1d', '30m' to seconds."""

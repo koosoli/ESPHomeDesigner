@@ -52,7 +52,25 @@ export function deepClone(obj) {
     return JSON.parse(JSON.stringify(obj));
 }
 
+/**
+ * Access nested properties in an object using a string path (e.g. "entries.days.0.day")
+ * @param {Object} obj - The object to traverse.
+ * @param {string} path - The path to the desired property.
+ * @returns {*} The value at the specified path, or undefined if not found.
+ */
+export const getNestedValue = (obj, path) => {
+    if (!obj || !path) return undefined;
+    const parts = path.replace(/\[(\w+)\]/g, '.$1').replace(/^\./, '').split('.');
+    let current = obj;
+    for (const part of parts) {
+        if (current === null || current === undefined) return undefined;
+        current = current[part];
+    }
+    return current;
+};
+
 // Global exposure for transition
 window.generateId = generateId;
 window.debounce = debounce;
 window.deepClone = deepClone;
+window.getNestedValue = getNestedValue;

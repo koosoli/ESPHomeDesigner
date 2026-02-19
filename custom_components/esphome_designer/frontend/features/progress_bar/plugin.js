@@ -10,7 +10,14 @@ const render = (el, widget, tools) => {
     const barHeight = props.bar_height || 15;
     const borderWidth = props.border_width || 1;
     const color = props.color || "theme_auto";
-    const colorStyle = getColorStyle(color);
+
+    const orientation = props.orientation || "horizontal";
+    const isVertical = orientation === "vertical";
+    const fontSize = props.font_size || 12;
+    const textAlign = props.text_align || "CENTER";
+    const min = parseFloat(props.min !== undefined ? props.min : 0);
+    const max = parseFloat(props.max !== undefined ? props.max : 100);
+    const range = max - min;
 
     let percentValue = 50;
 
@@ -20,86 +27,89 @@ const render = (el, widget, tools) => {
         if (state !== undefined && state !== null) {
             const numVal = parseFloat(String(state).replace(/[^0-9.-]/g, ''));
             if (!isNaN(numVal)) {
-                percentValue = Math.max(0, Math.min(100, numVal));
+                percentValue = range === 0 ? 0 : Math.max(0, Math.min(100, (numVal - min) / range * 100));
             }
         }
     }
 
     const isDark = tools.isDark;
 
-    // Helper for simple inversion
     const getRenderColor = (c) => {
-        if (c === "theme_auto") return isDark ? "#ffffff" : "#000000"; // Text default
+        if (c === "theme_auto") return isDark ? "#ffffff" : "#000000";
         if (c === "white" || c === "#ffffff") return isDark ? "#000000" : "#ffffff";
         if (c === "black" || c === "#000000") return isDark ? "#ffffff" : "#000000";
         return getColorStyle(c);
     };
 
-    // Text Color is determined by `color` prop (default theme_auto)
-    // If it's a progress bar, `color` usually means the FILLED part?
-    // Let's check:
-    // barFill.style.backgroundColor = colorStyle; (line 71)
-    // el.style.color = colorStyle; (line 33)
-
-    // So `color` is BOTH Text and Fill.
-
     let renderColor = getRenderColor(color);
 
     el.innerHTML = "";
     el.style.display = "flex";
-    el.style.flexDirection = "column";
+    el.style.flexDirection = isVertical ? "row" : "column";
     el.style.justifyContent = "center";
+    el.style.alignItems = "center";
     el.style.gap = "4px";
     el.style.color = renderColor;
 
-    if (showLabel && (label || showPercentage)) {
-        const labelRow = document.createElement("div");
-        labelRow.style.display = "flex";
-        labelRow.style.justifyContent = "space-between";
-        labelRow.style.alignItems = "center";
-        labelRow.style.fontSize = "12px";
-        labelRow.style.paddingBottom = "2px";
+    const labelRow = document.createElement("div");
+    labelRow.style.display = "flex";
+    labelRow.style.flexDirection = isVertical ? "column" : "row";
+    labelRow.style.justifyContent = isVertical ? "space-between" : (textAlign === "CENTER" ? "space-between" : (textAlign === "LEFT" ? "flex-start" : "flex-end"));
+    labelRow.style.alignItems = "center";
+    labelRow.style.fontSize = `${fontSize}px`;
+    labelRow.style.paddingBottom = isVertical ? "0" : "2px";
+    labelRow.style.paddingRight = isVertical ? "2px" : "0";
+    if (isVertical) {
+        labelRow.style.height = "100%";
+    } else {
         labelRow.style.width = "100%";
+    }
 
-        if (label) {
-            const labelSpan = document.createElement("span");
-            labelSpan.textContent = label;
-            labelRow.appendChild(labelSpan);
-        }
+    if (showLabel && label) {
+        const labelSpan = document.createElement("span");
+        labelSpan.textContent = label;
+        labelRow.appendChild(labelSpan);
+    }
 
-        if (showPercentage) {
-            const pctSpan = document.createElement("span");
-            pctSpan.textContent = Math.round(percentValue) + "%";
-            labelRow.appendChild(pctSpan);
-        }
+    if (showPercentage) {
+        const pctSpan = document.createElement("span");
+        pctSpan.textContent = Math.round(percentValue) + "%";
+        labelRow.appendChild(pctSpan);
+    }
 
+    if (labelRow.childNodes.length > 0) {
         el.appendChild(labelRow);
     }
 
     const barContainer = document.createElement("div");
-    barContainer.style.width = "100%";
-    barContainer.style.height = `${barHeight}px`;
+    if (isVertical) {
+        barContainer.style.width = `${barHeight}px`;
+        barContainer.style.height = "100%";
+    } else {
+        barContainer.style.width = "100%";
+        barContainer.style.height = `${barHeight}px`;
+    }
     barContainer.style.border = `${borderWidth}px solid ${renderColor}`;
     barContainer.style.borderRadius = "2px";
     barContainer.style.position = "relative";
     barContainer.style.overflow = "hidden";
 
-    // Background of the bar container
-    // Default logic was: color === "white" ? "#000" : "#fff";
-    // Now we want dynamic.
-    // If Fill/Border is White (Dark Mode), Bg should be Black.
-    // If Fill/Border is Black (Light Mode), Bg should be White.
-    // If Fill is Red, Bg should be White/Black depending on theme?
-    // Let's stick to the previous simple logic but adapted for dynamic `renderColor`.
-
     const isRenderColorLight = (c) => c === "#ffffff" || c === "white" || c === "#fff";
     barContainer.style.backgroundColor = isRenderColorLight(renderColor) ? "#000000" : "#ffffff";
 
     const barFill = document.createElement("div");
-    barFill.style.width = `${percentValue}%`;
-    barFill.style.height = "100%";
+    if (isVertical) {
+        barFill.style.width = "100%";
+        barFill.style.height = `${percentValue}%`;
+        barFill.style.position = "absolute";
+        barFill.style.bottom = "0";
+        barFill.style.transition = "height 0.3s ease";
+    } else {
+        barFill.style.width = `${percentValue}%`;
+        barFill.style.height = "100%";
+        barFill.style.transition = "width 0.3s ease";
+    }
     barFill.style.backgroundColor = renderColor;
-    barFill.style.transition = "width 0.3s ease";
 
     barContainer.appendChild(barFill);
     el.appendChild(barContainer);
@@ -115,8 +125,8 @@ const exportLVGL = (w, { common, convertColor }) => {
     return {
         bar: {
             ...common,
-            min_value: p.min || 0,
-            max_value: p.max || 100,
+            min_value: p.min !== undefined ? p.min : 0,
+            max_value: p.max !== undefined ? p.max : 100,
             value: barValue,
             bg_color: convertColor(p.bg_color || "white"),
             indicator: { bg_color: convertColor(p.color) },
@@ -137,6 +147,12 @@ const exportDoc = (w, context) => {
     const showPercentage = p.show_percentage !== false;
     const barHeight = parseInt(p.bar_height || 15, 10);
     const colorProp = p.color || "theme_auto";
+    const orientation = p.orientation || "horizontal";
+    const isVertical = orientation === "vertical";
+    const fontSize = p.font_size || 12;
+    const textAlign = p.text_align || "CENTER";
+    const min = parseFloat(p.min !== undefined ? p.min : 0);
+    const max = parseFloat(p.max !== undefined ? p.max : 100);
 
     const getDynamicColor = (c) => {
         if (c === "theme_auto") return "color_on";
@@ -146,15 +162,14 @@ const exportDoc = (w, context) => {
     };
 
     const color = getDynamicColor(colorProp);
-
-    const fontId = addFont("Roboto", 400, 12);
+    const fontId = addFont("Roboto", 400, fontSize);
 
     // Ensure sensor. prefix if missing and it's not a local sensor
     if (entityId && !p.is_local_sensor && !entityId.includes(".")) {
         entityId = `sensor.${entityId}`;
     }
 
-    lines.push(`        // widget:progress_bar id:${w.id} type:progress_bar x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} title:"${title}" show_label:${showLabel} show_pct:${showPercentage} bar_height:${barHeight} color:${colorProp} local:${!!p.is_local_sensor} ${getCondProps(w)}`);
+    lines.push(`        // widget:progress_bar id:${w.id} type:progress_bar x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} title:"${title}" orientation:${orientation} range:[${min},${max}] color:${colorProp} local:${!!p.is_local_sensor} ${getCondProps(w)}`);
 
     // Background fill
     const bgColorProp = p.bg_color || p.background_color || "transparent";
@@ -169,27 +184,53 @@ const exportDoc = (w, context) => {
     const sensorId = p.is_local_sensor ? (entityId || "battery_level") : (entityId ? entityId.replace(/[^a-zA-Z0-9_]/g, "_") : "");
 
     if (sensorId) {
-        lines.push(`        float val_${w.id.replace(/-/g, '_')} = id(${sensorId}).state;`);
-        lines.push(`        if (std::isnan(val_${w.id.replace(/-/g, '_')})) val_${w.id.replace(/-/g, '_')} = 0;`);
-        lines.push(`        int pct_${w.id.replace(/-/g, '_')} = (int)val_${w.id.replace(/-/g, '_')};`);
-        lines.push(`        if (pct_${w.id.replace(/-/g, '_')} < 0) pct_${w.id.replace(/-/g, '_')} = 0;`);
-        lines.push(`        if (pct_${w.id.replace(/-/g, '_')} > 100) pct_${w.id.replace(/-/g, '_')} = 100;`);
+        const idSuffix = w.id.replace(/-/g, '_');
+        lines.push(`        float val_${idSuffix} = id(${sensorId}).state;`);
+        lines.push(`        if (std::isnan(val_${idSuffix})) val_${idSuffix} = ${min};`);
+        lines.push(`        float range_${idSuffix} = ${max} - ${min};`);
+        lines.push(`        int pct_${idSuffix} = (range_${idSuffix} == 0) ? 0 : (int)((val_${idSuffix} - ${min}) / range_${idSuffix} * 100);`);
+        lines.push(`        if (pct_${idSuffix} < 0) pct_${idSuffix} = 0;`);
+        lines.push(`        if (pct_${idSuffix} > 100) pct_${idSuffix} = 100;`);
 
-        if (showLabel && title) {
-            lines.push(`        it.printf(${w.x}, ${w.y}, id(${fontId}), ${color}, TextAlign::TOP_LEFT, "${title}");`);
+        if (isVertical) {
+            if (showLabel && title) {
+                lines.push(`        it.printf(${w.x} + ${w.width}/2, ${w.y}, id(${fontId}), ${color}, TextAlign::TOP_CENTER, "${title}");`);
+            }
+            if (showPercentage) {
+                lines.push(`        it.printf(${w.x} + ${w.width}/2, ${w.y} + ${w.height} - ${fontSize}, id(${fontId}), ${color}, TextAlign::TOP_CENTER, "%d%%", pct_${idSuffix});`);
+            }
+            // Vertical bar
+            const barX = Math.round(w.x + (w.width - barHeight) / 2);
+            const hasLabel = showLabel && title;
+            const barStartY = w.y + (hasLabel ? fontSize + 2 : 0);
+            const barEndY = w.y + w.height - (showPercentage ? fontSize + 2 : 0);
+            const totalBarH = barEndY - barStartY;
+
+            lines.push(`        it.rectangle(${barX}, ${barStartY}, ${barHeight}, ${totalBarH}, ${color});`);
+            lines.push(`        if (pct_${idSuffix} > 0) {`);
+            lines.push(`          int bar_h = (${totalBarH} - 4) * pct_${idSuffix} / 100;`);
+            lines.push(`          it.filled_rectangle(${barX + 2}, ${barStartY} + ${totalBarH} - 2 - bar_h, ${barHeight - 4}, bar_h, ${color});`);
+            lines.push(`        }`);
+        } else {
+            const labelAlign = textAlign === "RIGHT" ? "TextAlign::TOP_RIGHT" : (textAlign === "CENTER" ? "TextAlign::TOP_LEFT" : "TextAlign::TOP_LEFT");
+            const pctAlign = textAlign === "LEFT" ? "TextAlign::TOP_LEFT" : "TextAlign::TOP_RIGHT";
+            const labelX = textAlign === "RIGHT" ? `${w.x} + ${w.width}` : `${w.x}`;
+            const pctX = textAlign === "LEFT" ? `${w.x}` : `${w.x} + ${w.width}`;
+
+            if (showLabel && title) {
+                lines.push(`        it.printf(${labelX}, ${w.y}, id(${fontId}), ${color}, ${labelAlign}, "${title}");`);
+            }
+            if (showPercentage) {
+                lines.push(`        it.printf(${pctX}, ${w.y}, id(${fontId}), ${color}, ${pctAlign}, "%d%%", pct_${idSuffix});`);
+            }
+            const barY = w.y + (w.height - barHeight);
+            lines.push(`        it.rectangle(${w.x}, ${barY}, ${w.width}, ${barHeight}, ${color});`);
+            lines.push(`        if (pct_${idSuffix} > 0) {`);
+            lines.push(`          int bar_w = (${w.width} - 4) * pct_${idSuffix} / 100;`);
+            lines.push(`          it.filled_rectangle(${w.x} + 2, ${barY} + 2, bar_w, ${barHeight} - 4, ${color});`);
+            lines.push(`        }`);
         }
-        if (showPercentage) {
-            lines.push(`        it.printf(${w.x} + ${w.width}, ${w.y}, id(${fontId}), ${color}, TextAlign::TOP_RIGHT, "%d%%", pct_${w.id.replace(/-/g, '_')});`);
-        }
-
-        const barY = w.y + (w.height - barHeight);
-        lines.push(`        it.rectangle(${w.x}, ${barY}, ${w.width}, ${barHeight}, ${color});`);
-
-        lines.push(`        if (pct_${w.id.replace(/-/g, '_')} > 0) {`);
-        lines.push(`          int bar_w = (${w.width} - 4) * pct_${w.id.replace(/-/g, '_')} / 100;`);
-        lines.push(`          it.filled_rectangle(${w.x} + 2, ${barY} + 2, bar_w, ${barHeight} - 4, ${color});`);
-        lines.push(`        }`);
-        addDitherMask(lines, colorProp, isEpaper, w.x, barY, w.width, barHeight, 2);
+        addDitherMask(lines, colorProp, isEpaper, w.x, w.y, w.width, w.height, 2);
     } else {
         lines.push(`        it.rectangle(${w.x}, ${w.y} + ${w.height} - ${barHeight}, ${w.width}, ${barHeight}, ${color});`);
         lines.push(`        it.filled_rectangle(${w.x} + 2, ${w.y} + ${w.height} - ${barHeight} + 2, ${w.width} / 2, ${barHeight} - 4, ${color});`);
@@ -223,9 +264,6 @@ const onExportNumericSensors = (context) => {
             }
             pendingTriggers.get(entityId).add(`- lvgl.widget.refresh: ${w.id}`);
         }
-
-        // We let the safety fix handle the sensor generation for HA entities.
-        // It will deduplicate and merge triggers automatically.
     }
 };
 
@@ -243,14 +281,22 @@ export default {
         bg_color: "white",
         min: 0,
         max: 100,
+        orientation: "horizontal",
+        font_size: 12,
+        text_align: "CENTER",
         mode: "normal"
     },
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "").trim();
+        const min = parseFloat(p.min !== undefined ? p.min : 0);
+        const max = parseFloat(p.max !== undefined ? p.max : 100);
         const template = TemplateConverter.toHATemplate(entityId, { precision: 0, isNumeric: true });
         const color = p.color || "black";
+
+        // Convert to percentage for OpenDisplay if it expects 0-100
+        const pctTemplate = template ? `{{ ((${template} - ${min}) / (${max} - ${min}) * 100) | round(0) }}` : 50;
 
         return {
             type: "progress_bar",
@@ -258,12 +304,12 @@ export default {
             y_start: Math.round(w.y),
             x_end: Math.round(w.x + w.width),
             y_end: Math.round(w.y + w.height),
-            progress: template || 50,
+            progress: pctTemplate,
             background: p.bg_color || "white",
             fill: color,
             outline: p.border_color || color,
             width: p.border_width || 1,
-            direction: p.direction || "right",
+            direction: p.orientation === "vertical" ? "up" : "right",
             show_percentage: p.show_percentage !== false
         };
     },
@@ -275,51 +321,93 @@ export default {
         const showPercentage = p.show_percentage !== false;
         const barHeight = parseInt(p.bar_height || 15, 10);
         const color = p.color || "black";
+        const min = parseFloat(p.min !== undefined ? p.min : 0);
+        const max = parseFloat(p.max !== undefined ? p.max : 100);
+        const orientation = p.orientation || "horizontal";
+        const isVertical = orientation === "vertical";
+        const fontSize = p.font_size || 12;
 
         const elements = [];
         const template = TemplateConverter.toHATemplate(entityId, { precision: 0, isNumeric: true });
+        const pctTemplate = template ? `{{ ((${template} - ${min}) / (${max} - ${min}) * 100) | round(0) }}` : 50;
 
-        // Label
-        if (showLabel && title) {
+        if (isVertical) {
+            if (showLabel && title) {
+                elements.push({
+                    type: "text",
+                    value: title,
+                    x: Math.round(w.x + w.width / 2),
+                    y: Math.round(w.y),
+                    size: fontSize,
+                    color: color,
+                    anchor: "mt"
+                });
+            }
+            if (showPercentage) {
+                elements.push({
+                    type: "text",
+                    value: `${pctTemplate}%`,
+                    x: Math.round(w.x + w.width / 2),
+                    y: Math.round(w.y + w.height),
+                    size: fontSize,
+                    color: color,
+                    anchor: "mb"
+                });
+            }
+            const barStartY = Math.round(w.y + (showLabel ? fontSize + 2 : 0));
+            const barEndY = Math.round(w.y + w.height - (showPercentage ? fontSize + 2 : 0));
             elements.push({
-                type: "text",
-                value: title,
-                x: Math.round(w.x),
-                y: Math.round(w.y),
-                size: 12,
+                type: "progress",
+                x_start: Math.round(w.x + (w.width - barHeight) / 2),
+                y_start: barStartY,
+                x_end: Math.round(w.x + (w.width + barHeight) / 2),
+                y_end: barEndY,
+                value: pctTemplate,
                 color: color,
-                anchor: "lt"
+                outline: color,
+                fill: color,
+                width: 1,
+                direction: "up"
+            });
+        } else {
+            // Horizontal
+            if (showLabel && title) {
+                elements.push({
+                    type: "text",
+                    value: title,
+                    x: Math.round(w.x),
+                    y: Math.round(w.y),
+                    size: fontSize,
+                    color: color,
+                    anchor: "lt"
+                });
+            }
+            if (showPercentage) {
+                elements.push({
+                    type: "text",
+                    value: `${pctTemplate}%`,
+                    x: Math.round(w.x + w.width),
+                    y: Math.round(w.y),
+                    size: fontSize,
+                    color: color,
+                    align: "right",
+                    anchor: "rt"
+                });
+            }
+            const barY = Math.round(w.y + (w.height - barHeight));
+            elements.push({
+                type: "progress",
+                x_start: Math.round(w.x),
+                y_start: barY,
+                x_end: Math.round(w.x + w.width),
+                y_end: Math.round(barY + barHeight),
+                value: pctTemplate,
+                color: color,
+                outline: color,
+                fill: color,
+                width: 1
             });
         }
-
-        // Percentage
-        if (showPercentage) {
-            elements.push({
-                type: "text",
-                value: `${template}%`,
-                x: Math.round(w.x + w.width),
-                y: Math.round(w.y),
-                size: 12,
-                color: color,
-                align: "right",
-                anchor: "rt"
-            });
-        }
-
-        // Bar
-        const barY = Math.round(w.y + (w.height - barHeight));
-        elements.push({
-            type: "progress",
-            x_start: Math.round(w.x),
-            y_start: barY,
-            x_end: Math.round(w.x + w.width),
-            y_end: Math.round(barY + barHeight),
-            value: template,
-            color: color,
-            outline: color,
-            fill: color,
-            width: 1
-        });
 
         return elements;
     },

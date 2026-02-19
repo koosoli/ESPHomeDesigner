@@ -19,6 +19,8 @@ export class PageSettings {
         this.layoutModeInput = document.getElementById('pageSettingsLayoutMode');
         this.gridSizeInput = document.getElementById('pageSettingsGridSize');
         this.fieldGridSize = document.getElementById('field-grid-size');
+        this.visibleFromInput = document.getElementById('pageSettingsVisibleFrom');
+        this.visibleToInput = document.getElementById('pageSettingsVisibleTo');
         this.pageIndex = -1;
     }
 
@@ -74,6 +76,12 @@ export class PageSettings {
         if (this.gridSizeInput) {
             this.gridSizeInput.value = page.layout || "4x4";
         }
+        if (this.visibleFromInput) {
+            this.visibleFromInput.value = page.visible_from || "";
+        }
+        if (this.visibleToInput) {
+            this.visibleToInput.value = page.visible_to || "";
+        }
 
         this.updateVisibility();
         this.updateGridVisibility();
@@ -102,6 +110,8 @@ export class PageSettings {
         // Grid Layout
         const layoutMode = this.layoutModeInput ? this.layoutModeInput.value : 'absolute';
         const gridSize = this.gridSizeInput ? this.gridSizeInput.value.trim() : "";
+        const visibleFrom = this.visibleFromInput ? this.visibleFromInput.value : "";
+        const visibleTo = this.visibleToInput ? this.visibleToInput.value : "";
 
         page.name = name;
         page.refresh_type = mode;
@@ -128,6 +138,12 @@ export class PageSettings {
         } else {
             page.layout = null;
         }
+
+        if (visibleFrom) page.visible_from = visibleFrom;
+        else delete page.visible_from;
+
+        if (visibleTo) page.visible_to = visibleTo;
+        else delete page.visible_to;
 
         AppState.setPages(AppState.pages); // Trigger update
 

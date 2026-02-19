@@ -177,6 +177,30 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
                     const doc = JSON.parse(stateObj.state);
                     liveEvents = doc.days || doc;
                 }
+                // STRATEGY 3: Standard HA calendar entity (has message, start_time, etc.)
+                else if (!liveEvents && stateObj.attributes) {
+                    const msg = stateObj.attributes.message;
+                    if (msg !== undefined) {
+                        const now = new Date();
+                        const start = stateObj.attributes.start_time || "";
+                        const end = stateObj.attributes.end_time || "";
+                        const isAllDay = stateObj.attributes.all_day === true;
+
+                        liveEvents = [{
+                            day: now.getDate(),
+                            all_day: isAllDay ? [{
+                                summary: msg,
+                                start: start,
+                                end: end
+                            }] : [],
+                            other: !isAllDay ? [{
+                                summary: msg,
+                                start: start,
+                                end: end
+                            }] : []
+                        }];
+                    }
+                }
             } catch (e) {
                 console.warn("[Calendar Widget] Failed to parse live state/attributes:", e);
             }

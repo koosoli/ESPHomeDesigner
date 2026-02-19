@@ -824,37 +824,6 @@ export class PropertiesPanel {
             this.addDropShadowButton(this.getContainer(), widget.id);
             this.endSection();
         }
-        else if (type === "weather_icon") {
-            this.createSection("Weather", true);
-            this.addLabeledInputWithPicker("Weather Entity", "text", widget.entity_id || props.weather_entity || "weather.forecast_home", (v) => {
-                AppState.updateWidget(widget.id, { entity_id: v });
-            }, widget);
-            this.endSection();
-
-            this.createSection("Appearance", true);
-            this.addLabeledInput("Icon Size", "number", props.size || 48, (v) => updateProp("size", parseInt(v, 10)));
-            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
-            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
-            this.addDropShadowButton(this.getContainer(), widget.id);
-            this.endSection();
-        }
-        else if (type === "weather_forecast") {
-            this.createSection("Forecasting", true);
-            this.addLabeledInputWithPicker("Weather Entity", "text", widget.entity_id || props.weather_entity || "weather.forecast_home", (v) => {
-                AppState.updateWidget(widget.id, { entity_id: v });
-            }, widget);
-            this.addLabeledInput("Days", "number", props.days || 5, (v) => updateProp("days", parseInt(v, 10)));
-            this.addSelect("Layout", props.layout || "horizontal", ["horizontal", "vertical"], (v) => updateProp("layout", v));
-            this.addLabeledInput("Precision", "number", props.precision !== undefined ? props.precision : 1, (v) => updateProp("precision", parseInt(v, 10)));
-            this.endSection();
-
-            this.createSection("Appearance", true);
-            this.addColorSelector("Text Color", props.color || "black", colors, (v) => updateProp("color", v));
-            this.addColorSelector("Background", props.background_color || "white", colors, (v) => updateProp("background_color", v));
-            this.addCheckbox("Show High/Low", props.show_high_low !== false, (v) => updateProp("show_high_low", v));
-            this.addDropShadowButton(this.getContainer(), widget.id);
-            this.endSection();
-        }
         else if (type.startsWith("shape_") || type === "line" || type === "rounded_rect") {
             this.createSection("Shape Style", true);
             this.addColorSelector("Fill/Line Color", props.color || "black", colors, (v) => updateProp("color", v));
@@ -1153,7 +1122,7 @@ export class PropertiesPanel {
                 }
             }, widget);
             this.addLabeledInput("Attribute (optional)", "text", props.attribute || "", (v) => updateProp("attribute", v.trim()));
-            this.addHint("Read a specific attribute instead of the entity state, e.g. 'temperature' or 'forecast'.");
+            this.addHint("Read a specific attribute, supports nested paths (e.g. 'entries.days.0.day').");
             // Text Sensor toggle (auto-detected when entity is selected)
             this.addCheckbox("Text Sensor (string value)", props.is_text_sensor || false, (v) => updateProp("is_text_sensor", v));
             this.addHint("Enable if entity returns text instead of numbers.");
@@ -1162,6 +1131,8 @@ export class PropertiesPanel {
             this.addLabeledInputWithPicker("Secondary Entity ID", "text", widget.entity_id_2 || "", (v) => {
                 AppState.updateWidget(widget.id, { entity_id_2: v });
             }, widget);
+            this.addLabeledInput("Secondary Attribute", "text", props.attribute2 || "", (v) => updateProp("attribute2", v.trim()));
+            this.addHint("Optional attribute for the secondary entity.");
             this.addLabeledInput("Title/Label", "text", widget.title || "", (v) => {
                 AppState.updateWidget(widget.id, { title: v });
             });
@@ -1329,6 +1300,10 @@ export class PropertiesPanel {
                     this.autoPopulateTitleFromEntity(widget.id, v);
                 }
             }, widget);
+            this.addCompactPropertyRow(() => {
+                this.addLabeledInput("Min Value", "number", props.min !== undefined ? props.min : 0, (v) => updateProp("min", parseFloat(v)));
+                this.addLabeledInput("Max Value", "number", props.max !== undefined ? props.max : 100, (v) => updateProp("max", parseFloat(v)));
+            });
             this.addCheckbox("Local / On-Device Sensor", !!props.is_local_sensor, (v) => updateProp("is_local_sensor", v));
             this.addHint("Use internal battery_level/signal sensor.");
             this.addLabeledInput("Title/Label", "text", widget.title || "", (v) => {
@@ -1337,13 +1312,18 @@ export class PropertiesPanel {
             this.endSection();
 
             this.createSection("Appearance", true);
+            this.addSelect("Orientation", props.orientation || "horizontal", [{ value: "horizontal", label: "Horizontal" }, { value: "vertical", label: "Vertical" }], (v) => updateProp("orientation", v));
             this.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => {
                 updateProp("opacity", v);
             });
             this.addCheckbox("Show Label", props.show_label !== false, (v) => updateProp("show_label", v));
             this.addCheckbox("Show Percentage", props.show_percentage !== false, (v) => updateProp("show_percentage", v));
             this.addCompactPropertyRow(() => {
-                this.addLabeledInput("Bar H", "number", props.bar_height || 15, (v) => {
+                this.addLabeledInput("Font Size", "number", props.font_size || 12, (v) => updateProp("font_size", parseInt(v, 10)));
+                this.addSelect("Text Align", props.text_align || "CENTER", ["LEFT", "CENTER", "RIGHT"], (v) => updateProp("text_align", v));
+            });
+            this.addCompactPropertyRow(() => {
+                this.addLabeledInput("Bar Height/Width", "number", props.bar_height || 15, (v) => {
                     const val = parseInt(v, 10);
                     updateProp("bar_height", isNaN(val) ? 15 : val);
                 });
@@ -1353,6 +1333,7 @@ export class PropertiesPanel {
                 });
             });
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
+            this.addColorSelector("Background", props.bg_color || "white", colors, (v) => updateProp("bg_color", v));
             this.endSection();
         }
         else if (type === "graph") {
@@ -1364,15 +1345,16 @@ export class PropertiesPanel {
                 AppState.updateWidget(widget.id, { title: v });
             });
             this.addLabeledInput("Duration", "text", props.duration || "1h", (v) => updateProp("duration", v));
+            this.addHint("The device collects data from boot. The graph fills up over the configured duration.");
             this.endSection();
 
-            this.createSection("Historical Data", false);
-            this.addCheckbox("Use HA History (Attribute)", !!props.use_ha_history, (v) => updateProp("use_ha_history", v));
+            this.createSection("Advanced: HA History Attribute", false);
+            this.addCheckbox("Read History from HA Attribute", !!props.use_ha_history, (v) => updateProp("use_ha_history", v));
             if (props.use_ha_history) {
                 this.addLabeledInput("HA Attribute", "text", props.history_attribute || "history", (v) => updateProp("history_attribute", v));
                 this.addLabeledInput("Points to keep", "number", props.history_points || 100, (v) => updateProp("history_points", parseInt(v, 10)));
                 this.addCheckbox("Smooth Data (Moving Avg)", !!props.history_smoothing, (v) => updateProp("history_smoothing", v));
-                this.addHint("HA entity must have an attribute that is a JSON array of numbers.");
+                this.addHint('⚠️ <span style="color:orange">Requires a custom HA template sensor that exposes history as a JSON array attribute.</span> Standard HA entities do not have this attribute by default.');
             }
             this.endSection();
 

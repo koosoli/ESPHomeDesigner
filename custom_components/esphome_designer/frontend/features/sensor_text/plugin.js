@@ -1,5 +1,16 @@
 import { TemplateConverter } from '../../js/utils/template_converter.js';
 import { wordWrap, parseColorMarkup, evaluateTemplatePreview } from '../../js/utils/text_utils.js';
+import { getNestedValue } from '../../js/utils/helpers.js';
+
+/** Strict check: returns true only if the entire value is a valid number. */
+const isStrictlyNumeric = (val) => {
+    if (val === null || val === undefined) return false;
+    const s = String(val).trim();
+    return s !== "" && !isNaN(Number(s));
+};
+
+const HA_TEXT_DOMAINS = ["text_sensor.", "weather.", "calendar.", "person.", "device_tracker.", "sun.", "update.", "scene."];
+
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -26,19 +37,25 @@ const render = (el, widget, { getColorStyle }) => {
     let displayUnit = (props.hide_unit || isNoUnit) ? "" : unitProp;
 
     // Helper to format a single value
-    const formatValue = (eId) => {
+    const formatValue = (eId, attrPathOverride = null) => {
         if (window.AppState && window.AppState.entityStates && eId) {
             const entityObj = window.AppState.entityStates[eId];
             if (entityObj && entityObj.state !== undefined) {
-                // If an attribute is specified, read that instead of the state
-                const attribute = (props.attribute || "").trim();
-                if (attribute && entityObj.attributes && entityObj.attributes[attribute] !== undefined) {
-                    const attrVal = entityObj.attributes[attribute];
-                    const numVal = parseFloat(attrVal);
-                    if (!isNaN(numVal)) {
-                        return (!isNaN(precision) && precision >= 0) ? numVal.toFixed(precision) : numVal.toString();
+                // If an attribute is specified, read that instead of the state. Supports nested paths.
+                const attributePath = (attrPathOverride !== null ? attrPathOverride : (props.attribute || "")).trim();
+                if (attributePath && entityObj.attributes) {
+                    const attrVal = getNestedValue(entityObj.attributes, attributePath);
+                    if (attrVal !== undefined) {
+                        if (typeof attrVal === 'object' && attrVal !== null) {
+                            return JSON.stringify(attrVal);
+                        }
+                        const attrStr = String(attrVal).trim();
+                        const numVal = Number(attrStr);
+                        if (attrStr !== "" && !isNaN(numVal)) {
+                            return (!isNaN(precision) && precision >= 0) ? numVal.toFixed(precision) : numVal.toString();
+                        }
+                        return String(attrVal);
                     }
-                    return String(attrVal);
                 }
 
                 const strState = entityObj.formatted || String(entityObj.state);
@@ -85,7 +102,7 @@ const render = (el, widget, { getColorStyle }) => {
     const val1 = formatValue(entityId);
     let val2 = null;
     if (entityId2) {
-        val2 = formatValue(entityId2);
+        val2 = formatValue(entityId2, props.attribute2);
     }
 
     displayValue = val1;
@@ -395,13 +412,48 @@ export default {
         let precision = parseInt(p.precision, 10);
         if (isNaN(precision) || precision < 0) precision = 2;
 
-        const isText1 = p.is_text_sensor || (entityId && (entityId.startsWith("text_sensor.") || entityId.startsWith("weather.")));
-        const isText2 = p.is_text_sensor || (entityId2 && (entityId2.startsWith("text_sensor.") || entityId2.startsWith("weather.")));
+        // Check if the value we are actually going to display is numeric or text
+        let isText1 = p.is_text_sensor;
+        if (!isText1 && entityId) {
+            const isTextDomain = HA_TEXT_DOMAINS.some(d => entityId.startsWith(d));
+            const attribute = (p.attribute || "").trim();
 
-        // Helper to get safe ID (includes attribute in name when present)
-        const attribute = (p.attribute || "").trim();
-        const makeSafeId = (eid, suffix = "") => {
-            const base = attribute ? (eid + "_" + attribute) : eid;
+            if (isTextDomain) {
+                isText1 = true;
+            } else if (attribute && window.AppState?.entityStates?.[entityId]) {
+                // If using an attribute, check the ACTUAL current value to decide type
+                const attrVal = getNestedValue(window.AppState.entityStates[entityId].attributes, attribute);
+                isText1 = !isStrictlyNumeric(attrVal);
+            } else if (window.AppState?.entityStates?.[entityId]) {
+                // Check state if no attribute
+                const stateVal = window.AppState.entityStates[entityId].state;
+                isText1 = !isStrictlyNumeric(stateVal);
+            }
+        }
+
+        let isText2 = p.is_text_sensor;
+        if (!isText2 && entityId2) {
+            const isTextDomain2 = HA_TEXT_DOMAINS.some(d => entityId2.startsWith(d));
+            const attribute2 = (p.attribute2 || "").trim();
+
+            if (isTextDomain2) {
+                isText2 = true;
+            } else if (attribute2 && window.AppState?.entityStates?.[entityId2]) {
+                const attrVal2 = getNestedValue(window.AppState.entityStates[entityId2].attributes, attribute2);
+                isText2 = !isStrictlyNumeric(attrVal2);
+            } else if (window.AppState?.entityStates?.[entityId2]) {
+                const stateVal2 = window.AppState.entityStates[entityId2].state;
+                isText2 = !isStrictlyNumeric(stateVal2);
+            }
+        }
+
+        const attributePath = (p.attribute || "").trim();
+        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.\[]/)[0] : attributePath;
+        const attributePath2 = (p.attribute2 || "").trim();
+        const rootAttr2 = (attributePath2.includes(".") || attributePath2.includes("[")) ? attributePath2.split(/[.\[]/)[0] : attributePath2;
+
+        const makeSafeId = (eid, attr, suffix = "") => {
+            const base = attr ? (eid + "_" + attr) : eid;
             let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");
             const maxBase = 63 - suffix.length;
             if (safe.length > maxBase) safe = safe.substring(0, maxBase);
@@ -409,9 +461,9 @@ export default {
         };
 
         const v1 = p.is_local_sensor ? `id(${entityId || "battery_level"}).state` :
-            (isText1 ? `id(${makeSafeId(entityId, "_txt")}).state.c_str()` : `id(${makeSafeId(entityId)}).state`);
+            (isText1 ? `id(${makeSafeId(entityId, rootAttr, "_txt")}).state.c_str()` : `id(${makeSafeId(entityId, rootAttr)}).state`);
 
-        const v2 = entityId2 ? (isText2 ? `id(${makeSafeId(entityId2, "_txt")}).state.c_str()` : `id(${makeSafeId(entityId2)}).state`) : null;
+        const v2 = entityId2 ? (isText2 ? `id(${makeSafeId(entityId2, rootAttr2, "_txt")}).state.c_str()` : `id(${makeSafeId(entityId2, rootAttr2)}).state`) : null;
 
         const valFmt1 = isText1 ? "%s" : `%.${precision}f`;
         const valFmt2 = isText2 ? "%s" : `%.${precision}f`;
@@ -750,42 +802,59 @@ export default {
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);
 
-        // Helper to check if an entity's current state is non-numeric (auto-detect text sensor)
-        const isEntityStateNonNumeric = (eid) => {
-            if (!eid || !window.AppState?.entityStates) return false;
-            const entityObj = window.AppState.entityStates[eid];
-            if (!entityObj || entityObj.state === undefined) return false;
-            const stateStr = String(entityObj.state);
-            // Check if it's a number (including negative and decimals)
-            return isNaN(parseFloat(stateStr)) || !isFinite(parseFloat(stateStr));
-        };
 
         // Helper to create safe ESPHome ID (max 59 chars before suffix for 63 char limit)
-        const attribute = (p.attribute || "").trim();
-        const makeSafeId = (eid, suffix = "") => {
-            const base = attribute ? (eid + "_" + attribute) : eid;
+        const attributePath1 = (p.attribute || "").trim();
+        const rootAttr1 = (attributePath1.includes(".") || attributePath1.includes("[")) ? attributePath1.split(/[.\[]/)[0] : attributePath1;
+        const attributePath2 = (p.attribute2 || "").trim();
+        const rootAttr2 = (attributePath2.includes(".") || attributePath2.includes("[")) ? attributePath2.split(/[.\[]/)[0] : attributePath2;
+
+        const makeSafeId = (eid, attr, suffix = "") => {
+            const base = attr ? (eid + "_" + attr) : eid;
             let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");
             const maxBase = 63 - suffix.length;
             if (safe.length > maxBase) safe = safe.substring(0, maxBase);
             return safe + suffix;
         };
 
-        // Auto-detect: Check if entity state is non-numeric (like "pm25")
-        const autoDetectText1 = !p.is_local_sensor && isEntityStateNonNumeric(entityId);
-        const autoDetectText2 = !p.is_local_sensor && entityId2 && isEntityStateNonNumeric(entityId2);
 
-        const isText1 = p.is_text_sensor || autoDetectText1 || (entityId && (entityId.startsWith("text_sensor.") || entityId.startsWith("weather.")));
-        const isText2 = (entityId2 && (p.is_text_sensor || autoDetectText2 || entityId2.startsWith("text_sensor.") || entityId2.startsWith("weather.")));
+        // Auto-detect: Check domain and if entity state is non-numeric (like "pm25") or using a string attribute
+        let isText1 = p.is_text_sensor || (entityId && HA_TEXT_DOMAINS.some(d => entityId.startsWith(d)));
+        if (!isText1 && entityId && window.AppState?.entityStates?.[entityId]) {
+            const attribute = (p.attribute || "").trim();
+            if (attribute) {
+                const attrVal = getNestedValue(window.AppState.entityStates[entityId].attributes, attribute);
+                isText1 = !isStrictlyNumeric(attrVal);
+            } else {
+                isText1 = !isStrictlyNumeric(window.AppState.entityStates[entityId].state);
+            }
+        }
+
+        let isText2 = p.is_text_sensor;
+        if (!isText2 && entityId2) {
+            const isTextDomain2 = HA_TEXT_DOMAINS.some(d => entityId2.startsWith(d));
+            const attribute2 = (p.attribute2 || "").trim();
+
+            if (isTextDomain2) {
+                isText2 = true;
+            } else if (attribute2 && window.AppState?.entityStates?.[entityId2]) {
+                const attrVal2 = getNestedValue(window.AppState.entityStates[entityId2].attributes, attribute2);
+                isText2 = !isStrictlyNumeric(attrVal2);
+            } else if (window.AppState?.entityStates?.[entityId2]) {
+                const stateVal2 = window.AppState.entityStates[entityId2].state;
+                isText2 = !isStrictlyNumeric(stateVal2);
+            }
+        }
 
         // Helper to get ESPHome variable name for an entity
-        const getVarName = (eid, isText) => {
+        const getVarName = (eid, attr, isText) => {
             if (p.is_local_sensor) return `id(${eid || "battery_level"})`;
-            if (isText) return `id(${makeSafeId(eid, "_txt")})`;
-            return `id(${makeSafeId(eid)})`;
+            if (isText) return `id(${makeSafeId(eid, attr, "_txt")})`;
+            return `id(${makeSafeId(eid, attr)})`;
         };
 
-        const v1 = getVarName(entityId, isText1);
-        const v2 = entityId2 ? getVarName(entityId2, isText2) : null;
+        const v1 = getVarName(entityId, rootAttr1, isText1);
+        const v2 = entityId2 ? getVarName(entityId2, rootAttr2, isText2) : null;
 
         const valFmt1 = isText1 ? "%s" : `%.${precision}f`;
         const valFmt2 = isText2 ? "%s" : `%.${precision}f`;
@@ -941,17 +1010,18 @@ export default {
 
             if (entityId.startsWith("weather.")) {
                 weatherEntities.add(JSON.stringify({ entity_id: entityId, attribute }));
-            } else if (p.is_text_sensor || isAutoText || entityId.startsWith("text_sensor.")) {
+            } else if (p.is_text_sensor || isAutoText || HA_TEXT_DOMAINS.some(d => entityId.startsWith(d))) {
                 textEntities.add(JSON.stringify({ entity_id: entityId, attribute }));
             }
 
             const entityId2 = (w.entity_id_2 || p.entity_id_2 || "").trim();
             if (entityId2) {
                 const isAutoText2 = !p.is_local_sensor && isEntityStateNonNumeric(entityId2);
+                const attribute2 = (p.attribute2 || "").trim();
                 if (entityId2.startsWith("weather.")) {
-                    weatherEntities.add(JSON.stringify({ entity_id: entityId2, attribute: "" }));
-                } else if (p.is_text_sensor || isAutoText2 || entityId2.startsWith("text_sensor.")) {
-                    textEntities.add(JSON.stringify({ entity_id: entityId2, attribute: "" }));
+                    weatherEntities.add(JSON.stringify({ entity_id: entityId2, attribute: attribute2 }));
+                } else if (p.is_text_sensor || isAutoText2 || HA_TEXT_DOMAINS.some(d => entityId2.startsWith(d))) {
+                    textEntities.add(JSON.stringify({ entity_id: entityId2, attribute: attribute2 }));
                 }
             }
         }
@@ -963,11 +1033,17 @@ export default {
                 let entityId = rawId;
 
                 if (entityId && !entityId.includes(".")) entityId = `weather.${entityId}`;
-                const safeId = makeSafeId(entityId, attribute, "_txt");
+
+                // For nested paths (e.g. entries.days.0), we only want to register the root attribute (entries) in HA.
+                const attributePath = (attribute || "").trim();
+                const isNested = attributePath.includes(".") || attributePath.includes("[");
+                const rootAttr = isNested ? attributePath.split(/[.\[]/)[0] : attributePath;
+
+                const safeId = makeSafeId(entityId, rootAttr, "_txt");
 
                 if (context.seenSensorIds && context.seenSensorIds.has(safeId)) continue;
-                // Unique key includes attribute now
-                const entityKey = attribute ? `${entityId}__attr__${attribute}` : entityId;
+                // Unique key includes attribute now (always root attribute for nested paths)
+                const entityKey = rootAttr ? `${entityId}__attr__${rootAttr}` : entityId;
                 if (context.seenTextEntityIds && context.seenTextEntityIds.has(entityKey)) continue;
 
                 if (!headerAdded) {
@@ -981,8 +1057,8 @@ export default {
                 lines.push("- platform: homeassistant");
                 lines.push(`  id: ${safeId}`);
                 lines.push(`  entity_id: ${entityId}`);
-                if (attribute) {
-                    lines.push(`  attribute: ${attribute}`);
+                if (rootAttr) {
+                    lines.push(`  attribute: ${rootAttr}`);
                 }
                 lines.push(`  internal: true`);
             }
@@ -993,12 +1069,16 @@ export default {
             for (let json of textEntities) {
                 const { entity_id: entityId, attribute } = JSON.parse(json);
 
-                // Don't add text_sensor prefix to sensor.* entities - just register them as text sensors
-                const safeId = makeSafeId(entityId, attribute, "_txt");
+                // For nested paths (e.g. entries.days.0), we only want to register the root attribute (entries) in HA.
+                const attributePath = (attribute || "").trim();
+                const isNested = attributePath.includes(".") || attributePath.includes("[");
+                const rootAttr = isNested ? attributePath.split(/[.\[]/)[0] : attributePath;
+
+                const safeId = makeSafeId(entityId, rootAttr, "_txt");
 
                 if (context.seenSensorIds && context.seenSensorIds.has(safeId)) continue;
 
-                const entityKey = attribute ? `${entityId}__attr__${attribute}` : entityId;
+                const entityKey = rootAttr ? `${entityId}__attr__${rootAttr}` : entityId;
                 if (context.seenTextEntityIds && context.seenTextEntityIds.has(entityKey)) continue;
 
                 if (!headerAdded) {
@@ -1012,8 +1092,8 @@ export default {
                 lines.push("- platform: homeassistant");
                 lines.push(`  id: ${safeId}`);
                 lines.push(`  entity_id: ${entityId}`);
-                if (attribute) {
-                    lines.push(`  attribute: ${attribute}`);
+                if (rootAttr) {
+                    lines.push(`  attribute: ${rootAttr}`);
                 }
                 lines.push(`  internal: true`);
             }

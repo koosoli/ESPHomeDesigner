@@ -466,12 +466,6 @@ const onExportNumericSensors = (context) => {
     const barWidgets = widgets.filter(w => w.type === "template_sensor_bar");
     if (barWidgets.length === 0) return;
 
-    const autoRegister = (entityId) => {
-        if (!entityId || !entityId.includes(".") || entityId.startsWith("text_sensor.") || entityId.startsWith("binary_sensor.")) return;
-
-        // We let the safety fix handle the sensor generation for HA entities.
-        // It will deduplicate and merge triggers automatically.
-    };
 
     barWidgets.forEach(w => {
         const p = w.props || {};
@@ -496,7 +490,44 @@ const onExportNumericSensors = (context) => {
                     if (context.seenSensorIds) context.seenSensorIds.add("wifi_signal_dbm");
                     lines.push("- platform: wifi_signal", "  id: wifi_signal_dbm", "  internal: true");
                 }
+            } else if (p.wifi_entity.includes(".")) {
+                // Register HA WiFi sensor
+                const safeId = p.wifi_entity.replace(/[^a-zA-Z0-9_]/g, "_");
+                if (context.seenSensorIds && !context.seenSensorIds.has(safeId)) {
+                    context.seenSensorIds.add(safeId);
+                    lines.push("- platform: homeassistant", `  id: ${safeId}`, `  entity_id: ${p.wifi_entity}`, "  internal: true");
+                }
             }
+        }
+
+        const registerHaSensor = (eid) => {
+            if (!eid || !eid.includes(".") || eid.startsWith("text_sensor.") || eid.startsWith("binary_sensor.")) return;
+            const safeId = eid.replace(/[^a-zA-Z0-9_]/g, "_");
+            if (context.seenSensorIds && !context.seenSensorIds.has(safeId)) {
+                context.seenSensorIds.add(safeId);
+                lines.push("- platform: homeassistant", `  id: ${safeId}`, `  entity_id: ${eid}`, "  internal: true");
+            }
+        };
+
+        if (p.show_temperature !== false && p.temp_entity && !p.temp_is_local) {
+            let eid = p.temp_entity;
+            if (!eid.includes(".")) eid = `sensor.${eid}`;
+            registerHaSensor(eid);
+            addTrigger(eid);
+        }
+
+        if (p.show_humidity !== false && p.hum_entity && !p.hum_is_local) {
+            let eid = p.hum_entity;
+            if (!eid.includes(".")) eid = `sensor.${eid}`;
+            registerHaSensor(eid);
+            addTrigger(eid);
+        }
+
+        if (p.show_battery !== false && p.bat_entity && !p.bat_is_local) {
+            let eid = p.bat_entity;
+            if (!eid.includes(".")) eid = `sensor.${eid}`;
+            registerHaSensor(eid);
+            addTrigger(eid);
         }
     });
 

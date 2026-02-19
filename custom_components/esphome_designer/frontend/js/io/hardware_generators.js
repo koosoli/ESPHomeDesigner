@@ -733,6 +733,11 @@ export function generatePSRAMSection(profile) {
     const hasPsram = (profile.features && profile.features.psram) || (profile.features && profile.features.features && profile.features.features.psram);
     if (!hasPsram) return [];
 
+    // Chip check: Ensure chip supports PSRAM
+    const chip = (profile.chip || "").toLowerCase();
+    const unsupportedChips = ["esp32-c3", "esp32-c6", "esp8266"];
+    if (unsupportedChips.some(c => chip.includes(c))) return [];
+
     const lines = ["psram:"];
     if (profile.psram_mode) {
         lines.push(`  mode: ${profile.psram_mode}`);

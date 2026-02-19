@@ -171,6 +171,27 @@ export const DEVICE_PROFILES = {
     chip: "esp32-c3",
     board: "esp32-c3-devkitm-1"
   },
+  seeed_xiao_epaper_75: {
+    name: "Seeed Xiao ESP32C3 - 7.5\" E-Paper",
+    displayType: "binary",
+    chip: "esp32-c3",
+    board: "seeed_xiao_esp32c3",
+    displayModel: "7.50inv2p",
+    displayPlatform: "waveshare_epaper",
+    resolution: { width: 800, height: 480 },
+    shape: "rect",
+    pins: {
+      display: { cs: "GPIO3", dc: "GPIO5", reset: "GPIO2", busy: { number: "GPIO4", inverted: true } },
+      spi: { clk: "GPIO8", mosi: "GPIO10" }
+    },
+    features: {
+      psram: false,
+      buzzer: false,
+      buttons: false,
+      epaper: true,
+      inverted_colors: true
+    }
+  },
 
   // ========================================================================
   // WAVESHARE DEVICES

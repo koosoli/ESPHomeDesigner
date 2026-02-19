@@ -1,3 +1,53 @@
+## v1.0.0 RC7 - Extended Domains & Deep Attributes
+**Release Date:** February 19, 2026
+
+### 🏠 Home Assistant Integration
+- **Extended Domain Support**: Added automatic fetching and autocomplete support for `calendar.*`, `person.*`, `device_tracker.*`, `sun.*`, `update.*`, and `scene.*` entities.
+- **Native Calendar Support**: The `calendar` widget now supports standard HA `calendar.*` entities, displaying current event summaries directly from entity attributes.
+
+### 🧪 Advanced Attribute Handling
+- **Deep Attribute Paths**: Added support for dot and bracket notation (e.g., `entries.days.0.day`) in both `sensor_text` and `weather_icon` widgets to navigate nested JSON structures.
+- **Improved Object Preview**: Attributes containing complex objects or arrays (like forecasts or calendar entries) are now beautifully stringified as JSON in the canvas preview instead of showing `[object Object]`.
+- **Smart ID Generation**: Standardized `makeSafeId` across all export paths to ensure valid ESPHome IDs even when using long nested attribute paths.
+- **Automatic Text Sensor Registration**: Entities from text-heavy domains (`person`, `calendar`, `sun`, etc.) are now automatically registered as `text_sensor` in ESPHome, ensuring correct `%s` formatting.
+
+### 🎨 GUI & Designer Enhancements
+- **Pixel-Perfect Text Preview**: Added `overflow: hidden` to both `sensor_text` and standard `text` widgets, ensuring the canvas preview accurately reflects how text is clipped on physical hardware.
+- **Smart Widget Auto-Resize**: The `sensor_text` widget now automatically expands its width to fit long labels and values when real Home Assistant data is connected, preventing accidental clipping during design.
+- **Secondary Attribute Field**: Added a "Secondary Attribute" field to the `sensor_text` widget properties.
+- **Exposed Weather Attributes**: Fixed the `weather_icon` property panel to expose the "Attribute" field.
+- **Improved Guidance**: Added explicit hints in the properties panel explaining how to use nested attribute paths.
+- **Improved Power Management UI**: The PSRAM checkbox is now automatically disabled and unchecked when a chip that doesn't support it (like ESP32-C3) is selected.
+- **Time-based Page Visibility**: Added "Visibility Window" (Start/End) inputs to Page Settings. The generated YAML now includes intelligent C++ orchestration to find the "best" page for the current time, with support for fallback pages and automatic switching between schedules.
+- **Graph History Clarification**: Added helpful hints in the properties panel explaining that native graphs collect data from boot.
+- **Advanced HA History Warning**: Renamed and documented the "HA History Attribute" feature with an explicit warning that it requires a custom HA template sensor to function.
+
+### 📊 Progress Bar Widget Upgrades
+- **Vertical Orientation**: Added support for vertical progress bars. The widget now intelligently adapts its layout and labels when switched to vertical mode.
+- **Custom Value Ranges**: Added "Min Value" and "Max Value" properties. This allows the progress bar to accurately represent data from sensors with any range (e.g., 0-3000 Lux, -20 to 50°C), rather than being hardcoded to 0-100%.
+- **Text Customization**: Added controls for **Font Size** and **Text Alignment** (Left, Center, Right) for title and percentage labels.
+- **Smart Layout**: Automatically positions labels at the top/bottom in vertical mode to maximize bar visibility.
+- **Multi-Platform Support**: Enhancements fully implemented for Direct Display, LVGL, OEPL, and OpenDisplay export paths.
+
+
+### 📱 New Hardware Support
+- **Seeed Xiao ESP32C3 - 7.5" E-Paper**: Added a new (untested) profile for the SeeedStudio Xiao with a 7.5-inch e-ink screen, including correct pin mappings for SPI and the display.
+
+### 🔧 Code Quality & Refinements
+- **Shared Utility**: Moved `getNestedValue` to a shared location to deduplicate code across plugins.
+- **Export Consistency**: Fixed a bug where secondary attributes were not correctly included in the generated ESPHome IDs for text sensors.
+- **Adapter Cleanup**: Removed legacy debugging comments from the ESPHome adapter.
+
+### 🐛 Bug Fixes
+- **Sensor Bar Registration**: Fixed a bug where custom Home Assistant entities for Temperature, Humidity, and Battery in the Sensor Bar widget were not being registered in the ESPHome YAML, causing them to display as "--".
+- **Robust Guarding**: Added sensor-type specific checks (e.g., `temp_is_local`) to prevent spurious Home Assistant sensor registration when hardware sensors are selected.
+- **PSRAM Generation Fix**: Added a chip-level guard to prevent generating the `psram:` YAML section for chips that do not support it (ESP32-C3, ESP32-C6, ESP8266), resolving boot loop issues on these devices.
+- **Daily Refresh Fix**: Fixed a bug in the interval calculation for daily scheduled wake-ups. The system now correctly handles next-day rollovers and calculates the precise number of seconds until the target time.
+- **Round-Trip Meta Consistency**: Added `page:visible_from` and `page:visible_to` markers to ensure visibility settings are preserved during YAML export and re-import.
+
+
+---
+
 ## v1.0.0 RC6.1 - Hotfix & Widget Upgrades
 **Release Date:** February 18, 2026
 

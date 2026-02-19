@@ -650,6 +650,8 @@ export function parseSnippetYamlOffline(yamlText) {
     const darkModeMap = new Map(); // Per-page dark mode setting
     const refreshTypeMap = new Map();
     const refreshTimeMap = new Map();
+    const visibleFromMap = new Map();
+    const visibleToMap = new Map();
     const pagePropsMap = new Map(); // Store page-level properties (bg_color, etc)
     const layoutMap = new Map(); // Grid layout (e.g., "4x4")
 
@@ -783,6 +785,16 @@ export function parseSnippetYamlOffline(yamlText) {
             refreshTimeMap.set(currentPageIndex, refreshTimeMatch[1]);
         }
 
+        const visibleFromMatch = line.match(/\/\/\s*page:visible_from\s+"(.*)"/);
+        if (visibleFromMatch && currentPageIndex !== null) {
+            visibleFromMap.set(currentPageIndex, visibleFromMatch[1]);
+        }
+
+        const visibleToMatch = line.match(/\/\/\s*page:visible_to\s+"(.*)"/);
+        if (visibleToMatch && currentPageIndex !== null) {
+            visibleToMap.set(currentPageIndex, visibleToMatch[1]);
+        }
+
         // Native LVGL Page Properties (Only if NOT in a widgets block to avoid misattribution)
         if (!inWidgetsBlockLookahead) {
             const pgBgColorMatch = line.match(/^\s*bg_color:\s*(.*)/);
@@ -893,6 +905,8 @@ export function parseSnippetYamlOffline(yamlText) {
             refresh_s: intervalMap.has(idx) ? intervalMap.get(idx) : null,
             refresh_type: refreshTypeMap.has(idx) ? refreshTypeMap.get(idx) : "interval",
             refresh_time: refreshTimeMap.has(idx) ? refreshTimeMap.get(idx) : "",
+            visible_from: visibleFromMap.has(idx) ? visibleFromMap.get(idx) : "",
+            visible_to: visibleToMap.has(idx) ? visibleToMap.get(idx) : "",
             dark_mode: darkModeMap.has(idx) ? darkModeMap.get(idx) : "inherit",
             layout: layoutMap.has(idx) ? layoutMap.get(idx) : null,
             bg_color: pagePropsMap.has(idx) ? pagePropsMap.get(idx).bg_color : null,
