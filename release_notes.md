@@ -1,3 +1,20 @@
+## v1.0.0 RC8 - Architecture Cleanup & Stability
+**Release Date:** February 20, 2026
+
+### 🔧 Architecture & Quality Baseline
+- **Achieved A+ Quality Baseline**: Performed a massive cleanup pass to remove architectural debris and diagnostic leftovers.
+- **State Management Simplification**: Optimized `js/core/state.js` by removing redundant double-proxies, ensuring faster and more predictable state access.
+- **`js-yaml` Modernization**: Successfully migrated the project from legacy global scripts to a native NPM dependency for `js-yaml`, using robust ES Module namespace imports.
+- **Root Directory Sanitization**: Deleted 70+ legacy verification scripts, stale diagnostic logs, and outdated reproduction files to reduce cognitive load and reach a professional baseline.
+- **Test Suite Hygiene**: Purged all debug `console.log` statements from the 22-suite test layer and repaired brittle mocks.
+- **Stability Guarantee**: Verified 100% pass rate for the entire automated test suite (88/88 tests).
+
+### 🐛 Bug Fixes
+- **Vitest Teardown Fix**: Resolved a silent crash during asynchronous Vitest worker teardown by implementing an intelligent fallback target for the global State Proxy.
+- **Mock Registry Repair**: Restored broken unit tests in `esphome_adapter.snapshot.test.js` by transitioning to correctly decoupled utility functions.
+
+---
+
 ## v1.0.0 RC7 - Extended Domains & Deep Attributes
 **Release Date:** February 19, 2026
 

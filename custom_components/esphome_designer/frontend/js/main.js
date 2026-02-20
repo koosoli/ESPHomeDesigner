@@ -13,6 +13,25 @@ import { AppState } from './core/state.js';
 import { hasHaBackend } from './utils/env.js';
 import { Logger } from './utils/logger.js';
 
+// Legacy Global Scripts (Now ES Modules)
+import './utils/helpers.js';
+import './utils/env.js';
+import './utils/dom.js';
+import './utils/device.js';
+import './utils/graph_helpers.js';
+import './core/constants.js';
+import './core/utils.js';
+import './core/constants_icons.js';
+import './core/events.js';
+import './core/plugin_registry.js';
+import './core/widget_factory.js';
+import './core/layout_constants.js';
+import './ui/layout_manager.js';
+import './ui/splitters.js';
+import './ui/icon_picker.js';
+import './ui/radial_menu.js';
+import './ui/entity_picker.js';
+
 // Newly modularized imports
 import { showToast } from './utils/dom.js';
 import { loadLayoutFromBackend, saveLayoutToBackend, fetchEntityStates } from './io/ha_api.js';
@@ -68,7 +87,6 @@ export class App {
                 Logger.log("[App] LayoutManager linked");
             }
 
-            this.init();
         } catch (e) {
             Logger.error("[App] Critical Error in Constructor:", e);
         }
@@ -122,9 +140,8 @@ export class App {
         // Load initial data
         try {
             if (hasHaBackend()) {
-                Logger.log("HA Backend detected attempt. Loading hardware then layout...");
-                await loadExternalProfiles(); // Load dynamic hardware templates FIRST
-                await loadLayoutFromBackend(); // Then load layout that might use them
+                Logger.log("HA Backend detected attempt. Loading layout...");
+                await loadLayoutFromBackend(); // External profiles are already loaded above
                 await fetchEntityStates();
             } else {
                 Logger.log("Running in standalone/offline mode.");
@@ -300,7 +317,7 @@ export class App {
 }
 
 // Start the app
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const app = new App();
     window.app = app;
 
@@ -318,4 +335,10 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas: app.canvas,
         properties: app.propertiesPanel
     };
+
+    try {
+        await app.init();
+    } catch (err) {
+        Logger.error("[App] Failed to initialize:", err);
+    }
 });

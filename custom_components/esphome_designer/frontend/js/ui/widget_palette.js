@@ -400,8 +400,14 @@ export async function renderWidgetPalette(containerId) {
                 } else if (currentMode === 'direct') {
                     // Direct mode is display.lambda.
                     // Compatible if it has 'export' method AND is not strictly for another protocol (LVGL/OEPL).
+                    // DEFENSIVE: if plugin is null (failed to pre-load), default to compatible rather than
+                    // incorrectly graying out a widget that may be valid.
                     const isProtocolSpecific = widget.type.startsWith('lvgl_') || widget.type.startsWith('oepl_');
-                    isCompatible = !!plugin?.export && !isProtocolSpecific;
+                    if (!plugin) {
+                        isCompatible = !isProtocolSpecific; // Unknown plugin = assume compatible in direct mode
+                    } else {
+                        isCompatible = !!plugin.export && !isProtocolSpecific;
+                    }
                     explanation = 'Not supported in Direct rendering mode';
                 }
             }

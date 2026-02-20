@@ -52,7 +52,11 @@ class ESPHomeDesignerPanelView(HomeAssistantView):
         from pathlib import Path
         import aiofiles
         
-        # Priority 1: Look in integration's own frontend/ directory (bundled with integration)
+        # Priority 1: Look in Vite-built dist/ directory (production bundle)
+        dist_dir = Path(__file__).parent / "frontend" / "dist"
+        editor_path_dist = dist_dir / "index.html"
+        
+        # Priority 2: Look in integration's own frontend/ directory (dev/unbundled)
         integration_dir = Path(__file__).parent / "frontend"
         editor_path_integration = integration_dir / "index.html"
         
@@ -61,29 +65,52 @@ class ESPHomeDesignerPanelView(HomeAssistantView):
         config_dir = component_dir.parent.parent
         editor_path_www = config_dir / "www" / "esphome_designer_panel" / "index.html"
         
-        # Try integration directory first (preferred - always available)
+        # Try dist/ directory first (Vite production bundle - preferred)
+        if editor_path_dist.exists():
+            try:
+                async with aiofiles.open(editor_path_dist, mode='r', encoding='utf-8') as f:
+                    html = await f.read()
+                
+                import re
+                
+                def rewrite_attr(match):
+                    attr = match.group(1)
+                    path = match.group(2)
+                    if path.startswith(('http://', 'https://', 'data:', '/')):
+                        return match.group(0)
+                    return f'{attr}="/esphome-designer/editor/static/dist/{path}"'
+                
+                html = re.sub(r'(src|href)="([^"]+)"', rewrite_attr, html)
+
+                _LOGGER.info("✓ Serving editor from dist/: %s (%d bytes)", editor_path_dist, len(html))
+                return web.Response(
+                    body=html,
+                    status=200,
+                    content_type="text/html",
+                    headers={
+                        "Cache-Control": "no-cache, no-store, must-revalidate",
+                        "Pragma": "no-cache",
+                        "Expires": "0"
+                    }
+                )
+            except Exception as e:
+                _LOGGER.error("Failed to read editor from dist/: %s", e)
+        
+        # Fallback: Try raw frontend/ directory (dev mode / unbundled)
         if editor_path_integration.exists():
             try:
                 async with aiofiles.open(editor_path_integration, mode='r', encoding='utf-8') as f:
                     html = await f.read()
                 
-                # Replace relative links with absolute static paths for HA serving
-                # This allows the file on disk to use relative paths (for local testing)
-                # while HA serves it with correct absolute paths
                 import re
                 
-                # Robust Asset Rewriter
-                # This converts relative paths (like "editor.css" or "assets/logo.png") 
-                # into absolute paths served by the integration (/esphome-designer/editor/static/...)
                 def rewrite_attr(match):
                     attr = match.group(1)
                     path = match.group(2)
-                    # Don't rewrite external URLs, data URIs, or already absolute paths
                     if path.startswith(('http://', 'https://', 'data:', '/')):
                         return match.group(0)
                     return f'{attr}="/esphome-designer/editor/static/{path}"'
                 
-                # Match src="..." and href="..."
                 html = re.sub(r'(src|href)="([^"]+)"', rewrite_attr, html)
 
                 _LOGGER.info("✓ Serving editor from integration: %s (%d bytes)", editor_path_integration, len(html))
@@ -179,16 +206,41 @@ class ESPHomeDesignerStaticView(HomeAssistantView):
              except ValueError:
                   return web.Response(status=403, text="Forbidden")
         else:
-             # Look in integration's frontend/ directory (standard assets)
+             # Resolve bundled assets from dist/ or raw frontend/ directory
              integration_dir = Path(__file__).parent / "frontend"
-             file_path = (integration_dir / path).resolve()
-
-             # Security: Ensure resolved path is still under integration_dir
-             try:
-                 file_path.relative_to(integration_dir.resolve())
-             except ValueError:
-                 _LOGGER.warning("Blocked path escape attempt: %s -> %s", path, file_path)
-                 return web.Response(status=403, text="Forbidden")
+             dist_dir = integration_dir / "dist"
+             
+             # If the URL path starts with "dist/", strip the prefix and serve from dist/
+             if path.startswith("dist/"):
+                 actual_path = path[5:]  # Remove "dist/" prefix
+                 file_path = (dist_dir / actual_path).resolve()
+                 # Security: Ensure resolved path is still under dist_dir
+                 try:
+                     file_path.relative_to(dist_dir.resolve())
+                 except ValueError:
+                     _LOGGER.warning("Blocked path escape attempt: %s -> %s", path, file_path)
+                     return web.Response(status=403, text="Forbidden")
+             else:
+                 # Try dist/ first, then fall back to raw frontend/
+                 dist_candidate = (dist_dir / path).resolve()
+                 raw_candidate = (integration_dir / path).resolve()
+                 
+                 if dist_candidate.exists():
+                     file_path = dist_candidate
+                     # Security check against dist_dir
+                     try:
+                         file_path.relative_to(dist_dir.resolve())
+                     except ValueError:
+                         file_path = raw_candidate
+                 else:
+                     file_path = raw_candidate
+                 
+                 # Security: Ensure resolved path is under integration_dir (covers both dist/ and raw)
+                 try:
+                     file_path.relative_to(integration_dir.resolve())
+                 except ValueError:
+                     _LOGGER.warning("Blocked path escape attempt: %s -> %s", path, file_path)
+                     return web.Response(status=403, text="Forbidden")
 
         if not file_path.exists() or not file_path.is_file():
             _LOGGER.debug("Static file not found: %s", file_path)

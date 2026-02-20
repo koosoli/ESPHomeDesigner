@@ -36,10 +36,8 @@ class MockAppState {
     recordHistory() {
         // Skip recording if we're in the middle of restoring history (undo/redo)
         if (this._isRestoringHistory) {
-            console.log("Skipping recordHistory because _isRestoringHistory is TRUE");
             return;
         }
-        console.log("Recording history...");
         this.editor.recordHistory({
             pages: JSON.parse(JSON.stringify(this.project.pages)), // Deep copy simulation
             deviceName: this.project.deviceName
@@ -50,16 +48,14 @@ class MockAppState {
     undo() {
         const s = this.editor.undo();
         if (s) {
-            console.log("Undo successful, restoring snapshot...");
             this._isRestoringHistory = true;
             this.restoreSnapshot(s);
             // Use setTimeout to ensure flag is cleared after all sync listeners run
             setTimeout(() => {
-                console.log("Clearing _isRestoringHistory flag");
                 this._isRestoringHistory = false;
             }, 0);
         } else {
-            console.log("Undo failed (nothing to undo)");
+            // Undo failed (nothing to undo)
         }
     }
 
@@ -106,13 +102,11 @@ describe('AppState Undo Regression Reproduction', () => {
         // 4. Register a listener that NAUGHTILY calls recordHistory on change
         // This simulates the regression where some component reacts to undo by trying to save
         app.on('STATE_CHANGED', () => {
-            console.log("Listener triggered: calling recordHistory (should be blocked)");
             // Simulate a slightly different state or same state
             app.recordHistory();
         });
 
         // 5. First Undo (Should go to A)
-        console.log("--- First Undo ---");
         app.undo();
 
         // Execute sync logic (restoreSnapshot -> emit -> recordHistory call)
@@ -129,7 +123,6 @@ describe('AppState Undo Regression Reproduction', () => {
         expect(app.editor.historyIndex).toBe(1);
 
         // 6. Second Undo (Should go to Init)
-        console.log("--- Second Undo ---");
         const canUndoAgain = app.editor.canUndo();
         expect(canUndoAgain).toBe(true); // Fails here if history was corrupted/truncated
 

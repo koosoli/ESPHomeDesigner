@@ -284,9 +284,9 @@ export function forceSnapWidget(widgetId) {
         // Use applySnapToPosition but force it even if snap is disabled globally
         // We temporarily set snapEnabled to true to get the snapped position
         const oldSnap = AppState.snapEnabled;
-        AppState.snapEnabled = true;
+        AppState.setSnapEnabled(true);
         snapped = applySnapToPosition({ canvas: { querySelectorAll: () => [] }, canvasContainer: {} }, widget, widget.x, widget.y, false, dims);
-        AppState.snapEnabled = oldSnap;
+        AppState.setSnapEnabled(oldSnap);
     }
 
     if (snapped) {

@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ESPHomeAdapter } from '../../js/io/adapters/esphome_adapter.js';
+import { getCondProps } from '../../js/io/generators/native_generator.js';
+import { mergeYamlSections } from '../../js/io/generators/yaml_merger.js';
 
 const { mockRegistry } = vi.hoisted(() => ({
     mockRegistry: {
@@ -19,7 +21,8 @@ const { mockRegistry } = vi.hoisted(() => ({
         onExportTextSensors: vi.fn(),
         onExportBinarySensors: vi.fn(),
         onExportComponents: vi.fn(),
-        onExportHelpers: vi.fn()
+        onExportHelpers: vi.fn(),
+        onExportEsphome: vi.fn()
     }
 }));
 
@@ -140,7 +143,7 @@ sensor:
 display:
   - platform: ili9xxx
     model: ILI9342`;
-            
+
             const extraYaml = `sensor:
   - platform: homeassistant
     id: sensor_temp
@@ -149,13 +152,13 @@ display:
   - platform: wifi_signal
     name: "WiFi Signal"
     id: wifi_signal_dbm`;
-            
-            const result = adapter.mergeYamlSections(baseYaml, extraYaml);
-            
+
+            const result = mergeYamlSections(baseYaml, extraYaml);
+
             // Should have only ONE sensor: section
             const sensorMatches = result.match(/^sensor:$/gm);
             expect(sensorMatches).toHaveLength(1);
-            
+
             // Should contain all sensors
             expect(result).toContain('platform: adc');
             expect(result).toContain('board_ldr');
@@ -169,8 +172,8 @@ display:
             const baseYaml = `sensor:
   - platform: adc
     pin: GPIO34`;
-            
-            const result = adapter.mergeYamlSections(baseYaml, '');
+
+            const result = mergeYamlSections(baseYaml, '');
             expect(result).toBe(baseYaml);
         });
 
@@ -178,8 +181,8 @@ display:
             const extraYaml = `sensor:
   - platform: homeassistant
     id: test`;
-            
-            const result = adapter.mergeYamlSections('', extraYaml);
+
+            const result = mergeYamlSections('', extraYaml);
             expect(result).toBe(extraYaml);
         });
 
@@ -198,12 +201,12 @@ font:
   - file: fonts/roboto.ttf
     id: font_extra`;
 
-            const result = adapter.mergeYamlSections(baseYaml, extraYaml);
-            
+            const result = mergeYamlSections(baseYaml, extraYaml);
+
             // Should have only ONE of each section
             expect(result.match(/^sensor:$/gm)).toHaveLength(1);
             expect(result.match(/^font:$/gm)).toHaveLength(1);
-            
+
             // Should contain all entries
             expect(result).toContain('platform: adc');
             expect(result).toContain('platform: homeassistant');
@@ -245,31 +248,30 @@ font:
         const widget = {
             condition_entity: 'switch.test',
             condition_operator: '==',
-            condition_state: 'on',
-            condition_min: '0',
-            condition_max: '100'
+            condition_value: 'on',
+            condition_invert: false
         };
-        const props = adapter.getCondProps(widget);
-        expect(props).toContain('cond_ent:"switch.test"');
-        expect(props).toContain('cond_op:"=="');
-        expect(props).toContain('cond_state:"on"');
-        expect(props).not.toContain('cond_min');
-        expect(props).not.toContain('cond_max');
+        // getCondProps returns a space-separated string, we can split it or check inclusion
+        const propsStr = getCondProps(widget);
+        expect(propsStr).toContain('cond_ent:"switch.test"');
+        expect(propsStr).toContain('cond_op:"=="');
+        expect(propsStr).toContain('cond_val:"on"');
+        expect(propsStr).toContain('cond_inv:"false"');
+        expect(propsStr).not.toContain('cond_ent_2');
     });
 
-    it('should generate correct condition properties for range comparison', () => {
+    it('should generate correct condition properties for entity comparison', () => {
         const widget = {
             condition_entity: 'sensor.temp',
-            condition_operator: 'range',
-            condition_state: 'on',
-            condition_min: '20',
-            condition_max: '30'
+            condition_operator: '>',
+            condition_entity_2: 'sensor.target',
+            condition_invert: true
         };
-        const props = adapter.getCondProps(widget);
-        expect(props).toContain('cond_ent:"sensor.temp"');
-        expect(props).toContain('cond_op:"range"');
-        expect(props).toContain('cond_min:"20"');
-        expect(props).toContain('cond_max:"30"');
-        expect(props).not.toContain('cond_state');
+        const propsStr = getCondProps(widget);
+        expect(propsStr).toContain('cond_ent:"sensor.temp"');
+        expect(propsStr).toContain('cond_op:">"');
+        expect(propsStr).toContain('cond_ent_2:"sensor.target"');
+        expect(propsStr).toContain('cond_inv:"true"');
+        expect(propsStr).not.toContain('cond_val');
     });
 });

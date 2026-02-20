@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { AppState } from '../js/core/stores/index.js';
+import { AppState } from '../js/core/state.js';
 
 describe('Multi-Delete Reproduction', () => {
     beforeEach(() => {

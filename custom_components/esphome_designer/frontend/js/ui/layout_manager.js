@@ -589,9 +589,6 @@ class LayoutManager {
             // After loading, update the device model in AppState
             if (window.AppState) {
                 window.AppState.setDeviceModel(deviceModel);
-                if (window.AppState.settings) {
-                    window.AppState.settings.device_model = deviceModel;
-                }
                 window.currentDeviceModel = deviceModel;
 
                 // Force a state change event to trigger re-render

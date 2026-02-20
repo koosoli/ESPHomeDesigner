@@ -80,8 +80,6 @@ describe('Duplicate Time Key Reproduction', () => {
         // Count occurrences of "time:"
         const timeOccurrences = (yaml.match(/^time:$/gm) || []).length;
 
-        console.log("YAML (reterminal_e1001):\n", yaml);
-
         expect(timeOccurrences).toBe(1);
     });
 
@@ -114,8 +112,6 @@ describe('Duplicate Time Key Reproduction', () => {
 
         // Count occurrences of "time:"
         const timeOccurrences = (yaml.match(/^time:$/gm) || []).length;
-
-        console.log("YAML (package-based):\n", yaml);
 
         expect(timeOccurrences).toBe(1);
         expect(yaml).toContain("id: ha_time");

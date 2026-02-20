@@ -1,39 +1,40 @@
 import { AppState } from '../core/state.js';
 import { Logger } from '../utils/logger.js';
 import { DEVICE_PROFILES } from './devices.js';
+import * as yaml from 'js-yaml';
 
 /**
  * Creates a custom js-yaml schema that supports ESPHome tags like !lambda.
  */
 function getESPHomeSchema() {
-    if (!window.jsyaml) return null;
+    if (!yaml) return null;
 
     // Cache for performance
     if (window._esphomeYamlSchema) return window._esphomeYamlSchema;
 
     try {
-        const LambdaType = new jsyaml.Type('!lambda', {
+        const LambdaType = new yaml.Type('!lambda', {
             kind: 'scalar',
             construct: function (data) { return data; }
         });
 
         // Handle verbatim tag too just in case js-yaml sees it this way
-        const VerbatimLambdaType = new jsyaml.Type('!<!lambda>', {
+        const VerbatimLambdaType = new yaml.Type('!<!lambda>', {
             kind: 'scalar',
             construct: function (data) { return data; }
         });
 
-        const SecretType = new jsyaml.Type('!secret', {
+        const SecretType = new yaml.Type('!secret', {
             kind: 'scalar',
             construct: function (data) { return `!secret ${data}`; }
         });
 
         // Extend DEFAULT_SCHEMA (works for js-yaml 3.x and 4.x)
-        window._esphomeYamlSchema = jsyaml.DEFAULT_SCHEMA.extend([LambdaType, VerbatimLambdaType, SecretType]);
+        window._esphomeYamlSchema = yaml.DEFAULT_SCHEMA.extend([LambdaType, VerbatimLambdaType, SecretType]);
         return window._esphomeYamlSchema;
     } catch (e) {
         Logger.error("[getESPHomeSchema] Error creating schema:", e);
-        return jsyaml.DEFAULT_SCHEMA;
+        return yaml.DEFAULT_SCHEMA;
     }
 }
 
@@ -528,9 +529,9 @@ export function parseSnippetYamlOffline(yamlText) {
 
     let doc = {};
     try {
-        if (window.jsyaml) {
-            doc = jsyaml.load(yamlText, { schema: getESPHomeSchema() }) || {};
-            Logger.log("[parseSnippetYamlOffline] YAML parsed successfully with js-yaml");
+        if (yaml) {
+            doc = yaml.load(yamlText, { schema: getESPHomeSchema() }) || {};
+            Logger.log("[parseSnippetYamlOffline] YAML parsed successfully with jsyaml");
         }
     } catch (e) {
         Logger.error("[parseSnippetYamlOffline] YAML parse error:", e);
@@ -676,7 +677,7 @@ export function parseSnippetYamlOffline(yamlText) {
         }
         try {
             const yamlStr = blockLines.join("\n");
-            return { value: jsyaml.load(yamlStr, { schema: getESPHomeSchema() }), nextJ: j };
+            return { value: yaml.load(yamlStr, { schema: getESPHomeSchema() }), nextJ: j };
         } catch (e) {
             Logger.error("Error parsing YAML sub-block:", e);
             return { value: null, nextJ: j };

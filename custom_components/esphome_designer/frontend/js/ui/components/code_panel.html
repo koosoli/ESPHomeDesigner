@@ -1,0 +1,65 @@
+      <div class="code-panel">
+        <div class="code-panel-header">
+          <div class="code-panel-title">
+            <button id="toggleYamlBtn" class="btn-icon btn-xs code-toggle-btn" title="Toggle YAML Panel">
+              <svg class="chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                stroke-width="3">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            ESPHome YAML
+          </div>
+          <div class="code-panel-actions">
+            <button id="toggleHighlightBtn" class="btn btn-secondary btn-xs btn-icon" title="Toggle Syntax Highlighting"
+              style="width: auto; padding: 0 6px; border-radius: 4px;">
+              <span class="mdi mdi-palette-outline" style="font-size: 14px;"></span>
+            </button>
+            <button id="aiPromptBtn" class="btn btn-secondary btn-xs btn-icon" title="AI Assistant"
+              style="width: auto; padding: 0 6px; border-radius: 4px;">
+              <span class="mdi mdi-robot-outline" style="font-size: 14px;"></span>
+            </button>
+            <button id="copySnippetBtn" class="btn btn-secondary btn-xs" title="Copy full YAML output">
+              <span class="mdi mdi-content-copy" style="font-size: 12px; margin-right: 4px;"></span>All
+            </button>
+            <button id="copyLambdaBtn" class="btn btn-secondary btn-xs" title="Copy display lambda only (C++ code)">
+              <span class="mdi mdi-content-copy" style="font-size: 12px; margin-right: 4px;"></span>λ
+            </button>
+            <button id="copyOEPLServiceBtn" class="btn btn-secondary btn-xs" style="display:none;"
+              title="Copy full HA Service Call">
+              <span class="mdi mdi-content-copy" style="font-size: 12px; margin-right: 4px;"></span>OEPL
+            </button>
+            <button id="copyODPServiceBtn" class="btn btn-secondary btn-xs" style="display:none;"
+              title="Copy full HA Service Call">
+              <span class="mdi mdi-content-copy" style="font-size: 12px; margin-right: 4px;"></span>ODP
+            </button>
+            <button id="fullscreenSnippetBtn" class="btn btn-secondary btn-xs btn-icon" title="Expand code panel"
+              style="width: auto; padding: 0 6px; border-radius: 4px;">
+              <span class="mdi mdi-fullscreen" style="font-size: 14px;"></span>
+            </button>
+            <button id="updateLayoutBtn" class="btn btn-secondary btn-xs btn-icon" title="Import YAML back to canvas"
+              style="width: auto; padding: 0 6px; border-radius: 4px;">
+              <span class="mdi mdi-import" style="font-size: 14px;"></span>
+            </button>
+          </div>
+        </div>
+        <div id="oeplNotice" class="oepl-notice hidden"
+          style="background: rgba(255, 159, 67, 0.1); border-bottom: 1px solid rgba(255, 159, 67, 0.2); padding: 8px 12px; font-size: 10px; color: #ff9f43; display: flex; align-items: center; gap: 8px;">
+          <span class="mdi mdi-alert-circle-outline" style="font-size: 14px;"></span>
+          <div>
+            <strong>OpenEpaperLink JSON (Beta)</strong> - Copy this to Home Assistant → Developer Tools → Services →
+            <code>open_epaper_link.drawcustom</code>
+          </div>
+        </div>
+        <div id="odpNotice" class="odp-notice hidden"
+          style="background: rgba(82, 199, 234, 0.1); border-bottom: 1px solid rgba(82, 199, 234, 0.2); padding: 8px 12px; font-size: 10px; color: var(--accent); display: flex; align-items: center; gap: 8px;">
+          <span class="mdi mdi-informational" style="font-size: 14px;"></span>
+          <div>
+            <strong>OpenDisplay JSON (ODP)</strong> - Compatible with ODP v1 primitives.
+          </div>
+        </div>
+        <div class="snippet-container">
+          <pre id="highlightLayer" class="highlight-layer" aria-hidden="true"></pre>
+          <textarea id="snippetBox" class="snippet-box" spellcheck="false"
+            placeholder="# Click 'Generate' to see the ESPHome configuration..."></textarea>
+        </div>
+      </div>

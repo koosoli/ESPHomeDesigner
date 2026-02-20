@@ -58,10 +58,10 @@ describe('ProjectStore Group Dragging', () => {
         expect(page1.widgets).toHaveLength(2);
         expect(page2.widgets).toHaveLength(0);
 
-        // 3. Move the group to Page 2 at a NEW position (e.g., 300, 300)
+        // 3. Move the group to Page 2 at a NEW position (e.g., 200, 200)
         // This simulates dragging the group to a specific spot on the new page
-        // The delta is (300 - 100) = +200 for X, and +200 for Y
-        const success = store.moveWidgetToPage('group_1', 1, 300, 300);
+        // The delta is (200 - 100) = +100 for X, and +100 for Y
+        const success = store.moveWidgetToPage('group_1', 1, 200, 200);
 
         expect(success).toBe(true);
 
@@ -72,17 +72,17 @@ describe('ProjectStore Group Dragging', () => {
         // 5. Verify Group Position on Page 2
         const movedGroup = page2.widgets.find(w => w.id === 'group_1');
         expect(movedGroup).toBeDefined();
-        expect(movedGroup.x).toBe(300);
-        expect(movedGroup.y).toBe(300);
+        expect(movedGroup.x).toBe(200);
+        expect(movedGroup.y).toBe(200);
 
         // 6. Verify Child Position on Page 2
-        // It SHOULD be shifted by the same delta (+200, +200)
+        // It SHOULD be shifted by the same delta (+100, +100)
         // Old Pos: 150, 150
-        // Expected New Pos: 350, 350
+        // Expected New Pos: 250, 250
         const movedChild = page2.widgets.find(w => w.id === 'child_1');
         expect(movedChild).toBeDefined();
 
-        expect(movedChild.x).toBe(350);
-        expect(movedChild.y).toBe(350);
+        expect(movedChild.x).toBe(250);
+        expect(movedChild.y).toBe(250);
     });
 });

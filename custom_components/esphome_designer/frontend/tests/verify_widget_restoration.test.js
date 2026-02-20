@@ -36,7 +36,6 @@ describe('Widget Restoration Verification', () => {
     });
 
     it('should generate valid YAML for weather_icon', async () => {
-        console.log("Starting weather_icon test");
         const payload = {
             pages: [{
                 widgets: [{
@@ -53,14 +52,14 @@ describe('Widget Restoration Verification', () => {
         const yaml = await adapter.generate(payload);
 
         // Check lambda content
-        expect(yaml).toContain('std::string weather_state = id(weather_home).state;');
-        expect(yaml).toContain('it.printf(10, 10, id(font_material_design_icons_400_40),');
+        expect(yaml).toContain('std::string raw_state = id(weather_home_txt).state;');
+        expect(yaml).toContain('weather_state += tolower(c);');
 
         // Check text_sensor section
         expect(yaml).toContain('text_sensor:');
         expect(yaml).toContain('platform: homeassistant');
         expect(yaml).toContain('entity_id: weather.home');
-        expect(yaml).toContain('id: weather_home');
+        expect(yaml).toContain('id: weather_home_txt');
     });
 
     it('should generate valid YAML for quote_rss', async () => {
@@ -89,7 +88,8 @@ describe('Widget Restoration Verification', () => {
         expect(yaml).toContain('interval:');
         expect(yaml).toContain('interval: 2h');
         expect(yaml).toContain('http_request.get:');
-        expect(yaml).toContain('url: "/api/esphome_designer/rss_proxy?url=http%3A%2F%2Fexample.com%2Frss"');
+        expect(yaml).toContain('url: "http://homeassistant.local:8123/api/esphome_designer/rss_proxy');
+        expect(yaml).toContain('&random=true"');
 
         // Check lambda
         expect(yaml).toContain('std::string q_text = id(quote_q1_text_global);');
@@ -159,6 +159,7 @@ describe('Widget Restoration Verification', () => {
 
     it('should generate valid YAML for online_image (puppet)', async () => {
         const payload = {
+            isSelectionSnippet: true,
             pages: [{
                 widgets: [{
                     id: 'p1',
@@ -167,7 +168,7 @@ describe('Widget Restoration Verification', () => {
                     props: { url: 'http://example.com/img.jpg' }
                 }]
             }],
-            device_model: 'test_lcd'
+            deviceModel: 'test_lcd'
         };
 
         const yaml = await adapter.generate(payload);

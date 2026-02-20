@@ -3,15 +3,15 @@ import { parseSnippetYamlOffline } from '../../js/io/yaml_import.js';
 
 // Setup window mock with js-yaml before tests
 beforeAll(async () => {
-    if (typeof window === 'undefined') {
-        globalThis.window = {};
-    }
-    const jsyaml = await import('js-yaml');
-    window.jsyaml = jsyaml.default || jsyaml;
+  if (typeof window === 'undefined') {
+    globalThis.window = {};
+  }
+  const jsyaml = await import('js-yaml');
+  window.jsyaml = jsyaml.default || jsyaml;
 });
 
 describe('OEPL Bare Array Parsing', () => {
-    const testYaml = `- type: text
+  const testYaml = `- type: text
   value: "Hello HA!"
   x: 131
   y: 36
@@ -65,88 +65,89 @@ describe('OEPL Bare Array Parsing', () => {
   spacing: 20
   line_color: grey`;
 
-    it('should parse bare OEPL array format', () => {
-        const result = parseSnippetYamlOffline(testYaml);
-        
-        expect(result).toBeDefined();
-        expect(result.pages).toBeDefined();
-        expect(result.pages.length).toBeGreaterThan(0);
-        expect(result.pages[0].widgets).toBeDefined();
-    });
+  it('should parse bare OEPL array format', () => {
+    const result = parseSnippetYamlOffline(testYaml);
 
-    it('should correctly parse text widget', () => {
-        const result = parseSnippetYamlOffline(testYaml);
-        const textWidget = result.pages[0].widgets.find(w => w.type === 'text');
-        
-        expect(textWidget).toBeDefined();
-        expect(textWidget.x).toBe(131);
-        expect(textWidget.y).toBe(36);
-        expect(textWidget.props.text).toBe('Hello HA!');
-        expect(textWidget.props.font_size).toBe(20);
-    });
+    expect(result).toBeDefined();
+    expect(result.pages).toBeDefined();
+    expect(result.pages.length).toBeGreaterThan(0);
+    expect(result.pages[0].widgets).toBeDefined();
+  });
 
-    it('should correctly parse rectangle widget', () => {
-        const result = parseSnippetYamlOffline(testYaml);
-        const rectWidget = result.pages[0].widgets.find(w => w.type === 'shape_rect');
-        
-        expect(rectWidget).toBeDefined();
-        expect(rectWidget.x).toBe(26);
-        expect(rectWidget.y).toBe(93);
-        expect(rectWidget.width).toBe(100);  // 126 - 26
-        expect(rectWidget.height).toBe(50);  // 143 - 93
-    });
+  it('should correctly parse text widget', () => {
+    const result = parseSnippetYamlOffline(testYaml);
+    const textWidget = result.pages[0].widgets.find(w => w.type === 'text');
 
-    it('should correctly parse circle widget', () => {
-        const result = parseSnippetYamlOffline(testYaml);
-        const circleWidget = result.pages[0].widgets.find(w => w.type === 'shape_circle');
-        
-        expect(circleWidget).toBeDefined();
-        expect(circleWidget.x).toBe(160);  // 185 - 25 (center minus radius)
-        expect(circleWidget.y).toBe(99);   // 124 - 25
-        expect(circleWidget.width).toBe(50);  // diameter
-        expect(circleWidget.height).toBe(50);
-    });
+    expect(textWidget).toBeDefined();
+    expect(textWidget.x).toBe(131);
+    expect(textWidget.y).toBe(36);
+    expect(textWidget.props.text).toBe('Hello HA!');
+    expect(textWidget.props.font_size).toBe(20);
+  });
 
-    it('should correctly parse icon widget', () => {
-        const result = parseSnippetYamlOffline(testYaml);
-        const iconWidget = result.pages[0].widgets.find(w => w.type === 'icon');
-        
-        expect(iconWidget).toBeDefined();
-        expect(iconWidget.x).toBe(316);
-        expect(iconWidget.y).toBe(41);
-        expect(iconWidget.props.code).toBe('mdi:home');
-        expect(iconWidget.props.size).toBe(24);
-    });
+  it('should correctly parse rectangle widget', () => {
+    const result = parseSnippetYamlOffline(testYaml);
+    const rectWidget = result.pages[0].widgets.find(w => w.type === 'shape_rect');
 
-    it('should correctly parse qrcode widget', () => {
-        const result = parseSnippetYamlOffline(testYaml);
-        const qrWidget = result.pages[0].widgets.find(w => w.type === 'qr_code');
-        
-        expect(qrWidget).toBeDefined();
-        expect(qrWidget.x).toBe(258);
-        expect(qrWidget.y).toBe(69);
-        expect(qrWidget.props.value).toBe('https://www.home-assistant.io');
-    });
+    expect(rectWidget).toBeDefined();
+    expect(rectWidget.x).toBe(26);
+    expect(rectWidget.y).toBe(93);
+    expect(rectWidget.width).toBe(100);  // 126 - 26
+    expect(rectWidget.height).toBe(50);  // 143 - 93
+  });
 
-    it('should correctly parse progress_bar widget', () => {
-        const result = parseSnippetYamlOffline(testYaml);
-        const progressWidget = result.pages[0].widgets.find(w => w.type === 'progress_bar');
-        
-        expect(progressWidget).toBeDefined();
-        expect(progressWidget.x).toBe(26);
-        expect(progressWidget.y).toBe(56);
-        expect(progressWidget.props.show_percentage).toBe(true);
-    });
+  it('should correctly parse circle widget', () => {
+    const result = parseSnippetYamlOffline(testYaml);
+    const circleWidget = result.pages[0].widgets.find(w => w.type === 'shape_circle');
 
-    it('should skip debug_grid widget', () => {
-        const result = parseSnippetYamlOffline(testYaml);
-        const debugWidget = result.pages[0].widgets.find(w => w.type === 'debug_grid');
-        
-        expect(debugWidget).toBeUndefined();
-    });
+    expect(circleWidget).toBeDefined();
+    expect(circleWidget.x).toBe(160);  // 185 - 25 (center minus radius)
+    expect(circleWidget.y).toBe(99);   // 124 - 25
+    expect(circleWidget.width).toBe(50);  // diameter
+    expect(circleWidget.height).toBe(50);
+  });
 
-    it('should parse 6 widgets total (excluding debug_grid)', () => {
-        const result = parseSnippetYamlOffline(testYaml);
-        expect(result.pages[0].widgets.length).toBe(6);
-    });
+  it('should correctly parse icon widget', () => {
+    const result = parseSnippetYamlOffline(testYaml);
+    const iconWidget = result.pages[0].widgets.find(w => w.type === 'icon');
+
+    expect(iconWidget).toBeDefined();
+    expect(iconWidget.x).toBe(316);
+    expect(iconWidget.y).toBe(41);
+    expect(iconWidget.props.code).toBe('mdi:home');
+    expect(iconWidget.props.size).toBe(24);
+  });
+
+  it('should correctly parse qrcode widget', () => {
+    const result = parseSnippetYamlOffline(testYaml);
+    const qrWidget = result.pages[0].widgets.find(w => w.type === 'qr_code');
+
+    expect(qrWidget).toBeDefined();
+    expect(qrWidget.x).toBe(258);
+    expect(qrWidget.y).toBe(69);
+    expect(qrWidget.props.value).toBe('https://www.home-assistant.io');
+  });
+
+  it('should correctly parse progress_bar widget', () => {
+    const result = parseSnippetYamlOffline(testYaml);
+    const progressWidget = result.pages[0].widgets.find(w => w.type === 'progress_bar');
+
+    expect(progressWidget).toBeDefined();
+    expect(progressWidget.x).toBe(26);
+    expect(progressWidget.y).toBe(56);
+    expect(progressWidget.props.show_percentage).toBe(true);
+  });
+
+  it('should NOT skip debug_grid widget (mapped to odp_debug_grid)', () => {
+    const result = parseSnippetYamlOffline(testYaml);
+    const debugWidget = result.pages[0].widgets.find(w => w.type === 'odp_debug_grid');
+
+    expect(debugWidget).toBeDefined();
+    expect(debugWidget.props.spacing).toBe(20);
+  });
+
+  it('should parse 7 widgets total (including odp_debug_grid)', () => {
+    const result = parseSnippetYamlOffline(testYaml);
+    expect(result.pages[0].widgets.length).toBe(7);
+  });
 });

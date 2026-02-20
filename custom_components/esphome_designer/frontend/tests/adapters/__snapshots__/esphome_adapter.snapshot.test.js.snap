@@ -1,0 +1,70 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ESPHomeAdapter Legacy Functions Snapshot > applyPackageOverrides > should apply rotation and transform overrides correctly > landscape_inverted_rotation_180 1`] = `
+"
+display:
+  - platform: st7789v
+    rotation: 180
+
+touchscreen:
+  - platform: gt911
+    id: my_touchscreen
+    transform:
+      swap_xy: false
+      mirror_x: true
+      mirror_y: true
+    interrupt_pin: 4
+"
+`;
+
+exports[`ESPHomeAdapter Legacy Functions Snapshot > applyPackageOverrides > should apply rotation and transform overrides correctly > portrait_rotation_90_with_transform 1`] = `
+"
+display:
+  - platform: st7789v
+    rotation: 90
+
+touchscreen:
+  - platform: gt911
+    id: my_touchscreen
+    transform:
+      swap_xy: true
+      mirror_x: false
+      mirror_y: true
+    interrupt_pin: 4
+"
+`;
+
+exports[`ESPHomeAdapter Legacy Functions Snapshot > applyPackageOverrides > should modify lvgl auto_clear_enabled > lvgl_auto_clear_false 1`] = `
+"
+lvgl:
+  auto_clear_enabled: false
+"
+`;
+
+exports[`ESPHomeAdapter Legacy Functions Snapshot > mergeYamlSections > should merge baseYaml and extraYaml exactly as before 1`] = `
+"
+# This is a base file
+esphome:
+  name: test_device
+
+sensor:
+  - platform: template
+    name: "Base Sensor"
+    id: base_sensor
+
+  - platform: wifi_signal
+    name: "WiFi"
+
+font:
+  - file: "g0v4.ttf"
+    id: font1
+
+  - file: "arial.ttf"
+    id: font2
+
+binary_sensor:
+  - platform: status
+    name: "Status"
+
+  build_path: build/test"
+`;

@@ -1,7 +1,14 @@
 import { Logger } from '../utils/logger.js';
-const pluginModules = (typeof import.meta.glob === 'function')
-    ? import.meta.glob('../../features/*/plugin.js')
-    : {};
+
+// import.meta.glob is a Vite build-time macro — calling it unconditionally
+// ensures all plugin chunks are bundled. The try/catch handles non-Vite
+// environments (e.g. Vitest without vite-plugin-glob).
+let pluginModules = {};
+try {
+    pluginModules = import.meta.glob('../../features/*/plugin.js');
+} catch (e) {
+    // Non-Vite environment; plugins will fall back to dynamic import
+}
 
 export class PluginRegistry {
     constructor() {

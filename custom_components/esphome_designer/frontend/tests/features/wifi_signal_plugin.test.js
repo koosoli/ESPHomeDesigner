@@ -46,8 +46,6 @@ describe('Wifi Signal Plugin', () => {
         // Let's see what it generates currently versus what we want.
         // Ideally we want TextAlign::CENTER (or TOP_CENTER/CENTER_HORIZONTAL)
 
-        console.log("Generated Code:\n" + generatedCode);
-
         // This assertion simulates the bug fix we WANT. 
         // If the code is buggy, this should fail because it will just use '10' (the x value).
         expect(generatedCode).toContain(`it.printf(${widget.x} + ${widget.width} / 2`);

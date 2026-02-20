@@ -1,0 +1,45 @@
+    <aside class="right-panel" role="complementary" aria-label="Widget Properties">
+      <!-- Hierarchy Panel -->
+      <div class="sidebar-section" style="border-bottom: 1px solid var(--border-subtle);">
+        <div class="sidebar-section-label"
+          style="padding: 12px 16px 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;"
+          id="hierarchyHeader">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="2" width="18" height="18" rx="2"></rect>
+              <line x1="7" y1="8" x2="17" y2="8"></line>
+              <line x1="7" y1="12" x2="17" y2="12"></line>
+              <line x1="7" y1="16" x2="17" y2="16"></line>
+            </svg>
+            <span>Hierarchy</span>
+          </div>
+          <svg class="chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor"
+            stroke-width="3" style="transition: transform 0.2s; transform: rotate(0deg);">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <div id="hierarchyPanel" class="hierarchy-content"
+          style="max-height: 250px; overflow-y: auto; padding: 0 8px 8px;">
+          <div id="hierarchyList" class="hierarchy-list"></div>
+        </div>
+      </div>
+
+      <div class="sidebar-section-label"
+        style="padding: 12px 16px 0; display: flex; justify-content: space-between; align-items: center;">
+        <span>Properties</span>
+        <label style="display:flex; align-items:center; gap:4px; font-size:10px; cursor:pointer;" title="Snap to grid">
+          <input id="snapToggle" type="checkbox" checked style="width:12px; height:12px;" />
+          <span>Snap</span>
+        </label>
+        <label style="display:flex; align-items:center; gap:4px; font-size:10px; cursor:pointer;"
+          title="Lock position (Ctrl+L)">
+          <input id="lockPositionToggle" type="checkbox" style="width:12px; height:12px;" />
+          <span>Lock</span>
+        </label>
+      </div>
+      <div id="propertiesPanel" class="properties-content">
+        <div class="empty-state">
+          Select a widget on the canvas to edit its properties.
+        </div>
+      </div>
+    </aside>

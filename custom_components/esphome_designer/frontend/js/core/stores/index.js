@@ -214,6 +214,7 @@ class AppStateFacade {
             this.editor.selectWidget(id, multi);
         }
     }
+
     selectWidgets(ids) { this.editor.setSelectedWidgetIds(ids); }
 
     selectAllWidgets() {
@@ -481,11 +482,12 @@ class AppStateFacade {
                 targetVal = Math.max(...widgets.map(w => w.x + (w.width || 0)));
                 widgets.forEach(w => this.project.updateWidget(w.id, { x: targetVal - (w.width || 0) }));
                 break;
-            case 'center':
+            case 'center': {
                 const centers = widgets.map(w => w.x + (w.width || 0) / 2);
                 targetVal = centers.reduce((a, b) => a + b, 0) / centers.length;
                 widgets.forEach(w => this.project.updateWidget(w.id, { x: targetVal - (w.width || 0) / 2 }));
                 break;
+            }
             case 'top':
                 targetVal = Math.min(...widgets.map(w => w.y));
                 widgets.forEach(w => this.project.updateWidget(w.id, { y: targetVal }));
@@ -494,11 +496,12 @@ class AppStateFacade {
                 targetVal = Math.max(...widgets.map(w => w.y + (w.height || 0)));
                 widgets.forEach(w => this.project.updateWidget(w.id, { y: targetVal - (w.height || 0) }));
                 break;
-            case 'middle':
+            case 'middle': {
                 const middles = widgets.map(w => w.y + (w.height || 0) / 2);
                 targetVal = middles.reduce((a, b) => a + b, 0) / middles.length;
                 widgets.forEach(w => this.project.updateWidget(w.id, { y: targetVal - (w.height || 0) / 2 }));
                 break;
+            }
         }
 
         this.recordHistory();
@@ -743,20 +746,26 @@ class AppStateFacade {
     undo() {
         const s = this.editor.undo();
         if (s) {
-            this._isRestoringHistory = true;
+            // Bypass proxy for internal flag
+            this.setInternalFlag('_isRestoringHistory', true);
             this.restoreSnapshot(s);
-            // Use setTimeout to ensure flag is cleared after all sync listeners run
-            setTimeout(() => { this._isRestoringHistory = false; }, 0);
+            setTimeout(() => { this.setInternalFlag('_isRestoringHistory', false); }, 0);
         }
     }
 
     redo() {
         const s = this.editor.redo();
         if (s) {
-            this._isRestoringHistory = true;
+            this.setInternalFlag('_isRestoringHistory', true);
             this.restoreSnapshot(s);
-            setTimeout(() => { this._isRestoringHistory = false; }, 0);
+            setTimeout(() => { this.setInternalFlag('_isRestoringHistory', false); }, 0);
         }
+    }
+
+    setInternalFlag(key, value) {
+        // Direct assignment bypassing standard route, useful when 'this' might be a Proxy
+        const target = this.$raw || this;
+        target[key] = value;
     }
 
     restoreSnapshot(s) {
@@ -906,5 +915,33 @@ class AppStateFacade {
     }
 }
 
-export const AppState = new AppStateFacade();
-window.AppState = AppState;
+const AppStateInstance = new AppStateFacade();
+
+const handler = {
+    set(target, prop, value, receiver) {
+        if (prop === 'snapEnabled') {
+            Logger.warn(`[StateProxy] Intercepted illegal write to '${prop}'. Automatically rerouting to setSnapEnabled().`);
+            if (typeof target.setSnapEnabled === 'function') {
+                target.setSnapEnabled(value);
+            }
+            return true;
+        }
+
+        const allowedInternalProps = ['entityStates', '_isRestoringHistory'];
+
+        // Log illegal direct mutations (exceptions: functions and whitelisted internal trackers)
+        if (!allowedInternalProps.includes(prop) && typeof target[prop] !== 'function') {
+            Logger.warn(`[StateProxy] 🚨 ILLEGAL STATE MUTATION DETECTED: AppState.${prop} = ${value}`);
+            console.trace(`[StateProxy] Trace for illegal mutation of AppState.${prop}`);
+        }
+
+        return Reflect.set(target, prop, value, receiver);
+    }
+};
+
+export const AppState = new Proxy(AppStateInstance, handler);
+window.AppState = AppState; // Global export for legacy DOM access
+
+// Support Legacy Unified Object Reference
+window.ESPHomeDesigner = window.ESPHomeDesigner || {};
+window.ESPHomeDesigner.state = AppState;

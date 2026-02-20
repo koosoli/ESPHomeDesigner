@@ -38,7 +38,7 @@ describe('Icon Plugin', () => {
         expect(mockContext.getColorConst).toHaveBeenCalledWith('red');
 
         const output = mockContext.lines.join('\n');
-        expect(output).toContain('it.printf(50, 50, id(font_mdi_ref), COLOR_RED, "%s", "\\U000F07D0");');
+        expect(output).toContain('it.printf(74, 74, id(font_mdi_ref), COLOR_RED, TextAlign::CENTER, "%s", "\\U000F07D0");');
     });
 
     it('should handle icon codes with 0x prefix', () => {
