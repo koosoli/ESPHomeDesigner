@@ -1,3 +1,5 @@
+import { clampFontWeight } from '../../core/font_weights.js';
+
 /**
  * Modular font and glyph registry for ESPHome.
  */
@@ -31,7 +33,13 @@ export class FontRegistry {
      */
     addFont(family, weight, size, italic = false) {
         const safeFamily = family.replace(/\s+/g, "_").toLowerCase();
-        const weightNum = parseInt(weight) || 400;
+        let weightNum = parseInt(weight) || 400;
+
+        // Guard against invalid Google Font weights (Issue #317)
+        if (family !== "Material Design Icons") {
+            weightNum = clampFontWeight(family, weightNum);
+        }
+
         const italicSuffix = italic ? "_italic" : "";
         const idSize = String(size).replace(".", "_");
         const id = `font_${safeFamily}_${weightNum}_${idSize}${italicSuffix}`;

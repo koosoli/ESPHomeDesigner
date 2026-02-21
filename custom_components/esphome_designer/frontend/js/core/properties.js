@@ -6,7 +6,7 @@ import { WidgetFactory } from './widget_factory.js';
 import { fetchEntityStates, ENTITY_DATALIST_ID, ensureEntityDatalist } from '../io/ha_api.js';
 import { openEntityPickerForWidget } from '../ui/entity_picker.js';
 import { openIconPickerForWidget } from '../ui/icon_picker.js';
-// debounce import removed
+import { getWeightsForFont, clampFontWeight } from './font_weights.js';
 
 
 const CALENDAR_HELPER_SCRIPT = `# Dictionary to map calendar keys to their corresponding names
@@ -731,9 +731,13 @@ export class PropertiesPanel {
                     case "color":
                         this.addColorSelector(field.label, val, colors, handleChange);
                         break;
-                    case "select":
-                        this.addSelect(field.label, val, field.options, handleChange);
+                    case "select": {
+                        const opts = typeof field.dynamicOptions === 'function'
+                            ? field.dynamicOptions(props)
+                            : field.options;
+                        this.addSelect(field.label, val, opts, handleChange);
                         break;
+                    }
                     case "checkbox":
                         this.addCheckbox(field.label, val, handleChange);
                         break;
@@ -1738,7 +1742,14 @@ export class PropertiesPanel {
                 this.addHint('Browse <a href="https://fonts.google.com" target="_blank">fonts.google.com</a>');
             }
 
-            this.addSelect("Weight", props.font_weight || 400, [100, 200, 300, 400, 500, 600, 700, 800, 900], (v) => updateProp("font_weight", parseInt(v, 10)));
+            const availableWeights = getWeightsForFont(currentFont);
+            let currentWeight = props.font_weight || 400;
+            if (!availableWeights.includes(currentWeight)) {
+                currentWeight = clampFontWeight(currentFont, currentWeight);
+                setTimeout(() => updateProp("font_weight", currentWeight), 0);
+            }
+
+            this.addSelect("Weight", currentWeight, availableWeights, (v) => updateProp("font_weight", parseInt(v, 10)));
 
             // Text Alignment
             const alignOptions = [
@@ -1857,7 +1868,14 @@ export class PropertiesPanel {
                     }
                 });
 
-                this.addSelect("Weight", props.font_weight || 400, [100, 200, 300, 400, 500, 600, 700, 800, 900], (v) => updateProp("font_weight", parseInt(v, 10)));
+                const availableWeights = getWeightsForFont(currentFont);
+                let currentWeight = props.font_weight || 400;
+                if (!availableWeights.includes(currentWeight)) {
+                    currentWeight = clampFontWeight(currentFont, currentWeight);
+                    setTimeout(() => updateProp("font_weight", currentWeight), 0);
+                }
+
+                this.addSelect("Weight", currentWeight, availableWeights, (v) => updateProp("font_weight", parseInt(v, 10)));
                 this.addCheckbox("Italic", props.italic || false, (v) => updateProp("italic", v));
 
                 // Alignment

@@ -139,6 +139,8 @@ const exportLVGL = (w, { common, convertColor, convertAlign, getLVGLFont, format
     };
 };
 
+import { getWeightsForFont } from '../../js/core/font_weights.js';
+
 export default {
     id: "text", // also used for 'label'
     name: "Text",
@@ -172,6 +174,11 @@ export default {
             section: "Appearance",
             fields: [
                 { key: "font_size", label: "Font Size", type: "number", default: 20 },
+                {
+                    key: "font_weight", label: "Weight", type: "select",
+                    dynamicOptions: (props) => getWeightsForFont(props.font_family || "Roboto"),
+                    default: 400
+                },
                 { key: "color", label: "Color", type: "color", default: "black" },
                 { key: "text_align", label: "Align", type: "select", options: ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], default: "TOP_LEFT" }
             ]

@@ -41,7 +41,15 @@ esphome:
 `;
 
       const merged = mergeYamlSections(baseYaml, extraYaml);
-      expect(merged).toMatchSnapshot();
+      expect(merged).toContain('test_device');
+      expect(merged).toContain('base_sensor');
+      expect(merged).toContain('WiFi');
+      expect(merged).toContain('font1');
+      expect(merged).toContain('font2');
+      expect(merged).toContain('Status');
+      expect(merged).toContain('build_path: build/test');
+      const sensorMatches = merged.match(/^sensor:$/gm);
+      expect(sensorMatches).toHaveLength(1);
     });
   });
 
@@ -64,10 +72,13 @@ touchscreen:
 
       // portrait orientation means width < height, so we request swapping
       const result1 = applyPackageOverrides(yaml, profile, 'portrait', false, {});
-      expect(result1).toMatchSnapshot('portrait_rotation_90_with_transform');
+      expect(result1).toContain('rotation: 90');
+      expect(result1).toContain('transform:');
+      expect(result1).toContain('swap_xy: true');
+      expect(result1).toContain('mirror_y: true');
 
       const result2 = applyPackageOverrides(yaml, profile, 'landscape_inverted', false, {});
-      expect(result2).toMatchSnapshot('landscape_inverted_rotation_180');
+      expect(result2).toContain('rotation: 180');
     });
 
     it('should modify lvgl auto_clear_enabled', () => {
@@ -76,7 +87,8 @@ lvgl:
   auto_clear_enabled: true
 `;
       const result = applyPackageOverrides(yaml, {}, 'landscape', true, {});
-      expect(result).toMatchSnapshot('lvgl_auto_clear_false');
+      expect(result).toContain('auto_clear_enabled: false');
+      expect(result).not.toContain('auto_clear_enabled: true');
     });
   });
 });

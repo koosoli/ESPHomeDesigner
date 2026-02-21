@@ -336,6 +336,8 @@ const render = (el, widget, { getColorStyle }) => {
     }
 };
 
+import { getWeightsForFont } from '../../js/core/font_weights.js';
+
 export default {
     id: "sensor_text",
     name: "Sensor Text",
@@ -352,6 +354,7 @@ export default {
         text_align: "TOP_LEFT",
         color: "theme_auto",
         font_family: "Roboto",
+        font_weight: 400,
         parse_colors: false,
         bg_color: "transparent",
         opa: 255,
@@ -389,6 +392,11 @@ export default {
             fields: [
                 { key: "label_font_size", label: "Label Size", type: "number", default: 14 },
                 { key: "value_font_size", label: "Value Size", type: "number", default: 20 },
+                {
+                    key: "font_weight", label: "Weight", type: "select",
+                    dynamicOptions: (props) => getWeightsForFont(props.font_family || "Roboto"),
+                    default: 400
+                },
                 { key: "color", label: "Color", type: "color", default: "black" },
                 { key: "text_align", label: "Align", type: "select", options: ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], default: "TOP_LEFT" }
             ]

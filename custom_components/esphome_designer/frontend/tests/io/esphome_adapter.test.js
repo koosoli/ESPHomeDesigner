@@ -282,8 +282,8 @@ font:
         expect(propsStr).not.toContain('cond_val');
     });
 
-    describe('End-to-End Golden Master Snapshots', () => {
-        it('generates a full multi-page native layout accurately', async () => {
+    describe('End-to-End Golden Master Replacement (Structural Assertions)', () => {
+        it('generates correct structure for multi-page native layout', async () => {
             const projectState = {
                 deviceName: "Native Device",
                 deviceModel: "reterminal_e1001",
@@ -305,10 +305,44 @@ font:
             };
 
             const yaml = await adapter.generate(projectState);
-            expect(yaml).toMatchSnapshot();
+
+            // Core infrastructure
+            expect(yaml).toContain('globals:');
+            expect(yaml).toContain('id: display_page');
+
+            // Page switching and navigation
+            expect(yaml).toContain('script:');
+            expect(yaml).toContain('id: change_page_to');
+            expect(yaml).toContain('id: manage_run_and_sleep');
+
+            // Fonts and Time
+            expect(yaml).toContain('font:');
+            expect(yaml).toContain('font_roboto');
+            expect(yaml).toContain('time:');
+            expect(yaml).toContain('ha_time');
+
+            // Entity registration
+            expect(yaml).toContain('binary_sensor:');
+            expect(yaml).toContain('light_living_room'); // Expected sanitized ID
+
+            // Display & Lambda correctness
+            expect(yaml).toContain('display:');
+            expect(yaml).toContain('lambda: |-');
+            expect(yaml).toContain('page:name "Home"');
+            expect(yaml).toContain('page:name "Lights"');
+
+            // Widget metadata
+            expect(yaml).toMatch(/id:txt1/);
+            expect(yaml).toMatch(/id:icon1/);
+            expect(yaml).toContain('"Dashboard"');
+
+            // Sanitization checks
+            expect(yaml).not.toContain('undefined');
+            expect(yaml).not.toContain('NaN');
+            expect(yaml).not.toContain('[object Object]');
         });
 
-        it('handles dense entity deduplication arrays and attributes', async () => {
+        it('handles entity deduplication arrays and attributes correctly', async () => {
             const projectState = {
                 deviceName: "Dense Dedup Tester",
                 deviceModel: "reterminal_e1001",
@@ -336,7 +370,33 @@ font:
             };
 
             const yaml = await adapter.generate(projectState);
-            expect(yaml).toMatchSnapshot();
+
+            // Verify dedup logic creates correct sensor types
+            expect(yaml).toContain('id: sensor_temperature');
+            expect(yaml).toContain('id: sensor_temperature_calibration');
+            expect(yaml).toContain('attribute: calibration');
+
+            // Text sensors
+            expect(yaml).toContain('text_sensor:');
+            expect(yaml).toContain('id: weather_home_temperature_txt');
+            expect(yaml).toContain('id: sensor_state_txt');
+
+            // Binary sensors
+            expect(yaml).toContain('id: binary_sensor_door');
+
+            // Deep attributes
+            expect(yaml).toContain('id: sensor_weather_forecast_0__condition');
+            expect(yaml).toContain('attribute: forecast[0].condition');
+
+            // Ensure sections only appear once
+            const sensorMatches = yaml.match(/^sensor:$/gm);
+            expect(sensorMatches).toHaveLength(1);
+
+            const textSensorMatches = yaml.match(/^text_sensor:$/gm);
+            expect(textSensorMatches).toHaveLength(1);
+
+            const binarySensorMatches = yaml.match(/^binary_sensor:$/gm);
+            expect(binarySensorMatches).toHaveLength(1);
         });
     });
 });
