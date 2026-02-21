@@ -359,6 +359,51 @@ export default {
         border_color: "theme_auto",
         border_radius: 0,
     },
+    schema: [
+        {
+            section: "Data Source",
+            fields: [
+                { key: "entity_id", target: "root", label: "Entity ID", type: "entity_picker", default: "" },
+                { key: "title", target: "root", label: "Title/Label", type: "text", default: "" }
+            ]
+        },
+        {
+            section: "Format", defaultExpanded: false,
+            fields: [
+                {
+                    key: "value_format", label: "Display Format", type: "select", options: [
+                        { value: "label_value", label: "Label: Value & Unit" },
+                        { value: "label_value_no_unit", label: "Label: Value Only" },
+                        { value: "label_newline_value", label: "Label [newline] Value & Unit" },
+                        { value: "label_newline_value_no_unit", label: "Label [newline] Value Only" },
+                        { value: "value_only", label: "Value & Unit" },
+                        { value: "value_only_no_unit", label: "Value Only" }
+                    ], default: "label_value"
+                },
+                { key: "precision", label: "Precision", type: "number", default: 2 },
+                { key: "unit", label: "Unit", type: "text", default: "" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "label_font_size", label: "Label Size", type: "number", default: 14 },
+                { key: "value_font_size", label: "Value Size", type: "number", default: 20 },
+                { key: "color", label: "Color", type: "color", default: "black" },
+                { key: "text_align", label: "Align", type: "select", options: ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], default: "TOP_LEFT" }
+            ]
+        },
+        {
+            section: "Border Style", defaultExpanded: false,
+            fields: [
+                { key: "border_width", label: "Border Width", type: "number", default: 0 },
+                { key: "border_color", label: "Border Color", type: "color", default: "theme_auto" },
+                { key: "border_radius", label: "Corner Radius", type: "number", default: 0 },
+                { key: "bg_color", label: "Background", type: "color", default: "transparent" },
+                { key: "drop_shadow", label: "", type: "drop_shadow_button" }
+            ]
+        }
+    ],
 
     render,
     exportLVGL: (w, { common, convertColor, convertAlign, getLVGLFont, formatOpacity }) => {

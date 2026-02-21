@@ -5,15 +5,7 @@ import { mergeYamlSections } from '../../js/io/generators/yaml_merger.js';
 
 const { mockRegistry } = vi.hoisted(() => ({
     mockRegistry: {
-        get: vi.fn((type) => {
-            if (type === 'text') {
-                return {
-                    id: 'text',
-                    export: (w, ctx) => ctx.lines.push(`  - type: text\n    content: "${w.content}"\n    # id:${w.id}`)
-                };
-            }
-            return null;
-        }),
+        get: vi.fn(),
         getAll: vi.fn(() => []),
         load: vi.fn(async (type) => mockRegistry.get(type)),
         onExportGlobals: vi.fn(),
@@ -99,6 +91,11 @@ const mockAppState = {
     getCanvasShape: vi.fn(() => 'rect')
 };
 
+import textPlugin from '../../features/text/plugin.js';
+import iconPlugin from '../../features/icon/plugin.js';
+import touchAreaPlugin from '../../features/touch_area/plugin.js';
+import sensorTextPlugin from '../../features/sensor_text/plugin.js';
+
 describe('ESPHomeAdapter', () => {
     let adapter;
 
@@ -106,6 +103,16 @@ describe('ESPHomeAdapter', () => {
         adapter = new ESPHomeAdapter();
         global.PluginRegistry = mockRegistry;
         window.PluginRegistry = mockRegistry;
+
+        // Use real plugins for rendering in tests
+        mockRegistry.get.mockImplementation((type) => {
+            if (type === 'text') return textPlugin;
+            if (type === 'icon') return iconPlugin;
+            if (type === 'button' || type === 'touch_area') return touchAreaPlugin;
+            if (type === 'sensor_text') return sensorTextPlugin;
+            return null;
+        });
+
         global.AppState = mockAppState;
         window.AppState = mockAppState;
         window.LVGLExport = {
@@ -221,7 +228,7 @@ font:
                 {
                     name: "Main",
                     widgets: [
-                        { id: "w1", type: "text", content: "Hello" }
+                        { id: "w1", type: "text", props: { text: "Hello" }, x: 10, y: 10, width: 100, height: 30 }
                     ]
                 }
             ],
@@ -273,5 +280,63 @@ font:
         expect(propsStr).toContain('cond_ent_2:"sensor.target"');
         expect(propsStr).toContain('cond_inv:"true"');
         expect(propsStr).not.toContain('cond_val');
+    });
+
+    describe('End-to-End Golden Master Snapshots', () => {
+        it('generates a full multi-page native layout accurately', async () => {
+            const projectState = {
+                deviceName: "Native Device",
+                deviceModel: "reterminal_e1001",
+                pages: [
+                    {
+                        name: "Home",
+                        widgets: [
+                            { id: "txt1", type: "text", props: { text: "Dashboard" }, x: 0, y: 0, width: 200, height: 40 },
+                            { id: "icon1", type: "icon", props: { icon: "mdi:home" }, x: 10, y: 50, width: 32, height: 32 }
+                        ]
+                    },
+                    {
+                        name: "Lights",
+                        widgets: [
+                            { id: "btn1", type: "button", entity_id: "light.living_room", x: 20, y: 20, width: 100, height: 100 }
+                        ]
+                    }
+                ]
+            };
+
+            const yaml = await adapter.generate(projectState);
+            expect(yaml).toMatchSnapshot();
+        });
+
+        it('handles dense entity deduplication arrays and attributes', async () => {
+            const projectState = {
+                deviceName: "Dense Dedup Tester",
+                deviceModel: "reterminal_e1001",
+                pages: [
+                    {
+                        name: "Sensors",
+                        widgets: [
+                            { id: "w1", type: "sensor_text", entity_id: "sensor.temperature", x: 0, y: 0, width: 50, height: 20 },
+                            { id: "w2", type: "sensor_text", entity_id: "sensor.temperature", props: { attribute: "calibration" }, x: 60, y: 0, width: 50, height: 20 },
+                            { id: "w3", type: "text", entity_id: "weather.home", props: { attribute: "temperature" }, x: 0, y: 30, width: 100, height: 30 },
+                            { id: "w4", type: "icon", condition_entity: "binary_sensor.door", condition_state: "off", x: 0, y: 70, width: 40, height: 40 },
+                            { id: "w5", type: "icon", condition_entity: "sensor.state", condition_state: "Playing", x: 50, y: 70, width: 40, height: 40 },
+                            { id: "w6", type: "text", entity_id: "sensor.weather", props: { attribute: "forecast[0].condition" }, x: 0, y: 120, width: 150, height: 30 }
+                        ]
+                    }
+                ]
+            };
+
+            // Mock state so entity_dedup recognizes the types
+            window.AppState.entityStates = {
+                "sensor.temperature": { state: "20", attributes: { calibration: "2" } },
+                "weather.home": { state: "sunny", attributes: { temperature: "25" } },
+                "sensor.state": { state: "Playing" },
+                "sensor.weather": { state: "clear", attributes: { forecast: [{ condition: "cloudy" }] } }
+            };
+
+            const yaml = await adapter.generate(projectState);
+            expect(yaml).toMatchSnapshot();
+        });
     });
 });

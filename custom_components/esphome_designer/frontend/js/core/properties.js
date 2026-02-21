@@ -289,20 +289,24 @@ export class PropertiesPanel {
 
         // === WIDGET-SPECIFIC PROPERTIES ===
 
-        // Feature Registry Schema Support (Future)
+        // Feature Registry Schema Support
+        let handledBySchema = false;
         if (FeatureRegistry) {
             const feature = FeatureRegistry.get(type);
             if (feature && feature.schema) {
-                // TODO: Implement full schema-driven rendering
+                this.renderFromSchema(widget, feature.schema);
+                handledBySchema = true;
             }
         }
 
         // Legacy Widget Specific Logic
-        const mode = AppState.settings.renderingMode || 'direct';
-        if (mode === 'oepl' || mode === 'opendisplay') {
-            this.renderProtocolProperties(widget, type);
-        } else {
-            this.renderLegacyProperties(widget, type);
+        if (!handledBySchema) {
+            const mode = AppState.settings.renderingMode || 'direct';
+            if (mode === 'oepl' || mode === 'opendisplay') {
+                this.renderProtocolProperties(widget, type);
+            } else {
+                this.renderLegacyProperties(widget, type);
+            }
         }
 
         // === GRID CELL PROPERTIES (for LVGL widgets in grid layout) ===
@@ -666,6 +670,92 @@ export class PropertiesPanel {
         this.getContainer().appendChild(settingsBtn);
     }
 
+    renderFromSchema(widget, schema) {
+        const colors = getAvailableColors();
+        const props = widget.props || {};
+
+        const updateProp = (key, value) => {
+            const newProps = { ...widget.props, [key]: value };
+            AppState.updateWidget(widget.id, { props: newProps });
+
+            // Sync border radius to shadow if it exists (mirror legacy)
+            if (key === "border_radius" || key === "radius" || key === "corner_radius") {
+                const page = AppState.getCurrentPage();
+                if (page && page.widgets) {
+                    const r = parseInt(value, 10) || 0;
+                    const shadowName = (widget.props?.name || widget.type) + " Shadow";
+                    const shadow = page.widgets.find(w =>
+                        (w.props && w.props.name === shadowName) ||
+                        (w.x === (widget.x || 0) + 5 && w.y === (widget.y || 0) + 5 && w.width === widget.width && w.height === widget.height)
+                    );
+
+                    if (shadow) {
+                        if (shadow.type === "shape_rect" && r > 0) {
+                            AppState.updateWidget(shadow.id, { type: "rounded_rect", props: { ...shadow.props, radius: r } });
+                        } else if (shadow.type === "rounded_rect") {
+                            AppState.updateWidget(shadow.id, { props: { ...shadow.props, radius: r } });
+                        }
+                    }
+                }
+            }
+        };
+
+        schema.forEach(sectionDef => {
+            this.createSection(sectionDef.section, sectionDef.defaultExpanded !== false);
+
+            sectionDef.fields.forEach(field => {
+                const isRoot = field.target === "root";
+                const val = isRoot ?
+                    (widget[field.key] !== undefined ? widget[field.key] : field.default)
+                    : (props[field.key] !== undefined ? props[field.key] : field.default);
+
+                const handleChange = (v) => {
+                    let finalV = v;
+                    if (field.type === "number") {
+                        finalV = v === "" ? null : parseFloat(v);
+                        if (isNaN(finalV)) finalV = field.default !== undefined ? field.default : 0;
+                    }
+                    if (isRoot) {
+                        AppState.updateWidget(widget.id, { [field.key]: finalV });
+                    } else {
+                        updateProp(field.key, finalV);
+                    }
+                };
+
+                switch (field.type) {
+                    case "text":
+                    case "textarea":
+                    case "number":
+                        this.addLabeledInput(field.label, field.type, val, handleChange);
+                        break;
+                    case "color":
+                        this.addColorSelector(field.label, val, colors, handleChange);
+                        break;
+                    case "select":
+                        this.addSelect(field.label, val, field.options, handleChange);
+                        break;
+                    case "checkbox":
+                        this.addCheckbox(field.label, val, handleChange);
+                        break;
+                    case "icon_picker":
+                        this.addLabeledInputWithIconPicker(field.label, "text", val, handleChange, widget);
+                        break;
+                    case "entity_picker":
+                        this.addLabeledInputWithPicker(field.label, "text", val, handleChange, widget);
+                        break;
+                    case "hint":
+                        this.addHint(field.label);
+                        break;
+                    case "drop_shadow_button":
+                        this.addDropShadowButton(this.getContainer(), widget.id);
+                        break;
+                }
+            });
+
+            this.endSection();
+        });
+    }
+
     renderProtocolProperties(widget, type) {
         const colors = getAvailableColors();
         const props = widget.props || {};
@@ -675,140 +765,7 @@ export class PropertiesPanel {
             AppState.updateWidget(widget.id, { props: newProps });
         };
 
-        if (type === "text" || type === "label") {
-            this.createSection("Content", true);
-            this.addLabeledInput("Text", "textarea", props.text || "", (v) => updateProp("text", v));
-            this.addHint("Use Enter for line breaks. Line breaks will be preserved in YAML output.");
-            this.endSection();
-
-            this.createSection("Appearance", true);
-            this.addLabeledInput("Font Size", "number", props.font_size || 20, (v) => updateProp("font_size", parseInt(v, 10)));
-            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
-
-            const alignOptions = ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"];
-            this.addSelect("Align", props.text_align || "TOP_LEFT", alignOptions, (v) => updateProp("text_align", v));
-            this.addCheckbox("Parse Color Tags", !!props.parse_colors, (v) => updateProp("parse_colors", v));
-            this.addHint("Enable to use [color]text[/color] markup, also supports HA templates.");
-
-            this.createSection("Border Style", false);
-            this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
-            this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
-            this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
-            this.endSection();
-
-            this.endSection();
-        }
-        else if (type === "icon") {
-            this.createSection("Icon", true);
-            this.addLabeledInputWithIconPicker("Icon Code", "text", props.code || "F0595", (v) => updateProp("code", v), widget);
-            this.addLabeledInput("Size", "number", props.size || 48, (v) => updateProp("size", parseInt(v, 10)));
-            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
-            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
-
-            this.createSection("Border Style", false);
-            this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
-            this.addColorSelector("Border Color", props.border_color || "theme_auto", colors, (v) => updateProp("border_color", v));
-            this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
-            this.addDropShadowButton(this.getContainer(), widget.id);
-            this.endSection();
-
-            this.endSection();
-        }
-        else if (type === "sensor_text") {
-            this.createSection("Data Source", true);
-            this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
-                AppState.updateWidget(widget.id, { entity_id: v });
-            }, widget);
-            this.addLabeledInput("Title/Label", "text", widget.title || "", (v) => {
-                AppState.updateWidget(widget.id, { title: v });
-            });
-            this.endSection();
-
-            this.createSection("Format", false);
-            this.addSelect("Display Format", props.value_format || "label_value", [
-                { value: "label_value", label: "Label: Value & Unit" },
-                { value: "label_value_no_unit", label: "Label: Value Only" },
-                { value: "label_newline_value", label: "Label [newline] Value & Unit" },
-                { value: "label_newline_value_no_unit", label: "Label [newline] Value Only" },
-                { value: "value_only", label: "Value & Unit" },
-                { value: "value_only_no_unit", label: "Value Only" }
-            ], (v) => updateProp("value_format", v));
-            this.addLabeledInput("Precision", "number", props.precision !== undefined ? props.precision : 2, (v) => updateProp("precision", parseInt(v, 10)));
-            this.addLabeledInput("Unit", "text", props.unit || "", (v) => updateProp("unit", v));
-            this.endSection();
-
-            this.createSection("Appearance", true);
-            this.addLabeledInput("Label Size", "number", props.label_font_size || 14, (v) => updateProp("label_font_size", parseInt(v, 10)));
-            this.addLabeledInput("Value Size", "number", props.value_font_size || 20, (v) => updateProp("value_font_size", parseInt(v, 10)));
-            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
-
-            const alignOptions = ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"];
-            this.addSelect("Align", props.text_align || "TOP_LEFT", alignOptions, (v) => updateProp("text_align", v));
-
-            this.createSection("Border Style", false);
-            this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
-            this.addColorSelector("Border Color", props.border_color || "theme_auto", colors, (v) => updateProp("border_color", v));
-            this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
-            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
-            this.addDropShadowButton(this.getContainer(), widget.id);
-            this.endSection();
-
-            this.endSection();
-        }
-        else if (type === "lvgl_label") {
-            this.createSection("Content", true);
-            this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
-                AppState.updateWidget(widget.id, { entity_id: v });
-            }, widget);
-            this.addLabeledInput("Text", "textarea", props.text || "", (v) => updateProp("text", v));
-            this.endSection();
-
-            this.createSection("Appearance", true);
-            this.addLabeledInput("Font Size", "number", props.font_size || 20, (v) => updateProp("font_size", parseInt(v, 10)));
-            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
-            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
-
-            const alignOptions = ["LEFT", "CENTER", "RIGHT"];
-            this.addSelect("Align", props.text_align || "CENTER", alignOptions, (v) => updateProp("text_align", v));
-
-            this.createSection("Border Style", false);
-            this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
-            this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
-            this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
-            this.addDropShadowButton(this.getContainer(), widget.id);
-            this.endSection();
-
-            this.endSection();
-        }
-        else if (type === "qr_code") {
-            this.createSection("QR Content", true);
-            this.addLabeledInput("Value / URL", "text", props.value || "", (v) => updateProp("value", v));
-            this.addSelect("Error Correction", props.ecc || "LOW", ["LOW", "MEDIUM", "QUARTILE", "HIGH"], (v) => updateProp("ecc", v));
-            this.endSection();
-
-            this.createSection("Appearance", true);
-            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
-            this.addColorSelector("Background", props.bg_color || "white", colors, (v) => updateProp("bg_color", v));
-            this.addDropShadowButton(this.getContainer(), widget.id);
-            this.endSection();
-        }
-        else if (type === "datetime") {
-            this.createSection("Format", true);
-            this.addSelect("Display Format", props.format || "time_date", ["time_date", "time_only", "date_only", "weekday_day_month"], (v) => updateProp("format", v));
-            this.endSection();
-
-            this.createSection("Appearance", true);
-            this.addCompactPropertyRow(() => {
-                this.addLabeledInput("Time Font", "number", props.time_font_size || 28, (v) => updateProp("time_font_size", parseInt(v, 10)));
-                this.addLabeledInput("Date Font", "number", props.date_font_size || 16, (v) => updateProp("date_font_size", parseInt(v, 10)));
-            });
-            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
-            this.addSelect("Align", props.text_align || "CENTER", ["LEFT", "CENTER", "RIGHT"], (v) => updateProp("text_align", v));
-            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
-            this.addDropShadowButton(this.getContainer(), widget.id);
-            this.endSection();
-        }
-        else if (type === "image" || type === "online_image") {
+        if (type === "image" || type === "online_image") {
             this.createSection("Image Source", true);
             if (type === "image") {
                 this.addLabeledInput("Asset Path", "text", props.path || "", (v) => updateProp("path", v));
@@ -1052,66 +1009,6 @@ export class PropertiesPanel {
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
             this.endSection();
         }
-        else if (type === "text" || type === "label") {
-            this.createSection("Content", true);
-            this.addLabeledInput("Text", "text", props.text || "", (v) => updateProp("text", v));
-            this.endSection();
-
-            this.createSection("Appearance", true);
-            this.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => {
-                updateProp("opacity", v);
-            });
-            this.addLabeledInput("Font Size", "number", props.font_size || 20, (v) => updateProp("font_size", parseInt(v, 10)));
-            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
-
-            // Font Family with Custom Support
-            const fontOptions = ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand", "Custom..."];
-            const currentFont = props.font_family || "Roboto";
-            const isCustom = !fontOptions.slice(0, -1).includes(currentFont);
-
-            this.addSelect("Font", isCustom ? "Custom..." : currentFont, fontOptions, (v) => {
-                if (v !== "Custom...") {
-                    updateProp("font_family", v);
-                    updateProp("custom_font_family", "");
-                } else {
-                    updateProp("font_family", "Custom...");
-                }
-            });
-
-            if (isCustom || props.font_family === "Custom...") {
-                this.addLabeledInput("Custom Font Name", "text", props.custom_font_family || (isCustom ? currentFont : ""), (v) => {
-                    updateProp("font_family", v || "Roboto");
-                    updateProp("custom_font_family", v);
-                });
-                this.addHint('Browse <a href="https://fonts.google.com" target="_blank">fonts.google.com</a>');
-            }
-
-            this.addSelect("Weight", props.font_weight || 400, [100, 200, 300, 400, 500, 600, 700, 800, 900], (v) => updateProp("font_weight", parseInt(v, 10)));
-            this.addCheckbox("Italic", props.italic || false, (v) => updateProp("italic", v));
-
-            // Text Alignment
-            const alignOptions = [
-                "TOP_LEFT", "TOP_CENTER", "TOP_RIGHT",
-                "CENTER_LEFT", "CENTER", "CENTER_RIGHT",
-                "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"
-            ];
-            this.addSelect("Align", props.text_align || "TOP_LEFT", alignOptions, (v) => updateProp("text_align", v));
-
-            this.addSelect("BPP (Anti-aliasing)", String(props.bpp || 1), ["1", "2", "4", "8"], (v) => updateProp("bpp", parseInt(v, 10)));
-            this.addHint("1=no AA, 2=4 levels, 4=16 levels, 8=256 levels");
-            this.addCheckbox("Parse Color Tags", !!props.parse_colors, (v) => updateProp("parse_colors", v));
-            this.addHint("Enable to use [color]text[/color] markup, also supports HA templates.");
-
-            this.createSection("Border Style", false);
-            this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
-            this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
-            this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
-            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
-            this.addDropShadowButton(this.getContainer(), widget.id);
-            this.endSection();
-
-            this.endSection();
-        }
         else if (type === "sensor_text") {
             this.createSection("Data Source", true);
             this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
@@ -1165,134 +1062,7 @@ export class PropertiesPanel {
             });
             this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
 
-            // Font Family with Custom Support
-            const fontOptions = ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand", "Custom..."];
-            const currentFont = props.font_family || "Roboto";
-            const isCustom = !fontOptions.slice(0, -1).includes(currentFont);
-
-            this.addSelect("Font", isCustom ? "Custom..." : currentFont, fontOptions, (v) => {
-                if (v !== "Custom...") {
-                    updateProp("font_family", v);
-                    updateProp("custom_font_family", "");
-                } else {
-                    updateProp("font_family", "Custom...");
-                }
-            });
-
-            if (isCustom || props.font_family === "Custom...") {
-                this.addLabeledInput("Custom Font Name", "text", props.custom_font_family || (isCustom ? currentFont : ""), (v) => {
-                    updateProp("font_family", v || "Roboto");
-                    updateProp("custom_font_family", v);
-                });
-                this.addHint('Browse <a href="https://fonts.google.com" target="_blank">fonts.google.com</a>');
-            }
-
-            this.addSelect("Weight", props.font_weight || 400, [100, 200, 300, 400, 500, 600, 700, 800, 900], (v) => updateProp("font_weight", parseInt(v, 10)));
-            this.addCheckbox("Italic", props.italic || false, (v) => updateProp("italic", v));
-
-            // Text Alignment for Sensor Text
-            const alignOptions = [
-                "TOP_LEFT", "TOP_CENTER", "TOP_RIGHT",
-                "CENTER_LEFT", "CENTER", "CENTER_RIGHT",
-                "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"
-            ];
-            this.addSelect("Align", props.text_align || "TOP_LEFT", alignOptions, (v) => {
-                updateProp("text_align", v);
-                updateProp("label_align", v);
-                updateProp("value_align", v);
-            });
-
-            this.createSection("Border Style", false);
-            this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
-            this.addColorSelector("Border Color", props.border_color || "theme_auto", colors, (v) => updateProp("border_color", v));
-            this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
-            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
-            this.addDropShadowButton(this.getContainer(), widget.id);
-            this.endSection();
-
-            this.endSection();
-        }
-        else if (type === "datetime") {
-            this.createSection("Appearance", true);
-            this.addLabeledInput("Opacity (%)", "number", props.opacity !== undefined ? props.opacity : 100, (v) => {
-                updateProp("opacity", parseInt(v, 10));
-            });
-            this.addSelect("Display Format", props.format || "time_date", ["time_date", "time_only", "date_only", "weekday_day_month"], (v) => updateProp("format", v));
-            this.addLabeledInput("Time Font Size", "number", props.time_font_size || 28, (v) => updateProp("time_font_size", parseInt(v, 10)));
-            this.addLabeledInput("Date Font Size", "number", props.date_font_size || 16, (v) => updateProp("date_font_size", parseInt(v, 10)));
-            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
-
-            // Font Family with Custom Support
-            const fontOptions = ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand", "Custom..."];
-            const currentFont = props.font_family || "Roboto";
-            const isCustom = !fontOptions.slice(0, -1).includes(currentFont);
-
-            this.addSelect("Font", isCustom ? "Custom..." : currentFont, fontOptions, (v) => {
-                if (v !== "Custom...") {
-                    updateProp("font_family", v);
-                    updateProp("custom_font_family", "");
-                } else {
-                    updateProp("font_family", "Custom...");
-                }
-            });
-
-            if (isCustom || props.font_family === "Custom...") {
-                this.addLabeledInput("Custom Font Name", "text", props.custom_font_family || (isCustom ? currentFont : ""), (v) => {
-                    updateProp("font_family", v || "Roboto");
-                    updateProp("custom_font_family", v);
-                });
-                this.addHint('Browse <a href="https://fonts.google.com" target="_blank">fonts.google.com</a>');
-            }
-
-            this.addCheckbox("Italic", props.italic || false, (v) => updateProp("italic", v));
-
-            // Text Alignment
-            const alignOptions = [
-                "TOP_LEFT", "TOP_CENTER", "TOP_RIGHT",
-                "CENTER_LEFT", "CENTER", "CENTER_RIGHT",
-                "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"
-            ];
-            this.addSelect("Align", props.text_align || "CENTER", alignOptions, (v) => updateProp("text_align", v));
-            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
-
-            this.createSection("Border Style", false);
-            this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
-            this.addColorSelector("Border Color", props.border_color || "theme_auto", colors, (v) => updateProp("border_color", v));
-            this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
-            this.addDropShadowButton(this.getContainer(), widget.id);
-            this.endSection();
-
-            this.endSection();
-        }
-        else if (type === "lvgl_label") {
-            this.createSection("Content", true);
-            this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
-                AppState.updateWidget(widget.id, { entity_id: v });
-            }, widget);
-            this.addLabeledInput("Text", "textarea", props.text || "", (v) => updateProp("text", v));
-            this.endSection();
-
-            this.createSection("Appearance", true);
-            this.addLabeledInput("Font Size", "number", props.font_size || 20, (v) => updateProp("font_size", parseInt(v, 10)));
-            this.addColorSelector("Color", props.color || "black", colors, (v) => updateProp("color", v));
-            this.addColorSelector("Background", props.bg_color || "transparent", colors, (v) => updateProp("bg_color", v));
-
-            this.addSelect("Font", props.font_family || "Roboto", ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand"], (v) => updateProp("font_family", v));
-            this.addSelect("Weight", props.font_weight || 400, [100, 200, 300, 400, 500, 600, 700, 800, 900], (v) => updateProp("font_weight", parseInt(v, 10)));
-            this.addCheckbox("Italic", props.italic || false, (v) => updateProp("italic", v));
-
-            const alignOptions = ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"];
-            this.addSelect("Align", props.text_align || "CENTER", alignOptions, (v) => updateProp("text_align", v));
-
-            this.createSection("Border Style", false);
-            this.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
-            this.addColorSelector("Border Color", props.border_color || "black", colors, (v) => updateProp("border_color", v));
-            this.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
-            this.endSection();
-
-            this.endSection();
-        }
-        else if (type === "progress_bar") {
+        } else if (type === "progress_bar") {
             this.createSection("Data Source", true);
             this.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
                 AppState.updateWidget(widget.id, { entity_id: v });

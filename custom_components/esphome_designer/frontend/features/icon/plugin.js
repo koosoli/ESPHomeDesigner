@@ -82,6 +82,26 @@ export default {
         border_color: "theme_auto",
         border_radius: 0
     },
+    schema: [
+        {
+            section: "Icon",
+            fields: [
+                { key: "code", label: "Icon Code", type: "icon_picker", default: "F0595" },
+                { key: "size", label: "Size", type: "number", default: 48 },
+                { key: "color", label: "Color", type: "color", default: "theme_auto" },
+                { key: "bg_color", label: "Background", type: "color", default: "transparent" }
+            ]
+        },
+        {
+            section: "Border Style", defaultExpanded: false,
+            fields: [
+                { key: "border_width", label: "Border Width", type: "number", default: 0 },
+                { key: "border_color", label: "Border Color", type: "color", default: "theme_auto" },
+                { key: "border_radius", label: "Corner Radius", type: "number", default: 0 },
+                { key: "drop_shadow", label: "", type: "drop_shadow_button" }
+            ]
+        }
+    ],
     collectRequirements: (w, context) => {
         const p = w.props || {};
         const size = parseInt(p.size || 48, 10);

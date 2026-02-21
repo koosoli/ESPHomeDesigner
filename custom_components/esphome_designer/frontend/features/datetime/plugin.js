@@ -125,6 +125,40 @@ export default {
         border_color: "theme_auto",
         border_radius: 0
     },
+    schema: [
+        {
+            section: "Data Source",
+            fields: [
+                {
+                    key: "format", label: "Format", type: "select", options: [
+                        { value: "time_date", label: "Time + Date" },
+                        { value: "time_only", label: "Time Only" },
+                        { value: "date_only", label: "Date Only" },
+                        { value: "weekday_day_month", label: "Weekday Day Month" }
+                    ], default: "time_date"
+                }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "time_font_size", label: "Time Size", type: "number", default: 28 },
+                { key: "date_font_size", label: "Date Size", type: "number", default: 16 },
+                { key: "color", label: "Color", type: "color", default: "black" },
+                { key: "text_align", label: "Align", type: "select", options: ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], default: "CENTER" }
+            ]
+        },
+        {
+            section: "Border Style", defaultExpanded: false,
+            fields: [
+                { key: "border_width", label: "Border Width", type: "number", default: 0 },
+                { key: "border_color", label: "Border Color", type: "color", default: "theme_auto" },
+                { key: "border_radius", label: "Corner Radius", type: "number", default: 0 },
+                { key: "bg_color", label: "Background", type: "color", default: "transparent" },
+                { key: "drop_shadow", label: "", type: "drop_shadow_button" }
+            ]
+        }
+    ],
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};

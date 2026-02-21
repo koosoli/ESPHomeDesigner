@@ -159,6 +159,31 @@ export default {
         border_color: "black",
         border_radius: 0
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "text", label: "Text", type: "textarea", default: "" },
+                { key: "parse_colors", label: "Parse Color Tags", type: "checkbox", default: false, hint: "Enable to use [color]text[/color] markup or HA templates." }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "font_size", label: "Font Size", type: "number", default: 20 },
+                { key: "color", label: "Color", type: "color", default: "black" },
+                { key: "text_align", label: "Align", type: "select", options: ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], default: "TOP_LEFT" }
+            ]
+        },
+        {
+            section: "Border Style", defaultExpanded: false,
+            fields: [
+                { key: "border_width", label: "Border Width", type: "number", default: 0 },
+                { key: "border_color", label: "Border Color", type: "color", default: "black" },
+                { key: "border_radius", label: "Corner Radius", type: "number", default: 0 }
+            ]
+        }
+    ],
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};

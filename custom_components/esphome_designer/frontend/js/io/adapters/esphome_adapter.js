@@ -14,10 +14,10 @@ import { generateLVGLSnippet, serializeWidget } from '../yaml_export_lvgl.js';
 import { COLORS, ALIGNMENT } from '../../core/constants.js';
 import { FontRegistry } from './font_registry.js';
 import { YamlGenerator } from './yaml_generator.js';
-import { mergeYamlSections, applyPackageOverrides } from '../generators/yaml_merger.js';
+import { applyPackageOverrides } from '../generators/yaml_merger.js';
 import { generateDisplayLambda } from '../generators/native_generator.js';
-
-const HA_TEXT_DOMAINS = ["text_sensor.", "weather.", "calendar.", "person.", "device_tracker.", "sun.", "update.", "scene."];
+import { collectNumericSensors, collectTextSensors, collectBinarySensors, isEntityStateNonNumeric } from './entity_dedup.js';
+import { processPackageContent } from './package_processor.js';
 
 /**
  * ESPHome-specific adapter for generating YAML configuration.
@@ -191,23 +191,8 @@ export class ESPHomeAdapter extends BaseAdapter {
             seenEntityIds,
             seenSensorIds,
             seenTextEntityIds,
-            pendingTriggers
-        };
-
-        // Helper to check if an entity's current state (or a specific attribute) is non-numeric
-        const isEntityStateNonNumeric = (eid, attr = null) => {
-            if (!eid || !window.AppState?.entityStates) return false;
-            const entityObj = window.AppState.entityStates[eid];
-            if (!entityObj) return false;
-
-            const val = attr ? entityObj.attributes?.[attr] : entityObj.state;
-            if (val === undefined || val === null) return false;
-
-            const str = String(val).trim();
-            if (str === "") return false;
-
-            // Strict number check: Number("5:24pm") -> NaN
-            return isNaN(Number(str));
+            pendingTriggers,
+            appState: window.AppState
         };
 
         if (PluginRegistry) {
@@ -326,62 +311,7 @@ export class ESPHomeAdapter extends BaseAdapter {
 
             // Safety Fix: Auto-register any HA numeric sensors that weren't caught by plugins
             // This now runs for ALL profiles (including legacy) to ensure consistency.
-            const allWidgetsForSensors = pages.flatMap(p => (p.widgets || []).filter(w => !w.hidden));
-            const numericSensorLinesExtra = [];
-            allWidgetsForSensors.forEach(w => {
-                let entityId = (w.entity_id || "").trim();
-                const p = w.props || {};
-
-                if (!entityId || p.is_local_sensor) return;
-
-                // Numeric sensor types that should be prefixed with sensor. if domain is missing
-                const numericSensorTypes = ["progress_bar", "sensor_text", "graph", "battery_icon", "wifi_signal", "ondevice_temperature", "ondevice_humidity"];
-                if (numericSensorTypes.includes(w.type) && !entityId.includes(".")) {
-                    entityId = `sensor.${entityId}`;
-                }
-
-                // Fix #198: Skip if this is a sensor_text widget explicitly marked as a text sensor
-                // OR if it's using a non-numeric attribute (which makes it a text sensor)
-                if (w.type === "sensor_text") {
-                    if (p.is_text_sensor) return;
-                    if (p.attribute && isEntityStateNonNumeric(entityId, p.attribute)) return;
-                }
-
-                // Fix #240: Skip calendar widgets as they are complex text sensors (json) handled by the plugin
-                if (w.type === "calendar") return;
-
-                const isHaSensor = entityId.includes(".") &&
-                    !entityId.startsWith("binary_sensor.") &&
-                    !HA_TEXT_DOMAINS.some(d => entityId.startsWith(d));
-                const binaryDomains = ["switch.", "light.", "fan.", "input_boolean.", "cover.", "lock."];
-                const isBinaryDomain = binaryDomains.some(d => entityId.startsWith(d));
-
-                if (isHaSensor && !isBinaryDomain) {
-                    const attribute = (p.attribute || "").trim();
-                    // Build a unique key: entity + attribute combination
-                    const entityKey = attribute ? `${entityId}__attr__${attribute}` : entityId;
-
-                    if (!seenEntityIds.has(entityKey)) {
-                        // Safe ID truncated to 63 chars for ESPHome compatibility
-                        let safeId = attribute
-                            ? (entityId + "_" + attribute).replace(/[^a-zA-Z0-9_]/g, "_")
-                            : entityId.replace(/[^a-zA-Z0-9_]/g, "_");
-                        if (safeId.length > 63) safeId = safeId.substring(0, 63);
-
-                        if (!seenSensorIds.has(safeId)) {
-                            seenEntityIds.add(entityKey);
-                            seenSensorIds.add(safeId);
-                            numericSensorLinesExtra.push("- platform: homeassistant");
-                            numericSensorLinesExtra.push(`  id: ${safeId}`);
-                            numericSensorLinesExtra.push(`  entity_id: ${entityId}`);
-                            if (attribute) {
-                                numericSensorLinesExtra.push(`  attribute: ${attribute}`);
-                            }
-                            numericSensorLinesExtra.push(`  internal: true`);
-                        }
-                    }
-                }
-            });
+            const numericSensorLinesExtra = collectNumericSensors(pages, context);
 
             if (numericSensorLinesExtra.length > 0) {
                 if (!lines.some(l => l === "sensor:")) lines.push("sensor:");
@@ -391,63 +321,7 @@ export class ESPHomeAdapter extends BaseAdapter {
             }
 
             // Safety Fix: Auto-register any HA text sensors used in conditions or linked to widgets
-            const allWidgetsForText = pages.flatMap(p => (p.widgets || []).filter(w => !w.hidden));
-            const textSensorLinesExtra = [];
-
-            allWidgetsForText.forEach(w => {
-                const condEnt = (w.condition_entity || "").trim();
-                const primaryEnt = (w.entity_id || "").trim();
-                const secondaryEnt = (w.entity_id_2 || "").trim();
-                const p = w.props || {};
-
-                [
-                    { ent: condEnt, attr: p.attribute },
-                    { ent: primaryEnt, attr: p.attribute },
-                    { ent: secondaryEnt, attr: p.attribute2 }
-                ].forEach(({ ent, attr }) => {
-                    if (!ent || p.is_local_sensor) return;
-
-                    const isTextHa = HA_TEXT_DOMAINS.some(d => ent.startsWith(d));
-                    let isStringCond = false;
-
-                    // Check if this entity is used in a string condition
-                    if (ent === condEnt && w.condition_operator !== "range") {
-                        const state = w.condition_state;
-                        const stateLower = (state || "").toLowerCase();
-                        const booleanKeywords = ["on", "off", "true", "false", "online", "offline"];
-                        if (state && isNaN(Number(state)) && !booleanKeywords.includes(stateLower)) {
-                            isStringCond = true;
-                        }
-                    }
-
-                    const attribute = (attr || "").trim();
-                    const isNonNumericAttr = (ent === primaryEnt || ent === secondaryEnt) && attribute && isEntityStateNonNumeric(ent, attribute);
-
-                    if ((isTextHa || isStringCond || isNonNumericAttr)) {
-                        const isNested = attribute.includes(".") || attribute.includes("[");
-                        const rootAttr = isNested ? attribute.split(/[.\[]/)[0] : attribute;
-
-                        const entityKey = rootAttr ? `${ent}__attr__${rootAttr}` : ent;
-
-                        if (!seenEntityIds.has(entityKey)) {
-                            const base = rootAttr ? (ent + "_" + rootAttr) : ent;
-                            const safeId = base.replace(/[^a-zA-Z0-9_]/g, "_") + "_txt";
-
-                            if (!seenSensorIds.has(safeId)) {
-                                seenEntityIds.add(entityKey);
-                                seenSensorIds.add(safeId);
-                                textSensorLinesExtra.push("- platform: homeassistant");
-                                textSensorLinesExtra.push(`  id: ${safeId}`);
-                                textSensorLinesExtra.push(`  entity_id: ${ent}`);
-                                if (rootAttr) {
-                                    textSensorLinesExtra.push(`  attribute: ${rootAttr}`);
-                                }
-                                textSensorLinesExtra.push(`  internal: true`);
-                            }
-                        }
-                    }
-                });
-            });
+            const textSensorLinesExtra = collectTextSensors(pages, context);
 
             // Text Sensors
             const textSensorLinesOrig = [];
@@ -512,33 +386,7 @@ export class ESPHomeAdapter extends BaseAdapter {
             }
 
             // Safety Fix: Auto-register any HA binary sensors used in conditions or linked to widgets
-            const allWidgetsForBinary = pages.flatMap(p => (p.widgets || []).filter(w => !w.hidden));
-            const binaryDomains = ["binary_sensor.", "switch.", "light.", "input_boolean.", "fan.", "cover.", "vacuum.", "lock."];
-            const binarySensorLinesExtra = [];
-
-            allWidgetsForBinary.forEach(w => {
-                // Check condition entity
-                const condEnt = (w.condition_entity || "").trim();
-                // Check primary entity (for buttons, switches, etc.)
-                const primaryEnt = (w.entity_id || "").trim();
-
-                [condEnt, primaryEnt].forEach(ent => {
-                    if (!ent) return;
-                    const isBinaryHa = binaryDomains.some(d => ent.startsWith(d));
-
-                    if (isBinaryHa && !seenEntityIds.has(ent)) {
-                        const safeId = ent.replace(/[^a-zA-Z0-9_]/g, "_");
-                        if (!seenSensorIds.has(safeId)) {
-                            seenEntityIds.add(ent);
-                            seenSensorIds.add(safeId);
-                            binarySensorLinesExtra.push("- platform: homeassistant");
-                            binarySensorLinesExtra.push(`  id: ${safeId}`);
-                            binarySensorLinesExtra.push(`  entity_id: ${ent}`);
-                            binarySensorLinesExtra.push(`  internal: true`);
-                        }
-                    }
-                });
-            });
+            const binarySensorLinesExtra = collectBinarySensors(pages, context);
 
             if (binarySensorLinesExtra.length > 0) {
                 if (!lines.some(l => l === "binary_sensor:")) lines.push("binary_sensor:");
@@ -612,66 +460,7 @@ export class ESPHomeAdapter extends BaseAdapter {
                 }
             }
         } else if (packageContent) {
-            // Fix #122: Robust placeholder replacement with indentation preservation
-            // Ensure first line doesn't get double indent by matching entire line
-            // Capture indentation and replace the entire line
-            const placeholderRegex = /^(\s*)# __LAMBDA_PLACEHOLDER__/m;
-            const match = packageContent.match(placeholderRegex);
-
-            if (match) {
-                const indent = match[1];
-                const placeholder = "# __LAMBDA_PLACEHOLDER__";
-                // Check if recipe already contains the lambda header immediately before placeholder
-                const hasHeader = new RegExp(`lambda:\\s*\\|-\\s*[\\r\\n]+\\s*${placeholder.replace("#", "\\#")}`).test(packageContent);
-
-                // Fix #129: Skip lambda injection if LVGL is handling the display
-                if (hasLvgl) {
-                    packageContent = packageContent.replace(placeholderRegex, "");
-                } else {
-                    const replacement = (hasHeader ? "" : indent + "lambda: |-\n") + lambdaContent.map(l => l.trim() ? indent + "  " + l : "").join("\n");
-                    packageContent = packageContent.replace(placeholderRegex, replacement);
-                }
-            }
-
-            // Touch sensor placeholder replacement
-            const touchPlaceholderRegex = /^(\s*)# __TOUCH_SENSORS_PLACEHOLDER__/m;
-            const touchMatch = packageContent.match(touchPlaceholderRegex);
-            if (touchMatch && this._pendingTouchSensors && this._pendingTouchSensors.length > 0) {
-                // The placeholder is at indent level of list items (e.g., "  # __TOUCH...")
-                // Generator outputs lines with "  " prefix already
-                // We just need to pass through the lines as-is since they're already indented for binary_sensor
-                const touchReplacement = this._pendingTouchSensors
-                    .filter(l => l.trim() !== '') // Skip empty lines
-                    .join('\n');
-                packageContent = packageContent.replace(touchPlaceholderRegex, touchReplacement);
-            } else if (touchMatch) {
-                // Remove placeholder if no touch sensors to inject
-                packageContent = packageContent.replace(touchPlaceholderRegex, "");
-            }
-
-            packageContent = applyPackageOverrides(packageContent, profile, layout.orientation, hasLvgl, layout);
-
-            // Fix: Standardize section merging. We want to avoid double headers like "sensor:"
-            // but we MUST NOT filter out content lines like "- platform:" which are shared.
-            const sanitizedPackage = this.sanitizePackageContent(packageContent);
-            const extraLines = [];
-
-            let inDisplaySection = false;
-            for (const line of lines) {
-                const trimmed = line.trim();
-                const isHeader = (trimmed.endsWith(':') && !line.startsWith(' '));
-
-                if (isHeader) {
-                    inDisplaySection = (trimmed === "display:");
-                }
-
-                if (!inDisplaySection) {
-                    extraLines.push(line);
-                }
-            }
-
-            // Fix #218: Merge sections like sensor:, binary_sensor:, text_sensor: instead of duplicating them
-            return mergeYamlSections(sanitizedPackage, extraLines.join('\n'));
+            return processPackageContent(packageContent, lambdaContent, this._pendingTouchSensors, profile, layout, isLvgl, lines);
         }
 
         // Fix: Sanitize all lines to remove trailing whitespace (YAML block scalars are sensitive to this)
@@ -819,32 +608,6 @@ export class ESPHomeAdapter extends BaseAdapter {
             return `# ERROR LOADING PROFILE: ${e.message}`;
         }
     }
-
-    sanitizePackageContent(yaml) {
-        if (!yaml) return "";
-        // IMPORTANT: These keys are system-level and MUST be commented out in the final snippet.
-        // This allows users to merge the generated YAML into their existing config without conflicts.
-        const systemKeys = ["esphome:", "esp32:", "psram:", "wifi:", "api:", "ota:", "logger:", "web_server:", "captive_portal:", "platformio_options:", "preferences:", "substitutions:", "deep_sleep:"];
-        const lines = yaml.split('\n');
-        const sanitized = [];
-        let inSystemBlock = false;
-
-        for (let line of lines) {
-            const trimmed = line.trim();
-            if (trimmed.length === 0) { sanitized.push(line); continue; }
-            const indent = (line.match(/^\s*/) || [""])[0].length;
-            if (indent === 0 && trimmed.endsWith(':')) {
-                inSystemBlock = systemKeys.some(k => trimmed.startsWith(k));
-                if (inSystemBlock) sanitized.push("# " + line + " # (Auto-commented)");
-                else sanitized.push(line);
-            } else {
-                if (inSystemBlock) sanitized.push("# " + line);
-                else sanitized.push(line);
-            }
-        }
-        return sanitized.join('\n');
-    }
-
 }
 
 window.ESPHomeAdapter = ESPHomeAdapter;

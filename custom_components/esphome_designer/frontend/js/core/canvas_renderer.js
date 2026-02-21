@@ -538,57 +538,7 @@ export function getEffectiveDarkMode() {
     return !!AppState.settings.darkMode;
 }
 
-function renderLvglGridOverlay(canvasInstance, layout, dims, isDark) {
-    const match = layout.match(/^(\d+)x(\d+)$/);
-    if (!match) return;
 
-    const rows = parseInt(match[1], 10);
-    const cols = parseInt(match[2], 10);
-
-    // Create grid container
-    const gridOverlay = document.createElement("div");
-    gridOverlay.className = "lvgl-grid-overlay";
-    gridOverlay.style.cssText = `
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        display: grid;
-        grid-template-rows: repeat(${rows}, 1fr);
-        grid-template-columns: repeat(${cols}, 1fr);
-        pointer-events: none;
-        z-index: 1;
-    `;
-
-    const lineColor = isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)";
-    const labelColor = isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)";
-
-    // Create grid cells with labels
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            const cell = document.createElement("div");
-            cell.style.cssText = `
-                border: 1px dashed ${lineColor};
-                position: relative;
-                box-sizing: border-box;
-            `;
-
-            // Add label in top-left corner
-            const label = document.createElement("span");
-            label.textContent = `${r},${c}`;
-            label.style.cssText = `
-                position: absolute;
-                top: 2px; left: 4px;
-                font-size: 10px;
-                color: ${labelColor};
-                font-family: monospace;
-                pointer-events: none;
-            `;
-            cell.appendChild(label);
-            gridOverlay.appendChild(cell);
-        }
-    }
-
-    canvasInstance.canvas.appendChild(gridOverlay);
-}
 
 function addResizeHandles(el) {
     const handles = ['tl', 'tc', 'tr', 'rc', 'br', 'bc', 'bl', 'lc'];

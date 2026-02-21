@@ -136,6 +136,23 @@ export default {
         width: 130,
         height: 130
     },
+    schema: [
+        {
+            section: "QR Content",
+            fields: [
+                { key: "value", label: "Value / URL", type: "text", default: "" },
+                { key: "ecc", label: "Error Correction", type: "select", options: ["LOW", "MEDIUM", "QUARTILE", "HIGH"], default: "LOW" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "color", label: "Color", type: "color", default: "black" },
+                { key: "bg_color", label: "Background", type: "color", default: "white" },
+                { key: "drop_shadow", label: "", type: "drop_shadow_button" }
+            ]
+        }
+    ],
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};
