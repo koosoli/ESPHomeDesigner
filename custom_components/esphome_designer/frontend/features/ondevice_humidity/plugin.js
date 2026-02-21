@@ -257,6 +257,7 @@ export default {
         const widgets = [
             {
                 label: {
+                    id: `${w.id}_icon`.replace(/-/g, '_'),
                     width: iconSize + 10,
                     height: iconSize + 4,
                     align: "top_mid",
@@ -267,6 +268,7 @@ export default {
             },
             {
                 label: {
+                    id: `${w.id}_text`.replace(/-/g, '_'),
                     width: "100%",
                     height: fontSize + 6,
                     align: "top_mid",
@@ -425,10 +427,12 @@ export default {
             if (!eid) continue;
 
             if (isLvgl && pendingTriggers) {
+                const safeWidgetId = w.id.replace(/-/g, "_");
                 if (!pendingTriggers.has(eid)) {
                     pendingTriggers.set(eid, new Set());
                 }
-                pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
+                pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${safeWidgetId}_icon`);
+                pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${safeWidgetId}_text`);
             }
 
             // Explicitly export the Home Assistant sensor block if it's not a local sensor

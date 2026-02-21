@@ -334,8 +334,11 @@ const onExportNumericSensors = (context) => {
 
             sensors.forEach(sid => {
                 if (isLvgl && pendingTriggers) {
+                    const safeWidgetId = w.id.replace(/-/g, "_");
                     if (!pendingTriggers.has(sid)) pendingTriggers.set(sid, new Set());
-                    pendingTriggers.get(sid).add(`- lvgl.widget.refresh: ${w.id}`);
+                    pendingTriggers.get(sid).add(`- lvgl.widget.refresh: ${safeWidgetId}_day${day}`);
+                    pendingTriggers.get(sid).add(`- lvgl.widget.refresh: ${safeWidgetId}_icon${day}`);
+                    pendingTriggers.get(sid).add(`- lvgl.widget.refresh: ${safeWidgetId}_temp${day}`);
                 }
             });
         }
@@ -531,6 +534,7 @@ export default {
             const dayWidgets = [
                 {
                     label: {
+                        id: `${w.id}_day${i}`.replace(/-/g, '_'),
                         align: "top_mid",
                         text: dayNameLambda,
                         text_font: getLVGLFont(p.font_family || "Roboto", dayFS, 700),
@@ -539,6 +543,7 @@ export default {
                 },
                 {
                     label: {
+                        id: `${w.id}_icon${i}`.replace(/-/g, '_'),
                         align: "center",
                         y: 0,
                         text: iconLambda,
@@ -548,6 +553,7 @@ export default {
                 },
                 {
                     label: {
+                        id: `${w.id}_temp${i}`.replace(/-/g, '_'),
                         align: "bottom_mid",
                         text: showHighLow ? `!lambda "return str_sprintf(\'%.${precision}f/%.${precision}f\', id(weather_high_day${i}).state, id(weather_low_day${i}).state).c_str();"` : `!lambda "return str_sprintf(\'%.${precision}f\', id(weather_high_day${i}).state).c_str();"`,
                         text_font: getLVGLFont(p.font_family || "Roboto", tempFS, 400),

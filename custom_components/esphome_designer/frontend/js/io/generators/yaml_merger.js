@@ -64,9 +64,10 @@ export function applyPackageOverrides(yaml, profile, orientation, isLvgl = false
                 // Remove existing transform if present to avoid duplication
                 const hasTransform = new RegExp(`^${indent}transform:`, 'm').test(yaml);
                 if (hasTransform) {
-                    // Replace existing transform block (match from transform: through all indented children)
+                    // Fix #319: Regex was too greedy and swallowed siblings like on_release if they shared the same indentation.
+                    // We now strictly match only known transform sub-keys to prevent it from eating other blocks.
                     const oldTransformRegex = new RegExp(
-                        `^${indent}transform:\\n(${indent}  \\S+[^\\n]*\\n?)+`, 'm'
+                        `^${indent}transform:\\n(${indent}  (swap_xy|mirror_x|mirror_y):.*\\n?)+`, 'm'
                     );
                     if (oldTransformRegex.test(yaml)) {
                         yaml = yaml.replace(oldTransformRegex, `${indent}${transform}\n`);
