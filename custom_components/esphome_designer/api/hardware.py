@@ -80,6 +80,46 @@ class ReTerminalHardwareListView(DesignerBaseView):
                     if inv_match:
                         features["inverted_colors"] = True
                     
+                    # Detect chip and board from early comments or esp32/esp8266 blocks
+                    chip = "esp32-s3"
+                    board = None
+                    
+                    esp8266_match = re.search(r"^\s*esp8266:", content, re.MULTILINE)
+                    if esp8266_match:
+                        chip = "esp8266"
+                    else:
+                        esp32_match = re.search(r"^\s*esp32:", content, re.MULTILINE)
+                        if esp32_match:
+                            # Try to infer specific esp32 variant
+                            if "esp32-s3" in content.lower():
+                                chip = "esp32-s3"
+                            elif "esp32-c3" in content.lower():
+                                chip = "esp32-c3"
+                            elif "esp32-c6" in content.lower():
+                                chip = "esp32-c6"
+                            else:
+                                chip = "esp32"
+                    
+                    board_match = re.search(r"^\s*board:\s*([^\n]+)", content, re.MULTILINE)
+                    if board_match:
+                        board = board_match.group(1).strip()
+                        if not esp8266_match:
+                            if "s3" in board.lower():
+                                chip = "esp32-s3"
+                            elif "c3" in board.lower():
+                                chip = "esp32-c3"
+                            elif "c6" in board.lower():
+                                chip = "esp32-c6"
+                    
+                    # Support explicit comment overrides
+                    chip_comment_match = re.search(r"#\s*Chip:\s*(.*)", content, re.IGNORECASE)
+                    if chip_comment_match:
+                        chip = chip_comment_match.group(1).strip()
+                        
+                    board_comment_match = re.search(r"#\s*Board:\s*(.*)", content, re.IGNORECASE)
+                    if board_comment_match:
+                        board = board_comment_match.group(1).strip()
+                    
                     is_epaper = "waveshare_epaper" in content or "epaper_spi" in content
                     if is_epaper:
                          features["epaper"] = True
@@ -141,6 +181,8 @@ class ReTerminalHardwareListView(DesignerBaseView):
                         "hardwarePackage": hw_package,
                         "resolution": {"width": width, "height": height},
                         "shape": shape,
+                        "chip": chip,
+                        "board": board,
                         "features": features
                     })
                     _LOGGER.debug(f"Loaded profile '{clean_id}' from {yaml_file}")

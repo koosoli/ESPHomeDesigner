@@ -26,9 +26,13 @@ export function generateCustomHardwareYaml(config) {
     lines.push(`# Resolution: ${resWidth}x${resHeight}`);
     lines.push(`# Shape: ${shape}`);
     lines.push("#");
+    const unsupportedChips = ["esp32-c3", "esp32-c6", "esp8266"];
+    const isUnsupported = unsupportedChips.some(c => (chip || "").toLowerCase().includes(c));
+    const effectivePsram = psram && !isUnsupported;
+
     lines.push(`#         - Display Platform: ${displayDriver || "Unknown"}`);
     lines.push(`#         - Touchscreen: ${touchTech || "None"}`);
-    lines.push(`#         - PSRAM: ${psram ? 'Yes' : 'No'}`);
+    lines.push(`#         - PSRAM: ${effectivePsram ? 'Yes' : 'No'}`);
     lines.push("# ============================================================================");
     lines.push("#");
     lines.push("# SETUP INSTRUCTIONS:");
@@ -42,7 +46,7 @@ export function generateCustomHardwareYaml(config) {
     lines.push("#         - Click \"New Device\"");
     lines.push("#         - Name: your-device-name");
 
-    if (chip === "ESP32 (Standard)") {
+    if (chip === "esp32") {
         lines.push("#         - Select: ESP32");
         lines.push("#         - Board: esp32dev (or specific board)");
         lines.push("#         - Framework: esp-idf (Recommended) or arduino");
@@ -50,6 +54,14 @@ export function generateCustomHardwareYaml(config) {
         lines.push("#         - Select: ESP8266");
         lines.push("#         - Board: nodemcuv2 (or specific board)");
         lines.push("#         - Framework: arduino (Default)");
+    } else if (chip === "esp32-c3") {
+        lines.push("#         - Select: ESP32-C3");
+        lines.push("#         - Board: esp32-c3-devkitm-1");
+        lines.push("#         - Framework: esp-idf (Recommended) or arduino");
+    } else if (chip === "esp32-c6") {
+        lines.push("#         - Select: ESP32-C6");
+        lines.push("#         - Board: esp32-c6-devkitc-1");
+        lines.push("#         - Framework: esp-idf (Recommended)");
     } else {
         lines.push("#         - Select: ESP32-S3");
         lines.push("#         - Board: esp32-s3-devkitc-1");
@@ -71,13 +83,12 @@ export function generateCustomHardwareYaml(config) {
         lines.push("# esp32: # (Auto-commented)");
     }
     lines.push(`#   board: ${getBoardForChip(chip)}`);
-    lines.push(`#   board: ${getBoardForChip(chip)}`);
 
     if (chip !== "esp8266") {
         lines.push("#   framework:");
         lines.push("#     type: esp-idf");
     }
-    if (psram && chip.includes("s3")) {
+    if (effectivePsram && chip.includes("s3")) {
         lines.push("#     # For stability on S3 devices with high-res displays/LVGL:");
         lines.push("#     advanced:");
         lines.push("#       execute_from_psram: true");
@@ -85,10 +96,7 @@ export function generateCustomHardwareYaml(config) {
     lines.push("");
 
     // PSRAM (Commented out by default)
-    const unsupportedChips = ["esp32-c3", "esp32-c6", "esp8266"];
-    const isUnsupported = unsupportedChips.some(c => chip.toLowerCase().includes(c));
-
-    if (psram && !isUnsupported) {
+    if (effectivePsram) {
         lines.push("# psram: # (Auto-commented)");
         if (chip.includes("s3")) {
             lines.push("#   # Quad or Octal depending on your board");

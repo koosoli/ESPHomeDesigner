@@ -20,12 +20,19 @@ export class YamlGenerator {
         const feats = profile.features || {};
         const platform = profile.displayPlatform || (feats.lcd ? (profile.id === 'reterminal_e1001' ? 'reterminal_e1001' : 'LCD') : (feats.epaper ? "waveshare_epaper" : "Unknown"));
 
+        const chip = profile.chip || "esp32-s3";
+        const unsupportedChips = ["esp32-c3", "esp32-c6", "esp8266"];
+        const isUnsupported = unsupportedChips.some(c => (chip || "").toLowerCase().includes(c));
+        const effectivePsram = feats.psram && !isUnsupported;
+
         lines.push(`#         - Display Platform: ${platform}`);
-        lines.push(`#         - PSRAM: ${feats.psram ? 'Yes' : 'No'}`);
         lines.push(`#         - Touchscreen: ${feats.touch ? (profile.touch?.platform || 'Yes') : 'No'}`);
+        lines.push(`#         - PSRAM: ${effectivePsram ? 'Yes' : 'No'}`);
 
         let frameworkHint = "esp-idf (Recommended)";
-        if (feats.psram && (profile.chip?.includes("s3") || profile.id?.includes("s3"))) {
+        if (chip === 'esp8266') {
+            frameworkHint = "Arduino (Default)";
+        } else if (effectivePsram && (profile.chip?.includes("s3") || profile.id?.includes("s3"))) {
             frameworkHint = "ESP-IDF (Required for stable PSRAM/LVGL)";
         }
         lines.push(`#         - Framework: ${frameworkHint}`);
@@ -40,12 +47,27 @@ export class YamlGenerator {
         lines.push("#");
         lines.push("# STEP 2: Create a new device in ESPHome");
         lines.push("#         - Click \"New Device\"");
-        lines.push("#         - Select: ESP32-S3 (or appropriate for your board)");
-        lines.push("#         - Framework: ESP-IDF (Essential for S3 stability)");
+        if (chip === 'esp8266') {
+            lines.push("#         - Select: ESP8266");
+            lines.push("#         - Framework: Arduino (Default)");
+        } else if (chip === 'esp32') {
+            lines.push("#         - Select: ESP32");
+            lines.push("#         - Framework: ESP-IDF (Recommended) or Arduino");
+        } else if (chip.includes('c3')) {
+            lines.push("#         - Select: ESP32-C3");
+            lines.push("#         - Framework: ESP-IDF (Recommended) or Arduino");
+        } else if (chip.includes('c6')) {
+            lines.push("#         - Select: ESP32-C6");
+            lines.push("#         - Framework: ESP-IDF (Recommended)");
+        } else {
+            lines.push("#         - Select: ESP32-S3 (or appropriate for your board)");
+            lines.push("#         - Framework: ESP-IDF (Essential for S3 stability)");
+        }
         lines.push("#");
         lines.push("# STEP 3: PASTE this snippet into your device YAML");
         lines.push("#         - Paste this snippet at the end of your configuration.");
-        lines.push("#         - System sections (esphome, esp32, psram) are auto-commented");
+        const sysLabel = chip === 'esp8266' ? 'esp8266' : 'esp32';
+        lines.push(`#         - System sections (esphome, ${sysLabel}${chip !== 'esp8266' ? ', psram' : ''}) are auto-commented`);
         lines.push("#           to avoid conflicts with your existing base setup.");
         lines.push("#");
         lines.push("# CAPTIVE PORTAL:");
@@ -53,10 +75,12 @@ export class YamlGenerator {
         lines.push("#         - Search for its name in your WiFi settings.");
         lines.push("#         - Connect and go to http://192.168.4.1 to configure WiFi.");
         lines.push("#");
-        lines.push("# TIP: For reTerminal / S3 devices, if you cannot see logs via USB,");
-        lines.push("#      add this to your base 'logger:' section:");
-        lines.push("#      hardware_uart: USB_CDC");
-        lines.push("#");
+        if (chip.includes('s3')) {
+            lines.push("# TIP: For reTerminal / S3 devices, if you cannot see logs via USB,");
+            lines.push("#      add this to your base 'logger:' section:");
+            lines.push("#      hardware_uart: USB_CDC");
+            lines.push("#");
+        }
         lines.push("# ============================================================================");
         lines.push("");
         lines.push("# ====================================");
@@ -97,7 +121,7 @@ export class YamlGenerator {
     generateSystemSections(profile, layout) {
         const lines = [];
         const chip = profile.chip || "esp32-s3";
-        const board = profile.board || "esp32-s3-devkitc-1";
+        const board = profile.board || (chip === 'esp8266' ? 'nodemcuv2' : (chip === 'esp32' ? 'esp32dev' : (chip.includes('c3') ? 'esp32-c3-devkitm-1' : (chip.includes('c6') ? 'esp32-c6-devkitc-1' : 'esp32-s3-devkitc-1'))));
 
         const isEpaper = !!(profile.features && (profile.features.epaper || profile.features.epd));
         // Check for CoreInk specifically (by board or name)

@@ -57,6 +57,7 @@ export class ProjectStore {
     get currentLayoutId() { return this.state.currentLayoutId; }
     /** @returns {Object} */
     get protocolHardware() { return this.state.protocolHardware; }
+    get customHardware() { return this.state.customHardware; }
 
     /** @returns {import("../../types.js").PageConfig} */
     getCurrentPage() {

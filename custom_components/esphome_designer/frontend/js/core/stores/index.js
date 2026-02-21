@@ -119,6 +119,13 @@ class AppStateFacade {
             currentPageIndex: this.currentPageIndex,
             ...this.settings
         };
+
+        // Settings should not override core project state
+        // Re-apply canonical project values to override any stale/null settings
+        payload.deviceModel = this.project.deviceModel;
+        payload.customHardware = this.project.customHardware;
+        payload.protocolHardware = this.project.protocolHardware;
+
         // Ensure snake_case for HA compatibility
         payload.device_model = this.project.deviceModel;
         payload.custom_hardware = this.project.customHardware;

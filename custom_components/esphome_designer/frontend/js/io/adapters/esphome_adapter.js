@@ -56,8 +56,6 @@ export class ESPHomeAdapter extends BaseAdapter {
         const globalProfiles = window.DEVICE_PROFILES || {};
         const profiles = { ...importedProfiles, ...globalProfiles };
         let profile = profiles[model] || {};
-        // console.log(`[ESPHomeAdapter] Model: ${model}`);
-        // console.log(`[ESPHomeAdapter] Profile features:`, JSON.stringify(profile.features));
 
         // Custom Hardware Synthesis:
         // If the model is 'custom', we synthesize a profile from the custom hardware settings
@@ -432,15 +430,16 @@ export class ESPHomeAdapter extends BaseAdapter {
         }
 
         // 6.5 LVGL (If supported)
+        let hasLvgl = false;
         if (isLvgl && generateLVGLSnippet) {
             const lvglSnippet = generateLVGLSnippet(pages, model, profile, layout);
             if (lvglSnippet && lvglSnippet.length > 0) {
                 lines.push(...lvglSnippet);
+                hasLvgl = true;
             }
         }
 
         // 7. Display Hardware & Lambda
-        const hasLvgl = isLvgl && generateLVGLSnippet;
         if (!profile.isPackageBased) {
             // Fix #129: Keep display hardware but skip lambda if LVGL is handling rendering
             const hardwareLines = Generators.generateDisplaySection

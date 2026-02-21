@@ -207,6 +207,40 @@ function parseHardwareRecipeClientSide(yaml, filename) {
     const modelMatch = yaml.match(/^\s*model:\s*"?([^"\n]+)"?/m);
     const displayModel = modelMatch ? modelMatch[1].trim() : undefined;
 
+    // Detect chip and board
+    let chip = "esp32-s3";
+    let board = undefined;
+
+    const esp8266Match = yaml.match(/^\s*esp8266:/m);
+    if (esp8266Match) {
+        chip = "esp8266";
+    } else {
+        const esp32Match = yaml.match(/^\s*esp32:/m);
+        if (esp32Match) {
+            if (yaml.toLowerCase().includes("esp32-s3")) chip = "esp32-s3";
+            else if (yaml.toLowerCase().includes("esp32-c3")) chip = "esp32-c3";
+            else if (yaml.toLowerCase().includes("esp32-c6")) chip = "esp32-c6";
+            else chip = "esp32";
+        }
+    }
+
+    const boardMatch = yaml.match(/^\s*board:\s*([^\n]+)/m);
+    if (boardMatch) {
+        board = boardMatch[1].trim();
+        if (!esp8266Match) {
+            if (board.toLowerCase().includes("s3")) chip = "esp32-s3";
+            else if (board.toLowerCase().includes("c3")) chip = "esp32-c3";
+            else if (board.toLowerCase().includes("c6")) chip = "esp32-c6";
+        }
+    }
+
+    // Explicit comment overrides
+    const chipCommentMatch = yaml.match(/#\s*Chip:\s*(.*)/i);
+    if (chipCommentMatch) chip = chipCommentMatch[1].trim();
+
+    const boardCommentMatch = yaml.match(/#\s*Board:\s*(.*)/i);
+    if (boardCommentMatch) board = boardCommentMatch[1].trim();
+
     // Extract display-specific settings from YAML content
     const colorPaletteMatch = yaml.match(/^\s*color_palette:\s*(\S+)/m);
     const colorPalette = colorPaletteMatch ? colorPaletteMatch[1].trim() : undefined;
@@ -225,6 +259,8 @@ function parseHardwareRecipeClientSide(yaml, filename) {
         name: name, // Label will be added by frontend based on isOfflineImport flag
         resolution: { width, height },
         shape: shape,
+        chip: chip,
+        board: board,
         displayPlatform: displayPlatform,
         displayModel: displayModel,
         colorPalette: colorPalette,
