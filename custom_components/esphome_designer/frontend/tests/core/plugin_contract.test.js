@@ -23,9 +23,39 @@ describe('Plugin Contract Enforcement', () => {
             // Must have rendering logic
             expect(typeof plugin.render).toBe('function');
 
-            // Optionals
+            // Schema structure validation
             if (plugin.schema) {
-                expect(Array.isArray(plugin.schema)).toBe(true);
+                plugin.schema.forEach(section => {
+                    expect(section.section).toBeDefined();      // section label
+                    expect(Array.isArray(section.fields)).toBe(true);
+                    section.fields.forEach(field => {
+                        expect(field.key).toBeDefined();         // property key
+                        expect(field.type).toBeDefined();        // input type
+                    });
+                });
+            }
+
+            // Defaults ↔ Schema consistency
+            if (plugin.defaults && plugin.schema) {
+                const schemaKeys = plugin.schema
+                    .flatMap(s => s.fields.map(f => f.key))
+                    .filter(k => !['drop_shadow'].includes(k));  // UI-only fields
+                schemaKeys.forEach(key => {
+                    expect(plugin.defaults).toHaveProperty(key);
+                });
+            }
+
+            // supportedModes ↔ export function consistency
+            if (plugin.supportedModes) {
+                if (plugin.supportedModes.includes('direct')) {
+                    expect(typeof plugin.export).toBe('function');
+                }
+                if (plugin.supportedModes.includes('lvgl')) {
+                    expect(typeof plugin.exportLVGL).toBe('function');
+                }
+                if (plugin.supportedModes.includes('oepl')) {
+                    expect(typeof plugin.exportOEPL).toBe('function');
+                }
             }
         });
     });

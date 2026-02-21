@@ -65,8 +65,8 @@ describe('OEPL Bare Array Parsing', () => {
   spacing: 20
   line_color: grey`;
 
-  it('should parse bare OEPL array format', () => {
-    const result = parseSnippetYamlOffline(testYaml);
+  it('should parse bare OEPL array format', async () => {
+    const result = await parseSnippetYamlOffline(testYaml);
 
     expect(result).toBeDefined();
     expect(result.pages).toBeDefined();
@@ -74,8 +74,8 @@ describe('OEPL Bare Array Parsing', () => {
     expect(result.pages[0].widgets).toBeDefined();
   });
 
-  it('should correctly parse text widget', () => {
-    const result = parseSnippetYamlOffline(testYaml);
+  it('should correctly parse text widget', async () => {
+    const result = await parseSnippetYamlOffline(testYaml);
     const textWidget = result.pages[0].widgets.find(w => w.type === 'text');
 
     expect(textWidget).toBeDefined();
@@ -85,8 +85,8 @@ describe('OEPL Bare Array Parsing', () => {
     expect(textWidget.props.font_size).toBe(20);
   });
 
-  it('should correctly parse rectangle widget', () => {
-    const result = parseSnippetYamlOffline(testYaml);
+  it('should correctly parse rectangle widget', async () => {
+    const result = await parseSnippetYamlOffline(testYaml);
     const rectWidget = result.pages[0].widgets.find(w => w.type === 'shape_rect');
 
     expect(rectWidget).toBeDefined();
@@ -96,8 +96,8 @@ describe('OEPL Bare Array Parsing', () => {
     expect(rectWidget.height).toBe(50);  // 143 - 93
   });
 
-  it('should correctly parse circle widget', () => {
-    const result = parseSnippetYamlOffline(testYaml);
+  it('should correctly parse circle widget', async () => {
+    const result = await parseSnippetYamlOffline(testYaml);
     const circleWidget = result.pages[0].widgets.find(w => w.type === 'shape_circle');
 
     expect(circleWidget).toBeDefined();
@@ -107,8 +107,8 @@ describe('OEPL Bare Array Parsing', () => {
     expect(circleWidget.height).toBe(50);
   });
 
-  it('should correctly parse icon widget', () => {
-    const result = parseSnippetYamlOffline(testYaml);
+  it('should correctly parse icon widget', async () => {
+    const result = await parseSnippetYamlOffline(testYaml);
     const iconWidget = result.pages[0].widgets.find(w => w.type === 'icon');
 
     expect(iconWidget).toBeDefined();
@@ -118,8 +118,8 @@ describe('OEPL Bare Array Parsing', () => {
     expect(iconWidget.props.size).toBe(24);
   });
 
-  it('should correctly parse qrcode widget', () => {
-    const result = parseSnippetYamlOffline(testYaml);
+  it('should correctly parse qrcode widget', async () => {
+    const result = await parseSnippetYamlOffline(testYaml);
     const qrWidget = result.pages[0].widgets.find(w => w.type === 'qr_code');
 
     expect(qrWidget).toBeDefined();
@@ -128,8 +128,8 @@ describe('OEPL Bare Array Parsing', () => {
     expect(qrWidget.props.value).toBe('https://www.home-assistant.io');
   });
 
-  it('should correctly parse progress_bar widget', () => {
-    const result = parseSnippetYamlOffline(testYaml);
+  it('should correctly parse progress_bar widget', async () => {
+    const result = await parseSnippetYamlOffline(testYaml);
     const progressWidget = result.pages[0].widgets.find(w => w.type === 'progress_bar');
 
     expect(progressWidget).toBeDefined();
@@ -138,16 +138,16 @@ describe('OEPL Bare Array Parsing', () => {
     expect(progressWidget.props.show_percentage).toBe(true);
   });
 
-  it('should NOT skip debug_grid widget (mapped to odp_debug_grid)', () => {
-    const result = parseSnippetYamlOffline(testYaml);
+  it('should NOT skip debug_grid widget (mapped to odp_debug_grid)', async () => {
+    const result = await parseSnippetYamlOffline(testYaml);
     const debugWidget = result.pages[0].widgets.find(w => w.type === 'odp_debug_grid');
 
     expect(debugWidget).toBeDefined();
     expect(debugWidget.props.spacing).toBe(20);
   });
 
-  it('should parse 7 widgets total (including odp_debug_grid)', () => {
-    const result = parseSnippetYamlOffline(testYaml);
+  it('should parse 7 widgets total (including odp_debug_grid)', async () => {
+    const result = await parseSnippetYamlOffline(testYaml);
     expect(result.pages[0].widgets.length).toBe(7);
   });
 });

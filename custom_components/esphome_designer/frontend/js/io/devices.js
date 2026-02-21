@@ -8,24 +8,7 @@ import { fetchDynamicHardwareProfiles, getOfflineProfilesFromStorage } from './h
 // Used to generate all hardware-related YAML sections (sensors, buttons, etc.)
 // ============================================================================
 
-// List of devices explicitly confirmed to work.
-// All other devices will be marked as (untested) in the UI.
-// IMPORTANT: Most device profiles here are snippet-based. 
-// System sections (esphome, esp32, psram, etc.) MUST be commented out 
-// in the generated YAML to allow users to merge this into their 
-// existing device configurations without conflicts.
-export const SUPPORTED_DEVICE_IDS = [
-  'reterminal_e1001',
-  'reterminal_e1002',
-  'trmnl_diy_esp32s3',
-  'esp32_s3_photopainter',
-  'm5stack_paper',
-  'm5stack_coreink',
-  'trmnl',
-  'waveshare_esp32_s3_touch_lcd_7',
-  'waveshare_esp32_s3_touch_lcd_4_3',
-  'seeedstudio_sensecap_indicator'
-];
+
 
 export const DEVICE_PROFILES = {
   // ========================================================================
@@ -367,6 +350,7 @@ export const DEVICE_PROFILES = {
 
 // Expose generically for other modules (Adapter, etc.)
 // window.DEVICE_PROFILES = DEVICE_PROFILES; // REFACTOR: Removed in favor of strict imports
+export const SUPPORTED_DEVICE_IDS = Object.keys(DEVICE_PROFILES);
 
 /**
  * Dynamically loads external hardware profiles from the backend

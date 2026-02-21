@@ -21,6 +21,15 @@ beforeEach(() => {
     });
 });
 
+// Setup window mock with js-yaml before tests
+beforeEach(async () => {
+    if (typeof window === 'undefined') {
+        globalThis.window = {};
+    }
+    const jsyaml = await import('js-yaml');
+    window.jsyaml = jsyaml.default || jsyaml;
+});
+
 const mockButtonPlugin = {
     id: 'button',
     export: (widget) => [`        // widget:button id:${widget.id} x:${widget.x} y:${widget.y} w:${widget.width} h:${widget.height}`, `        btn_draw();`]
@@ -44,7 +53,7 @@ describe('ESPHomeAdapter & YamlImport Round-Trip', () => {
         };
 
         const gen1 = await adapter.generate(initialState);
-        const reimported = parseSnippetYamlOffline(gen1);
+        const reimported = await parseSnippetYamlOffline(gen1);
         const gen2 = await adapter.generate({ ...initialState, pages: reimported.pages });
 
         expect(gen2).toBe(gen1);
@@ -76,7 +85,7 @@ describe('ESPHomeAdapter & YamlImport Round-Trip', () => {
         expect(gen1).toContain('// widget:text');
         expect(gen1).toContain('text:"Hello World"');
 
-        const reimported = parseSnippetYamlOffline(gen1);
+        const reimported = await parseSnippetYamlOffline(gen1);
         const gen2 = await adapter.generate({ ...initialState, pages: reimported.pages });
 
         // If the real plugin export is identical to what the map reconstructs, this will pass.

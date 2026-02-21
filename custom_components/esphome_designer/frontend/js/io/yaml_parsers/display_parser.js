@@ -1,9 +1,18 @@
 import { Logger } from '../../utils/logger.js';
-import * as yaml from 'js-yaml';
+
 import { buildWidgetProps } from './widget_props_map.js';
 import { parseCppDrawingCommand } from './cpp_drawing_parser.js';
 
-export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESPHomeSchema) {
+/**
+ * Parses ESPHome YAML (or LVGL/OpenDisplay C++) blocks into a structured layout object.
+ * 
+ * @param {string[]} lambdaLines - Array of lines from the lambda/script block containing widgets
+ * @param {string[]} rawLines - Array of all lines in the document for YAML sub-block extraction
+ * @param {Object} deviceSettings - Base settings for the device layout
+ * @param {Object} yaml - The loaded js-yaml module reference
+ * @returns {import('../../types.js').ProjectPayload} The complete LayoutObject containing pages and widgets
+ */
+export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESPHomeSchema, yaml) {
     const pageMap = new Map();
     const intervalMap = new Map();
     const nameMap = new Map();

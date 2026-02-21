@@ -38,7 +38,7 @@ export class PluginRegistry {
 
     /**
      * Registers a plugin.
-     * @param {Object} plugin The plugin definition
+     * @param {Object} plugin - The plugin definition object
      */
     register(plugin) {
         if (!plugin || !plugin.id) {
@@ -52,18 +52,28 @@ export class PluginRegistry {
         Logger.log(`[Registry] Registered: ${id}`);
     }
 
+    /**
+     * Gets a registered plugin by ID or alias.
+     * @param {string} id - The plugin ID
+     * @returns {Object|undefined} The plugin object, or undefined if not found
+     */
     get(id) {
         const targetId = this.aliases[id] || id;
         return this.plugins.get(targetId);
     }
 
+    /**
+     * Returns an array of all registered plugins.
+     * @returns {Array<Object>} List of all plugins
+     */
     getAll() {
         return Array.from(this.plugins.values());
     }
 
     /**
      * Dynamically load a feature's module.
-     * @param {string} id Feature ID
+     * @param {string} id - Feature ID to load
+     * @returns {Promise<Object|null>} A promise resolving to the loaded plugin, or null if failed
      */
     async load(id) {
         const targetId = this.aliases[id] || id;
@@ -117,13 +127,21 @@ export class PluginRegistry {
     }
 
     // Hook listeners (delegates to plugins)
+    /** @param {import('../types.js').GenerationContext} context */
     onExportGlobals(context) { this.getAll().forEach(p => p.onExportGlobals && p.onExportGlobals(context)); }
+    /** @param {import('../types.js').GenerationContext} context */
     onExportEsphome(context) { this.getAll().forEach(p => p.onExportEsphome && p.onExportEsphome(context)); }
+    /** @param {import('../types.js').GenerationContext} context */
     onExportNumericSensors(context) { this.getAll().forEach(p => p.onExportNumericSensors && p.onExportNumericSensors(context)); }
+    /** @param {import('../types.js').GenerationContext} context */
     onExportTextSensors(context) { this.getAll().forEach(p => p.onExportTextSensors && p.onExportTextSensors(context)); }
+    /** @param {import('../types.js').GenerationContext} context */
     onExportBinarySensors(context) { this.getAll().forEach(p => p.onExportBinarySensors && p.onExportBinarySensors(context)); }
+    /** @param {import('../types.js').GenerationContext} context */
     onExportHelpers(context) { this.getAll().forEach(p => p.onExportHelpers && p.onExportHelpers(context)); }
+    /** @param {import('../types.js').GenerationContext} context */
     onExportComponents(context) { this.getAll().forEach(p => p.onExportComponents && p.onExportComponents(context)); }
+    /** @param {import('../types.js').GenerationContext} context */
     onCollectRequirements(context) { this.getAll().forEach(p => p.collectRequirements && p.collectRequirements(context)); }
 }
 

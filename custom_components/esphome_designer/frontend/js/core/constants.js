@@ -14,11 +14,19 @@ export const COLORS = {
     ORANGE: "#FFA500"
 };
 
+
 export const UI_DEFAULTS = {
     GRID_SIZE: 10,
     SNAP_THRESHOLD: 10,
     SIDEBAR_WIDTH: 300,
     PROPERTIES_WIDTH: 350
+};
+
+export const WIDGET_DEFAULTS = {
+    X: 40,
+    Y: 40,
+    WIDTH: 200,
+    HEIGHT: 60
 };
 
 // Alignment options match ESPHome TextAlign enum
@@ -78,21 +86,19 @@ export const DEFAULT_PREFERENCES = {
     glyphsets: ["GF_Latin_Kernel"]
 };
 
-export const WIDGET_DEFAULTS = {
-    X: 40,
-    Y: 40,
-    WIDTH: 200,
-    HEIGHT: 60
-};
+
 
 export const HISTORY_LIMIT = 50;
 
+
 export const CACHE_TTL = {
-    RSS: 300,      // 5 minutes
-    ENTITIES: 60,  // 1 minute
+    RSS: 300,
+    ENTITIES: 60
 };
 
 export const ENTITY_LIMIT = 5000;
+export const SNAP_DISTANCE = 10;
+export const GRID_SIZE = 10;
 
 export const ESPHOME_COLOR_MAPPING = {
     "white": "COLOR_WHITE",
@@ -109,8 +115,7 @@ export const ESPHOME_COLOR_MAPPING = {
 export const DEFAULT_CANVAS_WIDTH = 800;
 export const DEFAULT_CANVAS_HEIGHT = 480;
 
-export const SNAP_DISTANCE = 10;
-export const GRID_SIZE = 10;
+
 
 // Initialize global namespace
 window.ESPHomeDesigner = window.ESPHomeDesigner || {

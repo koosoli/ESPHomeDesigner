@@ -1,6 +1,9 @@
 /**
  * Global Event Bus using native EventTarget.
  */
+/**
+ * Global Event Bus using native EventTarget.
+ */
 export const EventBus = new EventTarget();
 
 /**
@@ -45,7 +48,6 @@ export function off(eventName, callback) {
 }
 
 // Expose to window for global access
-window.EventBus = EventBus;
 window.EVENTS = EVENTS;
 window.emit = emit;
 window.on = on;

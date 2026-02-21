@@ -2,7 +2,7 @@
 // HARDWARE SECTION GENERATORS
 // ============================================================================
 
-export function generateTouchscreenSection(profile, displayId = "my_display", displayRotation = 0, layout = {}, isLvgl = false) {
+function generateTouchscreenSection(profile, displayId = "my_display", displayRotation = 0, layout = {}, isLvgl = false) {
     if (!profile || !profile.touch) return []; // E-paper usually has no touch or handled differently
 
     const t = profile.touch;

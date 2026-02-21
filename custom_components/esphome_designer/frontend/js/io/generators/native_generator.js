@@ -22,7 +22,7 @@ export function getCondProps(w) {
     return s;
 }
 
-export function getConditionCheck(w) {
+function getConditionCheck(w) {
     const ent = (w.condition_entity || "").trim();
     if (!ent) return null;
 
@@ -79,7 +79,7 @@ export function getConditionCheck(w) {
     return null;
 }
 
-export function sanitize(str) {
+function sanitize(str) {
     if (!str) return "";
     return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
@@ -90,7 +90,7 @@ export function sanitize(str) {
  * @param {import("../../types.js").GenerationContext} context 
  * @returns {string[]}
  */
-export function generateWidget(widget, context) {
+function generateWidget(widget, context) {
     if (widget.type === 'group') return [];
     const widgetLines = [];
     const plugin = PluginRegistry ? PluginRegistry.get(widget.type) : null;

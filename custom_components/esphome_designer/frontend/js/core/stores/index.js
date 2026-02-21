@@ -35,11 +35,16 @@ class AppStateFacade {
         this.recordHistory();
     }
 
-    // --- Geters ---
+    // --- Getters ---
+    /** @returns {import('../../types.js').PageConfig[]} */
     get pages() { return this.project.pages; }
+    /** @returns {number} */
     get currentPageIndex() { return this.project.currentPageIndex; }
+    /** @returns {string|null} */
     get selectedWidgetId() { return this.editor.selectedWidgetIds[0] || null; }
+    /** @returns {string[]} */
     get selectedWidgetIds() { return this.editor.selectedWidgetIds; }
+    /** @returns {Object} */
     get settings() {
         return {
             ...this.preferences.state,
@@ -54,20 +59,39 @@ class AppStateFacade {
             ...this.secrets.keys
         };
     }
+    /** @returns {string|null} */
     get deviceName() { return this.project.deviceName; }
+    /** @returns {string|null} */
     get deviceModel() { return this.project.deviceModel; }
+    /** @returns {string|null} */
     get currentLayoutId() { return this.project.currentLayoutId; }
+    /** @returns {boolean} */
     get snapEnabled() { return this.preferences.snapEnabled; }
+    /** @returns {boolean} */
     get showGrid() { return this.preferences.showGrid; }
+    /** @returns {boolean} */
     get showDebugGrid() { return this.preferences.showDebugGrid; }
+    /** @returns {boolean} */
     get showRulers() { return this.preferences.showRulers; }
+    /** @returns {number} */
     get zoomLevel() { return this.editor.zoomLevel; }
 
+    /** @returns {import('../../types.js').PageConfig | null} */
     getCurrentPage() { return this.project.getCurrentPage(); }
+
+    /** 
+     * @param {string} id 
+     * @returns {import('../../types.js').WidgetConfig | undefined} 
+     */
     getWidgetById(id) { return this.project.getWidgetById(id); }
+
+    /** @returns {import('../../types.js').WidgetConfig | undefined} */
     getSelectedWidget() { return this.project.getWidgetById(this.editor.selectedWidgetIds[0]); }
+
+    /** @returns {import('../../types.js').WidgetConfig[]} */
     getSelectedWidgets() { return this.editor.selectedWidgetIds.map(id => this.getWidgetById(id)).filter(w => !!w); }
 
+    /** @returns {import('../../types.js').DeviceProfile | null} */
     getSelectedProfile() {
         return DEVICE_PROFILES[this.project.deviceModel] || null;
     }
@@ -293,6 +317,10 @@ class AppStateFacade {
         emit(EVENTS.PAGE_CHANGED, { index: this.currentPageIndex, forceFocus: true });
     }
 
+    /**
+     * @param {import('../../types.js').WidgetConfig} w 
+     * @param {number|null} pageIndex 
+     */
     addWidget(w, pageIndex = null) {
         this._checkRenderingModeForWidget(w);
         this.project.addWidget(w, pageIndex);
@@ -300,6 +328,11 @@ class AppStateFacade {
         this.selectWidget(w.id);
         emit(EVENTS.STATE_CHANGED);
     }
+
+    /**
+     * @param {string} id 
+     * @param {Partial<import('../../types.js').WidgetConfig>} u 
+     */
     updateWidget(id, u) {
         this.project.updateWidget(id, u);
 

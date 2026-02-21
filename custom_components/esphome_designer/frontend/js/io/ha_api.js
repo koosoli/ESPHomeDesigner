@@ -5,7 +5,7 @@ import { loadLayoutIntoState } from './yaml_import.js';
 import { Logger } from '../utils/logger.js';
 
 // --- HA Entity States Cache ---
-export let entityStatesCache = [];
+let entityStatesCache = [];
 let entityStatesFetchInProgress = false;
 let haEntitiesLoaded = false;
 let haEntitiesLoadError = false;
@@ -202,7 +202,7 @@ export async function fetchEntityStates() {
  * @param {string} entityId 
  * @returns {string|null} Formatted state or null if not found.
  */
-export function getEntityState(entityId) {
+function getEntityState(entityId) {
     const entry = entityStatesCache.find(e => e.entity_id === entityId);
     return entry ? entry.formatted : null;
 }
@@ -492,7 +492,7 @@ export async function importSnippetBackend(yaml) {
 }
 
 // Init function to be called by main
-export function initHaApi() {
+function initHaApi() {
     if (hasHaBackend()) {
         fetchEntityStates();
         setInterval(fetchEntityStates, 30000);

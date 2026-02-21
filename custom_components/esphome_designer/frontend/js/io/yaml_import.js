@@ -1,7 +1,7 @@
 import { AppState } from '../core/state.js';
 import { Logger } from '../utils/logger.js';
 import { DEVICE_PROFILES } from './devices.js';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 
 import { parseSettings } from './yaml_parsers/settings_parser.js';
 import { parseDisplayBlocks } from './yaml_parsers/display_parser.js';
@@ -10,9 +10,9 @@ import { isBareOEPLArray, parseOEPLArrayToLayout } from './yaml_parsers/oepl_par
 
 /**
  * Creates a custom js-yaml schema that supports ESPHome tags like !lambda.
+ * @returns {Object|null} The extended YAML schema, or null if unavailable
  */
 function getESPHomeSchema() {
-    // Safety check for test environments where js-yaml might be mocked without Type support
     if (!yaml || !yaml.Type || !yaml.DEFAULT_SCHEMA) {
         return null;
     }
@@ -39,6 +39,9 @@ function getESPHomeSchema() {
 
 /**
  * Parses an ESPHome YAML snippet offline to extract the layout.
+ * 
+ * @param {string} yamlText - The raw YAML/C++ payload containing the display configuration
+ * @returns {import('../types.js').ProjectPayload} The fully parsed project configuration and widget tree
  */
 export function parseSnippetYamlOffline(yamlText) {
     Logger.log("[parseSnippetYamlOffline] Start parsing...");
@@ -46,9 +49,8 @@ export function parseSnippetYamlOffline(yamlText) {
 
     let doc = {};
     try {
-        const parser = (typeof window !== 'undefined' && window.jsyaml) ? window.jsyaml : yaml;
         const schema = getESPHomeSchema();
-        doc = parser.load(yamlText, schema ? { schema } : {}) || {};
+        doc = yaml.load(yamlText, schema ? { schema } : {}) || {};
     } catch (e) {
         Logger.error("[parseSnippetYamlOffline] YAML parse error:", e);
     }
@@ -60,9 +62,23 @@ export function parseSnippetYamlOffline(yamlText) {
     }
 
     if (doc && doc.service) {
-        if (['opendisplay.drawcustom', 'open_epaper_link.drawcustom'].includes(doc.service) && doc.data && Array.isArray(doc.data.payload)) {
-            Logger.log("[parseSnippetYamlOffline] Detected full ODP/OEPL service call");
-            return parseOEPLArrayToLayout(doc.data.payload);
+        if (['opendisplay.drawcustom', 'open_epaper_link.drawcustom'].includes(doc.service) && doc.data && doc.data.payload) {
+            let payload = doc.data.payload;
+
+            // The adapter outputs `payload: |-` (block scalar), so js-yaml parses it as a string.
+            // Re-parse the string into an array of objects.
+            if (typeof payload === 'string') {
+                try {
+                    payload = yaml.load(payload);
+                } catch (e) {
+                    Logger.error("[parseSnippetYamlOffline] Failed to re-parse payload string:", e);
+                }
+            }
+
+            if (Array.isArray(payload)) {
+                Logger.log("[parseSnippetYamlOffline] Detected full ODP/OEPL service call");
+                return parseOEPLArrayToLayout(payload);
+            }
         }
     }
 
@@ -80,7 +96,7 @@ export function parseSnippetYamlOffline(yamlText) {
     }
 
     const deviceSettings = parseSettings(rawLines, doc);
-    const layout = parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESPHomeSchema);
+    const layout = parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESPHomeSchema, yaml);
 
     return layout;
 }
@@ -88,6 +104,9 @@ export function parseSnippetYamlOffline(yamlText) {
 /**
  * Loads a parsed layout into the application state.
  * Supports modern layout objects and legacy JSON/HA storage formats.
+ * 
+ * @param {import('../types.js').ProjectPayload} layout - The project payload object to load into state
+ * @throws {Error} if load fails or application state is uninitialized
  */
 export function loadLayoutIntoState(layout) {
     if (!layout) return;

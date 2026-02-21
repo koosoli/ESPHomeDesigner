@@ -4,8 +4,9 @@ import { Logger } from '../../utils/logger.js';
  * Reconstructs a widget's props dictionary from the flat key-value pairs parsed in the YAML.
  * 
  * @param {string} widgetType - The resolved widget type (e.g. "text", "lvgl_button")
- * @param {Object} p - The flat property key-value pairs (from // widget: marker)
- * @param {Object} widget - The base widget object (initialized with core fields like x, y, id)
+ * @param {Record<string, string>} p - The flat property key-value pairs (from // widget: marker)
+ * @param {import('../../types.js').WidgetConfig} widget - The base widget object (initialized with core fields like x, y, id)
+ * @returns {Record<string, any>} Rich typed properties for the widget
  */
 export function buildWidgetProps(widgetType, p, widget) {
     const props = {};

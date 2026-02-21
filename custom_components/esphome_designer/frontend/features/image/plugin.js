@@ -233,7 +233,7 @@ export default {
     id: "image",
     name: "Image",
     category: "Graphics",
-    supportedModes: ['lvgl', 'direct', 'oepl', 'opendisplay'],
+    supportedModes: ['direct', 'oepl', 'opendisplay'],
     defaults: {
         path: "/config/esphome/images/logo.png",
         url: "",
@@ -242,6 +242,21 @@ export default {
         width: 200,
         height: 130
     },
+    schema: [
+        {
+            section: "Source",
+            fields: [
+                { key: "path", label: "Local Path", type: "text", default: "/config/esphome/images/logo.png" },
+                { key: "url", label: "Online URL", type: "text", default: "", hint: "Used for ODP/OEPL" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "invert", label: "Invert Colors", type: "checkbox", default: false }
+            ]
+        }
+    ],
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};

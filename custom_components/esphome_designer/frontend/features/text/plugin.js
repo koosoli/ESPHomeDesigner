@@ -157,7 +157,8 @@ export default {
         opa: 255,
         border_width: 0,
         border_color: "black",
-        border_radius: 0
+        border_radius: 0,
+        parse_colors: false
     },
     schema: [
         {

@@ -8,6 +8,8 @@ const OEPL_WIDGET_TYPES = [
 
 /**
  * Checks if the YAML text represents a bare OEPL/ODP widget array.
+ * @param {string} yamlText - The raw YAML text to check
+ * @returns {boolean} True if it looks like a bare array
  */
 export function isBareOEPLArray(yamlText) {
     const trimmed = yamlText.trim();
@@ -26,6 +28,8 @@ export function isBareOEPLArray(yamlText) {
 
 /**
  * Extracts entity and surrounding text from a Home Assistant template.
+ * @param {string} template - The template string (e.g. "Temp: {{ states('sensor.temp') }} °C")
+ * @returns {Object|null} Object with prefix, entity_id, and postfix, or null
  */
 export function extractInfoFromTemplate(template) {
     if (!template || typeof template !== 'string' || !template.includes('{{')) return null;
@@ -43,6 +47,9 @@ export function extractInfoFromTemplate(template) {
 
 /**
  * Parses a bare OEPL/ODP array into a layout object with pages and widgets.
+ * 
+ * @param {Array<Object>} oeplArray - The raw array of OEPL objects parsed from YAML
+ * @returns {import('../../types.js').ProjectPayload} A standard layout structure containing a single page of widgets
  */
 export function parseOEPLArrayToLayout(oeplArray) {
     Logger.log("[parseOEPLArrayToLayout] Parsing OEPL array with", oeplArray.length, "items");
