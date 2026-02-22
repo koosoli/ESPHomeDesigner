@@ -393,10 +393,17 @@ export default {
                 { key: "label_font_size", label: "Label Size", type: "number", default: 14 },
                 { key: "value_font_size", label: "Value Size", type: "number", default: 20 },
                 {
+                    key: "font_family", label: "Font", type: "select",
+                    options: ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand"],
+                    default: "Roboto"
+                },
+                {
                     key: "font_weight", label: "Weight", type: "select",
                     dynamicOptions: (props) => getWeightsForFont(props.font_family || "Roboto"),
                     default: 400
                 },
+                { key: "italic", label: "Italic", type: "checkbox", default: false },
+                { key: "parse_colors", label: "Parse Color Tags", type: "checkbox", default: false },
                 { key: "color", label: "Color", type: "color", default: "black" },
                 { key: "text_align", label: "Align", type: "select", options: ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], default: "TOP_LEFT" }
             ]

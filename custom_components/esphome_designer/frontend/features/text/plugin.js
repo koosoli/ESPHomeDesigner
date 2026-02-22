@@ -175,11 +175,19 @@ export default {
             fields: [
                 { key: "font_size", label: "Font Size", type: "number", default: 20 },
                 {
+                    key: "font_family", label: "Font", type: "select",
+                    options: ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand"],
+                    default: "Roboto"
+                },
+                {
                     key: "font_weight", label: "Weight", type: "select",
                     dynamicOptions: (props) => getWeightsForFont(props.font_family || "Roboto"),
                     default: 400
                 },
+                { key: "italic", label: "Italic", type: "checkbox", default: false },
+                { key: "bpp", label: "BPP (Bits Per Pixel)", type: "select", options: [1, 2, 4, 8], default: 1 },
                 { key: "color", label: "Color", type: "color", default: "black" },
+                { key: "bg_color", label: "Background", type: "color", default: "transparent" },
                 { key: "text_align", label: "Align", type: "select", options: ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], default: "TOP_LEFT" }
             ]
         },
@@ -188,7 +196,8 @@ export default {
             fields: [
                 { key: "border_width", label: "Border Width", type: "number", default: 0 },
                 { key: "border_color", label: "Border Color", type: "color", default: "black" },
-                { key: "border_radius", label: "Corner Radius", type: "number", default: 0 }
+                { key: "border_radius", label: "Corner Radius", type: "number", default: 0 },
+                { key: "drop_shadow", label: "", type: "drop_shadow_button" }
             ]
         }
     ],
