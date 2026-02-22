@@ -27,6 +27,16 @@ jobs:
             echo "prerelease=false" >> $GITHUB_OUTPUT
           fi
           
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies and build frontend
+        run: |
+          npm install
+          npm run build
+
       - name: Create Zip for HACS
         run: |
           cd custom_components/esphome_designer

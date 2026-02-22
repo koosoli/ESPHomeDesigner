@@ -243,8 +243,17 @@ class ESPHomeDesignerStaticView(HomeAssistantView):
                      return web.Response(status=403, text="Forbidden")
 
         if not file_path.exists() or not file_path.is_file():
-            _LOGGER.debug("Static file not found: %s", file_path)
-            return web.Response(status=404, text="File not found")
+            # Robustness: Try alternative path if the file is not found (e.g. if 'dist/' was stripped or added)
+            if "assets/" in path and not path.startswith("dist/"):
+                alt_path = (dist_dir / path).resolve()
+                if alt_path.exists() and alt_path.is_file():
+                    file_path = alt_path
+                else:
+                    _LOGGER.error("❌ Static file NOT FOUND: %s (Looked at: %s)", path, file_path)
+                    return web.Response(status=404, text="File not found")
+            else:
+                _LOGGER.error("❌ Static file NOT FOUND: %s (Looked at: %s)", path, file_path)
+                return web.Response(status=404, text="File not found")
 
         try:
             # Determine content type
