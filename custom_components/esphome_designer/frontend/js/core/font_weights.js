@@ -37,7 +37,8 @@ export function getWeightsForFont(family) {
  * @returns {number}
  */
 export function clampFontWeight(family, weight) {
+    const w = parseInt(weight, 10);
     const available = getWeightsForFont(family);
-    if (available.includes(weight)) return weight;
-    return available.reduce((prev, curr) => Math.abs(curr - weight) < Math.abs(prev - weight) ? curr : prev);
+    if (available.includes(w)) return w;
+    return available.reduce((prev, curr) => Math.abs(curr - w) < Math.abs(prev - w) ? curr : prev);
 }

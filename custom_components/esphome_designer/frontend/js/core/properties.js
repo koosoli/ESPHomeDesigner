@@ -2412,11 +2412,11 @@ export class PropertiesPanel {
             if (typeof opt === 'object' && opt !== null) {
                 o.value = opt.value;
                 o.textContent = opt.label;
-                if (!isMixed && opt.value === value) o.selected = true;
+                if (!isMixed && String(opt.value) === String(value)) o.selected = true;
             } else {
                 o.value = opt;
                 o.textContent = opt;
-                if (!isMixed && opt === value) o.selected = true;
+                if (!isMixed && String(opt) === String(value)) o.selected = true;
             }
             select.appendChild(o);
         });
