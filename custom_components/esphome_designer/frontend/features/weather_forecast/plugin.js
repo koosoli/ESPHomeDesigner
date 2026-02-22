@@ -5,11 +5,20 @@
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     const layout = props.layout || "horizontal";
-    const days = Math.min(7, Math.max(1, parseInt(props.days, 10) || 5));
+    const mode = props.forecast_mode || "daily";
+    const startOffset = parseInt(props.start_offset || 0, 10);
+    const hourlySlots = (props.hourly_slots || "06,09,12,15,18,21")
+        .split(',').map(s => s.trim()).filter(Boolean);
+
+    // For hourly, we take slice of slots; for daily, we iterate 'days'
+    const actualSlots = mode === "hourly" ? hourlySlots.slice(startOffset) : [];
+    const count = mode === "hourly" ? actualSlots.length : Math.min(7, Math.max(1, parseInt(props.days, 10) || 5));
+
     const iconSize = parseInt(props.icon_size, 10) || 32;
     const tempFontSize = parseInt(props.temp_font_size, 10) || 14;
     const dayFontSize = parseInt(props.day_font_size, 10) || 12;
-    const showHighLow = props.show_high_low !== false;
+    // Hourly forecasts do not have templow data in Home Assistant.
+    const showHighLow = mode === "hourly" ? false : props.show_high_low !== false;
     const fontFamily = (props.font_family || "Roboto") + ", sans-serif";
     const precision = (typeof props.precision === 'number' && !isNaN(props.precision)) ? props.precision : 1;
 
@@ -64,12 +73,12 @@ const render = (el, widget, { getColorStyle }) => {
     const availableWidth = widget.width - (el.style.border !== "none" ? (parseInt(props.border_width || 0) * 2) : 0) - 8; // -8 for 4px padding on both sides
     const availableHeight = widget.height - (el.style.border !== "none" ? (parseInt(props.border_width || 0) * 2) : 0) - 8;
 
-    const itemWidth = layout === "horizontal" ? Math.floor(availableWidth / days) : availableWidth;
-    const itemHeight = layout === "vertical" ? Math.floor(availableHeight / days) : availableHeight;
+    const itemWidth = layout === "horizontal" ? Math.floor(availableWidth / count) : availableWidth;
+    const itemHeight = layout === "vertical" ? Math.floor(availableHeight / count) : availableHeight;
 
     const weatherEntity = widget.entity_id || props.weather_entity || "weather.forecast_home";
 
-    for (let i = 0; i < days; i++) {
+    for (let i = 0; i < count; i++) {
         const dayDiv = document.createElement("div");
         dayDiv.style.display = "flex";
         dayDiv.style.flexDirection = "column";
@@ -86,9 +95,14 @@ const render = (el, widget, { getColorStyle }) => {
         let liveLow = null;
 
         if (window.AppState && window.AppState.entityStates) {
-            const condState = window.AppState.entityStates[`sensor.weather_forecast_day_${i}_condition`];
-            const highState = window.AppState.entityStates[`sensor.weather_forecast_day_${i}_high`];
-            const lowState = window.AppState.entityStates[`sensor.weather_forecast_day_${i}_low`];
+            const dayIdx = i + startOffset;
+            const condId = mode === "hourly" ? `sensor.weather_forecast_hour_${actualSlots[i]}00_condition` : `sensor.weather_forecast_day_${dayIdx}_condition`;
+            const highId = mode === "hourly" ? `sensor.weather_forecast_hour_${actualSlots[i]}00_high` : `sensor.weather_forecast_day_${dayIdx}_high`;
+            const lowId = mode === "hourly" ? `sensor.weather_forecast_hour_${actualSlots[i]}00_low` : `sensor.weather_forecast_day_${dayIdx}_low`;
+
+            const condState = window.AppState.entityStates[condId];
+            const highState = window.AppState.entityStates[highId];
+            const lowState = window.AppState.entityStates[lowId];
 
             if (condState && condState.state && condState.state !== "unknown") liveCond = condState.state.toLowerCase();
             if (highState && highState.state && highState.state !== "unknown") liveHigh = parseFloat(highState.state);
@@ -100,12 +114,17 @@ const render = (el, widget, { getColorStyle }) => {
         dayLabel.style.fontWeight = "400";
         dayLabel.style.marginBottom = "2px";
 
-        if (i === 0) {
-            dayLabel.textContent = "Today";
+        if (mode === "hourly") {
+            dayLabel.textContent = `${actualSlots[i]}:00`;
         } else {
-            const future = new Date();
-            future.setDate(future.getDate() + i);
-            dayLabel.textContent = future.toLocaleDateString(undefined, { weekday: 'short' });
+            const dayIdx = i + startOffset;
+            if (dayIdx === 0) {
+                dayLabel.textContent = "Today";
+            } else {
+                const future = new Date();
+                future.setDate(future.getDate() + dayIdx);
+                dayLabel.textContent = future.toLocaleDateString(undefined, { weekday: 'short' });
+            }
         }
         dayDiv.appendChild(dayLabel);
 
@@ -185,7 +204,15 @@ const exportDoc = (w, context) => {
     const p = w.props || {};
     const weatherEntity = w.entity_id || p.weather_entity || "weather.forecast_home";
     const layout = p.layout || "horizontal";
-    const showHighLow = p.show_high_low !== false;
+    const mode = p.forecast_mode || "daily";
+    const startOffset = parseInt(p.start_offset || 0, 10);
+    const hourlySlots = (p.hourly_slots || "06,09,12,15,18,21")
+        .split(',').map(s => s.trim()).filter(Boolean);
+
+    const actualSlots = mode === "hourly" ? hourlySlots.slice(startOffset) : [];
+    const count = mode === "hourly" ? actualSlots.length : Math.min(7, Math.max(1, parseInt(p.days, 10) || 5));
+    // Hourly forecasts do not have templow data
+    const showHighLow = mode === "hourly" ? false : p.show_high_low !== false;
     const dayFontSize = parseInt(String(p.day_font_size || 12), 10);
     const tempFontSize = parseInt(String(p.temp_font_size || 14), 10);
     const iconSize = parseInt(String(p.icon_size || 32), 10);
@@ -200,7 +227,7 @@ const exportDoc = (w, context) => {
     const tempFontId = addFont(fontFamily, 400, tempFontSize);
     const iconFontId = addFont("Material Design Icons", 400, iconSize);
 
-    lines.push(`        // widget:weather_forecast id:${w.id} type:weather_forecast x:${w.x} y:${w.y} w:${w.width} h:${w.height} weather_entity:"${weatherEntity}" layout:${layout} show_high_low:${showHighLow} day_font_size:${dayFontSize} temp_font_size:${tempFontSize} icon_size:${iconSize} font_family:"${fontFamily}" color:${colorProp} precision:${precision} ${getCondProps(w)}`);
+    lines.push(`        // widget:weather_forecast id:${w.id} type:weather_forecast x:${w.x} y:${w.y} w:${w.width} h:${w.height} weather_entity:"${weatherEntity}" forecast_mode:${mode} hourly_slots:"${p.hourly_slots || "06,09,12,15,18,21"}" layout:${layout} show_high_low:${showHighLow} day_font_size:${dayFontSize} temp_font_size:${tempFontSize} icon_size:${iconSize} font_family:"${fontFamily}" color:${colorProp} precision:${precision} ${getCondProps(w)}`);
 
     const condFore = getConditionCheck(w);
     if (condFore) lines.push(`        ${condFore}`);
@@ -219,14 +246,23 @@ const exportDoc = (w, context) => {
     lines.push(`          auto get_icon = [&](const std::string& cond_val) -> const char* {`);
     lines.push(`            return weather_icons.count(cond_val) ? weather_icons[cond_val] : "\\U000F0590";`);
     lines.push(`          };`);
-    lines.push(`          auto get_day_name = [](int offset) -> std::string {`);
-    lines.push(`            if (offset == 0) return "Today";`);
-    lines.push(`            auto t = id(ha_time).now();`);
-    lines.push(`            if (!t.is_valid()) return "---";`);
-    lines.push(`            ESPTime future = ESPTime::from_epoch_local(t.timestamp + (offset * 86400));`);
-    lines.push(`            char buf[8]; future.strftime(buf, sizeof(buf), "%a");`);
-    lines.push(`            return std::string(buf);`);
-    lines.push(`          };`);
+    if (mode === "hourly") {
+        lines.push(`          auto get_hour_label = [](int offset) -> std::string {`);
+        lines.push(`            const char* slots[] = {${actualSlots.map(s => `"${s}:00"`).join(', ')}};`);
+        lines.push(`            if (offset >= 0 && offset < ${actualSlots.length}) return std::string(slots[offset]);`);
+        lines.push(`            return "---";`);
+        lines.push(`          };`);
+    } else {
+        lines.push(`          auto get_day_name = [](int offset) -> std::string {`);
+        lines.push(`            int target_day = offset + ${startOffset};`);
+        lines.push(`            if (target_day == 0) return "Today";`);
+        lines.push(`            auto t = id(ha_time).now();`);
+        lines.push(`            if (!t.is_valid()) return "---";`);
+        lines.push(`            ESPTime future = ESPTime::from_epoch_local(t.timestamp + (target_day * 86400));`);
+        lines.push(`            char buf[8]; future.strftime(buf, sizeof(buf), "%a");`);
+        lines.push(`            return std::string(buf);`);
+        lines.push(`          };`);
+    }
 
     // Background fill
     const bgColorProp = p.bg_color || p.background_color || "transparent";
@@ -272,26 +308,30 @@ const exportDoc = (w, context) => {
         }
     }
 
-    const days = Math.min(7, Math.max(1, parseInt(p.days, 10) || 5));
     const isHorizontal = layout === "horizontal";
-    const xInc = isHorizontal ? Math.floor(w.width / days) : 0;
-    const yInc = isHorizontal ? 0 : Math.floor(w.height / days);
+    const xInc = isHorizontal ? Math.floor(w.width / count) : 0;
+    const yInc = isHorizontal ? 0 : Math.floor(w.height / count);
     const centerOffset = isHorizontal ? Math.floor(xInc / 2) : Math.floor(w.width / 2);
 
     const totalContentHeight = dayFontSize + 4 + iconSize + 4 + tempFontSize;
     const slotHeight = isHorizontal ? w.height : yInc;
     const verticalStartOffset = Math.max(0, Math.floor((slotHeight - totalContentHeight) / 2));
 
-    for (let day = 0; day < days; day++) {
-        const condSensorId = `weather_cond_day${day}`;
-        const highSensorId = `weather_high_day${day}`;
-        const lowSensorId = `weather_low_day${day}`;
+    for (let day = 0; day < count; day++) {
+        const dayIdx = day + startOffset;
+        const condSensorId = mode === "hourly" ? `weather_cond_h${actualSlots[day]}00` : `weather_cond_day${dayIdx}`;
+        const highSensorId = mode === "hourly" ? `weather_high_h${actualSlots[day]}00` : `weather_high_day${dayIdx}`;
+        const lowSensorId = mode === "hourly" ? `weather_low_h${actualSlots[day]}00` : `weather_low_day${dayIdx}`;
         const dayX = w.x + day * xInc;
         const dayY = w.y + day * yInc;
 
         lines.push(`          {`);
         lines.push(`            int dx = ${dayX}; int dy = ${dayY} + ${verticalStartOffset};`);
-        lines.push(`            it.printf(dx + ${centerOffset}, dy, id(${dayFontId}), ${color}, TextAlign::TOP_CENTER, "%s", get_day_name(${day}).c_str());`);
+        if (mode === "hourly") {
+            lines.push(`            it.printf(dx + ${centerOffset}, dy, id(${dayFontId}), ${color}, TextAlign::TOP_CENTER, "%s", get_hour_label(${day}).c_str());`);
+        } else {
+            lines.push(`            it.printf(dx + ${centerOffset}, dy, id(${dayFontId}), ${color}, TextAlign::TOP_CENTER, "%s", get_day_name(${day}).c_str());`);
+        }
         lines.push(`            std::string cond_day = id(${condSensorId}).state.c_str();`);
         lines.push(`            it.printf(dx + ${centerOffset}, dy + ${dayFontSize + 4}, id(${iconFontId}), ${color}, TextAlign::TOP_CENTER, "%s", get_icon(cond_day));`);
         if (showHighLow) {
@@ -323,14 +363,20 @@ const onExportNumericSensors = (context) => {
     if (weatherWidgets.length === 0) return;
 
     weatherWidgets.forEach(w => {
-        // Register triggers for configured number of days
-        const days = Math.min(7, Math.max(1, parseInt(w.props?.days, 10) || 5));
-        for (let day = 0; day < days; day++) {
-            const sensors = [
-                `sensor.weather_forecast_day_${day}_high`,
-                `sensor.weather_forecast_day_${day}_low`,
-                `sensor.weather_forecast_day_${day}_condition`
-            ];
+        const mode = w.props?.forecast_mode || "daily";
+        const startOffset = parseInt(w.props?.start_offset || 0, 10);
+        const hourlySlots = (w.props?.hourly_slots || "06,09,12,15,18,21")
+            .split(',').map(s => s.trim()).filter(Boolean);
+
+        const actualSlots = mode === "hourly" ? hourlySlots.slice(startOffset) : [];
+        const count = mode === "hourly" ? actualSlots.length : Math.min(7, Math.max(1, parseInt(w.props?.days, 10) || 5));
+
+        for (let day = 0; day < count; day++) {
+            const dayIdx = day + startOffset;
+            const prefix = mode === "hourly" ? `sensor.weather_forecast_hour_${actualSlots[day]}00` : `sensor.weather_forecast_day_${dayIdx}`;
+            const sensors = mode === "hourly"
+                ? [`${prefix}_high`, `${prefix}_condition`]
+                : [`${prefix}_high`, `${prefix}_low`, `${prefix}_condition`];
 
             sensors.forEach(sid => {
                 if (isLvgl && pendingTriggers) {
@@ -347,16 +393,23 @@ const onExportNumericSensors = (context) => {
         const tempUnit = w.props?.temp_unit || "C";
         const unitSymbol = tempUnit === "F" ? "°F" : "°C";
 
-        for (let day = 0; day < days; day++) {
-            const highSid = `sensor.weather_forecast_day_${day}_high`;
-            const lowSid = `sensor.weather_forecast_day_${day}_low`;
-            const highId = `weather_high_day${day}`;
-            const lowId = `weather_low_day${day}`;
+        for (let day = 0; day < count; day++) {
+            const dayIdx = day + startOffset;
+            const highSid = mode === "hourly" ? `sensor.weather_forecast_hour_${actualSlots[day]}00_high` : `sensor.weather_forecast_day_${dayIdx}_high`;
+            const lowSid = mode === "hourly" ? `sensor.weather_forecast_hour_${actualSlots[day]}00_low` : `sensor.weather_forecast_day_${dayIdx}_low`;
+            const highId = mode === "hourly" ? `weather_high_h${actualSlots[day]}00` : `weather_high_day${dayIdx}`;
+            const lowId = mode === "hourly" ? `weather_low_h${actualSlots[day]}00` : `weather_low_day${dayIdx}`;
+            const highName = mode === "hourly" ? `Weather High Hour ${actualSlots[day]}00` : `Weather High Day ${dayIdx}`;
+            const lowName = mode === "hourly" ? `Weather Low Hour ${actualSlots[day]}00` : `Weather Low Day ${dayIdx}`;
 
-            [
-                { eid: highSid, id: highId, name: `Weather High Day ${day}` },
-                { eid: lowSid, id: lowId, name: `Weather Low Day ${day}` }
-            ].forEach(s => {
+            const sensorsToExport = mode === "hourly"
+                ? [{ eid: highSid, id: highId, name: highName }]
+                : [
+                    { eid: highSid, id: highId, name: highName },
+                    { eid: lowSid, id: lowId, name: lowName }
+                ];
+
+            sensorsToExport.forEach(s => {
                 if (context.seenSensorIds && !context.seenSensorIds.has(s.id)) {
                     if (context.seenSensorIds.size === 0) {
                         lines.push("");
@@ -383,9 +436,17 @@ const onExportTextSensors = (context) => {
     const weatherEntity = targets[0].entity_id || p.weather_entity || "weather.forecast_home";
 
     let addedAny = false;
-    const days = Math.min(7, Math.max(1, parseInt(p.days, 10) || 5));
-    for (let day = 0; day < days; day++) {
-        const condId = `weather_cond_day${day}`;
+    const mode = p.forecast_mode || "daily";
+    const startOffset = parseInt(p.start_offset || 0, 10);
+    const hourlySlots = (p.hourly_slots || "06,09,12,15,18,21")
+        .split(',').map(s => s.trim()).filter(Boolean);
+
+    const actualSlots = mode === "hourly" ? hourlySlots.slice(startOffset) : [];
+    const count = mode === "hourly" ? actualSlots.length : Math.min(7, Math.max(1, parseInt(p.days, 10) || 5));
+
+    for (let day = 0; day < count; day++) {
+        const dayIdx = day + startOffset;
+        const condId = mode === "hourly" ? `weather_cond_h${actualSlots[day]}00` : `weather_cond_day${dayIdx}`;
         if (context.seenSensorIds && context.seenSensorIds.has(condId)) continue;
 
         if (!addedAny) {
@@ -398,7 +459,11 @@ const onExportTextSensors = (context) => {
 
         lines.push("- platform: homeassistant");
         lines.push(`  id: ${condId}`);
-        lines.push(`  entity_id: sensor.weather_forecast_day_${day}_condition`);
+        if (mode === "hourly") {
+            lines.push(`  entity_id: sensor.weather_forecast_hour_${actualSlots[day]}00_condition`);
+        } else {
+            lines.push(`  entity_id: sensor.weather_forecast_day_${dayIdx}_condition`);
+        }
         lines.push(`  internal: true`);
     }
 
@@ -409,33 +474,67 @@ const onExportTextSensors = (context) => {
     lines.push("# ============================================================================");
     lines.push("#");
     lines.push("# template:");
-    lines.push("#   - trigger:");
-    lines.push("#       - trigger: state");
-    lines.push(`#         entity_id: ${weatherEntity}`);
-    lines.push("#       - trigger: time_pattern");
-    lines.push("#         hours: '/1'");
-    lines.push("#     action:");
-    lines.push("#       - action: weather.get_forecasts");
-    lines.push("#         target:");
-    lines.push(`#           entity_id: ${weatherEntity}`);
-    lines.push("#         data:");
-    lines.push("#           type: daily");
-    lines.push("#         response_variable: forecast_data");
-    lines.push("#     sensor:");
-    const tempUnit = p.temp_unit || "C";
-    const unitSymbol = tempUnit === "F" ? "°F" : "°C";
-    for (let day = 0; day < days; day++) {
-        lines.push(`#       - name: 'Weather Forecast Day ${day} High'`);
-        lines.push(`#         unique_id: weather_forecast_day_${day}_high`);
-        lines.push(`#         unit_of_measurement: '${unitSymbol}'`);
-        lines.push(`#         state: '{{ forecast_data["${weatherEntity}"].forecast[${day}].temperature | default("N/A") }}'`);
-        lines.push(`#       - name: 'Weather Forecast Day ${day} Low'`);
-        lines.push(`#         unique_id: weather_forecast_day_${day}_low`);
-        lines.push(`#         unit_of_measurement: '${unitSymbol}'`);
-        lines.push(`#         state: '{{ forecast_data["${weatherEntity}"].forecast[${day}].templow | default("N/A") }}'`);
-        lines.push(`#       - name: 'Weather Forecast Day ${day} Condition'`);
-        lines.push(`#         unique_id: weather_forecast_day_${day}_condition`);
-        lines.push(`#         state: '{{ forecast_data["${weatherEntity}"].forecast[${day}].condition | default("cloudy") }}'`);
+    if (mode === "hourly") {
+        lines.push("#   - trigger:");
+        lines.push("#       - trigger: time_pattern");
+        lines.push("#         minutes: '/30'");
+        lines.push("#       - trigger: homeassistant");
+        lines.push("#         event: start");
+        lines.push("#     action:");
+        lines.push("#       - action: weather.get_forecasts");
+        lines.push("#         target:");
+        lines.push(`#           entity_id: ${weatherEntity}`);
+        lines.push("#         data:");
+        lines.push("#           type: hourly");
+        lines.push("#         response_variable: hourly");
+        lines.push("#     sensor:");
+        const tempUnit = p.temp_unit || "C";
+        const unitSymbol = tempUnit === "F" ? "°F" : "°C";
+        for (let day = 0; day < count; day++) {
+            lines.push(`#       - name: 'Weather Forecast Hour ${actualSlots[day]}00'`);
+            lines.push(`#         unique_id: weather_forecast_hour_${actualSlots[day]}00_high`);
+            lines.push(`#         unit_of_measurement: '${unitSymbol}'`);
+            lines.push(`#         state: >`);
+            lines.push(`#           {% set fc = hourly['${weatherEntity}'].forecast %}`);
+            lines.push(`#           {% set hit = fc | selectattr('datetime','search','T${actualSlots[day]}:00') | list | first %}`);
+            lines.push(`#           {{ hit.temperature if hit else 'N/A' }}`);
+            lines.push(`#       - name: 'Weather Forecast Hour ${actualSlots[day]}00 Condition'`);
+            lines.push(`#         unique_id: weather_forecast_hour_${actualSlots[day]}00_condition`);
+            lines.push(`#         state: >`);
+            lines.push(`#           {% set fc = hourly['${weatherEntity}'].forecast %}`);
+            lines.push(`#           {% set hit = fc | selectattr('datetime','search','T${actualSlots[day]}:00') | list | first %}`);
+            lines.push(`#           {{ hit.condition if hit else 'cloudy' }}`);
+        }
+    } else {
+        lines.push("#   - trigger:");
+        lines.push("#       - trigger: state");
+        lines.push(`#         entity_id: ${weatherEntity}`);
+        lines.push("#       - trigger: time_pattern");
+        lines.push("#         hours: '/1'");
+        lines.push("#     action:");
+        lines.push("#       - action: weather.get_forecasts");
+        lines.push("#         target:");
+        lines.push(`#           entity_id: ${weatherEntity}`);
+        lines.push("#         data:");
+        lines.push("#           type: daily");
+        lines.push("#         response_variable: forecast_data");
+        lines.push("#     sensor:");
+        const tempUnit = p.temp_unit || "C";
+        const unitSymbol = tempUnit === "F" ? "°F" : "°C";
+        for (let day = 0; day < count; day++) {
+            const dayIdx = day + startOffset;
+            lines.push(`#       - name: 'Weather Forecast Day ${dayIdx} High'`);
+            lines.push(`#         unique_id: weather_forecast_day_${dayIdx}_high`);
+            lines.push(`#         unit_of_measurement: '${unitSymbol}'`);
+            lines.push(`#         state: '{{ forecast_data["${weatherEntity}"].forecast[${dayIdx}].temperature | default("N/A") }}'`);
+            lines.push(`#       - name: 'Weather Forecast Day ${dayIdx} Low'`);
+            lines.push(`#         unique_id: weather_forecast_day_${dayIdx}_low`);
+            lines.push(`#         unit_of_measurement: '${unitSymbol}'`);
+            lines.push(`#         state: '{{ forecast_data["${weatherEntity}"].forecast[${dayIdx}].templow | default("N/A") }}'`);
+            lines.push(`#       - name: 'Weather Forecast Day ${dayIdx} Condition'`);
+            lines.push(`#         unique_id: weather_forecast_day_${dayIdx}_condition`);
+            lines.push(`#         state: '{{ forecast_data["${weatherEntity}"].forecast[${dayIdx}].condition | default("cloudy") }}'`);
+        }
     }
     lines.push("#");
     lines.push("# ============================================================================");
@@ -467,6 +566,8 @@ export default {
     supportedModes: ['lvgl', 'direct'],
     defaults: {
         weather_entity: "weather.forecast_home",
+        forecast_mode: "daily",
+        hourly_slots: "06,09,12,15,18,21",
         days: 5,
         layout: "horizontal",
         icon_size: 32,
@@ -475,7 +576,7 @@ export default {
         color: "theme_auto",
         font_family: "Roboto",
         show_high_low: true,
-        show_high_low: true,
+        start_offset: 0,
         border_width: 0,
         border_color: "theme_auto",
         border_radius: 0,
@@ -488,31 +589,48 @@ export default {
     render,
     exportLVGL: (w, { common, convertColor, getLVGLFont }) => {
         const p = w.props || {};
-        const days = Math.min(7, Math.max(1, parseInt(p.days, 10) || 5));
+        const mode = p.forecast_mode || "daily";
+        const startOffset = parseInt(p.start_offset || 0, 10);
+        const hourlySlots = (p.hourly_slots || "06,09,12,15,18,21")
+            .split(',').map(s => s.trim()).filter(Boolean);
+
+        const actualSlots = mode === "hourly" ? hourlySlots.slice(startOffset) : [];
+        const count = mode === "hourly" ? actualSlots.length : Math.min(7, Math.max(1, parseInt(p.days, 10) || 5));
         const isHorizontal = (p.layout || "horizontal") === "horizontal";
         const color = convertColor(p.color || "theme_auto");
         const dayFS = parseInt(p.day_font_size || 12, 10);
         const iconS = parseInt(p.icon_size || 32, 10);
         const tempFS = parseInt(p.temp_font_size || 14, 10);
-        const showHighLow = p.show_high_low !== false;
+        // Hourly forecasts do not have templow data
+        const showHighLow = mode === "hourly" ? false : p.show_high_low !== false;
         const precision = (typeof p.precision === 'number' && !isNaN(p.precision)) ? p.precision : 1;
 
         const widgets = [];
 
-        for (let i = 0; i < days; i++) {
-            // Unrolling helper logic directly into lambdas to avoid scope issues
-            const dayNameLambda = `!lambda |-
-              if (${i} == 0) return "Today";
-              auto t = id(ha_time).now();
-              if (!t.is_valid()) return "---";
-              ESPTime future = ESPTime::from_epoch_local(t.timestamp + (${i} * 86400));
-              static char buf[16];
-              future.strftime(buf, sizeof(buf), "%a");
-              return buf;
-            `;
+        for (let i = 0; i < count; i++) {
+            let dayNameLambda;
+            const dayIdx = i + startOffset;
+
+            if (mode === "hourly") {
+                dayNameLambda = `!lambda "return \\"${actualSlots[i]}:00\\";"`;
+            } else {
+                dayNameLambda = `!lambda |-
+                  if (${dayIdx} == 0) return "Today";
+                  auto t = id(ha_time).now();
+                  if (!t.is_valid()) return "---";
+                  ESPTime future = ESPTime::from_epoch_local(t.timestamp + (${dayIdx} * 86400));
+                  static char buf[16];
+                  future.strftime(buf, sizeof(buf), "%a");
+                  return buf;
+                `;
+            }
+
+            const condId = mode === "hourly" ? `weather_cond_h${actualSlots[i]}00` : `weather_cond_day${dayIdx}`;
+            const highId = mode === "hourly" ? `weather_high_h${actualSlots[i]}00` : `weather_high_day${dayIdx}`;
+            const lowId = mode === "hourly" ? `weather_low_h${actualSlots[i]}00` : `weather_low_day${dayIdx}`;
 
             const iconLambda = `!lambda |-
-              std::string c = id(weather_cond_day${i}).state;
+              std::string c = id(${condId}).state;
               if (c == "clear-night") return "\\U000F0594";
               if (c == "cloudy") return "\\U000F0590";
               if (c == "exceptional") return "\\U000F0026";
@@ -555,7 +673,7 @@ export default {
                     label: {
                         id: `${w.id}_temp${i}`.replace(/-/g, '_'),
                         align: "bottom_mid",
-                        text: showHighLow ? `!lambda "return str_sprintf(\'%.${precision}f/%.${precision}f\', id(weather_high_day${i}).state, id(weather_low_day${i}).state).c_str();"` : `!lambda "return str_sprintf(\'%.${precision}f\', id(weather_high_day${i}).state).c_str();"`,
+                        text: showHighLow ? `!lambda "return str_sprintf(\'%.${precision}f/%.${precision}f\', id(${highId}).state, id(${lowId}).state).c_str();"` : `!lambda "return str_sprintf(\'%.${precision}f\', id(${highId}).state).c_str();"`,
                         text_font: getLVGLFont(p.font_family || "Roboto", tempFS, 400),
                         text_color: color
                     }
@@ -564,8 +682,8 @@ export default {
 
             widgets.push({
                 obj: {
-                    width: isHorizontal ? (100 / days) + "%" : "100%",
-                    height: isHorizontal ? "100%" : (100 / days) + "%",
+                    width: isHorizontal ? (100 / count) + "%" : "100%",
+                    height: isHorizontal ? "100%" : (100 / count) + "%",
                     bg_opa: "transp",
                     border_width: 0,
                     widgets: dayWidgets

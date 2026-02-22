@@ -260,6 +260,9 @@ export function buildWidgetProps(widgetType, p, widget) {
     } else if (widgetType === "weather_forecast") {
         return {
             weather_entity: p.weather_entity || "",
+            forecast_mode: p.forecast_mode || "daily",
+            hourly_slots: p.hourly_slots || "06,09,12,15,18,21",
+            start_offset: parseInt(p.start_offset || 0, 10),
             layout: p.layout || "horizontal",
             show_high_low: (p.show_high_low !== "false"),
             day_font_size: parseInt(p.day_font_size || 12, 10),

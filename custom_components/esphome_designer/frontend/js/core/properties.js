@@ -1390,12 +1390,26 @@ export class PropertiesPanel {
             this.endSection();
 
             this.createSection("Forecast Settings", true);
-            this.addNumberWithSlider("Forecast Days", props.days || 5, 1, 7, (v) => updateProp("days", v));
+            this.addSelect("Forecast Mode", props.forecast_mode || "daily", [
+                { value: "daily", label: "Daily" },
+                { value: "hourly", label: "Hourly" }
+            ], (v) => updateProp("forecast_mode", v));
+
+            if ((props.forecast_mode || "daily") === "hourly") {
+                this.addLabeledInput("Hour Slots (comma-sep)", "text", props.hourly_slots || "06,09,12,15,18,21", (v) => updateProp("hourly_slots", v));
+                this.addHint("e.g. 06,09,12,15,18,21 for 6-hour intervals");
+            } else {
+                this.addNumberWithSlider("Forecast Days", props.days || 5, 1, 7, (v) => updateProp("days", v));
+            }
+            this.addLabeledInput("Start Offset", "number", props.start_offset || 0, (v) => updateProp("start_offset", parseInt(v, 10) || 0));
+            this.addHint("Skip the first N hours/days (e.g. 1 to skip 'Today')");
             this.addSelect("Layout", props.layout || "horizontal", ["horizontal", "vertical"], (v) => updateProp("layout", v));
             this.endSection();
 
             this.createSection("Appearance", true);
-            this.addCheckbox("Show High/Low Temp", props.show_high_low !== false, (v) => updateProp("show_high_low", v));
+            if ((props.forecast_mode || "daily") === "daily") {
+                this.addCheckbox("Show High/Low Temp", props.show_high_low !== false, (v) => updateProp("show_high_low", v));
+            }
             this.addSelect("Temperature Unit", props.temp_unit || "C", ["C", "F"], (v) => updateProp("temp_unit", v));
             this.addLabeledInput("Day Font Size", "number", props.day_font_size || 14, (v) => updateProp("day_font_size", parseInt(v, 10)));
             this.addLabeledInput("Temp Font Size", "number", props.temp_font_size || 14, (v) => updateProp("temp_font_size", parseInt(v, 10)));
