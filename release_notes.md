@@ -1,5 +1,5 @@
 ## v1.0.0 RC8 - Architecture Cleanup & Stability
-**Release Date:** February 20, 2026
+**Release Date:** February 21, 2026
 
 ### 🔧 Architecture & Quality Baseline
 - **Achieved A+ Quality Baseline**: Performed a massive cleanup pass to remove architectural debris and diagnostic leftovers.
@@ -8,8 +8,17 @@
 - **Root Directory Sanitization**: Deleted 70+ legacy verification scripts, stale diagnostic logs, and outdated reproduction files to reduce cognitive load and reach a professional baseline.
 - **Test Suite Hygiene**: Purged all debug `console.log` statements from the 22-suite test layer and repaired brittle mocks.
 - **Stability Guarantee**: Verified 100% pass rate for the entire automated test suite (88/88 tests).
+- **Hourly Weather Forecast Feature**: Added a major new mode to the `weather_forecast` widget.
+    - **Hourly Forecast Mode**: Users can now toggle between Daily and Hourly forecasts.
+    - **Custom Hour Slots**: Configure specific hours (e.g., "06,09,12,15") to match your Home Assistant forecast type.
+    - **Start Offset**: Skip the first N hours/days (e.g., skip 'Today' or the next 3 hours) using the new `start_offset` parameter.
+    - **Automatic `templow` Handling**: The hourly mode automatically suppresses the `templow` attribute (which is not available in HA hourly data), preventing `N/A` errors and compilation failures.
+    - **Dynamic Render Logic**: Perfectly scales hour labels and weather icons across both Direct and LVGL rendering paths.
+
 
 ### 🐛 Bug Fixes
+- **LVGL Refresh Warning (Issue #255)**: Fixed an ESPHome 2024.12+ compiler warning ("Widget does not have any dynamic properties to refresh"). The `wifi_signal`, `weather_forecast`, `weather_icon`, `ondevice_temperature`, and `ondevice_humidity` plugins were incorrectly registering their static parent wrapper object for UI refreshes instead of the dynamic child labels. The generator now correctly targets the inner child text widgets.
+- **YAML Indentation Corruption (Issue #319)**: Fixed a bug where the hardware generator would output "mapping values are not allowed here" when merging touch panel configurations. The regex responsible for swapping `transform:` properties based on rotation was too greedy and incorrectly swallowed trailing `on_release:` event blocks.
 - **Vitest Teardown Fix**: Resolved a silent crash during asynchronous Vitest worker teardown by implementing an intelligent fallback target for the global State Proxy.
 - **Mock Registry Repair**: Restored broken unit tests in `esphome_adapter.snapshot.test.js` by transitioning to correctly decoupled utility functions.
 
