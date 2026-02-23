@@ -16,6 +16,56 @@ from .base import DesignerBaseView
 
 _LOGGER = logging.getLogger(__name__)
 
+
+def _ensure_lambda_placeholder_in_display_section(content: str) -> str:
+    """Append __LAMBDA_PLACEHOLDER__ to the display block if missing."""
+    if not content or "__LAMBDA_PLACEHOLDER__" in content:
+        return content
+
+    lines = content.splitlines()
+    display_index = -1
+    for i, line in enumerate(lines):
+        if re.match(r"^\s*display:\s*(#.*)?$", line):
+            display_index = i
+            break
+
+    if display_index == -1:
+        return content
+
+    display_indent = len(lines[display_index]) - len(lines[display_index].lstrip())
+
+    section_end = len(lines)
+    for i in range(display_index + 1, len(lines)):
+        line = lines[i]
+        trimmed = line.strip()
+        if not trimmed:
+            continue
+        indent = len(line) - len(line.lstrip())
+        if indent <= display_indent:
+            section_end = i
+            break
+
+    placeholder_indent = display_indent + 2
+    for i in range(display_index + 1, section_end):
+        line = lines[i]
+        trimmed = line.strip()
+        if not trimmed or trimmed.startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip())
+        if indent > display_indent:
+            placeholder_indent = indent + 2 if trimmed.startswith("-") else indent
+            break
+
+    insert_at = section_end
+    while insert_at > display_index + 1 and not lines[insert_at - 1].strip():
+        insert_at -= 1
+
+    lines.insert(insert_at, f"{' ' * placeholder_indent}# __LAMBDA_PLACEHOLDER__")
+    normalized = "\n".join(lines)
+    if content.endswith("\n"):
+        normalized += "\n"
+    return normalized
+
 class ReTerminalHardwareListView(DesignerBaseView):
     """List available hardware templates from the frontend/hardware directory."""
 
@@ -235,13 +285,14 @@ class ReTerminalHardwareUploadView(DesignerBaseView):
             # Save to persistent config directory (survives reboots and updates)
             custom_profiles_dir = Path(self.hass.config.path("esphomedesigner_custom_profiles"))
             dest_path = custom_profiles_dir / filename
-            content = content_str.encode("utf-8")
-            
+            normalized_content = _ensure_lambda_placeholder_in_display_section(content_str)
+            content = normalized_content.encode("utf-8")
+
             if b"__LAMBDA_PLACEHOLDER__" not in content:
-                 return self.json({
-                     "error": "missing_placeholder",
-                     "message": "Template must contain '__LAMBDA_PLACEHOLDER__' in the display lambda section."
-                 }, status_code=HTTPStatus.BAD_REQUEST, request=request)
+                return self.json({
+                    "error": "missing_placeholder",
+                    "message": "Template must contain a display section or '__LAMBDA_PLACEHOLDER__'."
+                }, status_code=HTTPStatus.BAD_REQUEST, request=request)
 
             custom_profiles_dir.mkdir(parents=True, exist_ok=True)
             

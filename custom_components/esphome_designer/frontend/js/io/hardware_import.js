@@ -10,6 +10,50 @@ import { hasHaBackend, HA_API_BASE } from '../utils/env.js';
 import { getHaHeaders } from './ha_api.js';
 import { showToast } from '../utils/dom.js';
 
+export function ensureLambdaPlaceholderInDisplaySection(yaml) {
+    if (!yaml || typeof yaml !== 'string') return yaml;
+    if (yaml.includes('__LAMBDA_PLACEHOLDER__')) return yaml;
+
+    const lines = yaml.split('\n');
+    const displayIndex = lines.findIndex((line) => /^\s*display:\s*(#.*)?$/.test(line));
+    if (displayIndex === -1) return yaml;
+
+    const displayIndent = (lines[displayIndex].match(/^\s*/) || [''])[0].length;
+
+    let sectionEnd = lines.length;
+    for (let i = displayIndex + 1; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const indent = (line.match(/^\s*/) || [''])[0].length;
+        if (indent <= displayIndent) {
+            sectionEnd = i;
+            break;
+        }
+    }
+
+    let placeholderIndent = displayIndent + 2;
+    for (let i = displayIndex + 1; i < sectionEnd; i++) {
+        const line = lines[i];
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const indent = (line.match(/^\s*/) || [''])[0].length;
+        if (indent > displayIndent) {
+            placeholderIndent = trimmed.startsWith('-') ? indent + 2 : indent;
+            break;
+        }
+    }
+
+    let insertAt = sectionEnd;
+    while (insertAt > displayIndex + 1 && lines[insertAt - 1].trim() === '') {
+        insertAt -= 1;
+    }
+
+    const placeholderLine = `${' '.repeat(placeholderIndent)}# __LAMBDA_PLACEHOLDER__`;
+    lines.splice(insertAt, 0, placeholderLine);
+    return lines.join('\n');
+}
+
 export async function fetchDynamicHardwareProfiles() {
     // If we have an HA backend, try that first
     if (hasHaBackend()) {
@@ -71,7 +115,8 @@ export async function uploadHardwareTemplate(file) {
     }
 
     try {
-        const content = await file.text();
+        const rawContent = await file.text();
+        const content = ensureLambdaPlaceholderInDisplaySection(rawContent);
         const url = `${HA_API_BASE}/hardware/upload`;
         const payload = {
             filename: file.name,
@@ -136,10 +181,11 @@ async function handleOfflineHardwareImport(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
-            const content = e.target.result;
+            const rawContent = e.target.result;
+            const content = ensureLambdaPlaceholderInDisplaySection(rawContent);
             try {
                 if (!content.includes("__LAMBDA_PLACEHOLDER__")) {
-                    throw new Error("Invalid template: Missing __LAMBDA_PLACEHOLDER__");
+                    throw new Error("Invalid template: Missing display: section or __LAMBDA_PLACEHOLDER__");
                 }
 
                 const profile = parseHardwareRecipeClientSide(content, file.name);
