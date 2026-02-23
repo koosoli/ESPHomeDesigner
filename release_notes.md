@@ -8,6 +8,7 @@
 - **Root Directory Sanitization**: Deleted 70+ legacy verification scripts, stale diagnostic logs, and outdated reproduction files to reduce cognitive load and reach a professional baseline.
 - **Test Suite Hygiene**: Purged all debug `console.log` statements from the 22-suite test layer and repaired brittle mocks.
 - **Stability Guarantee**: Verified 100% pass rate for the entire automated test suite (88/88 tests).
+- **Plugin Contract Compliance**: Audited and fixed all 55+ plugins to ensure strict alignment between `schema` and `defaults`, guaranteeing predictable fallback values and preventing YAML generation errors.
 - **Hourly Weather Forecast Feature**: Added a major new mode to the `weather_forecast` widget.
     - **Hourly Forecast Mode**: Users can now toggle between Daily and Hourly forecasts.
     - **Custom Hour Slots**: Configure specific hours (e.g., "06,09,12,15") to match your Home Assistant forecast type.
@@ -17,10 +18,13 @@
 
 
 ### 🐛 Bug Fixes
+
+- **Graph History Guidance**: Added explicit property hints to the `graph` widget clarifying that native graphs collect data starting from device boot. Documentation for the "HA History" mode was also improved to clearly state it requires a custom HA template sensor for pre-existing data.
 - **LVGL Refresh Warning (Issue #255)**: Fixed an ESPHome 2024.12+ compiler warning ("Widget does not have any dynamic properties to refresh"). The `wifi_signal`, `weather_forecast`, `weather_icon`, `ondevice_temperature`, and `ondevice_humidity` plugins were incorrectly registering their static parent wrapper object for UI refreshes instead of the dynamic child labels. The generator now correctly targets the inner child text widgets.
 - **YAML Indentation Corruption (Issue #319)**: Fixed a bug where the hardware generator would output "mapping values are not allowed here" when merging touch panel configurations. The regex responsible for swapping `transform:` properties based on rotation was too greedy and incorrectly swallowed trailing `on_release:` event blocks.
 - **Vitest Teardown Fix**: Resolved a silent crash during asynchronous Vitest worker teardown by implementing an intelligent fallback target for the global State Proxy.
 - **Mock Registry Repair**: Restored broken unit tests in `esphome_adapter.snapshot.test.js` by transitioning to correctly decoupled utility functions.
+- **LVGL Line Fix**: Added missing `points` property to the `lvgl_line` plugin's default configuration, resolving a validation failure in the plugin contract tests.
 
 ---
 
