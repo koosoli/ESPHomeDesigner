@@ -8,6 +8,7 @@ import { hasHaBackend } from '../../utils/env.js';
 import { generateId } from '../../utils/helpers.js';
 import { showToast } from '../../utils/dom.js';
 import { DEVICE_PROFILES } from '../../io/devices.js';
+import { registry } from '../plugin_registry.js';
 
 class AppStateFacade {
     constructor() {
@@ -903,7 +904,7 @@ class AppStateFacade {
      * @private
      */
     _isWidgetCompatibleWithMode(w, mode) {
-        const plugin = PluginRegistry.get(w.type);
+        const plugin = registry.get(w.type);
         if (!plugin) return true; // Default to visible if plugin missing
 
         if (mode === 'oepl') return !!plugin.exportOEPL;

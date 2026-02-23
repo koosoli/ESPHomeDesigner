@@ -42,8 +42,30 @@ export default {
         border_width: 1,
         radius: 0,
         opa: 255,
-        fill: true
+        fill: true,
+        entity_id: "",
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "entity_id", target: "root", label: "Object Target ID", type: "entity_picker", default: "" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "color", label: "Primary Color", type: "color", default: "white" },
+                { key: "bg_color", label: "Background color", type: "color", default: "white" },
+                { key: "border_color", label: "Border Color", type: "color", default: "gray" },
+                { key: "border_width", label: "Border width", type: "number", default: 1 },
+                { key: "radius", label: "Corner Radius", type: "number", default: 0 },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL
 };

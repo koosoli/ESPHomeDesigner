@@ -5,23 +5,9 @@
 
 export const HA_TEXT_DOMAINS = ["text_sensor.", "weather.", "calendar.", "person.", "device_tracker.", "sun.", "update.", "scene."];
 
-/**
- * Helper to check if an entity's current state (or a specific attribute) is non-numeric
- */
-export const isEntityStateNonNumeric = (eid, appState, attr = null) => {
-    if (!eid || !appState?.entityStates) return false;
-    const entityObj = appState.entityStates[eid];
-    if (!entityObj) return false;
+import { isEntityStateNonNumeric, makeSafeId } from '../../utils/export_helpers.js';
 
-    const val = attr ? entityObj.attributes?.[attr] : entityObj.state;
-    if (val === undefined || val === null) return false;
-
-    const str = String(val).trim();
-    if (str === "") return false;
-
-    // Strict number check: Number("5:24pm") -> NaN
-    return isNaN(Number(str));
-};
+export { isEntityStateNonNumeric };
 
 export const collectNumericSensors = (pages, context) => {
     const { seenEntityIds, seenSensorIds, appState } = context;
@@ -62,11 +48,8 @@ export const collectNumericSensors = (pages, context) => {
             const entityKey = attribute ? `${entityId}__attr__${attribute}` : entityId;
 
             if (!seenEntityIds.has(entityKey)) {
-                // Safe ID truncated to 63 chars for ESPHome compatibility
-                let safeId = attribute
-                    ? (entityId + "_" + attribute).replace(/[^a-zA-Z0-9_]/g, "_")
-                    : entityId.replace(/[^a-zA-Z0-9_]/g, "_");
-                if (safeId.length > 63) safeId = safeId.substring(0, 63);
+                // Safe ID truncated for ESPHome compatibility
+                const safeId = makeSafeId(entityId, attribute);
 
                 if (!seenSensorIds.has(safeId)) {
                     seenEntityIds.add(entityKey);
@@ -127,8 +110,7 @@ export const collectTextSensors = (pages, context) => {
                 const entityKey = rootAttr ? `${ent}__attr__${rootAttr}` : ent;
 
                 if (!seenEntityIds.has(entityKey)) {
-                    const base = rootAttr ? (ent + "_" + rootAttr) : ent;
-                    const safeId = base.replace(/[^a-zA-Z0-9_]/g, "_") + "_txt";
+                    const safeId = makeSafeId(ent, rootAttr, "_txt");
 
                     if (!seenSensorIds.has(safeId)) {
                         seenEntityIds.add(entityKey);
@@ -166,7 +148,7 @@ export const collectBinarySensors = (pages, context) => {
             const isBinaryHa = binaryDomains.some(d => ent.startsWith(d));
 
             if (isBinaryHa && !seenEntityIds.has(ent)) {
-                const safeId = ent.replace(/[^a-zA-Z0-9_]/g, "_");
+                const safeId = makeSafeId(ent);
                 if (!seenSensorIds.has(safeId)) {
                     seenEntityIds.add(ent);
                     seenSensorIds.add(safeId);

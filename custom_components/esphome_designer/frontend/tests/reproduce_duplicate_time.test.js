@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ESPHomeAdapter } from '../js/io/adapters/esphome_adapter.js';
+import { registry } from '../js/core/plugin_registry.js';
 
 describe('Duplicate Time Key Reproduction', () => {
     let adapter;
@@ -28,38 +29,40 @@ describe('Duplicate Time Key Reproduction', () => {
         };
         window.currentDeviceModel = 'reterminal_e1001';
 
-        // Mock PluginRegistry
-        window.PluginRegistry = {
-            get: vi.fn((type) => {
-                if (type === 'graph') {
-                    return {
-                        id: 'graph',
-                        onExportComponents: (ctx) => {
-                            ctx.lines.push("graph:");
-                            ctx.lines.push("  - id: graph_id");
-                        }
-                    };
-                }
-                return null;
-            }),
-            getAll: vi.fn(() => [{
-                id: 'graph',
-                onExportComponents: (ctx) => {
-                    ctx.lines.push("graph:");
-                    ctx.lines.push("  - id: graph_id");
-                }
-            }]),
-            onExportGlobals: vi.fn(),
-            onExportNumericSensors: vi.fn(),
-            onExportTextSensors: vi.fn(),
-            onExportBinarySensors: vi.fn(),
+        // Mock registry singletons using vi.spyOn
+        vi.spyOn(registry, 'get').mockImplementation((type) => {
+            if (type === 'graph') {
+                return {
+                    id: 'graph',
+                    onExportComponents: (ctx) => {
+                        ctx.lines.push("graph:");
+                        ctx.lines.push("  - id: graph_id");
+                    }
+                };
+            }
+            return null;
+        });
+
+        vi.spyOn(registry, 'getAll').mockImplementation(() => [{
+            id: 'graph',
             onExportComponents: (ctx) => {
-                // Manually trigger the graph plugin's component export
                 ctx.lines.push("graph:");
                 ctx.lines.push("  - id: graph_id");
-            },
-            onExportHelpers: vi.fn()
-        };
+            }
+        }]);
+
+        // Mock other hooks to prevent logic issues during test
+        vi.spyOn(registry, 'onExportGlobals').mockImplementation(() => { });
+        vi.spyOn(registry, 'onExportNumericSensors').mockImplementation(() => { });
+        vi.spyOn(registry, 'onExportTextSensors').mockImplementation(() => { });
+        vi.spyOn(registry, 'onExportBinarySensors').mockImplementation(() => { });
+        vi.spyOn(registry, 'onExportHelpers').mockImplementation(() => { });
+
+        // Mock onExportComponents on registry to trigger the graph plugin's component export
+        vi.spyOn(registry, 'onExportComponents').mockImplementation((ctx) => {
+            ctx.lines.push("graph:");
+            ctx.lines.push("  - id: graph_id");
+        });
     });
 
     it('should NOT produce duplicate time: keys for reterminal_e1001', async () => {

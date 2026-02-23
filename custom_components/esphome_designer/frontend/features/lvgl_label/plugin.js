@@ -2,6 +2,8 @@
  * LVGL Label Plugin
  */
 
+import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js';
+
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     let text = props.text || "Label";
@@ -110,6 +112,71 @@ export default {
         border_color: "theme_auto",
         border_radius: 0,
         entity_id: ""
+    },
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Content", true);
+        panel.addLabeledInput("Text Content", "text", props.text || "Label", (v) => updateProp("text", v));
+        panel.addLabeledInputWithPicker("Bind to Entity", "text", widget.entity_id || props.entity_id || "", (v) => {
+            AppState.updateWidget(widget.id, { entity_id: v });
+        }, widget);
+        panel.endSection();
+
+        panel.createSection("Typography", true);
+        panel.addLabeledInput("Font Size", "number", props.font_size || 20, (v) => updateProp("font_size", parseInt(v, 10)));
+        const fontOptions = ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand", "Custom..."];
+        const currentFont = props.font_family || "Roboto";
+        const isCustom = !fontOptions.slice(0, -1).includes(currentFont);
+
+        panel.addSelect("Font Family", isCustom ? "Custom..." : currentFont, fontOptions, (v) => {
+            const newProps = { ...widget.props };
+            if (v !== "Custom...") {
+                newProps.font_family = v;
+                newProps.custom_font_family = "";
+                newProps.font_weight = clampFontWeight(v, newProps.font_weight || 400);
+            } else {
+                newProps.font_family = "Custom...";
+            }
+            AppState.updateWidget(widget.id, { props: newProps });
+        });
+
+        if (isCustom || props.font_family === "Custom...") {
+            panel.addLabeledInput("Custom Font Name", "text", props.custom_font_family || (isCustom ? currentFont : ""), (v) => {
+                const newProps = { ...widget.props };
+                newProps.font_family = v || "Roboto";
+                newProps.custom_font_family = v;
+                newProps.font_weight = clampFontWeight(newProps.font_family, newProps.font_weight || 400);
+                AppState.updateWidget(widget.id, { props: newProps });
+            });
+            panel.addHint('Browse <a href="https://fonts.google.com" target="_blank">fonts.google.com</a>');
+        }
+
+        const validWeights = getWeightsForFont(props.font_family || "Roboto");
+        panel.addSelect("Font Weight", props.font_weight || 400, validWeights, (v) => updateProp("font_weight", parseInt(v, 10)));
+        panel.addCheckbox("Italic", !!props.italic, (v) => updateProp("italic", v));
+        panel.addSelect("Alignment", props.text_align || "CENTER", ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], (v) => updateProp("text_align", v));
+        panel.endSection();
+
+        panel.createSection("Appearance", false);
+        panel.addColorSelector("Text Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
+        panel.addColorSelector("Background", props.bg_color || "transparent", null, (v) => updateProp("bg_color", v));
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : (props.opa !== undefined ? Math.round(props.opa / 2.55) : 100), 0, 100, (v) => {
+            updateProp("opacity", v);
+            updateProp("opa", Math.round(v * 2.55));
+        });
+        panel.endSection();
+
+        panel.createSection("Border Settings", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
     },
     render,
     exportLVGL,

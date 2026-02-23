@@ -51,6 +51,33 @@ export default {
         radius: 0,
         opa: 255
     },
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Shape Settings", true);
+        panel.addLabeledInput("Corner Radius", "number", props.radius || 0, (v) => updateProp("radius", parseInt(v, 10)));
+        panel.addCheckbox("Fill Rectangle", !!props.fill, (v) => updateProp("fill", v));
+        panel.addColorSelector("Main Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
+        panel.addColorSelector("Fill Color Override", props.bg_color || "theme_auto", null, (v) => updateProp("bg_color", v));
+        panel.endSection();
+
+        panel.createSection("Border Settings", true);
+        panel.addLabeledInput("Border Thickness", "number", props.border_width || 1, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.endSection();
+
+        panel.createSection("Appearance", true);
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : (props.opa !== undefined ? Math.round(props.opa / 2.55) : 100), 0, 100, (v) => {
+            updateProp("opacity", v);
+            updateProp("opa", Math.round(v * 2.55));
+        });
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
+    },
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};

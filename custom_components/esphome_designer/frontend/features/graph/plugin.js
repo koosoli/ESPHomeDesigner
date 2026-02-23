@@ -35,8 +35,13 @@ const render = (el, widget, { getColorStyle }) => {
     el.style.backgroundColor = bgStyle;
     el.style.overflow = "hidden";
 
-    if (borderEnabled) {
-        el.style.border = "2px solid " + colorStyle;
+    if (props.border_width !== undefined ? props.border_width > 0 : borderEnabled) {
+        const bW = props.border_width !== undefined ? props.border_width : 2;
+        const bC = getColorStyle(props.border_color || color);
+        el.style.border = `${bW}px solid ${bC}`;
+        el.style.borderRadius = `${props.border_radius || 0}px`;
+    } else {
+        el.style.border = "none";
     }
 
     const svgNS = "http://www.w3.org/2000/svg";
@@ -395,10 +400,13 @@ const exportDoc = (w, context) => {
             }
         }
 
-        if (borderEnabled) {
-            lines.push(`        for (int i = 0; i < ${lineThickness}; i++) {`);
-            lines.push(`          it.rectangle(${w.x} + i, ${w.y} + i, ${w.width} - 2 * i, ${w.height} - 2 * i, ${color});`);
-            lines.push(`        }`);
+        const borderWidth = parseInt(p.border_width !== undefined ? p.border_width : (borderEnabled ? 2 : 0), 10);
+        if (borderWidth > 0) {
+            const borderColorProp = p.border_color || colorProp;
+            const borderColorConst = getColorConst(borderColorProp);
+            for (let i = 0; i < borderWidth; i++) {
+                lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColorConst});`);
+            }
             addDitherMask(lines, colorProp, isEpaper, w.x, w.y, w.width, w.height);
         }
 
@@ -798,13 +806,79 @@ export default {
         continuous: true,
         min_value: "",
         max_value: "",
-        min_range: "",
-        max_range: "",
-        use_ha_history: false,
-        history_points: 100,
-        history_attribute: "history",
-        history_smoothing: false,
-        auto_scale: true
+        opa: 255
+    },
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Data Source", true);
+        panel.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
+            AppState.updateWidget(widget.id, { entity_id: v });
+        }, widget);
+        panel.addCheckbox("Is Local Sensor", !!props.is_local_sensor, (v) => updateProp("is_local_sensor", v));
+        panel.addLabeledInput("Title", "text", widget.title || "", (v) => {
+            AppState.updateWidget(widget.id, { title: v });
+        });
+        panel.addLabeledInput("Duration", "text", props.duration || "1h", (v) => updateProp("duration", v));
+        panel.addHint("The device collects data from boot. The graph fills up over the configured duration.");
+        panel.endSection();
+
+        panel.createSection("Advanced: HA History Attribute", false);
+        panel.addCheckbox("Read History from HA Attribute", !!props.use_ha_history, (v) => updateProp("use_ha_history", v));
+        if (props.use_ha_history) {
+            panel.addLabeledInput("HA Attribute", "text", props.history_attribute || "history", (v) => updateProp("history_attribute", v));
+            panel.addLabeledInput("Points to keep", "number", props.history_points || 100, (v) => updateProp("history_points", parseInt(v, 10)));
+            panel.addCheckbox("Smooth Data (Moving Avg)", !!props.history_smoothing, (v) => updateProp("history_smoothing", v));
+            panel.addHint('⚠️ <span style="color:orange">Requires a custom HA template sensor that exposes history as a JSON array attribute.</span> Standard HA entities do not have this attribute by default.');
+        }
+        panel.endSection();
+
+        panel.createSection("Appearance", true);
+        panel.addCheckbox("Auto-scale Y Axis", props.auto_scale !== false, (v) => updateProp("auto_scale", v));
+
+        // Always show Min/Max options (as overrides if Auto is ON)
+        panel.addCompactPropertyRow(() => {
+            const isAuto = props.auto_scale !== false;
+            panel.addLabeledInput(isAuto ? "Min (Override)" : "Min Value", "number", props.min_value !== undefined ? props.min_value : "", (v) => updateProp("min_value", v));
+            panel.addLabeledInput(isAuto ? "Max (Override)" : "Max Value", "number", props.max_value !== undefined ? props.max_value : "", (v) => updateProp("max_value", v));
+        });
+
+        if (props.auto_scale !== false) {
+            // Auto-scale is ON: show Min Range option
+            panel.addLabeledInput("Min Range", "number", props.min_range || "10", (v) => updateProp("min_range", v));
+            panel.addHint("Min/Max inputs override auto-scaling for that bound. Min Range ensures minimum spread.");
+        } else {
+            panel.addHint("Fixed Y-axis bounds.");
+        }
+        panel.addCompactPropertyRow(() => {
+            panel.addLabeledInput("Max Range", "number", props.max_range || "", (v) => updateProp("max_range", v));
+            panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => updateProp("opacity", v));
+        });
+
+        panel.addColorSelector("Line Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
+        panel.addSelect("Line Type", props.line_type || "SOLID", ["SOLID", "DASHED", "DOTTED"], (v) => updateProp("line_type", v));
+        panel.addLabeledInput("Line Thickness", "number", props.line_thickness || 3, (v) => updateProp("line_thickness", parseInt(v, 10)));
+        panel.addCheckbox("Continuous Line", props.continuous !== false, (v) => updateProp("continuous", v));
+        panel.addColorSelector("Background", props.background_color || "transparent", null, (v) => updateProp("background_color", v));
+        panel.endSection();
+
+        panel.createSection("Grid Style", false);
+        panel.addCheckbox("Show Grid", props.grid !== false, (v) => updateProp("grid", v));
+        panel.addLabeledInput("X Grid Interval", "text", props.x_grid || "", (v) => updateProp("x_grid", v));
+        panel.addLabeledInput("Y Grid Step", "number", props.y_grid || "", (v) => updateProp("y_grid", v));
+        panel.addHint("e.g. 1h for X, or 10.0 for Y. Leave empty for auto-grid.");
+        panel.endSection();
+
+        panel.createSection("Border Style", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width !== undefined ? props.border_width : (props.border !== false ? 2 : 0), (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
     },
     render,
     exportLVGL,

@@ -123,42 +123,70 @@ export default {
         bg_color: "transparent",
         border_width: 0,
         border_color: "theme_auto",
-        border_radius: 0
+        border_radius: 0,
+        opa: 255
     },
-    schema: [
-        {
-            section: "Data Source",
-            fields: [
-                {
-                    key: "format", label: "Format", type: "select", options: [
-                        { value: "time_date", label: "Time + Date" },
-                        { value: "time_only", label: "Time Only" },
-                        { value: "date_only", label: "Date Only" },
-                        { value: "weekday_day_month", label: "Weekday Day Month" }
-                    ], default: "time_date"
-                }
-            ]
-        },
-        {
-            section: "Appearance",
-            fields: [
-                { key: "time_font_size", label: "Time Size", type: "number", default: 28 },
-                { key: "date_font_size", label: "Date Size", type: "number", default: 16 },
-                { key: "color", label: "Color", type: "color", default: "black" },
-                { key: "text_align", label: "Align", type: "select", options: ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], default: "CENTER" }
-            ]
-        },
-        {
-            section: "Border Style", defaultExpanded: false,
-            fields: [
-                { key: "border_width", label: "Border Width", type: "number", default: 0 },
-                { key: "border_color", label: "Border Color", type: "color", default: "theme_auto" },
-                { key: "border_radius", label: "Corner Radius", type: "number", default: 0 },
-                { key: "bg_color", label: "Background", type: "color", default: "transparent" },
-                { key: "drop_shadow", label: "", type: "drop_shadow_button" }
-            ]
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Content", true);
+        panel.addSelect("Display Format", props.format || "time_date", [
+            { value: "time_date", label: "Time & Date" },
+            { value: "time_only", label: "Time Only" },
+            { value: "date_only", label: "Date Only" },
+            { value: "weekday_day_month", label: "Weekday Day Month" }
+        ], (v) => updateProp("format", v));
+        panel.addHint("Uses ESPHome strftime under the hood.");
+        panel.addSelect("Alignment", props.text_align || "CENTER", ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], (v) => updateProp("text_align", v));
+        panel.endSection();
+
+        panel.createSection("Typography", true);
+        const fontOptions = ["Roboto", "Inter", "Open Sans", "Monospace", "Mononoki", "Custom..."];
+        const currentFont = props.font_family || "Roboto";
+        const isCustom = !fontOptions.slice(0, -1).includes(currentFont);
+
+        panel.addSelect("Font Family", isCustom ? "Custom..." : currentFont, fontOptions, (v) => {
+            if (v !== "Custom...") {
+                updateProp("font_family", v);
+                updateProp("custom_font_family", "");
+            } else {
+                updateProp("font_family", "Custom...");
+            }
+        });
+
+        if (isCustom || props.font_family === "Custom...") {
+            panel.addLabeledInput("Custom Font Name", "text", props.custom_font_family || (isCustom ? currentFont : ""), (v) => {
+                updateProp("font_family", v || "Roboto");
+                updateProp("custom_font_family", v);
+            });
+            panel.addHint('Browse <a href="https://fonts.google.com" target="_blank">fonts.google.com</a>');
         }
-    ],
+
+        panel.addLabeledInput("Time Font Size", "number", props.time_font_size || 28, (v) => updateProp("time_font_size", parseInt(v, 10)));
+        panel.addLabeledInput("Date Font Size", "number", props.date_font_size || 16, (v) => updateProp("date_font_size", parseInt(v, 10)));
+        panel.addCheckbox("Italic", !!props.italic, (v) => updateProp("italic", v));
+        panel.endSection();
+
+        panel.createSection("Appearance", false);
+        panel.addColorSelector("Text Color", props.color || "black", null, (v) => updateProp("color", v));
+        panel.addColorSelector("Background", props.bg_color || "transparent", null, (v) => updateProp("bg_color", v));
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : (props.opa !== undefined ? Math.round(props.opa / 2.55) : 100), 0, 100, (v) => {
+            updateProp("opacity", v);
+            updateProp("opa", Math.round(v * 2.55));
+        });
+        panel.endSection();
+
+        panel.createSection("Border Style", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
+    },
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};

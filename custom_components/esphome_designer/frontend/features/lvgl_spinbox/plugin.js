@@ -79,8 +79,34 @@ export default {
     defaults: {
         value: 0,
         digit_count: 4,
-        step: 1
+        step: 1,
+        opa: 255,
+        entity_id: "",
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "entity_id", target: "root", label: "Value Entity ID", type: "entity_picker", default: "" }
+            ]
+        },
+        {
+            section: "Settings",
+            fields: [
+                { key: "value", label: "Manual Value", type: "number", default: 0 },
+                { key: "digit_count", label: "Digit Count", type: "number", default: 4 },
+                { key: "step", label: "Increment Step", type: "number", default: 1 }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL,
     onExportNumericSensors

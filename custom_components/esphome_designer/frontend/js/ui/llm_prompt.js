@@ -2,6 +2,7 @@ import { Logger } from '../utils/logger.js';
 import { emit, EVENTS } from '../core/events.js';
 import { showToast } from '../utils/dom.js';
 import { AppState } from '../core/state.js';
+import { aiService } from '../io/ai_service.js';
 import { DEVICE_PROFILES } from '../io/devices.js';
 
 class LLMPrompt {
@@ -94,7 +95,7 @@ class LLMPrompt {
                 display_type: displayType
             };
 
-            const result = await window.aiService.processPrompt(prompt, context);
+            const result = await aiService.processPrompt(prompt, context);
 
             if (result && Array.isArray(result)) {
                 this.generatedWidgets = result;

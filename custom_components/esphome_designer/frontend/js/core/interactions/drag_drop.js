@@ -1,7 +1,7 @@
 import { AppState } from '../state.js';
 import { Logger } from '../../utils/logger.js';
 import { WidgetFactory } from '../widget_factory.js';
-import { registry as PluginRegistry } from '../plugin_registry.js';
+import { registry } from '../plugin_registry.js';
 
 export function setupDragAndDrop(canvasInstance) {
     // Attach listeners to the viewport container instead of the canvas element
@@ -87,7 +87,7 @@ export function setupDragAndDrop(canvasInstance) {
         Logger.log("[Canvas] Atomic drop capture - type:", type, "page:", targetPageIndex);
 
         try {
-            const loadPromise = PluginRegistry.load(type);
+            const loadPromise = registry.load(type);
 
             if (placeholder) {
                 const newPage = AppState.addPage();

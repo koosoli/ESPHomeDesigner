@@ -60,6 +60,23 @@ export default {
         outline: "black",
         border_width: 2
     },
+    schema: [
+        {
+            section: "Arc Settings",
+            fields: [
+                { key: "radius", label: "Radius", type: "number", default: 50 },
+                { key: "start_angle", label: "Start Angle", type: "number", default: 0 },
+                { key: "end_angle", label: "End Angle", type: "number", default: 90 }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "outline", label: "Color", type: "color", default: "black" },
+                { key: "border_width", label: "Width", type: "number", default: 2 }
+            ]
+        }
+    ],
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};

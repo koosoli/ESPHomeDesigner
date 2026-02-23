@@ -40,8 +40,7 @@ import { saveLayoutToFile, handleFileSelect } from './io/file_ops.js';
 
 import { loadLayoutIntoState } from './io/yaml_import.js';
 import './io/hardware_import.js'; // Register global hardware fetchers
-import { AIService } from './io/ai_service.js';
-window.aiService = new AIService();
+import { aiService } from './io/ai_service.js';
 
 import { renderWidgetPalette } from './ui/widget_palette.js';
 import { QuickSearch } from './ui/quick_search.js';

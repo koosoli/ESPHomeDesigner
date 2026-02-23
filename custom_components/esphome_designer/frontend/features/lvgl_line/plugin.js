@@ -98,8 +98,29 @@ export default {
         line_color: "theme_auto",
         orientation: "horizontal",
         line_rounded: true,
-        opa: 255
+        points: "",
+        opa: 255,
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Line Settings",
+            fields: [
+                { key: "orientation", label: "Orientation", type: "select", options: ["horizontal", "vertical"], default: "horizontal" },
+                { key: "line_width", label: "Line Width", type: "number", default: 3 },
+                { key: "line_rounded", label: "Rounded Ends", type: "checkbox", default: true },
+                { key: "points", label: "Custom Points (x1,y1 x2,y2 ...)", type: "text", default: "" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "line_color", label: "Line Color", type: "color", default: "theme_auto" },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL
 };

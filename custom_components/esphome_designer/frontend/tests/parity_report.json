@@ -1,0 +1,649 @@
+{
+  "widgets": {
+    "icon": {
+      "missing_root": [],
+      "missing_props": [
+        "fit_icon_to_frame",
+        "code",
+        "size",
+        "font_ref",
+        "color",
+        "bg_color",
+        "border_width",
+        "border_color",
+        "border_radius"
+      ],
+      "missing_shadow": true
+    },
+    "sensor_text": {
+      "missing_root": [
+        "entity_id",
+        "entity_id_2",
+        "title"
+      ],
+      "missing_props": [
+        "attribute",
+        "is_text_sensor",
+        "is_local_sensor",
+        "attribute2",
+        "value_format",
+        "precision",
+        "prefix",
+        "postfix",
+        "unit",
+        "hide_unit",
+        "opacity",
+        "label_font_size",
+        "value_font_size",
+        "color",
+        "font_family",
+        "custom_font_family",
+        "font_weight",
+        "italic",
+        "text_align",
+        "label_align",
+        "value_align",
+        "border_width",
+        "border_color",
+        "border_radius",
+        "bg_color"
+      ],
+      "missing_shadow": true
+    },
+    "lvgl_label": {
+      "missing_root": [],
+      "missing_props": [
+        "text",
+        "font_size",
+        "color",
+        "bg_color",
+        "font_family",
+        "font_weight",
+        "italic",
+        "text_align"
+      ],
+      "missing_shadow": false
+    },
+    "qr_code": {
+      "missing_root": [],
+      "missing_props": [
+        "value",
+        "scale",
+        "ecc",
+        "color"
+      ],
+      "missing_shadow": false
+    },
+    "datetime": {
+      "missing_root": [],
+      "missing_props": [
+        "opacity",
+        "format",
+        "time_font_size",
+        "date_font_size",
+        "color",
+        "font_family",
+        "custom_font_family",
+        "italic",
+        "text_align",
+        "bg_color",
+        "border_width",
+        "border_color",
+        "border_radius"
+      ],
+      "missing_shadow": true
+    },
+    "image": {
+      "missing_root": [
+        "x"
+      ],
+      "missing_props": [
+        "path",
+        "invert",
+        "render_mode"
+      ],
+      "missing_shadow": false
+    },
+    "odp_rectangle_pattern": {
+      "missing_root": [],
+      "missing_props": [
+        "x_repeat",
+        "y_repeat",
+        "x_size",
+        "y_size"
+      ],
+      "missing_shadow": false
+    },
+    "odp_arc": {
+      "missing_root": [],
+      "missing_props": [
+        "start_angle",
+        "end_angle"
+      ],
+      "missing_shadow": false
+    },
+    "odp_plot": {
+      "missing_root": [],
+      "missing_props": [
+        "duration",
+        "background",
+        "outline"
+      ],
+      "missing_shadow": false
+    },
+    "odp_multiline": {
+      "missing_root": [],
+      "missing_props": [
+        "text",
+        "delimiter",
+        "font_size",
+        "line_spacing",
+        "color",
+        "font_family"
+      ],
+      "missing_shadow": false
+    },
+    "rounded_rect": {
+      "missing_root": [],
+      "missing_props": [
+        "opacity",
+        "fill",
+        "show_border",
+        "border_width",
+        "radius",
+        "color",
+        "border_color"
+      ],
+      "missing_shadow": true
+    },
+    "line": {
+      "missing_root": [
+        "width",
+        "height",
+        "y",
+        "x"
+      ],
+      "missing_props": [
+        "opacity",
+        "orientation",
+        "stroke_width",
+        "color"
+      ],
+      "missing_shadow": false
+    },
+    "progress_bar": {
+      "missing_root": [
+        "entity_id",
+        "title"
+      ],
+      "missing_props": [
+        "is_local_sensor",
+        "opacity",
+        "show_label",
+        "show_percentage",
+        "bar_height",
+        "border_width",
+        "color"
+      ],
+      "missing_shadow": false
+    },
+    "graph": {
+      "missing_root": [
+        "entity_id",
+        "title"
+      ],
+      "missing_props": [
+        "duration",
+        "use_ha_history",
+        "history_attribute",
+        "history_points",
+        "history_smoothing",
+        "auto_scale",
+        "min_value",
+        "max_value",
+        "min_range",
+        "color",
+        "line_type",
+        "line_thickness",
+        "border",
+        "grid",
+        "x_grid",
+        "y_grid"
+      ],
+      "missing_shadow": false
+    },
+    "battery_icon": {
+      "missing_root": [
+        "entity_id"
+      ],
+      "missing_props": [
+        "is_local_sensor",
+        "fit_icon_to_frame",
+        "size",
+        "font_size",
+        "color"
+      ],
+      "missing_shadow": false
+    },
+    "wifi_signal": {
+      "missing_root": [
+        "entity_id"
+      ],
+      "missing_props": [
+        "is_local_sensor",
+        "show_dbm",
+        "fit_icon_to_frame",
+        "size",
+        "font_size",
+        "color"
+      ],
+      "missing_shadow": false
+    },
+    "quote_rss": {
+      "missing_root": [],
+      "missing_props": [
+        "feed_url",
+        "show_author",
+        "random",
+        "refresh_interval",
+        "ha_url",
+        "quote_font_size",
+        "author_font_size",
+        "font_family",
+        "custom_font_family",
+        "font_weight",
+        "text_align",
+        "color",
+        "word_wrap",
+        "auto_scale",
+        "italic_quote"
+      ],
+      "missing_shadow": false
+    },
+    "ondevice_temperature": {
+      "missing_root": [
+        "entity_id"
+      ],
+      "missing_props": [
+        "is_local_sensor",
+        "fit_icon_to_frame",
+        "show_label",
+        "size",
+        "font_size",
+        "label_font_size",
+        "unit",
+        "precision",
+        "color"
+      ],
+      "missing_shadow": false
+    },
+    "ondevice_humidity": {
+      "missing_root": [
+        "entity_id"
+      ],
+      "missing_props": [
+        "is_local_sensor",
+        "fit_icon_to_frame",
+        "show_label",
+        "size",
+        "font_size",
+        "label_font_size",
+        "unit",
+        "precision",
+        "color"
+      ],
+      "missing_shadow": false
+    },
+    "weather_icon": {
+      "missing_root": [
+        "entity_id"
+      ],
+      "missing_props": [
+        "attribute",
+        "fit_icon_to_frame",
+        "size",
+        "color",
+        "bg_color",
+        "border_width",
+        "border_color",
+        "border_radius"
+      ],
+      "missing_shadow": true
+    },
+    "template_sensor_bar": {
+      "missing_root": [],
+      "missing_props": [
+        "show_wifi",
+        "show_temperature",
+        "show_humidity",
+        "show_battery",
+        "wifi_entity",
+        "wifi_is_local",
+        "temp_entity",
+        "temp_is_local",
+        "temp_unit",
+        "hum_entity",
+        "hum_is_local",
+        "bat_entity",
+        "bat_is_local",
+        "show_background",
+        "background_color",
+        "color",
+        "border_radius",
+        "border_thickness",
+        "border_color",
+        "icon_size",
+        "font_size"
+      ],
+      "missing_shadow": false
+    },
+    "template_nav_bar": {
+      "missing_root": [],
+      "missing_props": [
+        "show_prev",
+        "show_home",
+        "show_next",
+        "prev_target",
+        "home_target",
+        "next_target",
+        "show_background",
+        "background_color",
+        "color",
+        "border_radius",
+        "border_thickness",
+        "border_color",
+        "icon_size"
+      ],
+      "missing_shadow": false
+    },
+    "online_image": {
+      "missing_root": [
+        "x"
+      ],
+      "missing_props": [
+        "url",
+        "interval_s",
+        "invert",
+        "render_mode"
+      ],
+      "missing_shadow": false
+    },
+    "calendar": {
+      "missing_root": [
+        "entity_id"
+      ],
+      "missing_props": [
+        "text_color",
+        "background_color",
+        "border_width",
+        "border_color",
+        "border_radius",
+        "font_size_date",
+        "font_size_day",
+        "font_size_grid",
+        "font_size_event",
+        "show_header",
+        "show_grid",
+        "show_events",
+        "max_events"
+      ],
+      "missing_shadow": true
+    },
+    "lvgl_line": {
+      "missing_root": [
+        "x"
+      ],
+      "missing_props": [
+        "line_width",
+        "line_color",
+        "line_rounded",
+        "opa"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_meter": {
+      "missing_root": [
+        "entity_id",
+        "width"
+      ],
+      "missing_props": [
+        "min",
+        "max",
+        "value",
+        "color",
+        "indicator_color",
+        "scale_width",
+        "indicator_width",
+        "tick_count",
+        "tick_length",
+        "label_gap"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_button": {
+      "missing_root": [
+        "entity_id"
+      ],
+      "missing_props": [
+        "text",
+        "bg_color",
+        "color",
+        "border_width",
+        "radius",
+        "checkable"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_arc": {
+      "missing_root": [
+        "entity_id"
+      ],
+      "missing_props": [
+        "min",
+        "max",
+        "value",
+        "thickness",
+        "start_angle",
+        "end_angle",
+        "mode",
+        "color"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_chart": {
+      "missing_root": [
+        "entity_id"
+      ],
+      "missing_props": [
+        "title",
+        "type",
+        "min",
+        "max",
+        "point_count",
+        "x_div_lines",
+        "y_div_lines",
+        "color"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_img": {
+      "missing_root": [],
+      "missing_props": [
+        "src",
+        "rotation",
+        "scale",
+        "color"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_qrcode": {
+      "missing_root": [],
+      "missing_props": [
+        "text",
+        "size",
+        "color",
+        "bg_color"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_bar": {
+      "missing_root": [
+        "entity_id"
+      ],
+      "missing_props": [
+        "min",
+        "max",
+        "value",
+        "color",
+        "bg_color",
+        "start_value",
+        "mode",
+        "range_mode"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_slider": {
+      "missing_root": [
+        "entity_id"
+      ],
+      "missing_props": [
+        "min",
+        "max",
+        "value",
+        "color",
+        "bg_color",
+        "border_width",
+        "mode"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_tabview": {
+      "missing_root": [],
+      "missing_props": [
+        "tabs",
+        "bg_color"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_tileview": {
+      "missing_root": [],
+      "missing_props": [
+        "bg_color"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_led": {
+      "missing_root": [],
+      "missing_props": [
+        "color",
+        "brightness"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_spinner": {
+      "missing_root": [],
+      "missing_props": [
+        "spin_time",
+        "arc_length",
+        "arc_color",
+        "track_color"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_checkbox": {
+      "missing_root": [
+        "entity_id"
+      ],
+      "missing_props": [
+        "text",
+        "checked",
+        "color"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_dropdown": {
+      "missing_root": [],
+      "missing_props": [
+        "options",
+        "selected_index",
+        "max_height",
+        "direction",
+        "color"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_keyboard": {
+      "missing_root": [],
+      "missing_props": [
+        "mode",
+        "textarea_id"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_roller": {
+      "missing_root": [],
+      "missing_props": [
+        "options",
+        "visible_row_count",
+        "color",
+        "bg_color",
+        "selected_bg_color",
+        "selected_text_color",
+        "mode"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_spinbox": {
+      "missing_root": [],
+      "missing_props": [
+        "min",
+        "max",
+        "value",
+        "digit_count",
+        "step"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_switch": {
+      "missing_root": [
+        "entity_id"
+      ],
+      "missing_props": [
+        "checked",
+        "color",
+        "bg_color",
+        "knob_color"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_textarea": {
+      "missing_root": [],
+      "missing_props": [
+        "placeholder",
+        "text",
+        "one_line",
+        "password_mode",
+        "accepted_chars",
+        "max_length"
+      ],
+      "missing_shadow": false
+    },
+    "lvgl_obj": {
+      "missing_root": [],
+      "missing_props": [
+        "color",
+        "border_width",
+        "border_color",
+        "radius"
+      ],
+      "missing_shadow": false
+    }
+  },
+  "summary": {
+    "total_widgets_audited": 46,
+    "widgets_with_regressions": 45,
+    "total_missing_props": 318,
+    "total_missing_root": 29,
+    "total_missing_shadows": 6
+  }
+}

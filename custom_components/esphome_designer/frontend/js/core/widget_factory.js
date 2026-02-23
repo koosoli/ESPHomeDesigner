@@ -1,7 +1,7 @@
 import { generateId } from '../utils/helpers.js';
 import { AppState } from './state.js';
 import { getDeviceModel } from '../utils/device.js';
-import { registry as PluginRegistry } from './plugin_registry.js';
+import { registry } from './plugin_registry.js';
 
 export class WidgetFactory {
     /**
@@ -122,7 +122,7 @@ export class WidgetFactory {
         }
 
         // Try to get defaults from PluginRegistry
-        const plugin = PluginRegistry.get(type);
+        const plugin = registry.get(type);
         if (plugin && plugin.defaults) {
             widget.props = { ...plugin.defaults };
 

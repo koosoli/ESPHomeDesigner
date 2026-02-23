@@ -6,7 +6,7 @@
 import { Logger } from '../../utils/logger.js';
 import { BaseAdapter } from './base_adapter.js';
 import { AppState } from '../../core/state.js';
-import { registry as PluginRegistry } from '../../core/plugin_registry.js';
+import { registry } from '../../core/plugin_registry.js';
 import { Utils } from '../../core/utils.js';
 import { DEVICE_PROFILES } from '../devices.js';
 import * as Generators from '../hardware_generators.js';
@@ -190,232 +190,230 @@ export class ESPHomeAdapter extends BaseAdapter {
             seenSensorIds,
             seenTextEntityIds,
             pendingTriggers,
-            appState: window.AppState
+            appState: AppState
         };
 
-        if (PluginRegistry) {
-            // 1. ESPHome Section & Globals
-            const globalLines = [];
-            const includeLines = [];
+        // 1. ESPHome Section & Globals
+        const globalLines = [];
+        const includeLines = [];
 
-            // Collect includes from plugins
-            PluginRegistry.onExportEsphome({ ...context, lines: includeLines });
+        // Collect includes from plugins
+        registry.onExportEsphome({ ...context, lines: includeLines });
 
-            // Core Globals
-            globalLines.push("- id: display_page", "  type: int", "  restore_value: false", "  initial_value: '0'");
+        // Core Globals
+        globalLines.push("- id: display_page", "  type: int", "  restore_value: false", "  initial_value: '0'");
 
-            // Match legacy epaper detection for regression testing
-            const isEpaper = !!(profile.features && (profile.features.epaper || profile.features.epd));
-            const isLcd = !!(profile.features && profile.features.lcd) || !isEpaper;
-            const defaultRefresh = layout.refreshInterval || (isLcd ? 60 : (layout.deepSleepInterval || 600));
-            globalLines.push("- id: page_refresh_default_s", "  type: int", "  restore_value: true", `  initial_value: '${defaultRefresh}'`);
-            globalLines.push("- id: page_refresh_current_s", "  type: int", "  restore_value: false", "  initial_value: '60'");
-            globalLines.push("- id: last_page_switch_time", "  type: uint32_t", "  restore_value: false", "  initial_value: '0'");
+        // Match legacy epaper detection for regression testing
+        const isEpaper = !!(profile.features && (profile.features.epaper || profile.features.epd));
+        const isLcd = !!(profile.features && profile.features.lcd) || !isEpaper;
+        const defaultRefresh = layout.refreshInterval || (isLcd ? 60 : (layout.deepSleepInterval || 600));
+        globalLines.push("- id: page_refresh_default_s", "  type: int", "  restore_value: true", `  initial_value: '${defaultRefresh}'`);
+        globalLines.push("- id: page_refresh_current_s", "  type: int", "  restore_value: false", "  initial_value: '60'");
+        globalLines.push("- id: last_page_switch_time", "  type: uint32_t", "  restore_value: false", "  initial_value: '0'");
 
-            PluginRegistry.onExportGlobals({ ...context, lines: globalLines });
+        registry.onExportGlobals({ ...context, lines: globalLines });
 
-            if (includeLines.length > 0) {
-                layout.plugin_includes = includeLines;
+        if (includeLines.length > 0) {
+            layout.plugin_includes = includeLines;
+        }
+
+        if (!profile.isPackageBased) {
+            lines.length = 0; // Reset lines to handle the header/system sections after hook collection
+            if (!layout.isSelectionSnippet) {
+                lines.push(...this.yaml.generateInstructionHeader(profile, layout));
+                lines.push(...this.yaml.generateSystemSections(profile, layout));
+                lines.push("");
+            }
+        }
+
+        if (globalLines.length > 0 && !layout.isSelectionSnippet) {
+            lines.push("globals:");
+            lines.push(...globalLines.map(l => "  " + l));
+        }
+
+        // 2. PSRAM
+        const packageHasPsram = packageContent && packageContent.includes("psram:");
+        if (!packageHasPsram && profile.features?.psram && Generators.generatePSRAMSection) {
+            lines.push(...Generators.generatePSRAMSection(profile));
+        }
+
+        // Hardware Sections (I2C, SPI, etc.)
+        if (!profile.isPackageBased && !layout.isSelectionSnippet) {
+            // HTTP Request first
+            lines.push("http_request:", "  verify_ssl: false", "  timeout: 20s", "  buffer_size_rx: 4096");
+
+            if (Generators.generateI2CSection) {
+                lines.push(...Generators.generateI2CSection(profile));
             }
 
-            if (!profile.isPackageBased) {
-                lines.length = 0; // Reset lines to handle the header/system sections after hook collection
-                if (!layout.isSelectionSnippet) {
-                    lines.push(...this.yaml.generateInstructionHeader(profile, layout));
-                    lines.push(...this.yaml.generateSystemSections(profile, layout));
-                    lines.push("");
-                }
+            if (Generators.generateSPISection) lines.push(...Generators.generateSPISection(profile));
+            if (Generators.generateExtraComponents) lines.push(...Generators.generateExtraComponents(profile));
+            if (Generators.generateAXP2101Section) lines.push(...Generators.generateAXP2101Section(profile));
+            if (Generators.generateOutputSection) lines.push(...Generators.generateOutputSection(profile));
+            if (Generators.generateBacklightSection) lines.push(...Generators.generateBacklightSection(profile));
+            if (Generators.generateRTTTLSection) lines.push(...Generators.generateRTTTLSection(profile));
+            if (Generators.generateAudioSection) lines.push(...Generators.generateAudioSection(profile));
+
+
+            // Time (Home Assistant variant, required for datetime plugin and many scripts)
+            const hasTime = lines.some(l => String(l).split('\n').some(subL => subL.trim() === "time:"));
+            if (!hasTime) {
+                lines.push("time:", "  - platform: homeassistant", "    id: ha_time");
+                seenSensorIds.add("ha_time");
             }
-
-            if (globalLines.length > 0 && !layout.isSelectionSnippet) {
-                lines.push("globals:");
-                lines.push(...globalLines.map(l => "  " + l));
+        } else if (!layout.isSelectionSnippet) {
+            // For package-based, we STILL want the time block if not present
+            const hasTime = lines.some(l => String(l).split('\n').some(subL => subL.trim() === "time:"));
+            if (!hasTime) {
+                lines.push("time:", "  - platform: homeassistant", "    id: ha_time");
+                seenSensorIds.add("ha_time");
             }
+        }
 
-            // 2. PSRAM
-            const packageHasPsram = packageContent && packageContent.includes("psram:");
-            if (!packageHasPsram && profile.features?.psram && Generators.generatePSRAMSection) {
-                lines.push(...Generators.generatePSRAMSection(profile));
+        // Pre-populate hardware sensors based on profile features
+        if (profile.features) {
+            if (profile.pins?.batteryAdc) {
+                seenSensorIds.add("battery_voltage");
+                seenSensorIds.add("battery_level");
             }
-
-            // Hardware Sections (I2C, SPI, etc.)
-            if (!profile.isPackageBased && !layout.isSelectionSnippet) {
-                // HTTP Request first
-                lines.push("http_request:", "  verify_ssl: false", "  timeout: 20s", "  buffer_size_rx: 4096");
-
-                if (Generators.generateI2CSection) {
-                    lines.push(...Generators.generateI2CSection(profile));
-                }
-
-                if (Generators.generateSPISection) lines.push(...Generators.generateSPISection(profile));
-                if (Generators.generateExtraComponents) lines.push(...Generators.generateExtraComponents(profile));
-                if (Generators.generateAXP2101Section) lines.push(...Generators.generateAXP2101Section(profile));
-                if (Generators.generateOutputSection) lines.push(...Generators.generateOutputSection(profile));
-                if (Generators.generateBacklightSection) lines.push(...Generators.generateBacklightSection(profile));
-                if (Generators.generateRTTTLSection) lines.push(...Generators.generateRTTTLSection(profile));
-                if (Generators.generateAudioSection) lines.push(...Generators.generateAudioSection(profile));
-
-
-                // Time (Home Assistant variant, required for datetime plugin and many scripts)
-                const hasTime = lines.some(l => String(l).split('\n').some(subL => subL.trim() === "time:"));
-                if (!hasTime) {
-                    lines.push("time:", "  - platform: homeassistant", "    id: ha_time");
-                    seenSensorIds.add("ha_time");
-                }
-            } else if (!layout.isSelectionSnippet) {
-                // For package-based, we STILL want the time block if not present
-                const hasTime = lines.some(l => String(l).split('\n').some(subL => subL.trim() === "time:"));
-                if (!hasTime) {
-                    lines.push("time:", "  - platform: homeassistant", "    id: ha_time");
-                    seenSensorIds.add("ha_time");
-                }
+            if (profile.features.sht4x) {
+                seenSensorIds.add("sht4x_sensor");
+                seenSensorIds.add("sht4x_temperature");
+                seenSensorIds.add("sht4x_humidity");
             }
-
-            // Pre-populate hardware sensors based on profile features
-            if (profile.features) {
-                if (profile.pins?.batteryAdc) {
-                    seenSensorIds.add("battery_voltage");
-                    seenSensorIds.add("battery_level");
-                }
-                if (profile.features.sht4x) {
-                    seenSensorIds.add("sht4x_sensor");
-                    seenSensorIds.add("sht4x_temperature");
-                    seenSensorIds.add("sht4x_humidity");
-                }
-                if (profile.features.sht3x || profile.features.sht3xd) {
-                    seenSensorIds.add("sht3x_sensor");
-                    seenSensorIds.add("sht3x_temperature");
-                    seenSensorIds.add("sht3x_humidity");
-                }
-                if (profile.features.shtc3) {
-                    seenSensorIds.add("shtc3_sensor");
-                    seenSensorIds.add("shtc3_temperature");
-                    seenSensorIds.add("shtc3_humidity");
-                }
+            if (profile.features.sht3x || profile.features.sht3xd) {
+                seenSensorIds.add("sht3x_sensor");
+                seenSensorIds.add("sht3x_temperature");
+                seenSensorIds.add("sht3x_humidity");
             }
-
-            // Insert Sensor Section here
-            if (Generators.generateSensorSection) lines.push(...Generators.generateSensorSection(profile, [], displayId, allWidgets));
-
-            // Numeric Sensors
-            const numericSensorLinesOrig = [];
-            PluginRegistry.onExportNumericSensors({ ...context, lines: numericSensorLinesOrig, mainLines: lines });
-            const numericSensorLines = this.processPendingTriggers(numericSensorLinesOrig, pendingTriggers, isLvgl, "on_value");
-
-            if (numericSensorLines.length > 0) {
-                if (!lines.some(l => l === "sensor:")) lines.push("sensor:");
-                lines.push(...numericSensorLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
+            if (profile.features.shtc3) {
+                seenSensorIds.add("shtc3_sensor");
+                seenSensorIds.add("shtc3_temperature");
+                seenSensorIds.add("shtc3_humidity");
             }
+        }
 
-            // Safety Fix: Auto-register any HA numeric sensors that weren't caught by plugins
-            // This now runs for ALL profiles (including legacy) to ensure consistency.
-            const numericSensorLinesExtra = collectNumericSensors(pages, context);
+        // Insert Sensor Section here
+        if (Generators.generateSensorSection) lines.push(...Generators.generateSensorSection(profile, [], displayId, allWidgets));
 
-            if (numericSensorLinesExtra.length > 0) {
-                if (!lines.some(l => l === "sensor:")) lines.push("sensor:");
+        // Numeric Sensors
+        const numericSensorLinesOrig = [];
+        registry.onExportNumericSensors({ ...context, lines: numericSensorLinesOrig, mainLines: lines });
+        const numericSensorLines = this.processPendingTriggers(numericSensorLinesOrig, pendingTriggers, isLvgl, "on_value");
 
-                const mergedSafetyLines = this.processPendingTriggers(numericSensorLinesExtra, pendingTriggers, isLvgl, "on_value");
-                lines.push(...mergedSafetyLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
+        if (numericSensorLines.length > 0) {
+            if (!lines.some(l => l === "sensor:")) lines.push("sensor:");
+            lines.push(...numericSensorLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
+        }
+
+        // Safety Fix: Auto-register any HA numeric sensors that weren't caught by plugins
+        // This now runs for ALL profiles (including legacy) to ensure consistency.
+        const numericSensorLinesExtra = collectNumericSensors(pages, context);
+
+        if (numericSensorLinesExtra.length > 0) {
+            if (!lines.some(l => l === "sensor:")) lines.push("sensor:");
+
+            const mergedSafetyLines = this.processPendingTriggers(numericSensorLinesExtra, pendingTriggers, isLvgl, "on_value");
+            lines.push(...mergedSafetyLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
+        }
+
+        // Safety Fix: Auto-register any HA text sensors used in conditions or linked to widgets
+        const textSensorLinesExtra = collectTextSensors(pages, context);
+
+        // Text Sensors
+        const textSensorLinesOrig = [];
+        registry.onExportTextSensors({ ...context, lines: textSensorLinesOrig });
+
+        // Merge extra text sensors
+        if (textSensorLinesExtra.length > 0) {
+            textSensorLinesOrig.push(...textSensorLinesExtra);
+        }
+
+        const textSensorLines = this.processPendingTriggers(textSensorLinesOrig, pendingTriggers, isLvgl, "on_value");
+        if (textSensorLines.length > 0) {
+            lines.push("text_sensor:");
+            lines.push(...textSensorLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
+        }
+
+        // Binary Sensors
+        const binarySensorLinesOrig = [];
+
+        // Generate hardware binary sensors (buttons, etc.) only for non-package profiles
+        if (!profile.isPackageBased && Generators.generateBinarySensorSection) {
+            const legacyBinary = Generators.generateBinarySensorSection(profile, pages.length, displayId, []);
+            if (legacyBinary.length > 0 && legacyBinary[0].trim() === "binary_sensor:") {
+                binarySensorLinesOrig.push(...legacyBinary.slice(1).map(l => l.startsWith("  ") ? l.slice(2) : l));
+            } else {
+                binarySensorLinesOrig.push(...legacyBinary);
             }
+        }
 
-            // Safety Fix: Auto-register any HA text sensors used in conditions or linked to widgets
-            const textSensorLinesExtra = collectTextSensors(pages, context);
-
-            // Text Sensors
-            const textSensorLinesOrig = [];
-            PluginRegistry.onExportTextSensors({ ...context, lines: textSensorLinesOrig });
-
-            // Merge extra text sensors
-            if (textSensorLinesExtra.length > 0) {
-                textSensorLinesOrig.push(...textSensorLinesExtra);
-            }
-
-            const textSensorLines = this.processPendingTriggers(textSensorLinesOrig, pendingTriggers, isLvgl, "on_value");
-            if (textSensorLines.length > 0) {
-                lines.push("text_sensor:");
-                lines.push(...textSensorLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
-            }
-
-            // Binary Sensors
-            const binarySensorLinesOrig = [];
-
-            // Generate hardware binary sensors (buttons, etc.) only for non-package profiles
-            if (!profile.isPackageBased && Generators.generateBinarySensorSection) {
-                const legacyBinary = Generators.generateBinarySensorSection(profile, pages.length, displayId, []);
-                if (legacyBinary.length > 0 && legacyBinary[0].trim() === "binary_sensor:") {
-                    binarySensorLinesOrig.push(...legacyBinary.slice(1).map(l => l.startsWith("  ") ? l.slice(2) : l));
-                } else {
-                    binarySensorLinesOrig.push(...legacyBinary);
-                }
-            }
-
-            // ALWAYS generate touch sensors for nav bars and touch areas, even for package-based profiles
-            const touchWidgets = allWidgets.filter(w => w.type === 'touch_area' || w.type === 'template_nav_bar');
-            let touchSensorContent = []; // Store for package injection
-            if (touchWidgets.length > 0 && Generators.generateBinarySensorSection) {
-                // Pass minimal profile (no features.buttons) so only touch sensors are generated
-                const touchBinary = Generators.generateBinarySensorSection({ features: {} }, pages.length, displayId, touchWidgets);
-                if (touchBinary.length > 0) {
-                    // Skip the "binary_sensor:" header if present, keep all content lines
-                    const startIdx = touchBinary[0]?.trim() === "binary_sensor:" ? 1 : 0;
-                    if (touchBinary.length > startIdx) {
-                        // For package-based profiles, store for placeholder injection
-                        // For non-package profiles, add to binarySensorLinesOrig as before
-                        if (profile.isPackageBased) {
-                            touchSensorContent = touchBinary.slice(startIdx);
-                        } else {
-                            binarySensorLinesOrig.push(`# Touch Area Binary Sensors`);
-                            binarySensorLinesOrig.push(...touchBinary.slice(startIdx).map(l => l.startsWith("  ") ? l.slice(2) : l));
-                        }
+        // ALWAYS generate touch sensors for nav bars and touch areas, even for package-based profiles
+        const touchWidgets = allWidgets.filter(w => w.type === 'touch_area' || w.type === 'template_nav_bar');
+        let touchSensorContent = []; // Store for package injection
+        if (touchWidgets.length > 0 && Generators.generateBinarySensorSection) {
+            // Pass minimal profile (no features.buttons) so only touch sensors are generated
+            const touchBinary = Generators.generateBinarySensorSection({ features: {} }, pages.length, displayId, touchWidgets);
+            if (touchBinary.length > 0) {
+                // Skip the "binary_sensor:" header if present, keep all content lines
+                const startIdx = touchBinary[0]?.trim() === "binary_sensor:" ? 1 : 0;
+                if (touchBinary.length > startIdx) {
+                    // For package-based profiles, store for placeholder injection
+                    // For non-package profiles, add to binarySensorLinesOrig as before
+                    if (profile.isPackageBased) {
+                        touchSensorContent = touchBinary.slice(startIdx);
+                    } else {
+                        binarySensorLinesOrig.push(`# Touch Area Binary Sensors`);
+                        binarySensorLinesOrig.push(...touchBinary.slice(startIdx).map(l => l.startsWith("  ") ? l.slice(2) : l));
                     }
                 }
             }
-
-            // Store touch content for later package injection
-            this._pendingTouchSensors = touchSensorContent;
-
-            // New: Allow plugins to register binary sensors
-            PluginRegistry.onExportBinarySensors({ ...context, lines: binarySensorLinesOrig });
-            const binarySensorLines = this.processPendingTriggers(binarySensorLinesOrig, pendingTriggers, isLvgl, "on_state");
-            // Only add binary_sensor section for non-package profiles (or if there are non-touch sensors)
-            if (binarySensorLines.length > 0 && !profile.isPackageBased) {
-                lines.push("binary_sensor:");
-                lines.push(...binarySensorLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
-            }
-
-            // Safety Fix: Auto-register any HA binary sensors used in conditions or linked to widgets
-            const binarySensorLinesExtra = collectBinarySensors(pages, context);
-
-            if (binarySensorLinesExtra.length > 0) {
-                if (!lines.some(l => l === "binary_sensor:")) lines.push("binary_sensor:");
-
-                const mergedBinaryExtraLines = this.processPendingTriggers(binarySensorLinesExtra, pendingTriggers, isLvgl, "on_state");
-                lines.push(...mergedBinaryExtraLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
-            }
-
-            // Button Section
-            if (!profile.isPackageBased && Generators.generateButtonSection) {
-                const buttonLines = Generators.generateButtonSection(profile, pages.length, displayId);
-                if (buttonLines.length > 0) {
-                    lines.push(...buttonLines);
-                }
-            }
-
-
-
-            // Top-level Components (image, graph, etc.)
-            const plugins = PluginRegistry.getAll();
-            const order = ["image", "online_image", "graph", "qr_code"];
-            plugins.sort((a, b) => {
-                const idxA = order.indexOf(a.id);
-                const idxB = order.indexOf(b.id);
-                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-                if (idxA !== -1) return -1;
-                if (idxB !== -1) return 1;
-                return a.id.localeCompare(b.id);
-            });
-            plugins.forEach(p => p.onExportComponents && p.onExportComponents({ ...context, lines }));
         }
+
+        // Store touch content for later package injection
+        this._pendingTouchSensors = touchSensorContent;
+
+        // New: Allow plugins to register binary sensors
+        registry.onExportBinarySensors({ ...context, lines: binarySensorLinesOrig });
+        const binarySensorLines = this.processPendingTriggers(binarySensorLinesOrig, pendingTriggers, isLvgl, "on_state");
+        // Only add binary_sensor section for non-package profiles (or if there are non-touch sensors)
+        if (binarySensorLines.length > 0 && !profile.isPackageBased) {
+            lines.push("binary_sensor:");
+            lines.push(...binarySensorLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
+        }
+
+        // Safety Fix: Auto-register any HA binary sensors used in conditions or linked to widgets
+        const binarySensorLinesExtra = collectBinarySensors(pages, context);
+
+        if (binarySensorLinesExtra.length > 0) {
+            if (!lines.some(l => l === "binary_sensor:")) lines.push("binary_sensor:");
+
+            const mergedBinaryExtraLines = this.processPendingTriggers(binarySensorLinesExtra, pendingTriggers, isLvgl, "on_state");
+            lines.push(...mergedBinaryExtraLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
+        }
+
+        // Button Section
+        if (!profile.isPackageBased && Generators.generateButtonSection) {
+            const buttonLines = Generators.generateButtonSection(profile, pages.length, displayId);
+            if (buttonLines.length > 0) {
+                lines.push(...buttonLines);
+            }
+        }
+
+
+
+        // Top-level Components (image, graph, etc.)
+        const plugins = registry.getAll();
+        const order = ["image", "online_image", "graph", "qr_code"];
+        plugins.sort((a, b) => {
+            const idxA = order.indexOf(a.id);
+            const idxB = order.indexOf(b.id);
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            return a.id.localeCompare(b.id);
+        });
+        plugins.forEach(p => p.onExportComponents && p.onExportComponents({ ...context, lines }));
 
         // Before generating fonts/scripts, generate the lambda content to track dependencies
         const lambdaContent = generateDisplayLambda(pages, layout, profile, context, this);
@@ -471,7 +469,7 @@ export class ESPHomeAdapter extends BaseAdapter {
             if (p.widgets) {
                 for (const w of p.widgets.filter(widget => !widget.hidden && widget.type !== 'group')) {
                     const type = w.type;
-                    const plugin = PluginRegistry ? await PluginRegistry.load(type) : null;
+                    const plugin = registry ? await registry.load(type) : null;
                     if (plugin) {
                         this.usedPlugins.add(plugin);
 
@@ -608,5 +606,3 @@ export class ESPHomeAdapter extends BaseAdapter {
         }
     }
 }
-
-window.ESPHomeAdapter = ESPHomeAdapter;

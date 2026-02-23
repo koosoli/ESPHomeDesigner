@@ -87,8 +87,33 @@ export default {
         ],
         bg_color: "#444",
         color: "white",
-        opa: 255
+        opa: 255,
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Matrix Layout",
+            fields: [
+                {
+                    key: "rows", label: "Buttons (JSON Rows)", type: "json", default: [
+                        { buttons: ["1", "2", "3"] },
+                        { buttons: ["4", "5", "6"] },
+                        { buttons: ["7", "8", "9"] },
+                        { buttons: ["*", "0", "#"] }
+                    ]
+                }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "bg_color", label: "Background", type: "color", default: "#444" },
+                { key: "color", label: "Text Color", type: "color", default: "white" },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL
 };

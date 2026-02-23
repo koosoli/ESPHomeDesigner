@@ -2,7 +2,7 @@ import { AppState } from '../state.js';
 import { Logger } from '../../utils/logger.js';
 import { emit, EVENTS } from '../events.js';
 import { WidgetFactory } from '../widget_factory.js';
-import { registry as PluginRegistry } from '../plugin_registry.js';
+import { registry } from '../plugin_registry.js';
 import { snapToGridCell, applySnapToPosition, clearSnapGuides, updateWidgetGridCell, snapResizeValue } from '../canvas_snap.js';
 import { render, updateWidgetDOM, focusPage, applyZoom } from '../canvas_renderer.js';
 

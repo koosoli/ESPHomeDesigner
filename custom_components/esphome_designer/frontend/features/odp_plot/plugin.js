@@ -81,6 +81,21 @@ export default {
         outline: "#ccc",
         ylegend: null
     },
+    schema: [
+        {
+            section: "Data Source",
+            fields: [
+                { key: "duration", label: "Duration (Seconds)", type: "number", default: 36400 }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "background", label: "Background", type: "color", default: "white" },
+                { key: "outline", label: "Outline", type: "color", default: "#ccc" }
+            ]
+        }
+    ],
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};

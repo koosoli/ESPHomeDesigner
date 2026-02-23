@@ -185,8 +185,36 @@ export default {
         icon_color: "theme_auto",
         color: "rgba(0, 0, 255, 0.15)",
         border_color: "#0000ff",
-        on_click: ""
+        on_click: "",
+        entity_id: "",
+        nav_action: "none"
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "title", label: "Display Title", type: "text", default: "" },
+                { key: "icon", label: "Touch Icon (MDI)", type: "icon_picker", default: "" },
+                { key: "icon_pressed", label: "Pressed Icon", type: "icon_picker", default: "" },
+                { key: "entity_id", target: "root", label: "Target Entity", type: "entity_picker", default: "" }
+            ]
+        },
+        {
+            section: "Navigation",
+            fields: [
+                { key: "nav_action", label: "Page Action", type: "select", options: ["none", "next_page", "previous_page", "reload_page"], default: "none" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "icon_size", label: "Icon Size", type: "number", default: 40 },
+                { key: "icon_color", label: "Icon Color", type: "color", default: "theme_auto" },
+                { key: "color", label: "Fill Color (Editor)", type: "color", default: "rgba(0, 0, 255, 0.15)" },
+                { key: "border_color", label: "Border Color (Editor)", type: "color", default: "#0000ff" }
+            ]
+        }
+    ],
     render,
     collectRequirements,
     onExportBinarySensors,

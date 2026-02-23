@@ -1,6 +1,7 @@
 import { TemplateConverter } from '../../js/utils/template_converter.js';
 import { wordWrap, parseColorMarkup, evaluateTemplatePreview } from '../../js/utils/text_utils.js';
 import { getNestedValue } from '../../js/utils/helpers.js';
+import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js';
 
 /** Strict check: returns true only if the entire value is a valid number. */
 const isStrictlyNumeric = (val) => {
@@ -336,8 +337,6 @@ const render = (el, widget, { getColorStyle }) => {
     }
 };
 
-import { getWeightsForFont } from '../../js/core/font_weights.js';
-
 export default {
     id: "sensor_text",
     name: "Sensor Text",
@@ -354,71 +353,20 @@ export default {
         text_align: "TOP_LEFT",
         color: "theme_auto",
         font_family: "Roboto",
-        font_weight: 400,
         parse_colors: false,
         bg_color: "transparent",
         opa: 255,
+        opacity: 100,
         border_width: 0,
         border_color: "theme_auto",
         border_radius: 0,
+        bpp: 1,
+        custom_font_family: "",
+        font_weight: 400,
+        italic: false,
+        label_align: "TOP_LEFT",
+        value_align: "TOP_LEFT",
     },
-    schema: [
-        {
-            section: "Data Source",
-            fields: [
-                { key: "entity_id", target: "root", label: "Entity ID", type: "entity_picker", default: "" },
-                { key: "title", target: "root", label: "Title/Label", type: "text", default: "" }
-            ]
-        },
-        {
-            section: "Format", defaultExpanded: false,
-            fields: [
-                {
-                    key: "value_format", label: "Display Format", type: "select", options: [
-                        { value: "label_value", label: "Label: Value & Unit" },
-                        { value: "label_value_no_unit", label: "Label: Value Only" },
-                        { value: "label_newline_value", label: "Label [newline] Value & Unit" },
-                        { value: "label_newline_value_no_unit", label: "Label [newline] Value Only" },
-                        { value: "value_only", label: "Value & Unit" },
-                        { value: "value_only_no_unit", label: "Value Only" }
-                    ], default: "label_value"
-                },
-                { key: "precision", label: "Precision", type: "number", default: 2 },
-                { key: "unit", label: "Unit", type: "text", default: "" }
-            ]
-        },
-        {
-            section: "Appearance",
-            fields: [
-                { key: "label_font_size", label: "Label Size", type: "number", default: 14 },
-                { key: "value_font_size", label: "Value Size", type: "number", default: 20 },
-                {
-                    key: "font_family", label: "Font", type: "select",
-                    options: ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand"],
-                    default: "Roboto"
-                },
-                {
-                    key: "font_weight", label: "Weight", type: "select",
-                    dynamicOptions: (props) => getWeightsForFont(props.font_family || "Roboto"),
-                    default: 400
-                },
-                { key: "italic", label: "Italic", type: "checkbox", default: false },
-                { key: "parse_colors", label: "Parse Color Tags", type: "checkbox", default: false },
-                { key: "color", label: "Color", type: "color", default: "black" },
-                { key: "text_align", label: "Align", type: "select", options: ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], default: "TOP_LEFT" }
-            ]
-        },
-        {
-            section: "Border Style", defaultExpanded: false,
-            fields: [
-                { key: "border_width", label: "Border Width", type: "number", default: 0 },
-                { key: "border_color", label: "Border Color", type: "color", default: "theme_auto" },
-                { key: "border_radius", label: "Corner Radius", type: "number", default: 0 },
-                { key: "bg_color", label: "Background", type: "color", default: "transparent" },
-                { key: "drop_shadow", label: "", type: "drop_shadow_button" }
-            ]
-        }
-    ],
 
     render,
     exportLVGL: (w, { common, convertColor, convertAlign, getLVGLFont, formatOpacity }) => {
@@ -1160,6 +1108,129 @@ export default {
         }
     },
 
+    defaults: {
+        entity_id: "",
+        title: "",
+        value_format: "label_value",
+        label_font_size: 14,
+        value_font_size: 20,
+        unit: "",
+        precision: 2,
+        text_align: "TOP_LEFT",
+        color: "theme_auto",
+        font_family: "Roboto",
+        parse_colors: false,
+        bg_color: "transparent",
+        opa: 255,
+        border_width: 0,
+        border_color: "theme_auto",
+        border_radius: 0,
+    },
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Data Source", true);
+        panel.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
+            AppState.updateWidget(widget.id, { entity_id: v });
+            if (v && !widget.title) panel.autoPopulateTitleFromEntity(widget.id, v);
+        }, widget);
+        panel.addLabeledInput("Attribute (optional)", "text", props.attribute || "", (v) => updateProp("attribute", v.trim()));
+        panel.addHint("Read a specific attribute, supports nested paths (e.g. 'entries.days.0.day').");
+
+        panel.addCheckbox("Text Sensor (string value)", !!props.is_text_sensor, (v) => updateProp("is_text_sensor", v));
+        panel.addHint("Enable if entity returns text instead of numbers.");
+
+        panel.addCheckbox("Local / On-Device Sensor", !!props.is_local_sensor, (v) => updateProp("is_local_sensor", v));
+        panel.addHint("Use internal battery_level/signal sensor.");
+
+        panel.addLabeledInputWithPicker("Secondary Entity ID", "text", widget.entity_id_2 || "", (v) => {
+            AppState.updateWidget(widget.id, { entity_id_2: v });
+        }, widget);
+        panel.addLabeledInput("Secondary Attribute", "text", props.attribute2 || "", (v) => updateProp("attribute2", v.trim()));
+        panel.addHint("Optional attribute for the secondary entity.");
+
+        panel.addLabeledInput("Title/Label", "text", widget.title || "", (v) => {
+            AppState.updateWidget(widget.id, { title: v });
+        });
+        panel.endSection();
+
+        panel.createSection("Format", false);
+        panel.addSelect("Display Format", props.value_format || "label_value", [
+            { value: "label_value", label: "Label: Value & Unit" },
+            { value: "label_value_no_unit", label: "Label: Value Only" },
+            { value: "label_newline_value", label: "Label [newline] Value & Unit" },
+            { value: "label_newline_value_no_unit", label: "Label [newline] Value Only" },
+            { value: "value_only", label: "Value & Unit" },
+            { value: "value_only_no_unit", label: "Value Only" }
+        ], (v) => updateProp("value_format", v));
+        panel.addLabeledInput("Precision", "number", props.precision !== undefined ? props.precision : 2, (v) => updateProp("precision", parseInt(v, 10)));
+        panel.addLabeledInputWithDataList("Prefix", "text", props.prefix || "", ["€", "$", "£", "¥", "CHF", "kr"], (v) => updateProp("prefix", v));
+        panel.addLabeledInputWithDataList("Postfix", "text", props.postfix || "", [" kWh", " W", " V", " A", " °C", " %", " ppm", " lx"], (v) => updateProp("postfix", v));
+        panel.addLabeledInput("Unit (Manual helper)", "text", props.unit || "", (v) => updateProp("unit", v));
+        panel.addCheckbox("Hide default unit", !!props.hide_unit, (v) => updateProp("hide_unit", v));
+        panel.endSection();
+
+        panel.createSection("Appearance", true);
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => updateProp("opacity", v));
+        panel.addCompactPropertyRow(() => {
+            panel.addLabeledInput("Label Size", "number", props.label_font_size || 14, (v) => updateProp("label_font_size", parseInt(v, 10)));
+            panel.addLabeledInput("Value Size", "number", props.value_font_size || 20, (v) => updateProp("value_font_size", parseInt(v, 10)));
+        });
+        panel.addColorSelector("Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
+
+        const fontOptions = ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand", "Custom..."];
+        const currentFont = props.font_family || "Roboto";
+        const isCustom = !fontOptions.slice(0, -1).includes(currentFont);
+        panel.addSelect("Font", isCustom ? "Custom..." : currentFont, fontOptions, (v) => {
+            const newProps = { ...widget.props };
+            if (v !== "Custom...") {
+                newProps.font_family = v;
+                newProps.custom_font_family = "";
+                newProps.font_weight = clampFontWeight(v, newProps.font_weight || 400);
+            } else {
+                newProps.font_family = "Custom...";
+            }
+            AppState.updateWidget(widget.id, { props: newProps });
+        });
+        if (isCustom || props.font_family === "Custom...") {
+            panel.addLabeledInput("Custom Font Name", "text", props.custom_font_family || (isCustom ? currentFont : ""), (v) => {
+                const newProps = { ...widget.props };
+                newProps.font_family = v || "Roboto";
+                newProps.custom_font_family = v;
+                newProps.font_weight = clampFontWeight(newProps.font_family, newProps.font_weight || 400);
+                AppState.updateWidget(widget.id, { props: newProps });
+            });
+            panel.addHint('Browse <a href="https://fonts.google.com" target="_blank">fonts.google.com</a>');
+        }
+
+        const validWeights = getWeightsForFont(props.font_family || "Roboto");
+        panel.addSelect("Weight", props.font_weight || 400, validWeights, (v) => updateProp("font_weight", parseInt(v, 10)));
+        panel.addCheckbox("Italic", !!props.italic, (v) => updateProp("italic", v));
+        panel.addSelect("Align", props.text_align || "TOP_LEFT", ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], (v) => {
+            updateProp("text_align", v);
+            updateProp("label_align", v);
+            updateProp("value_align", v);
+        });
+        panel.addCheckbox("Parse Color Tags", !!props.parse_colors, (v) => updateProp("parse_colors", v));
+        panel.addHint("Enable to use [color]text[/color] markup, also supports HA templates.");
+        panel.endSection();
+
+        panel.createSection("Border Style", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addColorSelector("Background", props.bg_color || "transparent", null, (v) => updateProp("bg_color", v));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
+
+        panel.createSection("Advanced", false);
+        panel.addLabeledInput("BPP / Antialias", "number", props.bpp || 1, (v) => updateProp("bpp", parseInt(v, 10)));
+        panel.endSection();
+    },
     onExportNumericSensors: (context) => {
         const { widgets, isLvgl, pendingTriggers } = context;
         if (!widgets) return;

@@ -5,6 +5,7 @@
 
 import { DEVICE_PROFILES } from './devices.js';
 import { Logger } from '../utils/logger.js';
+import { registry } from '../core/plugin_registry.js';
 
 // --- Helpers (Exported for plugins and other adapters) ---
 
@@ -316,7 +317,6 @@ function transpileToLVGL(w, profile, darkMode = false) {
     };
 
     // Plugin Hook: Check if the plugin supplies its own LVGL export logic
-    const registry = window.PluginRegistry;
     if (registry) {
         const plugin = registry.get(w.type);
         if (plugin && typeof plugin.exportLVGL === 'function') {

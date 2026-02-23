@@ -3,6 +3,7 @@ import sidebarHtml from './sidebar.html?raw';
 import codePanelHtml from './code_panel.html?raw';
 import propertiesPanelHtml from './properties_panel.html?raw';
 import modalsHtml from './modals.html?raw';
+import logoUrl from '../../../assets/logo_header.png';
 
 function injectComponent(id, htmlString) {
     const el = document.getElementById(id);
@@ -17,7 +18,11 @@ function injectComponent(id, htmlString) {
 // Ensure execution is synchronous before other modules boot up
 export function initUI() {
     console.log('[UI Injection] Loading modular UI components...');
-    injectComponent('header-placeholder', headerHtml);
+
+    // Replace hardcoded relative asset path with Vite-resolved URL
+    let finalHeaderHtml = headerHtml.replace('assets/logo_header.png', logoUrl);
+    injectComponent('header-placeholder', finalHeaderHtml);
+
     injectComponent('sidebar-placeholder', sidebarHtml);
     injectComponent('code-panel-placeholder', codePanelHtml);
     injectComponent('properties-panel-placeholder', propertiesPanelHtml);

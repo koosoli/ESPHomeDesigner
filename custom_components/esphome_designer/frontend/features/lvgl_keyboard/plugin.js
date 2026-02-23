@@ -48,8 +48,26 @@ export default {
     category: "LVGL",
     defaults: {
         mode: "TEXT_LOWER",
-        opa: 255
+        opa: 255,
+        textarea: "",
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Keyboard Settings",
+            fields: [
+                { key: "mode", label: "Initial Mode", type: "select", options: ["TEXT_LOWER", "TEXT_UPPER", "SPECIAL", "NUMBER", "USER_1", "USER_2", "USER_3", "USER_4"], default: "TEXT_LOWER" },
+                { key: "textarea", target: "root", label: "Target Textarea ID", type: "text", default: "" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL
 };

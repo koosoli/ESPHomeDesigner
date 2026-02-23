@@ -374,3 +374,5 @@ DESIGN GOAL: Create "Beautiful" layouts. Use whitespace, professional alignment,
         return { id, type, x, y, width, height, ...props };
     }
 }
+
+export const aiService = new AIService();

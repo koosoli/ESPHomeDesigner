@@ -1,0 +1,277 @@
+{
+  "battery_icon": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "calendar": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "datetime": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "debug_grid": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "graph": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "icon": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "image": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "line": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_arc": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_bar": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_button": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_buttonmatrix": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_chart": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_checkbox": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_dropdown": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_img": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_keyboard": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_label": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_led": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_line": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_meter": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_obj": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_qrcode": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_roller": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_slider": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_spinbox": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_spinner": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_switch": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_tabview": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_textarea": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_tileview": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "odp_arc": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "odp_ellipse": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "odp_icon_sequence": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "odp_multiline": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "odp_plot": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "odp_polygon": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "odp_rectangle_pattern": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "ondevice_humidity": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "ondevice_temperature": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "online_image": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "progress_bar": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "qr_code": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "quote_rss": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "rounded_rect": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "sensor_text": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "shape_circle": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "shape_rect": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "template_nav_bar": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "template_sensor_bar": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "text": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "touch_area": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "weather_forecast": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "weather_icon": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "wifi_signal": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  }
+}

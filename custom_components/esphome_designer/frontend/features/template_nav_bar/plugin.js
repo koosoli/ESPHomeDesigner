@@ -239,17 +239,51 @@ export default {
     // handled via display.lambda.
     supportedModes: ["lvgl", "direct"],
     defaults: {
-        w: 180,
-        h: 40,
+        width: 180,
+        height: 40,
         show_prev: true,
         show_home: true,
         show_next: true,
         show_background: true,
         background_color: "black",
         border_radius: 8,
+        border_thickness: 0,
+        border_color: "white",
         color: "white",
-        icon_size: 24
+        icon_size: 24,
+        prev_target: "relative_prev",
+        home_target: "home",
+        next_target: "relative_next",
+        opa: 255,
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Navigation Buttons",
+            fields: [
+                { key: "show_prev", label: "Show Back/Prev", type: "checkbox", default: true },
+                { key: "prev_target", label: "Prev Target", type: "text", default: "relative_prev" },
+                { key: "show_home", label: "Show Home", type: "checkbox", default: true },
+                { key: "home_target", label: "Home Target", type: "text", default: "home" },
+                { key: "show_next", label: "Show Next", type: "checkbox", default: true },
+                { key: "next_target", label: "Next Target", type: "text", default: "relative_next" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "icon_size", label: "Icon Size", type: "number", default: 24 },
+                { key: "color", label: "Icon Color", type: "color", default: "white" },
+                { key: "show_background", label: "Show Bar Background", type: "checkbox", default: true },
+                { key: "background_color", label: "Background", type: "color", default: "black" },
+                { key: "border_radius", label: "Corners", type: "number", default: 8 },
+                { key: "border_thickness", label: "Border Width", type: "number", default: 0 },
+                { key: "border_color", label: "Border Color", type: "color", default: "white" },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL: (w, { common, convertColor, getLVGLFont }) => {
         const p = w.props || {};

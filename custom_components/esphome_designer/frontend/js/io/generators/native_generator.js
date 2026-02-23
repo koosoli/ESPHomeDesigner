@@ -3,9 +3,11 @@
  * @description Generates the native C++ display lambda and handles widget export orchestration for ESPHome native displays (e-ink/LCD).
  */
 
-import { registry as PluginRegistry } from '../../core/plugin_registry.js';
+import { registry } from '../../core/plugin_registry.js';
 import { Utils } from '../../core/utils.js';
 import { COLORS, ALIGNMENT } from '../../core/constants.js';
+import { isEntityStateNonNumeric } from '../../utils/export_helpers.js';
+import { serializeWidget } from '../yaml_export_lvgl.js';
 
 export function getCondProps(w) {
     const ent = (w.condition_entity || "").trim();
@@ -38,7 +40,7 @@ function getConditionCheck(w) {
 
     // Handle string matching explicitly
     const isStrMatching = op === "==" || op === "!=";
-    const isNonNumeric = window.ESPHomeAdapter && window.ESPHomeAdapter.isEntityStateNonNumeric ? window.ESPHomeAdapter.isEntityStateNonNumeric(ent) : true;
+    const isNonNumeric = isEntityStateNonNumeric(ent);
 
     // Check if the condition value itself is non-numeric text (fixes weather/text_sensor checks)
     const isTextCondition = isNaN(parseFloat(targetVal));
@@ -93,7 +95,7 @@ function sanitize(str) {
 function generateWidget(widget, context) {
     if (widget.type === 'group') return [];
     const widgetLines = [];
-    const plugin = PluginRegistry ? PluginRegistry.get(widget.type) : null;
+    const plugin = registry ? registry.get(widget.type) : null;
     const isLvglWidget = widget.type && widget.type.startsWith("lvgl_");
 
     if (plugin && typeof plugin.export === 'function') {
@@ -125,16 +127,8 @@ function generateWidget(widget, context) {
         // If it's an LVGL widget but we aren't using the direct LVGL generator 
         // (e.g. on an e-paper device or if isLvgl=false), we MUST still export 
         // the marker comment so it doesn't get lost on Update.
-
-        // Dynamic import workaround for serializeWidget to avoid circular dependencies
-        if (window.ESPHomeAdapter && window.ESPHomeAdapter.serializeWidgetForFallback) {
-            const serialized = window.ESPHomeAdapter.serializeWidgetForFallback(widget);
-            widgetLines.push(serialized ? serialized.replace(/[\r\n]+/g, " ") : "");
-        } else {
-            const safeMeta = `// widget:${widget.type} id:${widget.id} x:${widget.x} y:${widget.y} w:${widget.width} h:${widget.height}`;
-            // Sanitize to valid single line comment
-            widgetLines.push(safeMeta.replace(/[\r\n]+/g, ' '));
-        }
+        const serialized = serializeWidget(widget);
+        widgetLines.push(serialized ? serialized.replace(/[\r\n]+/g, " ") : "");
     } else {
         widgetLines.push(`// widget:${widget.type} id:${widget.id} status:unsupported`);
         widgetLines.push(`        // Unsupported widget type: ${widget.type}`);
@@ -261,8 +255,8 @@ export function generateDisplayLambda(pages, layout, profile, context, adapter) 
     }
 
     // Helper hooks
-    if (window.PluginRegistry) {
-        window.PluginRegistry.onExportHelpers({ lines, widgets: pages.flatMap(p => p.widgets || []) });
+    if (registry) {
+        registry.onExportHelpers({ lines, widgets: pages.flatMap(p => p.widgets || []) });
     }
 
     lines.push(`int currentPage = id(display_page);`);

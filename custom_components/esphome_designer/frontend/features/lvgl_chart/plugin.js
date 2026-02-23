@@ -97,8 +97,37 @@ export default {
         type: "line",
         point_count: 10,
         x_div_lines: 3,
-        y_div_lines: 3
+        y_div_lines: 3,
+        opa: 255,
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "title", label: "Chart Title", type: "text", default: "Chart" }
+            ]
+        },
+        {
+            section: "Data Source",
+            fields: [
+                { key: "min", label: "Min Value", type: "number", default: 0 },
+                { key: "max", label: "Max Value", type: "number", default: 100 },
+                { key: "point_count", label: "Points", type: "number", default: 10 }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "type", label: "Chart Type", type: "select", options: ["line", "bar", "scatter"], default: "line" },
+                { key: "color", label: "Recolor", type: "color", default: "blue" },
+                { key: "x_div_lines", label: "X Grid Lines", type: "number", default: 3 },
+                { key: "y_div_lines", label: "Y Grid Lines", type: "number", default: 3 },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL
 };

@@ -69,6 +69,18 @@ const render = (element, widget, helpers) => {
         element.appendChild(canvas);
         widget.props._calculatedScale = cellSize;
 
+        // Apply Border & Background (Restored)
+        if (props.border_width) {
+            const borderColor = helpers.getColorStyle(props.border_color || color);
+            element.style.border = `${props.border_width}px solid ${borderColor}`;
+            element.style.borderRadius = `${props.border_radius || 0}px`;
+        } else {
+            element.style.border = "none";
+        }
+        if (props.bg_color) {
+            element.style.backgroundColor = helpers.getColorStyle(props.bg_color);
+        }
+
     } catch (e) {
         element.innerHTML = '<div style="color:#c00;font-size:10px;text-align:center;">QR Error:<br>' + e.message + '</div>';
     }
@@ -98,6 +110,18 @@ const exportDoc = (w, context) => {
     if (cond) lines.push(`        ${cond}`);
 
     lines.push(`        it.qr_code(${w.x}, ${w.y}, id(${safeId}), ${color}, ${scale});`);
+
+    // Border (Restored)
+    const borderWidth = parseInt(p.border_width || 0, 10);
+    if (borderWidth > 0) {
+        const borderColorProp = p.border_color || colorProp;
+        const borderColorConst = getColorConst(borderColorProp);
+        const radius = p.border_radius || 0;
+        for (let i = 0; i < borderWidth; i++) {
+            lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColorConst});`);
+        }
+    }
+
     addDitherMask(lines, colorProp, isEpaper, w.x, w.y, w.width, w.height);
 
     if (cond) lines.push(`        }`);
@@ -134,25 +158,40 @@ export default {
         color: "theme_auto",
         bg_color: "white",
         width: 130,
-        height: 130
+        height: 130,
+        opa: 255
     },
-    schema: [
-        {
-            section: "QR Content",
-            fields: [
-                { key: "value", label: "Value / URL", type: "text", default: "" },
-                { key: "ecc", label: "Error Correction", type: "select", options: ["LOW", "MEDIUM", "QUARTILE", "HIGH"], default: "LOW" }
-            ]
-        },
-        {
-            section: "Appearance",
-            fields: [
-                { key: "color", label: "Color", type: "color", default: "black" },
-                { key: "bg_color", label: "Background", type: "color", default: "white" },
-                { key: "drop_shadow", label: "", type: "drop_shadow_button" }
-            ]
-        }
-    ],
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Content", true);
+        panel.addLabeledInput("QR Content / URL", "text", props.value || "https://github.com/koosoli/ESPHomeDesigner/", (v) => updateProp("value", v));
+        panel.addSelect("Error Correction", props.ecc || "LOW", [
+            { value: "LOW", label: "Low (7% recovery)" },
+            { value: "MEDIUM", label: "Medium (15% recovery)" },
+            { value: "QUARTILE", label: "Quartile (25% recovery)" },
+            { value: "HIGH", label: "High (30% recovery)" }
+        ], (v) => updateProp("ecc", v));
+        panel.addHint("Higher ECC allows for smaller scale on some displays but is more robust.");
+        panel.endSection();
+
+        panel.createSection("Appearance", true);
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => updateProp("opacity", v));
+        panel.addColorSelector("Dark Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
+        panel.addColorSelector("Light Color", props.bg_color || "white", null, (v) => updateProp("bg_color", v));
+        panel.endSection();
+
+        panel.createSection("Border Style", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
+    },
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};

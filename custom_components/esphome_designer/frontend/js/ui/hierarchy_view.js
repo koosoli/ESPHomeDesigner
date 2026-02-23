@@ -1,7 +1,7 @@
 import { AppState } from '../core/state.js';
 import { on, EVENTS } from '../core/events.js';
 import { Logger } from '../utils/logger.js';
-import { registry as PluginRegistry } from '../core/plugin_registry.js';
+import { registry } from '../core/plugin_registry.js';
 
 export class HierarchyView {
     constructor() {
@@ -418,12 +418,12 @@ export class HierarchyView {
         let label = widget.props?.name || widget.props?.title || widget.props?.text || widget.title;
 
         if (!label || label === "") {
-            const plugin = PluginRegistry.get(widget.type);
+            const plugin = registry.get(widget.type);
             label = plugin ? plugin.name : widget.type;
         }
 
         // If it's still generic, add ID part to make it unique
-        if (label === widget.type || (PluginRegistry.get(widget.type) && label === PluginRegistry.get(widget.type).name)) {
+        if (label === widget.type || (registry.get(widget.type) && label === registry.get(widget.type).name)) {
             const shortId = widget.id.split('_').pop();
             label = `${label} (${shortId})`;
         }

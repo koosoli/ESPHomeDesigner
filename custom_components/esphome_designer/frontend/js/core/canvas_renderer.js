@@ -1,9 +1,10 @@
 import { DEVICE_PROFILES } from '../io/devices.js';
 import { AppState } from './state.js';
-import { registry as FeatureRegistry } from './plugin_registry.js';
+import { WidgetFactory } from './widget_factory.js';
 import { Logger } from '../utils/logger.js';
 import { getColorStyle } from '../utils/device.js';
 import { emit, EVENTS } from './events.js';
+import { registry } from './plugin_registry.js';
 
 export function render(canvasInstance) {
     if (!canvasInstance.canvas) return;
@@ -55,7 +56,7 @@ export function render(canvasInstance) {
 
         const nameLabel = document.createElement("span");
         nameLabel.className = "artboard-name";
-        nameLabel.textContent = page.name || `Page ${index + 1}`;
+        nameLabel.textContent = page.name || `Page ${index + 1} `;
         header.appendChild(nameLabel);
 
         const actions = document.createElement("div");
@@ -82,7 +83,7 @@ export function render(canvasInstance) {
         actions.appendChild(createMdiIconButton("mdi-eraser", "Clear Current Page", () => {
             confirmAction({
                 title: "Clear Page",
-                message: `Are you sure you want to clear all widgets from <b>"${page.name || `Page ${index + 1}`}"</b>?<br><br>This cannot be undone.`,
+                message: `Are you sure you want to clear all widgets from < b > "${page.name || `Page ${index + 1}`}"</b >? <br><br>This cannot be undone.`,
                 confirmLabel: "Clear Page",
                 confirmClass: "btn-danger",
                 onConfirm: () => {
@@ -183,7 +184,7 @@ export function render(canvasInstance) {
             if (widget.hidden) el.classList.add("hidden-widget");
 
             const type = (widget.type || "").toLowerCase();
-            const feature = FeatureRegistry ? FeatureRegistry.get(type) : null;
+            const feature = registry.get(type);
 
             if (type === 'group') {
                 // Internal group rendering: simple container logic
@@ -243,8 +244,8 @@ export function render(canvasInstance) {
     addPlaceholder.style.pointerEvents = "auto"; // Explicitly enable clicks
 
     addPlaceholder.innerHTML = `
-        <div class="plus-icon">+</div>
-        <div class="label">Add Page</div>
+    <div class="plus-icon">+</div>
+    <div class="label">Add Page</div>
     `;
 
     // Apply round display shape if applicable
@@ -315,13 +316,13 @@ function renderLvglGridOverlayToElement(element, layout, dims, isDark) {
     const gridOverlay = document.createElement("div");
     gridOverlay.className = "lvgl-grid-overlay";
     gridOverlay.style.cssText = `
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        display: grid;
-        grid-template-rows: repeat(${rows}, 1fr);
-        grid-template-columns: repeat(${cols}, 1fr);
-        pointer-events: none;
-        z-index: 1;
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: grid;
+    grid-template-rows: repeat(${rows}, 1fr);
+    grid-template-columns: repeat(${cols}, 1fr);
+    pointer-events: none;
+    z-index: 1;
     `;
 
     const lineColor = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
@@ -495,7 +496,7 @@ export function updateWidgetDOM(canvasInstance, widget, skipPluginRender = false
 
         // Re-render plugin logic for real-time updates (e.g. font-size in icons)
         const type = (widget.type || "").toLowerCase();
-        const feature = FeatureRegistry ? FeatureRegistry.get(type) : null;
+        const feature = registry ? registry.get(type) : null;
 
         if (type === 'group') {
             el.classList.add('widget-group');
@@ -685,20 +686,20 @@ function confirmAction({ title, message, confirmLabel, confirmClass, onConfirm }
     modal.className = 'modal-backdrop';
     modal.style.display = 'flex';
     modal.innerHTML = `
-        <div class="modal" style="width: 340px; height: auto; padding: var(--space-4); border-radius: 12px; border: 1px solid var(--glass-border);">
-            <div class="modal-header" style="font-size: var(--fs-md); font-weight: 600; padding-bottom: var(--space-3); border-bottom: 1px solid var(--border-subtle);">
-                <div>${title}</div>
-            </div>
-            <div class="modal-body" style="padding: var(--space-4) 0;">
-                <p style="font-size: var(--fs-sm); line-height: 1.5; color: var(--text-dim);">
-                    ${message}
-                </p>
-            </div>
-            <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end; padding-top: var(--space-3);">
-                <button class="btn btn-secondary close-btn btn-xs" style="border-radius: 6px;">Cancel</button>
-                <button class="btn ${confirmClass || 'btn-primary'} confirm-btn btn-xs" style="border-radius: 6px;">${confirmLabel || 'Confirm'}</button>
-            </div>
+    <div class="modal" style="width: 340px; height: auto; padding: var(--space-4); border-radius: 12px; border: 1px solid var(--glass-border);">
+        <div class="modal-header" style="font-size: var(--fs-md); font-weight: 600; padding-bottom: var(--space-3); border-bottom: 1px solid var(--border-subtle);">
+            <div>${title}</div>
         </div>
+        <div class="modal-body" style="padding: var(--space-4) 0;">
+            <p style="font-size: var(--fs-sm); line-height: 1.5; color: var(--text-dim);">
+                ${message}
+            </p>
+        </div>
+        <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end; padding-top: var(--space-3);">
+            <button class="btn btn-secondary close-btn btn-xs" style="border-radius: 6px;">Cancel</button>
+            <button class="btn ${confirmClass || 'btn-primary'} confirm-btn btn-xs" style="border-radius: 6px;">${confirmLabel || 'Confirm'}</button>
+        </div>
+    </div>
     `;
     document.body.appendChild(modal);
 

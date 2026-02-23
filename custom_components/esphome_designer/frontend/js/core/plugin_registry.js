@@ -146,7 +146,5 @@ export class PluginRegistry {
 }
 
 export const registry = new PluginRegistry();
-window.PluginRegistry = registry;
-window.FeatureRegistry = registry; // Legacy alias
 Logger.log("[Registry] Modular system ready.");
 

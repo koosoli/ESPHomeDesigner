@@ -59,6 +59,19 @@ const render = (el, widget, { getColorStyle }) => {
     pctLabel.style.marginTop = "2px";
     pctLabel.textContent = Math.round(batteryLevel) + "%";
     el.appendChild(pctLabel);
+
+    // Apply Border & Background (Restored)
+    if (props.border_width) {
+        const borderColor = getColorStyle(props.border_color || color);
+        el.style.border = `${props.border_width}px solid ${borderColor}`;
+        el.style.borderRadius = `${props.border_radius || 0}px`;
+        el.style.boxSizing = "border-box";
+    } else {
+        el.style.border = "none";
+    }
+    if (props.bg_color) {
+        el.style.backgroundColor = getColorStyle(props.bg_color);
+    }
 };
 
 const exportDoc = (w, context) => {
@@ -98,6 +111,16 @@ const exportDoc = (w, context) => {
     if (bgColorProp && bgColorProp !== "transparent") {
         const bgColorConst = getColorConst(bgColorProp);
         lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+    }
+
+    // Border (Restored)
+    const borderWidth = parseInt(p.border_width || 0, 10);
+    if (borderWidth > 0) {
+        const borderColorProp = p.border_color || colorProp;
+        const borderColorConst = getColorConst(borderColorProp);
+        for (let i = 0; i < borderWidth; i++) {
+            lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColorConst});`);
+        }
     }
 
     const cond = getConditionCheck(w);
@@ -167,6 +190,47 @@ export default {
         size: 36,
         font_size: 14,
         color: "theme_auto",
+        opa: 255
+    },
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Data Source", true);
+        panel.addLabeledInputWithPicker("Battery Entity ID", "text", widget.entity_id || "", (v) => {
+            AppState.updateWidget(widget.id, { entity_id: v });
+            if (v && !widget.title) panel.autoPopulateTitleFromEntity(widget.id, v);
+        }, widget);
+        panel.addCheckbox("Local / On-Device Sensor", !!props.is_local_sensor, (v) => updateProp("is_local_sensor", v));
+        panel.addHint("Use internal battery_level/signal sensor.");
+        panel.addLabeledInput("Title/Label", "text", widget.title || "", (v) => {
+            AppState.updateWidget(widget.id, { title: v });
+        });
+        panel.endSection();
+
+        panel.createSection("Appearance", true);
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => updateProp("opacity", v));
+        panel.addCheckbox("Fit icon to frame", !!props.fit_icon_to_frame, (v) => updateProp("fit_icon_to_frame", v));
+        panel.addLabeledInput("Icon Size (px)", "number", props.size || 48, (v) => {
+            let n = parseInt(v || "48", 10);
+            updateProp("size", isNaN(n) ? 48 : n);
+        });
+        panel.addLabeledInput("Percentage Font Size (px)", "number", props.font_size || 12, (v) => {
+            let n = parseInt(v || "12", 10);
+            updateProp("font_size", isNaN(n) ? 12 : n);
+        });
+        panel.addColorSelector("Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
+        panel.endSection();
+
+        panel.createSection("Border Style", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
     },
     render,
     exportOpenDisplay: (w, { layout, page }) => {

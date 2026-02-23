@@ -105,8 +105,35 @@ export default {
         color: "black",
         direction: "DOWN",
         max_height: 200,
-        opa: 255
+        opa: 255,
+        entity_id: "",
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "options", label: "Options (One per line)", type: "textarea", default: "Option 1\nOption 2\nOption 3" },
+                { key: "entity_id", target: "root", label: "Selection Entity ID", type: "entity_picker", default: "" }
+            ]
+        },
+        {
+            section: "Settings",
+            fields: [
+                { key: "selected_index", label: "Initially Selected", type: "number", default: 0 },
+                { key: "direction", label: "Expand Direction", type: "select", options: ["DOWN", "UP", "LEFT", "RIGHT"], default: "DOWN" },
+                { key: "max_height", label: "Max Height (px)", type: "number", default: 200 }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "color", label: "Text Color", type: "color", default: "black" },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL,
     onExportNumericSensors

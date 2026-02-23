@@ -65,8 +65,28 @@ export default {
         time: 1000,
         arc_length: 60,
         arc_color: "blue",
-        track_color: "white"
+        track_color: "white",
+        opa: 255,
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Settings",
+            fields: [
+                { key: "time", label: "Cycle Time (ms)", type: "number", default: 1000 },
+                { key: "arc_length", label: "Arc Length (deg)", type: "number", default: 60 }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "arc_color", label: "Spinner Color", type: "color", default: "blue" },
+                { key: "track_color", label: "Track Color", type: "color", default: "white" },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL: (w, { common, convertColor }) => {
         const props = w.props || {};

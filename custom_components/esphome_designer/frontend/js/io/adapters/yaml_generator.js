@@ -409,12 +409,15 @@ export class YamlGenerator {
             }
         });
 
-        // 2. Fallback to pages without visibility windows
-        pages.forEach((page, idx) => {
-            if (!page.visible_from && !page.visible_to) {
-                lines.push(`             if (best_page == -1) best_page = ${idx};`);
-            }
-        });
+        // 2. Fallback: only if at least one page has visibility constraints
+        const hasAnyVisibility = pages.some(p => p.visible_from || p.visible_to);
+        if (hasAnyVisibility) {
+            pages.forEach((page, idx) => {
+                if (!page.visible_from && !page.visible_to) {
+                    lines.push(`             if (best_page == -1) best_page = ${idx};`);
+                }
+            });
+        }
 
         lines.push("");
         lines.push("             // If current page is invisible OR another should be shown, switch");

@@ -91,8 +91,30 @@ export default {
         bg_color: "white",
         scale: 4,
         width: 130,
-        height: 130
+        height: 130,
+        opa: 255,
+        entity_id: "",
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "text", label: "QR Payload / URL", type: "text", default: "https://github.com/koosoli/ESPHomeDesigner/" },
+                { key: "entity_id", target: "root", label: "Bind to String Entity", type: "entity_picker", default: "" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "color", label: "Foreground Color", type: "color", default: "black" },
+                { key: "bg_color", label: "Background Color", type: "color", default: "white" },
+                { key: "scale", label: "Pixel Scale", type: "number", default: 4 },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL,
     onExportTextSensors

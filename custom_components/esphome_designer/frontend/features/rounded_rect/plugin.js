@@ -58,8 +58,47 @@ export default {
         border_width: 4,
         color: "theme_auto",
         show_border: true,
-        opa: 255
+        opa: 255,
+        border_color: "theme_auto",
+        opacity: 255,
+        x: 0,
+        y: 0
     },
+    schema: [
+        {
+            section: "Shape Settings",
+            fields: [
+                { key: "radius", label: "Corner Radius", type: "number", default: 10 },
+                { key: "fill", label: "Fill (true/false)", type: "checkbox", default: false },
+                { key: "color", label: "Color", type: "color", default: "theme_auto" }
+            ]
+        },
+        {
+            section: "Border Settings",
+            fields: [
+                { key: "show_border", label: "Display Border", type: "checkbox", default: true },
+                { key: "border_width", label: "Border Thickness", type: "number", default: 4 },
+                { key: "border_color", label: "Border Color", type: "color", default: "theme_auto" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "drop_shadow", label: "Drop Shadow", type: "drop_shadow_button" }
+            ]
+        },
+        {
+            section: "Placement (Root Targets)",
+            fields: [
+                { key: "x", target: "root", label: "X Position", type: "number", default: 0 },
+                { key: "y", target: "root", label: "Y Position", type: "number", default: 0 },
+                { key: "width", target: "root", label: "Width", type: "number", default: 100 },
+                { key: "height", target: "root", label: "Height", type: "number", default: 100 }
+            ]
+        }
+    ],
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};

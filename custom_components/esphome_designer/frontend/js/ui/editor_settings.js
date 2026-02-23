@@ -3,6 +3,7 @@ import { emit, EVENTS } from '../core/events.js';
 import { setHaManualUrl, refreshHaBaseUrl, setHaToken, getHaManualUrl, getHaToken, isDeployedInHa } from '../utils/env.js';
 import { showToast } from '../utils/dom.js';
 import { fetchEntityStates } from '../io/ha_api.js';
+import { aiService } from '../io/ai_service.js';
 import { Logger } from '../utils/logger.js';
 
 export class EditorSettings {
@@ -317,8 +318,8 @@ export class EditorSettings {
 
                 try {
                     // Assuming aiService is still attached to window for now until refactored
-                    const models = await window.aiService.fetchModels(provider, apiKey);
-                    window.aiService.cache.models[provider] = models;
+                    const models = await aiService.fetchModels(provider, apiKey);
+                    aiService.cache.models[provider] = models;
                     this.refreshModelSelect();
                     // showToast(`Fetched ${models.length} models`, "success");
                     if (this.aiTestResult) {
@@ -382,15 +383,15 @@ export class EditorSettings {
         if (!this.aiModelSelect) return;
         const provider = AppState.settings.ai_provider || "gemini";
 
-        // Assuming aiService global
-        if (!window.aiService || !window.aiService.cache) return;
+        // Use imported aiService
+        if (!aiService || !aiService.cache) return;
 
-        let models = window.aiService.cache.models[provider];
+        let models = aiService.cache.models[provider];
         if (!models) {
-            // No models in cache, but we don't hardcode them anymore.
-            // User must click "Test & Load Models" to populate.
+            // No models in cache...
             models = [];
-            window.aiService.cache.models[provider] = models;
+            models = await aiService.fetchModels(provider, AppState.settings.ai_api_key);
+            aiService.cache.models[provider] = models;
         }
 
         this.filterModels();
@@ -401,8 +402,8 @@ export class EditorSettings {
         const provider = AppState.settings.ai_provider || "gemini";
         const filterStr = (AppState.settings.ai_model_filter || "").toLowerCase();
 
-        if (!window.aiService || !window.aiService.cache) return;
-        const models = window.aiService.cache.models[provider] || [];
+        if (!aiService || !aiService.cache) return;
+        const models = aiService.cache.models[provider] || [];
 
         const filtered = models.filter(m =>
             m.name.toLowerCase().includes(filterStr) ||

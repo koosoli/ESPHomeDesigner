@@ -99,8 +99,28 @@ export default {
         text: "Checkbox",
         checked: false,
         color: "blue",
-        opa: 255
+        opa: 255,
+        entity_id: "",
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "text", label: "Label Text", type: "text", default: "Checkbox" },
+                { key: "entity_id", target: "root", label: "Control Entity ID", type: "entity_picker", default: "" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "checked", label: "Initially Checked", type: "checkbox", default: false },
+                { key: "color", label: "Check Color", type: "color", default: "blue" },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL,
     onExportBinarySensors

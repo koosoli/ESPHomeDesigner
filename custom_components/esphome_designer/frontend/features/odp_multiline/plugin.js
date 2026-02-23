@@ -45,6 +45,24 @@ export default {
         color: "black",
         line_spacing: 4
     },
+    schema: [
+        {
+            section: "Text",
+            fields: [
+                { key: "text", label: "Value", type: "text", default: "Line 1|Line 2|Line 3" },
+                { key: "delimiter", label: "Delimiter", type: "text", default: "|" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "font_size", label: "Size", type: "number", default: 16 },
+                { key: "line_spacing", label: "Spacing", type: "number", default: 4 },
+                { key: "color", label: "Color", type: "color", default: "black" },
+                { key: "font_family", label: "Font", type: "select", options: ["Roboto", "Inter", "Mononoki"], default: "Roboto" }
+            ]
+        }
+    ],
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};

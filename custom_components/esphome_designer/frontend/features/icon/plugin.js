@@ -80,28 +80,41 @@ export default {
         fit_icon_to_frame: true,
         border_width: 0,
         border_color: "theme_auto",
-        border_radius: 0
+        border_radius: 0,
+        opa: 255
     },
-    schema: [
-        {
-            section: "Icon",
-            fields: [
-                { key: "code", label: "Icon Code", type: "icon_picker", default: "F0595" },
-                { key: "size", label: "Size", type: "number", default: 48 },
-                { key: "color", label: "Color", type: "color", default: "theme_auto" },
-                { key: "bg_color", label: "Background", type: "color", default: "transparent" }
-            ]
-        },
-        {
-            section: "Border Style", defaultExpanded: false,
-            fields: [
-                { key: "border_width", label: "Border Width", type: "number", default: 0 },
-                { key: "border_color", label: "Border Color", type: "color", default: "theme_auto" },
-                { key: "border_radius", label: "Corner Radius", type: "number", default: 0 },
-                { key: "drop_shadow", label: "", type: "drop_shadow_button" }
-            ]
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Icon", true);
+        panel.addIconPicker("Select Icon", props.code || "F07D0", (v) => updateProp("code", v), widget);
+        panel.addCheckbox("Fit icon to frame", props.fit_icon_to_frame !== false, (v) => updateProp("fit_icon_to_frame", v));
+        if (!props.fit_icon_to_frame) {
+            panel.addLabeledInput("Fixed Icon Size", "number", props.size || 48, (v) => updateProp("size", parseInt(v, 10)));
         }
-    ],
+        panel.endSection();
+
+        panel.createSection("Appearance", true);
+        panel.addColorSelector("Icon Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
+        panel.addColorSelector("Background", props.bg_color || "transparent", null, (v) => updateProp("bg_color", v));
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : (props.opa !== undefined ? Math.round(props.opa / 2.55) : 100), 0, 100, (v) => {
+            updateProp("opacity", v);
+            updateProp("opa", Math.round(v * 2.55));
+        });
+        panel.endSection();
+
+        panel.createSection("Border Style", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
+    },
+    render,
     collectRequirements: (w, context) => {
         const p = w.props || {};
         const size = parseInt(p.size || 48, 10);

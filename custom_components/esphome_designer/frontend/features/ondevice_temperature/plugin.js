@@ -106,8 +106,45 @@ export default {
         show_label: true,
         precision: 1,
         fit_icon_to_frame: true,
-        is_local_sensor: true
+        is_local_sensor: true,
+        entity_id: "",
+        opa: 255,
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Sensor Data",
+            fields: [
+                { key: "is_local_sensor", label: "Use Onboard Sensor", type: "checkbox", default: true },
+                { key: "entity_id", target: "root", label: "External Entity ID", type: "entity_picker", default: "" },
+                { key: "unit", label: "Unit", type: "select", options: ["°C", "°F"], default: "°C" },
+                { key: "precision", label: "Precision", type: "number", default: 1 }
+            ]
+        },
+        {
+            section: "Content",
+            fields: [
+                { key: "show_label", label: "Show 'Temperature' Label", type: "checkbox", default: true }
+            ]
+        },
+        {
+            section: "Sizing",
+            fields: [
+                { key: "fit_icon_to_frame", label: "Auto-Fit to Widget", type: "checkbox", default: true },
+                { key: "size", label: "Fixed Icon Size", type: "number", default: 32 },
+                { key: "font_size", label: "Fixed Value Size", type: "number", default: 16 },
+                { key: "label_font_size", label: "Fixed Label Size", type: "number", default: 10 }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "color", label: "Main Color", type: "color", default: "black" },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};
@@ -269,7 +306,6 @@ export default {
         const widgets = [
             {
                 label: {
-                    id: `${w.id}_icon`.replace(/-/g, '_'),
                     width: iconSize + 10,
                     height: iconSize + 4,
                     align: "top_mid",
@@ -280,7 +316,6 @@ export default {
             },
             {
                 label: {
-                    id: `${w.id}_text`.replace(/-/g, '_'),
                     width: "100%",
                     height: fontSize + 6,
                     align: "top_mid",
@@ -436,12 +471,10 @@ export default {
             if (!eid) continue;
 
             if (isLvgl && pendingTriggers) {
-                const safeWidgetId = w.id.replace(/-/g, "_");
                 if (!pendingTriggers.has(eid)) {
                     pendingTriggers.set(eid, new Set());
                 }
-                pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${safeWidgetId}_icon`);
-                pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${safeWidgetId}_text`);
+                pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
             }
 
             // Explicitly export the Home Assistant sensor block if it's not a local sensor

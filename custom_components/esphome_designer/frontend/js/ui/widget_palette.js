@@ -1,4 +1,5 @@
-import { registry as PluginRegistry } from '../core/plugin_registry.js';
+import { registry } from '../core/plugin_registry.js';
+import { AppState } from '../core/state.js';
 import { Logger } from '../utils/logger.js';
 import { EVENTS, on } from '../core/events.js';
 
@@ -322,7 +323,7 @@ export async function renderWidgetPalette(containerId) {
     // Load all plugins in parallel
     Logger.log(`[Palette] Pre-loading ${allTypes.length} widget plugins...`);
     try {
-        await Promise.all(allTypes.map(type => PluginRegistry.load(type)));
+        await Promise.all(allTypes.map(type => registry.load(type)));
     } catch (e) {
         Logger.error("[Palette] Failed to load some plugins:", e);
     }
@@ -367,7 +368,7 @@ export async function renderWidgetPalette(containerId) {
 
         category.widgets.forEach(widget => {
             const itemEl = document.createElement('div');
-            const plugin = PluginRegistry.get(widget.type);
+            const plugin = registry.get(widget.type);
 
             // STRICT COMPATIBILITY CHECK
             let isCompatible = true;

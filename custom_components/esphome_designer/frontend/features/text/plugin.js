@@ -1,5 +1,5 @@
 import { wordWrap, parseColorMarkup, evaluateTemplatePreview } from '../../js/utils/text_utils.js';
-
+import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js';
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     el.innerHTML = "";
@@ -139,8 +139,6 @@ const exportLVGL = (w, { common, convertColor, convertAlign, getLVGLFont, format
     };
 };
 
-import { getWeightsForFont } from '../../js/core/font_weights.js';
-
 export default {
     id: "text", // also used for 'label'
     name: "Text",
@@ -159,48 +157,78 @@ export default {
         opa: 255,
         border_width: 0,
         border_color: "black",
-        border_radius: 0,
-        parse_colors: false
+        border_radius: 0
     },
-    schema: [
-        {
-            section: "Content",
-            fields: [
-                { key: "text", label: "Text", type: "textarea", default: "" },
-                { key: "parse_colors", label: "Parse Color Tags", type: "checkbox", default: false, hint: "Enable to use [color]text[/color] markup or HA templates." }
-            ]
-        },
-        {
-            section: "Appearance",
-            fields: [
-                { key: "font_size", label: "Font Size", type: "number", default: 20 },
-                {
-                    key: "font_family", label: "Font", type: "select",
-                    options: ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand"],
-                    default: "Roboto"
-                },
-                {
-                    key: "font_weight", label: "Weight", type: "select",
-                    dynamicOptions: (props) => getWeightsForFont(props.font_family || "Roboto"),
-                    default: 400
-                },
-                { key: "italic", label: "Italic", type: "checkbox", default: false },
-                { key: "bpp", label: "BPP (Bits Per Pixel)", type: "select", options: [1, 2, 4, 8], default: 1 },
-                { key: "color", label: "Color", type: "color", default: "black" },
-                { key: "bg_color", label: "Background", type: "color", default: "transparent" },
-                { key: "text_align", label: "Align", type: "select", options: ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], default: "TOP_LEFT" }
-            ]
-        },
-        {
-            section: "Border Style", defaultExpanded: false,
-            fields: [
-                { key: "border_width", label: "Border Width", type: "number", default: 0 },
-                { key: "border_color", label: "Border Color", type: "color", default: "black" },
-                { key: "border_radius", label: "Corner Radius", type: "number", default: 0 },
-                { key: "drop_shadow", label: "", type: "drop_shadow_button" }
-            ]
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Content", true);
+        panel.addLabeledInput("Text content", "textarea", props.text || "Text", (v) => updateProp("text", v));
+        panel.endSection();
+
+        panel.createSection("Typography", true);
+        panel.addLabeledInput("Font Size", "number", props.font_size || 20, (v) => updateProp("font_size", parseInt(v, 10)));
+        const fontOptions = ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand", "Custom..."];
+        const currentFont = props.font_family || "Roboto";
+        const isCustom = !fontOptions.slice(0, -1).includes(currentFont);
+
+        panel.addSelect("Font Family", isCustom ? "Custom..." : currentFont, fontOptions, (v) => {
+            const newProps = { ...widget.props };
+            if (v !== "Custom...") {
+                newProps.font_family = v;
+                newProps.custom_font_family = "";
+                newProps.font_weight = clampFontWeight(v, newProps.font_weight || 400);
+            } else {
+                newProps.font_family = "Custom...";
+            }
+            AppState.updateWidget(widget.id, { props: newProps });
+        });
+
+        if (isCustom || props.font_family === "Custom...") {
+            panel.addLabeledInput("Custom Font Name", "text", props.custom_font_family || (isCustom ? currentFont : ""), (v) => {
+                const newProps = { ...widget.props };
+                newProps.font_family = v || "Roboto";
+                newProps.custom_font_family = v;
+                newProps.font_weight = clampFontWeight(newProps.font_family, newProps.font_weight || 400);
+                AppState.updateWidget(widget.id, { props: newProps });
+            });
+            panel.addHint('Browse <a href="https://fonts.google.com" target="_blank">fonts.google.com</a>');
         }
-    ],
+
+        const validWeights = getWeightsForFont(props.font_family || "Roboto");
+        panel.addSelect("Font Weight", props.font_weight || 400, validWeights, (v) => updateProp("font_weight", parseInt(v, 10)));
+        panel.addCheckbox("Italic", !!props.italic, (v) => updateProp("italic", v));
+        panel.addSelect("Alignment", props.text_align || "TOP_LEFT", ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], (v) => updateProp("text_align", v));
+        panel.addCheckbox("Parse Color Tags", !!props.parse_colors, (v) => updateProp("parse_colors", v));
+        if (props.parse_colors) {
+            panel.addHint("Usage: [red]Text[/red] or [#FF00AA]Colors[/#]");
+        }
+        panel.endSection();
+
+        panel.createSection("Appearance", false);
+        panel.addColorSelector("Text Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
+        panel.addColorSelector("Background", props.bg_color || "transparent", null, (v) => updateProp("bg_color", v));
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : (props.opa !== undefined ? Math.round(props.opa / 2.55) : 100), 0, 100, (v) => {
+            updateProp("opacity", v);
+            updateProp("opa", Math.round(v * 2.55));
+        });
+        panel.endSection();
+
+        panel.createSection("Border Settings", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "black", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
+
+        panel.createSection("Advanced", false);
+        panel.addLabeledInput("BPP / Antialias", "number", props.bpp || 1, (v) => updateProp("bpp", parseInt(v, 10)));
+        panel.endSection();
+    },
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};

@@ -85,8 +85,27 @@ export default {
     defaults: {
         color: "red",
         brightness: 255,
-        opa: 255
+        opa: 255,
+        entity_id: "",
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "entity_id", target: "root", label: "State Entity ID", type: "entity_picker", default: "" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "color", label: "LED Color", type: "color", default: "red" },
+                { key: "brightness", label: "Brightness (0-255)", type: "number", default: 255 },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL,
     onExportNumericSensors

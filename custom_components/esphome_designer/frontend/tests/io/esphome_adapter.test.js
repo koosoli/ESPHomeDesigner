@@ -101,9 +101,6 @@ describe('ESPHomeAdapter', () => {
 
     beforeEach(() => {
         adapter = new ESPHomeAdapter();
-        global.PluginRegistry = mockRegistry;
-        window.PluginRegistry = mockRegistry;
-
         // Use real plugins for rendering in tests
         mockRegistry.get.mockImplementation((type) => {
             if (type === 'text') return textPlugin;

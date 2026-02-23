@@ -313,7 +313,55 @@ export default {
         orientation: "horizontal",
         font_size: 12,
         text_align: "CENTER",
-        mode: "normal"
+        mode: "normal",
+        opa: 255
+    },
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Data Source", true);
+        panel.addLabeledInputWithPicker("Progress Entity ID", "text", widget.entity_id || "", (v) => {
+            AppState.updateWidget(widget.id, { entity_id: v });
+        }, widget);
+        panel.addCheckbox("Local / On-Device Sensor", !!props.is_local_sensor, (v) => updateProp("is_local_sensor", v));
+        panel.addHint("Use internal battery_level/signal sensor.");
+        panel.endSection();
+
+        panel.createSection("Range Settings", true);
+        panel.addCompactPropertyRow(() => {
+            panel.addLabeledInput("Min Value", "number", props.min !== undefined ? props.min : 0, (v) => updateProp("min", parseFloat(v)));
+            panel.addLabeledInput("Max Value", "number", props.max !== undefined ? props.max : 100, (v) => updateProp("max", parseFloat(v)));
+        });
+        panel.addSelect("Bar Mode", props.mode || "normal", ["normal", "symmetrical", "range"], (v) => updateProp("mode", v));
+        panel.endSection();
+
+        panel.createSection("Appearance", true);
+        panel.addSelect("Orientation", props.orientation || "horizontal", ["horizontal", "vertical"], (v) => updateProp("orientation", v));
+        panel.addNumberWithSlider("Bar Thickness", props.bar_height || 15, 4, 100, (v) => updateProp("bar_height", v));
+        panel.addColorSelector("Fill Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
+        panel.addColorSelector("Background", props.bg_color || "white", null, (v) => updateProp("bg_color", v));
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : (props.opa !== undefined ? Math.round(props.opa / 2.55) : 100), 0, 100, (v) => {
+            updateProp("opacity", v);
+            updateProp("opa", Math.round(v * 2.55));
+        });
+        panel.endSection();
+
+        panel.createSection("Labels", false);
+        panel.addCheckbox("Display Title", props.show_label !== false, (v) => updateProp("show_label", v));
+        panel.addCheckbox("Display Percentage", props.show_percentage !== false, (v) => updateProp("show_percentage", v));
+        panel.addLabeledInput("Font Size", "number", props.font_size || 12, (v) => updateProp("font_size", parseInt(v, 10)));
+        panel.addSelect("Text Align", props.text_align || "CENTER", ["LEFT", "CENTER", "RIGHT"], (v) => updateProp("text_align", v));
+        panel.endSection();
+
+        panel.createSection("Border Style", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width || 1, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
     },
     render,
     exportOpenDisplay: (w, { layout, page }) => {
