@@ -31,6 +31,7 @@ import './ui/splitters.js';
 import './ui/icon_picker.js';
 import './ui/radial_menu.js';
 import './ui/entity_picker.js';
+import './ui/llm_prompt.js';
 
 // Newly modularized imports
 import { showToast } from './utils/dom.js';
