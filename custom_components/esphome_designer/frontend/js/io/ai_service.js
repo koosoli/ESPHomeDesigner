@@ -81,13 +81,12 @@ export class AIService {
                 }
             } catch (e) {
                 Logger.error("Auto-detection failed:", e);
-                // Fallback to flash if detection fails (most likely to work)
-                model = 'gemini-1.5-flash';
+                model = 'gemini-2.0-flash';
             }
         }
 
-        if (!apiKey) throw new Error(`Missing API Key for ${provider}`);
-        if (!model) throw new Error(`No model selected for ${provider}`);
+        if (!apiKey) throw new Error(`Missing API Key for ${provider}. Configure it in Editor Settings → AI.`);
+        if (!model) throw new Error(`No model selected for ${provider}. Please pick one in Editor Settings → AI.`);
 
         const systemPrompt = this.getSystemPrompt();
 
