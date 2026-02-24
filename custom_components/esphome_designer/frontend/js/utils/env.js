@@ -91,10 +91,10 @@ export function setHaManualUrl(url) {
                     sanitizedUrl = `${window.location.origin}/api/esphome_designer`;
                 } else {
                     sanitizedUrl += '/api/esphome_designer';
-                }
-                // Ensure the URL starts with http:// or https:// or prepend /
-                if (!hasProtocol && !sanitizedUrl.startsWith('/')) {
-                    sanitizedUrl = '/' + sanitizedUrl;
+                    // Ensure the URL starts with http:// or https:// or prepend /
+                    if (!hasProtocol && !sanitizedUrl.startsWith('/')) {
+                        sanitizedUrl = '/' + sanitizedUrl;
+                    }
                 }
             }
 
