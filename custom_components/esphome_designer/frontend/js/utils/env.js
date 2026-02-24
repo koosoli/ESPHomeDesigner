@@ -81,6 +81,13 @@ export function setHaManualUrl(url) {
                 sanitizedUrl += '/api/esphome_designer';
             }
 
+            // Ensure the URL starts with http:// or https:// or prepend /
+            if (!sanitizedUrl.startsWith('http://') 
+                && !sanitizedUrl.startsWith('https://') 
+                && !sanitizedUrl.startsWith('/')) {
+                sanitizedUrl = '/' + sanitizedUrl;
+            }
+
             localStorage.setItem('ha_manual_url', sanitizedUrl);
         } else {
             localStorage.removeItem('ha_manual_url');
