@@ -26,6 +26,11 @@ export function detectHaBackendBaseUrl() {
         if (manualUrl && !manualUrl.includes('/api/')) {
             manualUrl += '/api/esphome_designer';
         }
+        // Ensure the URL starts with http:// or https:// or prepend /
+        if (manualUrl && !manualUrl.startsWith('http://') 
+            && !manualUrl.startsWith('https://') && !manualUrl.startsWith('/')) {
+            manualUrl = '/' + manualUrl;
+        }
         return manualUrl;
     }
 
