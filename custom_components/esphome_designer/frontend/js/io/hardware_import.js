@@ -66,7 +66,7 @@ export async function fetchDynamicHardwareProfiles() {
             });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const data = await response.json();
-            return data.templates || [];
+            return data?.templates || [];
         } catch (e) {
             Logger.error("Failed to fetch dynamic hardware templates from HA:", e);
             // Fall through to local check? Or just return?
