@@ -80,18 +80,24 @@ export function setHaManualUrl(url) {
                 sanitizedUrl = sanitizedUrl.slice(0, -1);
             }
 
+            const hasProtocol = sanitizedUrl.startsWith('http://') || sanitizedUrl.startsWith('https://');
+            const hasApiPath = sanitizedUrl.includes('/api/');
+
             // If the URL is just the base (e.g. http://ha.local:8123), 
             // append the custom component API path automatically.
-            if (!sanitizedUrl.includes('/api/')) {
-                sanitizedUrl += '/api/esphome_designer';
+            if (!hasApiPath) {
+                if (isDeployedInHa()) {
+                    Logger.log("[Env] Detected HA deployment without API path, fixing automatically");
+                    sanitizedUrl = `${window.location.origin}/api/esphome_designer`;
+                } else {
+                    sanitizedUrl += '/api/esphome_designer';
+                }
+                // Ensure the URL starts with http:// or https:// or prepend /
+                if (!hasProtocol && !sanitizedUrl.startsWith('/')) {
+                    sanitizedUrl = '/' + sanitizedUrl;
+                }
             }
 
-            // Ensure the URL starts with http:// or https:// or prepend /
-            if (!sanitizedUrl.startsWith('http://') 
-                && !sanitizedUrl.startsWith('https://') 
-                && !sanitizedUrl.startsWith('/')) {
-                sanitizedUrl = '/' + sanitizedUrl;
-            }
 
             localStorage.setItem('ha_manual_url', sanitizedUrl);
         } else {
