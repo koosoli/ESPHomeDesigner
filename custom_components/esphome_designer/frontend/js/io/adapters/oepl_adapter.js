@@ -87,7 +87,7 @@ export class OEPLAdapter extends BaseAdapter {
      * @returns {Object|Object[]|null}
      */
     generateWidget(widget, context) {
-        const plugin = PluginRegistry ? PluginRegistry.get(widget.type) : null;
+        const plugin = registry.get(widget.type);
         if (plugin && typeof plugin.exportOEPL === 'function') {
             try {
                 return plugin.exportOEPL(widget, context);

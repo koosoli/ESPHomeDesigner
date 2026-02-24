@@ -1,5 +1,2 @@
-describe('Simple Test', () => {
-    it('should pass', () => {
-        expect(1).toBe(1);
-    });
-});
+import { it, expect } from 'vitest';
+it('works', () => { expect(1).toBe(1); });

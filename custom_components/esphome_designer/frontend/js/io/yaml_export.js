@@ -44,7 +44,9 @@ export function highlightWidgetInSnippet(widgetIds) {
             box.setSelectionRange(0, 0);
             box.scrollTop = 0;
             lastHighlightRange = null;
-        } catch (e) { }
+        } catch (e) {
+            Logger.error("[highlightWidgetInSnippet] Selection error:", e);
+        }
         return;
     }
 
@@ -58,9 +60,12 @@ export function highlightWidgetInSnippet(widgetIds) {
             box.setSelectionRange(0, yaml.length);
             box.focus();
             lastHighlightRange = { start: 0, end: yaml.length };
-        } catch (e) { }
+        } catch (e) {
+            Logger.error("[highlightWidgetInSnippet] Selection error (SnippetMode):", e);
+        }
         return;
     }
+
 
     let minStart = -1;
     let maxEnd = -1;

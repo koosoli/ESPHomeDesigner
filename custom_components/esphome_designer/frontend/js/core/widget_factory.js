@@ -159,8 +159,7 @@ export class WidgetFactory {
         }
 
         // Fallback or remaining special cases
-        switch (type) {
-        }
+
 
         // Apply grid cell defaults to all LVGL widgets
         if (WidgetFactory.isLvglWidget(type)) {

@@ -3,6 +3,9 @@
  * Opens with Shift+Space, allows quick searching and adding widgets
  */
 import { Logger } from '../utils/logger.js';
+import { AppState } from '../core/state.js';
+import { WidgetFactory } from '../core/widget_factory.js';
+import { showToast } from '../utils/dom.js';
 export class QuickSearch {
     constructor() {
         this.isOpen = false;
@@ -194,7 +197,7 @@ export class QuickSearch {
             this.close();
         } catch (err) {
             Logger.error("[QuickSearch] Error adding widget:", err);
-            AppState.notify("Failed to add widget: " + err.message, "error");
+            showToast("Failed to add widget: " + err.message, "error");
         }
     }
 }

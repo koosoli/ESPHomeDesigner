@@ -18,22 +18,38 @@ export function parseSettings(lines, doc) {
         if (!line.startsWith("#")) continue;
 
         let m;
-        if (m = line.match(/TARGET DEVICE:\s*(.*)/i)) deviceSettings.target_device = m[1].trim();
-        if (m = line.match(/Name:\s*(.*)/i)) deviceSettings.name = m[1].trim();
-        if (m = line.match(/Resolution:\s*(\d+)x(\d+)/i)) {
+        m = line.match(/TARGET DEVICE:\s*(.*)/i);
+        if (m) deviceSettings.target_device = m[1].trim();
+
+        m = line.match(/Name:\s*(.*)/i);
+        if (m) deviceSettings.name = m[1].trim();
+
+        m = line.match(/Resolution:\s*(\d+)x(\d+)/i);
+        if (m) {
             deviceSettings.width = parseInt(m[1], 10);
             deviceSettings.height = parseInt(m[2], 10);
         }
-        if (m = line.match(/Shape:\s*(rect|round|circle)/i)) {
+
+        m = line.match(/Shape:\s*(rect|round|circle)/i);
+        if (m) {
             deviceSettings.shape = m[1].toLowerCase() === "rect" ? "rect" : "round";
         }
-        if (m = line.match(/Inverted:\s*(true|false)/i)) deviceSettings.inverted_colors = (m[1].toLowerCase() === "true");
-        if (m = line.match(/Orientation:\s*(landscape|portrait)/i)) deviceSettings.orientation = m[1].toLowerCase();
-        if (m = line.match(/Dark Mode:\s*(enabled|disabled)/i)) deviceSettings.dark_mode = (m[1].toLowerCase() === "enabled");
-        if (m = line.match(/Refresh Interval:\s*(\d+)/i)) deviceSettings.refresh_interval = parseInt(m[1], 10);
+
+        m = line.match(/Inverted:\s*(true|false)/i);
+        if (m) deviceSettings.inverted_colors = (m[1].toLowerCase() === "true");
+
+        m = line.match(/Orientation:\s*(landscape|portrait)/i);
+        if (m) deviceSettings.orientation = m[1].toLowerCase();
+
+        m = line.match(/Dark Mode:\s*(enabled|disabled)/i);
+        if (m) deviceSettings.dark_mode = (m[1].toLowerCase() === "enabled");
+
+        m = line.match(/Refresh Interval:\s*(\d+)/i);
+        if (m) deviceSettings.refresh_interval = parseInt(m[1], 10);
 
         // Handle New Power Strategy format
-        if (m = line.match(/Power Strategy:\s*(.*)/i)) {
+        m = line.match(/Power Strategy:\s*(.*)/i);
+        if (m) {
             const strategy = m[1].trim().toLowerCase();
             deviceSettings.sleep_enabled = strategy.includes("night");
             deviceSettings.manual_refresh_only = strategy.includes("manual");
@@ -42,18 +58,31 @@ export function parseSettings(lines, doc) {
         }
 
         // Individual settings (fallback or specific values)
-        if (m = line.match(/Sleep Mode:\s*(enabled|disabled)/i)) deviceSettings.sleep_enabled = (m[1].toLowerCase() === "enabled");
-        if (m = line.match(/Sleep Start Hour:\s*(\d+)/i)) deviceSettings.sleep_start_hour = parseInt(m[1], 10);
-        if (m = line.match(/Sleep End Hour:\s*(\d+)/i)) deviceSettings.sleep_end_hour = parseInt(m[1], 10);
-        if (m = line.match(/Manual Refresh:\s*(enabled|disabled)/i)) deviceSettings.manual_refresh_only = (m[1].toLowerCase() === "enabled");
-        if (m = line.match(/Deep Sleep:\s*(enabled|disabled)/i)) deviceSettings.deep_sleep_enabled = (m[1].toLowerCase() === "enabled");
-        if (m = line.match(/Deep Sleep Interval:\s*(\d+)/i)) deviceSettings.deep_sleep_interval = parseInt(m[1], 10);
+        m = line.match(/Sleep Mode:\s*(enabled|disabled)/i);
+        if (m) deviceSettings.sleep_enabled = (m[1].toLowerCase() === "enabled");
+
+        m = line.match(/Sleep Start Hour:\s*(\d+)/i);
+        if (m) deviceSettings.sleep_start_hour = parseInt(m[1], 10);
+
+        m = line.match(/Sleep End Hour:\s*(\d+)/i);
+        if (m) deviceSettings.sleep_end_hour = parseInt(m[1], 10);
+
+        m = line.match(/Manual Refresh:\s*(enabled|disabled)/i);
+        if (m) deviceSettings.manual_refresh_only = (m[1].toLowerCase() === "enabled");
+
+        m = line.match(/Deep Sleep:\s*(enabled|disabled)/i);
+        if (m) deviceSettings.deep_sleep_enabled = (m[1].toLowerCase() === "enabled");
+
+        m = line.match(/Deep Sleep Interval:\s*(\d+)/i);
+        if (m) deviceSettings.deep_sleep_interval = parseInt(m[1], 10);
 
         // Daily refresh specific
-        if (m = line.match(/Refresh Time:\s*(\d{2}:\d{2})/i)) deviceSettings.daily_refresh_time = m[1];
+        m = line.match(/Refresh Time:\s*(\d{2}:\d{2})/i);
+        if (m) deviceSettings.daily_refresh_time = m[1];
 
         // Silent Hours
-        if (m = line.match(/Disable updates from\s*(\d+)\s*to\s*(\d+)/i)) {
+        m = line.match(/Disable updates from\s*(\d+)\s*to\s*(\d+)/i);
+        if (m) {
             deviceSettings.no_refresh_start_hour = parseInt(m[1], 10);
             deviceSettings.no_refresh_end_hour = parseInt(m[2], 10);
         }

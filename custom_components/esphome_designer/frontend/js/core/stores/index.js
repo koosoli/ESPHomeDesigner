@@ -2,20 +2,29 @@ import { ProjectStore } from './project_store.js';
 import { EditorStore } from './editor_store.js';
 import { PreferencesStore } from './preferences_store.js';
 import { SecretsStore } from './secrets_store.js';
+
+import { SelectionManager } from './app_state/selection_manager.js';
+import { HistoryManager } from './app_state/history_manager.js';
+import { WidgetManager } from './app_state/widget_manager.js';
+import { PageManager } from './app_state/page_manager.js';
+
 import { emit, EVENTS, on } from '../events.js';
 import { Logger } from '../../utils/logger.js';
 import { hasHaBackend } from '../../utils/env.js';
-import { generateId } from '../../utils/helpers.js';
-import { showToast } from '../../utils/dom.js';
 import { DEVICE_PROFILES } from '../../io/devices.js';
-import { registry } from '../plugin_registry.js';
 
-class AppStateFacade {
+export class AppStateFacade {
     constructor() {
         this.project = new ProjectStore();
         this.editor = new EditorStore();
         this.preferences = new PreferencesStore();
         this.secrets = new SecretsStore();
+
+        // Sub-managers (Composition)
+        this.selectionManager = new SelectionManager(this);
+        this.historyManager = new HistoryManager(this);
+        this.widgetManager = new WidgetManager(this);
+        this.pageManager = new PageManager(this);
 
         // Guard flag to prevent history recording during undo/redo
         this._isRestoringHistory = false;
@@ -148,7 +157,6 @@ class AppStateFacade {
     saveToLocalStorage() {
         if (!hasHaBackend()) {
             const payload = this.getPagesPayload();
-            console.log('[saveToLocalStorage] DEBUG renderingMode being saved:', payload.renderingMode);
             localStorage.setItem('esphome-designer-layout', JSON.stringify(payload));
         }
     }
@@ -157,9 +165,6 @@ class AppStateFacade {
         try {
             const data = localStorage.getItem('esphome-designer-layout');
             const parsed = data ? JSON.parse(data) : null;
-            console.log('[loadFromLocalStorage] DEBUG raw data exists:', !!data);
-            console.log('[loadFromLocalStorage] DEBUG parsed renderingMode:', parsed?.renderingMode);
-            console.log('[loadFromLocalStorage] DEBUG parsed rendering_mode:', parsed?.rendering_mode);
             return parsed;
         } catch (e) {
             console.error('[loadFromLocalStorage] Parse error:', e);
@@ -170,99 +175,78 @@ class AppStateFacade {
     // --- Actions ---
     setPages(pages) {
         this.project.setPages(pages);
-        this.recordHistory();
         emit(EVENTS.STATE_CHANGED);
     }
 
     reorderWidget(pageIndex, fromIndex, toIndex) {
-        this.project.reorderWidget(pageIndex, fromIndex, toIndex);
-        this.syncWidgetOrderWithHierarchy();
-        this.recordHistory();
-        emit(EVENTS.STATE_CHANGED);
+        this.pageManager.reorderWidget(pageIndex, fromIndex, toIndex);
     }
 
     setCurrentPageIndex(index, options = {}) {
-        this.project.setCurrentPageIndex(index, options);
-        this.editor.setSelectedWidgetIds([]);
-        emit(EVENTS.STATE_CHANGED);
+        this.pageManager.setCurrentPageIndex(index, options);
     }
 
     reorderPage(fromIndex, toIndex) {
-        this.project.reorderPage(fromIndex, toIndex);
-        this.recordHistory();
+        this.pageManager.reorderPage(fromIndex, toIndex);
     }
 
     addPage(atIndex = null) {
-        const page = this.project.addPage(atIndex);
-        this.recordHistory();
-        return page;
+        return this.pageManager.addPage(atIndex);
     }
 
     deletePage(index) {
-        this.project.deletePage(index);
-        this.recordHistory();
+        this.pageManager.deletePage(index);
     }
 
     duplicatePage(index) {
-        const page = this.project.duplicatePage(index);
-        this.recordHistory();
-        return page;
+        return this.pageManager.duplicatePage(index);
     }
 
     renamePage(index, newName) {
-        this.project.renamePage(index, newName);
-        this.recordHistory();
+        this.pageManager.renamePage(index, newName);
     }
 
-    selectWidget(id, multi) {
-        if (!id) {
-            this.editor.selectWidget(null, multi);
-            return;
-        }
-
-        const widget = this.getWidgetById(id);
-        const groupId = widget?.parentId || (widget?.type === 'group' ? widget.id : null);
-
-        // If it's part of a group, select the whole group
-        if (groupId) {
-            const page = this.pages[this.currentPageIndex];
-            const groupMembers = page.widgets.filter(w => w.parentId === groupId || w.id === groupId);
-            const memberIds = groupMembers.map(w => w.id);
-
-            if (multi) {
-                // If any member is already selected, we might want to toggle the whole group?
-                // Standard behavior: if any is selected, deselect all. Otherwise select all.
-                const anySelected = memberIds.some(mid => this.editor.selectedWidgetIds.includes(mid));
-                if (anySelected) {
-                    const remainingIds = this.editor.selectedWidgetIds.filter(mid => !memberIds.includes(mid));
-                    this.editor.setSelectedWidgetIds(remainingIds);
-                } else {
-                    this.editor.setSelectedWidgetIds([...new Set([...this.editor.selectedWidgetIds, ...memberIds])]);
-                }
-            } else {
-                this.editor.setSelectedWidgetIds(memberIds);
-            }
-        } else {
-            this.editor.selectWidget(id, multi);
-        }
+    selectWidget(id, multi = false) {
+        this.selectionManager.selectWidget(id, multi);
     }
 
-    selectWidgets(ids) { this.editor.setSelectedWidgetIds(ids); }
+    selectWidgets(ids) {
+        this.selectionManager.selectWidgets(ids);
+    }
 
     selectAllWidgets() {
-        const page = this.getCurrentPage();
-        if (!page || !page.widgets) return;
-        const ids = page.widgets.map(w => w.id);
-        this.selectWidgets(ids);
+        this.selectionManager.selectAllWidgets();
+    }
+
+    deselectAll() {
+        this.selectionManager.deselectAll();
+    }
+
+    toggleSelection(id) {
+        this.selectionManager.toggleSelection(id);
+    }
+
+    isWidgetSelected(id) {
+        return this.selectionManager.isWidgetSelected(id);
+    }
+
+    groupSelection() {
+        this.selectionManager.groupSelection();
+    }
+
+    ungroupSelection(idOrIds = null) {
+        this.selectionManager.ungroupSelection(idOrIds);
+    }
+
+    alignSelectedWidgets(direction) {
+        this.selectionManager.alignSelectedWidgets(direction);
+    }
+
+    distributeSelectedWidgets(axis) {
+        this.selectionManager.distributeSelectedWidgets(axis);
     }
 
     updateSettings(newSettings) {
-        // DEBUG: Track renderingMode changes
-        if (newSettings.renderingMode !== undefined) {
-            console.log('[updateSettings] DEBUG renderingMode changing to:', newSettings.renderingMode);
-            console.trace('[updateSettings] Call stack');
-        }
-
         const secretUpdates = {};
         const prefUpdates = {};
 
@@ -319,488 +303,60 @@ class AppStateFacade {
 
     // --- Widget Ops ---
     setCustomHardware(config) {
-        this.project.state.customHardware = config;
-        emit(EVENTS.STATE_CHANGED);
-        // Trigger canvas refocus when custom hardware (resolution) changes
-        emit(EVENTS.PAGE_CHANGED, { index: this.currentPageIndex, forceFocus: true });
+        this.widgetManager.setCustomHardware(config);
     }
 
-    /**
-     * @param {import('../../types.js').WidgetConfig} w 
-     * @param {number|null} pageIndex 
-     */
     addWidget(w, pageIndex = null) {
-        this._checkRenderingModeForWidget(w);
-        this.project.addWidget(w, pageIndex);
-        this.recordHistory();
-        this.selectWidget(w.id);
-        emit(EVENTS.STATE_CHANGED);
+        this.widgetManager.addWidget(w, pageIndex);
     }
 
-    /**
-     * @param {string} id 
-     * @param {Partial<import('../../types.js').WidgetConfig>} u 
-     */
     updateWidget(id, u) {
-        this.project.updateWidget(id, u);
-
-        // Recursive propagation for certain properties if it's a group
-        const widget = this.getWidgetById(id);
-        if (widget && widget.type === 'group') {
-            const propsToPropagate = ['locked', 'hidden'];
-            const childUpdates = {};
-            propsToPropagate.forEach(p => {
-                if (u[p] !== undefined) childUpdates[p] = u[p];
-            });
-
-            if (Object.keys(childUpdates).length > 0) {
-                const page = this.pages[this.currentPageIndex];
-                if (page && page.widgets) {
-                    const children = page.widgets.filter(w => w.parentId === id);
-                    children.forEach(c => this.updateWidget(c.id, childUpdates));
-                }
-            }
-        }
-
-        if (u.parentId !== undefined) {
-            this.syncWidgetOrderWithHierarchy();
-        }
-
-        emit(EVENTS.STATE_CHANGED);
+        this.widgetManager.updateWidget(id, u);
     }
+
     updateWidgets(ids, u) {
-        ids.forEach(id => this.project.updateWidget(id, u));
-        emit(EVENTS.STATE_CHANGED);
+        this.widgetManager.updateWidgets(ids, u);
     }
+
     updateWidgetsProps(ids, propUpdates) {
-        ids.forEach(id => {
-            const widget = this.getWidgetById(id);
-            if (widget) {
-                const newProps = { ...(widget.props || {}), ...propUpdates };
-                this.project.updateWidget(id, { props: newProps });
-            }
-        });
-        emit(EVENTS.STATE_CHANGED);
+        this.widgetManager.updateWidgetsProps(ids, propUpdates);
     }
+
     deleteWidget(id) {
-        const ids = id ? [id] : [...this.editor.selectedWidgetIds];
-
-        // If any selected ID is a group, we should potentially handle children
-        // For simplicity now, we just delete everything selected.
-        // But we should find all children of these groups and delete them too.
-        const allIdsToDelete = [...ids];
-        ids.forEach(targetId => {
-            const widget = this.getWidgetById(targetId);
-            if (widget && widget.type === 'group') {
-                const children = this.pages[this.currentPageIndex].widgets.filter(w => w.parentId === targetId);
-                children.forEach(c => allIdsToDelete.push(c.id));
-            }
-        });
-
-        this.project.deleteWidgets([...new Set(allIdsToDelete)]);
-        this.editor.setSelectedWidgetIds([]);
-        this.recordHistory();
-        emit(EVENTS.STATE_CHANGED);
-    }
-
-    groupSelection() {
-        const selectedIds = this.editor.selectedWidgetIds;
-        const widgets = this.getSelectedWidgets();
-
-        // Safety check: Cannot group if it includes existing groups/members
-        const hasExistingGroup = widgets.some(w => w.type === 'group' || w.parentId);
-        if (selectedIds.length < 2 || hasExistingGroup) return;
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
-        widgets.forEach(w => {
-            minX = Math.min(minX, w.x);
-            minY = Math.min(minY, w.y);
-            maxX = Math.max(maxX, w.x + (w.width || 0));
-            maxY = Math.max(maxY, w.y + (w.height || 0));
-        });
-
-        const groupId = "group_" + generateId();
-        const groupWidget = {
-            id: groupId,
-            type: 'group',
-            title: 'Group',
-            x: minX,
-            y: minY,
-            width: maxX - minX,
-            height: maxY - minY,
-            props: {},
-            expanded: true // For hierarchy view
-        };
-
-        // Add group widget
-        this.project.addWidget(groupWidget);
-
-        // Assign parentId to children and make coordinates relative? 
-        // Actually, let's keep coordinates absolute for now to avoid breaking existing canvas logic,
-        // but mark them as part of the group.
-        widgets.forEach(w => {
-            this.project.updateWidget(w.id, { parentId: groupId });
-        });
-
-        this.selectWidget(groupId);
-        this.syncWidgetOrderWithHierarchy();
-        this.recordHistory();
-        emit(EVENTS.STATE_CHANGED);
-    }
-
-    ungroupSelection(idOrIds = null) {
-        let targets = [];
-        if (idOrIds) {
-            targets = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
-        } else {
-            const selected = this.getSelectedWidgets();
-            const foundIds = new Set();
-            selected.forEach(w => {
-                if (w.type === 'group') foundIds.add(w.id);
-                else if (w.parentId) foundIds.add(w.parentId);
-            });
-            targets = [...foundIds];
-        }
-
-        const groupIds = new Set();
-        targets.forEach(id => {
-            const w = this.getWidgetById(id);
-            if (!w) return;
-            if (w.type === 'group') groupIds.add(w.id);
-            else if (w.parentId) groupIds.add(w.parentId);
-        });
-
-        const idsToProcess = [...groupIds];
-        if (idsToProcess.length === 0) return;
-
-        const allChildren = [];
-        idsToProcess.forEach(groupId => {
-            const group = this.getWidgetById(groupId);
-            if (!group || group.type !== 'group') return;
-
-            const page = this.pages[this.currentPageIndex];
-            const children = page.widgets.filter(w => w.parentId === groupId);
-
-            children.forEach(c => {
-                this.project.updateWidget(c.id, { parentId: null });
-                allChildren.push(c.id);
-            });
-        });
-
-        // Ensure we delete the groups themselves - both from index and array
-        this.project.deleteWidgets(idsToProcess);
-
-        // Safety: Manually filter them out of the current page as well
-        const currentPage = this.pages[this.currentPageIndex];
-        if (currentPage && currentPage.widgets) {
-            currentPage.widgets = currentPage.widgets.filter(w => !idsToProcess.includes(w.id));
-        }
-
-        if (allChildren.length > 0) {
-            this.selectWidgets(allChildren);
-        }
-
-        this.syncWidgetOrderWithHierarchy();
-        this.recordHistory();
-        emit(EVENTS.STATE_CHANGED);
-    }
-
-    /**
-     * Aligns selected widgets in a specific direction.
-     * @param {'left'|'center'|'right'|'top'|'middle'|'bottom'} direction
-     */
-    alignSelectedWidgets(direction) {
-        const widgets = this.getSelectedWidgets();
-        if (widgets.length < 2) return;
-
-        let targetVal;
-        switch (direction) {
-            case 'left':
-                targetVal = Math.min(...widgets.map(w => w.x));
-                widgets.forEach(w => this.project.updateWidget(w.id, { x: targetVal }));
-                break;
-            case 'right':
-                targetVal = Math.max(...widgets.map(w => w.x + (w.width || 0)));
-                widgets.forEach(w => this.project.updateWidget(w.id, { x: targetVal - (w.width || 0) }));
-                break;
-            case 'center': {
-                const centers = widgets.map(w => w.x + (w.width || 0) / 2);
-                targetVal = centers.reduce((a, b) => a + b, 0) / centers.length;
-                widgets.forEach(w => this.project.updateWidget(w.id, { x: targetVal - (w.width || 0) / 2 }));
-                break;
-            }
-            case 'top':
-                targetVal = Math.min(...widgets.map(w => w.y));
-                widgets.forEach(w => this.project.updateWidget(w.id, { y: targetVal }));
-                break;
-            case 'bottom':
-                targetVal = Math.max(...widgets.map(w => w.y + (w.height || 0)));
-                widgets.forEach(w => this.project.updateWidget(w.id, { y: targetVal - (w.height || 0) }));
-                break;
-            case 'middle': {
-                const middles = widgets.map(w => w.y + (w.height || 0) / 2);
-                targetVal = middles.reduce((a, b) => a + b, 0) / middles.length;
-                widgets.forEach(w => this.project.updateWidget(w.id, { y: targetVal - (w.height || 0) / 2 }));
-                break;
-            }
-        }
-
-        this.recordHistory();
-        emit(EVENTS.STATE_CHANGED);
-    }
-
-    /**
-     * Distributes selected widgets evenly along an axis.
-     * @param {'horizontal'|'vertical'} axis
-     */
-    distributeSelectedWidgets(axis) {
-        const widgets = [...this.getSelectedWidgets()];
-        if (widgets.length < 3) return;
-
-        if (axis === 'horizontal') {
-            widgets.sort((a, b) => a.x - b.x);
-            const first = widgets[0];
-            const last = widgets[widgets.length - 1];
-            const totalWidth = widgets.reduce((sum, w) => sum + (w.width || 0), 0);
-            const totalSpan = (last.x + (last.width || 0)) - first.x;
-            const totalGap = totalSpan - totalWidth;
-            const gap = totalGap / (widgets.length - 1);
-
-            let currentX = first.x;
-            for (let i = 0; i < widgets.length; i++) {
-                this.project.updateWidget(widgets[i].id, { x: Math.round(currentX) });
-                currentX += (widgets[i].width || 0) + gap;
-            }
-        } else {
-            widgets.sort((a, b) => a.y - b.y);
-            const first = widgets[0];
-            const last = widgets[widgets.length - 1];
-            const totalHeight = widgets.reduce((sum, w) => sum + (w.height || 0), 0);
-            const totalSpan = (last.y + (last.height || 0)) - first.y;
-            const totalGap = totalSpan - totalHeight;
-            const gap = totalGap / (widgets.length - 1);
-
-            let currentY = first.y;
-            for (let i = 0; i < widgets.length; i++) {
-                this.project.updateWidget(widgets[i].id, { y: Math.round(currentY) });
-                currentY += (widgets[i].height || 0) + gap;
-            }
-        }
-
-        this.recordHistory();
-        emit(EVENTS.STATE_CHANGED);
+        this.widgetManager.deleteWidget(id);
     }
 
     moveWidgetToPage(widgetId, targetPageIndex, x = null, y = null) {
-        const success = this.project.moveWidgetToPage(widgetId, targetPageIndex, x, y);
-        if (success) {
-            this.syncWidgetOrderWithHierarchy();
-            this.recordHistory();
-            emit(EVENTS.STATE_CHANGED);
-        }
-        return success;
-    }
-
-    clearCurrentPage(preserveLocked = false) {
-        const result = this.project.clearCurrentPage(preserveLocked);
-        if (result.deleted > 0) {
-            this.editor.setSelectedWidgetIds([]);
-            this.recordHistory();
-            emit(EVENTS.STATE_CHANGED);
-        }
-        return result;
+        return this.widgetManager.moveWidgetToPage(widgetId, targetPageIndex, x, y);
     }
 
     copyWidget(id) {
-        const targetIds = id ? [id] : this.editor.selectedWidgetIds;
-        const widgets = targetIds.map(id => this.getWidgetById(id)).filter(w => !!w);
-        if (widgets.length > 0) {
-            this.editor.copyWidgets(widgets);
-        }
+        this.widgetManager.copyWidget(id);
     }
 
     pasteWidget() {
-        const clipboard = this.editor.clipboardWidgets;
-        if (!clipboard || clipboard.length === 0) return;
-
-        const newWidgets = clipboard.map(w => {
-            const pasted = JSON.parse(JSON.stringify(w)); // Deep clone
-            pasted.id = generateId();
-            pasted.x += 10;
-            pasted.y += 10;
-            return pasted;
-        });
-
-        newWidgets.forEach(w => {
-            this._checkRenderingModeForWidget(w);
-            this.project.addWidget(w);
-        });
-        this.editor.setSelectedWidgetIds(newWidgets.map(w => w.id));
-        this.recordHistory();
-        emit(EVENTS.STATE_CHANGED);
+        this.widgetManager.pasteWidget();
     }
 
     createDropShadow(widgetIdOrIds) {
-        const ids = Array.isArray(widgetIdOrIds) ? widgetIdOrIds : [widgetIdOrIds];
-        if (ids.length === 0) return;
+        this.widgetManager.createDropShadow(widgetIdOrIds);
+    }
 
-        // Determine effective dark mode once for the batch
-        const page = this.project.getCurrentPage();
-        const pageDarkMode = page ? page.dark_mode : undefined;
-        let isDark = false;
-        if (pageDarkMode === "dark") isDark = true;
-        else if (pageDarkMode === "light") isDark = false;
-        else isDark = !!this.settings.dark_mode;
-
-        // Colors for shadow and fills
-        const shadowColor = isDark ? "white" : "black";
-        const fillColor = isDark ? "black" : "white";
-        const defaultForeground = isDark ? "white" : "black";
-
-        const newGroupIds = [];
-
-        ids.forEach(id => {
-            const widget = this.getWidgetById(id);
-            if (!widget) return;
-
-            // 1. Dynamic Shape Detection
-            const radius = parseInt(widget.props?.border_radius || widget.props?.radius || widget.props?.corner_radius || 0, 10);
-            let shadowType = "shape_rect";
-
-            if (widget.type === "shape_circle" || widget.type === "circle") {
-                shadowType = "shape_circle";
-            } else if (radius > 0) {
-                shadowType = "rounded_rect";
-            }
-
-            // 2. Create Shadow Widget
-            const shadow = {
-                id: generateId(),
-                type: shadowType,
-                x: (widget.x || 0) + 5,
-                y: (widget.y || 0) + 5,
-                width: widget.width,
-                height: widget.height,
-                props: {
-                    name: (widget.props?.name || widget.type) + " Shadow",
-                    color: shadowColor,
-                    background_color: shadowColor,
-                    bg_color: shadowColor,
-                    fill: true,
-                }
-            };
-
-            // Add radius for rounded rects
-            if (shadowType === "rounded_rect") {
-                shadow.props.radius = radius;
-            }
-
-            this.project.addWidget(shadow);
-
-            // 3. Modify Original Widget (Apply fill so it blocks the shadow behind it)
-            if (!widget.props) widget.props = {};
-
-            // Determine if this is a "shape" widget vs a "content" widget
-            const isPureShape = ["shape_rect", "rounded_rect", "shape_circle", "rectangle", "rrect", "circle"].includes(widget.type);
-
-            // Preserve original border color (if it was using 'color' property)
-            const originalColor = widget.props.color || defaultForeground;
-            if (!widget.props.border_color) {
-                widget.props.border_color = originalColor;
-            }
-
-            // Apply Infill to original
-            widget.props.fill = true;
-            widget.props.background_color = fillColor;
-            widget.props.bg_color = fillColor;
-
-            // If it's a pure shape, the main 'color' IS the fill color
-            if (isPureShape) {
-                widget.props.color = fillColor;
-            }
-
-            // EXPLICIT UPDATE: Ensure the project store knows the original widget changed
-            this.project.updateWidget(id, { props: { ...widget.props } });
-
-            // 4. Reorder Logic (Shadow behind Widget)
-            // Recalculate index because adding widgets changes length/order
-            const currentOriginalIndex = page.widgets.findIndex(w => w.id === id);
-            const currentShadowIndex = page.widgets.findIndex(w => w.id === shadow.id);
-
-            if (currentOriginalIndex !== -1 && currentShadowIndex !== -1) {
-                // move shadow to originalIndex (which pushes original and subsequent up by 1)
-                this.project.reorderWidget(this.project.currentPageIndex, currentShadowIndex, currentOriginalIndex);
-            }
-
-            // 5. Create Group for this pair
-            const groupId = "group_" + generateId();
-            const minX = Math.min(widget.x, shadow.x);
-            const minY = Math.min(widget.y, shadow.y);
-            // We use the union of bounds. 
-            // shadow is offset by 5, so max is widget+5
-            const maxX = Math.max(widget.x + widget.width, shadow.x + shadow.width);
-            const maxY = Math.max(widget.y + widget.height, shadow.y + shadow.height);
-
-            const group = {
-                id: groupId,
-                type: 'group',
-                title: widget.props?.name ? `${widget.props.name} Group` : 'Shadow Group',
-                x: minX,
-                y: minY,
-                width: maxX - minX,
-                height: maxY - minY,
-                props: {},
-                expanded: true
-            };
-
-            this.project.addWidget(group);
-
-            // Assign members
-            this.project.updateWidget(shadow.id, { parentId: groupId });
-            this.project.updateWidget(widget.id, { parentId: groupId });
-
-            newGroupIds.push(groupId);
-        });
-
-        // 6. Select the new group(s)
-        if (newGroupIds.length > 0) {
-            this.selectWidgets(newGroupIds);
-        }
-
-        this.syncWidgetOrderWithHierarchy();
-        this.recordHistory();
-        emit(EVENTS.STATE_CHANGED);
+    clearCurrentPage(preserveLocked = false) {
+        return this.pageManager.clearCurrentPage(preserveLocked);
     }
 
     // --- History ---
     recordHistory() {
-        // Skip recording if we're in the middle of restoring history (undo/redo)
-        if (this._isRestoringHistory) {
-            return;
-        }
-        this.editor.recordHistory({
-            pages: this.project.pages,
-            deviceName: this.project.deviceName
-        });
+        this.historyManager.recordHistory();
     }
 
     undo() {
-        const s = this.editor.undo();
-        if (s) {
-            // Bypass proxy for internal flag
-            this.setInternalFlag('_isRestoringHistory', true);
-            this.restoreSnapshot(s);
-            setTimeout(() => { this.setInternalFlag('_isRestoringHistory', false); }, 0);
-        }
+        this.historyManager.undo();
     }
 
     redo() {
-        const s = this.editor.redo();
-        if (s) {
-            this.setInternalFlag('_isRestoringHistory', true);
-            this.restoreSnapshot(s);
-            setTimeout(() => { this.setInternalFlag('_isRestoringHistory', false); }, 0);
-        }
+        this.historyManager.redo();
     }
 
     setInternalFlag(key, value) {
@@ -810,149 +366,26 @@ class AppStateFacade {
     }
 
     restoreSnapshot(s) {
-        // CRITICAL: Deep clone to prevent mutating the history stack object
-        this.project.state.pages = JSON.parse(JSON.stringify(s.pages));
-        this.project.state.deviceName = s.deviceName;
-        this.project.rebuildWidgetsIndex();
-        emit(EVENTS.STATE_CHANGED);
+        this.historyManager.restoreSnapshot(s);
     }
 
-    canUndo() { return this.editor.canUndo(); }
-    canRedo() { return this.editor.canRedo(); }
+    canUndo() { return this.historyManager.canUndo(); }
+    canRedo() { return this.historyManager.canRedo(); }
 
-    /**
-     * Synchronizes the flat widgets array with the hierarchy tree.
-     * Ensures that parents are rendered BEFORE (under) their children,
-     * and that children are kept adjacent to their parents.
-     */
     syncWidgetOrderWithHierarchy() {
-        const page = this.getCurrentPage();
-        if (!page || !page.widgets) return;
-
-        const widgets = [...page.widgets];
-
-        // Find top level widgets (those with no parentId)
-        // We preserve their relative order from the original widgets array
-        const topLevel = widgets.filter(w => !w.parentId);
-
-        // Build children map
-        const childrenMap = new Map();
-        widgets.forEach(w => {
-            if (w.parentId) {
-                if (!childrenMap.has(w.parentId)) childrenMap.set(w.parentId, []);
-                childrenMap.get(w.parentId).push(w);
-            }
-        });
-
-        const sorted = [];
-        const processRecursive = (widget) => {
-            sorted.push(widget);
-            const children = childrenMap.get(widget.id);
-            if (children) {
-                // Keep relative order of siblings as they were in the original array
-                children.sort((a, b) => widgets.indexOf(a) - widgets.indexOf(b));
-                children.forEach(processRecursive);
-            }
-        };
-
-        topLevel.forEach(processRecursive);
-
-        // Update the project's widget array
-        page.widgets = sorted;
-        this.project.rebuildWidgetsIndex();
+        this.widgetManager.syncWidgetOrderWithHierarchy();
     }
 
-    /**
-     * Synchronizes widget visibility based on the current rendering mode.
-     * Incompatible widgets are marked as hidden.
-     */
     syncWidgetVisibilityWithMode() {
-        const mode = this.preferences.state.renderingMode || 'direct';
-        Logger.log(`[AppState] Syncing widget visibility for mode: ${mode}`);
-
-        let changeCount = 0;
-        this.project.pages.forEach(page => {
-            page.widgets.forEach(w => {
-                const isCompatible = this._isWidgetCompatibleWithMode(w, mode);
-
-                if (!isCompatible && !w.hidden) {
-                    // Auto-hide incompatible widgets
-                    w.hidden = true;
-                    changeCount++;
-                } else if (isCompatible && w.hidden) {
-                    // If it was hidden but IS now compatible, should we show it?
-                    // User might have manually hidden it. 
-                    // However, for mode switching, it's safer to reveal it if it was clearly
-                    // hidden due to incompatibility previously.
-                    // For now, let's keep the aggressive "auto-show if compatible" behavior
-                    // to help users see what's valid in the current mode.
-                    w.hidden = false;
-                    changeCount++;
-                }
-            });
-        });
-
-        if (changeCount > 0) {
-            Logger.log(`[AppState] Updated ${changeCount} widgets due to mode switch.`);
-            this.project.rebuildWidgetsIndex();
-            emit(EVENTS.STATE_CHANGED);
-        }
+        this.widgetManager.syncWidgetVisibilityWithMode();
     }
 
-    /**
-     * Internal check for widget compatibility.
-     * @private
-     */
     _isWidgetCompatibleWithMode(w, mode) {
-        const plugin = registry.get(w.type);
-        if (!plugin) return true; // Default to visible if plugin missing
-
-        if (mode === 'oepl') return !!plugin.exportOEPL;
-        if (mode === 'opendisplay') return !!plugin.exportOpenDisplay;
-        if (mode === 'lvgl') {
-            // LVGL mode: permit native LVGL widgets OR widgets with exportLVGL translation
-            const isNativeLVGL = w.type && w.type.startsWith('lvgl_');
-            const hasLVGLExport = typeof plugin.exportLVGL === 'function';
-            return isNativeLVGL || hasLVGLExport;
-        }
-        if (mode === 'direct') {
-            // Direct mode uses display.lambda. Compatible if it has 'export' method
-            // AND it's not strictly for another protocol.
-            const isProtocolSpecific = w.type && (w.type.startsWith('lvgl_') || w.type.startsWith('oepl_'));
-            return !!plugin.export && !isProtocolSpecific;
-        }
-
-        return true;
+        return this.widgetManager.isWidgetCompatibleWithMode(w, mode);
     }
 
-    /**
-     * Internal check to switch rendering mode if a specific widget is added.
-     * @param {Object} w - The widget being added
-     * @private
-     */
     _checkRenderingModeForWidget(w) {
-        if (!w || !w.type) return;
-
-        const currentMode = this.preferences.state.renderingMode || 'direct';
-
-        // Auto-detect if it's an LVGL, OEPL, or ODP widget
-        const isLvglWidget = w.type.startsWith('lvgl_');
-        const isOEPLWidget = w.type.startsWith('oepl_');
-        const isODPWidget = w.type.startsWith('odp_') || w.type.startsWith('opendisplay_');
-
-        if (isLvglWidget && currentMode === 'direct') {
-            this.updateSettings({ renderingMode: 'lvgl' });
-            Logger.log(`[AppState] Auto-switched to LVGL rendering mode because an LVGL widget (${w.type}) was added.`);
-            showToast("Auto-switched to LVGL rendering mode", "info");
-        } else if (isOEPLWidget && currentMode !== 'oepl') {
-            this.updateSettings({ renderingMode: 'oepl' });
-            Logger.log(`[AppState] Auto-switched to OEPL rendering mode because an OEPL widget (${w.type}) was added.`);
-            showToast("Auto-switched to OEPL mode", "info");
-        } else if (isODPWidget && currentMode !== 'opendisplay') {
-            this.updateSettings({ renderingMode: 'opendisplay' });
-            Logger.log(`[AppState] Auto-switched to OpenDisplay (ODP) mode because an ODP widget (${w.type}) was added.`);
-            showToast("Auto-switched to ODP mode", "info");
-        }
+        this.widgetManager.checkRenderingModeForWidget(w);
     }
 }
 

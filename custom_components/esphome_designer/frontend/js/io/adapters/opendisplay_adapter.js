@@ -102,7 +102,7 @@ export class OpenDisplayAdapter extends BaseAdapter {
      * @returns {Object|Object[]|null}
      */
     generateWidget(widget, context) {
-        const plugin = PluginRegistry ? PluginRegistry.get(widget.type) : null;
+        const plugin = registry.get(widget.type);
         if (plugin && typeof plugin.exportOpenDisplay === 'function') {
             try {
                 return plugin.exportOpenDisplay(widget, context);

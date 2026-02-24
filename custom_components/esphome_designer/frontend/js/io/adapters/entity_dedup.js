@@ -105,7 +105,7 @@ export const collectTextSensors = (pages, context) => {
 
             if ((isTextHa || isStringCond || isNonNumericAttr)) {
                 const isNested = attribute.includes(".") || attribute.includes("[");
-                const rootAttr = isNested ? attribute.split(/[.\[]/)[0] : attribute;
+                const rootAttr = isNested ? attribute.split(/[.[]/)[0] : attribute;
 
                 const entityKey = rootAttr ? `${ent}__attr__${rootAttr}` : ent;
 

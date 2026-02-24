@@ -75,7 +75,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
         };
 
         switch (rawType) {
-            case 'text':
+            case 'text': {
                 const textVal = item.value || item.text || '';
                 const templateInfo = extractInfoFromTemplate(textVal);
                 const size = parseInt(item.size || 20, 10);
@@ -105,8 +105,9 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     };
                 }
                 break;
+            }
 
-            case 'multiline':
+            case 'multiline': {
                 const mDelimiter = item.delimiter || '|';
                 const mLines = (item.value || '').split(mDelimiter);
                 const mFontSize = parseInt(item.size || 16, 10);
@@ -124,6 +125,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     line_spacing: Math.max(0, offsetY - mFontSize)
                 };
                 break;
+            }
 
             case 'rectangle':
                 widget.type = 'shape_rect';
@@ -140,7 +142,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                 };
                 break;
 
-            case 'circle':
+            case 'circle': {
                 widget.type = 'shape_circle';
                 const radius = parseInt(item.radius || 25, 10);
                 widget.x = parseInt(item.x || 0, 10) - radius;
@@ -155,8 +157,9 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     opacity: 100
                 };
                 break;
+            }
 
-            case 'icon':
+            case 'icon': {
                 const iSize = parseInt(item.size || 24, 10);
                 widget.width = iSize;
                 widget.height = iSize;
@@ -167,8 +170,9 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     fit_icon_to_frame: true
                 };
                 break;
+            }
 
-            case 'qrcode':
+            case 'qrcode': {
                 const boxsize = parseInt(item.boxsize || 2, 10);
                 const border = parseInt(item.border || 1, 10);
                 const qrSize = (25 + border * 2) * boxsize;
@@ -182,6 +186,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     color: item.color || 'black'
                 };
                 break;
+            }
 
             case 'progress_bar':
                 widget.x = parseInt(item.x_start || item.x || 0, 10);
@@ -199,7 +204,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                 };
                 break;
 
-            case 'line':
+            case 'line': {
                 widget.x = parseInt(item.x_start || item.x || 0, 10);
                 widget.y = parseInt(item.y_start || item.y || 0, 10);
                 const xEnd = parseInt(item.x_end || 100, 10);
@@ -212,6 +217,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     orientation: Math.abs(yEnd - widget.y) > Math.abs(xEnd - widget.x) ? 'vertical' : 'horizontal'
                 };
                 break;
+            }
 
             case 'debug_grid':
                 widget.type = 'odp_debug_grid';
@@ -312,7 +318,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                 };
                 break;
 
-            case 'arc':
+            case 'arc': {
                 const arcRadius = parseInt(item.radius || 50, 10);
                 widget.type = 'odp_arc';
                 widget.x = parseInt(item.x || 0, 10) - arcRadius;
@@ -327,8 +333,9 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     border_width: parseInt(item.width || 2, 10)
                 };
                 break;
+            }
 
-            case 'icon_sequence':
+            case 'icon_sequence': {
                 const iconSize = parseInt(item.size || 24, 10);
                 const iSpacing = parseInt(item.spacing || 6, 10);
                 const iIcons = item.icons || ['mdi:home', 'mdi:arrow-right', 'mdi:office-building'];
@@ -344,6 +351,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     fill: item.fill || 'black'
                 };
                 break;
+            }
 
             default:
                 Logger.warn(`[parseOEPLArrayToLayout] Unknown OEPL type: ${rawType}`);

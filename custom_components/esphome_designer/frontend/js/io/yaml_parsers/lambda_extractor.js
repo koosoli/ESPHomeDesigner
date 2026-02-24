@@ -19,7 +19,7 @@ export function extractLambdaLines(rawLines, yamlText) {
         const trimmed = line.trim();
 
         if (!inBlock) {
-            if (line.match(/^\s*lambda:\s*\|\-/)) {
+            if (line.match(/^\s*lambda:\s*\|-/)) {
                 inBlock = true;
                 blockType = 'lambda';
                 blockIndent = 0;
