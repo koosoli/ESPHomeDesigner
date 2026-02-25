@@ -171,13 +171,13 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
         const body = {
             contents: [{
                 role: "user",
-                parts: [{ text: system + "\n\n" + user }]
+                parts: [{ text: "###START OF SYSTEM PROMPT###\n" + system + "\n\n###END OF SYSTEM PROMPT###\n\n" + user }]
             }],
             generationConfig: {
                 temperature: 0.1, // Lower temperature for more consistent JSON
                 topP: 0.95,
                 topK: 40,
-                maxOutputTokens: 8192,
+                maxOutputTokens: 16384, //8192,
                 responseMimeType: "application/json"
             }
         };
@@ -287,8 +287,8 @@ WIDGET TYPES & PROPS:
 - shape_rect / rounded_rect / shape_circle: { x, y, width, height, color, fill (bool), border_width, opacity }
 - lvgl_*: Advanced widgets (lvgl_button, lvgl_switch, lvgl_slider, lvgl_arc, etc).
 
-STRICT OPERATIONAL RULES:
-1. CONTENT ACCURACY: If the user says "reads 'X'", the 'text' property MUST BE "X". NEVER use generic placeholders like "Text".
+STRICT OPERATIONAL RULES (** MUST OBEY AT ALL TIMES **):
+1. CONTENT ACCURACY: If the user says "reads 'X'", the 'text' property MUST BE "X". NEVER use generic placeholders like "Text" to populate labels, etc.
 2. TYPOGRAPHY: "Bold" = font_weight: 700. "Normal/Regular" = font_weight: 400. "Large" = font_size: 28+.
 3. VISUAL HIERARCHY: Use 'shape_rect' or 'rounded_rect' to create headers, footers, or background cards for groups of widgets. Use small thin shapes as dividers.
 4. UNIQUE IDS: Every new widget MUST have a unique ID like "w_" + timestamp or a short descriptive string. Never leave ID as null or undefined.
