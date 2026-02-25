@@ -12,12 +12,12 @@ const render = (el, widget, { getColorStyle }) => {
     el.style.justifyContent = "center";
     el.style.boxSizing = "border-box";
     el.style.backgroundColor = getColorStyle(props.bg_color || "white");
-    el.style.border = `${props.border_width || 2}px solid ${getColorStyle(props.color || "black")}`;
+    el.style.border = `${props.border_width || 2}px solid ${getColorStyle(props.text_color || "black")}`;
     el.style.borderRadius = `${props.radius || 5}px`;
 
     const text = document.createElement("span");
     text.textContent = props.text || "BTN";
-    text.style.color = getColorStyle(props.color || "black");
+    text.style.color = getColorStyle(props.text_color || "black");
     text.style.fontFamily = props.font_family || "Roboto, sans-serif";
     text.style.fontSize = (props.font_size || 14) + "px";
     text.style.fontWeight = props.font_weight || 400;
@@ -38,7 +38,7 @@ const exportLVGL = (w, { common, convertColor, formatOpacity, profile, getLVGLFo
             bg_color: convertColor(p.bg_color),
             bg_opa: "cover",
             border_width: p.border_width,
-            border_color: convertColor(p.color),
+            border_color: convertColor(p.text_color),
             radius: p.radius,
             opa: formatOpacity(p.opa),
             on_click: undefined,
@@ -48,7 +48,7 @@ const exportLVGL = (w, { common, convertColor, formatOpacity, profile, getLVGLFo
                         align: "center",
                         text: `"${p.text || 'BTN'}"`,
                         text_font: getLVGLFont ? getLVGLFont(p.font_family, p.font_size, p.font_weight, p.italic) : undefined,
-                        text_color: convertColor(p.color)
+                        text_color: convertColor(p.text_color)
                     }
                 }
             ]
@@ -82,7 +82,7 @@ export default {
     defaults: {
         text: "Button",
         bg_color: "theme_auto_inverse",
-        color: "theme_auto",
+        text_color: "theme_auto",
         border_width: 2,
         radius: 5,
         opa: 255,
@@ -91,6 +91,7 @@ export default {
         font_weight: 400,
         italic: false,
         entity_id: "",
+        is_local_sensor: false,
         opacity: 255
     },
     schema: [
@@ -104,7 +105,7 @@ export default {
         {
             section: "Appearance",
             fields: [
-                { key: "color", label: "Text/Border Color", type: "color", default: "theme_auto" },
+                { key: "text_color", label: "Text/Border Color", type: "color", default: "theme_auto" },
                 { key: "bg_color", label: "Background color", type: "color", default: "theme_auto_inverse" },
                 { key: "border_width", label: "Border width", type: "number", default: 2 },
                 { key: "radius", label: "Corner Radius", type: "number", default: 5 },

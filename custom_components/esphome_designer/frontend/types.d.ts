@@ -1,8 +1,7 @@
 /**
  * @file types.d.ts
  * @description Global TypeScript definitions for ESPHome Designer.
- * This file provides JSDoc and IDE intellisense support without requiring
- * a compilation step or altering runtime code.
+ * This file provides JSDoc and IDE intellisense support.
  */
 
 declare global {
@@ -23,12 +22,16 @@ declare global {
         width: number;
         /** Height of the bounding box */
         height: number;
+        /** Width alias (legacy/short) */
+        w?: number;
+        /** Height alias (legacy/short) */
+        h?: number;
         /** Indicates if the widget is temporarily hidden in the editor */
         hidden?: boolean;
         /** Indicates if the widget is locked from selection/movement */
         locked?: boolean;
 
-        // Common Optional Properties
+        // Common Optional Properties (Plugins use 'props' for these, but core uses these aliases occasionally)
         text?: string;
         content?: string;
         font_size?: number;
@@ -42,7 +45,7 @@ declare global {
 
         // Conditional Visibility System
         condition_entity?: string;
-        condition_operator?: '==' | '!=' | '>' | '<' | '>=' | '<=' | 'range';
+        condition_operator?: '==' | '!=' | '>' | '<' | '>=' | '<=' | 'range' | 'compare_entity';
         condition_state?: string;
         condition_value?: string;
         condition_min?: string | number;
@@ -64,10 +67,22 @@ declare global {
         id: string;
         /** Display name of the page */
         name: string;
-        /** Color depth (Bits Per Pixel), usually 16 for RGB565 */
-        bpp: number;
         /** The children widgets placed directly on this page */
         widgets: Widget[];
+        /** Color depth (Bits Per Pixel), usually 16 for RGB565 */
+        bpp?: number;
+        /** Dark mode setting for this page */
+        dark_mode?: 'dark' | 'light' | 'inherit';
+        /** Refresh mode ('interval', 'daily', etc.) */
+        refresh_type?: string;
+        /** Refresh interval/time */
+        refresh_time?: number | string;
+        /** Page visibility from time */
+        visible_from?: string;
+        /** Page visibility to time */
+        visible_to?: string;
+        /** Layout mode (e.g. "4x4", null for absolute) */
+        layout?: string | null;
     }
 
     /**
@@ -84,6 +99,27 @@ declare global {
         touchTech?: 'none' | 'cst816' | 'gt911' | 'ft6336' | 'xpt2046' | 'tt21100' | 'ns2009' | 'stmpe610';
         shape?: 'rect' | 'circle' | 'round_rect';
         pins?: Record<string, number | string>;
+    }
+
+    /**
+     * Represents a device profile definition.
+     */
+    interface DeviceProfile {
+        id: string;
+        name: string;
+        model?: string;
+        resolution?: { width: number, height: number };
+        isPackageBased?: boolean;
+        hardwarePackage?: string;
+        features?: Record<string, any>;
+        isOfflineImport?: boolean;
+        content?: string;
+        displayPlatform?: string;
+        battery?: boolean;
+        external_components?: string[];
+        m5paper?: boolean;
+        touch?: boolean;
+        pins?: Record<string, any>;
     }
 
     /**
@@ -104,8 +140,123 @@ declare global {
         customHardware?: HardwareSettings;
         /** Flag indicating if this is just a clipboard/snippet export rather than full firmware */
         isSelectionSnippet?: boolean;
+        /** Render mode preference */
+        renderingMode?: string;
+        /** Inverted color flag */
+        invertedColors?: boolean;
+        /** Is Dark Mode enabled globally */
+        darkMode?: boolean;
+        /** LCD Economy Strategy */
+        lcdEcoStrategy?: 'dim_after_timeout' | 'none';
+        /** Timeout for dimming */
+        dimTimeout?: number;
+        /** Plugin dynamic includes */
+        plugin_includes?: string[];
     }
 
+    /**
+     * Context passed during YAML generation.
+     */
+    interface GenerationContext {
+        /** Output buffer */
+        lines: string[];
+        /** All widgets in the project or page */
+        widgets: Widget[];
+        /** Target device profile */
+        profile: DeviceProfile;
+        /** Parent layout/project payload */
+        layout: ProjectPayload;
+        /** Font inclusion helper */
+        addFont: (family: string, weight: number, size: number, italic?: boolean) => string;
+        /** Color parsing helper */
+        getColorConst: (color: string) => string;
+        /** Current adapter instance */
+        adapter: any;
+        /** E-paper target flag */
+        isEpaper: boolean;
+        /** Is Dark Mode active for the current context */
+        isDark?: boolean;
+        /** Set of already defined sensor IDs to avoid duplicates */
+        seenSensorIds?: Set<string>;
+        /** Triggers pending registration */
+        pendingTriggers?: Map<string, Set<string>>;
+    }
+
+    /**
+     * Plugin interface definition.
+     */
+    interface Plugin {
+        id: string;
+        name: string;
+        category?: string;
+        supportedModes?: string[];
+        defaults?: Record<string, any>;
+        schema?: Array<{ section: string; fields: Array<{ key: string; type: string;[k: string]: any }> }>;
+        width?: number;
+        height?: number;
+        render?: (el: HTMLElement, widget: Widget, helpers: any) => void;
+        renderProperties?: (panel: HTMLElement, widget: Widget) => void;
+        export?: (widget: Widget, context: GenerationContext) => string[] | void;
+        exportLVGL?: (widget: Widget, helpers: any) => any;
+        exportOEPL?: (widget: Widget, context: any) => any;
+        exportOpenDisplay?: (widget: Widget, context: any) => any;
+        collectRequirements?: (widget: Widget, helpers: any) => void;
+        onExportComponents?: (context: GenerationContext & { displayId: string }) => void;
+        onExportGlobals?: (context: GenerationContext) => void;
+        onExportNumericSensors?: (context: GenerationContext) => void;
+        onExportTextSensors?: (context: GenerationContext) => void;
+        onExportBinarySensors?: (context: GenerationContext) => void;
+        onExportHelpers?: (context: { lines: string[], widgets: Widget[] }) => void;
+    }
+
+    interface AppState {
+        state: any;
+        entityStates: Record<string, any>;
+        getPagesPayload: () => ProjectPayload;
+        getCanvasDimensions: () => { width: number; height: number };
+        getCanvasShape: () => string;
+        deviceModel?: string;
+        emit: (event: string, data?: any) => void;
+        on: (event: string, callback: Function) => void;
+    }
+
+    interface PluginRegistry {
+        register: (plugin: Plugin) => void;
+        get: (id: string) => Plugin | undefined;
+        getAll: () => Plugin[];
+        loadAll: () => Promise<void>;
+        onExportGlobals: (context: GenerationContext) => void;
+        onExportNumericSensors: (context: GenerationContext) => void;
+        onExportTextSensors: (context: GenerationContext) => void;
+        onExportBinarySensors: (context: GenerationContext) => void;
+        onExportComponents: (context: GenerationContext & { displayId: string }) => void;
+        onExportHelpers: (context: { lines: string[], widgets: Widget[] }) => void;
+    }
+
+    interface Window {
+        AppState: AppState;
+        PluginRegistry: PluginRegistry;
+        ESPHomeAdapter: any;
+        DEVICE_PROFILES: Record<string, DeviceProfile>;
+        currentDeviceModel: string;
+        Utils: any;
+        COLORS: Record<string, string>;
+        ALIGNMENT: Record<string, string>;
+        generateDisplaySection?: (profile: DeviceProfile, orientation?: string) => string[];
+        generateLVGLSnippet?: (pages: Page[], model: string) => string[];
+        app?: {
+            adapter?: any;
+        };
+    }
+
+    var AppState: AppState;
+    var PluginRegistry: PluginRegistry;
+    var ESPHomeAdapter: any;
+    var DEVICE_PROFILES: Record<string, DeviceProfile>;
+    var currentDeviceModel: string;
+    var Utils: any;
+    var COLORS: Record<string, string>;
+    var ALIGNMENT: Record<string, string>;
 }
 
-export { }; // Ensure it's treated as a module
+export { };

@@ -293,7 +293,6 @@ const exportDoc = (w, context) => {
     const iconFontRef = addFont("Material Design Icons", 400, iconSize);
     const textFontRef = addFont("Roboto", 400, fontSize);
 
-    lines.push(`        // widget:template_sensor_bar id:${w.id} type:template_sensor_bar x:${w.x} y:${w.y} w:${w.width} h:${w.height} wifi:${showWifi} temp:${showTemp} hum:${showHum} bat:${showBat} bg:${showBg} bg_color:${p.background_color || "black"} radius:${radius} border:${thickness} icon_size:${iconSize} font_size:${fontSize} color:${colorProp} wifi_ent:"${p.wifi_entity || ""}" temp_ent:"${p.temp_entity || ""}" temp_unit:${p.temp_unit || "°C"} hum_ent:"${p.hum_entity || ""}" bat_ent:"${p.bat_entity || ""}" ${getCondProps(w)}`);
 
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
@@ -687,7 +686,7 @@ export default {
                     layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" },
                     pad_all: 0, widgets: [
                         { label: { text: '"\\U000F050F"', text_font: iconFont, text_color: color } },
-                        { label: { text: `!lambda "if (id(${tempId}).has_state()) { return str_sprintf(\'%.1f${unit}\', ${tempExpr}).c_str(); } return \'--${unit}\';"`, text_font: textFont, text_color: color, x: 4 } }
+                        { label: { text: `!lambda "if (id(${tempId}).has_state()) { return str_sprintf('%.1f${unit}', ${tempExpr}).c_str(); } return '--${unit}';"`, text_font: textFont, text_color: color, x: 4 } }
                     ]
                 }
             });
@@ -701,7 +700,7 @@ export default {
                     layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" },
                     pad_all: 0, widgets: [
                         { label: { text: '"\\U000F058E"', text_font: iconFont, text_color: color } },
-                        { label: { text: `!lambda "if (id(${humId}).has_state()) { return str_sprintf(\'%.0f%%\', id(${humId}).state).c_str(); } return \'--%\';"`, text_font: textFont, text_color: color, x: 4 } }
+                        { label: { text: `!lambda "if (id(${humId}).has_state()) { return str_sprintf('%.0f%%', id(${humId}).state).c_str(); } return '--%%';"`, text_font: textFont, text_color: color, x: 4 } }
                     ]
                 }
             });
@@ -732,7 +731,7 @@ export default {
                     layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" },
                     pad_all: 0, widgets: [
                         { label: { text: batIconL, text_font: iconFont, text_color: color } },
-                        { label: { text: `!lambda "return id(${batId}).has_state() ? str_sprintf(\'%.0f%%\', id(${batId}).state).c_str() : \'--%\';"`, text_font: textFont, text_color: color, x: 4 } }
+                        { label: { text: `!lambda "return id(${batId}).has_state() ? str_sprintf('%.0f%%', id(${batId}).state).c_str() : '--%%';"`, text_font: textFont, text_color: color, x: 4 } }
                     ]
                 }
             });

@@ -99,7 +99,6 @@ export default {
             y_start: y_start,
             x_end: x_end,
             y_end: y_end,
-            y_end: y_end,
             fill: (p.color === "theme_auto") ? (layout?.darkMode ? "white" : "black") : (p.color || "black"),
             width: strokeWidth
         };
@@ -141,7 +140,6 @@ export default {
         let rectW = Math.floor((orientation === "vertical") ? strokeWidth : w.width);
         let rectH = Math.floor((orientation === "vertical") ? w.height : strokeWidth);
 
-        lines.push(`        // widget:line id:${w.id} type:line x:${rectX} y:${rectY} w:${rectW} h:${rectH} stroke:${strokeWidth} color:${colorProp} orientation:${orientation} ${getCondProps(w)}`);
 
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);

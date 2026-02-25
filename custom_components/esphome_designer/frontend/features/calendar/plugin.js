@@ -1,6 +1,7 @@
 /**
  * Calendar Plugin
  */
+import { AppState } from '@core/state.js';
 import { SchemaRenderer } from '../../js/core/properties/schema_renderer.js';
 
 const CALENDAR_HELPER_SCRIPT = `# Dictionary to map calendar keys to their corresponding names
@@ -412,6 +413,7 @@ export default {
     defaults: {
         entity_id: "sensor.esp_calendar_data",
         border_width: 0,
+        show_border: true,
         border_color: "theme_auto",
         border_radius: 0,
         background_color: "transparent",
@@ -740,7 +742,6 @@ template:
         const gridFontId = addFont(fontFamily, 400, gridFontSize);
         const eventFontId = addFont(fontFamily, 400, eventFontSize);
 
-        lines.push(`        // widget:calendar id:${w.id} type:calendar x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} ${getCondProps(w)}`);
 
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);

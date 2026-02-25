@@ -1,3 +1,4 @@
+import { AppState } from '@core/state.js';
 import { TemplateConverter } from '../../js/utils/template_converter.js';
 import { wordWrap, parseColorMarkup, evaluateTemplatePreview } from '../../js/utils/text_utils.js';
 import { getNestedValue } from '../../js/utils/helpers.js';
@@ -366,6 +367,10 @@ export default {
         italic: false,
         label_align: "TOP_LEFT",
         value_align: "TOP_LEFT",
+        hide_unit: false,
+        is_local_sensor: false,
+        is_text_sensor: false,
+        separator: " ~ "
     },
 
     render,
@@ -456,9 +461,9 @@ export default {
         }
 
         const attributePath = (p.attribute || "").trim();
-        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.\[]/)[0] : attributePath;
+        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[ ]/)[0] : attributePath;
         const attributePath2 = (p.attribute2 || "").trim();
-        const rootAttr2 = (attributePath2.includes(".") || attributePath2.includes("[")) ? attributePath2.split(/[.\[]/)[0] : attributePath2;
+        const rootAttr2 = (attributePath2.includes(".") || attributePath2.includes("[")) ? attributePath2.split(/[.[ ]/)[0] : attributePath2;
 
         const makeSafeId = (eid, attr, suffix = "") => {
             const base = attr ? (eid + "_" + attr) : eid;
@@ -781,7 +786,6 @@ export default {
         // Escaping helper for printf
         const escapeFmt = (str) => (str || "").replace(/%/g, "%%");
 
-        lines.push(`        // widget:sensor_text id:${w.id} type:sensor_text x:${w.x} y:${w.y} w:${w.width} h:${w.height} align:${textAlign} entity:"${entityId}" format:"${format}" ${getCondProps(w)}`);
 
         // Background fill
         const bgColorProp = p.bg_color || p.background_color || "transparent";
@@ -813,9 +817,9 @@ export default {
 
         // Helper to create safe ESPHome ID (max 59 chars before suffix for 63 char limit)
         const attributePath1 = (p.attribute || "").trim();
-        const rootAttr1 = (attributePath1.includes(".") || attributePath1.includes("[")) ? attributePath1.split(/[.\[]/)[0] : attributePath1;
+        const rootAttr1 = (attributePath1.includes(".") || attributePath1.includes("[")) ? attributePath1.split(/[.[ ]/)[0] : attributePath1;
         const attributePath2 = (p.attribute2 || "").trim();
-        const rootAttr2 = (attributePath2.includes(".") || attributePath2.includes("[")) ? attributePath2.split(/[.\[]/)[0] : attributePath2;
+        const rootAttr2 = (attributePath2.includes(".") || attributePath2.includes("[")) ? attributePath2.split(/[.[ ]/)[0] : attributePath2;
 
         const makeSafeId = (eid, attr, suffix = "") => {
             const base = attr ? (eid + "_" + attr) : eid;
@@ -1045,7 +1049,7 @@ export default {
                 // For nested paths (e.g. entries.days.0), we only want to register the root attribute (entries) in HA.
                 const attributePath = (attribute || "").trim();
                 const isNested = attributePath.includes(".") || attributePath.includes("[");
-                const rootAttr = isNested ? attributePath.split(/[.\[]/)[0] : attributePath;
+                const rootAttr = isNested ? attributePath.split(/[.[ ]/)[0] : attributePath;
 
                 const safeId = makeSafeId(entityId, rootAttr, "_txt");
 
@@ -1080,7 +1084,7 @@ export default {
                 // For nested paths (e.g. entries.days.0), we only want to register the root attribute (entries) in HA.
                 const attributePath = (attribute || "").trim();
                 const isNested = attributePath.includes(".") || attributePath.includes("[");
-                const rootAttr = isNested ? attributePath.split(/[.\[]/)[0] : attributePath;
+                const rootAttr = isNested ? attributePath.split(/[.[ ]/)[0] : attributePath;
 
                 const safeId = makeSafeId(entityId, rootAttr, "_txt");
 
@@ -1108,24 +1112,6 @@ export default {
         }
     },
 
-    defaults: {
-        entity_id: "",
-        title: "",
-        value_format: "label_value",
-        label_font_size: 14,
-        value_font_size: 20,
-        unit: "",
-        precision: 2,
-        text_align: "TOP_LEFT",
-        color: "theme_auto",
-        font_family: "Roboto",
-        parse_colors: false,
-        bg_color: "transparent",
-        opa: 255,
-        border_width: 0,
-        border_color: "theme_auto",
-        border_radius: 0,
-    },
     renderProperties: (panel, widget) => {
         const props = widget.props || {};
         const updateProp = (key, val) => {

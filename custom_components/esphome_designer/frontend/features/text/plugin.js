@@ -1,3 +1,4 @@
+import { AppState } from '@core/state.js';
 import { wordWrap, parseColorMarkup, evaluateTemplatePreview } from '../../js/utils/text_utils.js';
 import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js';
 const render = (el, widget, { getColorStyle }) => {
@@ -340,10 +341,6 @@ export default {
         // Check if gray text on e-paper - use dithering
         const isGrayOnEpaper = isEpaper && Utils && Utils.isGrayColor && Utils.isGrayColor(colorProp);
         const color = isGrayOnEpaper ? "COLOR_BLACK" : getColorConst(colorProp);
-
-        // Sanitize text for comment (replace newlines to prevent YAML breakage)
-        const safeText = text.replace(/[\r\n]+/g, '\\n');
-        lines.push(`        // widget:text id:${w.id} type:text x:${w.x} y:${w.y} w:${w.width} h:${w.height} align:${textAlign} text:"${safeText.substring(0, 50)}${safeText.length > 50 ? '...' : ''}" ${getCondProps(w)}`);
 
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);

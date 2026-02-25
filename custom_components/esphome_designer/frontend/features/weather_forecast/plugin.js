@@ -1,3 +1,4 @@
+import { AppState } from '@core/state.js';
 /**
  * Weather Forecast Plugin
  */
@@ -227,7 +228,6 @@ const exportDoc = (w, context) => {
     const tempFontId = addFont(fontFamily, 400, tempFontSize);
     const iconFontId = addFont("Material Design Icons", 400, iconSize);
 
-    lines.push(`        // widget:weather_forecast id:${w.id} type:weather_forecast x:${w.x} y:${w.y} w:${w.width} h:${w.height} weather_entity:"${weatherEntity}" forecast_mode:${mode} hourly_slots:"${p.hourly_slots || "06,09,12,15,18,21"}" layout:${layout} show_high_low:${showHighLow} day_font_size:${dayFontSize} temp_font_size:${tempFontSize} icon_size:${iconSize} font_family:"${fontFamily}" color:${colorProp} precision:${precision} ${getCondProps(w)}`);
 
     const condFore = getConditionCheck(w);
     if (condFore) lines.push(`        ${condFore}`);

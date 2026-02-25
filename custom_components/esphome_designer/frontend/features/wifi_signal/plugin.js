@@ -1,3 +1,4 @@
+import { AppState } from '@core/state.js';
 /**
  * WiFi Signal Plugin
  */
@@ -96,7 +97,6 @@ const exportDoc = (w, context) => {
         sensorId = entityId ? entityId.replace(/[^a-zA-Z0-9_]/g, "_") : "wifi_signal_dbm";
     }
 
-    lines.push(`        // widget:wifi_signal id:${w.id} type:wifi_signal x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId || "wifi_signal_dbm"} size:${size} font_size:${fontSize} color:${colorProp} show_dbm:${showDbm} local:${isLocal} ${getCondProps(w)}`);
 
     // Background fill
     const bgColorProp = p.bg_color || p.background_color || "transparent";

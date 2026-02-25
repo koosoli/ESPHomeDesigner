@@ -58,9 +58,8 @@ export default {
         border_width: 4,
         color: "theme_auto",
         show_border: true,
-        opa: 255,
         border_color: "theme_auto",
-        opacity: 255,
+        opacity: 100,
         x: 0,
         y: 0
     },
@@ -161,7 +160,6 @@ export default {
         const rrectW = Math.floor(w.width);
         const rrectH = Math.floor(w.height);
 
-        lines.push(`        // widget:rounded_rect id:${w.id} type:rounded_rect x:${rrectX} y:${rrectY} w:${rrectW} h:${rrectH} fill:${fill} show_border:${showBorder} border:${thickness} radius:${r} color:${fillColorProp} border_color:${borderColorProp} ${getCondProps(w)}`);
 
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);

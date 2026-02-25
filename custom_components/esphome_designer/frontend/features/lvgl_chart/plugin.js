@@ -98,6 +98,7 @@ export default {
         point_count: 10,
         x_div_lines: 3,
         y_div_lines: 3,
+        bg_color: "transparent",
         opa: 255,
         opacity: 255
     },

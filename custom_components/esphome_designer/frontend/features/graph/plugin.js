@@ -1,6 +1,7 @@
 /**
  * Graph Plugin
  */
+import { AppState } from '@core/state.js';
 import { drawInternalGrid, generateMockData, drawSmartAxisLabels, generateHistoricalDataPoints, parseDuration } from '../../js/utils/graph_helpers.js';
 import { fetchEntityHistory, getEntityAttributes } from '../../js/io/ha_api.js';
 import { emit, EVENTS } from '../../js/core/events.js';
@@ -98,14 +99,14 @@ const render = (el, widget, { getColorStyle }) => {
                         // Fallback parsing
                         if (rawData.includes('value:') || rawData.includes('value :')) {
                             // Structured format with "value:" keys
-                            const regex = /value\s*:\s*([\d\.-]+)/g;
+                            const regex = /value\s*:\s*([\d.-]+)/g;
                             let match;
                             while ((match = regex.exec(rawData)) !== null) {
                                 values.push(parseFloat(match[1]));
                             }
                         } else {
                             // Simple CSV: strip brackets/quotes, split by comma
-                            const cleaned = rawData.replace(/[\[\]"']/g, '');
+                            const cleaned = rawData.replace(/[[\]"']/g, '');
                             cleaned.split(',').forEach(s => {
                                 const f = parseFloat(s.trim());
                                 if (!isNaN(f)) values.push(f);
@@ -317,7 +318,6 @@ const exportDoc = (w, context) => {
         }
     }
 
-    lines.push(`        // widget:graph id:${w.id} type:graph x:${w.x} y:${w.y} w:${w.width} h:${w.height} title:"${title}" entity:${entityId} local:${!!p.is_local_sensor} duration:${duration} border:${borderEnabled} color:${colorProp} background:${backgroundProp} x_grid:${xGrid} y_grid:${yGrid} line_type:${lineType} line_thickness:${lineThickness} continuous:${continuous} min_value:${minValue} max_value:${maxValue} min_range:${minRange} max_range:${maxRange} ${getCondProps(w)}`);
 
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
@@ -806,6 +806,7 @@ export default {
         continuous: true,
         min_value: "",
         max_value: "",
+        is_local_sensor: false,
         opa: 255
     },
     renderProperties: (panel, widget) => {

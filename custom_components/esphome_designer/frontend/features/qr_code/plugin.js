@@ -1,6 +1,7 @@
 /**
  * QR Code Plugin
  */
+import { AppState } from '@core/state.js';
 
 
 
@@ -104,7 +105,6 @@ const exportDoc = (w, context) => {
     const estimatedModules = Math.min(177, 21 + Math.ceil(contentLen / 10) * 2);
     const scale = Math.max(1, Math.floor(availableSize / estimatedModules));
 
-    lines.push(`        // widget:qr_code id:${w.id} type:qr_code x:${w.x} y:${w.y} w:${w.width} h:${w.height} value:"${value}" scale:${scale} ecc:${ecc} color:${colorProp} ${getCondProps(w)}`);
 
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
@@ -157,6 +157,7 @@ export default {
         ecc: "LOW",
         color: "theme_auto",
         bg_color: "white",
+        scale: 2,
         width: 130,
         height: 130,
         opa: 255

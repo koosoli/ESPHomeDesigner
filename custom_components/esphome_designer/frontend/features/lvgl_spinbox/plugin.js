@@ -78,6 +78,8 @@ export default {
     category: "LVGL",
     defaults: {
         value: 0,
+        min: 0,
+        max: 100,
         digit_count: 4,
         step: 1,
         opa: 255,

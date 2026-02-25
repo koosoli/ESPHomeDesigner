@@ -1,6 +1,7 @@
 /**
  * Date & Time Plugin
  */
+import { AppState } from '@core/state.js';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -356,7 +357,6 @@ export default {
         const textAlign = (p.text_align || "CENTER").toUpperCase();
         const format = p.format || "time_date";
 
-        lines.push(`        // widget:datetime id:${w.id} type:datetime x:${w.x} y:${w.y} w:${w.width} h:${w.height} align:${textAlign} fmt:${format} ${getCondProps(w)}`);
 
         // Background fill
         const bgColorProp = p.bg_color || p.background_color || "transparent";

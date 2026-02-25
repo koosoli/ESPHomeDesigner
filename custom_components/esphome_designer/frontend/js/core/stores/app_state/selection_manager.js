@@ -169,12 +169,13 @@ export class SelectionManager {
                 targetVal = Math.min(...widgets.map(w => w.x));
                 widgets.forEach(w => this.app.project.updateWidget(w.id, { x: targetVal }));
                 break;
-            case 'center':
+            case 'center': {
                 const left = Math.min(...widgets.map(w => w.x));
                 const right = Math.max(...widgets.map(w => w.x + (w.width || 0)));
                 targetVal = left + (right - left) / 2;
                 widgets.forEach(w => this.app.project.updateWidget(w.id, { x: targetVal - (w.width || 0) / 2 }));
                 break;
+            }
             case 'right':
                 targetVal = Math.max(...widgets.map(w => w.x + (w.width || 0)));
                 widgets.forEach(w => this.app.project.updateWidget(w.id, { x: targetVal - (w.width || 0) }));
@@ -183,12 +184,13 @@ export class SelectionManager {
                 targetVal = Math.min(...widgets.map(w => w.y));
                 widgets.forEach(w => this.app.project.updateWidget(w.id, { y: targetVal }));
                 break;
-            case 'middle':
+            case 'middle': {
                 const top = Math.min(...widgets.map(w => w.y));
                 const bottom = Math.max(...widgets.map(w => w.y + (w.height || 0)));
                 targetVal = top + (bottom - top) / 2;
                 widgets.forEach(w => this.app.project.updateWidget(w.id, { y: targetVal - (w.height || 0) / 2 }));
                 break;
+            }
             case 'bottom':
                 targetVal = Math.max(...widgets.map(w => w.y + (w.height || 0)));
                 widgets.forEach(w => this.app.project.updateWidget(w.id, { y: targetVal - (w.height || 0) }));

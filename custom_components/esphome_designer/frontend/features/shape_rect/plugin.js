@@ -1,3 +1,4 @@
+import { AppState } from '@core/state.js';
 /**
  * Rectangle Shape Plugin
  */
@@ -48,6 +49,8 @@ export default {
         fill: false,
         border_width: 1,
         color: "theme_auto",
+        border_color: "theme_auto",
+        opacity: 100,
         radius: 0,
         opa: 255
     },
@@ -141,7 +144,6 @@ export default {
         const rectW = Math.floor(w.width);
         const rectH = Math.floor(w.height);
 
-        lines.push(`        // widget:shape_rect id:${w.id} type:shape_rect x:${rectX} y:${rectY} w:${rectW} h:${rectH} fill:${fill} border:${borderWidth} color:${fillColorProp} border_color:${borderColorProp} ${getCondProps(w)}`);
 
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);

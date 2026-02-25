@@ -1,6 +1,7 @@
 /**
  * Online Image Plugin
  */
+import { AppState } from '@core/state.js';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -108,7 +109,6 @@ const exportDoc = (w, context) => {
 
     const safeId = getSafeId(w);
 
-    lines.push(`        // widget:${w.type} id:${w.id} x:${w.x} y:${w.y} w:${w.width} h:${w.height} url:"${url}" invert:${invert} render_mode:"${renderMode}" ${getCondProps(w)}`);
 
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
@@ -227,6 +227,8 @@ export default {
     defaults: {
         url: "",
         invert: false,
+        interval_s: 300,
+        render_mode: "Auto",
         update_interval: "1h",
         rotation: 0,
         color: "black",

@@ -1,11 +1,12 @@
 /**
  * Battery Icon Plugin
  */
+import { AppState } from '@core/state.js';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     let iconCode = "F0079"; // Default full battery
-    let size = props.size || 24;
+    let size = props.size || 36;
     const color = props.color || "theme_auto";
     const colorStyle = getColorStyle(color);
 
@@ -55,7 +56,7 @@ const render = (el, widget, { getColorStyle }) => {
 
     // Battery Percentage Label
     const pctLabel = document.createElement("div");
-    pctLabel.style.fontSize = (props.font_size || 12) + "px";
+    pctLabel.style.fontSize = (props.font_size || 14) + "px";
     pctLabel.style.marginTop = "2px";
     pctLabel.textContent = Math.round(batteryLevel) + "%";
     el.appendChild(pctLabel);
@@ -81,8 +82,8 @@ const exportDoc = (w, context) => {
 
     const p = w.props || {};
     const entityId = (w.entity_id || "").trim();
-    const size = parseInt(p.size || 24, 10);
-    const fontSize = parseInt(p.font_size || 12, 10);
+    const size = parseInt(p.size || 36, 10);
+    const fontSize = parseInt(p.font_size || 14, 10);
     const isDark = context.isDark || (window.WidgetFactory?.getEffectiveDarkMode?.() || false);
     const colorProp = p.color || "theme_auto";
     const color = getColorConst(colorProp);
@@ -104,7 +105,6 @@ const exportDoc = (w, context) => {
         sensorId = normalizedEntityId.replace(/[^a-zA-Z0-9_]/g, "_");
     }
 
-    lines.push(`        // widget:battery_icon id:${w.id} type:battery_icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId || "battery_level"} size:${size} font_size:${fontSize} color:${colorProp} local:${!!p.is_local_sensor} ${getCondProps(w)}`);
 
     // Background fill
     const bgColorProp = p.bg_color || p.background_color || "transparent";
@@ -190,6 +190,8 @@ export default {
         size: 36,
         font_size: 14,
         color: "theme_auto",
+        is_local_sensor: true,
+        fit_icon_to_frame: true,
         opa: 255
     },
     renderProperties: (panel, widget) => {
@@ -214,13 +216,13 @@ export default {
         panel.createSection("Appearance", true);
         panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => updateProp("opacity", v));
         panel.addCheckbox("Fit icon to frame", !!props.fit_icon_to_frame, (v) => updateProp("fit_icon_to_frame", v));
-        panel.addLabeledInput("Icon Size (px)", "number", props.size || 48, (v) => {
-            let n = parseInt(v || "48", 10);
-            updateProp("size", isNaN(n) ? 48 : n);
+        panel.addLabeledInput("Icon Size (px)", "number", props.size || 36, (v) => {
+            let n = parseInt(v || "36", 10);
+            updateProp("size", isNaN(n) ? 36 : n);
         });
-        panel.addLabeledInput("Percentage Font Size (px)", "number", props.font_size || 12, (v) => {
-            let n = parseInt(v || "12", 10);
-            updateProp("font_size", isNaN(n) ? 12 : n);
+        panel.addLabeledInput("Percentage Font Size (px)", "number", props.font_size || 14, (v) => {
+            let n = parseInt(v || "14", 10);
+            updateProp("font_size", isNaN(n) ? 14 : n);
         });
         panel.addColorSelector("Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
         panel.endSection();

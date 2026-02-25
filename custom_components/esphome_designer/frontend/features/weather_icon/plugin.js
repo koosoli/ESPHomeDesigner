@@ -1,3 +1,4 @@
+import { AppState } from '@core/state.js';
 import { getNestedValue } from '../../js/utils/helpers.js';
 
 const render = (el, widget, { getColorStyle }) => {
@@ -107,7 +108,6 @@ const exportDoc = (w, context) => {
     if (colorProp === "black") color = "color_on";
     const fontRef = addFont("Material Design Icons", 400, size);
 
-    lines.push(`        // widget:weather_icon id:${w.id} type:weather_icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} size:${size} color:${colorProp} ${getCondProps(w)}`);
 
     // Background fill
     const bgColorProp = p.bg_color || p.background_color || "transparent";
@@ -130,7 +130,7 @@ const exportDoc = (w, context) => {
 
     if (entityId) {
         const attributePath = (p.attribute || "").trim();
-        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.\[]/)[0] : attributePath;
+        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[ ]/)[0] : attributePath;
         const makeSafeId = (eid, suffix = "") => {
             const base = rootAttr ? (eid + "_" + rootAttr) : eid;
             let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");
@@ -196,7 +196,7 @@ const onExportTextSensors = (context) => {
 
     weatherEntities.forEach(({ id, entity_id, attribute }) => {
         const attributePath = (attribute || "").trim();
-        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.\[]/)[0] : attributePath;
+        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[ ]/)[0] : attributePath;
         const makeSafeId = (eid, suffix = "") => {
             const base = rootAttr ? (eid + "_" + rootAttr) : eid;
             let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");
@@ -374,7 +374,7 @@ export default {
         if (entityId) {
             // Helper to create safe ESPHome ID (max 59 chars)
             const attributePath = (p.attribute || "").trim();
-            const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.\[]/)[0] : attributePath;
+            const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[ ]/)[0] : attributePath;
             const makeSafeId = (eid, suffix = "") => {
                 const base = rootAttr ? (eid + "_" + rootAttr) : eid;
                 let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");

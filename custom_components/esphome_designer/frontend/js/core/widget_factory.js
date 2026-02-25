@@ -154,12 +154,7 @@ export class WidgetFactory {
             if (plugin.defaults.height) widget.height = plugin.defaults.height;
             if (plugin.defaults.w) widget.width = plugin.defaults.w;
             if (plugin.defaults.h) widget.height = plugin.defaults.h;
-
-            return widget;
         }
-
-        // Fallback or remaining special cases
-
 
         // Apply grid cell defaults to all LVGL widgets
         if (WidgetFactory.isLvglWidget(type)) {

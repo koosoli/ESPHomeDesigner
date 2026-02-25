@@ -27,7 +27,9 @@ vi.mock('js-yaml', () => ({
                         if (value.startsWith('[[')) {
                             try {
                                 value = JSON.parse(value);
-                            } catch {}
+                            } catch {
+                                // Ignore points parsing errors
+                            }
                         }
                         currentItem[key.trim()] = value;
                     }
@@ -97,7 +99,7 @@ describe('ODP-specific widget parsing', () => {
             { type: 'multiline', value: 'Line 1|Line 2', delimiter: '|', x: 606, y: 204, size: 20, color: 'black' }
         ];
         const result = parseOEPLArrayToLayout(items);
-        
+
         expect(result.pages[0].widgets.length).toBe(1);
         const widget = result.pages[0].widgets[0];
         expect(widget.type).toBe('odp_multiline');
@@ -110,7 +112,7 @@ describe('ODP-specific widget parsing', () => {
             { type: 'rectangle_pattern', x_start: 225, x_end: 328, y_start: 250, y_end: 405, x_size: 35, y_size: 18, x_offset: 10, y_offset: 2, x_repeat: 1, y_repeat: 4, fill: 'white', outline: 'red', width: 1 }
         ];
         const result = parseOEPLArrayToLayout(items);
-        
+
         expect(result.pages[0].widgets.length).toBe(1);
         const widget = result.pages[0].widgets[0];
         expect(widget.type).toBe('odp_rectangle_pattern');
@@ -123,7 +125,7 @@ describe('ODP-specific widget parsing', () => {
             { type: 'polygon', points: [[91, 290], [131, 290], [131, 330], [91, 330]], fill: 'red', outline: 'black', width: 1 }
         ];
         const result = parseOEPLArrayToLayout(items);
-        
+
         expect(result.pages[0].widgets.length).toBe(1);
         const widget = result.pages[0].widgets[0];
         expect(widget.type).toBe('odp_polygon');
@@ -138,7 +140,7 @@ describe('ODP-specific widget parsing', () => {
             { type: 'ellipse', x_start: 267, x_end: 427, y_start: 122, y_end: 172, outline: 'black', width: 1 }
         ];
         const result = parseOEPLArrayToLayout(items);
-        
+
         expect(result.pages[0].widgets.length).toBe(1);
         const widget = result.pages[0].widgets[0];
         expect(widget.type).toBe('odp_ellipse');
@@ -151,7 +153,7 @@ describe('ODP-specific widget parsing', () => {
             { type: 'arc', x: 597, y: 369, radius: 50, start_angle: 0, end_angle: 90, outline: 'black', width: 1 }
         ];
         const result = parseOEPLArrayToLayout(items);
-        
+
         expect(result.pages[0].widgets.length).toBe(1);
         const widget = result.pages[0].widgets[0];
         expect(widget.type).toBe('odp_arc');
@@ -165,7 +167,7 @@ describe('ODP-specific widget parsing', () => {
             { type: 'icon_sequence', x: 447, y: 255, icons: ['mdi:home', 'mdi:arrow-right', 'mdi:office-building'], size: 24, direction: 'right', spacing: 6, fill: 'black' }
         ];
         const result = parseOEPLArrayToLayout(items);
-        
+
         expect(result.pages[0].widgets.length).toBe(1);
         const widget = result.pages[0].widgets[0];
         expect(widget.type).toBe('odp_icon_sequence');
@@ -181,7 +183,7 @@ describe('ODP-specific widget parsing', () => {
             { type: 'arc', x: 200, y: 100, radius: 30 }
         ];
         const result = parseOEPLArrayToLayout(items);
-        
+
         expect(result.pages[0].widgets.length).toBe(4);
         expect(result.pages[0].widgets[0].type).toBe('text');
         expect(result.pages[0].widgets[1].type).toBe('odp_multiline');

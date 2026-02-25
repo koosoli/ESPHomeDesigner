@@ -194,8 +194,8 @@ const exportLVGL = (w, { common, convertColor, getLVGLFont }) => {
       std::string q = id(${safeIdPrefix}_text_global);
       std::string a = id(${safeIdPrefix}_author_global);
       if (q.empty()) return "Loading quote...";
-      if (a.empty()) return ("\\"" + q + "\\"").c_str();
-      return ("\\"" + q + "\\"\\n— " + a).c_str();
+      if (a.empty()) return ('"' + q + '"').c_str();
+      return ('"' + q + '"\n— ' + a).c_str();
     `;
 
     const textAlign = (p.text_align || "CENTER").replace("TOP_", "").replace("BOTTOM_", "").toLowerCase();
@@ -242,7 +242,6 @@ const exportDoc = (w, context) => {
     const quoteFontId = addFont(fontFamily, fontWeight, quoteFontSize, italicQuote);
     const authorFontId = addFont(fontFamily, fontWeight, authorFontSize, false);
 
-    lines.push(`        // widget:quote_rss id:${w.id} type:quote_rss x:${w.x} y:${w.y} w:${w.width} h:${w.height} color:${colorProp} align:${textAlign} ${getCondProps(w)}`);
 
     // Background fill
     const bgColorProp = p.bg_color || p.background_color || "transparent";
@@ -274,7 +273,7 @@ const exportDoc = (w, context) => {
         const esphomeAlign = `TextAlign::${textAlign}`;
         lines.push(`          int max_w = ${w.width - 16};`);
         lines.push(`          int q_h = ${quoteFontSize + 4};`);
-        lines.push(`          std::string display_text = "\\\"" + q_text + "\\\"";`);
+        lines.push(`          std::string display_text = "\\"" + q_text + "\\"";`);
 
         lines.push(`          auto print_q = [&](esphome::font::Font *f, int line_h, bool draw) -> int {`);
         lines.push(`            int y_curr = ${w.y + 8};`);

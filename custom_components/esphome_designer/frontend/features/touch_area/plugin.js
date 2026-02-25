@@ -89,7 +89,6 @@ const exportDoc = (w, context) => {
     const iconColorProp = p.icon_color || "theme_auto";
     const iconColor = getColorConst(iconColorProp);
 
-    lines.push(`        // widget:touch_area id:${w.id} type:touch_area x:${w.x} y:${w.y} w:${w.width} h:${w.height} icon:"${p.icon || ""}" icon_pressed:"${p.icon_pressed || ""}" icon_size:${iconSize} icon_color:${iconColorProp} ${getCondProps(w)}`);
 
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
@@ -211,7 +210,8 @@ export default {
                 { key: "icon_size", label: "Icon Size", type: "number", default: 40 },
                 { key: "icon_color", label: "Icon Color", type: "color", default: "theme_auto" },
                 { key: "color", label: "Fill Color (Editor)", type: "color", default: "rgba(0, 0, 255, 0.15)" },
-                { key: "border_color", label: "Border Color (Editor)", type: "color", default: "#0000ff" }
+                { key: "border_color", label: "Border Color (Editor)", type: "color", default: "#0000ff" },
+                { key: "on_click", label: "On Click Lambda", type: "text", default: "" }
             ]
         }
     ],

@@ -1,3 +1,4 @@
+import { AppState } from '@core/state.js';
 /**
  * Circle Shape Plugin
  */
@@ -48,6 +49,8 @@ export default {
         fill: false,
         border_width: 1,
         color: "theme_auto",
+        border_color: "theme_auto",
+        opacity: 100,
         opa: 255
     },
     renderProperties: (panel, widget) => {
@@ -134,7 +137,6 @@ export default {
         const circleY = Math.floor(w.y + w.height / 2 + (typeof RECT_Y_OFFSET !== 'undefined' ? RECT_Y_OFFSET : 0));
         const radius = Math.floor(Math.min(w.width, w.height) / 2);
 
-        lines.push(`        // widget:shape_circle id:${w.id} type:shape_circle x:${circleX} y:${circleY} r:${radius} fill:${fill} border:${borderWidth} color:${fillColorProp} border_color:${borderColorProp} ${getCondProps(w)}`);
 
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);

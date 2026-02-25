@@ -5,7 +5,7 @@
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     const text = props.text || "";
-    const placeholder = props.placeholder || "Enter text...";
+    const placeholder = props.placeholder_text || "Enter text...";
 
     el.innerHTML = "";
     el.style.display = "flex";
@@ -68,7 +68,7 @@ export default {
     category: "LVGL",
     defaults: {
         text: "",
-        placeholder: "Enter text...",
+        placeholder_text: "Enter text...",
         max_length: 128,
         accepted_chars: "",
         one_line: false,
@@ -81,7 +81,7 @@ export default {
             section: "Content",
             fields: [
                 { key: "text", label: "Initial Text", type: "text", default: "" },
-                { key: "placeholder", label: "Placeholder", type: "text", default: "Enter text..." },
+                { key: "placeholder_text", label: "Placeholder", type: "text", default: "Enter text..." },
                 { key: "accepted_chars", label: "Accepted Characters", type: "text", default: "" }
             ]
         },

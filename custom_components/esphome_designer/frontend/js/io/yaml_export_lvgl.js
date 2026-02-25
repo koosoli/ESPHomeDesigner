@@ -143,7 +143,17 @@ export function generateLVGLSnippet(pages, deviceModel, profileOverride = null, 
 function serializeYamlObject(obj, lines, indentLevel) {
     const spaces = " ".repeat(indentLevel);
 
-    Object.entries(obj).forEach(([key, val]) => {
+    const keys = Object.keys(obj).sort((a, b) => {
+        // Boost 'id' and 'type' to the top
+        if (a === "id") return -1;
+        if (b === "id") return 1;
+        if (a === "type") return -1;
+        if (b === "type") return 1;
+        return a.localeCompare(b);
+    });
+
+    keys.forEach(key => {
+        const val = obj[key];
         if (val === undefined || val === null || val === "") return;
 
         if (Array.isArray(val)) {
@@ -259,12 +269,51 @@ export function serializeWidget(w) {
     // Locked state (only serialize if true to keep YAML clean)
     if (w.locked) parts.push(`locked:true`);
 
+    // Get defaults for this plugin to avoid redundant serialization
+    const plugin = registry ? registry.get(w.type) : null;
+    const defaults = plugin ? { ...plugin.defaults } : {};
+
+    // Common LVGL defaults that are automatically applied in buildWidgetProps
+    if (w.type.startsWith("lvgl_")) {
+        const commonDefaults = {
+            hidden: false,
+            clickable: true,
+            checkable: false,
+            scrollable: true,
+            floating: false,
+            ignore_layout: false,
+            scrollbar_mode: "AUTO",
+            opa: 255,
+            grid_cell_row_pos: null,
+            grid_cell_column_pos: null,
+            grid_cell_row_span: 1,
+            grid_cell_column_span: 1,
+            grid_cell_x_align: "STRETCH",
+            grid_cell_y_align: "STRETCH"
+        };
+        Object.assign(defaults, commonDefaults);
+    }
+
     // Extended properties
     if (w.props) {
         Object.entries(w.props).forEach(([k, v]) => {
             if (v === undefined || v === null || v === "") return;
             // Prevent property duplication or weird nesting
-            if (k === 'id' || k === 'type' || k === 'x' || k === 'y' || k === 'w' || k === 'h' || k === 'entity_id') return;
+            // Prevent property duplication or weird nesting
+            if (k === 'id' && v === w.id) return;
+            if (k === 'type' && v === w.type) return;
+            if (k === 'x' && Math.round(v) === Math.round(w.x)) return;
+            if (k === 'y' && Math.round(v) === Math.round(w.y)) return;
+            if (k === 'w' && Math.round(v) === Math.round(w.width || w.w)) return;
+            if (k === 'h' && Math.round(v) === Math.round(w.height || w.h)) return;
+            if (k === 'entity_id' && v === w.entity_id) return;
+
+            // Skip if it matches the default value (to keep YAML clean and ensure round-trip symmetry)
+            if (k in defaults) {
+                if (defaults[k] === v) return;
+                // Handle deep equality for objects/arrays in defaults vs props
+                if (typeof v === 'object' && JSON.stringify(defaults[k]) === JSON.stringify(v)) return;
+            }
 
             if (typeof v === 'object') {
                 try {
@@ -273,8 +322,6 @@ export function serializeWidget(w) {
                     Logger.warn(`[serializeWidget] Failed to serialize prop ${k}`, e);
                 }
             } else {
-                // Use JSON.stringify for primitives too to ensure strings are quoted/escaped
-                // and numbers/booleans are formatted correctly.
                 parts.push(`${k}:${JSON.stringify(v)}`);
             }
         });

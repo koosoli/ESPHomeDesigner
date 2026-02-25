@@ -24,6 +24,16 @@ export default {
         outline: "black",
         border_width: 1
     },
+    schema: [
+        {
+            section: "Appearance",
+            fields: [
+                { key: "fill", label: "Fill Color", type: "color", default: null },
+                { key: "outline", label: "Outline Color", type: "color", default: "black" },
+                { key: "border_width", label: "Border Width", type: "number", default: 1 }
+            ]
+        }
+    ],
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};

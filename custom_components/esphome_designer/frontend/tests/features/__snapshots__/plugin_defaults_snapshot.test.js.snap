@@ -1,0 +1,920 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of battery_icon 1`] = `
+{
+  "color": "theme_auto",
+  "font_size": 14,
+  "height": 60,
+  "opa": 255,
+  "size": 36,
+  "width": 60,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of calendar 1`] = `
+{
+  "background_color": "transparent",
+  "border_color": "theme_auto",
+  "border_radius": 0,
+  "border_width": 0,
+  "entity_id": "sensor.esp_calendar_data",
+  "font_size_date": 100,
+  "font_size_day": 24,
+  "font_size_event": 18,
+  "font_size_grid": 14,
+  "height": 340,
+  "opa": 255,
+  "show_events": true,
+  "show_grid": true,
+  "show_header": true,
+  "text_color": "theme_auto",
+  "width": 335,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of datetime 1`] = `
+{
+  "bg_color": "transparent",
+  "border_color": "theme_auto",
+  "border_radius": 0,
+  "border_width": 0,
+  "color": "black",
+  "date_font_size": 16,
+  "font_family": "Roboto",
+  "format": "time_date",
+  "height": 50,
+  "italic": false,
+  "opa": 255,
+  "text_align": "CENTER",
+  "time_font_size": 28,
+  "width": 120,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of debug_grid 1`] = `
+{
+  "dash_length": 2,
+  "dashed": true,
+  "height": 300,
+  "label_color": "black",
+  "label_font_size": 10,
+  "label_step": 40,
+  "line_color": "black",
+  "opa": 255,
+  "opacity": 255,
+  "show_labels": true,
+  "space_length": 4,
+  "spacing": 20,
+  "width": 400,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of graph 1`] = `
+{
+  "background_color": "transparent",
+  "border": true,
+  "color": "theme_auto",
+  "continuous": true,
+  "duration": "1h",
+  "grid": true,
+  "height": 100,
+  "line_thickness": 3,
+  "line_type": "SOLID",
+  "max_value": "",
+  "min_value": "",
+  "opa": 255,
+  "title": "",
+  "width": 205,
+  "x_grid": "",
+  "y_grid": "",
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of icon 1`] = `
+{
+  "bg_color": "transparent",
+  "border_color": "theme_auto",
+  "border_radius": 0,
+  "border_width": 0,
+  "code": "F07D0",
+  "color": "theme_auto",
+  "fit_icon_to_frame": true,
+  "font_ref": "font_mdi_medium",
+  "height": 60,
+  "opa": 255,
+  "size": 48,
+  "width": 60,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of image 1`] = `
+{
+  "height": 130,
+  "invert": false,
+  "opa": 255,
+  "path": "/config/esphome/images/logo.png",
+  "size": "native",
+  "url": "",
+  "width": 200,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of line 1`] = `
+{
+  "color": "theme_auto",
+  "height": 10,
+  "opa": 255,
+  "opacity": 255,
+  "orientation": "horizontal",
+  "stroke_width": 3,
+  "width": 100,
+  "x": 0,
+  "y": 0,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_arc 1`] = `
+{
+  "color": "blue",
+  "end_angle": 45,
+  "entity_id": "",
+  "max": 100,
+  "min": 0,
+  "mode": "normal",
+  "opa": 255,
+  "opacity": 255,
+  "start_angle": 135,
+  "thickness": 10,
+  "title": "",
+  "value": 50,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_bar 1`] = `
+{
+  "bg_color": "gray",
+  "color": "blue",
+  "entity_id": "",
+  "max": 100,
+  "min": 0,
+  "mode": "normal",
+  "opa": 255,
+  "opacity": 255,
+  "start_value": 0,
+  "value": 50,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_button 1`] = `
+{
+  "bg_color": "theme_auto_inverse",
+  "border_width": 2,
+  "color": "theme_auto",
+  "entity_id": "",
+  "font_family": "Roboto",
+  "font_size": 14,
+  "font_weight": 400,
+  "italic": false,
+  "opa": 255,
+  "opacity": 255,
+  "radius": 5,
+  "text": "Button",
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_buttonmatrix 1`] = `
+{
+  "bg_color": "#444",
+  "color": "white",
+  "opa": 255,
+  "opacity": 255,
+  "rows": [
+    {
+      "buttons": [
+        "1",
+        "2",
+        "3",
+      ],
+    },
+    {
+      "buttons": [
+        "4",
+        "5",
+        "6",
+      ],
+    },
+    {
+      "buttons": [
+        "7",
+        "8",
+        "9",
+      ],
+    },
+    {
+      "buttons": [
+        "*",
+        "0",
+        "#",
+      ],
+    },
+  ],
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_chart 1`] = `
+{
+  "color": "blue",
+  "max": 100,
+  "min": 0,
+  "opa": 255,
+  "opacity": 255,
+  "point_count": 10,
+  "title": "Chart",
+  "type": "line",
+  "x_div_lines": 3,
+  "y_div_lines": 3,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_checkbox 1`] = `
+{
+  "checked": false,
+  "color": "blue",
+  "entity_id": "",
+  "opa": 255,
+  "opacity": 255,
+  "text": "Checkbox",
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_dropdown 1`] = `
+{
+  "color": "black",
+  "direction": "DOWN",
+  "entity_id": "",
+  "max_height": 200,
+  "opa": 255,
+  "opacity": 255,
+  "options": "Option 1
+Option 2
+Option 3",
+  "selected_index": 0,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_img 1`] = `
+{
+  "color": "black",
+  "opa": 255,
+  "opacity": 255,
+  "pivot_x": 0,
+  "pivot_y": 0,
+  "rotation": 0,
+  "scale": 256,
+  "src": "symbol_image",
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_keyboard 1`] = `
+{
+  "mode": "TEXT_LOWER",
+  "opa": 255,
+  "opacity": 255,
+  "textarea": "",
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_label 1`] = `
+{
+  "bg_color": "transparent",
+  "border_color": "theme_auto",
+  "border_radius": 0,
+  "border_width": 0,
+  "color": "theme_auto",
+  "entity_id": "",
+  "font_family": "Roboto",
+  "font_size": 20,
+  "font_weight": 400,
+  "italic": false,
+  "opa": 255,
+  "text": "Label",
+  "text_align": "CENTER",
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_led 1`] = `
+{
+  "brightness": 255,
+  "color": "red",
+  "entity_id": "",
+  "opa": 255,
+  "opacity": 255,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_line 1`] = `
+{
+  "line_color": "theme_auto",
+  "line_rounded": true,
+  "line_width": 3,
+  "opa": 255,
+  "opacity": 255,
+  "orientation": "horizontal",
+  "points": "",
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_meter 1`] = `
+{
+  "bg_color": "lightgray",
+  "color": "black",
+  "entity_id": "",
+  "height": 140,
+  "indicator_color": "red",
+  "indicator_width": 4,
+  "label_gap": 10,
+  "max": 100,
+  "min": 0,
+  "opa": 255,
+  "opacity": 255,
+  "tick_count": 11,
+  "tick_length": 10,
+  "value": 0,
+  "width": 140,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_obj 1`] = `
+{
+  "bg_color": "white",
+  "border_color": "gray",
+  "border_width": 1,
+  "color": "white",
+  "entity_id": "",
+  "fill": true,
+  "opa": 255,
+  "opacity": 255,
+  "radius": 0,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_qrcode 1`] = `
+{
+  "bg_color": "white",
+  "color": "black",
+  "entity_id": "",
+  "height": 130,
+  "opa": 255,
+  "opacity": 255,
+  "scale": 4,
+  "text": "https://github.com/koosoli/ESPHomeDesigner/",
+  "width": 130,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_roller 1`] = `
+{
+  "bg_color": "white",
+  "color": "black",
+  "entity_id": "",
+  "mode": "normal",
+  "opa": 255,
+  "opacity": 255,
+  "options": "Option A
+Option B
+Option C",
+  "selected_bg_color": "blue",
+  "selected_index": 0,
+  "selected_text_color": "white",
+  "visible_row_count": 3,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_slider 1`] = `
+{
+  "bg_color": "gray",
+  "border_width": 2,
+  "color": "blue",
+  "entity_id": "",
+  "max": 100,
+  "min": 0,
+  "mode": "normal",
+  "opa": 255,
+  "opacity": 255,
+  "value": 30,
+  "vertical": false,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_spinbox 1`] = `
+{
+  "digit_count": 4,
+  "entity_id": "",
+  "opa": 255,
+  "opacity": 255,
+  "step": 1,
+  "value": 0,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_spinner 1`] = `
+{
+  "arc_color": "blue",
+  "arc_length": 60,
+  "opa": 255,
+  "opacity": 255,
+  "time": 1000,
+  "track_color": "white",
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_switch 1`] = `
+{
+  "bg_color": "gray",
+  "checked": false,
+  "color": "blue",
+  "entity_id": "",
+  "knob_color": "white",
+  "opa": 255,
+  "opacity": 255,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_tabview 1`] = `
+{
+  "bg_color": "white",
+  "opa": 255,
+  "opacity": 255,
+  "tab_pos": "TOP",
+  "tab_size": 10,
+  "tabs": [
+    "Page 1",
+    "Page 2",
+    "Page 3",
+  ],
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_textarea 1`] = `
+{
+  "accepted_chars": "",
+  "max_length": 128,
+  "one_line": false,
+  "opa": 255,
+  "opacity": 255,
+  "password_mode": false,
+  "placeholder": "Enter text...",
+  "text": "",
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_tileview 1`] = `
+{
+  "bg_color": "white",
+  "opa": 255,
+  "opacity": 255,
+  "tiles": [
+    {
+      "column": 0,
+      "row": 0,
+      "widgets": [],
+    },
+  ],
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of odp_arc 1`] = `
+{
+  "border_width": 2,
+  "end_angle": 90,
+  "height": 100,
+  "outline": "black",
+  "radius": 50,
+  "start_angle": 0,
+  "width": 100,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of odp_ellipse 1`] = `
+{
+  "border_width": 1,
+  "fill": null,
+  "height": 80,
+  "outline": "black",
+  "width": 150,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of odp_icon_sequence 1`] = `
+{
+  "direction": "right",
+  "fill": "black",
+  "height": 30,
+  "icons": [
+    "mdi:home",
+    "mdi:arrow-right",
+    "mdi:office-building",
+  ],
+  "size": 24,
+  "spacing": 6,
+  "width": 120,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of odp_multiline 1`] = `
+{
+  "color": "black",
+  "delimiter": "|",
+  "font_family": "Roboto",
+  "font_size": 16,
+  "height": 60,
+  "line_spacing": 4,
+  "text": "Line 1|Line 2|Line 3",
+  "width": 150,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of odp_plot 1`] = `
+{
+  "background": "white",
+  "data": [
+    {
+      "color": "black",
+      "entity": "sensor.temperature",
+      "show_points": true,
+      "smooth": true,
+      "width": 1,
+    },
+  ],
+  "duration": 36400,
+  "height": 100,
+  "outline": "#ccc",
+  "width": 200,
+  "ylegend": null,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of odp_polygon 1`] = `
+{
+  "border_width": 1,
+  "fill": "red",
+  "height": 100,
+  "outline": "black",
+  "points": [
+    [
+      0,
+      0,
+    ],
+    [
+      100,
+      0,
+    ],
+    [
+      100,
+      100,
+    ],
+    [
+      0,
+      100,
+    ],
+  ],
+  "width": 100,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of odp_rectangle_pattern 1`] = `
+{
+  "border_width": 1,
+  "fill": "white",
+  "height": 80,
+  "outline": "black",
+  "width": 120,
+  "x_offset": 5,
+  "x_repeat": 3,
+  "x_size": 30,
+  "y_offset": 5,
+  "y_repeat": 2,
+  "y_size": 15,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of ondevice_humidity 1`] = `
+{
+  "color": "black",
+  "entity_id": "",
+  "fit_icon_to_frame": true,
+  "font_size": 16,
+  "height": 60,
+  "is_local_sensor": true,
+  "label_font_size": 10,
+  "opa": 255,
+  "opacity": 255,
+  "precision": 0,
+  "show_label": true,
+  "size": 32,
+  "unit": "%",
+  "width": 60,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of ondevice_temperature 1`] = `
+{
+  "color": "black",
+  "entity_id": "",
+  "fit_icon_to_frame": true,
+  "font_size": 16,
+  "height": 60,
+  "is_local_sensor": true,
+  "label_font_size": 10,
+  "opa": 255,
+  "opacity": 255,
+  "precision": 1,
+  "show_label": true,
+  "size": 32,
+  "unit": "°C",
+  "width": 60,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of online_image 1`] = `
+{
+  "color": "black",
+  "invert": false,
+  "opa": 255,
+  "rotation": 0,
+  "update_interval": "1h",
+  "url": "",
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of progress_bar 1`] = `
+{
+  "bar_height": 15,
+  "bg_color": "white",
+  "border_width": 1,
+  "color": "theme_auto",
+  "font_size": 12,
+  "max": 100,
+  "min": 0,
+  "mode": "normal",
+  "opa": 255,
+  "orientation": "horizontal",
+  "show_label": true,
+  "show_percentage": true,
+  "text_align": "CENTER",
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of qr_code 1`] = `
+{
+  "bg_color": "white",
+  "color": "theme_auto",
+  "ecc": "LOW",
+  "height": 130,
+  "opa": 255,
+  "value": "https://github.com/koosoli/ESPHomeDesigner/",
+  "width": 130,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of quote_rss 1`] = `
+{
+  "author_font_size": 14,
+  "bg_color": "transparent",
+  "border_color": "theme_auto",
+  "border_radius": 0,
+  "border_width": 0,
+  "color": "theme_auto",
+  "feed_url": "https://www.brainyquote.com/link/quotebr.rss",
+  "font_family": "Roboto",
+  "font_weight": 400,
+  "ha_url": "http://homeassistant.local:8123",
+  "height": 120,
+  "italic_quote": true,
+  "opa": 255,
+  "opacity": 255,
+  "quote_font_size": 18,
+  "random": true,
+  "refresh_interval": "1h",
+  "show_author": true,
+  "text_align": "TOP_LEFT",
+  "width": 400,
+  "word_wrap": true,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of rounded_rect 1`] = `
+{
+  "border_color": "theme_auto",
+  "border_width": 4,
+  "color": "theme_auto",
+  "fill": false,
+  "height": 100,
+  "opa": 255,
+  "opacity": 255,
+  "radius": 10,
+  "show_border": true,
+  "width": 100,
+  "x": 0,
+  "y": 0,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of sensor_text 1`] = `
+{
+  "bg_color": "transparent",
+  "border_color": "theme_auto",
+  "border_radius": 0,
+  "border_width": 0,
+  "bpp": 1,
+  "color": "theme_auto",
+  "custom_font_family": "",
+  "entity_id": "",
+  "font_family": "Roboto",
+  "font_weight": 400,
+  "italic": false,
+  "label_align": "TOP_LEFT",
+  "label_font_size": 14,
+  "opa": 255,
+  "opacity": 100,
+  "parse_colors": false,
+  "precision": 2,
+  "text_align": "TOP_LEFT",
+  "title": "",
+  "unit": "",
+  "value_align": "TOP_LEFT",
+  "value_font_size": 20,
+  "value_format": "label_value",
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of shape_circle 1`] = `
+{
+  "border_width": 1,
+  "color": "theme_auto",
+  "fill": false,
+  "height": 80,
+  "opa": 255,
+  "width": 80,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of shape_rect 1`] = `
+{
+  "border_width": 1,
+  "color": "theme_auto",
+  "fill": false,
+  "height": 100,
+  "opa": 255,
+  "radius": 0,
+  "width": 100,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of template_nav_bar 1`] = `
+{
+  "background_color": "black",
+  "border_color": "white",
+  "border_radius": 8,
+  "border_thickness": 0,
+  "color": "white",
+  "height": 40,
+  "home_target": "home",
+  "icon_size": 24,
+  "next_target": "relative_next",
+  "opa": 255,
+  "opacity": 255,
+  "prev_target": "relative_prev",
+  "show_background": true,
+  "show_home": true,
+  "show_next": true,
+  "show_prev": true,
+  "width": 180,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of template_sensor_bar 1`] = `
+{
+  "background_color": "black",
+  "bat_entity": "",
+  "bat_is_local": false,
+  "border_color": "white",
+  "border_radius": 8,
+  "border_thickness": 0,
+  "color": "white",
+  "font_size": 14,
+  "h": 43,
+  "height": 43,
+  "hum_entity": "",
+  "hum_is_local": false,
+  "icon_size": 20,
+  "opa": 255,
+  "opacity": 255,
+  "show_background": true,
+  "show_battery": true,
+  "show_humidity": true,
+  "show_temperature": true,
+  "show_wifi": true,
+  "temp_entity": "",
+  "temp_is_local": false,
+  "temp_unit": "°C",
+  "w": 355,
+  "width": 355,
+  "wifi_entity": "",
+  "wifi_is_local": false,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of text 1`] = `
+{
+  "bg_color": "transparent",
+  "border_color": "black",
+  "border_radius": 0,
+  "border_width": 0,
+  "bpp": 1,
+  "color": "theme_auto",
+  "font_family": "Roboto",
+  "font_size": 20,
+  "font_weight": 400,
+  "italic": false,
+  "opa": 255,
+  "text": "Text",
+  "text_align": "TOP_LEFT",
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of touch_area 1`] = `
+{
+  "border_color": "#0000ff",
+  "color": "rgba(0, 0, 255, 0.15)",
+  "entity_id": "",
+  "icon": "",
+  "icon_color": "theme_auto",
+  "icon_pressed": "",
+  "icon_size": 40,
+  "nav_action": "none",
+  "on_click": "",
+  "title": "",
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of weather_forecast 1`] = `
+{
+  "background_color": "transparent",
+  "bg_color": "transparent",
+  "border_color": "theme_auto",
+  "border_radius": 0,
+  "border_width": 0,
+  "color": "theme_auto",
+  "custom_font_family": "",
+  "day_font_size": 12,
+  "days": 5,
+  "font_family": "Roboto",
+  "forecast_mode": "daily",
+  "height": 90,
+  "hourly_slots": "06,09,12,15,18,21",
+  "icon_size": 32,
+  "layout": "horizontal",
+  "opa": 255,
+  "opacity": 100,
+  "precision": 1,
+  "show_high_low": true,
+  "start_offset": 0,
+  "temp_font_size": 14,
+  "temp_unit": "C",
+  "weather_entity": "weather.forecast_home",
+  "width": 370,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of weather_icon 1`] = `
+{
+  "attribute": "",
+  "background_color": "transparent",
+  "bg_color": "transparent",
+  "border_color": "theme_auto",
+  "border_radius": 0,
+  "border_width": 0,
+  "color": "theme_auto",
+  "entity_id": "weather.forecast_home",
+  "fit_icon_to_frame": true,
+  "height": 60,
+  "opa": 255,
+  "opacity": 100,
+  "size": 48,
+  "weather_entity": "weather.forecast_home",
+  "width": 60,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of wifi_signal 1`] = `
+{
+  "color": "theme_auto",
+  "fit_icon_to_frame": false,
+  "font_size": 12,
+  "is_local_sensor": true,
+  "opa": 255,
+  "show_dbm": true,
+  "size": 24,
+}
+`;

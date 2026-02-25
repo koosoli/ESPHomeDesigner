@@ -99,6 +99,10 @@ function generateWidget(widget, context) {
     const isLvglWidget = widget.type && widget.type.startsWith("lvgl_");
 
     if (plugin && typeof plugin.export === 'function') {
+        // Automatically prepend the round-trip marker comment
+        const serialized = serializeWidget(widget);
+        if (serialized) widgetLines.push(serialized);
+
         const exportContext = {
             ...context,
             lines: widgetLines,

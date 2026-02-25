@@ -376,7 +376,6 @@ export default {
         }
         if (!sensorId) sensorId = "onboard_humidity";
 
-        lines.push(`        // widget:ondevice_humidity id:${w.id} type:ondevice_humidity x:${w.x} y:${w.y} w:${w.width} h:${w.height} unit:${unit} local:${isLocal} ent:${w.entity_id || ""} ${getCondProps(w)}`);
 
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);

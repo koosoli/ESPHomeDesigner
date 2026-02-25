@@ -1,6 +1,7 @@
 /**
  * Image Plugin
  */
+import { AppState } from '@core/state.js';
 
 const isOffline = () => window.location.protocol === 'file:' || !window.location.hostname;
 
@@ -184,7 +185,6 @@ const exportDoc = (w, context) => {
     if (!path) return;
 
     const safeId = getSafeImageId(w);
-    lines.push(`        // widget:image id:${w.id} type:image x:${w.x} y:${w.y} w:${w.width} h:${w.height} path:"${path}" invert:${invert} ${getCondProps(w)}`);
 
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
@@ -277,6 +277,9 @@ export default {
         path: "/config/esphome/images/logo.png",
         url: "",
         invert: false,
+        dither: "FLOYDSTEINBERG",
+        image_type: "BINARY",
+        render_mode: "Auto",
         size: "native",
         width: 200,
         height: 130,

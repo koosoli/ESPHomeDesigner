@@ -59,6 +59,23 @@ export default {
         spacing: 6,
         fill: "black"
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "icons", label: "Icons (comma-sep)", type: "text", default: "mdi:home, mdi:arrow-right, mdi:office-building" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "size", label: "Icon Size", type: "number", default: 24 },
+                { key: "direction", label: "Direction", type: "select", options: ["right", "left", "up", "down"], default: "right" },
+                { key: "spacing", label: "Spacing", type: "number", default: 6 },
+                { key: "fill", label: "Icon Color", type: "color", default: "black" }
+            ]
+        }
+    ],
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};

@@ -111,7 +111,9 @@ export class DeviceSettings {
                     const file = e.target.files[0];
                     try {
                         await uploadHardwareTemplate(file);
-                    } catch (err) { }
+                    } catch (err) {
+                        // Silently ignore hardware import errors (user likely canceled or invalid file)
+                    }
                     fileInput.value = "";
                 }
             });

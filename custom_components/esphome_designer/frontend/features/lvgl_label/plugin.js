@@ -1,6 +1,7 @@
 /**
  * LVGL Label Plugin
  */
+import { AppState } from '@core/state.js';
 
 import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js';
 
@@ -19,7 +20,7 @@ const render = (el, widget, { getColorStyle }) => {
 
     el.innerText = text;
     el.style.fontSize = (props.font_size || 20) + "px";
-    el.style.color = getColorStyle(props.color || "black");
+    el.style.color = getColorStyle(props.text_color || "black");
     el.style.backgroundColor = (props.bg_color && props.bg_color !== "transparent") ? getColorStyle(props.bg_color) : "transparent";
     el.style.display = "flex";
 
@@ -82,7 +83,7 @@ const exportLVGL = (w, { common, convertColor, convertAlign, getLVGLFont, format
             ...common,
             text: labelText,
             text_font: getLVGLFont(p.font_family, p.font_size, p.font_weight, p.italic),
-            text_color: convertColor(p.color || p.text_color),
+            text_color: convertColor(p.text_color),
             text_align: textAlign,
             bg_color: p.bg_color === "transparent" ? undefined : convertColor(p.bg_color),
             opa: formatOpacity(p.opa),
@@ -102,7 +103,7 @@ export default {
         text: "Label",
         font_size: 20,
         font_family: "Roboto",
-        color: "theme_auto",
+        text_color: "theme_auto",
         font_weight: 400,
         italic: false,
         text_align: "CENTER",
@@ -163,7 +164,7 @@ export default {
         panel.endSection();
 
         panel.createSection("Appearance", false);
-        panel.addColorSelector("Text Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
+        panel.addColorSelector("Text Color", props.text_color || "theme_auto", null, (v) => updateProp("text_color", v));
         panel.addColorSelector("Background", props.bg_color || "transparent", null, (v) => updateProp("bg_color", v));
         panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : (props.opa !== undefined ? Math.round(props.opa / 2.55) : 100), 0, 100, (v) => {
             updateProp("opacity", v);
@@ -193,7 +194,6 @@ export default {
         const text = p.text || "Label";
         const textAlign = p.text_align || "CENTER";
 
-        lines.push(`        // widget:lvgl_label id:${w.id} type:lvgl_label x:${w.x} y:${w.y} w:${w.width} h:${w.height} align:${textAlign} text:"${text.substring(0, 50)}" ${getCondProps(w)}`);
 
         // Background fill
         const bgColorProp = p.bg_color || p.background_color || "transparent";

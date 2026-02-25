@@ -1,3 +1,4 @@
+import { AppState } from '@core/state.js';
 import { TemplateConverter } from '../../js/utils/template_converter.js';
 
 const render = (el, widget, tools) => {
@@ -170,7 +171,6 @@ const exportDoc = (w, context) => {
         entityId = `sensor.${entityId}`;
     }
 
-    lines.push(`        // widget:progress_bar id:${w.id} type:progress_bar x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} title:"${title}" orientation:${orientation} range:[${min},${max}] color:${colorProp} local:${!!p.is_local_sensor} ${getCondProps(w)}`);
 
     // Background fill
     const bgColorProp = p.bg_color || p.background_color || "transparent";
@@ -314,7 +314,9 @@ export default {
         font_size: 12,
         text_align: "CENTER",
         mode: "normal",
-        opa: 255
+        is_local_sensor: false,
+        opa: 255,
+        opacity: 255
     },
     renderProperties: (panel, widget) => {
         const props = widget.props || {};

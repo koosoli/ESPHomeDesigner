@@ -67,6 +67,22 @@ export default {
         outline: "black",
         border_width: 1
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "points", label: "Points (JSON [[x,y],...])", type: "text", default: "[[0,0], [100,0], [100,100], [0,100]]" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "fill", label: "Fill Color", type: "color", default: "red" },
+                { key: "outline", label: "Outline Color", type: "color", default: "black" },
+                { key: "border_width", label: "Border Width", type: "number", default: 1 }
+            ]
+        }
+    ],
     render,
     exportOpenDisplay: (w, { layout, page }) => {
         const p = w.props || {};

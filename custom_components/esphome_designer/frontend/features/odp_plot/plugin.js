@@ -92,7 +92,9 @@ export default {
             section: "Appearance",
             fields: [
                 { key: "background", label: "Background", type: "color", default: "white" },
-                { key: "outline", label: "Outline", type: "color", default: "#ccc" }
+                { key: "outline", label: "Outline", type: "color", default: "#ccc" },
+                { key: "data", label: "Series Config", type: "hidden", default: [{ entity: "sensor.temperature", color: "black", width: 1, smooth: true, show_points: true }] },
+                { key: "ylegend", label: "Y Legend", type: "text", default: null }
             ]
         }
     ],
