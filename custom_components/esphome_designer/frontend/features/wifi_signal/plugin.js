@@ -1,4 +1,4 @@
-import { AppState } from '@core/state.js';
+import { AppState } from '@core/state';
 /**
  * WiFi Signal Plugin
  */
@@ -73,7 +73,7 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportDoc = (w, context) => {
     const {
-        lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper
+        lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
@@ -218,7 +218,7 @@ export default {
         panel.endSection();
     },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "sensor.wifi_signal").trim();
         const size = p.size || 24;
@@ -261,7 +261,7 @@ export default {
 
         return actions;
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "sensor.wifi_signal").trim();
         const size = p.size || 24;
@@ -300,7 +300,7 @@ export default {
 
         return elements;
     },
-    exportLVGL: (w, { common, convertColor, getLVGLFont, formatOpacity }) => {
+    exportLVGL: (w, { common, convertColor, getLVGLFont, _formatOpacity }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "").trim();
         const isLocal = p.is_local_sensor !== false;
@@ -378,7 +378,7 @@ export default {
     export: exportDoc,
     onExportNumericSensors: (context) => {
         // REGRESSION PROOF: Always destructure 'lines' from context
-        const { lines, widgets, isLvgl, pendingTriggers, profile } = context;
+        const { lines, widgets, isLvgl, pendingTriggers, profile } = context; // eslint-disable-line no-unused-vars
         if (!widgets) return;
 
         let needsLocalWifi = false;

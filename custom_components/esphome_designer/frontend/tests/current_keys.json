@@ -6,7 +6,24 @@
   },
   "calendar": {
     "root": [],
-    "props": [],
+    "props": [
+      "show_header",
+      "show_grid",
+      "show_events",
+      "max_events",
+      "font_family",
+      "font_size_date",
+      "font_size_day",
+      "font_size_grid",
+      "font_size_event",
+      "text_color",
+      "background_color",
+      "border_width",
+      "border_color",
+      "border_radius",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "datetime": {
@@ -16,7 +33,19 @@
   },
   "debug_grid": {
     "root": [],
-    "props": [],
+    "props": [
+      "spacing",
+      "dashed",
+      "dash_length",
+      "space_length",
+      "show_labels",
+      "label_step",
+      "label_font_size",
+      "line_color",
+      "label_color",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "graph": {
@@ -35,53 +64,155 @@
     "has_drop_shadow": false
   },
   "line": {
-    "root": [],
-    "props": [],
+    "root": [
+      "x",
+      "y",
+      "width",
+      "height"
+    ],
+    "props": [
+      "orientation",
+      "stroke_width",
+      "color",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_arc": {
-    "root": [],
-    "props": [],
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "value",
+      "min",
+      "max",
+      "thickness",
+      "start_angle",
+      "end_angle",
+      "mode",
+      "title",
+      "color",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_bar": {
-    "root": [],
-    "props": [],
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "value",
+      "min",
+      "max",
+      "start_value",
+      "mode",
+      "color",
+      "bg_color",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_button": {
-    "root": [],
-    "props": [],
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "text",
+      "text_color",
+      "bg_color",
+      "border_width",
+      "radius",
+      "opa",
+      "opacity",
+      "font_size",
+      "font_family",
+      "font_weight",
+      "italic"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_buttonmatrix": {
     "root": [],
-    "props": [],
+    "props": [
+      "rows",
+      "bg_color",
+      "text_color",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_chart": {
     "root": [],
-    "props": [],
+    "props": [
+      "title",
+      "min",
+      "max",
+      "point_count",
+      "type",
+      "color",
+      "bg_color",
+      "x_div_lines",
+      "y_div_lines",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_checkbox": {
-    "root": [],
-    "props": [],
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "text",
+      "checked",
+      "color",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_dropdown": {
-    "root": [],
-    "props": [],
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "options",
+      "selected_index",
+      "direction",
+      "max_height",
+      "color",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_img": {
     "root": [],
-    "props": [],
+    "props": [
+      "src",
+      "color",
+      "rotation",
+      "scale",
+      "opa",
+      "opacity",
+      "pivot_x",
+      "pivot_y"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_keyboard": {
-    "root": [],
-    "props": [],
+    "root": [
+      "textarea"
+    ],
+    "props": [
+      "mode",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_label": {
@@ -90,113 +221,307 @@
     "has_drop_shadow": false
   },
   "lvgl_led": {
-    "root": [],
-    "props": [],
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "color",
+      "brightness",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_line": {
     "root": [],
-    "props": [],
+    "props": [
+      "orientation",
+      "line_width",
+      "line_rounded",
+      "points",
+      "line_color",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_meter": {
-    "root": [],
-    "props": [],
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "value",
+      "min",
+      "max",
+      "color",
+      "bg_color",
+      "tick_count",
+      "tick_length",
+      "label_gap",
+      "indicator_color",
+      "indicator_width",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_obj": {
-    "root": [],
-    "props": [],
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "bg_color",
+      "border_color",
+      "border_width",
+      "radius",
+      "opa",
+      "opacity",
+      "fill"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_qrcode": {
-    "root": [],
-    "props": [],
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "text",
+      "color",
+      "bg_color",
+      "scale",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_roller": {
-    "root": [],
-    "props": [],
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "options",
+      "selected_index",
+      "visible_row_count",
+      "mode",
+      "bg_color",
+      "color",
+      "selected_bg_color",
+      "selected_text_color",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_slider": {
-    "root": [],
-    "props": [],
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "value",
+      "min",
+      "max",
+      "mode",
+      "color",
+      "bg_color",
+      "border_width",
+      "vertical",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_spinbox": {
-    "root": [],
-    "props": [],
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "value",
+      "digit_count",
+      "min",
+      "max",
+      "step",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_spinner": {
     "root": [],
-    "props": [],
+    "props": [
+      "time",
+      "arc_length",
+      "arc_color",
+      "track_color",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_switch": {
-    "root": [],
-    "props": [],
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "checked",
+      "color",
+      "bg_color",
+      "knob_color",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_tabview": {
     "root": [],
-    "props": [],
+    "props": [
+      "tabs",
+      "tab_pos",
+      "tab_size",
+      "bg_color",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_textarea": {
     "root": [],
-    "props": [],
+    "props": [
+      "text",
+      "placeholder_text",
+      "accepted_chars",
+      "max_length",
+      "one_line",
+      "password_mode",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "lvgl_tileview": {
     "root": [],
-    "props": [],
+    "props": [
+      "tiles",
+      "bg_color",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "odp_arc": {
     "root": [],
-    "props": [],
+    "props": [
+      "radius",
+      "start_angle",
+      "end_angle",
+      "outline",
+      "border_width"
+    ],
     "has_drop_shadow": false
   },
   "odp_ellipse": {
     "root": [],
-    "props": [],
+    "props": [
+      "fill",
+      "outline",
+      "border_width"
+    ],
     "has_drop_shadow": false
   },
   "odp_icon_sequence": {
     "root": [],
-    "props": [],
+    "props": [
+      "icons",
+      "size",
+      "direction",
+      "spacing",
+      "fill"
+    ],
     "has_drop_shadow": false
   },
   "odp_multiline": {
     "root": [],
-    "props": [],
+    "props": [
+      "text",
+      "delimiter",
+      "font_size",
+      "line_spacing",
+      "color",
+      "font_family"
+    ],
     "has_drop_shadow": false
   },
   "odp_plot": {
     "root": [],
-    "props": [],
+    "props": [
+      "duration",
+      "background",
+      "outline",
+      "data",
+      "ylegend"
+    ],
     "has_drop_shadow": false
   },
   "odp_polygon": {
     "root": [],
-    "props": [],
+    "props": [
+      "points",
+      "fill",
+      "outline",
+      "border_width"
+    ],
     "has_drop_shadow": false
   },
   "odp_rectangle_pattern": {
     "root": [],
-    "props": [],
+    "props": [
+      "x_size",
+      "y_size",
+      "x_offset",
+      "y_offset",
+      "x_repeat",
+      "y_repeat",
+      "fill",
+      "outline",
+      "border_width"
+    ],
     "has_drop_shadow": false
   },
   "ondevice_humidity": {
-    "root": [],
-    "props": [],
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "is_local_sensor",
+      "unit",
+      "precision",
+      "show_label",
+      "fit_icon_to_frame",
+      "size",
+      "font_size",
+      "label_font_size",
+      "color",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "ondevice_temperature": {
-    "root": [],
-    "props": [],
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "is_local_sensor",
+      "unit",
+      "precision",
+      "show_label",
+      "fit_icon_to_frame",
+      "size",
+      "font_size",
+      "label_font_size",
+      "color",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "online_image": {
@@ -216,13 +541,47 @@
   },
   "quote_rss": {
     "root": [],
-    "props": [],
+    "props": [
+      "feed_url",
+      "refresh_interval",
+      "random",
+      "ha_url",
+      "show_author",
+      "font_family",
+      "quote_font_size",
+      "author_font_size",
+      "font_weight",
+      "italic_quote",
+      "text_align",
+      "word_wrap",
+      "color",
+      "bg_color",
+      "border_width",
+      "border_color",
+      "border_radius",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "rounded_rect": {
-    "root": [],
-    "props": [],
-    "has_drop_shadow": false
+    "root": [
+      "x",
+      "y",
+      "width",
+      "height"
+    ],
+    "props": [
+      "radius",
+      "fill",
+      "color",
+      "show_border",
+      "border_width",
+      "border_color",
+      "opa",
+      "opacity"
+    ],
+    "has_drop_shadow": true
   },
   "sensor_text": {
     "root": [],
@@ -241,12 +600,53 @@
   },
   "template_nav_bar": {
     "root": [],
-    "props": [],
+    "props": [
+      "show_prev",
+      "prev_target",
+      "show_home",
+      "home_target",
+      "show_next",
+      "next_target",
+      "icon_size",
+      "color",
+      "show_background",
+      "background_color",
+      "border_radius",
+      "border_thickness",
+      "border_color",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "template_sensor_bar": {
-    "root": [],
-    "props": [],
+    "root": [
+      "wifi_entity",
+      "temp_entity",
+      "hum_entity",
+      "bat_entity"
+    ],
+    "props": [
+      "show_wifi",
+      "wifi_is_local",
+      "show_temperature",
+      "temp_is_local",
+      "show_humidity",
+      "hum_is_local",
+      "show_battery",
+      "bat_is_local",
+      "show_background",
+      "background_color",
+      "border_radius",
+      "border_thickness",
+      "border_color",
+      "color",
+      "font_size",
+      "icon_size",
+      "temp_unit",
+      "opa",
+      "opacity"
+    ],
     "has_drop_shadow": false
   },
   "text": {
@@ -255,8 +655,20 @@
     "has_drop_shadow": false
   },
   "touch_area": {
-    "root": [],
-    "props": [],
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "title",
+      "icon",
+      "icon_pressed",
+      "nav_action",
+      "icon_size",
+      "icon_color",
+      "color",
+      "border_color",
+      "on_click"
+    ],
     "has_drop_shadow": false
   },
   "weather_forecast": {

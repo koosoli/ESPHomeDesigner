@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PluginRegistry } from '../../js/core/plugin_registry.js';
+import { PluginRegistry } from '../../js/core/plugin_registry';
 
 // Mock Logger
 vi.mock('../utils/logger.js', () => ({

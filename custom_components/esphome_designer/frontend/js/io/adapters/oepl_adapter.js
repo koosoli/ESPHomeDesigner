@@ -1,6 +1,6 @@
 import { BaseAdapter } from './base_adapter.js';
 import { Logger } from '../../utils/logger.js';
-import { registry } from '../../core/plugin_registry.js';
+import { registry } from '../../core/plugin_registry';
 
 /**
  * OpenEpaperLink-specific adapter for generating JSON configuration.

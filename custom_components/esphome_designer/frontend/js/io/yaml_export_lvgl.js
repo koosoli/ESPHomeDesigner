@@ -5,7 +5,7 @@
 
 import { DEVICE_PROFILES } from './devices.js';
 import { Logger } from '../utils/logger.js';
-import { registry } from '../core/plugin_registry.js';
+import { registry } from '../core/plugin_registry';
 
 // --- Helpers (Exported for plugins and other adapters) ---
 
@@ -339,7 +339,7 @@ export function serializeWidget(w) {
  */
 function transpileToLVGL(w, profile, darkMode = false) {
     const p = w.props || {};
-    const hasTouch = profile?.touch || (profile?.features && profile.features.touch);
+    const hasTouch = profile?.touch || (profile?.features && profile.features.touch); // eslint-disable-line no-unused-vars
 
     // Convert coordinates to integers
     const x = Math.round(w.x || 0);

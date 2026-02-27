@@ -9,7 +9,7 @@ import { KeyboardHandler } from './core/keyboard.js';
 import { ESPHomeAdapter } from './io/adapters/esphome_adapter.js';
 import { OEPLAdapter } from './io/adapters/oepl_adapter.js';
 import { OpenDisplayAdapter } from './io/adapters/opendisplay_adapter.js';
-import { AppState } from './core/state.js';
+import { AppState } from './core/state';
 import { hasHaBackend } from './utils/env.js';
 import { Logger } from './utils/logger.js';
 
@@ -19,12 +19,12 @@ import './utils/env.js';
 import './utils/dom.js';
 import './utils/device.js';
 import './utils/graph_helpers.js';
-import './core/constants.js';
-import './core/utils.js';
+import './core/constants';
+import './core/utils';
 import './core/constants_icons.js';
 import './core/events.js';
-import './core/plugin_registry.js';
-import './core/widget_factory.js';
+import './core/plugin_registry';
+import './core/widget_factory';
 import './core/layout_constants.js';
 import './ui/layout_manager.js';
 import './ui/splitters.js';
@@ -41,7 +41,7 @@ import { saveLayoutToFile, handleFileSelect } from './io/file_ops.js';
 
 import { loadLayoutIntoState } from './io/yaml_import.js';
 import './io/hardware_import.js'; // Register global hardware fetchers
-import { aiService } from './io/ai_service.js';
+import { aiService } from './io/ai_service.js'; // eslint-disable-line no-unused-vars
 
 import { renderWidgetPalette } from './ui/widget_palette.js';
 import { QuickSearch } from './ui/quick_search.js';

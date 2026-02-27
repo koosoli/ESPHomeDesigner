@@ -118,7 +118,7 @@ export default {
             section: "Appearance",
             fields: [
                 { key: "bg_color", label: "Background", type: "color", default: "#444" },
-                { key: "color", label: "Text Color", type: "color", default: "white" },
+                { key: "text_color", label: "Text Color", type: "color", default: "white" },
                 { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
                 { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
             ]

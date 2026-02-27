@@ -1,4 +1,4 @@
-import { AppState } from '../core/state.js';
+import { AppState } from '../core/state';
 import { loadLayoutIntoState } from './yaml_import.js';
 import { Logger } from '../utils/logger.js';
 

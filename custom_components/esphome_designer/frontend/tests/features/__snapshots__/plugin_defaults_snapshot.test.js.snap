@@ -3,8 +3,10 @@
 exports[`Plugin Defaults Snapshots > should match snapshot for defaults of battery_icon 1`] = `
 {
   "color": "theme_auto",
+  "fit_icon_to_frame": true,
   "font_size": 14,
   "height": 60,
+  "is_local_sensor": true,
   "opa": 255,
   "size": 36,
   "width": 60,
@@ -24,6 +26,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of calen
   "font_size_grid": 14,
   "height": 340,
   "opa": 255,
+  "show_border": true,
   "show_events": true,
   "show_grid": true,
   "show_header": true,
@@ -78,6 +81,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of graph
   "duration": "1h",
   "grid": true,
   "height": 100,
+  "is_local_sensor": false,
   "line_thickness": 3,
   "line_type": "SOLID",
   "max_value": "",
@@ -109,10 +113,13 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of icon 
 
 exports[`Plugin Defaults Snapshots > should match snapshot for defaults of image 1`] = `
 {
+  "dither": "FLOYDSTEINBERG",
   "height": 130,
+  "image_type": "BINARY",
   "invert": false,
   "opa": 255,
   "path": "/config/esphome/images/logo.png",
+  "render_mode": "Auto",
   "size": "native",
   "url": "",
   "width": 200,
@@ -169,7 +176,6 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_
 {
   "bg_color": "theme_auto_inverse",
   "border_width": 2,
-  "color": "theme_auto",
   "entity_id": "",
   "font_family": "Roboto",
   "font_size": 14,
@@ -179,13 +185,13 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_
   "opacity": 255,
   "radius": 5,
   "text": "Button",
+  "text_color": "theme_auto",
 }
 `;
 
 exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_buttonmatrix 1`] = `
 {
   "bg_color": "#444",
-  "color": "white",
   "opa": 255,
   "opacity": 255,
   "rows": [
@@ -218,11 +224,13 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_
       ],
     },
   ],
+  "text_color": "white",
 }
 `;
 
 exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_chart 1`] = `
 {
+  "bg_color": "transparent",
   "color": "blue",
   "max": 100,
   "min": 0,
@@ -290,7 +298,6 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_
   "border_color": "theme_auto",
   "border_radius": 0,
   "border_width": 0,
-  "color": "theme_auto",
   "entity_id": "",
   "font_family": "Roboto",
   "font_size": 20,
@@ -299,6 +306,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_
   "opa": 255,
   "text": "Label",
   "text_align": "CENTER",
+  "text_color": "theme_auto",
 }
 `;
 
@@ -349,7 +357,6 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_
   "bg_color": "white",
   "border_color": "gray",
   "border_width": 1,
-  "color": "white",
   "entity_id": "",
   "fill": true,
   "opa": 255,
@@ -410,6 +417,8 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_
 {
   "digit_count": 4,
   "entity_id": "",
+  "max": 100,
+  "min": 0,
   "opa": 255,
   "opacity": 255,
   "step": 1,
@@ -463,7 +472,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_
   "opa": 255,
   "opacity": 255,
   "password_mode": false,
-  "placeholder": "Enter text...",
+  "placeholder_text": "Enter text...",
   "text": "",
 }
 `;
@@ -639,8 +648,10 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of ondev
 exports[`Plugin Defaults Snapshots > should match snapshot for defaults of online_image 1`] = `
 {
   "color": "black",
+  "interval_s": 300,
   "invert": false,
   "opa": 255,
+  "render_mode": "Auto",
   "rotation": 0,
   "update_interval": "1h",
   "url": "",
@@ -654,10 +665,12 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of progr
   "border_width": 1,
   "color": "theme_auto",
   "font_size": 12,
+  "is_local_sensor": false,
   "max": 100,
   "min": 0,
   "mode": "normal",
   "opa": 255,
+  "opacity": 255,
   "orientation": "horizontal",
   "show_label": true,
   "show_percentage": true,
@@ -672,6 +685,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of qr_co
   "ecc": "LOW",
   "height": 130,
   "opa": 255,
+  "scale": 2,
   "value": "https://github.com/koosoli/ESPHomeDesigner/",
   "width": 130,
 }
@@ -710,8 +724,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of round
   "color": "theme_auto",
   "fill": false,
   "height": 100,
-  "opa": 255,
-  "opacity": 255,
+  "opacity": 100,
   "radius": 10,
   "show_border": true,
   "width": 100,
@@ -732,6 +745,9 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of senso
   "entity_id": "",
   "font_family": "Roboto",
   "font_weight": 400,
+  "hide_unit": false,
+  "is_local_sensor": false,
+  "is_text_sensor": false,
   "italic": false,
   "label_align": "TOP_LEFT",
   "label_font_size": 14,
@@ -739,6 +755,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of senso
   "opacity": 100,
   "parse_colors": false,
   "precision": 2,
+  "separator": " ~ ",
   "text_align": "TOP_LEFT",
   "title": "",
   "unit": "",
@@ -750,22 +767,26 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of senso
 
 exports[`Plugin Defaults Snapshots > should match snapshot for defaults of shape_circle 1`] = `
 {
+  "border_color": "theme_auto",
   "border_width": 1,
   "color": "theme_auto",
   "fill": false,
   "height": 80,
   "opa": 255,
+  "opacity": 100,
   "width": 80,
 }
 `;
 
 exports[`Plugin Defaults Snapshots > should match snapshot for defaults of shape_rect 1`] = `
 {
+  "border_color": "theme_auto",
   "border_width": 1,
   "color": "theme_auto",
   "fill": false,
   "height": 100,
   "opa": 255,
+  "opacity": 100,
   "radius": 0,
   "width": 100,
 }

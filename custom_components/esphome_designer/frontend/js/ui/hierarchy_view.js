@@ -1,7 +1,7 @@
-import { AppState } from '../core/state.js';
+import { AppState } from '../core/state';
 import { on, EVENTS } from '../core/events.js';
 import { Logger } from '../utils/logger.js';
-import { registry } from '../core/plugin_registry.js';
+import { registry } from '../core/plugin_registry';
 
 export class HierarchyView {
     constructor() {

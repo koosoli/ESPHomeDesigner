@@ -1,7 +1,7 @@
 import { Logger } from '../utils/logger.js';
 import { emit, EVENTS } from '../core/events.js';
 import { showToast } from '../utils/dom.js';
-import { AppState } from '../core/state.js';
+import { AppState } from '../core/state';
 import { aiService } from '../io/ai_service.js';
 import { DEVICE_PROFILES } from '../io/devices.js';
 

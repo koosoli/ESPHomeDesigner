@@ -76,7 +76,7 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportLVGL = (w, { common, convertColor, profile }) => {
     const p = w.props || {};
-    const hasTouch = profile?.touch;
+    const hasTouch = profile?.touch; // eslint-disable-line no-unused-vars
     let sliderValue = p.value || 30;
 
     if (w.entity_id) {

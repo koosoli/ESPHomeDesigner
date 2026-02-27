@@ -1,8 +1,8 @@
-import { AppState } from '@core/state.js';
+import { AppState } from '@core/state';
 import { iconPickerData } from '../../js/core/constants_icons.js';
 import { evaluateTemplatePreview } from '../../js/utils/text_utils.js';
 
-const render = (el, widget, { getColorStyle }) => {
+const render = (el, widget, { getColorStyle }) => { // eslint-disable-line no-unused-vars
     const props = widget.props || {};
 
     let iconCode = "F0595"; // Default
@@ -124,7 +124,7 @@ export default {
         // Register Font for LVGL and Direct
         context.addFont("Material Design Icons", 400, size);
     },
-    render: (el, w, { getColorStyle, layout }) => {
+    render: (el, w, { _getColorStyle, layout }) => {
         const p = w.props || {};
         const iconCode = p.code || "F0079";
         const cp = 0xf0000 + parseInt(iconCode.slice(1), 16);
@@ -139,7 +139,7 @@ export default {
         el.style.alignItems = "center";
         el.style.justifyContent = "center";
     },
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const code = (p.code || "F0595").toUpperCase().replace(/^0X/, "");
         const entry = iconPickerData.find(d => d.code.toUpperCase() === code);
@@ -154,7 +154,7 @@ export default {
             fill: (p.color === "theme_auto") ? (layout?.darkMode ? "white" : "black") : (p.color || "black")
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const code = (p.code || "F0595").toUpperCase().replace(/^0X/, "");
         const entry = iconPickerData.find(d => d.code.toUpperCase() === code);
@@ -188,7 +188,7 @@ export default {
     },
     export: (w, context) => {
         const {
-            lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper
+            lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};

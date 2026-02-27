@@ -75,7 +75,7 @@ export default {
         }
     ],
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         let fill = (p.fill === "theme_auto" || !p.fill) ? (layout?.darkMode ? "white" : "black") : p.fill;
         if (fill === "transparent") fill = null;
@@ -100,7 +100,7 @@ export default {
             y_end: Math.round(w.y + w.height)
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         let fill = p.fill || "white";
         if (fill === "transparent") fill = null;

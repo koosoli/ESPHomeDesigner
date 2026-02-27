@@ -2,8 +2,8 @@
  * LVGL Keyboard Plugin
  */
 
-const render = (el, widget, { getColorStyle }) => {
-    const props = widget.props || {};
+const render = (el, widget, { _getColorStyle }) => {
+    const props = widget.props || {}; // eslint-disable-line no-unused-vars
 
     el.innerHTML = "";
     el.style.display = "grid";

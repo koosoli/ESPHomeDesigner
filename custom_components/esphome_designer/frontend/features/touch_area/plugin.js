@@ -79,7 +79,7 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportDoc = (w, context) => {
     const {
-        lines, addFont, getColorConst, getCondProps, getConditionCheck
+        lines, addFont, getColorConst, getCondProps, getConditionCheck // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
@@ -112,7 +112,7 @@ const exportDoc = (w, context) => {
 };
 
 const onExportBinarySensors = (context) => {
-    const { lines, widgets, profile } = context;
+    const { lines, widgets, profile } = context; // eslint-disable-line no-unused-vars
     // Fix #180: Don't restrict by profile flags. If user added touch widgets, we should try to generate.
     // if (!profile || (!profile.touch && !profile.features?.touch)) return;
 

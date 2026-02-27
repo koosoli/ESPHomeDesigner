@@ -1,10 +1,10 @@
 import { DEVICE_PROFILES } from '../io/devices.js';
-import { AppState } from './state.js';
-import { WidgetFactory } from './widget_factory.js';
+import { AppState } from './state';
+import { WidgetFactory } from './widget_factory'; // eslint-disable-line no-unused-vars
 import { Logger } from '../utils/logger.js';
 import { getColorStyle } from '../utils/device.js';
-import { emit, EVENTS } from './events.js';
-import { registry } from './plugin_registry.js';
+import { emit, EVENTS } from './events.js'; // eslint-disable-line no-unused-vars
+import { registry } from './plugin_registry';
 
 export function render(canvasInstance) {
     if (!canvasInstance.canvas) return;
@@ -13,7 +13,7 @@ export function render(canvasInstance) {
     const dims = AppState.getCanvasDimensions();
 
     // Maintain lasso and snap guides if they existed (though they might need artboard-specific logic)
-    const existingGuides = canvasInstance.canvas.querySelectorAll(".snap-guide");
+    const existingGuides = canvasInstance.canvas.querySelectorAll(".snap-guide"); // eslint-disable-line no-unused-vars
     const existingLasso = canvasInstance.canvas.querySelector(".lasso-selection");
 
     canvasInstance.canvas.innerHTML = "";
@@ -210,7 +210,7 @@ export function render(canvasInstance) {
                         profile: profile,
                         isDark: isDark
                     });
-                } catch (err) {
+                } catch (err) { // eslint-disable-line no-unused-vars
                     el.textContent = `Error: ${type}`;
                     el.style.border = "2px solid red";
                 }
@@ -286,7 +286,7 @@ export function render(canvasInstance) {
     renderContextToolbar(canvasInstance);
 }
 
-function createIconButton(text, title, onClick) {
+function createIconButton(text, title, onClick) { // eslint-disable-line no-unused-vars
     const btn = document.createElement("button");
     btn.className = "artboard-btn";
     btn.innerHTML = text;
@@ -403,7 +403,7 @@ export function focusPage(canvasInstance, index, smooth = true, fitZoom = false)
 /**
  * Zooms and pans to show all artboards in the viewport.
  */
-export function zoomToFitAll(canvasInstance, smooth = true) {
+export function zoomToFitAll(canvasInstance, smooth = true) { // eslint-disable-line no-unused-vars
     const wrappers = canvasInstance.canvas.querySelectorAll('.artboard-wrapper');
     if (wrappers.length === 0) return;
 
@@ -520,7 +520,7 @@ export function updateWidgetDOM(canvasInstance, widget, skipPluginRender = false
                     profile: profile,
                     isDark: getEffectiveDarkMode()
                 });
-            } catch (err) {
+            } catch (err) { // eslint-disable-line no-unused-vars
                 // Silent fail for minor real-time updates to keep performance high
             }
         }
@@ -713,7 +713,7 @@ function confirmAction({ title, message, confirmLabel, confirmClass, onConfirm }
     };
 }
 
-function renderDebugGridOverlay(element, dims, isDark) {
+function renderDebugGridOverlay(element, dims, isDark) { // eslint-disable-line no-unused-vars
     const overlay = document.createElement("div");
     overlay.className = "debug-grid-overlay";
     element.appendChild(overlay);

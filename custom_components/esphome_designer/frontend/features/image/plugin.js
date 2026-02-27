@@ -1,7 +1,7 @@
 /**
  * Image Plugin
  */
-import { AppState } from '@core/state.js';
+import { AppState } from '@core/state';
 
 const isOffline = () => window.location.protocol === 'file:' || !window.location.hostname;
 
@@ -177,7 +177,7 @@ const getSafeImageId = (w) => {
 };
 
 const exportDoc = (w, context) => {
-    const { lines, getCondProps, getConditionCheck, profile } = context;
+    const { lines, getCondProps, getConditionCheck, profile } = context; // eslint-disable-line no-unused-vars
     const props = w.props || {};
     const path = (props.path || "").replace(/^"|"$/g, '').trim();
     const invert = !!props.invert;
@@ -214,7 +214,7 @@ const exportDoc = (w, context) => {
     if (cond) lines.push(`        }`);
 };
 
-const exportLVGL = (w, { common, convertColor }) => {
+const exportLVGL = (w, { common, _convertColor }) => {
     const p = w.props || {};
     const path = (p.path || "").replace(/^"|"$/g, '').trim();
     const url = p.url || "";
@@ -331,7 +331,7 @@ export default {
         panel.endSection();
     },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { _layout, _page }) => {
         const p = w.props || {};
         const url = (p.url || "").trim();
         const path = (p.path || "").replace(/^"|"$/g, '').trim();
@@ -358,7 +358,7 @@ export default {
             color: "red"
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const url = (p.url || "").trim();
         const path = (p.path || "").replace(/^"|"$/g, '').trim();

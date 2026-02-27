@@ -1,13 +1,13 @@
-import { AppState } from '../state.js';
+import { AppState } from '../state';
 import { Logger } from '../../utils/logger.js';
-import { WidgetFactory } from '../widget_factory.js';
-import { registry } from '../plugin_registry.js';
+import { WidgetFactory } from '../widget_factory';
+import { registry } from '../plugin_registry';
 
 export function setupDragAndDrop(canvasInstance) {
     // Attach listeners to the viewport container instead of the canvas element
     if (!canvasInstance.viewport) return;
 
-    canvasInstance.viewport.addEventListener("dragenter", (e) => {
+    canvasInstance.viewport.addEventListener("dragenter", (e) => { // eslint-disable-line no-unused-vars
         // Guard against internal widget drags triggering this
         if (!canvasInstance.dragState) {
             canvasInstance.isExternalDragging = true;

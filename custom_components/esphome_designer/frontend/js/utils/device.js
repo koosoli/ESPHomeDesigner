@@ -3,11 +3,12 @@
  * @returns {string}
  */
 import { DEVICE_PROFILES } from '../io/devices.js';
+import { AppState } from '../core/state';
 
 export function getDeviceModel() {
     // Check AppState first (Source of Truth)
-    if (window.AppState && window.AppState.deviceModel) {
-        return window.AppState.deviceModel;
+    if (AppState && AppState.deviceModel) {
+        return AppState.deviceModel;
     }
     // Fallback to global or default
     return (window.currentDeviceModel || "reterminal_e1001");
@@ -54,7 +55,6 @@ export function isRGBDevice() {
  */
 export function getAvailableColors() {
     // 1. Protocol Mode Logic
-    const AppState = window.AppState; // Use window ref to avoid circular import issues in utils
     const mode = AppState?.settings?.renderingMode || 'direct';
 
     if (mode === 'oepl' || mode === 'opendisplay') {

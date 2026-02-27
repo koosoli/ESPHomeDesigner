@@ -45,7 +45,7 @@ export function detectHaBackendBaseUrl() {
             return `${loc.origin}/api/esphome_designer`;
         }
         return null;
-    } catch (e) {
+    } catch (e) { // eslint-disable-line no-unused-vars
         return null;
     }
 }
@@ -57,7 +57,7 @@ export function detectHaBackendBaseUrl() {
 export function getHaManualUrl() {
     try {
         return localStorage.getItem('ha_manual_url');
-    } catch (e) {
+    } catch (e) { // eslint-disable-line no-unused-vars
         return null;
     }
 }
@@ -97,7 +97,7 @@ export function setHaManualUrl(url) {
 export function getHaToken() {
     try {
         return localStorage.getItem('ha_llat_token');
-    } catch (e) {
+    } catch (e) { // eslint-disable-line no-unused-vars
         return null;
     }
 }
@@ -152,7 +152,7 @@ export function isDeployedInHa() {
             loc.pathname.includes("/api/esphome_designer") ||
             loc.pathname.includes("/esphome-designer")
         );
-    } catch (e) {
+    } catch (e) { // eslint-disable-line no-unused-vars
         return false;
     }
 }

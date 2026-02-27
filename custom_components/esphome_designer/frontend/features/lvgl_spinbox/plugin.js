@@ -2,7 +2,7 @@
  * LVGL Spinbox Plugin
  */
 
-const render = (el, widget, { getColorStyle }) => {
+const render = (el, widget, { _getColorStyle }) => {
     const props = widget.props || {};
     const value = props.value || 0;
     const digits = props.digit_count || 4;
@@ -98,6 +98,8 @@ export default {
             fields: [
                 { key: "value", label: "Manual Value", type: "number", default: 0 },
                 { key: "digit_count", label: "Digit Count", type: "number", default: 4 },
+                { key: "min", label: "Min Value", type: "number", default: 0 },
+                { key: "max", label: "Max Value", type: "number", default: 100 },
                 { key: "step", label: "Increment Step", type: "number", default: 1 }
             ]
         },

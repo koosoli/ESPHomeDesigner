@@ -1,0 +1,185 @@
+import { generateId } from '../utils/helpers.js';
+import { AppState } from './state';
+import { registry } from './plugin_registry';
+
+/**
+ * Shared widget factory for ESPHome Designer.
+ */
+
+declare global {
+    interface Window {
+        WidgetFactory: typeof WidgetFactory;
+    }
+}
+
+export interface Widget {
+    id: string;
+    type: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    title: string;
+    entity_id: string;
+    locked: boolean;
+    props: Record<string, any>;
+}
+
+export class WidgetFactory {
+    /**
+     * Determines the effective dark mode for the current page.
+     * Per-page setting overrides global setting.
+     * @returns true if dark mode should be active
+     */
+    static getEffectiveDarkMode(): boolean {
+        const page = (AppState as any)?.getCurrentPage?.();
+        const pageDarkMode = page?.dark_mode;
+
+        // "inherit" or undefined = use global setting
+        // "dark" = force dark mode
+        // "light" = force light mode
+        if (pageDarkMode === "dark") return true;
+        if (pageDarkMode === "light") return false;
+        return !!(AppState && (AppState as any).settings && (AppState as any).settings.dark_mode);
+    }
+
+    /**
+     * Gets the default foreground color based on dark mode setting.
+     */
+    static getDefaultColor(): string {
+        return WidgetFactory.getEffectiveDarkMode() ? "white" : "black";
+    }
+
+    /**
+     * Gets the default background color based on dark mode setting.
+     */
+    static getDefaultBgColor(): string {
+        return WidgetFactory.getEffectiveDarkMode() ? "black" : "white";
+    }
+
+    /**
+     * Returns default grid cell properties for LVGL widgets.
+     */
+    static getGridCellDefaults(): Record<string, any> {
+        return {
+            grid_cell_row_pos: null,
+            grid_cell_column_pos: null,
+            grid_cell_row_span: 1,
+            grid_cell_column_span: 1,
+            grid_cell_x_align: "STRETCH",
+            grid_cell_y_align: "STRETCH"
+        };
+    }
+
+    /**
+     * Checks if a widget type is an LVGL widget.
+     */
+    static isLvglWidget(type: string | undefined): boolean {
+        return !!(type && type.startsWith("lvgl_"));
+    }
+
+    static createWidget(type: string): Widget {
+        const id = generateId();
+        const defaultBgColor = WidgetFactory.getDefaultBgColor();
+        const defaultColor = WidgetFactory.getDefaultColor();
+
+        let widget: Widget = {
+            id,
+            type,
+            x: 40,
+            y: 40,
+            width: 120,
+            height: 40,
+            title: "",
+            entity_id: "",
+            locked: false,
+            props: {}
+        };
+
+        // Check for special presets first
+        switch (type) {
+            case "nav_next_page":
+                widget.props = {
+                    title: "Next",
+                    color: "rgba(0, 128, 255, 0.2)",
+                    border_color: "#0080ff",
+                    nav_action: "next_page",
+                    icon: "F0142",
+                    icon_size: 48
+                };
+                widget.width = 80;
+                widget.height = 80;
+                return widget;
+
+            case "nav_previous_page":
+                widget.props = {
+                    title: "Previous",
+                    color: "rgba(0, 128, 255, 0.2)",
+                    border_color: "#0080ff",
+                    nav_action: "previous_page",
+                    icon: "F0141",
+                    icon_size: 48
+                };
+                widget.width = 80;
+                widget.height = 80;
+                return widget;
+
+            case "nav_reload_page":
+                widget.props = {
+                    title: "Reload",
+                    color: "rgba(0, 128, 255, 0.2)",
+                    border_color: "#0080ff",
+                    nav_action: "reload_page",
+                    icon: "F0450",
+                    icon_size: 48
+                };
+                widget.width = 80;
+                widget.height = 80;
+                return widget;
+        }
+
+        // Try to get defaults from PluginRegistry
+        const plugin = registry.get(type);
+        if (plugin && plugin.defaults) {
+            widget.props = { ...plugin.defaults };
+
+            // Adjust colors based on dark mode if they were defaults
+            if (widget.props.color === "black" || widget.props.color === "white") {
+                widget.props.color = "theme_auto";
+            }
+            if (widget.props.text_color === "black" || widget.props.text_color === "white") {
+                widget.props.text_color = "theme_auto";
+            }
+            if (widget.props.bg_color === "black" || widget.props.bg_color === "white") {
+                widget.props.bg_color = defaultBgColor;
+            }
+            if (widget.props.background_color === "black" || widget.props.background_color === "white") {
+                widget.props.background_color = defaultBgColor;
+            }
+            if (widget.props.border_color === "black" || widget.props.border_color === "white") {
+                widget.props.border_color = defaultColor;
+            }
+
+            if (plugin.width) widget.width = plugin.width;
+            if (plugin.height) widget.height = plugin.height;
+
+            if (plugin.defaults.width) widget.width = plugin.defaults.width;
+            if (plugin.defaults.height) widget.height = plugin.defaults.height;
+            if (plugin.defaults.w) widget.width = plugin.defaults.w;
+            if (plugin.defaults.h) widget.height = plugin.defaults.h;
+        }
+
+        // Apply grid cell defaults to all LVGL widgets
+        if (WidgetFactory.isLvglWidget(type)) {
+            widget.props = {
+                ...WidgetFactory.getGridCellDefaults(),
+                ...widget.props
+            };
+        }
+
+        return widget;
+    }
+}
+
+// Global exposure for transition
+window.WidgetFactory = WidgetFactory;

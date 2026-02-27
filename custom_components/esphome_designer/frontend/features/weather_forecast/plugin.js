@@ -1,4 +1,4 @@
-import { AppState } from '@core/state.js';
+import { AppState } from '@core/state';
 /**
  * Weather Forecast Plugin
  */
@@ -36,7 +36,7 @@ const render = (el, widget, { getColorStyle }) => {
         { code: "F0595", condition: "partlycloudy" }
     ];
 
-    const dayNames = ["Today", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const dayNames = ["Today", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]; // eslint-disable-line no-unused-vars
     const mockTemps = [
         { high: 24, low: 18 },
         { high: 20, low: 14 },
@@ -199,11 +199,11 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportDoc = (w, context) => {
     const {
-        lines, addFont, getColorConst, addDitherMask, sanitize, getCondProps, getConditionCheck, isEpaper
+        lines, addFont, getColorConst, addDitherMask, sanitize, getCondProps, getConditionCheck, isEpaper // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
-    const weatherEntity = w.entity_id || p.weather_entity || "weather.forecast_home";
+    const weatherEntity = w.entity_id || p.weather_entity || "weather.forecast_home"; // eslint-disable-line no-unused-vars
     const layout = p.layout || "horizontal";
     const mode = p.forecast_mode || "daily";
     const startOffset = parseInt(p.start_offset || 0, 10);
@@ -921,7 +921,7 @@ template:
             }
         };
     },
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || p.weather_entity || "weather.forecast_home").trim();
         const iconSize = p.icon_size || 32;
@@ -972,7 +972,7 @@ template:
             }
         ];
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || p.weather_entity || "weather.forecast_home").trim();
         return {

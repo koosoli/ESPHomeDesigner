@@ -51,7 +51,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
         }
     };
 
-    const lines = rawLines;
+    const lines = rawLines; // eslint-disable-line no-unused-vars
     let currentPageIndex = null;
     let inWidgetsBlockLookahead = false;
 
@@ -204,7 +204,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
         if (lvglPageMatch) {
             const pageIdStr = lvglPageMatch[1];
             const numMatch = pageIdStr.match(/^page_(\d+)$/);
-            currentPageIndex = numMatch ? parseInt(numMatch[1], 10) : (Array.from(nameMap.entries()).find(([k, v]) => v === pageIdStr)?.[0] || 0);
+            currentPageIndex = numMatch ? parseInt(numMatch[1], 10) : (Array.from(nameMap.entries()).find(([k, v]) => v === pageIdStr)?.[0] || 0); // eslint-disable-line no-unused-vars
             continue;
         }
 

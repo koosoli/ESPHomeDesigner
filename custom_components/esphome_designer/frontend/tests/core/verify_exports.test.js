@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { DeviceSettings } from '../../js/ui/device_settings.js';
 import { AppStateFacade } from '../../js/core/stores/index.js';
-import { AppState } from '../../js/core/state.js';
+import { AppState } from '../../js/core/state';
 
 describe('Invariant Verification - Core Exports', () => {
 

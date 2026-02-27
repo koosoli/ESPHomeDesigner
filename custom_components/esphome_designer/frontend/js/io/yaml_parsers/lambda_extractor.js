@@ -8,7 +8,7 @@ import { Logger } from '../../utils/logger.js';
  * @param {string} yamlText - The full YAML text (for specific keyword checks)
  * @returns {string[]} - The extracted lines belonging to the interactive display blocks
  */
-export function extractLambdaLines(rawLines, yamlText) {
+export function extractLambdaLines(rawLines, yamlText) { // eslint-disable-line no-unused-vars
     const lambdaLines = [];
     let inBlock = false;
     let blockIndent = 0;

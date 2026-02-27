@@ -105,7 +105,7 @@ export default {
         }
     ],
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { _layout, _page }) => {
         const p = w.props || {};
         return {
             type: "debug_grid",
@@ -121,7 +121,7 @@ export default {
             font: "ppb.ttf"
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         return {
             type: "debug_grid",

@@ -254,7 +254,7 @@ export function highlightWidgetInSnippet(widgetIds) {
                 if (ids.length === 1 && !window._undoRedoInProgress) {
                     box.focus();
                 }
-            } catch (e) {
+            } catch (e) { // eslint-disable-line no-unused-vars
                 // Ignore
             }
         }

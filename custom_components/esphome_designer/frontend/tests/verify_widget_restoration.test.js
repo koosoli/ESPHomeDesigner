@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest'; // eslint-disable-line no-unused-vars
 import { ESPHomeAdapter } from '../js/io/adapters/esphome_adapter.js';
 
 describe('Widget Restoration Verification', () => {
@@ -12,8 +12,8 @@ describe('Widget Restoration Verification', () => {
         window.Utils = {
             getColorConst: (c) => `COLOR_${(c || "black").toUpperCase()}`,
             getIconCode: (name) => name === 'test' ? 'F0000' : 'F0599',
-            getAlignX: (a, x, w) => x,
-            getAlignY: (a, y, h) => y,
+            getAlignX: (a, x, w) => x, // eslint-disable-line no-unused-vars
+            getAlignY: (a, y, h) => y, // eslint-disable-line no-unused-vars
             sanitize: (s) => s
         };
         window.iconPickerData = [

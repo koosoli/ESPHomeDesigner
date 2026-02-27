@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
-import { WidgetFactory } from '../../js/core/widget_factory.js';
-import { registry } from '../../js/core/plugin_registry.js';
-import { AppState } from '../../js/core/state.js';
+import { WidgetFactory } from '../../js/core/widget_factory';
+import { registry } from '../../js/core/plugin_registry';
+import { AppState } from '../../js/core/state';
 
 // Mock AppState
-vi.mock('../../js/core/state.js', () => ({
+vi.mock('../../js/core/state', () => ({
     AppState: {
         getCurrentPage: vi.fn(() => ({})),
         settings: { dark_mode: false },

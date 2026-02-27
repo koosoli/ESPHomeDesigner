@@ -1,5 +1,5 @@
-import { AppState } from '../state.js';
-import { WidgetFactory } from '../widget_factory.js';
+import { AppState } from '../state';
+import { WidgetFactory } from '../widget_factory';
 
 export class GridRenderer {
     /**

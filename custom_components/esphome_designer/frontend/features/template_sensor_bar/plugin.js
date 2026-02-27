@@ -15,7 +15,7 @@ const render = (el, widget, { getColorStyle, isDark }) => {
     el.style.padding = "0 10px";
     el.style.boxSizing = "border-box";
 
-    const getDynamicColorRender = (c) => {
+    const getDynamicColorRender = (c) => { // eslint-disable-line no-unused-vars
         if (c === "theme_auto") return isDark ? "#ffffff" : "#000000";
         if (c === "white" || c === "#ffffff") return isDark ? "#000000" : "#ffffff"; // White becomes Black in Dark Mode (Background)
         if (c === "black" || c === "#000000") return isDark ? "#ffffff" : "#000000"; // Black becomes White in Dark Mode (Text)
@@ -184,7 +184,7 @@ const render = (el, widget, { getColorStyle, isDark }) => {
 
 const exportDoc = (w, context) => {
     const {
-        lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, profile, isEpaper
+        lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, profile, isEpaper // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
@@ -461,7 +461,7 @@ const exportDoc = (w, context) => {
 };
 
 const onExportNumericSensors = (context) => {
-    const { lines, widgets, isLvgl, pendingTriggers, profile } = context;
+    const { lines, widgets, isLvgl, pendingTriggers, profile } = context; // eslint-disable-line no-unused-vars
     const barWidgets = widgets.filter(w => w.type === "template_sensor_bar");
     if (barWidgets.length === 0) return;
 

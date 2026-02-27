@@ -1,6 +1,6 @@
-import { AppState } from '../core/state.js';
+import { AppState } from '../core/state';
 import { Logger } from '../utils/logger.js';
-import { DEVICE_PROFILES } from './devices.js';
+import { DEVICE_PROFILES } from './devices.js'; // eslint-disable-line no-unused-vars
 import * as yaml from 'js-yaml';
 
 import { parseSettings } from './yaml_parsers/settings_parser.js';
@@ -31,7 +31,7 @@ function getESPHomeSchema() {
             construct: (data) => data
         });
         return yaml.DEFAULT_SCHEMA.extend([LambdaType, SecretType, IncludeType]);
-    } catch (e) {
+    } catch (e) { // eslint-disable-line no-unused-vars
         Logger.warn("[getESPHomeSchema] Could not extend schema, falling back to default.");
         return yaml.DEFAULT_SCHEMA;
     }

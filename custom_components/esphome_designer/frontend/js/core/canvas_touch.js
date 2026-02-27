@@ -1,8 +1,8 @@
-import { AppState } from './state.js';
-import { Logger } from '../utils/logger.js';
+import { AppState } from './state';
+import { Logger } from '../utils/logger.js'; // eslint-disable-line no-unused-vars
 import { emit, EVENTS } from './events.js';
 import { snapToGridCell, applySnapToPosition, clearSnapGuides } from './canvas_snap.js';
-import { render, applyZoom, updateWidgetDOM, focusPage } from './canvas_renderer.js';
+import { render, applyZoom, updateWidgetDOM, focusPage } from './canvas_renderer.js'; // eslint-disable-line no-unused-vars
 
 export function setupTouchInteractions(canvasInstance) {
     if (!canvasInstance.canvas || !canvasInstance.canvasContainer) return;

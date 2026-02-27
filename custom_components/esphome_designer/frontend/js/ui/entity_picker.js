@@ -1,7 +1,7 @@
 import { hasHaBackend } from '../utils/env.js';
 import { Logger } from '../utils/logger.js';
 import { fetchEntityStates } from '../io/ha_api.js';
-import { AppState } from '../core/state.js';
+import { AppState } from '../core/state';
 
 /**
  * Opens the entity picker for a widget.

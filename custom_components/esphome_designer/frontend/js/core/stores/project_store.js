@@ -1,8 +1,8 @@
 import { emit, EVENTS } from '../events.js';
-import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, ORIENTATIONS } from '../constants.js';
+import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, ORIENTATIONS } from '../constants';
 import { DEVICE_PROFILES } from '../../io/devices.js';
-import { Logger } from '../../utils/logger.js';
-import { hasHaBackend } from '../../utils/env.js';
+import { Logger } from '../../utils/logger.js'; // eslint-disable-line no-unused-vars
+import { hasHaBackend } from '../../utils/env.js'; // eslint-disable-line no-unused-vars
 import { generateId, deepClone } from '../../utils/helpers.js';
 
 export class ProjectStore {

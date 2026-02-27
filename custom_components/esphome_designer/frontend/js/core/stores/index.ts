@@ -97,7 +97,7 @@ export class AppStateFacade {
     }
 
     getSelectedProfile(): any | null {
-        return DEVICE_PROFILES[this.project.deviceModel] || null;
+        return (DEVICE_PROFILES as Record<string, any>)[this.project.deviceModel] || null;
     }
 
     getCanvasDimensions(): { width: number; height: number } {

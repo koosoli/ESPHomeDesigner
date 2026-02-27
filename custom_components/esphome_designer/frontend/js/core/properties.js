@@ -1,11 +1,11 @@
-import { fetchEntityStates } from '../io/ha_api.js';
-import { MIXED_VALUE } from '../utils/color_utils.js';
+import { fetchEntityStates } from '../io/ha_api.js'; // eslint-disable-line no-unused-vars
+import { MIXED_VALUE } from '../utils/color_utils.js'; // eslint-disable-line no-unused-vars
 import { PropertyControls } from '../ui/components/property_controls.js';
-import { AppState } from './state.js';
-import { getAvailableColors, getDeviceModel, isRGBDevice } from '../utils/device.js';
-import { registry } from './plugin_registry.js';
-import { WidgetFactory } from './widget_factory.js';
-import { getWeightsForFont, clampFontWeight } from './font_weights.js';
+import { AppState } from './state';
+import { getAvailableColors, getDeviceModel, isRGBDevice } from '../utils/device.js'; // eslint-disable-line no-unused-vars
+import { registry } from './plugin_registry';
+import { WidgetFactory } from './widget_factory'; // eslint-disable-line no-unused-vars
+import { getWeightsForFont, clampFontWeight } from './font_weights.js'; // eslint-disable-line no-unused-vars
 import { on, EVENTS } from './events.js';
 
 // Specialized Renderers

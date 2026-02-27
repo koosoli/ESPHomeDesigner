@@ -330,8 +330,7 @@ export function buildWidgetProps(widgetType, p, widget) {
             font_size: parseInt(p.font_size || 14, 10),
             border_width: parseInt(p.border_width || p.border || 2, 10),
             radius: parseInt(p.radius || 5, 10),
-            checkable: (p.checkable === "true"),
-            is_local_sensor: (p.is_local_sensor === "true" || p.local === "true")
+            checkable: (p.checkable === "true")
         };
     } else if (widgetType === "lvgl_arc") {
         if (p.title) {
@@ -608,7 +607,7 @@ export function buildWidgetProps(widgetType, p, widget) {
                 }
                 // Handle Unicode escapes
                 if (normalizedVal.includes("\\u")) {
-                    try { normalizedVal = JSON.parse(`"${normalizedVal}"`); } catch (e) { /* ignore */ }
+                    try { normalizedVal = JSON.parse(`"${normalizedVal}"`); } catch (e) { /* ignore */ } // eslint-disable-line no-unused-vars
                 }
             }
 

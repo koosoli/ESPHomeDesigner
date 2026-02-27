@@ -146,7 +146,7 @@ export default {
         }
     ],
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "sensor.temperature").trim();
         const size = p.size || 32;
@@ -183,7 +183,7 @@ export default {
             }
         ];
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "sensor.temperature").trim();
         const size = p.size || 32;
@@ -367,7 +367,7 @@ export default {
     },
     export: (w, context) => {
         const {
-            lines, getColorConst, getCondProps, getConditionCheck, addFont, profile
+            lines, getColorConst, getCondProps, getConditionCheck, addFont, profile // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};

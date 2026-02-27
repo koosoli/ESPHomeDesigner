@@ -1,4 +1,4 @@
-import { AppState } from '@core/state.js';
+import { AppState } from '@core/state';
 import { TemplateConverter } from '../../js/utils/template_converter.js';
 
 const render = (el, widget, tools) => {
@@ -139,7 +139,7 @@ const exportLVGL = (w, { common, convertColor }) => {
 
 const exportDoc = (w, context) => {
     const {
-        lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper, sanitize
+        lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper, sanitize // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
@@ -272,7 +272,7 @@ const exportDoc = (w, context) => {
 };
 
 const onExportNumericSensors = (context) => {
-    const { lines, widgets, isLvgl, pendingTriggers } = context;
+    const { lines, widgets, isLvgl, pendingTriggers } = context; // eslint-disable-line no-unused-vars
     if (!widgets || widgets.length === 0) return;
 
     for (const w of widgets) {
@@ -366,7 +366,7 @@ export default {
         panel.endSection();
     },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { _layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "").trim();
         const min = parseFloat(p.min !== undefined ? p.min : 0);
@@ -392,7 +392,7 @@ export default {
             show_percentage: p.show_percentage !== false
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "").trim();
         const title = w.title || "";

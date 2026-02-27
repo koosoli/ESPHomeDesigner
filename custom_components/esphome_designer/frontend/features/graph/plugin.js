@@ -1,8 +1,8 @@
 /**
  * Graph Plugin
  */
-import { AppState } from '@core/state.js';
-import { drawInternalGrid, generateMockData, drawSmartAxisLabels, generateHistoricalDataPoints, parseDuration } from '../../js/utils/graph_helpers.js';
+import { AppState } from '@core/state';
+import { drawInternalGrid, generateMockData, drawSmartAxisLabels, generateHistoricalDataPoints, parseDuration } from '../../js/utils/graph_helpers.js'; // eslint-disable-line no-unused-vars
 import { fetchEntityHistory, getEntityAttributes } from '../../js/io/ha_api.js';
 import { emit, EVENTS } from '../../js/core/events.js';
 
@@ -95,7 +95,7 @@ const render = (el, widget, { getColorStyle }) => {
                                 else if (p.value !== undefined) values.push(parseFloat(p.value));
                             });
                         }
-                    } catch (e) {
+                    } catch (e) { // eslint-disable-line no-unused-vars
                         // Fallback parsing
                         if (rawData.includes('value:') || rawData.includes('value :')) {
                             // Structured format with "value:" keys
@@ -265,7 +265,7 @@ const exportLVGL = (w, { common, convertColor }) => {
 
 const exportDoc = (w, context) => {
     const {
-        lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper, sanitize
+        lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper, sanitize // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
@@ -277,13 +277,13 @@ const exportDoc = (w, context) => {
     const bgColor = backgroundProp !== "transparent" ? getColorConst(backgroundProp) : null;
     const colorProp = p.color || "theme_auto";
     const color = getColorConst(colorProp);
-    const lineType = p.line_type || "SOLID";
+    const lineType = p.line_type || "SOLID"; // eslint-disable-line no-unused-vars
     const lineThickness = parseInt(p.line_thickness || 3, 10);
-    const continuous = !!p.continuous;
+    const continuous = !!p.continuous; // eslint-disable-line no-unused-vars
     const minValue = p.min_value || "";
     const maxValue = p.max_value || "";
-    const minRange = p.min_range || "";
-    const maxRange = p.max_range || "";
+    const minRange = p.min_range || ""; // eslint-disable-line no-unused-vars
+    const maxRange = p.max_range || ""; // eslint-disable-line no-unused-vars
 
     const safeId = `graph_${w.id}`.replace(/-/g, "_");
     const fontId = addFont("Roboto", 400, 12);
@@ -329,7 +329,7 @@ const exportDoc = (w, context) => {
     if (entityId) {
         if (p.use_ha_history) {
             const histId = `hist_${w.id}`.replace(/-/g, "_");
-            const points = p.history_points || 100;
+            const points = p.history_points || 100; // eslint-disable-line no-unused-vars
             const useAutoScale = p.auto_scale !== false;
 
             lines.push(`        // Draw historical graph from global array ${histId}`);

@@ -1,7 +1,7 @@
 import { emit, EVENTS } from '../events.js';
 import { deepClone } from '../../utils/helpers.js';
 import { Logger } from '../../utils/logger.js';
-import { HISTORY_LIMIT } from '../constants.js';
+import { HISTORY_LIMIT } from '../constants';
 
 export class EditorStore {
     constructor() {

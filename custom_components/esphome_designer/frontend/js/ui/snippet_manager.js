@@ -1,5 +1,5 @@
 import { on, EVENTS } from '../core/events.js';
-import { AppState } from '../core/state.js';
+import { AppState } from '../core/state';
 import { Logger } from '../utils/logger.js';
 import { showToast } from '../utils/dom.js';
 import { highlightWidgetInSnippet } from '../io/yaml_export.js';
@@ -81,7 +81,7 @@ export class SnippetManager {
                             iconSpan.className = originalClass;
                         }, 1500);
                     }
-                } catch (err) {
+                } catch (err) { // eslint-disable-line no-unused-vars
                     // Show error state
                     if (iconSpan) {
                         iconSpan.className = 'mdi mdi-alert-circle-outline';
@@ -148,7 +148,7 @@ export class SnippetManager {
 
         // Toggle Syntax Highlighting
         const toggleHighlightBtn = document.getElementById('toggleHighlightBtn');
-        const snippetContainer = document.querySelector('.snippet-container');
+        const snippetContainer = document.querySelector('.snippet-container'); // eslint-disable-line no-unused-vars
         if (toggleHighlightBtn) {
             // Apply initial state to ALL containers
             document.querySelectorAll('.snippet-container').forEach(c => {
@@ -248,8 +248,8 @@ export class SnippetManager {
                 }
 
                 try {
-                    const selectedIds = window.AppState ? window.AppState.selectedWidgetIds : [];
-                    const isMultiSelect = selectedIds.length > 1;
+                    const selectedIds = AppState ? AppState.selectedWidgetIds : [];
+                    const isMultiSelect = selectedIds.length > 1; // eslint-disable-line no-unused-vars
 
                     const mode = this.adapter && this.adapter.constructor.name;
                     const isOEPL = mode === 'OEPLAdapter';
@@ -297,7 +297,7 @@ export class SnippetManager {
                     if (importBtn) importBtn.style.display = 'inline-block';
 
                     // IMPORTANT: Deep clone to prevent mutating AppState
-                    const rawPayload = window.AppState ? window.AppState.getPagesPayload() : { pages: [] };
+                    const rawPayload = AppState ? AppState.getPagesPayload() : { pages: [] };
                     const payload = JSON.parse(JSON.stringify(rawPayload));
 
                     // FORCE SYNC: Ensure the generator uses the latest UI selection
@@ -319,7 +319,7 @@ export class SnippetManager {
                             this.updateHighlightLayer();
                         }
 
-                        const selectedIds = window.AppState ? window.AppState.selectedWidgetIds : [];
+                        const selectedIds = AppState ? AppState.selectedWidgetIds : [];
 
                         if (typeof highlightWidgetInSnippet === 'function') {
                             highlightWidgetInSnippet(selectedIds);
@@ -485,9 +485,9 @@ export class SnippetManager {
         }
 
         try {
-            const currentLayoutId = window.AppState?.currentLayoutId || "reterminal_e1001";
-            const currentDeviceName = window.AppState?.deviceName || "Layout 1";
-            const currentDeviceModel = window.AppState?.deviceModel || window.AppState?.settings?.device_model || "reterminal_e1001";
+            const currentLayoutId = AppState?.currentLayoutId || "reterminal_e1001";
+            const currentDeviceName = AppState?.deviceName || "Layout 1";
+            const currentDeviceModel = AppState?.deviceModel || AppState?.settings?.device_model || "reterminal_e1001";
 
             Logger.log(`[handleUpdateLayoutFromSnippetBox] Preserving context - ID: ${currentLayoutId}, Name: ${currentDeviceName}`);
 
@@ -504,7 +504,7 @@ export class SnippetManager {
             layout.settings.device_name = currentDeviceName;
 
             // Preserve dark_mode setting from current state
-            const currentDarkMode = window.AppState?.settings?.dark_mode || false;
+            const currentDarkMode = AppState?.settings?.dark_mode || false;
             layout.settings.dark_mode = currentDarkMode;
 
             this.suppressSnippetUpdate = true;

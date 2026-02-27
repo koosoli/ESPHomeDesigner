@@ -1,4 +1,4 @@
-import { AppState } from '../state.js';
+import { AppState } from '../state';
 import { getAvailableColors } from '../../utils/device.js';
 import { MIXED_VALUE } from '../../utils/color_utils.js';
 

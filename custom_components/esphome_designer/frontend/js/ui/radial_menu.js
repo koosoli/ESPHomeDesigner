@@ -1,6 +1,6 @@
-import { AppState } from '../core/state.js';
+import { AppState } from '../core/state';
 import { forceSnapWidget } from '../core/canvas_snap.js';
-import { Logger } from '../utils/logger.js';
+import { Logger } from '../utils/logger.js'; // eslint-disable-line no-unused-vars
 
 export class RadialMenu {
     constructor() {

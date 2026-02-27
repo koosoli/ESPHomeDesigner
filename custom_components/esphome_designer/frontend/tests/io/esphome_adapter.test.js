@@ -28,11 +28,11 @@ vi.mock('../../js/utils/logger.js', () => ({
     }
 }));
 
-vi.mock('../../js/core/plugin_registry.js', () => ({
+vi.mock('../../js/core/plugin_registry', () => ({
     registry: mockRegistry
 }));
 
-vi.mock('../../js/core/state.js', () => ({
+vi.mock('../../js/core/state', () => ({
     AppState: {
         deviceModel: 'reterminal_e1001',
         getCanvasDimensions: vi.fn(() => ({ width: 800, height: 480 })),
@@ -40,9 +40,9 @@ vi.mock('../../js/core/state.js', () => ({
     }
 }));
 
-vi.mock('../../js/core/utils.js', () => ({
+vi.mock('../../js/core/utils', () => ({
     Utils: {
-        getIconCode: vi.fn((name) => 'F000'),
+        getIconCode: vi.fn((name) => 'F000'), // eslint-disable-line no-unused-vars
         getColorConst: vi.fn((c) => `Color(${c})`),
         getAlignX: vi.fn((a, x) => x),
         getAlignY: vi.fn((a, y) => y),
@@ -80,7 +80,7 @@ vi.mock('../../js/io/adapters/base_adapter.js', () => ({
     }
 }));
 
-vi.mock('../../js/core/constants.js', () => ({
+vi.mock('../../js/core/constants', () => ({
     COLORS: {},
     ALIGNMENT: {}
 }));

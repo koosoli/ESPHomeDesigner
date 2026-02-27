@@ -35,7 +35,7 @@ export default {
         }
     ],
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         let fill = (p.fill === "theme_auto") ? (layout?.darkMode ? "white" : "black") : (p.fill || null);
         if (fill === "transparent") fill = null;
@@ -55,7 +55,7 @@ export default {
             width: p.border_width || 1
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         let fill = p.fill || null;
         if (fill === "transparent") fill = null;

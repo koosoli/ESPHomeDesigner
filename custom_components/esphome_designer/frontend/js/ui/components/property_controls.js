@@ -1,10 +1,10 @@
-import { AppState } from '../../core/state.js';
+import { AppState } from '../../core/state';
 import { MIXED_VALUE, parseColor, hexToRgb, rgbToHex } from '../../utils/color_utils.js';
 import { isRGBDevice, getAvailableColors } from '../../utils/device.js';
-import { fetchEntityStates, ENTITY_DATALIST_ID, ensureEntityDatalist } from '../../io/ha_api.js';
+import { fetchEntityStates, ENTITY_DATALIST_ID, ensureEntityDatalist } from '../../io/ha_api.js'; // eslint-disable-line no-unused-vars
 import { openEntityPickerForWidget } from '../entity_picker.js';
 import { openIconPickerForWidget } from '../icon_picker.js';
-import { getWeightsForFont, clampFontWeight } from '../../core/font_weights.js';
+import { getWeightsForFont, clampFontWeight } from '../../core/font_weights.js'; // eslint-disable-line no-unused-vars
 
 /**
  * PropertyControls handles the creation of UI elements for the properties panel.

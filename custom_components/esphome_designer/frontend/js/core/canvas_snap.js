@@ -1,5 +1,5 @@
-import { SNAP_DISTANCE } from './constants.js';
-import { AppState } from './state.js';
+import { SNAP_DISTANCE } from './constants';
+import { AppState } from './state';
 
 export function clearSnapGuides() {
     // Search the entire document to ensure all guides are removed
@@ -59,8 +59,8 @@ export function addDistanceMarker(canvasInstance, rectA, rectB, axis, artboardEl
 
     let x, y, w, h, val;
     if (axis === 'h') {
-        const left = Math.min(rectA.x + rectA.w, rectB.x + rectB.w);
-        const right = Math.max(rectA.x, rectB.x);
+        const left = Math.min(rectA.x + rectA.w, rectB.x + rectB.w); // eslint-disable-line no-unused-vars
+        const right = Math.max(rectA.x, rectB.x); // eslint-disable-line no-unused-vars
         // Correct gap calculation: distance between the closer edges
         const x1 = rectA.x < rectB.x ? rectA.x + rectA.w : rectB.x + rectB.w;
         const x2 = rectA.x < rectB.x ? rectB.x : rectA.x;

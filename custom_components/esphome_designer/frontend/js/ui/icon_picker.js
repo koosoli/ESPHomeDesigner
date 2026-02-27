@@ -1,5 +1,5 @@
 // Icon Picker UI - ES Module
-import { AppState } from '../core/state.js';
+import { AppState } from '../core/state';
 import { iconPickerData } from '../core/constants_icons.js';
 
 let pickerModal = null;

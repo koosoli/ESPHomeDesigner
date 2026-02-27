@@ -1,10 +1,10 @@
-import { AppState } from '../core/state.js';
+import { AppState } from '../core/state';
 import { Logger } from '../utils/logger.js';
 import { emit, EVENTS } from '../core/events.js';
 import { DEVICE_PROFILES, loadExternalProfiles, SUPPORTED_DEVICE_IDS } from '../io/devices.js';
 import { hasHaBackend } from '../utils/env.js';
 import { showToast } from '../utils/dom.js';
-import { generateCustomHardwareYaml } from '../io/hardware_generator.js';
+import { generateCustomHardwareYaml } from '../io/hardware_generator.js'; // eslint-disable-line no-unused-vars
 import { uploadHardwareTemplate } from '../io/hardware_import.js';
 import { saveLayoutToBackend } from '../io/ha_api.js';
 import { CustomHardwarePanel } from './device_settings/custom_hardware.js';
@@ -111,7 +111,7 @@ export class DeviceSettings {
                     const file = e.target.files[0];
                     try {
                         await uploadHardwareTemplate(file);
-                    } catch (err) {
+                    } catch (err) { // eslint-disable-line no-unused-vars
                         // Silently ignore hardware import errors (user likely canceled or invalid file)
                     }
                     fileInput.value = "";

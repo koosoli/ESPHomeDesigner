@@ -5,13 +5,13 @@
 
 import { Logger } from '../../utils/logger.js';
 import { BaseAdapter } from './base_adapter.js';
-import { AppState } from '../../core/state.js';
-import { registry } from '../../core/plugin_registry.js';
-import { Utils } from '../../core/utils.js';
+import { AppState } from '../../core/state';
+import { registry } from '../../core/plugin_registry';
+import { Utils } from '../../core/utils';
 import { DEVICE_PROFILES } from '../devices.js';
 import * as Generators from '../hardware_generators.js';
 import { generateLVGLSnippet, serializeWidget } from '../yaml_export_lvgl.js';
-import { COLORS, ALIGNMENT } from '../../core/constants.js';
+import { COLORS, ALIGNMENT } from '../../core/constants';
 import { FontRegistry } from './font_registry.js';
 import { YamlGenerator } from './yaml_generator.js';
 import { applyPackageOverrides } from '../generators/yaml_merger.js';

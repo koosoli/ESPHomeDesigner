@@ -1,4 +1,4 @@
-import { AppState } from '@core/state.js';
+import { AppState } from '@core/state';
 import { getNestedValue } from '../../js/utils/helpers.js';
 
 const render = (el, widget, { getColorStyle }) => {
@@ -93,7 +93,7 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportDoc = (w, context) => {
     const {
-        lines, addFont, getColorConst, getCondProps, getConditionCheck
+        lines, addFont, getColorConst, getCondProps, getConditionCheck // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
@@ -293,7 +293,7 @@ export default {
         panel.endSection();
     },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || p.weather_entity || "weather.forecast_home").trim();
 
@@ -330,7 +330,7 @@ export default {
             anchor: "mm"
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || p.weather_entity || "weather.forecast_home").trim();
         const size = p.size || 48;

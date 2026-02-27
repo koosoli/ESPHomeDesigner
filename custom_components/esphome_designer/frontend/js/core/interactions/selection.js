@@ -1,10 +1,10 @@
-import { AppState } from '../state.js';
+import { AppState } from '../state';
 import { Logger } from '../../utils/logger.js';
 import { emit, EVENTS } from '../events.js';
-import { WidgetFactory } from '../widget_factory.js';
-import { registry } from '../plugin_registry.js';
+import { WidgetFactory } from '../widget_factory'; // eslint-disable-line no-unused-vars
+import { registry } from '../plugin_registry'; // eslint-disable-line no-unused-vars
 import { snapToGridCell, applySnapToPosition, clearSnapGuides, updateWidgetGridCell, snapResizeValue } from '../canvas_snap.js';
-import { render, updateWidgetDOM, focusPage, applyZoom } from '../canvas_renderer.js';
+import { render, updateWidgetDOM, focusPage, applyZoom } from '../canvas_renderer.js'; // eslint-disable-line no-unused-vars
 
 // Helper for manual double-click detection
 let lastClickTime = 0;
@@ -349,7 +349,7 @@ export function setupInteractions(canvasInstance) {
         // If switching pages OR clicking an empty area/header of the current page, focus it
         const isSwitching = AppState.currentPageIndex !== pageIndex;
         const isHeaderClick = !!ev.target.closest(".artboard-header");
-        const isBackgroundClick = !!ev.target.closest(".artboard") && !widgetEl;
+        const isBackgroundClick = !!ev.target.closest(".artboard") && !widgetEl; // eslint-disable-line no-unused-vars
 
         if (isSwitching) {
             // Store selection before switching
@@ -452,9 +452,9 @@ export function setupInteractions(canvasInstance) {
                 const widgetOffsets = selectedWidgets.map(w => {
                     // DEBUG: Calculate widget element bounding rect vs widget data
                     const widgetEl = canvasInstance.canvas.querySelector(`.widget[data-id="${w.id}"]`);
-                    const widgetRect = widgetEl ? widgetEl.getBoundingClientRect() : null;
-                    const expectedLeft = rect.left + w.x * zoom;
-                    const expectedTop = rect.top + w.y * zoom;
+                    const widgetRect = widgetEl ? widgetEl.getBoundingClientRect() : null; // eslint-disable-line no-unused-vars
+                    const expectedLeft = rect.left + w.x * zoom; // eslint-disable-line no-unused-vars
+                    const expectedTop = rect.top + w.y * zoom; // eslint-disable-line no-unused-vars
 
                     return {
                         id: w.id,
@@ -1030,7 +1030,7 @@ export function onMouseUp(ev, canvasInstance) {
 
             // ONLY zoom/fit if no movement occurred and zoom was requested (double click or page switch)
             if (canvasInstance.lassoState.focusParams) {
-                const { index, fitZoom } = canvasInstance.lassoState.focusParams;
+                const { index, fitZoom } = canvasInstance.lassoState.focusParams; // eslint-disable-line no-unused-vars
                 // If fitZoom is true (double click), we always focus. 
                 // If fitZoom is false (page switch via single click), we might just want to switch context without moving camera,
                 // BUT the user specifically asked that ONLY double click zoom and recenter.

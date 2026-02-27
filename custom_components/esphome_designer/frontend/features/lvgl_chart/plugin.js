@@ -122,6 +122,7 @@ export default {
             fields: [
                 { key: "type", label: "Chart Type", type: "select", options: ["line", "bar", "scatter"], default: "line" },
                 { key: "color", label: "Recolor", type: "color", default: "blue" },
+                { key: "bg_color", label: "Background color", type: "color", default: "transparent" },
                 { key: "x_div_lines", label: "X Grid Lines", type: "number", default: 3 },
                 { key: "y_div_lines", label: "Y Grid Lines", type: "number", default: 3 },
                 { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },

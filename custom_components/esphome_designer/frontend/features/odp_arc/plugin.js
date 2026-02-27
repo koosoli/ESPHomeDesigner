@@ -8,7 +8,7 @@ const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     el.innerHTML = "";
 
-    const radius = props.radius || Math.min(widget.width, widget.height) / 2;
+    const radius = props.radius || Math.min(widget.width, widget.height) / 2; // eslint-disable-line no-unused-vars
     const startAngle = (props.start_angle || 0) * Math.PI / 180;
     const endAngle = (props.end_angle || 90) * Math.PI / 180;
     const strokeWidth = props.border_width || 2;
@@ -78,7 +78,7 @@ export default {
         }
     ],
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const cx = Math.round(w.x + w.width / 2);
         const cy = Math.round(w.y + w.height / 2);
@@ -97,7 +97,7 @@ export default {
             width: p.border_width || 2
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const cx = Math.round(w.x + w.width / 2);
         const cy = Math.round(w.y + w.height / 2);

@@ -3,9 +3,9 @@
  * @description Generates the native C++ display lambda and handles widget export orchestration for ESPHome native displays (e-ink/LCD).
  */
 
-import { registry } from '../../core/plugin_registry.js';
-import { Utils } from '../../core/utils.js';
-import { COLORS, ALIGNMENT } from '../../core/constants.js';
+import { registry } from '../../core/plugin_registry';
+import { Utils } from '../../core/utils';
+import { COLORS, ALIGNMENT } from '../../core/constants';
 import { isEntityStateNonNumeric } from '../../utils/export_helpers.js';
 import { serializeWidget } from '../yaml_export_lvgl.js';
 

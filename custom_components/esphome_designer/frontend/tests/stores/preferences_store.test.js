@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest'; // eslint-disable-line no-unused-vars
 import { PreferencesStore } from '../../js/core/stores/preferences_store.js';
 
 describe('PreferencesStore', () => {

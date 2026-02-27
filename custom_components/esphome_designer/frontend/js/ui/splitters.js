@@ -8,7 +8,7 @@ function init() {
     const rightResizer = document.getElementById('resizer-right');
     const sidebar = document.querySelector('.sidebar');
     const rightPanel = document.querySelector('.right-panel');
-    const appContent = document.querySelector('.app-content');
+    const appContent = document.querySelector('.app-content'); // eslint-disable-line no-unused-vars
 
     if (!leftResizer || !rightResizer || !sidebar || !rightPanel) {
         Logger.warn("[Splitters] Layout elements not found, retrying...");

@@ -99,7 +99,7 @@ export default {
         }
     ],
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { _layout, _page }) => {
         const p = w.props || {};
         const exportData = (Array.isArray(p.data) ? p.data : [p.data]).map(item => ({
             entity: item.entity || "",
@@ -125,7 +125,7 @@ export default {
         if (p.ylegend) result.ylegend = p.ylegend;
         return result;
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const exportData = (Array.isArray(p.data) ? p.data : [p.data]).map(item => ({
             entity: item.entity || "",

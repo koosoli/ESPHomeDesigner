@@ -93,19 +93,19 @@ describe('Export Helpers', () => {
 
         it('supports attribute checking', () => {
             const mockAppState = {
-                'weather.home': {
-                    state: 'sunny',
-                    attributes: {
-                        temperature: 22.5,
-                        forecast: 'Cloudy'
+                entityStates: {
+                    'weather.home': {
+                        state: 'sunny',
+                        attributes: {
+                            temperature: 22.5,
+                            forecast: 'Cloudy'
+                        }
                     }
                 }
             };
-            // Mocking AppState globally for this test
-            window.AppState.entityStates = mockAppState;
 
-            expect(isEntityStateNonNumeric('weather.home', null, 'temperature')).toBe(false);
-            expect(isEntityStateNonNumeric('weather.home', null, 'forecast')).toBe(true);
+            expect(isEntityStateNonNumeric('weather.home', mockAppState, 'temperature')).toBe(false);
+            expect(isEntityStateNonNumeric('weather.home', mockAppState, 'forecast')).toBe(true);
         });
 
         it('handles strict parsing (e.g. 5:24pm is non-numeric)', () => {

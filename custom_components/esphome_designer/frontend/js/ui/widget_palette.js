@@ -1,5 +1,5 @@
-import { registry } from '../core/plugin_registry.js';
-import { AppState } from '../core/state.js';
+import { registry } from '../core/plugin_registry';
+import { AppState } from '../core/state'; // eslint-disable-line no-unused-vars
 import { Logger } from '../utils/logger.js';
 import { EVENTS, on } from '../core/events.js';
 
@@ -305,7 +305,7 @@ export async function renderWidgetPalette(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    const currentMode = window.AppState?.settings?.renderingMode || 'direct';
+    const currentMode = AppState?.settings?.renderingMode || 'direct';
     Logger.log(`[Palette] Rendering palette for mode: ${currentMode}`);
 
     container.innerHTML = '<div class="palette-loading" style="padding: 20px; color: #999; text-align: center; font-size: 13px;">Loading widgets...</div>';

@@ -1,4 +1,4 @@
-import { AppState } from '@core/state.js';
+import { AppState } from '@core/state';
 import { wordWrap, parseColorMarkup, evaluateTemplatePreview } from '../../js/utils/text_utils.js';
 import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js';
 const render = (el, widget, { getColorStyle }) => {
@@ -108,7 +108,7 @@ const render = (el, widget, { getColorStyle }) => {
     el.appendChild(body);
 };
 
-const exportLVGL = (w, { common, convertColor, convertAlign, getLVGLFont, formatOpacity }) => {
+const exportLVGL = (w, { common, convertColor, _convertAlign, getLVGLFont, formatOpacity }) => {
     const p = w.props || {};
 
     // Fix #268: Properly map composite alignments to valid LVGL text_align (LEFT/CENTER/RIGHT)
@@ -231,7 +231,7 @@ export default {
         panel.endSection();
     },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const text = p.text || w.title || "Text";
         const fontSize = p.font_size || 20;
@@ -290,7 +290,7 @@ export default {
         return result;
     },
     exportLVGL,
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { layout, _page }) => {
         const p = w.props || {};
         const text = p.text || w.title || "Text";
         const fontSize = p.font_size || 20;
@@ -327,7 +327,7 @@ export default {
     },
     export: (w, context) => {
         const {
-            lines, getColorConst, addFont, getAlignX, getAlignY, getCondProps, getConditionCheck, Utils, isEpaper
+            lines, getColorConst, addFont, getAlignX, getAlignY, getCondProps, getConditionCheck, Utils, isEpaper // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};

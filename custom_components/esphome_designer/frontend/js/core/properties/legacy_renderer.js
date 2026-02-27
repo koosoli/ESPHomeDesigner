@@ -1,4 +1,4 @@
-import { AppState } from '../state.js';
+import { AppState } from '../state';
 import { getAvailableColors, getDeviceModel } from '../../utils/device.js';
 import { getWeightsForFont, clampFontWeight } from '../font_weights.js';
 import { fetchEntityStates } from '../../io/ha_api.js';

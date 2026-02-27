@@ -37,7 +37,7 @@ const render = (el, widget, { getColorStyle }) => {
             el.textContent = "QR";
             el.style.outline = "2px solid " + fgColor;
         }
-    } catch (e) {
+    } catch (e) { // eslint-disable-line no-unused-vars
         el.textContent = "QR Error";
     }
 };

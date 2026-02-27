@@ -1,7 +1,7 @@
 /**
  * Online Image Plugin
  */
-import { AppState } from '@core/state.js';
+import { AppState } from '@core/state';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -99,11 +99,11 @@ const getSafeId = (w) => `online_img_${w.id.replace(/-/g, "_")}`;
 
 const exportDoc = (w, context) => {
     const {
-        lines, getCondProps, getConditionCheck, profile
+        lines, getCondProps, getConditionCheck, profile // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
-    const url = (p.url || "").trim();
+    const url = (p.url || "").trim(); // eslint-disable-line no-unused-vars
     const invert = !!p.invert;
     const renderMode = p.render_mode || "Auto";
 
@@ -264,7 +264,7 @@ export default {
         panel.endSection();
     },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { _layout, _page }) => {
         const p = w.props || {};
         const url = (p.url || "").trim();
 
@@ -280,7 +280,7 @@ export default {
             rotate: p.rotation || 0
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const url = (p.url || "").trim();
 

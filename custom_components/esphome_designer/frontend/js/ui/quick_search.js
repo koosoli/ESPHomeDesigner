@@ -3,8 +3,8 @@
  * Opens with Shift+Space, allows quick searching and adding widgets
  */
 import { Logger } from '../utils/logger.js';
-import { AppState } from '../core/state.js';
-import { WidgetFactory } from '../core/widget_factory.js';
+import { AppState } from '../core/state';
+import { WidgetFactory } from '../core/widget_factory';
 import { showToast } from '../utils/dom.js';
 export class QuickSearch {
     constructor() {

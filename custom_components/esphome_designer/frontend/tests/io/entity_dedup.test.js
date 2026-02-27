@@ -4,7 +4,7 @@ import {
     collectNumericSensors,
     collectTextSensors,
     collectBinarySensors,
-    HA_TEXT_DOMAINS
+    HA_TEXT_DOMAINS // eslint-disable-line no-unused-vars
 } from '../../js/io/adapters/entity_dedup.js';
 
 describe('Entity Deduplication & Registration', () => {

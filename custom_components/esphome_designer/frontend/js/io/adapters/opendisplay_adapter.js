@@ -1,6 +1,6 @@
 import { BaseAdapter } from './base_adapter.js';
 import { Logger } from '../../utils/logger.js';
-import { registry } from '../../core/plugin_registry.js';
+import { registry } from '../../core/plugin_registry';
 
 /**
  * OpenDisplay-specific adapter for generating ODP v1 JSON payloads.
@@ -33,7 +33,7 @@ export class OpenDisplayAdapter extends BaseAdapter {
         const payloadItems = [];
 
         // Color Mode & Theme considerations
-        const ph = layout.protocolHardware || {};
+        const ph = layout.protocolHardware || {}; // eslint-disable-line no-unused-vars
         const isDark = page.dark_mode === 'dark' || (page.dark_mode === 'inherit' && layout.darkMode);
         const background = isDark ? "black" : "white";
 

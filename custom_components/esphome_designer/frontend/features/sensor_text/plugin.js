@@ -1,4 +1,4 @@
-import { AppState } from '@core/state.js';
+import { AppState } from '@core/state';
 import { TemplateConverter } from '../../js/utils/template_converter.js';
 import { wordWrap, parseColorMarkup, evaluateTemplatePreview } from '../../js/utils/text_utils.js';
 import { getNestedValue } from '../../js/utils/helpers.js';
@@ -61,7 +61,7 @@ const render = (el, widget, { getColorStyle }) => {
                 }
 
                 const strState = entityObj.formatted || String(entityObj.state);
-                const rawState = entityObj.state;
+                const rawState = entityObj.state; // eslint-disable-line no-unused-vars
 
                 const match = strState.match(/^([-+]?\d*[.,]?\d+)(.*)$/);
                 if (match) {
@@ -374,7 +374,7 @@ export default {
     },
 
     render,
-    exportLVGL: (w, { common, convertColor, convertAlign, getLVGLFont, formatOpacity }) => {
+    exportLVGL: (w, { common, convertColor, _convertAlign, getLVGLFont, formatOpacity }) => {
         const p = w.props || {};
         const format = p.value_format || "label_value";
         let entityId = (w.entity_id || "").trim();
@@ -560,7 +560,7 @@ export default {
             }
         };
     },
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "").trim();
         const entityId2 = (w.entity_id_2 || "").trim();
@@ -641,7 +641,7 @@ export default {
 
         return result;
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "").trim();
         const entityId2 = (w.entity_id_2 || "").trim();
@@ -723,7 +723,7 @@ export default {
 
     export: (w, context) => {
         const {
-            lines, getColorConst, addFont, getCondProps, getConditionCheck, Utils
+            lines, getColorConst, addFont, getCondProps, getConditionCheck, Utils // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};

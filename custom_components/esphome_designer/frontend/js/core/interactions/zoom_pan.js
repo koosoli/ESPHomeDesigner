@@ -1,4 +1,4 @@
-import { AppState } from '../state.js';
+import { AppState } from '../state';
 import { Logger } from '../../utils/logger.js';
 import { emit, EVENTS } from '../events.js';
 import { applyZoom } from '../canvas_renderer.js';

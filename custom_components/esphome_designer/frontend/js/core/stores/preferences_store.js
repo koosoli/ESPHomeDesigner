@@ -1,6 +1,6 @@
 import { emit, EVENTS } from '../events.js';
 import { Logger } from '../../utils/logger.js';
-import { DEFAULT_PREFERENCES } from '../constants.js';
+import { DEFAULT_PREFERENCES } from '../constants';
 
 export class PreferencesStore {
     constructor() {

@@ -1,4 +1,4 @@
-import { AppState } from '../state.js';
+import { AppState } from '../state';
 import { getAvailableColors } from '../../utils/device.js';
 
 export class SchemaRenderer {

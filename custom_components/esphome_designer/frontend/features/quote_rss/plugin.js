@@ -87,7 +87,7 @@ const render = (element, widget, helpers) => {
                         window.emit(window.EVENTS.STATE_CHANGED);
                     }
                 }
-            } catch (e) {
+            } catch (e) { // eslint-disable-line no-unused-vars
                 // console.debug("[Quote Widget] Fetch Error:", e);
             } finally {
                 window.quoteCache[fetchFetchingKey] = false;
@@ -213,7 +213,7 @@ const exportLVGL = (w, { common, convertColor, getLVGLFont }) => {
 
 const exportDoc = (w, context) => {
     const {
-        lines, addFont, getColorConst, getCondProps, getConditionCheck, getAlignX
+        lines, addFont, getColorConst, getCondProps, getConditionCheck, getAlignX // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};

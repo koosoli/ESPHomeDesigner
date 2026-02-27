@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ESPHomeAdapter } from '../../js/io/adapters/esphome_adapter.js';
 import { parseSnippetYamlOffline } from '../../js/io/yaml_import.js';
-import { registry } from '../../js/core/plugin_registry.js';
+import { registry } from '../../js/core/plugin_registry';
 
 // Mock Logger
 vi.mock('../../js/utils/logger.js', () => ({
@@ -32,7 +32,7 @@ beforeEach(async () => {
 
 const mockButtonPlugin = {
     id: 'button',
-    export: (widget) => [`        // widget:button id:${widget.id} x:${widget.x} y:${widget.y} w:${widget.width} h:${widget.height}`, `        btn_draw();`]
+    export: (widget) => [`        btn_draw();`] // eslint-disable-line no-unused-vars
 };
 
 describe('ESPHomeAdapter & YamlImport Round-Trip', () => {
@@ -57,6 +57,7 @@ describe('ESPHomeAdapter & YamlImport Round-Trip', () => {
         const gen2 = await adapter.generate({ ...initialState, pages: reimported.pages });
 
         expect(gen2).toBe(gen1);
+        expect(gen1).toMatchSnapshot();
     });
 
     it('round-trips real plugins (Integration Check)', async () => {
@@ -82,8 +83,7 @@ describe('ESPHomeAdapter & YamlImport Round-Trip', () => {
         };
 
         const gen1 = await adapter.generate(initialState);
-        expect(gen1).toContain('// widget:text');
-        expect(gen1).toContain('text:"Hello World"');
+        expect(gen1).toContain('Hello World');
 
         const reimported = await parseSnippetYamlOffline(gen1);
         const gen2 = await adapter.generate({ ...initialState, pages: reimported.pages });

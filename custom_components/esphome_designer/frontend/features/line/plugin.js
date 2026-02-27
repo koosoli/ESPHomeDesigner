@@ -83,7 +83,7 @@ export default {
         }
     ],
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const strokeWidth = parseInt(p.stroke_width || 3, 10);
         const orientation = p.orientation || "horizontal";
@@ -103,7 +103,7 @@ export default {
             width: strokeWidth
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const strokeWidth = parseInt(p.stroke_width || 3, 10);
         const orientation = p.orientation || "horizontal";
@@ -126,7 +126,7 @@ export default {
     exportLVGL,
     export: (w, context) => {
         const {
-            lines, getColorConst, getCondProps, getConditionCheck
+            lines, getColorConst, getCondProps, getConditionCheck // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};

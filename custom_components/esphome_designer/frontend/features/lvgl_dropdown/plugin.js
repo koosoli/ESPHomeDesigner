@@ -2,7 +2,7 @@
  * LVGL Dropdown Plugin
  */
 
-const render = (el, widget, { getColorStyle }) => {
+const render = (el, widget, { _getColorStyle }) => {
     const props = widget.props || {};
 
     el.innerHTML = "";

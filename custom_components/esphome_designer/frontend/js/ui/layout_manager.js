@@ -7,8 +7,8 @@
 import { Logger } from '../utils/logger.js';
 import { DEVICE_PROFILES, SUPPORTED_DEVICE_IDS } from '../io/devices.js';
 import { getHaHeaders } from '../io/ha_api.js';
-import { hasHaBackend, HA_API_BASE, getHaToken } from '../utils/env.js';
-import { AppState } from '../core/state.js';
+import { hasHaBackend, HA_API_BASE, getHaToken } from '../utils/env.js'; // eslint-disable-line no-unused-vars
+import { AppState } from '../core/state';
 import { loadLayoutIntoState } from '../io/yaml_import.js';
 import { emit, EVENTS } from '../core/events.js';
 
@@ -457,7 +457,7 @@ class LayoutManager {
         nameInput.value = defaultName;
 
         // Default to first available device or fallback
-        const model = AppState.deviceModel || (AppState.settings ? AppState.settings.device_model : null) || "reterminal_e1001";
+        const model = AppState.deviceModel || (AppState.settings ? AppState.settings.device_model : null) || "reterminal_e1001"; // eslint-disable-line no-unused-vars
         const defaultDevice = DEVICE_PROFILES ? Object.keys(DEVICE_PROFILES)[0] : "reterminal_e1001";
         document.getElementById("newLayoutDeviceType").value = defaultDevice;
 

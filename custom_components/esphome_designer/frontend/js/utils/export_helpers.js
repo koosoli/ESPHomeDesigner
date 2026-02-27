@@ -2,6 +2,7 @@
  * Shared utility functions for ESPHome YAML export.
  * Centralizes logic previously duplicated across multiple plugins.
  */
+import { AppState } from '../core/state';
 
 /**
  * Creates a safe ESPHome ID from an entity ID and optional attribute/suffix.
@@ -38,12 +39,12 @@ export function escapeFmt(str) {
  * Returns true if the value is explicitly non-numeric.
  * Returns false if numeric OR if missing/empty (safe fallback for registering as numeric sensor).
  * @param {string} eid Entity ID
- * @param {Object} [appState] Optional appState to read from (defaults to window.AppState)
+ * @param {Object} [appState] Optional appState to read from (defaults to AppState)
  * @param {string|null} [attr] Optional attribute name
  * @returns {boolean}
  */
 export function isEntityStateNonNumeric(eid, appState = null, attr = null) {
-    const state = appState || window.AppState;
+    const state = appState || AppState;
     if (!eid || !state?.entityStates) return false;
     const entityObj = state.entityStates[eid];
     if (!entityObj) return false;

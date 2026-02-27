@@ -64,7 +64,7 @@ export default {
         }
     ],
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
 
         // Convert theme_auto to actual color
@@ -86,7 +86,7 @@ export default {
             font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf"
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { layout, _page }) => {
         const p = w.props || {};
 
         // Convert theme_auto to actual color

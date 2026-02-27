@@ -77,7 +77,7 @@ export default {
         }
     ],
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         let icons = p.icons || ["mdi:home", "mdi:arrow-right", "mdi:office-building"];
         if (typeof icons === "string") {
@@ -100,7 +100,7 @@ export default {
             fill: color
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         let icons = p.icons || ["mdi:home", "mdi:arrow-right", "mdi:office-building"];
         if (typeof icons === "string") {

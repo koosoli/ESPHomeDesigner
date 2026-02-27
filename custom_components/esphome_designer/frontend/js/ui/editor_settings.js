@@ -1,4 +1,4 @@
-import { AppState } from '../core/state.js';
+import { AppState } from '../core/state';
 import { emit, EVENTS } from '../core/events.js';
 import { setHaManualUrl, refreshHaBaseUrl, setHaToken, getHaManualUrl, getHaToken, isDeployedInHa } from '../utils/env.js';
 import { showToast } from '../utils/dom.js';
@@ -248,7 +248,7 @@ export class EditorSettings {
                         this.haTestResult.innerHTML = "❌ Failed.<br>Did you add <strong>cors_allowed_origins</strong> to HA and <strong>restart</strong> it?";
                         this.haTestResult.style.color = "var(--danger)";
                     }
-                } catch (e) {
+                } catch (e) { // eslint-disable-line no-unused-vars
                     this.haTestResult.innerHTML = "❌ Connection Error.<br>Check browser console.";
                     this.haTestResult.style.color = "var(--danger)";
                 } finally {
@@ -326,7 +326,7 @@ export class EditorSettings {
                         this.aiTestResult.textContent = `✅ Success! Found ${models.length} models.`;
                         this.aiTestResult.style.color = "var(--success)";
                     }
-                } catch (e) {
+                } catch (e) { // eslint-disable-line no-unused-vars
                     // showToast("Failed to fetch models", "error");
                     if (this.aiTestResult) {
                         this.aiTestResult.textContent = "❌ Failed. Check key/console.";

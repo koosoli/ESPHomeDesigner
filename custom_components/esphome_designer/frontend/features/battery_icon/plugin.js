@@ -1,7 +1,7 @@
 /**
  * Battery Icon Plugin
  */
-import { AppState } from '@core/state.js';
+import { AppState } from '@core/state';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -77,14 +77,14 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportDoc = (w, context) => {
     const {
-        lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper, RECT_Y_OFFSET
+        lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper, RECT_Y_OFFSET // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
     const entityId = (w.entity_id || "").trim();
     const size = parseInt(p.size || 36, 10);
     const fontSize = parseInt(p.font_size || 14, 10);
-    const isDark = context.isDark || (window.WidgetFactory?.getEffectiveDarkMode?.() || false);
+    const isDark = context.isDark || (window.WidgetFactory?.getEffectiveDarkMode?.() || false); // eslint-disable-line no-unused-vars
     const colorProp = p.color || "theme_auto";
     const color = getColorConst(colorProp);
 
@@ -235,7 +235,7 @@ export default {
         panel.endSection();
     },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "sensor.battery_level").trim();
         const size = p.size || 36;
@@ -271,7 +271,7 @@ export default {
             }
         ];
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "sensor.battery_level").trim();
         const size = p.size || 36;
@@ -279,7 +279,7 @@ export default {
         const color = p.color || "black";
 
         // Template for dynamic battery icon name
-        const iconTemplate = `{{ 'battery-' ~ (states('${entityId}') | int / 10 | int * 10) if states('${entityId}') | int >= 10 else 'battery-outline' if states('${entityId}') | int >= 5 else 'battery-alert' }}`;
+        const iconTemplate = `{{ 'battery-' ~ (states('${entityId}') | int / 10 | int * 10) if states('${entityId}') | int >= 10 else 'battery-outline' if states('${entityId}') | int >= 5 else 'battery-alert' }}`; // eslint-disable-line no-unused-vars
         // Note: OEPL might support specific names like battery-90, battery-80 etc.
         // Simplified mapping for OEPL:
         const simpleIconTemplate = `{% set b = states('${entityId}') | int %}` +
@@ -307,7 +307,7 @@ export default {
             }
         ];
     },
-    exportLVGL: (w, { common, convertColor, getLVGLFont, formatOpacity }) => {
+    exportLVGL: (w, { common, convertColor, getLVGLFont, _formatOpacity }) => {
         const p = w.props || {};
         let entityId = (w.entity_id || "").trim();
         // Ensure sensor. prefix if missing (matching onExportNumericSensors logic)

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { registry } from '../../js/core/plugin_registry.js';
+import { describe, it, expect, vi } from 'vitest'; // eslint-disable-line no-unused-vars
+import { registry } from '../../js/core/plugin_registry';
 
 describe('Invariant Verification - Plugin Contracts', () => {
 

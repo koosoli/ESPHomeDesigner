@@ -1,4 +1,4 @@
-import { AppState } from '../core/state.js';
+import { AppState } from '../core/state';
 import { hasHaBackend } from '../utils/env.js';
 import { saveLayoutToBackend } from '../io/ha_api.js';
 import { Logger } from '../utils/logger.js';

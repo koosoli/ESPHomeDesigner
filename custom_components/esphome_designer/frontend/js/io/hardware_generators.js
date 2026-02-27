@@ -2,7 +2,7 @@
 // HARDWARE SECTION GENERATORS
 // ============================================================================
 
-function generateTouchscreenSection(profile, displayId = "my_display", displayRotation = 0, layout = {}, isLvgl = false) {
+function generateTouchscreenSection(profile, displayId = "my_display", displayRotation = 0, layout = {}, isLvgl = false) { // eslint-disable-line no-unused-vars
     if (!profile || !profile.touch) return []; // E-paper usually has no touch or handled differently
 
     const t = profile.touch;
@@ -318,7 +318,7 @@ export function generateDisplaySection(profile, layout = {}, isLvgl = false) {
     return lines;
 }
 
-export function generateSensorSection(profile, widgetSensorLines = [], displayId = "my_display", allWidgets = []) {
+export function generateSensorSection(profile, widgetSensorLines = [], displayId = "my_display", allWidgets = []) { // eslint-disable-line no-unused-vars
     const lines = [];
     if (!profile) return lines;
 
@@ -567,7 +567,7 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
                     const widthPerButton = Math.floor(w.width / activeCount);
                     let currentIdx = 0;
 
-                    const addNavTouch = (action, label) => {
+                    const addNavTouch = (action, label) => { // eslint-disable-line no-unused-vars
                         const xMin = w.x + (currentIdx * widthPerButton);
                         const xMax = xMin + widthPerButton;
                         const yMin = w.y;

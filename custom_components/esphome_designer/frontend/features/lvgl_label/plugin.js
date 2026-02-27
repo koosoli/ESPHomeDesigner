@@ -1,7 +1,7 @@
 /**
  * LVGL Label Plugin
  */
-import { AppState } from '@core/state.js';
+import { AppState } from '@core/state';
 
 import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js';
 
@@ -53,7 +53,7 @@ const render = (el, widget, { getColorStyle }) => {
     }
 };
 
-const exportLVGL = (w, { common, convertColor, convertAlign, getLVGLFont, formatOpacity }) => {
+const exportLVGL = (w, { common, convertColor, _convertAlign, getLVGLFont, formatOpacity }) => {
     const p = w.props || {};
     let labelText = `"${p.text || 'Label'}"`;
 
@@ -183,7 +183,7 @@ export default {
     exportLVGL,
     export: (w, context) => {
         const {
-            lines, getColorConst, addFont, getCondProps, getConditionCheck, Utils
+            lines, getColorConst, addFont, getCondProps, getConditionCheck, Utils // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};

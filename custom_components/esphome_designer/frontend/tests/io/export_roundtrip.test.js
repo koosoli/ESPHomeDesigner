@@ -17,7 +17,7 @@ function createMockExportContext(overrides = {}) {
     const lines = [];
     return {
         lines,
-        addFont: vi.fn((f, w, s, i) => `font_${f.toLowerCase().replace(/\s+/g, '_')}_${s}`),
+        addFont: vi.fn((f, w, s, i) => `font_${f.toLowerCase().replace(/\s+/g, '_')}_${s}`), // eslint-disable-line no-unused-vars
         getColorConst: vi.fn(c => {
             if (c === "theme_auto") return "color_on";
             if (c === "black") return "color_on";
@@ -28,8 +28,8 @@ function createMockExportContext(overrides = {}) {
         getCondProps: vi.fn().mockReturnValue(""),
         getConditionCheck: vi.fn().mockReturnValue(null),
         sanitize: vi.fn(s => s ? s.toString().replace(/"/g, '\\"') : ""),
-        getAlignX: vi.fn(a => 0),
-        getAlignY: vi.fn(a => 0),
+        getAlignX: vi.fn(a => 0), // eslint-disable-line no-unused-vars
+        getAlignY: vi.fn(a => 0), // eslint-disable-line no-unused-vars
         Utils: {
             isGrayColor: vi.fn(() => false)
         },
@@ -60,11 +60,7 @@ describe('Export Path Round-Trip Enforcement', () => {
 
             const yaml = ctx.getLines().join('\n');
 
-            expect(yaml).toMatch(/widget:text/);
-            expect(yaml).toMatch(/id:test_text/);
-            expect(yaml).toMatch(/Hello World/);
-            // Can be it.printf or wrapped text line depending on width
-            expect(yaml).toMatch(/(printf|print_wrapped_text)/);
+            expect(yaml).toMatchSnapshot();
             expect(ctx.addFont).toHaveBeenCalledWith('Roboto', 400, 24, undefined);
         });
 
@@ -84,11 +80,7 @@ describe('Export Path Round-Trip Enforcement', () => {
             sensorTextPlugin.export(widget, ctx);
 
             const yaml = ctx.getLines().join('\n');
-            expect(yaml).toMatch(/widget:sensor_text/);
-            expect(yaml).toMatch(/entity:.*sensor\.temperature/);
-            expect(yaml).toMatch(/Temp: /);
-            // For wrapped text, id(sensor_temperature) might be in sprintf args
-            expect(yaml).toMatch(/id\s*\(\s*sensor_temperature\s*\)/);
+            expect(yaml).toMatchSnapshot();
         });
 
         it('exports "datetime" plugin correctly', () => {
@@ -106,9 +98,7 @@ describe('Export Path Round-Trip Enforcement', () => {
             datetimePlugin.export(widget, ctx);
 
             const yaml = ctx.getLines().join('\n');
-            expect(yaml).toMatch(/widget:datetime/);
-            expect(yaml).toMatch(/fmt:time_only/);
-            expect(yaml).toContain('%H:%M');
+            expect(yaml).toMatchSnapshot();
             expect(ctx.getColorConst).toHaveBeenCalledWith('white');
         });
     });
@@ -123,9 +113,7 @@ describe('Export Path Round-Trip Enforcement', () => {
             iconPlugin.export(widget, ctx);
 
             const yaml = ctx.getLines().join('\n');
-            expect(yaml).toMatch(/widget:icon/);
-            expect(yaml).toMatch(/code:F07D0/);
-            expect(yaml).toContain('\\U000F07D0');
+            expect(yaml).toMatchSnapshot();
             // trackIcon is in collectRequirements, not export
             // expect(ctx.trackIcon).toHaveBeenCalledWith('F07D0', 48);
         });
@@ -139,9 +127,7 @@ describe('Export Path Round-Trip Enforcement', () => {
             batteryIconPlugin.export(widget, ctx);
 
             const yaml = ctx.getLines().join('\n');
-            expect(yaml).toMatch(/widget:battery_icon/);
-            expect(yaml).toMatch(/size:32/);
-            expect(yaml).toMatch(/color:green/);
+            expect(yaml).toMatchSnapshot();
         });
     });
 
@@ -155,8 +141,7 @@ describe('Export Path Round-Trip Enforcement', () => {
             shapeRectPlugin.export(widget, ctx);
 
             const yaml = ctx.getLines().join('\n');
-            expect(yaml).toMatch(/widget:shape_rect/);
-            expect(yaml).toMatch(/filled_rectangle\(0, 0, 100, 50/);
+            expect(yaml).toMatchSnapshot();
         });
 
         it('exports "shape_circle" plugin correctly', () => {
@@ -168,8 +153,7 @@ describe('Export Path Round-Trip Enforcement', () => {
             shapeCirclePlugin.export(widget, ctx);
 
             const yaml = ctx.getLines().join('\n');
-            expect(yaml).toMatch(/widget:shape_circle/);
-            expect(yaml).toContain('it.circle(40, 40, 20');
+            expect(yaml).toMatchSnapshot();
         });
     });
 
@@ -184,8 +168,7 @@ describe('Export Path Round-Trip Enforcement', () => {
             graphPlugin.export(widget, ctx);
 
             const yaml = ctx.getLines().join('\n');
-            expect(yaml).toMatch(/widget:graph/);
-            expect(yaml).toMatch(/entity:.*sensor\.power/);
+            expect(yaml).toMatchSnapshot();
         });
 
         it('exports "progress_bar" plugin correctly', () => {
@@ -197,8 +180,7 @@ describe('Export Path Round-Trip Enforcement', () => {
             progressBarPlugin.export(widget, ctx);
 
             const yaml = ctx.getLines().join('\n');
-            expect(yaml).toMatch(/widget:progress_bar/);
-            expect(yaml).toMatch(/color:blue/);
+            expect(yaml).toMatchSnapshot();
         });
 
         it('exports "qr_code" plugin correctly', () => {
@@ -210,8 +192,7 @@ describe('Export Path Round-Trip Enforcement', () => {
             qrCodePlugin.export(widget, ctx);
 
             const yaml = ctx.getLines().join('\n');
-            expect(yaml).toMatch(/widget:qr_code/);
-            expect(yaml).toMatch(/value:.*https:\/\/example\.com/);
+            expect(yaml).toMatchSnapshot();
         });
     });
 
@@ -220,7 +201,7 @@ describe('Export Path Round-Trip Enforcement', () => {
             common: { x: 0, y: 0, width: 100, height: 30 },
             convertColor: c => c,
             convertAlign: a => a,
-            getLVGLFont: (f, s, w) => `font_${f}_${s}`,
+            getLVGLFont: (f, s, w) => `font_${f}_${s}`, // eslint-disable-line no-unused-vars
             formatOpacity: o => o
         };
 

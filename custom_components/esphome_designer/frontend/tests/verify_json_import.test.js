@@ -1,5 +1,5 @@
 
-import { AppState } from '../js/core/state.js';
+import { AppState } from '../js/core/state';
 import { loadLayoutIntoState } from '../js/io/yaml_import.js';
 import { Logger } from '../js/utils/logger.js';
 import { describe, it, expect, beforeEach } from 'vitest';

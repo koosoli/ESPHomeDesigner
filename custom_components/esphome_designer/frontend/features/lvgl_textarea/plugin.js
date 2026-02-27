@@ -2,7 +2,7 @@
  * LVGL Textarea Plugin
  */
 
-const render = (el, widget, { getColorStyle }) => {
+const render = (el, widget, { _getColorStyle }) => {
     const props = widget.props || {};
     const text = props.text || "";
     const placeholder = props.placeholder_text || "Enter text...";
@@ -45,7 +45,7 @@ const render = (el, widget, { getColorStyle }) => {
 };
 
 const exportLVGL = (w, context) => {
-    const { getStyleProps, getObjectDescriptor } = context;
+    const { getStyleProps, getObjectDescriptor } = context; // eslint-disable-line no-unused-vars
     const props = w.props || {};
 
     const obj = getObjectDescriptor(w);

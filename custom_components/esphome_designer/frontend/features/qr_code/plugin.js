@@ -1,7 +1,7 @@
 /**
  * QR Code Plugin
  */
-import { AppState } from '@core/state.js';
+import { AppState } from '@core/state';
 
 
 
@@ -89,12 +89,12 @@ const render = (element, widget, helpers) => {
 
 const exportDoc = (w, context) => {
     const {
-        lines, getColorConst, addDitherMask, sanitize, getCondProps, getConditionCheck, isEpaper
+        lines, getColorConst, addDitherMask, sanitize, getCondProps, getConditionCheck, isEpaper // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
     const value = sanitize(p.value || "https://github.com/koosoli/ESPHomeDesigner/");
-    const ecc = p.ecc || "LOW";
+    const ecc = p.ecc || "LOW"; // eslint-disable-line no-unused-vars
     const colorProp = p.color || "theme_auto";
 
     const color = getColorConst(colorProp);
@@ -116,7 +116,7 @@ const exportDoc = (w, context) => {
     if (borderWidth > 0) {
         const borderColorProp = p.border_color || colorProp;
         const borderColorConst = getColorConst(borderColorProp);
-        const radius = p.border_radius || 0;
+        const radius = p.border_radius || 0; // eslint-disable-line no-unused-vars
         for (let i = 0; i < borderWidth; i++) {
             lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColorConst});`);
         }
@@ -194,7 +194,7 @@ export default {
         panel.endSection();
     },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { _layout, _page }) => {
         const p = w.props || {};
         const value = p.value || "https://github.com/koosoli/ESPHomeDesigner/";
 
@@ -209,7 +209,7 @@ export default {
             bgcolor: p.bg_color || "white"
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const value = p.value || "https://github.com/koosoli/ESPHomeDesigner/";
 

@@ -41,7 +41,7 @@ const render = (el, widget, { getColorStyle }) => {
     el.appendChild(track);
 };
 
-const exportLVGL = (w, { common, convertColor, formatOpacity, profile }) => {
+const exportLVGL = (w, { common, convertColor, formatOpacity, _profile }) => {
     const p = w.props || {};
 
     // Robust entity ID detection

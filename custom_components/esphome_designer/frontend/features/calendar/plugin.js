@@ -1,8 +1,8 @@
 /**
  * Calendar Plugin
  */
-import { AppState } from '@core/state.js';
-import { SchemaRenderer } from '../../js/core/properties/schema_renderer.js';
+import { AppState } from '@core/state';
+import { SchemaRenderer } from '../../js/core/properties/schema_renderer.js'; // eslint-disable-line no-unused-vars
 
 const CALENDAR_HELPER_SCRIPT = `# Dictionary to map calendar keys to their corresponding names
 # One word calandars don't need to be added calendar.jobs would map to Jobs by default without adding it here
@@ -239,7 +239,7 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
                 // If theme is light (black text), use white inside.
                 // Since `colorStyle` is resolved, we just guess based on likely values.
                 // safe default is usually page background if we can't tell, but black is safer for white text.
-                textCol = (bgProp === "transparent") ? "var(--bg-base)" : getColorStyle(bgProp);
+                textCol = (bgProp === "transparent") ? "var(--bg-base)" : getColorStyle(bgProp); // eslint-disable-line no-unused-vars
             }
 
             // Override with simple inversion if transparent
@@ -369,7 +369,7 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
 };
 
 
-const calendarSchema = [
+const calendarSchema = [ // eslint-disable-line no-unused-vars
     {
         section: "Display Options",
         fields: [
@@ -544,7 +544,7 @@ template:
         const calendarWidgets = widgets.filter(w => w.type === "calendar");
         if (calendarWidgets.length === 0) return;
 
-        let needsInstruction = false;
+        let _needsInstruction = false;
 
         for (const w of calendarWidgets) {
             const p = w.props || {};
@@ -557,7 +557,7 @@ template:
                 (context.seenSensorIds && context.seenSensorIds.has(safeId));
 
             if (!alreadyDefined) {
-                needsInstruction = true; // Use this to toggle instruction block
+                _needsInstruction = true; // Use this to toggle instruction block // eslint-disable-line no-unused-vars
                 if (context.seenEntityIds) context.seenEntityIds.add(entityId);
                 if (context.seenSensorIds) context.seenSensorIds.add(safeId);
 
@@ -716,7 +716,7 @@ template:
 
     export: (w, context) => {
         const {
-            lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper
+            lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};

@@ -1,6 +1,6 @@
-import { AppState } from './state.js';
-import { on, emit, EVENTS } from './events.js';
-import { WidgetFactory } from './widget_factory.js';
+import { AppState } from './state';
+import { on, emit, EVENTS } from './events.js'; // eslint-disable-line no-unused-vars
+import { WidgetFactory } from './widget_factory';
 import { showToast } from '../utils/dom.js';
 import { Logger } from '../utils/logger.js';
 

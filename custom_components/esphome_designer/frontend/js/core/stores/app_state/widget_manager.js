@@ -2,7 +2,7 @@ import { generateId } from '../../../utils/helpers.js';
 import { emit, EVENTS } from '../../events.js';
 import { Logger } from '../../../utils/logger.js';
 import { showToast } from '../../../utils/dom.js';
-import { registry } from '../../plugin_registry.js';
+import { registry } from '../../plugin_registry';
 
 export class WidgetManager {
     constructor(app) {

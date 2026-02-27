@@ -2,7 +2,7 @@
  * LVGL Button Plugin
  */
 
-import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js';
+import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js'; // eslint-disable-line no-unused-vars
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -26,7 +26,7 @@ const render = (el, widget, { getColorStyle }) => {
     el.appendChild(text);
 };
 
-const exportLVGL = (w, { common, convertColor, formatOpacity, profile, getLVGLFont }) => {
+const exportLVGL = (w, { common, convertColor, formatOpacity, _profile, getLVGLFont }) => {
     const p = w.props || {};
 
     // Robust entity ID detection: check top-level, props.entity_id, and props.entity
@@ -91,7 +91,6 @@ export default {
         font_weight: 400,
         italic: false,
         entity_id: "",
-        is_local_sensor: false,
         opacity: 255
     },
     schema: [

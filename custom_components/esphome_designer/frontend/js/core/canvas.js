@@ -1,10 +1,10 @@
-import { AppState } from './state.js';
+import { AppState } from './state';
 import { on, EVENTS } from './events.js';
 import { render, applyZoom, renderContextToolbar } from './canvas_renderer.js';
 import { CanvasRulers } from './canvas_rulers.js';
 import { setupInteractions, setupPanning, setupZoomControls, setupDragAndDrop, zoomIn, zoomOut, zoomReset, onMouseMove, onMouseUp } from './canvas_interactions.js';
 import { setupTouchInteractions } from './canvas_touch.js';
-import { clearSnapGuides, addSnapGuideVertical, addSnapGuideHorizontal, getSnapLines, applySnapToPosition } from './canvas_snap.js';
+import { clearSnapGuides, addSnapGuideVertical, addSnapGuideHorizontal, getSnapLines, applySnapToPosition } from './canvas_snap.js'; // eslint-disable-line no-unused-vars
 
 export class Canvas {
     constructor() {

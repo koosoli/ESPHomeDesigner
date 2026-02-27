@@ -1,4 +1,4 @@
-import { AppState } from './state.js';
+import { AppState } from './state';
 import { Logger } from '../utils/logger.js';
 import { emit, EVENTS } from './events.js';
 
@@ -22,7 +22,7 @@ export class KeyboardHandler {
         }
 
         const hasSelection = state.selectedWidgetIds.length > 0;
-        const selectedWidgetId = state.selectedWidgetId; // Reference for single-widget ops
+        const _selectedWidgetId = state.selectedWidgetId; // Reference for single-widget ops // eslint-disable-line no-unused-vars
         const isAutoHighlight = window.isAutoHighlight || false; // Global flag from snippet editor
 
         // Quick Search: Shift+Space

@@ -1,7 +1,7 @@
 /**
  * Date & Time Plugin
  */
-import { AppState } from '@core/state.js';
+import { AppState } from '@core/state';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -189,7 +189,7 @@ export default {
         panel.endSection();
     },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const format = p.format || "time_date";
         const textAlign = (p.text_align || "CENTER").toUpperCase();
@@ -240,7 +240,7 @@ export default {
             font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf"
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { layout, _page }) => {
         const p = w.props || {};
         const format = p.format || "time_date";
         const textAlign = (p.text_align || "CENTER").toUpperCase();
@@ -339,7 +339,7 @@ export default {
     },
     export: (w, context) => {
         const {
-            lines, getColorConst, addFont, getCondProps, getConditionCheck, getAlignY
+            lines, getColorConst, addFont, getCondProps, getConditionCheck, getAlignY // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};

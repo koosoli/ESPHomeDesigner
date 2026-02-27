@@ -27,7 +27,7 @@ export function parseDuration(durationStr) {
     return val;
 }
 
-export function generateMockData(width, height, min, max) {
+export function generateMockData(width, height, min, max) { // eslint-disable-line no-unused-vars
     const points = [];
     const numPoints = 50;
 

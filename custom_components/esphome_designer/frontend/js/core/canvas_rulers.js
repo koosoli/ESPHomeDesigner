@@ -1,4 +1,4 @@
-import { AppState } from './state.js';
+import { AppState } from './state';
 
 /**
  * Handles rendering of pixel rulers on the canvas viewport.

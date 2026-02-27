@@ -1,4 +1,4 @@
-import { AppState } from '@core/state.js';
+import { AppState } from '@core/state';
 /**
  * Circle Shape Plugin
  */
@@ -80,7 +80,7 @@ export default {
         panel.endSection();
     },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
 
         // Resolve colors (handle theme_auto)
@@ -105,7 +105,7 @@ export default {
             width: p.border_width || 1
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         return {
             type: "circle",
@@ -120,7 +120,7 @@ export default {
     exportLVGL,
     export: (w, context) => {
         const {
-            lines, getColorConst, addDitherMask, getCondProps, getConditionCheck, RECT_Y_OFFSET, isEpaper
+            lines, getColorConst, addDitherMask, getCondProps, getConditionCheck, RECT_Y_OFFSET, isEpaper // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};

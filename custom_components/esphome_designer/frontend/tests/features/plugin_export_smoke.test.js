@@ -7,8 +7,8 @@ const mockExportContext = {
     lines: [],
     addFont: vi.fn(() => 'font_id'),
     getColorConst: vi.fn((c) => `Color(${c})`),
-    getAlignX: vi.fn((a, x, w) => x),
-    getAlignY: vi.fn((a, y, h) => y),
+    getAlignX: vi.fn((a, x, w) => x), // eslint-disable-line no-unused-vars
+    getAlignY: vi.fn((a, y, h) => y), // eslint-disable-line no-unused-vars
     sanitize: vi.fn((s) => s),
     addDitherMask: vi.fn(),
     getCondProps: vi.fn(() => ''),
@@ -34,7 +34,7 @@ const mockOdpContext = {
 };
 
 describe('Plugin Export Smoke Tests', () => {
-    Object.entries(plugins).forEach(([path, module]) => {
+    Object.entries(plugins).forEach(([path, module]) => { // eslint-disable-line no-unused-vars
         const plugin = module.default;
         if (!plugin || !plugin.id) return;
 

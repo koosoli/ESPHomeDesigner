@@ -1,4 +1,4 @@
-import { AppState } from '../core/state.js';
+import { AppState } from '../core/state';
 import { emit, EVENTS } from '../core/events.js';
 import { getHaToken, hasHaBackend, HA_API_BASE } from '../utils/env.js';
 import { loadLayoutIntoState } from './yaml_import.js';
@@ -7,8 +7,8 @@ import { Logger } from '../utils/logger.js';
 // --- HA Entity States Cache ---
 let entityStatesCache = [];
 let entityStatesFetchInProgress = false;
-let haEntitiesLoaded = false;
-let haEntitiesLoadError = false;
+let haEntitiesLoaded = false; // eslint-disable-line no-unused-vars
+let haEntitiesLoadError = false; // eslint-disable-line no-unused-vars
 
 /**
  * Gets the headers required for Home Assistant API requests.
@@ -75,7 +75,7 @@ export async function fetchEntityStates() {
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
         // Determine which API to use
-        const isStandaloneMode = HA_API_BASE.includes('api/esphome_designer') &&
+        const isStandaloneMode = HA_API_BASE.includes('api/esphome_designer') && // eslint-disable-line no-unused-vars
             !window.location.pathname.includes('esphome-designer');
 
         let apiUrl;
@@ -202,7 +202,7 @@ export async function fetchEntityStates() {
  * @param {string} entityId 
  * @returns {string|null} Formatted state or null if not found.
  */
-function getEntityState(entityId) {
+function getEntityState(entityId) { // eslint-disable-line no-unused-vars
     const entry = entityStatesCache.find(e => e.entity_id === entityId);
     return entry ? entry.formatted : null;
 }
@@ -255,7 +255,7 @@ export async function fetchEntityHistory(entityId, duration = "24h") {
         }
 
         return [];
-    } catch (err) {
+    } catch (err) { // eslint-disable-line no-unused-vars
         // Silently fail - history is only for editor preview
         return [];
     }
@@ -492,7 +492,7 @@ export async function importSnippetBackend(yaml) {
 }
 
 // Init function to be called by main
-function initHaApi() {
+function initHaApi() { // eslint-disable-line no-unused-vars
     if (hasHaBackend()) {
         fetchEntityStates();
         setInterval(fetchEntityStates, 30000);
