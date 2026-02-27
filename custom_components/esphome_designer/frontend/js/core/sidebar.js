@@ -410,7 +410,7 @@ export class Sidebar {
 
     handleClearPage() {
         // Defensive check for AppState as fallback
-        const State = AppState || window.AppState;
+        const State = AppState || AppState;
         if (!State) {
             console.error('[Sidebar] AppState is not defined!');
             if (typeof showToast === 'function') showToast('Error: Application State is not ready.', 'error');

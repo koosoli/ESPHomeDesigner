@@ -3,17 +3,20 @@ import { deepClone } from '../../utils/helpers.js';
 import { Logger } from '../../utils/logger.js';
 import { HISTORY_LIMIT } from '../constants';
 
+export interface EditorState {
+    selectedWidgetIds: string[];
+    clipboardWidgets: any[];
+    zoomLevel: number;
+    panX: number;
+    panY: number;
+}
+
 export class EditorStore {
+    state: EditorState;
+    historyStack: any[];
+    historyIndex: number;
+
     constructor() {
-        /**
-         * @type {{
-         *  selectedWidgetIds: string[],
-         *  clipboardWidgets: import("../../types.js").WidgetConfig[],
-         *  zoomLevel: number,
-         *  panX: number,
-         *  panY: number
-         * }}
-         */
         this.state = {
             selectedWidgetIds: [],
             clipboardWidgets: [],
@@ -21,38 +24,27 @@ export class EditorStore {
             panX: 0,
             panY: 0
         };
-        /** @type {import("../../types.js").ProjectPayload[]} */
         this.historyStack = [];
-        /** @type {number} */
         this.historyIndex = -1;
     }
 
-    /** @returns {string[]} */
-    get selectedWidgetIds() { return this.state.selectedWidgetIds; }
-    /** @returns {import("../../types.js").WidgetConfig[]} */
-    get clipboardWidgets() { return this.state.clipboardWidgets; }
-    /** @returns {number} */
-    get zoomLevel() { return this.state.zoomLevel; }
+    get selectedWidgetIds(): string[] { return this.state.selectedWidgetIds; }
+    get clipboardWidgets(): any[] { return this.state.clipboardWidgets; }
+    get zoomLevel(): number { return this.state.zoomLevel; }
 
-    /** @param {number} level */
-    setZoomLevel(level) {
+    setZoomLevel(level: number): void {
         this.state.zoomLevel = Math.max(0.05, Math.min(5.0, level));
         emit(EVENTS.ZOOM_CHANGED, { zoomLevel: this.state.zoomLevel });
     }
 
-    /** @param {string[]} ids */
-    setSelectedWidgetIds(ids) {
+    setSelectedWidgetIds(ids: string[] | null | undefined): void {
         this.state.selectedWidgetIds = ids || [];
         emit(EVENTS.SELECTION_CHANGED, { widgetIds: this.state.selectedWidgetIds });
     }
 
-    /**
-     * @param {string} widgetId 
-     * @param {boolean} multi 
-     */
-    selectWidget(widgetId, multi = false) {
+    selectWidget(widgetId: string | null | undefined, multi: boolean = false): void {
         if (multi) {
-            const idx = this.state.selectedWidgetIds.indexOf(widgetId);
+            const idx = widgetId ? this.state.selectedWidgetIds.indexOf(widgetId) : -1;
             if (idx === -1) {
                 if (widgetId) this.state.selectedWidgetIds.push(widgetId);
             } else {
@@ -64,17 +56,12 @@ export class EditorStore {
         emit(EVENTS.SELECTION_CHANGED, { widgetIds: this.state.selectedWidgetIds });
     }
 
-    /** @param {import("../../types.js").WidgetConfig[]} widgets */
-    copyWidgets(widgets) {
+    copyWidgets(widgets: any[]): void {
         this.state.clipboardWidgets = widgets.map(w => deepClone(w));
         Logger.log("[EditorStore] Widgets copied to clipboard:", this.state.clipboardWidgets.length);
     }
 
-    /**
-     * Record a project state snapshot for undo/redo.
-     * @param {import("../../types.js").ProjectPayload} currentProjectState 
-     */
-    recordHistory(currentProjectState) {
+    recordHistory(currentProjectState: any): void {
         const snapshot = deepClone(currentProjectState);
 
         // Deduplicate
@@ -102,8 +89,7 @@ export class EditorStore {
         emit(EVENTS.HISTORY_CHANGED, { canUndo: this.canUndo(), canRedo: this.canRedo() });
     }
 
-    /** @returns {import("../../types.js").ProjectPayload|null} */
-    undo() {
+    undo(): any | null {
         if (this.canUndo()) {
             this.historyIndex--;
             return this.historyStack[this.historyIndex];
@@ -111,8 +97,7 @@ export class EditorStore {
         return null;
     }
 
-    /** @returns {import("../../types.js").ProjectPayload|null} */
-    redo() {
+    redo(): any | null {
         if (this.canRedo()) {
             this.historyIndex++;
             return this.historyStack[this.historyIndex];
@@ -120,6 +105,6 @@ export class EditorStore {
         return null;
     }
 
-    canUndo() { return this.historyIndex > 0; }
-    canRedo() { return this.historyIndex < this.historyStack.length - 1; }
+    canUndo(): boolean { return this.historyIndex > 0; }
+    canRedo(): boolean { return this.historyIndex < this.historyStack.length - 1; }
 }

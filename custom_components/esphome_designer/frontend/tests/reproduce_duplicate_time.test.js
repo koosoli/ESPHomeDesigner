@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ESPHomeAdapter } from '../js/io/adapters/esphome_adapter.js';
+import { ESPHomeAdapter } from '../js/io/adapters/esphome_adapter';
 import { registry } from '../js/core/plugin_registry';
 
 describe('Duplicate Time Key Reproduction', () => {

@@ -1,4 +1,5 @@
 import { Logger } from '../utils/logger.js';
+import { AppState } from '../core/state';
 
 export class AIService {
     constructor() {
@@ -8,7 +9,7 @@ export class AIService {
     }
 
     getSettings() {
-        return window.AppState.settings;
+        return AppState.settings;
     }
 
     async fetchModels(provider, apiKey) {
@@ -75,7 +76,7 @@ export class AIService {
                     Logger.log(`Auto-detected model: ${model}`);
 
                     // Persist for next time
-                    window.AppState.updateSettings({ [`ai_model_${provider}`]: model });
+                    AppState.updateSettings({ [`ai_model_${provider}`]: model });
                 } else {
                     throw new Error("No models found for this API Key.");
                 }
@@ -291,7 +292,7 @@ STRICT OPERATIONAL RULES:
 2. TYPOGRAPHY: "Bold" = font_weight: 700. "Normal/Regular" = font_weight: 400. "Large" = font_size: 28+.
 3. VISUAL HIERARCHY: Use 'shape_rect' or 'rounded_rect' to create headers, footers, or background cards for groups of widgets. Use small thin shapes as dividers.
 4. UNIQUE IDS: Every new widget MUST have a unique ID like "w_" + timestamp or a short descriptive string. Never leave ID as null or undefined.
-5. CANVAS BOUNDS: Stay within ${JSON.stringify(window.AppState.getCanvasDimensions())}.
+5. CANVAS BOUNDS: Stay within ${JSON.stringify(AppState.getCanvasDimensions())}.
 6. COLOR USAGE: Check "display_type" in context:
    - "monochrome": Use ONLY "black" or "white". No grays, no colors.
    - "color_epaper": Use limited palette: black, white, red, green, blue, yellow, orange. No gradients.

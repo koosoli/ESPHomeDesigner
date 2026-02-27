@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ESPHomeAdapter } from '../../js/io/adapters/esphome_adapter.js';
-import { parseSnippetYamlOffline } from '../../js/io/yaml_import.js';
+import { ESPHomeAdapter } from '../../js/io/adapters/esphome_adapter';
+import { parseSnippetYamlOffline } from '../../js/io/yaml_import';
 import { registry } from '../../js/core/plugin_registry';
 
 // Mock Logger

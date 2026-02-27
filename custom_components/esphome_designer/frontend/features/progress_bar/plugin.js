@@ -22,8 +22,8 @@ const render = (el, widget, tools) => {
 
     let percentValue = 50;
 
-    if (window.AppState && window.AppState.entityStates && entityId) {
-        const stateSet = window.AppState.entityStates[entityId];
+    if (AppState && AppState.entityStates && entityId) {
+        const stateSet = AppState.entityStates[entityId];
         const state = (stateSet && stateSet.state !== undefined) ? stateSet.state : null;
         if (state !== undefined && state !== null) {
             const numVal = parseFloat(String(state).replace(/[^0-9.-]/g, ''));

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'; // eslint-disable-line no-unused-vars
-import { ESPHomeAdapter } from '../js/io/adapters/esphome_adapter.js';
+import { ESPHomeAdapter } from '../js/io/adapters/esphome_adapter';
 
 describe('Widget Restoration Verification', () => {
     let adapter;

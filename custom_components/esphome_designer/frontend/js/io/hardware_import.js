@@ -35,7 +35,7 @@ export async function fetchDynamicHardwareProfiles() {
 
     // Use Vite's import.meta.glob to find all YAML files in the hardware directory
     // This works at build time / dev server time to map files
-    const hardwareFiles = import.meta.glob('../../hardware/*.yaml', { as: 'raw', eager: true });
+    const hardwareFiles = import.meta.glob('../../hardware/*.yaml', { query: '?raw', import: 'default', eager: true });
 
     for (const path in hardwareFiles) {
         try {

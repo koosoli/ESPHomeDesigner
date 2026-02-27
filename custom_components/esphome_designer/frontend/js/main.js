@@ -6,7 +6,7 @@ import { EditorSettings } from './ui/editor_settings.js';
 import { PageSettings } from './ui/page_settings.js';
 import { SnippetManager } from './ui/snippet_manager.js';
 import { KeyboardHandler } from './core/keyboard.js';
-import { ESPHomeAdapter } from './io/adapters/esphome_adapter.js';
+import { ESPHomeAdapter } from './io/adapters/esphome_adapter';
 import { OEPLAdapter } from './io/adapters/oepl_adapter.js';
 import { OpenDisplayAdapter } from './io/adapters/opendisplay_adapter.js';
 import { AppState } from './core/state';
@@ -39,7 +39,7 @@ import { loadLayoutFromBackend, saveLayoutToBackend, fetchEntityStates } from '.
 import { loadExternalProfiles } from './io/devices.js';
 import { saveLayoutToFile, handleFileSelect } from './io/file_ops.js';
 
-import { loadLayoutIntoState } from './io/yaml_import.js';
+import { loadLayoutIntoState } from './io/yaml_import';
 import './io/hardware_import.js'; // Register global hardware fetchers
 import { aiService } from './io/ai_service.js'; // eslint-disable-line no-unused-vars
 
@@ -94,7 +94,7 @@ export class App {
 
     async init() {
         Logger.log("[App] Initializing ESPHome Designer Designer...");
-        Logger.log("[App] AppState:", window.AppState);
+        Logger.log("[App] AppState:", AppState);
 
         // Guard to prevent auto-save during initial load
         this.isInitializing = true;
@@ -157,8 +157,8 @@ export class App {
         }
 
         // Update the layout indicator after loading
-        if (window.AppState && typeof window.AppState.updateLayoutIndicator === 'function') {
-            window.AppState.updateLayoutIndicator();
+        if (AppState && typeof AppState.updateLayoutIndicator === 'function') {
+            AppState.updateLayoutIndicator();
         }
 
         // Setup auto-save or auto-update snippet

@@ -1,3 +1,4 @@
+import { AppState } from '../../js/core/state';
 /**
  * LVGL Arc Plugin
  */
@@ -83,8 +84,8 @@ const render = (el, widget, { getColorStyle }) => {
     let val = props.value !== undefined ? props.value : 50;
 
     const entityId = widget.entity_id;
-    if (entityId && window.AppState && window.AppState.entityStates) {
-        const stateObj = window.AppState.entityStates[entityId];
+    if (entityId && AppState && AppState.entityStates) {
+        const stateObj = AppState.entityStates[entityId];
         if (stateObj && stateObj.state !== undefined) {
             const parsed = parseFloat(stateObj.state);
             if (!isNaN(parsed)) {

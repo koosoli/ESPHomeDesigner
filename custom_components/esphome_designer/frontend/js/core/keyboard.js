@@ -15,7 +15,7 @@ export class KeyboardHandler {
         // Debug
         // Key event handling
 
-        const state = AppState || window.AppState;
+        const state = AppState || AppState;
         if (!state) {
             Logger.error("KeyboardHandler: AppState not found!");
             return;
@@ -235,17 +235,17 @@ export class KeyboardHandler {
     }
 
     deleteWidget(widgetId) {
-        const state = AppState || window.AppState;
+        const state = AppState || AppState;
         if (state) state.deleteWidget(widgetId);
     }
 
     copyWidget() {
-        const state = AppState || window.AppState;
+        const state = AppState || AppState;
         if (state) state.copyWidget();
     }
 
     pasteWidget() {
-        const state = AppState || window.AppState;
+        const state = AppState || AppState;
         if (state) state.pasteWidget();
     }
 }

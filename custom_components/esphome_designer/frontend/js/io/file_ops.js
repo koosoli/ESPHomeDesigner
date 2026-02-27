@@ -1,5 +1,5 @@
 import { AppState } from '../core/state';
-import { loadLayoutIntoState } from './yaml_import.js';
+import { loadLayoutIntoState } from './yaml_import';
 import { Logger } from '../utils/logger.js';
 
 /**

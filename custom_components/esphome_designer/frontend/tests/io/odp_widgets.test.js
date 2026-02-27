@@ -42,7 +42,7 @@ vi.mock('js-yaml', () => ({
 }));
 
 // Import the parsing functions
-import { parseOEPLArrayToLayout, isBareOEPLArray } from '../../js/io/yaml_import.js';
+import { parseOEPLArrayToLayout, isBareOEPLArray } from '../../js/io/yaml_import';
 
 describe('ODP-specific widget parsing', () => {
     beforeEach(() => {

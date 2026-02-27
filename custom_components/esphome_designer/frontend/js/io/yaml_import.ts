@@ -8,11 +8,45 @@ import { parseDisplayBlocks } from './yaml_parsers/display_parser.js';
 import { extractLambdaLines } from './yaml_parsers/lambda_extractor.js';
 import { isBareOEPLArray, parseOEPLArrayToLayout } from './yaml_parsers/oepl_parser.js';
 
+export interface ParsedWidget {
+    id?: string;
+    type?: string;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    locked?: boolean;
+    [key: string]: any;
+}
+
+export interface ParsedPage {
+    id?: string;
+    name?: string;
+    widgets?: ParsedWidget[];
+    [key: string]: any;
+}
+
+export interface ParsedLayout {
+    name?: string;
+    deviceName?: string;
+    device_model?: string;
+    deviceModel?: string;
+    device_id?: string;
+    currentLayoutId?: string;
+    settings?: Record<string, any>;
+    customHardware?: Record<string, any>;
+    pages?: ParsedPage[];
+    data?: {
+        devices?: Record<string, any>;
+    };
+    [key: string]: any;
+}
+
 /**
  * Creates a custom js-yaml schema that supports ESPHome tags like !lambda.
  * @returns {Object|null} The extended YAML schema, or null if unavailable
  */
-function getESPHomeSchema() {
+function getESPHomeSchema(): yaml.Schema | null {
     if (!yaml || !yaml.Type || !yaml.DEFAULT_SCHEMA) {
         return null;
     }
@@ -20,18 +54,18 @@ function getESPHomeSchema() {
     try {
         const LambdaType = new yaml.Type('!lambda', {
             kind: 'scalar',
-            construct: (data) => data
+            construct: (data: string) => data
         });
         const SecretType = new yaml.Type('!secret', {
             kind: 'scalar',
-            construct: (data) => data
+            construct: (data: string) => data
         });
         const IncludeType = new yaml.Type('!include', {
             kind: 'scalar',
-            construct: (data) => data
+            construct: (data: string) => data
         });
         return yaml.DEFAULT_SCHEMA.extend([LambdaType, SecretType, IncludeType]);
-    } catch (e) { // eslint-disable-line no-unused-vars
+    } catch (e) {
         Logger.warn("[getESPHomeSchema] Could not extend schema, falling back to default.");
         return yaml.DEFAULT_SCHEMA;
     }
@@ -41,13 +75,13 @@ function getESPHomeSchema() {
  * Parses an ESPHome YAML snippet offline to extract the layout.
  * 
  * @param {string} yamlText - The raw YAML/C++ payload containing the display configuration
- * @returns {import('../types.js').ProjectPayload} The fully parsed project configuration and widget tree
+ * @returns {ParsedLayout | null} The fully parsed project configuration and widget tree
  */
-export function parseSnippetYamlOffline(yamlText) {
+export function parseSnippetYamlOffline(yamlText: string): ParsedLayout | null {
     Logger.log("[parseSnippetYamlOffline] Start parsing...");
     const rawLines = yamlText.split(/\r?\n/);
 
-    let doc = {};
+    let doc: any = {};
     try {
         const schema = getESPHomeSchema();
         doc = yaml.load(yamlText, schema ? { schema } : {}) || {};
@@ -83,10 +117,10 @@ export function parseSnippetYamlOffline(yamlText) {
     }
 
     // --- Standard ESPHome Format Parsing ---
-    const lambdaLines = [];
+    const lambdaLines: string[] = [];
     if (doc.display) {
         const displays = Array.isArray(doc.display) ? doc.display : [doc.display];
-        displays.forEach(d => { if (d && d.lambda) lambdaLines.push(...d.lambda.split("\n")); });
+        displays.forEach((d: any) => { if (d && d.lambda) lambdaLines.push(...d.lambda.split("\n")); });
     }
 
     // Fallback to specialized scanning if lines are missing or block is manual
@@ -105,10 +139,9 @@ export function parseSnippetYamlOffline(yamlText) {
  * Loads a parsed layout into the application state.
  * Supports modern layout objects and legacy JSON/HA storage formats.
  * 
- * @param {import('../types.js').ProjectPayload} layout - The project payload object to load into state
- * @throws {Error} if load fails or application state is uninitialized
+ * @param {ParsedLayout} layout - The project payload object to load into state
  */
-export function loadLayoutIntoState(layout) {
+export function loadLayoutIntoState(layout: ParsedLayout | null | undefined): void {
     if (!layout) return;
     Logger.log("[loadLayoutIntoState] Loading layout...");
 
@@ -118,6 +151,8 @@ export function loadLayoutIntoState(layout) {
         const firstKey = Object.keys(layout.data.devices)[0];
         data = layout.data.devices[firstKey];
     }
+
+    if (!data) return;
 
     // 2. Map Device Metadata (Backward Compatibility)
     if (data.name) AppState.setDeviceName(data.name);
@@ -150,4 +185,4 @@ export function loadLayoutIntoState(layout) {
     Logger.log("[loadLayoutIntoState] Finished loading state.");
 }
 
-export { isBareOEPLArray, parseOEPLArrayToLayout }; 
+export { isBareOEPLArray, parseOEPLArrayToLayout };

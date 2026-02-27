@@ -3,7 +3,7 @@ import { AppState } from '../core/state';
 import { Logger } from '../utils/logger.js';
 import { showToast } from '../utils/dom.js';
 import { highlightWidgetInSnippet } from '../io/yaml_export.js';
-import { loadLayoutIntoState, parseSnippetYamlOffline } from '../io/yaml_import.js';
+import { loadLayoutIntoState, parseSnippetYamlOffline } from '../io/yaml_import';
 import { importSnippetBackend } from '../io/ha_api.js';
 import { hasHaBackend } from '../utils/env.js';
 import { YamlHighlighter } from './yaml_highlighter.js';

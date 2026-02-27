@@ -21,8 +21,8 @@ const render = (el, widget, { getColorStyle }) => {
     let weatherState = "sunny"; // Default preview
     const entityId = widget.entity_id || props.weather_entity || "weather.forecast_home";
 
-    if (entityId && window.AppState && window.AppState.entityStates) {
-        const stateSet = window.AppState.entityStates[entityId];
+    if (entityId && AppState && AppState.entityStates) {
+        const stateSet = AppState.entityStates[entityId];
         const attribute = (props.attribute || "").trim();
 
         if (stateSet) {

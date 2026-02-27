@@ -1,3 +1,4 @@
+import { AppState } from '../../js/core/state';
 /**
  * Template Sensor Bar Plugin
  */
@@ -87,9 +88,9 @@ const render = (el, widget, { getColorStyle, isDark }) => {
     el.style.color = cssColor;
 
     const getEntityState = (possibleIds) => {
-        if (!window.AppState || !window.AppState.entityStates) return null;
+        if (!AppState || !AppState.entityStates) return null;
         for (const id of possibleIds) {
-            if (id && window.AppState.entityStates[id]) return window.AppState.entityStates[id].state;
+            if (id && AppState.entityStates[id]) return AppState.entityStates[id].state;
         }
         return null;
     };

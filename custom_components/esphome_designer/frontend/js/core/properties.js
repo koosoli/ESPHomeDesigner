@@ -231,8 +231,8 @@ export class PropertiesPanel {
     }
 
     autoPopulateTitleFromEntity(widgetId, entityId) {
-        if (!entityId || !window.AppState || !window.AppState.entityStates) return;
-        const entity = window.AppState.entityStates[entityId];
+        if (!entityId || !AppState || !AppState.entityStates) return;
+        const entity = AppState.entityStates[entityId];
         if (entity && entity.attributes && entity.attributes.friendly_name) {
             AppState.updateWidget(widgetId, { title: entity.attributes.friendly_name });
         }

@@ -22,7 +22,7 @@ const render = (el, widget, { getColorStyle }) => { // eslint-disable-line no-un
 
     const codeRaw = props.code || "";
     // Handle template in icon code
-    const code = evaluateTemplatePreview(codeRaw, window.AppState?.entityStates).trim().toUpperCase();
+    const code = evaluateTemplatePreview(codeRaw, AppState?.entityStates).trim().toUpperCase();
 
     if (code.includes('{{')) {
         // Still has template - show placeholder

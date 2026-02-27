@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { parseSnippetYamlOffline } from '../../js/io/yaml_import.js';
+import { parseSnippetYamlOffline } from '../../js/io/yaml_import';
 
 // Setup window mock with js-yaml before tests
 beforeAll(async () => {

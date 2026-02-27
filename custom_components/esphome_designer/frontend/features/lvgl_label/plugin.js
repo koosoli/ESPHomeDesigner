@@ -11,8 +11,8 @@ const render = (el, widget, { getColorStyle }) => {
 
     if (widget.entity_id || props.entity_id) {
         const eid = widget.entity_id || props.entity_id;
-        if (window.AppState && window.AppState.entityStates && window.AppState.entityStates[eid]) {
-            text = String(window.AppState.entityStates[eid].state);
+        if (AppState && AppState.entityStates && AppState.entityStates[eid]) {
+            text = String(AppState.entityStates[eid].state);
         } else {
             text = "{" + eid.split('.').pop() + "}";
         }

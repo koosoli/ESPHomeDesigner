@@ -16,7 +16,7 @@ const HA_TEXT_DOMAINS = ["text_sensor.", "weather.", "calendar.", "person.", "de
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
-    const entityStates = window.AppState?.entityStates || {};
+    const entityStates = AppState?.entityStates || {};
     const entityId = widget.entity_id || "";
     const title = widget.title || "";
     const format = props.value_format || "label_value";
@@ -40,8 +40,8 @@ const render = (el, widget, { getColorStyle }) => {
 
     // Helper to format a single value
     const formatValue = (eId, attrPathOverride = null) => {
-        if (window.AppState && window.AppState.entityStates && eId) {
-            const entityObj = window.AppState.entityStates[eId];
+        if (AppState && AppState.entityStates && eId) {
+            const entityObj = AppState.entityStates[eId];
             if (entityObj && entityObj.state !== undefined) {
                 // If an attribute is specified, read that instead of the state. Supports nested paths.
                 const attributePath = (attrPathOverride !== null ? attrPathOverride : (props.attribute || "")).trim();
@@ -125,8 +125,8 @@ const render = (el, widget, { getColorStyle }) => {
     // Evaluate title template
     let effectiveTitleRaw = title;
     if (!effectiveTitleRaw && (format.startsWith("label_") || format === "value_label")) {
-        if (window.AppState && window.AppState.entityStates && entityId) {
-            const eObj = window.AppState.entityStates[entityId];
+        if (AppState && AppState.entityStates && entityId) {
+            const eObj = AppState.entityStates[entityId];
             if (eObj && eObj.attributes && eObj.attributes.friendly_name) {
                 effectiveTitleRaw = eObj.attributes.friendly_name;
             } else if (entityId) {
@@ -299,7 +299,7 @@ const render = (el, widget, { getColorStyle }) => {
     if (borderWidth > 0 || hasBackground) {
         let resolvedBorderColor = props.border_color || "theme_auto";
         if (resolvedBorderColor === "theme_auto") {
-            resolvedBorderColor = (window.AppState?.settings?.darkMode) ? "white" : "black";
+            resolvedBorderColor = (AppState?.settings?.darkMode) ? "white" : "black";
         }
 
         if (borderWidth > 0) {
@@ -391,8 +391,8 @@ export default {
         let unit = (p.unit || "").trim();
 
         // Auto-detect unit if missing and not suppressed (same logic as direct export)
-        if (!unit && !p.hide_unit && !format.endsWith("_no_unit") && window.AppState && window.AppState.entityStates) {
-            const eObj = window.AppState.entityStates[entityId];
+        if (!unit && !p.hide_unit && !format.endsWith("_no_unit") && AppState && AppState.entityStates) {
+            const eObj = AppState.entityStates[entityId];
             if (eObj) {
                 if (eObj.attributes && eObj.attributes.unit_of_measurement) {
                     unit = eObj.attributes.unit_of_measurement;
@@ -433,13 +433,13 @@ export default {
 
             if (isTextDomain) {
                 isText1 = true;
-            } else if (attribute && window.AppState?.entityStates?.[entityId]) {
+            } else if (attribute && AppState?.entityStates?.[entityId]) {
                 // If using an attribute, check the ACTUAL current value to decide type
-                const attrVal = getNestedValue(window.AppState.entityStates[entityId].attributes, attribute);
+                const attrVal = getNestedValue(AppState.entityStates[entityId].attributes, attribute);
                 isText1 = !isStrictlyNumeric(attrVal);
-            } else if (window.AppState?.entityStates?.[entityId]) {
+            } else if (AppState?.entityStates?.[entityId]) {
                 // Check state if no attribute
-                const stateVal = window.AppState.entityStates[entityId].state;
+                const stateVal = AppState.entityStates[entityId].state;
                 isText1 = !isStrictlyNumeric(stateVal);
             }
         }
@@ -451,11 +451,11 @@ export default {
 
             if (isTextDomain2) {
                 isText2 = true;
-            } else if (attribute2 && window.AppState?.entityStates?.[entityId2]) {
-                const attrVal2 = getNestedValue(window.AppState.entityStates[entityId2].attributes, attribute2);
+            } else if (attribute2 && AppState?.entityStates?.[entityId2]) {
+                const attrVal2 = getNestedValue(AppState.entityStates[entityId2].attributes, attribute2);
                 isText2 = !isStrictlyNumeric(attrVal2);
-            } else if (window.AppState?.entityStates?.[entityId2]) {
-                const stateVal2 = window.AppState.entityStates[entityId2].state;
+            } else if (AppState?.entityStates?.[entityId2]) {
+                const stateVal2 = AppState.entityStates[entityId2].state;
                 isText2 = !isStrictlyNumeric(stateVal2);
             }
         }
@@ -742,8 +742,8 @@ export default {
         let unit = (p.unit || "").trim();
 
         // Auto-detect unit if missing and not suppressed
-        if (!unit && !p.hide_unit && !format.endsWith("_no_unit") && window.AppState && window.AppState.entityStates) {
-            const eObj = window.AppState.entityStates[entityId];
+        if (!unit && !p.hide_unit && !format.endsWith("_no_unit") && AppState && AppState.entityStates) {
+            const eObj = AppState.entityStates[entityId];
             if (eObj) {
                 if (eObj.attributes && eObj.attributes.unit_of_measurement) {
                     unit = eObj.attributes.unit_of_measurement;
@@ -832,13 +832,13 @@ export default {
 
         // Auto-detect: Check domain and if entity state is non-numeric (like "pm25") or using a string attribute
         let isText1 = p.is_text_sensor || (entityId && HA_TEXT_DOMAINS.some(d => entityId.startsWith(d)));
-        if (!isText1 && entityId && window.AppState?.entityStates?.[entityId]) {
+        if (!isText1 && entityId && AppState?.entityStates?.[entityId]) {
             const attribute = (p.attribute || "").trim();
             if (attribute) {
-                const attrVal = getNestedValue(window.AppState.entityStates[entityId].attributes, attribute);
+                const attrVal = getNestedValue(AppState.entityStates[entityId].attributes, attribute);
                 isText1 = !isStrictlyNumeric(attrVal);
             } else {
-                isText1 = !isStrictlyNumeric(window.AppState.entityStates[entityId].state);
+                isText1 = !isStrictlyNumeric(AppState.entityStates[entityId].state);
             }
         }
 
@@ -849,11 +849,11 @@ export default {
 
             if (isTextDomain2) {
                 isText2 = true;
-            } else if (attribute2 && window.AppState?.entityStates?.[entityId2]) {
-                const attrVal2 = getNestedValue(window.AppState.entityStates[entityId2].attributes, attribute2);
+            } else if (attribute2 && AppState?.entityStates?.[entityId2]) {
+                const attrVal2 = getNestedValue(AppState.entityStates[entityId2].attributes, attribute2);
                 isText2 = !isStrictlyNumeric(attrVal2);
-            } else if (window.AppState?.entityStates?.[entityId2]) {
-                const stateVal2 = window.AppState.entityStates[entityId2].state;
+            } else if (AppState?.entityStates?.[entityId2]) {
+                const stateVal2 = AppState.entityStates[entityId2].state;
                 isText2 = !isStrictlyNumeric(stateVal2);
             }
         }
@@ -990,8 +990,8 @@ export default {
 
         // Helper to check if an entity's current state is non-numeric
         const isEntityStateNonNumeric = (eid) => {
-            if (!eid || !window.AppState?.entityStates) return false;
-            const entityObj = window.AppState.entityStates[eid];
+            if (!eid || !AppState?.entityStates) return false;
+            const entityObj = AppState.entityStates[eid];
             if (!entityObj || entityObj.state === undefined) return false;
             const stateStr = String(entityObj.state);
             return isNaN(parseFloat(stateStr)) || !isFinite(parseFloat(stateStr));
@@ -1223,8 +1223,8 @@ export default {
 
         // Helper to check if an entity's current state is non-numeric
         const isEntityStateNonNumeric = (eid) => {
-            if (!eid || !window.AppState?.entityStates) return false;
-            const entityObj = window.AppState.entityStates[eid];
+            if (!eid || !AppState?.entityStates) return false;
+            const entityObj = AppState.entityStates[eid];
             if (!entityObj || entityObj.state === undefined) return false;
             const stateStr = String(entityObj.state);
             return isNaN(parseFloat(stateStr)) || !isFinite(parseFloat(stateStr));

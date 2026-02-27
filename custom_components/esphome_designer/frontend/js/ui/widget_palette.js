@@ -1,5 +1,5 @@
 import { registry } from '../core/plugin_registry';
-import { AppState } from '../core/state'; // eslint-disable-line no-unused-vars
+import { AppState } from '../core/state';
 import { Logger } from '../utils/logger.js';
 import { EVENTS, on } from '../core/events.js';
 

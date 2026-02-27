@@ -1,5 +1,5 @@
 import { ProjectStore } from './project_store.js';
-import { EditorStore } from './editor_store.js';
+import { EditorStore } from './editor_store';
 import { PreferencesStore } from './preferences_store.js';
 import { SecretsStore } from './secrets_store.js';
 

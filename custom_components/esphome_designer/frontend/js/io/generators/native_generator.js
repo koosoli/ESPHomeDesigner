@@ -149,7 +149,7 @@ function generateWidget(widget, context) {
  * @param {import("../../types.js").ProjectPayload} layout - The root project containing global settings.
  * @param {import("../../types.js").DeviceProfile} profile - The targeted hardware profile definition.
  * @param {import("../../types.js").GenerationContext} context - Orchestration context (registered plugins, etc).
- * @param {import("../adapters/esphome_adapter.js").ESPHomeAdapter} adapter - Reference to the core adapter instance.
+ * @param {import("../adapters/esphome_adapter").ESPHomeAdapter} adapter - Reference to the core adapter instance.
  * @returns {string[]} Array of C++ code lines for the display lambda.
  */
 export function generateDisplayLambda(pages, layout, profile, context, adapter) {

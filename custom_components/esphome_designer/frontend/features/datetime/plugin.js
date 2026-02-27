@@ -48,7 +48,7 @@ const render = (el, widget, { getColorStyle }) => {
     if (borderWidth > 0 || hasBackground) {
         let resolvedBorderColor = props.border_color || "theme_auto";
         if (resolvedBorderColor === "theme_auto") {
-            resolvedBorderColor = (window.AppState?.settings?.darkMode) ? "white" : "black";
+            resolvedBorderColor = (AppState?.settings?.darkMode) ? "white" : "black";
         }
 
         if (borderWidth > 0) {

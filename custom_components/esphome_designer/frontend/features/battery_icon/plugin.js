@@ -18,8 +18,8 @@ const render = (el, widget, { getColorStyle }) => {
         size = Math.round(maxDim);
     }
 
-    if (window.AppState && window.AppState.entityStates && widget.entity_id) {
-        const stateObj = window.AppState.entityStates[widget.entity_id];
+    if (AppState && AppState.entityStates && widget.entity_id) {
+        const stateObj = AppState.entityStates[widget.entity_id];
         if (stateObj && stateObj.state !== undefined) {
             const val = parseFloat(stateObj.state);
             if (!isNaN(val)) {

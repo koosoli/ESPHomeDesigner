@@ -41,8 +41,8 @@ function initModalWiring() {
     function openDeviceSettings() {
         Logger.log("[ModalWiring] Opening device settings");
 
-        const settings = window.AppState ? AppState.settings : {};
-        const deviceName = window.AppState ? AppState.settings.device_name : "reTerminal E1001";
+        const settings = AppState ? AppState.settings : {};
+        const deviceName = AppState ? AppState.settings.device_name : "reTerminal E1001";
 
         if (deviceNameInput) deviceNameInput.value = deviceName || "reTerminal E1001";
         if (deviceModelInput) deviceModelInput.value = window.currentDeviceModel || "reterminal_e1001";

@@ -1,7 +1,7 @@
+import { AppState } from '../core/state';
 import { Logger } from '../utils/logger.js';
 import { emit, EVENTS } from '../core/events.js';
 import { showToast } from '../utils/dom.js';
-import { AppState } from '../core/state';
 import { aiService } from '../io/ai_service.js';
 import { DEVICE_PROFILES } from '../io/devices.js';
 
@@ -38,8 +38,8 @@ class LLMPrompt {
         this.input.focus();
 
         // Check if configured
-        const provider = window.AppState.settings.ai_provider || "gemini";
-        const key = window.AppState.settings[`ai_api_key_${provider}`];
+        const provider = AppState.settings.ai_provider || "gemini";
+        const key = AppState.settings[`ai_api_key_${provider}`];
         const warning = document.getElementById('aiConfigWarning');
         if (warning) {
             warning.style.display = key ? 'none' : 'block';
@@ -71,7 +71,7 @@ class LLMPrompt {
         this.applyBtn.style.display = "none";
 
         try {
-            const currentPage = window.AppState.getCurrentPage();
+            const currentPage = AppState.getCurrentPage();
 
             // Detect display type from device profile
             const deviceId = AppState.deviceModel;
@@ -88,10 +88,10 @@ class LLMPrompt {
             }
 
             const context = {
-                canvas: window.AppState.getCanvasDimensions(),
+                canvas: AppState.getCanvasDimensions(),
                 current_page: currentPage.id,
                 widgets: currentPage.widgets,
-                selected_widget_id: window.AppState.selectedWidgetId,
+                selected_widget_id: AppState.selectedWidgetId,
                 display_type: displayType
             };
 
@@ -119,11 +119,11 @@ class LLMPrompt {
         if (!this.generatedWidgets) return;
 
         try {
-            const currentPage = window.AppState.getCurrentPage();
+            const currentPage = AppState.getCurrentPage();
             currentPage.widgets = this.generatedWidgets;
 
             // Re-index widgets
-            window.AppState.project.rebuildWidgetsIndex();
+            AppState.project.rebuildWidgetsIndex();
 
             // Trigger update
             emit(EVENTS.STATE_CHANGED);

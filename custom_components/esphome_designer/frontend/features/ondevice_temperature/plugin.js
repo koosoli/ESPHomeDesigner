@@ -1,3 +1,4 @@
+import { AppState } from '../../js/core/state';
 /**
  * On-Device Temperature Plugin
  */
@@ -29,8 +30,8 @@ const render = (el, widget, { getColorStyle }) => {
     }
 
     if (!props.is_local_sensor && widget.entity_id) {
-        if (window.AppState && window.AppState.entityStates) {
-            const stateObj = window.AppState.entityStates[widget.entity_id];
+        if (AppState && AppState.entityStates) {
+            const stateObj = AppState.entityStates[widget.entity_id];
             if (stateObj && stateObj.state !== undefined) {
                 const val = parseFloat(stateObj.state);
                 if (!isNaN(val)) {

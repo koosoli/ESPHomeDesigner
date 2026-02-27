@@ -10,7 +10,7 @@ const render = (el, widget, { getColorStyle }) => {
 
     const textRaw = props.text || props.value || widget.title || "Text";
     // Evaluate template for designer preview
-    const text = evaluateTemplatePreview(textRaw, window.AppState?.entityStates);
+    const text = evaluateTemplatePreview(textRaw, AppState?.entityStates);
 
     const fontSize = props.font_size || 20;
     const fontFamily = props.font_family || "Roboto";
@@ -77,7 +77,7 @@ const render = (el, widget, { getColorStyle }) => {
         const borderColorProp = props.border_color || "black";
         let resolvedBorderColor = borderColorProp;
         if (borderColorProp === "theme_auto") {
-            resolvedBorderColor = (window.AppState?.settings?.darkMode) ? "white" : "black";
+            resolvedBorderColor = (AppState?.settings?.darkMode) ? "white" : "black";
         }
 
         if (borderWidth > 0) {

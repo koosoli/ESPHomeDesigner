@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ESPHomeAdapter } from '../../js/io/adapters/esphome_adapter.js';
+import { ESPHomeAdapter } from '../../js/io/adapters/esphome_adapter';
 import { getCondProps } from '../../js/io/generators/native_generator.js';
 import { mergeYamlSections } from '../../js/io/generators/yaml_merger.js';
 

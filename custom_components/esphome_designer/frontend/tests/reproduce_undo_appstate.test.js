@@ -1,6 +1,6 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { EditorStore } from '../js/core/stores/editor_store.js';
+import { EditorStore } from '../js/core/stores/editor_store';
 
 // Minimal mock of AppStateFacade logic regarding history
 // We can't import AppStateFacade directly because it relies on global state/DOM often.

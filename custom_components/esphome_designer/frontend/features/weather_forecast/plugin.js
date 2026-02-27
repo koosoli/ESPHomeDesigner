@@ -95,15 +95,15 @@ const render = (el, widget, { getColorStyle }) => {
         let liveHigh = null;
         let liveLow = null;
 
-        if (window.AppState && window.AppState.entityStates) {
+        if (AppState && AppState.entityStates) {
             const dayIdx = i + startOffset;
             const condId = mode === "hourly" ? `sensor.weather_forecast_hour_${actualSlots[i]}00_condition` : `sensor.weather_forecast_day_${dayIdx}_condition`;
             const highId = mode === "hourly" ? `sensor.weather_forecast_hour_${actualSlots[i]}00_high` : `sensor.weather_forecast_day_${dayIdx}_high`;
             const lowId = mode === "hourly" ? `sensor.weather_forecast_hour_${actualSlots[i]}00_low` : `sensor.weather_forecast_day_${dayIdx}_low`;
 
-            const condState = window.AppState.entityStates[condId];
-            const highState = window.AppState.entityStates[highId];
-            const lowState = window.AppState.entityStates[lowId];
+            const condState = AppState.entityStates[condId];
+            const highState = AppState.entityStates[highId];
+            const lowState = AppState.entityStates[lowId];
 
             if (condState && condState.state && condState.state !== "unknown") liveCond = condState.state.toLowerCase();
             if (highState && highState.state && highState.state !== "unknown") liveHigh = parseFloat(highState.state);

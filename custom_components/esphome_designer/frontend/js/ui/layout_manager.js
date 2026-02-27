@@ -6,10 +6,11 @@
 
 import { Logger } from '../utils/logger.js';
 import { DEVICE_PROFILES, SUPPORTED_DEVICE_IDS } from '../io/devices.js';
+import { AppState } from '../core/state';
+
 import { getHaHeaders } from '../io/ha_api.js';
 import { hasHaBackend, HA_API_BASE, getHaToken } from '../utils/env.js'; // eslint-disable-line no-unused-vars
-import { AppState } from '../core/state';
-import { loadLayoutIntoState } from '../io/yaml_import.js';
+import { loadLayoutIntoState } from '../io/yaml_import';
 import { emit, EVENTS } from '../core/events.js';
 
 class LayoutManager {
@@ -145,13 +146,13 @@ class LayoutManager {
             // If backend has a last_active_layout_id and we don't have a current layout, sync it
             if (data.last_active_layout_id && this.layouts.some(l => l.id === data.last_active_layout_id)) {
                 // Only update if we don't already have a current layout set
-                if (!window.AppState?.currentLayoutId || window.AppState.currentLayoutId === "reterminal_e1001") {
+                if (!AppState?.currentLayoutId || AppState.currentLayoutId === "reterminal_e1001") {
                     const lastActiveExists = this.layouts.find(l => l.id === data.last_active_layout_id);
-                    if (lastActiveExists && data.last_active_layout_id !== window.AppState?.currentLayoutId) {
+                    if (lastActiveExists && data.last_active_layout_id !== AppState?.currentLayoutId) {
                         Logger.log(`[LayoutManager] Syncing to last active layout: ${data.last_active_layout_id}`);
                         this.currentLayoutId = data.last_active_layout_id;
-                        if (window.AppState && typeof window.AppState.setCurrentLayoutId === "function") {
-                            window.AppState.setCurrentLayoutId(data.last_active_layout_id);
+                        if (AppState && typeof AppState.setCurrentLayoutId === "function") {
+                            AppState.setCurrentLayoutId(data.last_active_layout_id);
                         }
                     }
                 }
@@ -171,8 +172,8 @@ class LayoutManager {
         if (!tbody) return;
 
         // Determine current layout from AppState
-        if (window.AppState && window.AppState.currentLayoutId) {
-            this.currentLayoutId = window.AppState.currentLayoutId;
+        if (AppState && AppState.currentLayoutId) {
+            this.currentLayoutId = AppState.currentLayoutId;
         }
 
         // Update current layout display
@@ -262,8 +263,8 @@ class LayoutManager {
             // Update current layout ID FIRST, before loading state
             // This ensures any subsequent saves go to the correct layout
             this.currentLayoutId = layoutId;
-            if (window.AppState && typeof window.AppState.setCurrentLayoutId === "function") {
-                window.AppState.setCurrentLayoutId(layoutId);
+            if (AppState && typeof AppState.setCurrentLayoutId === "function") {
+                AppState.setCurrentLayoutId(layoutId);
                 Logger.log(`[LayoutManager] Set currentLayoutId to: ${layoutId}`);
             }
 
@@ -288,8 +289,8 @@ class LayoutManager {
 
             // Double-check: Ensure currentLayoutId is still correct after loadLayoutIntoState
             // (loadLayoutIntoState might reset it if layout.device_id was missing)
-            if (window.AppState && window.AppState.currentLayoutId !== layoutId) {
-                window.AppState.setCurrentLayoutId(layoutId);
+            if (AppState && AppState.currentLayoutId !== layoutId) {
+                AppState.setCurrentLayoutId(layoutId);
                 Logger.log(`[LayoutManager] Re-set currentLayoutId to: ${layoutId} (was changed by loadLayoutIntoState)`);
             }
 
@@ -565,17 +566,17 @@ class LayoutManager {
 
             // CRITICAL: Clear the current state BEFORE loading the new layout
             // This prevents any widgets from the previous layout from appearing
-            if (window.AppState) {
+            if (AppState) {
                 // Reset to empty state
-                window.AppState.setPages([{
+                AppState.setPages([{
                     id: "page_0",
                     name: "Page 1",
                     widgets: []
                 }]);
-                window.AppState.setCurrentPageIndex(0);
+                AppState.setCurrentPageIndex(0);
 
                 // Update settings with the detected rendering mode
-                window.AppState.updateSettings({
+                AppState.updateSettings({
                     renderingMode: initialRenderingMode,
                     device_model: deviceModel
                 });
@@ -587,8 +588,8 @@ class LayoutManager {
             await this.loadLayout(id);
 
             // After loading, update the device model in AppState
-            if (window.AppState) {
-                window.AppState.setDeviceModel(deviceModel);
+            if (AppState) {
+                AppState.setDeviceModel(deviceModel);
                 window.currentDeviceModel = deviceModel;
 
                 // Force a state change event to trigger re-render
@@ -597,7 +598,7 @@ class LayoutManager {
                     emit(EVENTS.STATE_CHANGED);
                 }
 
-                Logger.log(`[LayoutManager] Created layout '${id}' with device_model: ${deviceModel}, pages: ${window.AppState.pages?.length}, widgets: ${window.AppState.getCurrentPage()?.widgets?.length || 0}`);
+                Logger.log(`[LayoutManager] Created layout '${id}' with device_model: ${deviceModel}, pages: ${AppState.pages?.length}, widgets: ${AppState.getCurrentPage()?.widgets?.length || 0}`);
             }
         }
     }

@@ -1,7 +1,7 @@
 import { AppState } from '../core/state';
 import { emit, EVENTS } from '../core/events.js';
 import { getHaToken, hasHaBackend, HA_API_BASE } from '../utils/env.js';
-import { loadLayoutIntoState } from './yaml_import.js';
+import { loadLayoutIntoState } from './yaml_import';
 import { Logger } from '../utils/logger.js';
 
 // --- HA Entity States Cache ---
