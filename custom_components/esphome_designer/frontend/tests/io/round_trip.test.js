@@ -91,4 +91,63 @@ describe('ESPHomeAdapter & YamlImport Round-Trip', () => {
         // If the real plugin export is identical to what the map reconstructs, this will pass.
         expect(gen2).toBe(gen1);
     });
+
+    it('round-trips multi-page native layout with deterministic widget exports', async () => {
+        const adapter = new ESPHomeAdapter();
+
+        vi.spyOn(registry, 'get').mockImplementation((type) => {
+            if (type === 'button') {
+                return {
+                    export: (widget) => [
+                        `        // button:${widget.id}`,
+                        `        it.print(${widget.x}, ${widget.y}, id(font_roboto_20), "${widget.props?.text || ''}");`
+                    ]
+                };
+            }
+            if (type === 'text') {
+                return {
+                    export: (widget) => [
+                        `        // text:${widget.id}`,
+                        `        it.print(${widget.x}, ${widget.y}, id(font_roboto_20), "${widget.props?.text || ''}");`
+                    ]
+                };
+            }
+            return null;
+        });
+
+        const initialState = {
+            pages: [
+                {
+                    id: 'page_1',
+                    name: 'Main',
+                    widgets: [
+                        { id: 'w_btn', type: 'button', x: 10, y: 10, width: 100, height: 50, props: { text: 'Tap' } }
+                    ]
+                },
+                {
+                    id: 'page_2',
+                    name: 'Status',
+                    widgets: [
+                        { id: 'w_txt', type: 'text', x: 20, y: 40, width: 200, height: 40, props: { text: 'OK' } }
+                    ]
+                }
+            ],
+            deviceProfile: 'native',
+            hardware: { type: 'esp32' },
+            assets: { fonts: [], images: [] }
+        };
+
+        const gen1 = await adapter.generate(initialState);
+        const reimported = await parseSnippetYamlOffline(gen1);
+        const gen2 = await adapter.generate({ ...initialState, pages: reimported.pages });
+
+        expect(gen1).toContain('page:name "Main"');
+        expect(gen1).toContain('page:name "Status"');
+        expect(gen2).toContain('page:name "Main"');
+        expect(gen2).toContain('page:name "Status"');
+        expect(gen2).toContain('button:w_btn');
+        expect(gen2).toContain('text:w_txt');
+        expect(gen2).toContain('id:w_btn');
+        expect(gen2).toContain('id:w_txt');
+    });
 });

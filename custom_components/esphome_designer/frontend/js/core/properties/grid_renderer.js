@@ -4,11 +4,12 @@ import { WidgetFactory } from '../widget_factory';
 export class GridRenderer {
     /**
      * Renders grid cell position properties for widgets.
-     * @param {PropertiesPanel} panel - The main properties panel instance.
+        * @param {any} panel - The main properties panel instance.
      * @param {Object} widget - The widget being edited.
      * @param {string} type - The widget type.
+     * @param {any} pageSettings - Injected page settings controller.
      */
-    static render(panel, widget, type) {
+    static render(panel, widget, type, pageSettings) {
         const page = AppState.getCurrentPage();
         const layout = page?.layout || "absolute";
         const isGrid = layout !== "absolute";
@@ -30,8 +31,8 @@ export class GridRenderer {
             enableBtn.style.width = "100%";
             enableBtn.innerHTML = `<span class="mdi mdi-grid"></span> Enable Page Grid Layout`;
             enableBtn.onclick = () => {
-                if (window.app && window.app.pageSettings) {
-                    window.app.pageSettings.open(AppState.currentPageIndex);
+                if (pageSettings) {
+                    pageSettings.open(AppState.currentPageIndex);
                 }
             };
             container.appendChild(enableBtn);
@@ -147,8 +148,8 @@ export class GridRenderer {
         settingsBtn.innerHTML = `<span class="mdi mdi-cog"></span> Open Page Grid Settings`;
         settingsBtn.onclick = () => {
             const pageIndex = AppState.currentPageIndex;
-            if (window.app && window.app.pageSettings) {
-                window.app.pageSettings.open(pageIndex);
+            if (pageSettings) {
+                pageSettings.open(pageIndex);
             }
         };
         panel.getContainer().appendChild(settingsBtn);

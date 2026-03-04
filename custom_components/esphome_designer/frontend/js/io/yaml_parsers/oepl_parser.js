@@ -48,8 +48,8 @@ export function extractInfoFromTemplate(template) {
 /**
  * Parses a bare OEPL/ODP array into a layout object with pages and widgets.
  * 
- * @param {Array<Object>} oeplArray - The raw array of OEPL objects parsed from YAML
- * @returns {import('../../types.js').ProjectPayload} A standard layout structure containing a single page of widgets
+ * @param {Array<any>} oeplArray - The raw array of OEPL objects parsed from YAML
+ * @returns {any} A standard layout structure containing a single page of widgets
  */
 export function parseOEPLArrayToLayout(oeplArray) {
     Logger.log("[parseOEPLArrayToLayout] Parsing OEPL array with", oeplArray.length, "items");

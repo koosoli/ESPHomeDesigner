@@ -1,4 +1,6 @@
+// @ts-check
 import { ESPHOME_COLOR_MAPPING } from './constants';
+import { iconPickerData } from './constants_icons.js';
 
 /**
  * Shared utility functions for ESPHome Designer.
@@ -7,7 +9,6 @@ import { ESPHOME_COLOR_MAPPING } from './constants';
 declare global {
     interface Window {
         Utils: typeof Utils;
-        iconPickerData?: Array<{ name: string; code: string }>;
         ESPHomeDesigner: any;
     }
 }
@@ -149,8 +150,8 @@ export const Utils = {
      * @returns - Hex code string (e.g. "F0004") or null
      */
     getIconCode: (name: string): string | null => {
-        if (!name || !window.iconPickerData) return null;
-        const icon = window.iconPickerData.find(i => i.name === name);
+        if (!name || !iconPickerData) return null;
+        const icon = iconPickerData.find(i => i.name === name);
         return icon ? icon.code : null;
     }
 };

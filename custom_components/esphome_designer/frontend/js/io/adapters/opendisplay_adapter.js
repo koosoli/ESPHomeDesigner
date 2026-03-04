@@ -13,7 +13,7 @@ export class OpenDisplayAdapter extends BaseAdapter {
 
     /**
      * Main entry point for generating the ODP YAML configuration.
-     * @param {import("../../types.js").ProjectPayload} layout
+     * @param {ProjectPayload} layout
      * @returns {Promise<string>} The generated YAML configuration.
      */
     async generate(layout) {
@@ -33,7 +33,7 @@ export class OpenDisplayAdapter extends BaseAdapter {
         const payloadItems = [];
 
         // Color Mode & Theme considerations
-        const ph = layout.protocolHardware || {}; // eslint-disable-line no-unused-vars
+        const _ph = layout.protocolHardware || {};
         const isDark = page.dark_mode === 'dark' || (page.dark_mode === 'inherit' && layout.darkMode);
         const background = isDark ? "black" : "white";
 
@@ -97,8 +97,8 @@ export class OpenDisplayAdapter extends BaseAdapter {
 
     /**
      * Generates an ODP action for a single widget.
-     * @param {Object} widget 
-     * @param {Object} context 
+     * @param {Widget} widget 
+     * @param {Record<string, any>} context 
      * @returns {Object|Object[]|null}
      */
     generateWidget(widget, context) {

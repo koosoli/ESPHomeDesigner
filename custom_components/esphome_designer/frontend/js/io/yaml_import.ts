@@ -1,6 +1,6 @@
 import { AppState } from '../core/state';
 import { Logger } from '../utils/logger.js';
-import { DEVICE_PROFILES } from './devices.js'; // eslint-disable-line no-unused-vars
+import { DEVICE_PROFILES } from './devices.js';
 import * as yaml from 'js-yaml';
 
 import { parseSettings } from './yaml_parsers/settings_parser.js';

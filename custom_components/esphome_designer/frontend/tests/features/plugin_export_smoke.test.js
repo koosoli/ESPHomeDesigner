@@ -55,75 +55,72 @@ describe('Plugin Export Smoke Tests', () => {
 
         describe(`Export for ${plugin.id}`, () => {
             if (plugin.export) {
-                it('should export standard C++ without crashing', () => {
-                    expect(() => {
-                        plugin.export(widget, { ...mockExportContext, lines: [], profile: { features: {}, pins: {} } });
-                    }).not.toThrow();
+                it('should export standard C++ with stable output', () => {
+                    const ctx = { ...mockExportContext, lines: [], profile: { features: {}, pins: {} } };
+                    plugin.export(widget, ctx);
+                    expect(ctx.lines).toMatchSnapshot();
                 });
             }
 
             if (plugin.exportLVGL) {
-                it('should export LVGL without crashing', () => {
-                    expect(() => {
-                        plugin.exportLVGL(widget, mockLvglContext);
-                    }).not.toThrow();
+                it('should export LVGL with stable output', () => {
+                    const output = plugin.exportLVGL(widget, mockLvglContext);
+                    expect(output).toMatchSnapshot();
                 });
             }
 
             if (plugin.exportOEPL) {
-                it('should export OEPL without crashing', () => {
-                    expect(() => {
-                        plugin.exportOEPL(widget, mockOdpContext);
-                    }).not.toThrow();
+                it('should export OEPL with stable output', () => {
+                    const output = plugin.exportOEPL(widget, mockOdpContext);
+                    expect(output).toMatchSnapshot();
                 });
             }
 
             if (plugin.exportOpenDisplay) {
-                it('should export OpenDisplay without crashing', () => {
-                    expect(() => {
-                        plugin.exportOpenDisplay(widget, mockOdpContext);
-                    }).not.toThrow();
+                it('should export OpenDisplay with stable output', () => {
+                    const output = plugin.exportOpenDisplay(widget, mockOdpContext);
+                    expect(output).toMatchSnapshot();
                 });
             }
 
             // Hook tests
             if (plugin.onExportTextSensors) {
-                it('should handle onExportTextSensors without crashing', () => {
-                    expect(() => {
-                        plugin.onExportTextSensors({ ...globalContext, lines: [] });
-                    }).not.toThrow();
+                it('should handle onExportTextSensors with stable output', () => {
+                    const ctx = { ...globalContext, lines: [] };
+                    plugin.onExportTextSensors(ctx);
+                    expect(ctx.lines).toMatchSnapshot();
                 });
             }
 
             if (plugin.onExportNumericSensors) {
-                it('should handle onExportNumericSensors without crashing', () => {
-                    expect(() => {
-                        plugin.onExportNumericSensors({ ...globalContext, lines: [] });
-                    }).not.toThrow();
+                it('should handle onExportNumericSensors with stable output', () => {
+                    const ctx = { ...globalContext, lines: [] };
+                    plugin.onExportNumericSensors(ctx);
+                    expect(ctx.lines).toMatchSnapshot();
                 });
             }
 
             if (plugin.onExportBinarySensors) {
-                it('should handle onExportBinarySensors without crashing', () => {
-                    expect(() => {
-                        plugin.onExportBinarySensors({ ...globalContext, lines: [] });
-                    }).not.toThrow();
+                it('should handle onExportBinarySensors with stable output', () => {
+                    const ctx = { ...globalContext, lines: [] };
+                    plugin.onExportBinarySensors(ctx);
+                    expect(ctx.lines).toMatchSnapshot();
                 });
             }
 
             if (plugin.onExportGlobals) {
-                it('should handle onExportGlobals without crashing', () => {
-                    expect(() => {
-                        plugin.onExportGlobals({ ...globalContext, lines: [] });
-                    }).not.toThrow();
+                it('should handle onExportGlobals with stable output', () => {
+                    const ctx = { ...globalContext, lines: [] };
+                    plugin.onExportGlobals(ctx);
+                    expect(ctx.lines).toMatchSnapshot();
                 });
             }
 
             if (plugin.onExportComponents) {
-                it('should handle onExportComponents without crashing', () => {
-                    expect(() => {
-                        plugin.onExportComponents({ ...globalContext, lines: [], displayId: 'disp' });
-                    }).not.toThrow();
+                it('should handle onExportComponents with stable output', () => {
+                    const ctx = { ...globalContext, lines: [], displayId: 'disp' };
+                    plugin.onExportComponents(ctx);
+                    expect(ctx.lines).toMatchSnapshot();
                 });
             }
         });

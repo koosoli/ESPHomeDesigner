@@ -1,14 +1,9 @@
 /**
- * Text Utilities for ESPHome Designer
- * Common functions for word wrapping and color tag parsing.
- */
-
-/**
  * Word-wrap text to fit within a given width
  * @param {string} text - The text to wrap
  * @param {number} maxWidth - Maximum width in pixels
  * @param {number} fontSize - Font size in pixels
- * @param {string} fontFamily - Font family name
+ * @param {string} [fontFamily="Roboto"] - Font family name
  * @returns {string[]} Array of wrapped lines
  */
 export const wordWrap = (text, maxWidth, fontSize, fontFamily = "Roboto") => {
@@ -24,18 +19,22 @@ export const wordWrap = (text, maxWidth, fontSize, fontFamily = "Roboto") => {
     // Tokenize string into tags, spaces, and words
     const tokens = text.match(/(\[\/?(?:{{.*?}}|[^\]])+\]|\s+|[^\s[\]]+|\[|\])/g) || [];
 
+    /** @type {string[]} */
     const lines = [];
     let currentLine = "";
     let currentVisibleLength = 0;
+    /** @type {string[]} */
     let activeTags = [];
 
+    /** @param {string[]} tags */
     const getClosingTags = (tags) => [...tags].reverse().map(t => {
         return t.replace("[", "[/");
     }).join("");
 
+    /** @param {string[]} tags */
     const getOpeningTags = (tags) => tags.join("");
 
-    tokens.forEach(token => {
+    tokens.forEach(/** @param {string} token */(token) => {
         if (token.includes("\n")) {
             lines.push(currentLine + getClosingTags(activeTags));
             currentLine = getOpeningTags(activeTags);
@@ -107,6 +106,7 @@ export const parseColorMarkup = (text, defaultColor, getColorStyle) => {
 
         if (currentColor === 'accent') currentColor = 'red';
 
+        /** @type {string} */
         let cssColor;
         if (typeof currentColor === 'string' && currentColor.startsWith("{{")) {
             cssColor = getColorStyle('black');
@@ -125,7 +125,7 @@ export const parseColorMarkup = (text, defaultColor, getColorStyle) => {
 /**
  * Simple HA template evaluation for designer preview.
  * @param {string} text 
- * @param {Object} entityStates 
+ * @param {Record<string, any>} entityStates 
  * @returns {string} Evaluated text
  */
 export const evaluateTemplatePreview = (text, entityStates) => {
@@ -133,9 +133,11 @@ export const evaluateTemplatePreview = (text, entityStates) => {
     if (!text.includes('{{')) return text;
 
     return text.replace(/{{\s*states\(['"]([^'"]+)['"]\)\s*}}/g, (match, entityId) => {
+        /** @type {any} */
         const eObj = entityStates[entityId.trim()];
         return eObj ? (eObj.formatted || String(eObj.state)) : "--";
     }).replace(/{{\s*is_state\(['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\)\s*}}/g, (match, entityId, state) => {
+        /** @type {any} */
         const eObj = entityStates[entityId.trim()];
         return (eObj && String(eObj.state) === state) ? "True" : "False";
     });

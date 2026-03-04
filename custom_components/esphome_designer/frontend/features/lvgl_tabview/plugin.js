@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * LVGL Tabview Plugin
  */

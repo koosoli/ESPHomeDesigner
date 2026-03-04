@@ -31,6 +31,13 @@ describe('PluginRegistry', () => {
         expect(registry.get('label')).toEqual(mockPlugin);
     });
 
+    it('should map legacy lv_chart alias to lvgl_chart', () => {
+        const mockPlugin = { id: 'lvgl_chart', name: 'LVGL Chart Widget' };
+        registry.register(mockPlugin);
+
+        expect(registry.get('lv_chart')).toEqual(mockPlugin);
+    });
+
     it('should delegate hook calls to all plugins', () => {
         const hookSpy = vi.fn();
         const mockPlugin1 = { id: 'p1', onExportGlobals: hookSpy };

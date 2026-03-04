@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Handles panel resizing via draggable splitters.
  */
@@ -8,7 +9,7 @@ function init() {
     const rightResizer = document.getElementById('resizer-right');
     const sidebar = document.querySelector('.sidebar');
     const rightPanel = document.querySelector('.right-panel');
-    const appContent = document.querySelector('.app-content'); // eslint-disable-line no-unused-vars
+    const _appContent = document.querySelector('.app-content');
 
     if (!leftResizer || !rightResizer || !sidebar || !rightPanel) {
         Logger.warn("[Splitters] Layout elements not found, retrying...");

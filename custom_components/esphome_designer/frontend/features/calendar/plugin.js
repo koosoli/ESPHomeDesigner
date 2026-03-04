@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Calendar Plugin
  */
@@ -120,6 +121,12 @@ output["entries"] = {"days": converted_data[0]}
 output["closest_end_time"] = converted_data[1]
 `;
 
+/**
+ * @param {HTMLElement} el
+ * @param {Widget} widget
+ * @param {Record<string, any>} props
+ * @param {{ getColorStyle: (color: string) => string }} context
+ */
 const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
     // Simple mock rendering for preview
     const width = widget.width || 400;
@@ -327,7 +334,7 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
 
     if (liveEvents && Array.isArray(liveEvents) && liveEvents.length > 0) {
         events.innerHTML = "";
-        const limit = props.max_events || props.event_limit || 8;
+        const limit = parseInt(String(props.max_events || props.event_limit || 8), 10);
         let count = 0;
         for (const dayEntry of liveEvents) {
             if (count >= limit) break;
@@ -531,6 +538,11 @@ template:
         panel.addDropShadowButton(panel.getContainer(), widget.id);
         panel.endSection();
     },
+    /**
+     * @param {HTMLElement} el
+     * @param {Widget} widget
+     * @param {GenerationContext} context
+     */
     render: (el, widget, context) => {
         const props = widget.props || {};
         el.innerHTML = "";

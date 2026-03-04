@@ -1,0 +1,3472 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Plugin Export Smoke Tests > Export for battery_icon > should export LVGL with stable output 1`] = `
+{
+  "obj": {
+    "bg_opa": "transp",
+    "border_width": 0,
+    "widgets": [
+      {
+        "label": {
+          "align": "top_mid",
+          "height": 40,
+          "id": "w_test_icon",
+          "text": "!lambda |-
+          if (id(battery_level).has_state()) {
+            float lvl = id(battery_level).state;
+            if (lvl >= 95) return "\\U000F0079";
+            if (lvl >= 85) return "\\U000F0082";
+            if (lvl >= 75) return "\\U000F0081";
+            if (lvl >= 65) return "\\U000F0080";
+            if (lvl >= 55) return "\\U000F007F";
+            if (lvl >= 45) return "\\U000F007E";
+            if (lvl >= 35) return "\\U000F007D";
+            if (lvl >= 25) return "\\U000F007C";
+            if (lvl >= 15) return "\\U000F007B";
+            if (lvl >= 5) return "\\U000F007A";
+            return "\\U000F0083";
+          }
+          return "\\U000F0083";",
+          "text_color": "Color(theme_auto)",
+          "text_font": "font_ptr",
+          "width": 46,
+        },
+      },
+      {
+        "label": {
+          "align": "bottom_mid",
+          "height": 18,
+          "id": "w_test_text",
+          "text": "!lambda |-
+          if (id(battery_level).has_state()) {
+            return str_sprintf("%.0f%%", id(battery_level).state).c_str();
+          }
+          return "---%";",
+          "text_align": "center",
+          "text_color": "Color(theme_auto)",
+          "text_font": "font_ptr",
+          "width": "100%",
+          "y": 2,
+        },
+      },
+    ],
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for battery_icon > should export OEPL with stable output 1`] = `
+[
+  {
+    "anchor": "mt",
+    "color": "theme_auto",
+    "size": 36,
+    "type": "icon",
+    "value": "{% set b = states('sensor.battery_level') | int %}{% if b >= 95 %}battery{% elif b >= 15 %}battery-{{ (b/10)|int * 10 }}{% else %}battery-alert{% endif %}",
+    "x": 60,
+    "y": 10,
+  },
+  {
+    "align": "center",
+    "anchor": "mt",
+    "color": "theme_auto",
+    "size": 14,
+    "type": "text",
+    "value": "{{ states('sensor.battery_level') }}%",
+    "x": 60,
+    "y": 48,
+  },
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for battery_icon > should export OpenDisplay with stable output 1`] = `
+[
+  {
+    "anchor": "mt",
+    "fill": "black",
+    "size": 36,
+    "type": "icon",
+    "value": "{% set b = states('sensor.battery_level') | int %}{% if b >= 95 %}battery{% elif b >= 15 %}battery-{{ (b/10)|int * 10 }}{% else %}battery-alert{% endif %}",
+    "x": 60,
+    "y": 10,
+  },
+  {
+    "anchor": "mt",
+    "color": "black",
+    "size": 14,
+    "type": "text",
+    "value": "{{ states('sensor.battery_level') }}%",
+    "x": 60,
+    "y": 48,
+  },
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for battery_icon > should export standard C++ with stable output 1`] = `
+[
+  "        {",
+  "          const char* bat_icon = "\\U000F0082"; // Default: battery-90",
+  "          float bat_level = 0;",
+  "          it.printf(10 + 100 / 2, 10 + (100 - 52) / 2, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%s", bat_icon);",
+  "          it.printf(10 + 100 / 2, 10 + (100 - 52) / 2 + 36 + 2, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%.0f%%", bat_level);",
+  "        }",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for battery_icon > should handle onExportNumericSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for calendar > should export LVGL with stable output 1`] = `
+{
+  "obj": {
+    "bg_color": "Color(transparent)",
+    "bg_opa": "COVER",
+    "border_color": "Color(theme_auto)",
+    "border_width": 0,
+    "radius": 0,
+    "widgets": [
+      {
+        "label": {
+          "align": "TOP_MID",
+          "height": 74,
+          "text": "!lambda "char buf[4]; id(ha_time).now().strftime(buf, sizeof(buf), '%d'); return buf;"",
+          "text_color": "Color(theme_auto)",
+          "text_font": "font_ptr",
+          "y": 2,
+        },
+      },
+      {
+        "label": {
+          "align": "TOP_MID",
+          "height": 28,
+          "text": "!lambda "char buf[16]; id(ha_time).now().strftime(buf, sizeof(buf), '%A'); return buf;"",
+          "text_color": "Color(theme_auto)",
+          "text_font": "font_ptr",
+          "y": 76,
+        },
+      },
+      {
+        "label": {
+          "align": "TOP_MID",
+          "height": 18,
+          "text": "!lambda "char buf[32]; id(ha_time).now().strftime(buf, sizeof(buf), '%B %Y'); return buf;"",
+          "text_color": "Color(theme_auto)",
+          "text_font": "font_ptr",
+          "y": 104,
+        },
+      },
+      {
+        "obj": {
+          "bg_color": "Color(theme_auto)",
+          "border_width": 0,
+          "height": 1,
+          "width": "100%",
+          "y": 123,
+        },
+      },
+      {
+        "obj": {
+          "bg_opa": "transp",
+          "border_width": 0,
+          "height": "SIZE_CONTENT",
+          "layout": {
+            "flex_align_main": "space_around",
+            "flex_flow": "row_wrap",
+            "type": "flex",
+          },
+          "widgets": [
+            {
+              "label": {
+                "align": "center",
+                "text": ""Mo"",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "width": "14%",
+              },
+            },
+            {
+              "label": {
+                "align": "center",
+                "text": ""Tu"",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "width": "14%",
+              },
+            },
+            {
+              "label": {
+                "align": "center",
+                "text": ""We"",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "width": "14%",
+              },
+            },
+            {
+              "label": {
+                "align": "center",
+                "text": ""Th"",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "width": "14%",
+              },
+            },
+            {
+              "label": {
+                "align": "center",
+                "text": ""Fr"",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "width": "14%",
+              },
+            },
+            {
+              "label": {
+                "align": "center",
+                "text": ""Sa"",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "width": "14%",
+              },
+            },
+            {
+              "label": {
+                "align": "center",
+                "text": ""Su"",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "width": "14%",
+              },
+            },
+          ],
+          "width": "100%",
+          "y": 128,
+        },
+      },
+      {
+        "label": {
+          "align": "TOP_MID",
+          "text": ""Calendar Grid Not Supported in LVGL Mode"",
+          "text_color": "0x888888",
+          "text_font": "font_ptr",
+          "y": 163,
+        },
+      },
+    ],
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for calendar > should export standard C++ with stable output 1`] = `
+[
+  "        {",
+  "          auto now = id(ha_time).now();",
+  "          int x = 10; int y = 10; int w = 100; int h = 100;",
+  "          // Header",
+  "          int headH = 123;",
+  "          it.strftime(x + w/2, y + 2, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%d", now);",
+  "          it.strftime(x + w/2, y + 76, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%A", now);",
+  "          it.strftime(x + w/2, y + 104, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%B %Y", now);",
+  "          it.line(x, y + headH, x + w, y + headH, Color(theme_auto));",
+  "          // Days Grid",
+  "          int gridY = y + headH + 5;",
+  "          int cellW = w / 7;",
+  "          int rowH = 18;",
+  "          int r = 1;",
+  "          const char* days[] = {"Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"};",
+  "          for(int i=0; i<7; i++) {",
+  "            it.print(x + i*cellW + cellW/2, gridY, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, days[i]);",
+  "          }",
+  "          // Simple logic to find start of month",
+  "          time_t t = now.timestamp;",
+  "          struct tm *tm = localtime(&t);",
+  "          tm->tm_mday = 1;",
+  "          mktime(tm);",
+  "          int startDay = (tm->tm_wday + 6) % 7; // 0=Mon",
+  "          int daysInMonth = 31; // Simplified",
+  "          if(now.month == 2) daysInMonth = (now.year % 4 == 0) ? 29 : 28;",
+  "          else if(now.month == 4 || now.month == 6 || now.month == 9 || now.month == 11) daysInMonth = 30;",
+  "          int c = startDay;",
+  "          for(int d=1; d<=daysInMonth; d++) {",
+  "            if(d == now.day_of_month) {",
+  "               it.filled_circle(x + c*cellW + cellW/2, gridY + r*rowH + 6, 9, Color(theme_auto));",
+  "               it.printf(x + c*cellW + cellW/2, gridY + r*rowH, id(font_id), Color::BLACK, TextAlign::TOP_CENTER, "%d", d);",
+  "            } else {",
+  "               it.printf(x + c*cellW + cellW/2, gridY + r*rowH, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%d", d);",
+  "            }",
+  "            c++; if(c>6) { c=0; r++; }",
+  "          }",
+  "          // Events (Real Data from Sensor)",
+  "          auto extract_time = [](const char* datetime) -> std::string {",
+  "              std::string datetimeStr(datetime);",
+  "              size_t pos = datetimeStr.find('T');",
+  "              if (pos != std::string::npos && pos + 3 < datetimeStr.size()) {",
+  "                  return datetimeStr.substr(pos + 1, 5);",
+  "              }",
+  "              return "";",
+  "          };",
+  "",
+  "          int eventY = gridY + (r+1)*rowH + 10;",
+  "          int max_y = y + h - 5;",
+  "          const int event_limit = 8;",
+  "",
+  "          if (id(calendar_data_sensor_esp_calendar_data).state.length() > 5 && id(calendar_data_sensor_esp_calendar_data).state != "unknown") {",
+  "             JsonDocument doc;",
+  "             DeserializationError error = deserializeJson(doc, id(calendar_data_sensor_esp_calendar_data).state);",
+  "",
+  "             if (!error) {",
+  "                 JsonVariant root = doc.as<JsonVariant>();",
+  "                 JsonArray days;",
+  "",
+  "                 if (root.is<JsonObject>() && root["days"].is<JsonArray>()) {",
+  "                     days = root["days"];",
+  "                 } else if (root.is<JsonArray>()) {",
+  "                     days = root;",
+  "                 }",
+  "",
+  "                 if (!days.isNull() && days.size() > 0) {",
+  "                     int event_count = 0;",
+  "                     // Separator line",
+  "                     it.filled_rectangle(x + 10, eventY - 5, w - 20, 2, Color(theme_auto));",
+  "",
+  "                     for (JsonVariant dayEntry : days) {",
+  "                         if (eventY > max_y || event_count >= event_limit) break;",
+  "                         int currentDayNum = dayEntry["day"].as<int>();",
+  "",
+  "                         auto draw_row = [&](JsonVariant event, bool is_all_day) {",
+  "                             if (eventY > max_y || event_count >= event_limit) return;",
+  "                             const char* summary = event["summary"] | "No Title";",
+  "                             const char* start = event["start"] | "";",
+  "",
+  "                             // Draw Day Number",
+  "                             it.printf(x + 10, eventY, id(font_id), Color(theme_auto), TextAlign::TOP_LEFT, "%d", currentDayNum);",
+  "",
+  "                             // Draw Summary",
+  "                             it.printf(x + 50, eventY, id(font_id), Color(theme_auto), TextAlign::TOP_LEFT, "%.25s", summary);",
+  "",
+  "                             // Draw Time",
+  "                             if (is_all_day) {",
+  "                                 it.printf(x + w - 10, eventY, id(font_id), Color(theme_auto), TextAlign::TOP_RIGHT, "All Day");",
+  "                             } else {",
+  "                                 std::string timeStr = extract_time(start);",
+  "                                 it.printf(x + w - 10, eventY, id(font_id), Color(theme_auto), TextAlign::TOP_RIGHT, "%s", timeStr.c_str());",
+  "                             }",
+  "                             eventY += 24;",
+  "                             event_count++;",
+  "                         };",
+  "",
+  "                         if (dayEntry["all_day"].is<JsonArray>()) {",
+  "                             for (JsonVariant event : dayEntry["all_day"].as<JsonArray>()) {",
+  "                                 draw_row(event, true);",
+  "                             }",
+  "                         }",
+  "                         if (dayEntry["other"].is<JsonArray>()) {",
+  "                             for (JsonVariant event : dayEntry["other"].as<JsonArray>()) {",
+  "                                 draw_row(event, false);",
+  "                             }",
+  "                         }",
+  "                     }",
+  "                 }",
+  "             } else {",
+  "                 ESP_LOGW("calendar", "JSON Parse Error: %s", error.c_str());",
+  "             }",
+  "          }",
+  "        }",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for calendar > should handle onExportTextSensors with stable output 1`] = `
+[
+  "- platform: homeassistant",
+  "  id: calendar_data_sensor_esp_calendar_data",
+  "  entity_id: sensor.esp_calendar_data",
+  "  attribute: entries",
+  "  internal: true",
+  "",
+  "# ============================================================================",
+  "# CALENDAR EVENTS SETUP (HOME ASSISTANT)",
+  "# 1. Download the 'Helper Script' from the Calendar widget's properties panel.",
+  "# 2. Place it in your /config/python_scripts/ folder.",
+  "# 3. Enable the python_script integration by adding this line to configuration.yaml:",
+  "#",
+  "#    python_script:",
+  "#",
+  "# 4. Add this template sensor configuration (configuration.yaml or packages):",
+  "#",
+  "# template:",
+  "#   - trigger:",
+  "#       - trigger: time_pattern",
+  "#         minutes: '/15'",
+  "#     action:",
+  "#       - action: calendar.get_events",
+  "#         target:",
+  "#           entity_id:",
+  "#           - calendar.example_1
+#           - calendar.example_2",
+  "#         data:",
+  "#           duration:",
+  "#             days: 14",
+  "#         response_variable: calendar_events",
+  "#       - action: python_script.esp_calendar_data_conversion",
+  "#         data:",
+  "#           calendar: "{{ calendar_events }}"",
+  "#           now: "{{ now().isoformat().split('T')[0] }}"",
+  "#         response_variable: output",
+  "#     sensor:",
+  "#       - name: ESP Calendar Data",
+  "#         unique_id: esp_calendar_data",
+  "#         state: "OK"",
+  "#         attributes:",
+  "#           entries: "{{ output.entries }}"",
+  "#           closest_end_time: "{{ output.closest_end_time }}"",
+  "#",
+  "# 5. Restart HA (required for python_script), then Reload Template Entities.",
+  "# ============================================================================",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for datetime > should export LVGL with stable output 1`] = `
+{
+  "label": {
+    "opa": 255,
+    "text": "!lambda |-
+              auto now = id(ha_time).now();
+              return now.strftime("%H:%M\\n%a, %b %d").c_str();",
+    "text_align": "CENTER",
+    "text_color": "Color(black)",
+    "text_font": "font_ptr",
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for datetime > should export OEPL with stable output 1`] = `
+{
+  "align": "center",
+  "anchor": "mc",
+  "color": "black",
+  "font": "ppb.ttf",
+  "max_width": 100,
+  "size": 28,
+  "spacing": 5,
+  "type": "text",
+  "value": "{{ now().strftime('%H:%M') }}
+{{ now().strftime('%a, %b %d') }}",
+  "x": 60,
+  "y": 60,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for datetime > should export OpenDisplay with stable output 1`] = `
+{
+  "color": "black",
+  "delimiter": "
+",
+  "font": "ppb.ttf",
+  "offset_y": 32,
+  "size": 28,
+  "type": "multiline",
+  "value": "{{ now().strftime('%H:%M') }}
+{{ now().strftime('%a, %b %d') }}",
+  "x": 60,
+  "y": 60,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for datetime > should export standard C++ with stable output 1`] = `
+[
+  "        {",
+  "          auto now = id(ha_time).now();",
+  "          it.strftime(60, 37, id(font_id), color_on, TextAlign::TOP_CENTER, "%H:%M", now);",
+  "          it.strftime(60, 37 + 28 + 2, id(font_id), color_on, TextAlign::TOP_CENTER, "%a, %b %d", now);",
+  "        }",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for debug_grid > should export OEPL with stable output 1`] = `
+{
+  "dash_length": 2,
+  "dashed": true,
+  "font": "ppb.ttf",
+  "label_color": "black",
+  "label_font_size": 10,
+  "label_step": 40,
+  "line_color": "black",
+  "show_labels": true,
+  "space_length": 4,
+  "spacing": 20,
+  "type": "debug_grid",
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for debug_grid > should export OpenDisplay with stable output 1`] = `
+{
+  "dash_length": 2,
+  "dashed": true,
+  "font": "ppb.ttf",
+  "label_color": "black",
+  "label_font_size": 10,
+  "label_step": 40,
+  "line_color": "black",
+  "show_labels": true,
+  "space_length": 4,
+  "spacing": 20,
+  "type": "debug_grid",
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for graph > should export LVGL with stable output 1`] = `
+{
+  "lv_chart": {
+    "bg_color": "Color(transparent)",
+    "duration": "1h",
+    "id": "chart_w_test",
+    "series": [
+      {
+        "color": "Color(theme_auto)",
+        "sensor": "",
+        "width": 3,
+      },
+    ],
+    "type": "LINE",
+    "y_axis": {
+      "num_ticks": 5,
+      "show_labels": true,
+    },
+    "y_max": 100,
+    "y_min": 0,
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for graph > should export standard C++ with stable output 1`] = `
+[
+  "        it.printf(10+5, 10+5, id(font_id), Color(theme_auto), TextAlign::TOP_LEFT, "Graph (no entity)");",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for graph > should handle onExportComponents with stable output 1`] = `
+[
+  "color:",
+  "  - id: graph_color_w_test",
+  "    red_int: 0",
+  "    green_int: 0",
+  "    blue_int: 0",
+  "",
+  "graph:",
+  "  - id: graph_w_test",
+  "    duration: 1h",
+  "    width: 100",
+  "    height: 100",
+  "    border: true",
+  "    x_grid: 15min",
+  "    y_grid: 50",
+  "    traces:",
+  "      - sensor: none",
+  "        color: graph_color_w_test",
+  "        line_thickness: 3",
+  "        continuous: true",
+  "    min_range: 10",
+  "",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for graph > should handle onExportGlobals with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for graph > should handle onExportNumericSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for graph > should handle onExportTextSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for icon > should export LVGL with stable output 1`] = `
+{
+  "label": {
+    "text": ""\\U000F07D0"",
+    "text_align": "center",
+    "text_color": "Color(theme_auto)",
+    "text_font": "font_ptr",
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for icon > should export OEPL with stable output 1`] = `
+{
+  "anchor": "lt",
+  "color": "theme_auto",
+  "size": 48,
+  "type": "icon",
+  "value": "home-assistant",
+  "x": 10,
+  "y": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for icon > should export OpenDisplay with stable output 1`] = `
+{
+  "fill": "black",
+  "size": 48,
+  "type": "icon",
+  "value": "home-assistant",
+  "x": 10,
+  "y": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for icon > should export standard C++ with stable output 1`] = `
+[
+  "        it.printf(60, 60, id(font_id), color_on, TextAlign::CENTER, "%s", "\\U000F07D0");",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for image > should export LVGL with stable output 1`] = `
+{
+  "image": {
+    "angle": 0,
+    "image_recolor_opa": "transp",
+    "src": "/config/esphome/images/logo.png",
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for image > should export OEPL with stable output 1`] = `
+{
+  "file": "/config/esphome/images/logo.png",
+  "height": 100,
+  "type": "image",
+  "width": 100,
+  "x": 10,
+  "y": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for image > should export OpenDisplay with stable output 1`] = `
+{
+  "color": "red",
+  "size": 12,
+  "type": "text",
+  "value": "[Local Image: /config/esphome/images/logo.png]",
+  "x": 10,
+  "y": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for image > should export standard C++ with stable output 1`] = `
+[
+  "        it.image(10, 10, id(img_config_esphome_images_logo_png_100x100), color_on, color_off);",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for image > should handle onExportComponents with stable output 1`] = `
+[
+  "image:",
+  "  - file: "/config/esphome/images/logo.png"",
+  "    id: img_config_esphome_images_logo_png_100x100",
+  "    type: BINARY",
+  "    resize: 100x100",
+  "    dither: FLOYDSTEINBERG",
+  "",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for line > should export LVGL with stable output 1`] = `
+{
+  "line": {
+    "line_color": "Color(theme_auto)",
+    "line_rounded": true,
+    "line_width": 3,
+    "opa": 255,
+    "points": [
+      {
+        "x": 0,
+        "y": 0,
+      },
+      {
+        "x": 100,
+        "y": 0,
+      },
+    ],
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for line > should export OEPL with stable output 1`] = `
+{
+  "color": "theme_auto",
+  "type": "line",
+  "width": 3,
+  "x_end": 110,
+  "x_start": 10,
+  "y_end": 10,
+  "y_start": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for line > should export OpenDisplay with stable output 1`] = `
+{
+  "fill": "black",
+  "type": "line",
+  "width": 3,
+  "x_end": 110,
+  "x_start": 10,
+  "y_end": 10,
+  "y_start": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for line > should export standard C++ with stable output 1`] = `
+[
+  "        it.filled_rectangle(10, 10, 100, 3, Color(theme_auto));",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_arc > should export LVGL with stable output 1`] = `
+{
+  "arc": {
+    "arc_color": "Color(blue)",
+    "arc_width": 10,
+    "end_angle": 45,
+    "indicator": {
+      "arc_color": "Color(blue)",
+    },
+    "max_value": 100,
+    "min_value": 0,
+    "mode": "normal",
+    "start_angle": 135,
+    "value": 50,
+    "widgets": [
+      {
+        "label": {
+          "align": "center",
+          "text": """",
+          "text_color": "Color(blue)",
+        },
+      },
+    ],
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_arc > should handle onExportNumericSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_bar > should export LVGL with stable output 1`] = `
+{
+  "bar": {
+    "bg_color": "Color(gray)",
+    "indicator": {
+      "bg_color": "Color(blue)",
+    },
+    "max_value": 100,
+    "min_value": 0,
+    "mode": "normal",
+    "start_value": undefined,
+    "value": 50,
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_bar > should handle onExportNumericSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_button > should export LVGL with stable output 1`] = `
+{
+  "button": {
+    "bg_color": "Color(theme_auto_inverse)",
+    "bg_opa": "cover",
+    "border_color": "Color(theme_auto)",
+    "border_width": 2,
+    "on_click": undefined,
+    "opa": 255,
+    "radius": 5,
+    "widgets": [
+      {
+        "label": {
+          "align": "center",
+          "text": ""Button"",
+          "text_color": "Color(theme_auto)",
+          "text_font": "font_ptr",
+        },
+      },
+    ],
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_buttonmatrix > should export LVGL with stable output 1`] = `
+{
+  "buttonmatrix": {
+    "bg_color": "Color(#444)",
+    "opa": 255,
+    "rows": [
+      {
+        "buttons": [
+          {
+            "text": "1",
+          },
+          {
+            "text": "2",
+          },
+          {
+            "text": "3",
+          },
+        ],
+      },
+      {
+        "buttons": [
+          {
+            "text": "4",
+          },
+          {
+            "text": "5",
+          },
+          {
+            "text": "6",
+          },
+        ],
+      },
+      {
+        "buttons": [
+          {
+            "text": "7",
+          },
+          {
+            "text": "8",
+          },
+          {
+            "text": "9",
+          },
+        ],
+      },
+      {
+        "buttons": [
+          {
+            "text": "*",
+          },
+          {
+            "text": "0",
+          },
+          {
+            "text": "#",
+          },
+        ],
+      },
+    ],
+    "text_color": "Color(white)",
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_chart > should export LVGL with stable output 1`] = `
+{
+  "lv_chart": {
+    "bg_color": "Color(transparent)",
+    "border_color": "Color(blue)",
+    "border_width": 1,
+    "div_line_count": {
+      "x": 3,
+      "y": 3,
+    },
+    "opa": 255,
+    "point_count": 10,
+    "series": [
+      {
+        "color": "Color(blue)",
+      },
+    ],
+    "type": "line",
+    "widgets": [
+      {
+        "label": {
+          "align": "top_mid",
+          "text": ""Chart"",
+          "text_color": "Color(blue)",
+        },
+      },
+    ],
+    "y_axis": {
+      "num_ticks": 4,
+      "show_labels": true,
+    },
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_checkbox > should export LVGL with stable output 1`] = `
+{
+  "checkbox": {
+    "indicator": {
+      "bg_color": "Color(blue)",
+    },
+    "on_value": undefined,
+    "opa": 255,
+    "state": {
+      "checked": false,
+    },
+    "text": ""Checkbox"",
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_checkbox > should handle onExportBinarySensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_dropdown > should export LVGL with stable output 1`] = `
+{
+  "dropdown": {
+    "dir": "BOTTOM",
+    "dropdown_list": {
+      "max_height": 200,
+    },
+    "opa": 255,
+    "options": [
+      "Option 1",
+      "Option 2",
+      "Option 3",
+    ],
+    "selected_index": 0,
+    "text_color": "Color(black)",
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_dropdown > should handle onExportNumericSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_img > should export LVGL with stable output 1`] = `
+{
+  "image": {
+    "angle": 0,
+    "image_recolor": "Color(black)",
+    "image_recolor_opa": "cover",
+    "pivot_x": 0,
+    "pivot_y": 0,
+    "src": "symbol_image",
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_img > should handle onExportComponents with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_keyboard > should export LVGL with stable output 1`] = `
+{
+  "keyboard": {
+    "mode": "TEXT_LOWER",
+    "opa": 255,
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_label > should export LVGL with stable output 1`] = `
+{
+  "label": {
+    "bg_color": undefined,
+    "border_color": "Color(theme_auto)",
+    "border_side": "none",
+    "border_width": 0,
+    "opa": 255,
+    "radius": 0,
+    "text": ""Label"",
+    "text_align": "CENTER",
+    "text_color": "Color(theme_auto)",
+    "text_font": "font_ptr",
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_label > should export standard C++ with stable output 1`] = `
+[
+  "        it.printf(60, 60, id(font_id), Color(black), TextAlign::CENTER, "Label");",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_label > should handle onExportNumericSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_label > should handle onExportTextSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_led > should export LVGL with stable output 1`] = `
+{
+  "led": {
+    "brightness": 1,
+    "color": "Color(red)",
+    "opa": 255,
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_led > should handle onExportNumericSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_line > should export LVGL with stable output 1`] = `
+{
+  "line": {
+    "line_color": "Color(theme_auto)",
+    "line_rounded": true,
+    "line_width": 3,
+    "opa": 255,
+    "points": [
+      {
+        "x": 0,
+        "y": 0,
+      },
+      {
+        "x": undefined,
+        "y": 0,
+      },
+    ],
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_meter > should export LVGL with stable output 1`] = `
+{
+  "meter": {
+    "bg_color": "Color(lightgray)",
+    "opa": 255,
+    "scales": [
+      {
+        "angle_range": 270,
+        "indicators": [
+          {
+            "line": {
+              "color": "Color(red)",
+              "id": "w_test_ind",
+              "r_mod": -10,
+              "value": 0,
+              "width": 4,
+            },
+          },
+        ],
+        "range_from": 0,
+        "range_to": 100,
+        "rotation": 135,
+        "ticks": {
+          "color": "Color(black)",
+          "count": 11,
+          "length": 10,
+          "major": {
+            "color": "Color(black)",
+            "label_gap": 10,
+            "length": 15,
+            "stride": 2,
+            "width": 3,
+          },
+          "width": 2,
+        },
+      },
+    ],
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_meter > should handle onExportNumericSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_obj > should export LVGL with stable output 1`] = `
+{
+  "obj": {
+    "bg_color": "Color(white)",
+    "bg_opa": "cover",
+    "border_color": "Color(gray)",
+    "border_width": 1,
+    "opa": 255,
+    "radius": 0,
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_qrcode > should export LVGL with stable output 1`] = `
+{
+  "qrcode": {
+    "dark_color": "Color(black)",
+    "light_color": "Color(white)",
+    "size": NaN,
+    "text": ""https://github.com/koosoli/ESPHomeDesigner/"",
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_qrcode > should handle onExportTextSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_roller > should export LVGL with stable output 1`] = `
+{
+  "roller": {
+    "bg_color": "Color(white)",
+    "mode": "normal",
+    "opa": 255,
+    "options": [
+      "Option A",
+      "Option B",
+      "Option C",
+    ],
+    "selected": {
+      "bg_color": "Color(blue)",
+      "text_color": "Color(white)",
+    },
+    "selected_index": 0,
+    "text_color": "Color(black)",
+    "visible_row_count": 3,
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_roller > should handle onExportNumericSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_slider > should export LVGL with stable output 1`] = `
+{
+  "slider": {
+    "bg_color": "Color(gray)",
+    "border_width": 2,
+    "indicator": {
+      "bg_color": "Color(blue)",
+    },
+    "knob": {
+      "bg_color": "Color(blue)",
+      "border_color": "0xFFFFFF",
+      "border_width": 2,
+    },
+    "max_value": 100,
+    "min_value": 0,
+    "mode": "normal",
+    "on_value": undefined,
+    "value": 30,
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_slider > should handle onExportNumericSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_spinbox > should export LVGL with stable output 1`] = `
+{
+  "spinbox": {
+    "digits": 4,
+    "value": 0,
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_spinbox > should handle onExportNumericSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_spinner > should export LVGL with stable output 1`] = `
+{
+  "spinner": {
+    "arc_length": 60,
+    "indicator": {
+      "arc_color": "Color(blue)",
+    },
+    "main": {
+      "arc_color": "Color(white)",
+    },
+    "spin_time": "1000ms",
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_switch > should export LVGL with stable output 1`] = `
+{
+  "switch": {
+    "bg_color": "Color(gray)",
+    "indicator": {
+      "bg_color": "Color(blue)",
+    },
+    "knob": {
+      "bg_color": "Color(white)",
+    },
+    "on_value": undefined,
+    "opa": 255,
+    "state": {
+      "checked": false,
+    },
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_switch > should handle onExportBinarySensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_tabview > should export LVGL with stable output 1`] = `
+{
+  "tabview": {
+    "position": "TOP",
+    "size": "10%",
+    "tabs": [
+      {
+        "name": "Page 1",
+        "widgets": [],
+      },
+      {
+        "name": "Page 2",
+        "widgets": [],
+      },
+      {
+        "name": "Page 3",
+        "widgets": [],
+      },
+    ],
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_textarea > should export LVGL with stable output 1`] = `
+{
+  "attrs": {
+    "id": "w_test",
+    "max_length": 128,
+    "one_line": false,
+    "password_mode": false,
+    "placeholder_text": undefined,
+    "text": "",
+  },
+  "type": "textarea",
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for lvgl_tileview > should export LVGL with stable output 1`] = `
+{
+  "tileview": {
+    "tiles": [
+      {
+        "column": 0,
+        "row": 0,
+        "widgets": [],
+      },
+    ],
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for odp_arc > should export OEPL with stable output 1`] = `
+{
+  "end_angle": 90,
+  "outline": "black",
+  "radius": 50,
+  "start_angle": 0,
+  "type": "arc",
+  "width": 2,
+  "x": 60,
+  "y": 60,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for odp_arc > should export OpenDisplay with stable output 1`] = `
+{
+  "end_angle": 90,
+  "outline": "black",
+  "radius": 50,
+  "start_angle": 0,
+  "type": "arc",
+  "width": 2,
+  "x": 60,
+  "y": 60,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for odp_ellipse > should export OEPL with stable output 1`] = `
+{
+  "fill": null,
+  "outline": "black",
+  "type": "ellipse",
+  "width": 1,
+  "x_end": 110,
+  "x_start": 10,
+  "y_end": 110,
+  "y_start": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for odp_ellipse > should export OpenDisplay with stable output 1`] = `
+{
+  "fill": null,
+  "outline": "black",
+  "type": "ellipse",
+  "visible": true,
+  "width": 1,
+  "x_end": 110,
+  "x_start": 10,
+  "y_end": 110,
+  "y_start": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for odp_icon_sequence > should export OEPL with stable output 1`] = `
+{
+  "direction": "right",
+  "fill": "black",
+  "icons": [
+    "mdi:home",
+    "mdi:arrow-right",
+    "mdi:office-building",
+  ],
+  "size": 24,
+  "spacing": 6,
+  "type": "icon_sequence",
+  "x": 10,
+  "y": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for odp_icon_sequence > should export OpenDisplay with stable output 1`] = `
+{
+  "direction": "right",
+  "fill": "black",
+  "icons": [
+    "mdi:home",
+    "mdi:arrow-right",
+    "mdi:office-building",
+  ],
+  "size": 24,
+  "spacing": 6,
+  "type": "icon_sequence",
+  "visible": true,
+  "x": 10,
+  "y": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for odp_multiline > should export OEPL with stable output 1`] = `
+{
+  "color": "black",
+  "delimiter": "|",
+  "font": "ppb.ttf",
+  "offset_y": 20,
+  "size": 16,
+  "type": "multiline",
+  "value": "Line 1|Line 2|Line 3",
+  "x": 10,
+  "y": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for odp_multiline > should export OpenDisplay with stable output 1`] = `
+{
+  "color": "black",
+  "delimiter": "|",
+  "font": "ppb.ttf",
+  "offset_y": 20,
+  "size": 16,
+  "type": "multiline",
+  "value": "Line 1|Line 2|Line 3",
+  "x": 10,
+  "y": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for odp_plot > should export OEPL with stable output 1`] = `
+{
+  "data": [
+    {
+      "color": "black",
+      "entity": "sensor.temperature",
+      "point_color": "black",
+      "point_size": 3,
+      "show_points": true,
+      "smooth": true,
+      "value_scale": 1,
+      "width": 1,
+    },
+  ],
+  "duration": 36400,
+  "type": "plot",
+  "x_end": 110,
+  "x_start": 10,
+  "y_end": 110,
+  "y_start": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for odp_plot > should export OpenDisplay with stable output 1`] = `
+{
+  "data": [
+    {
+      "color": "black",
+      "entity": "sensor.temperature",
+      "point_color": "black",
+      "point_size": 3,
+      "show_points": true,
+      "smooth": true,
+      "value_scale": 1,
+      "width": 1,
+    },
+  ],
+  "duration": 36400,
+  "type": "plot",
+  "x_end": 110,
+  "x_start": 10,
+  "y_end": 110,
+  "y_start": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for odp_polygon > should export OEPL with stable output 1`] = `
+{
+  "fill": "red",
+  "outline": "black",
+  "points": [
+    [
+      10,
+      10,
+    ],
+    [
+      110,
+      10,
+    ],
+    [
+      110,
+      110,
+    ],
+    [
+      10,
+      110,
+    ],
+  ],
+  "type": "polygon",
+  "width": 1,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for odp_polygon > should export OpenDisplay with stable output 1`] = `
+{
+  "fill": "red",
+  "outline": "black",
+  "points": [
+    [
+      10,
+      10,
+    ],
+    [
+      110,
+      10,
+    ],
+    [
+      110,
+      110,
+    ],
+    [
+      10,
+      110,
+    ],
+  ],
+  "type": "polygon",
+  "width": 1,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for odp_rectangle_pattern > should export OEPL with stable output 1`] = `
+{
+  "fill": "white",
+  "outline": "black",
+  "type": "rectangle_pattern",
+  "width": 1,
+  "x_end": 110,
+  "x_offset": 5,
+  "x_repeat": 3,
+  "x_size": 30,
+  "x_start": 10,
+  "y_end": 110,
+  "y_offset": 5,
+  "y_repeat": 2,
+  "y_size": 15,
+  "y_start": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for odp_rectangle_pattern > should export OpenDisplay with stable output 1`] = `
+{
+  "fill": "white",
+  "outline": "black",
+  "type": "rectangle_pattern",
+  "width": 1,
+  "x_end": 110,
+  "x_offset": 5,
+  "x_repeat": 3,
+  "x_size": 30,
+  "x_start": 10,
+  "y_end": 110,
+  "y_offset": 5,
+  "y_repeat": 2,
+  "y_size": 15,
+  "y_start": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for ondevice_humidity > should export LVGL with stable output 1`] = `
+{
+  "obj": {
+    "bg_opa": "transp",
+    "border_width": 0,
+    "widgets": [
+      {
+        "label": {
+          "align": "top_mid",
+          "height": 36,
+          "text": "\\U000F058E",
+          "text_color": "Color(black)",
+          "text_font": "font_ptr",
+          "width": 42,
+        },
+      },
+      {
+        "label": {
+          "align": "top_mid",
+          "height": 22,
+          "text": "--%",
+          "text_align": "center",
+          "text_color": "Color(black)",
+          "text_font": "font_ptr",
+          "width": "100%",
+          "y": 34,
+        },
+      },
+      {
+        "label": {
+          "align": "bottom_mid",
+          "height": 14,
+          "opa": "70%",
+          "text": ""Humidity"",
+          "text_align": "center",
+          "text_color": "Color(black)",
+          "text_font": "font_ptr",
+          "width": "100%",
+        },
+      },
+    ],
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for ondevice_humidity > should export OEPL with stable output 1`] = `
+[
+  {
+    "anchor": "mt",
+    "color": "black",
+    "size": 32,
+    "type": "icon",
+    "value": "{% set h = states('sensor.humidity') | float %}{% if h <= 30 %}water-outline{% elif h >= 70 %}water{% else %}water-percent{% endif %}",
+    "x": 60,
+    "y": 10,
+  },
+  {
+    "align": "center",
+    "anchor": "mt",
+    "color": "black",
+    "size": 16,
+    "type": "text",
+    "value": "{{ states('sensor.humidity') }}%",
+    "x": 60,
+    "y": 44,
+  },
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for ondevice_humidity > should export OpenDisplay with stable output 1`] = `
+[
+  {
+    "anchor": "mt",
+    "fill": "black",
+    "size": 32,
+    "type": "icon",
+    "value": "{% set h = states('sensor.humidity') | float %}{% if h <= 30 %}water-outline{% elif h >= 70 %}water{% else %}water-percent{% endif %}",
+    "x": 60,
+    "y": 10,
+  },
+  {
+    "anchor": "mt",
+    "color": "black",
+    "size": 16,
+    "type": "text",
+    "value": "{{ states('sensor.humidity') }}%",
+    "x": 60,
+    "y": 44,
+  },
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for ondevice_humidity > should export standard C++ with stable output 1`] = `
+[
+  "          it.printf(10 + 100 / 2, 10 + 20 + 16, id(font_id), Color(black), TextAlign::CENTER, "\\U000F058E");",
+  "          it.printf(10 + 100 / 2, 10 + 20 + 32 + 2, id(font_id), Color(black), TextAlign::TOP_CENTER, "--%");",
+  "        it.printf(10 + 100 / 2, 10 + 20 + 32 + 2 + 16 + 1, id(font_id), Color(black), TextAlign::TOP_CENTER, "Humidity");",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for ondevice_humidity > should handle onExportNumericSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for ondevice_temperature > should export LVGL with stable output 1`] = `
+{
+  "obj": {
+    "bg_opa": "transp",
+    "border_width": 0,
+    "widgets": [
+      {
+        "label": {
+          "align": "top_mid",
+          "height": 36,
+          "text": "\\U000F050F",
+          "text_color": "Color(black)",
+          "text_font": "font_ptr",
+          "width": 42,
+        },
+      },
+      {
+        "label": {
+          "align": "top_mid",
+          "height": 22,
+          "text": "--°C",
+          "text_align": "center",
+          "text_color": "Color(black)",
+          "text_font": "font_ptr",
+          "width": "100%",
+          "y": 34,
+        },
+      },
+      {
+        "label": {
+          "align": "bottom_mid",
+          "height": 14,
+          "opa": "70%",
+          "text": ""Temperature"",
+          "text_align": "center",
+          "text_color": "Color(black)",
+          "text_font": "font_ptr",
+          "width": "100%",
+        },
+      },
+    ],
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for ondevice_temperature > should export OEPL with stable output 1`] = `
+[
+  {
+    "anchor": "mt",
+    "color": "black",
+    "size": 32,
+    "type": "icon",
+    "value": "{% set t = states('sensor.temperature') | float %}{% if t <= 10 %}thermometer-low{% elif t >= 30 %}thermometer-high{% else %}thermometer{% endif %}",
+    "x": 60,
+    "y": 10,
+  },
+  {
+    "align": "center",
+    "anchor": "mt",
+    "color": "black",
+    "size": 16,
+    "type": "text",
+    "value": "{{ states('sensor.temperature') }}°C",
+    "x": 60,
+    "y": 44,
+  },
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for ondevice_temperature > should export OpenDisplay with stable output 1`] = `
+[
+  {
+    "anchor": "mt",
+    "fill": "black",
+    "size": 32,
+    "type": "icon",
+    "value": "{% set t = states('sensor.temperature') | float %}{% if t <= 10 %}thermometer-low{% elif t >= 30 %}thermometer-high{% else %}thermometer{% endif %}",
+    "x": 60,
+    "y": 10,
+  },
+  {
+    "anchor": "mt",
+    "color": "black",
+    "size": 16,
+    "type": "text",
+    "value": "{{ states('sensor.temperature') }}°C",
+    "x": 60,
+    "y": 44,
+  },
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for ondevice_temperature > should export standard C++ with stable output 1`] = `
+[
+  "          it.printf(10 + 100 / 2, 10 + 20 + 16, id(font_id), Color(black), TextAlign::CENTER, "\\U000F050F");",
+  "          it.printf(10 + 100 / 2, 10 + 20 + 32 + 2, id(font_id), Color(black), TextAlign::TOP_CENTER, "--°C");",
+  "        it.printf(10 + 100 / 2, 10 + 20 + 32 + 2 + 16 + 1, id(font_id), Color(black), TextAlign::TOP_CENTER, "Temperature");",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for ondevice_temperature > should handle onExportNumericSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for online_image > should export LVGL with stable output 1`] = `
+{
+  "image": {
+    "angle": 0,
+    "image_recolor": "Color(black)",
+    "image_recolor_opa": "cover",
+    "pivot_x": 0,
+    "pivot_y": 0,
+    "src": "online_img_w_test",
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for online_image > should export OEPL with stable output 1`] = `null`;
+
+exports[`Plugin Export Smoke Tests > Export for online_image > should export OpenDisplay with stable output 1`] = `null`;
+
+exports[`Plugin Export Smoke Tests > Export for online_image > should export standard C++ with stable output 1`] = `
+[
+  "        it.image(10, 10, id(online_img_w_test), color_on, color_off);",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for online_image > should handle onExportComponents with stable output 1`] = `
+[
+  "online_image:",
+  "",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for progress_bar > should export LVGL with stable output 1`] = `
+{
+  "bar": {
+    "bg_color": "Color(white)",
+    "indicator": {
+      "bg_color": "Color(theme_auto)",
+    },
+    "max_value": 100,
+    "min_value": 0,
+    "mode": "normal",
+    "value": 0,
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for progress_bar > should export OEPL with stable output 1`] = `
+[
+  {
+    "align": "right",
+    "anchor": "rt",
+    "color": "theme_auto",
+    "size": 12,
+    "type": "text",
+    "value": "50%",
+    "x": 110,
+    "y": 10,
+  },
+  {
+    "color": "theme_auto",
+    "fill": "theme_auto",
+    "outline": "theme_auto",
+    "type": "progress",
+    "value": 50,
+    "width": 1,
+    "x_end": 110,
+    "x_start": 10,
+    "y_end": 110,
+    "y_start": 95,
+  },
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for progress_bar > should export OpenDisplay with stable output 1`] = `
+{
+  "background": "white",
+  "direction": "right",
+  "fill": "theme_auto",
+  "outline": "theme_auto",
+  "progress": 50,
+  "show_percentage": true,
+  "type": "progress_bar",
+  "width": 1,
+  "x_end": 110,
+  "x_start": 10,
+  "y_end": 110,
+  "y_start": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for progress_bar > should export standard C++ with stable output 1`] = `
+[
+  "        it.filled_rectangle(10, 10, 100, 100, color_off);",
+  "        it.rectangle(10, 10 + 100 - 15, 100, 15, color_on);",
+  "        it.filled_rectangle(10 + 2, 10 + 100 - 15 + 2, 100 / 2, 15 - 4, color_on);",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for progress_bar > should handle onExportNumericSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for qr_code > should export LVGL with stable output 1`] = `
+{
+  "qrcode": {
+    "dark_color": "Color(theme_auto)",
+    "light_color": "Color(white)",
+    "size": 100,
+    "text": ""https://github.com/koosoli/ESPHomeDesigner/"",
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for qr_code > should export OEPL with stable output 1`] = `
+{
+  "data": "https://github.com/koosoli/ESPHomeDesigner/",
+  "scale": 3,
+  "type": "qrcode",
+  "x": 10,
+  "y": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for qr_code > should export OpenDisplay with stable output 1`] = `
+{
+  "bgcolor": "white",
+  "border": 1,
+  "boxsize": 2,
+  "color": "theme_auto",
+  "data": "https://github.com/koosoli/ESPHomeDesigner/",
+  "type": "qrcode",
+  "x": 10,
+  "y": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for qr_code > should export standard C++ with stable output 1`] = `
+[
+  "        it.qr_code(10, 10, id(qr_w_test), Color(theme_auto), 3);",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for qr_code > should handle onExportComponents with stable output 1`] = `
+[
+  "qr_code:",
+  "  - id: qr_w_test",
+  "    value: "https://github.com/koosoli/ESPHomeDesigner/"",
+  "    ecc: LOW",
+  "",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for quote_rss > should export LVGL with stable output 1`] = `
+{
+  "label": {
+    "text": "!lambda |-
+      std::string q = id(quote_w_test_text_global);
+      std::string a = id(quote_w_test_author_global);
+      if (q.empty()) return "Loading quote...";
+      if (a.empty()) return ('"' + q + '"').c_str();
+      return ('"' + q + '"
+— ' + a).c_str();
+    ",
+    "text_align": "left",
+    "text_color": "Color(theme_auto)",
+    "text_font": "font_ptr",
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for quote_rss > should export standard C++ with stable output 1`] = `
+[
+  "        {",
+  "          std::string q_text = id(quote_w_test_text_global);",
+  "          std::string q_author = id(quote_w_test_author_global);",
+  "          int max_w = 84;",
+  "          int q_h = 22;",
+  "          std::string display_text = "\\"" + q_text + "\\"";",
+  "          auto print_q = [&](esphome::font::Font *f, int line_h, bool draw) -> int {",
+  "            int y_curr = 18;",
+  "            std::string text_to_print = display_text;",
+  "            std::string curr_line = "";",
+  "            std::string word;",
+  "            size_t pos = 0;",
+  "            while (pos < text_to_print.length()) {",
+  "                size_t space_pos = text_to_print.find(' ', pos);",
+  "                if (space_pos == std::string::npos) {",
+  "                    word = text_to_print.substr(pos);",
+  "                    pos = text_to_print.length();",
+  "                } else {",
+  "                    word = text_to_print.substr(pos, space_pos - pos);",
+  "                    pos = space_pos + 1;",
+  "                }",
+  "                if (word.empty()) continue;",
+  "                std::string test_line = curr_line.empty() ? word : curr_line + " " + word;",
+  "                int w_m, h_m, xoff_m, bl_m;",
+  "                f->measure(test_line.c_str(), &w_m, &xoff_m, &bl_m, &h_m);",
+  "                if (w_m > max_w && !curr_line.empty()) {",
+  "                    if (draw) it.printf(10, y_curr, f, Color(theme_auto), TextAlign::TOP_LEFT, "%s", curr_line.c_str());",
+  "                    y_curr += line_h;",
+  "                    curr_line = word;",
+  "                } else { curr_line = test_line; }",
+  "            }",
+  "            if (!curr_line.empty()) {",
+  "                if (draw) it.printf(10, y_curr, f, Color(theme_auto), TextAlign::TOP_LEFT, "%s", curr_line.c_str());",
+  "                y_curr += line_h;",
+  "            }",
+  "            return y_curr - 18;",
+  "          };",
+  "          print_q(id(font_id), q_h, true);",
+  "          if (!q_author.empty()) it.printf(10, 10 + 100 - 18, id(font_id), Color(theme_auto), TextAlign::TOP_LEFT, "— %s", q_author.c_str());",
+  "        }",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for quote_rss > should handle onExportComponents with stable output 1`] = `
+[
+  "",
+  "http_request:",
+  "  verify_ssl: false",
+  "  timeout: 20s",
+  "  buffer_size_rx: 4096",
+  "",
+  "# Quote RSS Widget Update Loop",
+  "interval:",
+  "  - interval: 1h",
+  "    startup_delay: 20s",
+  "    then:",
+  "      - if:",
+  "          condition:",
+  "            wifi.connected:",
+  "          then:",
+  "            - http_request.get:",
+  "                url: "http://homeassistant.local:8123/api/esphome_designer/rss_proxy?url=https%3A%2F%2Fwww.brainyquote.com%2Flink%2Fquotebr.rss&random=true"",
+  "                capture_response: true",
+  "                on_response:",
+  "                  - lambda: |-",
+  "                      if (response->status_code == 200) {",
+  "                        ESP_LOGD("quote", "Raw body: %s", body.c_str());",
+  "                        JsonDocument doc;",
+  "                        DeserializationError error = deserializeJson(doc, body);",
+  "                        if (error) {",
+  "                          ESP_LOGW("quote", "Failed to parse JSON: %s", error.c_str());",
+  "                          return;",
+  "                        }",
+  "                        if (doc["success"].as<bool>()) {",
+  "                          JsonVariant q_var = doc["quote"];",
+  "                          if (q_var.is<JsonObject>()) {",
+  "                            JsonObject q = q_var.as<JsonObject>();",
+  "                            std::string q_str = q["quote"] | "";",
+  "                            if (!q_str.empty()) {",
+  "                              id(quote_w_test_text_global) = q_str;",
+  "                              id(quote_w_test_author_global) = q["author"] | "Unknown";",
+  "                              ESP_LOGI("quote", "Fetched quote: %s", q_str.c_str());",
+  "                            }",
+  "                          }",
+  "                        }",
+  "                      }",
+  "                  - if:",
+  "                      condition:",
+  "                        lambda: 'return response->status_code == 200;'",
+  "                      then:",
+  "                        - lvgl.widget.refresh: w_test",
+  "                      else:",
+  "                        - lambda: 'ESP_LOGW("quote", "HTTP Request failed with code: %d", response->status_code);'",
+  "",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for quote_rss > should handle onExportGlobals with stable output 1`] = `
+[
+  "- id: quote_w_test_text_global",
+  "  type: std::string",
+  "  restore_value: true",
+  "  initial_value: '""'",
+  "- id: quote_w_test_author_global",
+  "  type: std::string",
+  "  restore_value: true",
+  "  initial_value: '""'",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for quote_rss > should handle onExportTextSensors with stable output 1`] = `
+[
+  "# Quote RSS Widget Text Sensors (visible in Home Assistant)",
+  "- platform: template",
+  "  id: quote_w_test_txt",
+  "  name: "Quote Text"",
+  "  icon: "mdi:format-quote-close"",
+  "  lambda: 'return id(quote_w_test_text_global);'",
+  "  update_interval: 60s",
+  "- platform: template",
+  "  id: quote_w_test_author_sensor",
+  "  name: "Quote Author"",
+  "  icon: "mdi:account"",
+  "  lambda: 'return id(quote_w_test_author_global);'",
+  "  update_interval: 60s",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for rounded_rect > should export LVGL with stable output 1`] = `
+{
+  "obj": {
+    "bg_color": "Color(theme_auto)",
+    "bg_opa": "transp",
+    "border_color": "Color(theme_auto)",
+    "border_width": 4,
+    "opa": 255,
+    "radius": 10,
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for rounded_rect > should export OEPL with stable output 1`] = `
+{
+  "fill": null,
+  "outline": "theme_auto",
+  "radius": 10,
+  "type": "rectangle",
+  "width": 4,
+  "x_end": 110,
+  "x_start": 10,
+  "y_end": 110,
+  "y_start": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for rounded_rect > should export OpenDisplay with stable output 1`] = `
+{
+  "fill": null,
+  "outline": "black",
+  "radius": 10,
+  "type": "rectangle",
+  "width": 4,
+  "x_end": 110,
+  "x_start": 10,
+  "y_end": 110,
+  "y_start": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for rounded_rect > should export standard C++ with stable output 1`] = `
+[
+  "        {",
+  "          auto draw_rrect_border = [&](int x, int y, int w, int h, int r, int t, auto c) {",
+  "            it.filled_rectangle(x + r, y, w - 2 * r, t, c);",
+  "            it.filled_rectangle(x + r, y + h - t, w - 2 * r, t, c);",
+  "            it.filled_rectangle(x, y + r, t, h - 2 * r, c);",
+  "            it.filled_rectangle(x + w - t, y + r, t, h - 2 * r, c);",
+  "            for (int dx = 0; dx <= r; dx++) {",
+  "              for (int dy = 0; dy <= r; dy++) {",
+  "                int ds = dx*dx + dy*dy;",
+  "                if (ds <= r*r && ds > (r-t)*(r-t)) {",
+  "                  it.draw_pixel_at(x + r - dx, y + r - dy, c);",
+  "                  it.draw_pixel_at(x + w - r + dx - 1, y + r - dy, c);",
+  "                  it.draw_pixel_at(x + r - dx, y + h - r + dy - 1, c);",
+  "                  it.draw_pixel_at(x + w - r + dx - 1, y + h - r + dy - 1, c);",
+  "                }",
+  "              }",
+  "            }",
+  "          };",
+  "          draw_rrect_border(10, 10, 100, 100, 10, 4, Color(theme_auto));",
+  "        }",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for sensor_text > should export LVGL with stable output 1`] = `
+{
+  "label": {
+    "bg_color": undefined,
+    "opa": 255,
+    "text": """",
+    "text_align": "LEFT",
+    "text_color": "Color(theme_auto)",
+    "text_font": "font_ptr",
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for sensor_text > should export OEPL with stable output 1`] = `
+{
+  "align": "left",
+  "anchor": "lt",
+  "bg_color": "transparent",
+  "border_color": "theme_auto",
+  "border_side": "none",
+  "border_width": 0,
+  "color": "black",
+  "font": "ppb.ttf",
+  "max_width": 100,
+  "opa": 255,
+  "parse_colors": false,
+  "radius": 0,
+  "size": 20,
+  "spacing": 5,
+  "type": "text",
+  "value": ": ",
+  "x": 10,
+  "y": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for sensor_text > should export OpenDisplay with stable output 1`] = `
+{
+  "anchor": "lt",
+  "color": "black",
+  "font": "ppb.ttf",
+  "max_width": 100,
+  "parse_colors": false,
+  "size": 20,
+  "spacing": 5,
+  "type": "text",
+  "value": ": ",
+  "x": 10,
+  "y": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for sensor_text > should export standard C++ with stable output 1`] = `
+[
+  "        // Sensor ID missing for this widget",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for sensor_text > should handle onExportNumericSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for sensor_text > should handle onExportTextSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for shape_circle > should export LVGL with stable output 1`] = `
+{
+  "obj": {
+    "bg_color": "Color(theme_auto)",
+    "bg_opa": "transp",
+    "border_color": "Color(theme_auto)",
+    "border_width": 1,
+    "opa": 255,
+    "radius": "CIRCLE",
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for shape_circle > should export OEPL with stable output 1`] = `
+{
+  "fill": null,
+  "outline": "theme_auto",
+  "radius": 50,
+  "type": "circle",
+  "width": 1,
+  "x": 60,
+  "y": 60,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for shape_circle > should export OpenDisplay with stable output 1`] = `
+{
+  "fill": null,
+  "outline": "black",
+  "radius": 50,
+  "type": "circle",
+  "width": 1,
+  "x": 60,
+  "y": 60,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for shape_circle > should export standard C++ with stable output 1`] = `
+[
+  "        for (int i = 0; i < 1; i++) {",
+  "          it.circle(60, 60, 50 - i, Color(theme_auto));",
+  "        }",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for shape_rect > should export LVGL with stable output 1`] = `
+{
+  "obj": {
+    "bg_color": "Color(theme_auto)",
+    "bg_opa": "transp",
+    "border_color": "Color(theme_auto)",
+    "border_width": 1,
+    "opa": 255,
+    "radius": 0,
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for shape_rect > should export OEPL with stable output 1`] = `
+{
+  "fill": null,
+  "outline": "theme_auto",
+  "radius": 0,
+  "type": "rectangle",
+  "width": 1,
+  "x_end": 110,
+  "x_start": 10,
+  "y_end": 110,
+  "y_start": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for shape_rect > should export OpenDisplay with stable output 1`] = `
+{
+  "fill": null,
+  "outline": "black",
+  "radius": 0,
+  "type": "rectangle",
+  "width": 1,
+  "x_end": 110,
+  "x_start": 10,
+  "y_end": 110,
+  "y_start": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for shape_rect > should export standard C++ with stable output 1`] = `
+[
+  "        for (int i = 0; i < 1; i++) {",
+  "          it.rectangle(10 + i, 10 + i, 100 - 2 * i, 100 - 2 * i, Color(theme_auto));",
+  "        }",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for template_nav_bar > should export LVGL with stable output 1`] = `
+{
+  "obj": {
+    "bg_color": "Color(black)",
+    "bg_opa": "cover",
+    "border_color": "Color(white)",
+    "border_width": 0,
+    "layout": {
+      "flex_align_cross": "center",
+      "flex_align_main": "space_around",
+      "flex_flow": "row",
+      "type": "flex",
+    },
+    "radius": 8,
+    "widgets": [
+      {
+        "button": {
+          "bg_opa": "transp",
+          "border_width": 0,
+          "height": "100%",
+          "layout": {
+            "flex_align_cross": "center",
+            "flex_align_main": "center",
+            "type": "flex",
+          },
+          "on_click": [
+            {
+              "script.execute": {
+                "id": "change_page_to",
+                "target_page": "!lambda 'return id(display_page) - 1;'",
+              },
+            },
+          ],
+          "pad_all": 0,
+          "radius": 0,
+          "widgets": [
+            {
+              "label": {
+                "align": "center",
+                "text": ""\\U000F0141"",
+                "text_color": "Color(white)",
+                "text_font": "font_ptr",
+              },
+            },
+          ],
+          "width": 40,
+        },
+      },
+      {
+        "button": {
+          "bg_opa": "transp",
+          "border_width": 0,
+          "height": "100%",
+          "layout": {
+            "flex_align_cross": "center",
+            "flex_align_main": "center",
+            "type": "flex",
+          },
+          "on_click": [
+            {
+              "script.execute": "manage_run_and_sleep",
+            },
+          ],
+          "pad_all": 0,
+          "radius": 0,
+          "widgets": [
+            {
+              "label": {
+                "align": "center",
+                "text": ""\\U000F02DC"",
+                "text_color": "Color(white)",
+                "text_font": "font_ptr",
+              },
+            },
+          ],
+          "width": 40,
+        },
+      },
+      {
+        "button": {
+          "bg_opa": "transp",
+          "border_width": 0,
+          "height": "100%",
+          "layout": {
+            "flex_align_cross": "center",
+            "flex_align_main": "center",
+            "type": "flex",
+          },
+          "on_click": [
+            {
+              "script.execute": {
+                "id": "change_page_to",
+                "target_page": "!lambda 'return id(display_page) + 1;'",
+              },
+            },
+          ],
+          "pad_all": 0,
+          "radius": 0,
+          "widgets": [
+            {
+              "label": {
+                "align": "center",
+                "text": ""\\U000F0142"",
+                "text_color": "Color(white)",
+                "text_font": "font_ptr",
+              },
+            },
+          ],
+          "width": 40,
+        },
+      },
+    ],
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for template_nav_bar > should export standard C++ with stable output 1`] = `
+[
+  "        {",
+  "          auto draw_filled_rrect = [&](int x, int y, int w, int h, int r, auto c) {",
+  "            it.filled_rectangle(x + r, y, w - 2 * r, h, c);",
+  "            it.filled_rectangle(x, y + r, r, h - 2 * r, c);",
+  "            it.filled_rectangle(x + w - r, y + r, r, h - 2 * r, c);",
+  "            it.filled_circle(x + r, y + r, r, c);",
+  "            it.filled_circle(x + w - r - 1, y + r, r, c);",
+  "            it.filled_circle(x + r, y + h - r - 1, r, c);",
+  "            it.filled_circle(x + w - r - 1, y + h - r - 1, r, c);",
+  "          };",
+  "          draw_filled_rrect(10, 10, 100, 100, 8, Color(black));",
+  "          it.printf(27, 60, id(font_id), Color(white), TextAlign::CENTER, "\\U000F0141");",
+  "          it.printf(60, 60, id(font_id), Color(white), TextAlign::CENTER, "\\U000F02DC");",
+  "          it.printf(93, 60, id(font_id), Color(white), TextAlign::CENTER, "\\U000F0142");",
+  "        }",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for template_nav_bar > should handle onExportBinarySensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for template_sensor_bar > should export LVGL with stable output 1`] = `
+{
+  "obj": {
+    "bg_color": "Color(black)",
+    "bg_opa": "cover",
+    "border_color": "Color(white)",
+    "border_width": 0,
+    "clip_corner": true,
+    "layout": {
+      "flex_align_cross": "center",
+      "flex_align_main": "space_around",
+      "flex_flow": "row",
+      "type": "flex",
+    },
+    "radius": 8,
+    "widgets": [
+      {
+        "obj": {
+          "bg_opa": "transp",
+          "border_width": 0,
+          "height": "SIZE_CONTENT",
+          "layout": {
+            "flex_align_cross": "center",
+            "flex_align_main": "center",
+            "flex_flow": "row",
+            "type": "flex",
+          },
+          "pad_all": 0,
+          "widgets": [
+            {
+              "label": {
+                "text": "!lambda |-
+              if (id(wifi_signal_dbm).has_state()) {
+                float sig = id(wifi_signal_dbm).state;
+                if (sig >= -50) return "\\U000F0928";
+                else if (sig >= -70) return "\\U000F0925";
+                else if (sig >= -85) return "\\U000F0922";
+                else return "\\U000F091F";
+              }
+              return "\\U000F092B";",
+                "text_color": "Color(white)",
+                "text_font": "font_ptr",
+              },
+            },
+            {
+              "label": {
+                "text": "!lambda "return id(wifi_signal_dbm).has_state() ? str_sprintf('%.0fdB', id(wifi_signal_dbm).state).c_str() : '--dB';"",
+                "text_color": "Color(white)",
+                "text_font": "font_ptr",
+                "x": 4,
+              },
+            },
+          ],
+          "width": "SIZE_CONTENT",
+        },
+      },
+      {
+        "obj": {
+          "bg_opa": "transp",
+          "border_width": 0,
+          "height": "SIZE_CONTENT",
+          "layout": {
+            "flex_align_cross": "center",
+            "flex_align_main": "center",
+            "flex_flow": "row",
+            "type": "flex",
+          },
+          "pad_all": 0,
+          "widgets": [
+            {
+              "label": {
+                "text": ""\\U000F050F"",
+                "text_color": "Color(white)",
+                "text_font": "font_ptr",
+              },
+            },
+            {
+              "label": {
+                "text": "!lambda "if (id(shtc3_temperature).has_state()) { return str_sprintf('%.1f°C', id(shtc3_temperature).state).c_str(); } return '--°C';"",
+                "text_color": "Color(white)",
+                "text_font": "font_ptr",
+                "x": 4,
+              },
+            },
+          ],
+          "width": "SIZE_CONTENT",
+        },
+      },
+      {
+        "obj": {
+          "bg_opa": "transp",
+          "border_width": 0,
+          "height": "SIZE_CONTENT",
+          "layout": {
+            "flex_align_cross": "center",
+            "flex_align_main": "center",
+            "flex_flow": "row",
+            "type": "flex",
+          },
+          "pad_all": 0,
+          "widgets": [
+            {
+              "label": {
+                "text": ""\\U000F058E"",
+                "text_color": "Color(white)",
+                "text_font": "font_ptr",
+              },
+            },
+            {
+              "label": {
+                "text": "!lambda "if (id(shtc3_humidity).has_state()) { return str_sprintf('%.0f%%', id(shtc3_humidity).state).c_str(); } return '--%%';"",
+                "text_color": "Color(white)",
+                "text_font": "font_ptr",
+                "x": 4,
+              },
+            },
+          ],
+          "width": "SIZE_CONTENT",
+        },
+      },
+      {
+        "obj": {
+          "bg_opa": "transp",
+          "border_width": 0,
+          "height": "SIZE_CONTENT",
+          "layout": {
+            "flex_align_cross": "center",
+            "flex_align_main": "center",
+            "flex_flow": "row",
+            "type": "flex",
+          },
+          "pad_all": 0,
+          "widgets": [
+            {
+              "label": {
+                "text": "!lambda |-
+              if (id(battery_level).has_state()) {
+                float lvl = id(battery_level).state;
+                if (lvl >= 95) return "\\U000F0079";
+                else if (lvl >= 85) return "\\U000F0082";
+                else if (lvl >= 75) return "\\U000F0081";
+                else if (lvl >= 65) return "\\U000F0080";
+                else if (lvl >= 55) return "\\U000F007F";
+                else if (lvl >= 45) return "\\U000F007E";
+                else if (lvl >= 35) return "\\U000F007D";
+                else if (lvl >= 25) return "\\U000F007C";
+                else if (lvl >= 15) return "\\U000F007B";
+                else if (lvl >= 5) return "\\U000F007A";
+                else return "\\U000F0083";
+              }
+              return "\\U000F0082";",
+                "text_color": "Color(white)",
+                "text_font": "font_ptr",
+              },
+            },
+            {
+              "label": {
+                "text": "!lambda "return id(battery_level).has_state() ? str_sprintf('%.0f%%', id(battery_level).state).c_str() : '--%%';"",
+                "text_color": "Color(white)",
+                "text_font": "font_ptr",
+                "x": 4,
+              },
+            },
+          ],
+          "width": "SIZE_CONTENT",
+        },
+      },
+    ],
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for template_sensor_bar > should export standard C++ with stable output 1`] = `
+[
+  "        {",
+  "          auto draw_filled_rrect = [&](int x, int y, int w, int h, int r, auto c) {",
+  "            it.filled_rectangle(x + r, y, w - 2 * r, h, c);",
+  "            it.filled_rectangle(x, y + r, r, h - 2 * r, c);",
+  "            it.filled_rectangle(x + w - r, y + r, r, h - 2 * r, c);",
+  "            it.filled_circle(x + r, y + r, r, c);",
+  "            it.filled_circle(x + w - r - 1, y + r, r, c);",
+  "            it.filled_circle(x + r, y + h - r - 1, r, c);",
+  "            it.filled_circle(x + w - r - 1, y + h - r - 1, r, c);",
+  "          };",
+  "          draw_filled_rrect(10, 10, 100, 100, 8, color_on);",
+  "          {",
+  "            const char* wifi_icon = "\\U000F092B";",
+  "            it.printf(23 - 4, 60, id(font_id), color_off, TextAlign::CENTER_RIGHT, "%s", wifi_icon);",
+  "            it.printf(23 + 4, 60, id(font_id), color_off, TextAlign::CENTER_LEFT, "--dB");",
+  "          }",
+  "          {",
+  "            it.printf(48 - 4, 60, id(font_id), color_off, TextAlign::CENTER_RIGHT, "%s", "\\U000F050F");",
+  "            it.printf(48 + 4, 60, id(font_id), color_off, TextAlign::CENTER_LEFT, "--°C");",
+  "          }",
+  "          {",
+  "            it.printf(73 - 4, 60, id(font_id), color_off, TextAlign::CENTER_RIGHT, "%s", "\\U000F058E");",
+  "            it.printf(73 + 4, 60, id(font_id), color_off, TextAlign::CENTER_LEFT, "--%%");",
+  "          }",
+  "          {",
+  "            const char* bat_icon = "\\U000F0082";",
+  "            it.printf(98 - 4, 60, id(font_id), color_off, TextAlign::CENTER_RIGHT, "%s", bat_icon);",
+  "            it.printf(98 + 4, 60, id(font_id), color_off, TextAlign::CENTER_LEFT, "--%%");",
+  "          }",
+  "        }",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for template_sensor_bar > should handle onExportNumericSensors with stable output 1`] = `
+[
+  "- platform: wifi_signal",
+  "  id: wifi_signal_dbm",
+  "  internal: true",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for text > should export LVGL with stable output 1`] = `
+{
+  "label": {
+    "bg_color": undefined,
+    "border_color": "Color(black)",
+    "border_side": "none",
+    "border_width": 0,
+    "opa": 255,
+    "radius": 0,
+    "text": ""Text"",
+    "text_align": "left",
+    "text_color": "Color(theme_auto)",
+    "text_font": "font_ptr",
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for text > should export OEPL with stable output 1`] = `
+{
+  "align": "left",
+  "anchor": "lt",
+  "color": "black",
+  "font": "ppb.ttf",
+  "max_width": 100,
+  "parse_colors": false,
+  "size": 20,
+  "spacing": 5,
+  "type": "text",
+  "value": "Text",
+  "x": 10,
+  "y": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for text > should export OpenDisplay with stable output 1`] = `
+{
+  "anchor": "lt",
+  "color": "black",
+  "font": "ppb.ttf",
+  "max_width": 100,
+  "parse_colors": false,
+  "size": 20,
+  "spacing": 5,
+  "type": "text",
+  "value": "Text",
+  "x": 10,
+  "y": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for text > should export standard C++ with stable output 1`] = `
+[
+  "        it.printf(10, 10, id(font_id), Color(theme_auto), TextAlign::TOP_LEFT, "Text");",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for touch_area > should export standard C++ with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for touch_area > should handle onExportBinarySensors with stable output 1`] = `
+[
+  "# Touch Area Binary Sensors",
+  "- platform: touchscreen",
+  "  id: touch_area_w_test",
+  "  touchscreen_id: my_touchscreen",
+  "  x_min: 10",
+  "  x_max: 110",
+  "  y_min: 10",
+  "  y_max: 110",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export LVGL with stable output 1`] = `
+{
+  "obj": {
+    "bg_color": "Color(transparent)",
+    "bg_opa": "COVER",
+    "border_color": "Color(theme_auto)",
+    "border_width": 1,
+    "layout": {
+      "flex_align_cross": "center",
+      "flex_align_main": "space_around",
+      "flex_flow": "row",
+      "type": "flex",
+    },
+    "radius": 8,
+    "widgets": [
+      {
+        "obj": {
+          "bg_opa": "transp",
+          "border_width": 0,
+          "height": "100%",
+          "widgets": [
+            {
+              "label": {
+                "align": "top_mid",
+                "id": "w_test_day0",
+                "text": "!lambda |-
+                  if (0 == 0) return "Today";
+                  auto t = id(ha_time).now();
+                  if (!t.is_valid()) return "---";
+                  ESPTime future = ESPTime::from_epoch_local(t.timestamp + (0 * 86400));
+                  static char buf[16];
+                  future.strftime(buf, sizeof(buf), "%a");
+                  return buf;
+                ",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+              },
+            },
+            {
+              "label": {
+                "align": "center",
+                "id": "w_test_icon0",
+                "text": "!lambda |-
+              std::string c = id(weather_cond_day0).state;
+              if (c == "clear-night") return "\\U000F0594";
+              if (c == "cloudy") return "\\U000F0590";
+              if (c == "exceptional") return "\\U000F0026";
+              if (c == "fog") return "\\U000F0591";
+              if (c == "hail") return "\\U000F0592";
+              if (c == "lightning") return "\\U000F0593";
+              if (c == "lightning-rainy") return "\\U000F067E";
+              if (c == "partlycloudy") return "\\U000F0595";
+              if (c == "pouring") return "\\U000F0596";
+              if (c == "rainy") return "\\U000F0597";
+              if (c == "snowy") return "\\U000F0598";
+              if (c == "snowy-rainy") return "\\U000F067F";
+              if (c == "sunny") return "\\U000F0599";
+              if (c == "windy") return "\\U000F059D";
+              if (c == "windy-variant") return "\\U000F059E";
+              return "\\U000F0590";
+            ",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "y": 0,
+              },
+            },
+            {
+              "label": {
+                "align": "bottom_mid",
+                "id": "w_test_temp0",
+                "text": "!lambda "return str_sprintf(\\'%.1f/%.1f\\', id(weather_high_day0).state, id(weather_low_day0).state).c_str();"",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+              },
+            },
+          ],
+          "width": "20%",
+        },
+      },
+      {
+        "obj": {
+          "bg_opa": "transp",
+          "border_width": 0,
+          "height": "100%",
+          "widgets": [
+            {
+              "label": {
+                "align": "top_mid",
+                "id": "w_test_day1",
+                "text": "!lambda |-
+                  if (1 == 0) return "Today";
+                  auto t = id(ha_time).now();
+                  if (!t.is_valid()) return "---";
+                  ESPTime future = ESPTime::from_epoch_local(t.timestamp + (1 * 86400));
+                  static char buf[16];
+                  future.strftime(buf, sizeof(buf), "%a");
+                  return buf;
+                ",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+              },
+            },
+            {
+              "label": {
+                "align": "center",
+                "id": "w_test_icon1",
+                "text": "!lambda |-
+              std::string c = id(weather_cond_day1).state;
+              if (c == "clear-night") return "\\U000F0594";
+              if (c == "cloudy") return "\\U000F0590";
+              if (c == "exceptional") return "\\U000F0026";
+              if (c == "fog") return "\\U000F0591";
+              if (c == "hail") return "\\U000F0592";
+              if (c == "lightning") return "\\U000F0593";
+              if (c == "lightning-rainy") return "\\U000F067E";
+              if (c == "partlycloudy") return "\\U000F0595";
+              if (c == "pouring") return "\\U000F0596";
+              if (c == "rainy") return "\\U000F0597";
+              if (c == "snowy") return "\\U000F0598";
+              if (c == "snowy-rainy") return "\\U000F067F";
+              if (c == "sunny") return "\\U000F0599";
+              if (c == "windy") return "\\U000F059D";
+              if (c == "windy-variant") return "\\U000F059E";
+              return "\\U000F0590";
+            ",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "y": 0,
+              },
+            },
+            {
+              "label": {
+                "align": "bottom_mid",
+                "id": "w_test_temp1",
+                "text": "!lambda "return str_sprintf(\\'%.1f/%.1f\\', id(weather_high_day1).state, id(weather_low_day1).state).c_str();"",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+              },
+            },
+          ],
+          "width": "20%",
+        },
+      },
+      {
+        "obj": {
+          "bg_opa": "transp",
+          "border_width": 0,
+          "height": "100%",
+          "widgets": [
+            {
+              "label": {
+                "align": "top_mid",
+                "id": "w_test_day2",
+                "text": "!lambda |-
+                  if (2 == 0) return "Today";
+                  auto t = id(ha_time).now();
+                  if (!t.is_valid()) return "---";
+                  ESPTime future = ESPTime::from_epoch_local(t.timestamp + (2 * 86400));
+                  static char buf[16];
+                  future.strftime(buf, sizeof(buf), "%a");
+                  return buf;
+                ",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+              },
+            },
+            {
+              "label": {
+                "align": "center",
+                "id": "w_test_icon2",
+                "text": "!lambda |-
+              std::string c = id(weather_cond_day2).state;
+              if (c == "clear-night") return "\\U000F0594";
+              if (c == "cloudy") return "\\U000F0590";
+              if (c == "exceptional") return "\\U000F0026";
+              if (c == "fog") return "\\U000F0591";
+              if (c == "hail") return "\\U000F0592";
+              if (c == "lightning") return "\\U000F0593";
+              if (c == "lightning-rainy") return "\\U000F067E";
+              if (c == "partlycloudy") return "\\U000F0595";
+              if (c == "pouring") return "\\U000F0596";
+              if (c == "rainy") return "\\U000F0597";
+              if (c == "snowy") return "\\U000F0598";
+              if (c == "snowy-rainy") return "\\U000F067F";
+              if (c == "sunny") return "\\U000F0599";
+              if (c == "windy") return "\\U000F059D";
+              if (c == "windy-variant") return "\\U000F059E";
+              return "\\U000F0590";
+            ",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "y": 0,
+              },
+            },
+            {
+              "label": {
+                "align": "bottom_mid",
+                "id": "w_test_temp2",
+                "text": "!lambda "return str_sprintf(\\'%.1f/%.1f\\', id(weather_high_day2).state, id(weather_low_day2).state).c_str();"",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+              },
+            },
+          ],
+          "width": "20%",
+        },
+      },
+      {
+        "obj": {
+          "bg_opa": "transp",
+          "border_width": 0,
+          "height": "100%",
+          "widgets": [
+            {
+              "label": {
+                "align": "top_mid",
+                "id": "w_test_day3",
+                "text": "!lambda |-
+                  if (3 == 0) return "Today";
+                  auto t = id(ha_time).now();
+                  if (!t.is_valid()) return "---";
+                  ESPTime future = ESPTime::from_epoch_local(t.timestamp + (3 * 86400));
+                  static char buf[16];
+                  future.strftime(buf, sizeof(buf), "%a");
+                  return buf;
+                ",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+              },
+            },
+            {
+              "label": {
+                "align": "center",
+                "id": "w_test_icon3",
+                "text": "!lambda |-
+              std::string c = id(weather_cond_day3).state;
+              if (c == "clear-night") return "\\U000F0594";
+              if (c == "cloudy") return "\\U000F0590";
+              if (c == "exceptional") return "\\U000F0026";
+              if (c == "fog") return "\\U000F0591";
+              if (c == "hail") return "\\U000F0592";
+              if (c == "lightning") return "\\U000F0593";
+              if (c == "lightning-rainy") return "\\U000F067E";
+              if (c == "partlycloudy") return "\\U000F0595";
+              if (c == "pouring") return "\\U000F0596";
+              if (c == "rainy") return "\\U000F0597";
+              if (c == "snowy") return "\\U000F0598";
+              if (c == "snowy-rainy") return "\\U000F067F";
+              if (c == "sunny") return "\\U000F0599";
+              if (c == "windy") return "\\U000F059D";
+              if (c == "windy-variant") return "\\U000F059E";
+              return "\\U000F0590";
+            ",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "y": 0,
+              },
+            },
+            {
+              "label": {
+                "align": "bottom_mid",
+                "id": "w_test_temp3",
+                "text": "!lambda "return str_sprintf(\\'%.1f/%.1f\\', id(weather_high_day3).state, id(weather_low_day3).state).c_str();"",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+              },
+            },
+          ],
+          "width": "20%",
+        },
+      },
+      {
+        "obj": {
+          "bg_opa": "transp",
+          "border_width": 0,
+          "height": "100%",
+          "widgets": [
+            {
+              "label": {
+                "align": "top_mid",
+                "id": "w_test_day4",
+                "text": "!lambda |-
+                  if (4 == 0) return "Today";
+                  auto t = id(ha_time).now();
+                  if (!t.is_valid()) return "---";
+                  ESPTime future = ESPTime::from_epoch_local(t.timestamp + (4 * 86400));
+                  static char buf[16];
+                  future.strftime(buf, sizeof(buf), "%a");
+                  return buf;
+                ",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+              },
+            },
+            {
+              "label": {
+                "align": "center",
+                "id": "w_test_icon4",
+                "text": "!lambda |-
+              std::string c = id(weather_cond_day4).state;
+              if (c == "clear-night") return "\\U000F0594";
+              if (c == "cloudy") return "\\U000F0590";
+              if (c == "exceptional") return "\\U000F0026";
+              if (c == "fog") return "\\U000F0591";
+              if (c == "hail") return "\\U000F0592";
+              if (c == "lightning") return "\\U000F0593";
+              if (c == "lightning-rainy") return "\\U000F067E";
+              if (c == "partlycloudy") return "\\U000F0595";
+              if (c == "pouring") return "\\U000F0596";
+              if (c == "rainy") return "\\U000F0597";
+              if (c == "snowy") return "\\U000F0598";
+              if (c == "snowy-rainy") return "\\U000F067F";
+              if (c == "sunny") return "\\U000F0599";
+              if (c == "windy") return "\\U000F059D";
+              if (c == "windy-variant") return "\\U000F059E";
+              return "\\U000F0590";
+            ",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "y": 0,
+              },
+            },
+            {
+              "label": {
+                "align": "bottom_mid",
+                "id": "w_test_temp4",
+                "text": "!lambda "return str_sprintf(\\'%.1f/%.1f\\', id(weather_high_day4).state, id(weather_low_day4).state).c_str();"",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+              },
+            },
+          ],
+          "width": "20%",
+        },
+      },
+    ],
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export OEPL with stable output 1`] = `
+{
+  "anchor": "lt",
+  "color": "theme_auto",
+  "size": 14,
+  "type": "text",
+  "value": "{{ states('weather.forecast_home') }}",
+  "x": 10,
+  "y": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export OpenDisplay with stable output 1`] = `
+[
+  {
+    "anchor": "mt",
+    "color": "black",
+    "size": 32,
+    "type": "icon",
+    "value": "{{ {
+            'clear-night': 'moon',
+            'cloudy': 'cloud',
+            'fog': 'fog',
+            'hail': 'hail',
+            'lightning': 'lightning',
+            'lightning-rainy': 'lightning-rainy',
+            'partlycloudy': 'partly-cloudy',
+            'pouring': 'pouring',
+            'rainy': 'rainy',
+            'snowy': 'snowy',
+            'snowy-rainy': 'snowy-rainy',
+            'sunny': 'sun',
+            'windy': 'wind'
+        }[states('weather.forecast_home')] | default('sun') }}",
+    "x": 60,
+    "y": 10,
+  },
+  {
+    "anchor": "mt",
+    "color": "black",
+    "size": 14,
+    "type": "text",
+    "value": "{{ states('weather.forecast_home') }} | {{ state_attr('weather.forecast_home', 'temperature') }}°",
+    "x": 60,
+    "y": 44,
+  },
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export standard C++ with stable output 1`] = `
+[
+  "        {",
+  "          static std::map<std::string, const char*> weather_icons = {",
+  "            {"clear-night", "\\U000F0594"}, {"cloudy", "\\U000F0590"},",
+  "            {"exceptional", "\\U000F0026"}, {"fog", "\\U000F0591"},",
+  "            {"hail", "\\U000F0592"}, {"lightning", "\\U000F0593"},",
+  "            {"lightning-rainy", "\\U000F067E"}, {"partlycloudy", "\\U000F0595"},",
+  "            {"pouring", "\\U000F0596"}, {"rainy", "\\U000F0597"},",
+  "            {"snowy", "\\U000F0598"}, {"snowy-rainy", "\\U000F067F"},",
+  "            {"sunny", "\\U000F0599"}, {"windy", "\\U000F059D"},",
+  "            {"windy-variant", "\\U000F059E"}",
+  "          };",
+  "          auto get_icon = [&](const std::string& cond_val) -> const char* {",
+  "            return weather_icons.count(cond_val) ? weather_icons[cond_val] : "\\U000F0590";",
+  "          };",
+  "          auto get_day_name = [](int offset) -> std::string {",
+  "            int target_day = offset + 0;",
+  "            if (target_day == 0) return "Today";",
+  "            auto t = id(ha_time).now();",
+  "            if (!t.is_valid()) return "---";",
+  "            ESPTime future = ESPTime::from_epoch_local(t.timestamp + (target_day * 86400));",
+  "            char buf[8]; future.strftime(buf, sizeof(buf), "%a");",
+  "            return std::string(buf);",
+  "          };",
+  "          {",
+  "            int dx = 10; int dy = 10 + 17;",
+  "            it.printf(dx + 10, dy, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%s", get_day_name(0).c_str());",
+  "            std::string cond_day = id(weather_cond_day0).state.c_str();",
+  "            it.printf(dx + 10, dy + 16, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%s", get_icon(cond_day));",
+  "            float high = id(weather_high_day0).state; float low = id(weather_low_day0).state;",
+  "            char temp_buf[32];",
+  "            if (std::isnan(high) && std::isnan(low)) {",
+  "                sprintf(temp_buf, "--/--");",
+  "            } else if (std::isnan(high)) {",
+  "                sprintf(temp_buf, "--/%.*f°C", 1, low);",
+  "            } else if (std::isnan(low)) {",
+  "                sprintf(temp_buf, "%.*f°C/--", 1, high);",
+  "            } else {",
+  "                sprintf(temp_buf, "%.*f/%.*f°C", 1, high, 1, low);",
+  "            }",
+  "            it.printf(dx + 10, dy + 52, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%s", temp_buf);",
+  "          }",
+  "          {",
+  "            int dx = 30; int dy = 10 + 17;",
+  "            it.printf(dx + 10, dy, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%s", get_day_name(1).c_str());",
+  "            std::string cond_day = id(weather_cond_day1).state.c_str();",
+  "            it.printf(dx + 10, dy + 16, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%s", get_icon(cond_day));",
+  "            float high = id(weather_high_day1).state; float low = id(weather_low_day1).state;",
+  "            char temp_buf[32];",
+  "            if (std::isnan(high) && std::isnan(low)) {",
+  "                sprintf(temp_buf, "--/--");",
+  "            } else if (std::isnan(high)) {",
+  "                sprintf(temp_buf, "--/%.*f°C", 1, low);",
+  "            } else if (std::isnan(low)) {",
+  "                sprintf(temp_buf, "%.*f°C/--", 1, high);",
+  "            } else {",
+  "                sprintf(temp_buf, "%.*f/%.*f°C", 1, high, 1, low);",
+  "            }",
+  "            it.printf(dx + 10, dy + 52, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%s", temp_buf);",
+  "          }",
+  "          {",
+  "            int dx = 50; int dy = 10 + 17;",
+  "            it.printf(dx + 10, dy, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%s", get_day_name(2).c_str());",
+  "            std::string cond_day = id(weather_cond_day2).state.c_str();",
+  "            it.printf(dx + 10, dy + 16, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%s", get_icon(cond_day));",
+  "            float high = id(weather_high_day2).state; float low = id(weather_low_day2).state;",
+  "            char temp_buf[32];",
+  "            if (std::isnan(high) && std::isnan(low)) {",
+  "                sprintf(temp_buf, "--/--");",
+  "            } else if (std::isnan(high)) {",
+  "                sprintf(temp_buf, "--/%.*f°C", 1, low);",
+  "            } else if (std::isnan(low)) {",
+  "                sprintf(temp_buf, "%.*f°C/--", 1, high);",
+  "            } else {",
+  "                sprintf(temp_buf, "%.*f/%.*f°C", 1, high, 1, low);",
+  "            }",
+  "            it.printf(dx + 10, dy + 52, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%s", temp_buf);",
+  "          }",
+  "          {",
+  "            int dx = 70; int dy = 10 + 17;",
+  "            it.printf(dx + 10, dy, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%s", get_day_name(3).c_str());",
+  "            std::string cond_day = id(weather_cond_day3).state.c_str();",
+  "            it.printf(dx + 10, dy + 16, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%s", get_icon(cond_day));",
+  "            float high = id(weather_high_day3).state; float low = id(weather_low_day3).state;",
+  "            char temp_buf[32];",
+  "            if (std::isnan(high) && std::isnan(low)) {",
+  "                sprintf(temp_buf, "--/--");",
+  "            } else if (std::isnan(high)) {",
+  "                sprintf(temp_buf, "--/%.*f°C", 1, low);",
+  "            } else if (std::isnan(low)) {",
+  "                sprintf(temp_buf, "%.*f°C/--", 1, high);",
+  "            } else {",
+  "                sprintf(temp_buf, "%.*f/%.*f°C", 1, high, 1, low);",
+  "            }",
+  "            it.printf(dx + 10, dy + 52, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%s", temp_buf);",
+  "          }",
+  "          {",
+  "            int dx = 90; int dy = 10 + 17;",
+  "            it.printf(dx + 10, dy, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%s", get_day_name(4).c_str());",
+  "            std::string cond_day = id(weather_cond_day4).state.c_str();",
+  "            it.printf(dx + 10, dy + 16, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%s", get_icon(cond_day));",
+  "            float high = id(weather_high_day4).state; float low = id(weather_low_day4).state;",
+  "            char temp_buf[32];",
+  "            if (std::isnan(high) && std::isnan(low)) {",
+  "                sprintf(temp_buf, "--/--");",
+  "            } else if (std::isnan(high)) {",
+  "                sprintf(temp_buf, "--/%.*f°C", 1, low);",
+  "            } else if (std::isnan(low)) {",
+  "                sprintf(temp_buf, "%.*f°C/--", 1, high);",
+  "            } else {",
+  "                sprintf(temp_buf, "%.*f/%.*f°C", 1, high, 1, low);",
+  "            }",
+  "            it.printf(dx + 10, dy + 52, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%s", temp_buf);",
+  "          }",
+  "        }",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for weather_forecast > should handle onExportNumericSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for weather_forecast > should handle onExportTextSensors with stable output 1`] = `
+[
+  "",
+  "# Weather Forecast Condition Sensors",
+  "- platform: homeassistant",
+  "  id: weather_cond_day0",
+  "  entity_id: sensor.weather_forecast_day_0_condition",
+  "  internal: true",
+  "- platform: homeassistant",
+  "  id: weather_cond_day1",
+  "  entity_id: sensor.weather_forecast_day_1_condition",
+  "  internal: true",
+  "- platform: homeassistant",
+  "  id: weather_cond_day2",
+  "  entity_id: sensor.weather_forecast_day_2_condition",
+  "  internal: true",
+  "- platform: homeassistant",
+  "  id: weather_cond_day3",
+  "  entity_id: sensor.weather_forecast_day_3_condition",
+  "  internal: true",
+  "- platform: homeassistant",
+  "  id: weather_cond_day4",
+  "  entity_id: sensor.weather_forecast_day_4_condition",
+  "  internal: true",
+  "",
+  "# ============================================================================",
+  "# HOME ASSISTANT TEMPLATE SENSORS (DAILY)",
+  "# Add these template sensors to your Home Assistant configuration.yaml:",
+  "# ============================================================================",
+  "#",
+  "# template:",
+  "#   - trigger:",
+  "#       - trigger: state",
+  "#         entity_id: weather.forecast_home",
+  "#       - trigger: time_pattern",
+  "#         hours: '/1'",
+  "#     action:",
+  "#       - action: weather.get_forecasts",
+  "#         target:",
+  "#           entity_id: weather.forecast_home",
+  "#         data:",
+  "#           type: daily",
+  "#         response_variable: forecast_data",
+  "#     sensor:",
+  "#       - name: 'Weather Forecast Day 0 High'",
+  "#         unique_id: weather_forecast_day_0_high",
+  "#         unit_of_measurement: '°C'",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[0].temperature | default("N/A") }}'",
+  "#       - name: 'Weather Forecast Day 0 Low'",
+  "#         unique_id: weather_forecast_day_0_low",
+  "#         unit_of_measurement: '°C'",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[0].templow | default("N/A") }}'",
+  "#       - name: 'Weather Forecast Day 0 Condition'",
+  "#         unique_id: weather_forecast_day_0_condition",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[0].condition | default("cloudy") }}'",
+  "#       - name: 'Weather Forecast Day 1 High'",
+  "#         unique_id: weather_forecast_day_1_high",
+  "#         unit_of_measurement: '°C'",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[1].temperature | default("N/A") }}'",
+  "#       - name: 'Weather Forecast Day 1 Low'",
+  "#         unique_id: weather_forecast_day_1_low",
+  "#         unit_of_measurement: '°C'",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[1].templow | default("N/A") }}'",
+  "#       - name: 'Weather Forecast Day 1 Condition'",
+  "#         unique_id: weather_forecast_day_1_condition",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[1].condition | default("cloudy") }}'",
+  "#       - name: 'Weather Forecast Day 2 High'",
+  "#         unique_id: weather_forecast_day_2_high",
+  "#         unit_of_measurement: '°C'",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[2].temperature | default("N/A") }}'",
+  "#       - name: 'Weather Forecast Day 2 Low'",
+  "#         unique_id: weather_forecast_day_2_low",
+  "#         unit_of_measurement: '°C'",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[2].templow | default("N/A") }}'",
+  "#       - name: 'Weather Forecast Day 2 Condition'",
+  "#         unique_id: weather_forecast_day_2_condition",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[2].condition | default("cloudy") }}'",
+  "#       - name: 'Weather Forecast Day 3 High'",
+  "#         unique_id: weather_forecast_day_3_high",
+  "#         unit_of_measurement: '°C'",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[3].temperature | default("N/A") }}'",
+  "#       - name: 'Weather Forecast Day 3 Low'",
+  "#         unique_id: weather_forecast_day_3_low",
+  "#         unit_of_measurement: '°C'",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[3].templow | default("N/A") }}'",
+  "#       - name: 'Weather Forecast Day 3 Condition'",
+  "#         unique_id: weather_forecast_day_3_condition",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[3].condition | default("cloudy") }}'",
+  "#       - name: 'Weather Forecast Day 4 High'",
+  "#         unique_id: weather_forecast_day_4_high",
+  "#         unit_of_measurement: '°C'",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[4].temperature | default("N/A") }}'",
+  "#       - name: 'Weather Forecast Day 4 Low'",
+  "#         unique_id: weather_forecast_day_4_low",
+  "#         unit_of_measurement: '°C'",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[4].templow | default("N/A") }}'",
+  "#       - name: 'Weather Forecast Day 4 Condition'",
+  "#         unique_id: weather_forecast_day_4_condition",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[4].condition | default("cloudy") }}'",
+  "#",
+  "# ============================================================================",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for weather_icon > should export LVGL with stable output 1`] = `
+{
+  "label": {
+    "text": "!lambda |-
+              std::string ws = id(weather_forecast_home_txt).state;
+              if (ws == "clear-night") return "\\U000F0594";
+              if (ws == "cloudy") return "\\U000F0590";
+              if (ws == "exceptional") return "\\U000F0026";
+              if (ws == "fog") return "\\U000F0591";
+              if (ws == "hail") return "\\U000F0592";
+              if (ws == "lightning") return "\\U000F0593";
+              if (ws == "lightning-rainy") return "\\U000F067E";
+              if (ws == "partlycloudy") return "\\U000F0595";
+              if (ws == "pouring") return "\\U000F0596";
+              if (ws == "rainy") return "\\U000F0597";
+              if (ws == "snowy") return "\\U000F0598";
+              if (ws == "snowy-rainy") return "\\U000F067F";
+              if (ws == "sunny") return "\\U000F0599";
+              if (ws == "windy") return "\\U000F059D";
+              if (ws == "windy-variant") return "\\U000F059E";
+              return "\\U000F0599";",
+    "text_align": "center",
+    "text_color": "Color(theme_auto)",
+    "text_font": "font_ptr",
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for weather_icon > should export OEPL with stable output 1`] = `
+{
+  "anchor": "lt",
+  "color": "theme_auto",
+  "size": 48,
+  "type": "icon",
+  "value": "{{ {
+            'clear-night': 'moon',
+            'cloudy': 'cloud',
+            'fog': 'fog',
+            'hail': 'hail',
+            'lightning': 'lightning',
+            'lightning-rainy': 'lightning-rainy',
+            'partlycloudy': 'partly-cloudy',
+            'pouring': 'pouring',
+            'rainy': 'rainy',
+            'snowy': 'snowy',
+            'snowy-rainy': 'snowy-rainy',
+            'sunny': 'sun',
+            'windy': 'wind'
+        }[states('weather.forecast_home')] | default('sun') }}",
+  "x": 10,
+  "y": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for weather_icon > should export OpenDisplay with stable output 1`] = `
+{
+  "anchor": "mm",
+  "color": "black",
+  "size": 48,
+  "type": "icon",
+  "value": "{{ {
+            'clear-night': 'moon',
+            'cloudy': 'cloud',
+            'fog': 'fog',
+            'hail': 'hail',
+            'lightning': 'lightning',
+            'lightning-rainy': 'lightning-rainy',
+            'partlycloudy': 'partly-cloudy',
+            'pouring': 'pouring',
+            'rainy': 'rainy',
+            'snowy': 'snowy',
+            'snowy-rainy': 'snowy-rainy',
+            'sunny': 'sun',
+            'windy': 'wind'
+        }[states('weather.forecast_home')] | default('sun') }}",
+  "x": 60,
+  "y": 60,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for weather_icon > should export standard C++ with stable output 1`] = `
+[
+  "        {",
+  "          std::string raw_state = id(weather_forecast_home_txt).state;",
+  "          std::string weather_state = "";",
+  "          for(auto &c : raw_state) weather_state += tolower(c);",
+  "          const char* icon = "\\U000F0599"; // Default: sunny",
+  "          if (weather_state == "clear-night") icon = "\\U000F0594";",
+  "          else if (weather_state == "cloudy") icon = "\\U000F0590";",
+  "          else if (weather_state == "exceptional") icon = "\\U000F0026";",
+  "          else if (weather_state == "fog") icon = "\\U000F0591";",
+  "          else if (weather_state == "hail") icon = "\\U000F0592";",
+  "          else if (weather_state == "lightning") icon = "\\U000F0593";",
+  "          else if (weather_state == "lightning-rainy") icon = "\\U000F067E";",
+  "          else if (weather_state == "partlycloudy") icon = "\\U000F0595";",
+  "          else if (weather_state == "pouring") icon = "\\U000F0596";",
+  "          else if (weather_state == "rainy") icon = "\\U000F0597";",
+  "          else if (weather_state == "snowy") icon = "\\U000F0598";",
+  "          else if (weather_state == "snowy-rainy") icon = "\\U000F067F";",
+  "          else if (weather_state == "sunny") icon = "\\U000F0599";",
+  "          else if (weather_state == "windy") icon = "\\U000F059D";",
+  "          else if (weather_state == "windy-variant") icon = "\\U000F059E";",
+  "          else if (weather_state != "" && weather_state != "unknown") ESP_LOGW("weather", "Unhandled weather state: %s", raw_state.c_str());",
+  "          it.printf(60, 60, id(font_id), color_on, TextAlign::CENTER, "%s", icon);",
+  "        }",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for weather_icon > should handle onExportTextSensors with stable output 1`] = `[]`;
+
+exports[`Plugin Export Smoke Tests > Export for wifi_signal > should export LVGL with stable output 1`] = `
+{
+  "obj": {
+    "bg_opa": "transp",
+    "border_width": 0,
+    "widgets": [
+      {
+        "label": {
+          "align": "top_mid",
+          "height": 28,
+          "text": "!lambda |-
+          if (id(wifi_signal_dbm).has_state()) {
+            float sig = id(wifi_signal_dbm).state;
+            if (sig >= -50) return "\\U000F0928";
+            if (sig >= -60) return "\\U000F0925";
+            if (sig >= -75) return "\\U000F0922";
+            if (sig >= -100) return "\\U000F091F";
+            return "\\U000F092B";
+          }
+          return "\\U000F092B";",
+          "text_color": "Color(theme_auto)",
+          "text_font": "font_ptr",
+          "width": 34,
+        },
+      },
+      {
+        "label": {
+          "align": "bottom_mid",
+          "height": 16,
+          "text": "!lambda |-
+          if (id(wifi_signal_dbm).has_state()) {
+            return str_sprintf("%.0fdB", id(wifi_signal_dbm).state).c_str();
+          }
+          return "---dB";",
+          "text_align": "center",
+          "text_color": "Color(theme_auto)",
+          "text_font": "font_ptr",
+          "width": "100%",
+          "y": 2,
+        },
+      },
+    ],
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for wifi_signal > should export OEPL with stable output 1`] = `
+[
+  {
+    "anchor": "mt",
+    "color": "theme_auto",
+    "size": 24,
+    "type": "icon",
+    "value": "{% set s = states('sensor.wifi_signal') | int %}{% if s >= -50 %}wifi-strength-4{% elif s >= -60 %}wifi-strength-3{% elif s >= -75 %}wifi-strength-2{% elif s >= -100 %}wifi-strength-1{% else %}wifi-strength-alert-outline{% endif %}",
+    "x": 60,
+    "y": 10,
+  },
+  {
+    "align": "center",
+    "anchor": "mt",
+    "color": "theme_auto",
+    "size": 12,
+    "type": "text",
+    "value": "{{ states('sensor.wifi_signal') }}dB",
+    "x": 60,
+    "y": 36,
+  },
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for wifi_signal > should export OpenDisplay with stable output 1`] = `
+[
+  {
+    "anchor": "mt",
+    "fill": "black",
+    "size": 24,
+    "type": "icon",
+    "value": "{% set s = states('sensor.wifi_signal') | int %}{% if s >= -50 %}wifi-strength-4{% elif s >= -60 %}wifi-strength-3{% elif s >= -75 %}wifi-strength-2{% elif s >= -100 %}wifi-strength-1{% else %}wifi-strength-alert-outline{% endif %}",
+    "x": 60,
+    "y": 10,
+  },
+  {
+    "anchor": "mt",
+    "color": "black",
+    "size": 12,
+    "type": "text",
+    "value": "{{ states('sensor.wifi_signal') }}dB",
+    "x": 60,
+    "y": 36,
+  },
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for wifi_signal > should export standard C++ with stable output 1`] = `
+[
+  "        {",
+  "          const char* wifi_icon = "\\U000F092B"; // Default: wifi-strength-alert-outline",
+  "          if (id(wifi_signal_dbm).has_state()) {",
+  "            float signal = id(wifi_signal_dbm).state;",
+  "            if (std::isnan(signal)) signal = -100;",
+  "            if (signal >= -50) wifi_icon = "\\U000F0928";      // wifi-strength-4 (Excellent)",
+  "            else if (signal >= -60) wifi_icon = "\\U000F0925"; // wifi-strength-3 (Good)",
+  "            else if (signal >= -75) wifi_icon = "\\U000F0922"; // wifi-strength-2 (Fair)",
+  "            else if (signal >= -100) wifi_icon = "\\U000F091F"; // wifi-strength-1 (Weak)",
+  "            else wifi_icon = "\\U000F092B";                    // wifi-strength-alert-outline",
+  "          }",
+  "          it.printf(10 + 100 / 2, 10 + (100 - 38) / 2, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%s", wifi_icon);",
+  "          if (id(wifi_signal_dbm).has_state()) {",
+  "            it.printf(10 + 100 / 2, 10 + (100 - 38) / 2 + 24 + 2, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%.0fdB", id(wifi_signal_dbm).state);",
+  "          }",
+  "        }",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for wifi_signal > should handle onExportNumericSensors with stable output 1`] = `
+[
+  "- platform: wifi_signal",
+  "  name: "WiFi Signal"",
+  "  id: wifi_signal_dbm",
+  "  update_interval: 60s",
+]
+`;

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Line Shape Plugin
  */

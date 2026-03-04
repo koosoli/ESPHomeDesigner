@@ -1,18 +1,30 @@
 import { emit, EVENTS } from '../../events.js';
 
 export class PageManager {
+    /**
+     * @param {import('../index.js').AppStateFacade} app 
+     */
     constructor(app) {
-        /** @type {import('../index.js').AppStateFacade} */
         this.app = app;
     }
 
+    /**
+     * @param {number} pageIndex 
+     * @param {number} fromIndex 
+     * @param {number} toIndex 
+     */
     reorderWidget(pageIndex, fromIndex, toIndex) {
         this.app.project.reorderWidget(pageIndex, fromIndex, toIndex);
-        this.app.widgetManager.syncWidgetOrderWithHierarchy();
+        const widgetManager = /** @type {any} */ (this.app.widgetManager);
+        widgetManager.syncWidgetOrderWithHierarchy();
         this.app.recordHistory();
         emit(EVENTS.STATE_CHANGED);
     }
 
+    /**
+     * @param {number} index 
+     * @param {any} [options] 
+     */
     setCurrentPageIndex(index, options = {}) {
         this.app.project.setCurrentPageIndex(index, options);
         this.app.editor.setSelectedWidgetIds([]);

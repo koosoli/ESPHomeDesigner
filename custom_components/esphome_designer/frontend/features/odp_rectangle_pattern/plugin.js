@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ODP Rectangle Pattern Plugin
  * Creates a pattern of repeated rectangles

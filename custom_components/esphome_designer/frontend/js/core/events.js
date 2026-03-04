@@ -1,6 +1,4 @@
-/**
- * Global Event Bus using native EventTarget.
- */
+// @ts-check
 /**
  * Global Event Bus using native EventTarget.
  */
@@ -17,13 +15,14 @@ export const EVENTS = {
     SETTINGS_CHANGED: 'settings-changed', // Device/Editor settings changed
     LAYOUT_IMPORTED: 'layout-imported',   // New layout loaded
     ENTITIES_LOADED: 'entities-loaded',   // HA entities fetched
-    ZOOM_CHANGED: 'zoom-changed'          // Canvas zoom level changed
+    ZOOM_CHANGED: 'zoom-changed',         // Canvas zoom level changed
+    DEVICE_PROFILES_UPDATED: 'device-profiles-updated' // Device profile catalog changed
 };
 
 /**
  * Helper to dispatch events with data.
  * @param {string} eventName 
- * @param {any} detail 
+ * @param {any} [detail] 
  */
 export function emit(eventName, detail = {}) {
     EventBus.dispatchEvent(new CustomEvent(eventName, { detail }));
@@ -32,23 +31,17 @@ export function emit(eventName, detail = {}) {
 /**
  * Helper to listen to events.
  * @param {string} eventName 
- * @param {Function} callback 
+ * @param {(detail: any) => void} callback 
  */
 export function on(eventName, callback) {
-    EventBus.addEventListener(eventName, (e) => callback(e.detail));
+    EventBus.addEventListener(eventName, (e) => callback(/** @type {CustomEvent} */(e).detail));
 }
 
 /**
  * Helper to remove listener.
  * @param {string} eventName 
- * @param {Function} callback 
+ * @param {EventListenerOrEventListenerObject} callback 
  */
 export function off(eventName, callback) {
     EventBus.removeEventListener(eventName, callback);
 }
-
-// Expose to window for global access
-window.EVENTS = EVENTS;
-window.emit = emit;
-window.on = on;
-window.off = off;

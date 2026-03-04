@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { AppState } from '@core/state';
 import { iconPickerData } from '../../js/core/constants_icons.js';
 import { evaluateTemplatePreview } from '../../js/utils/text_utils.js';

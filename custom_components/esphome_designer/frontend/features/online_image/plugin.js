@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Online Image Plugin
  */

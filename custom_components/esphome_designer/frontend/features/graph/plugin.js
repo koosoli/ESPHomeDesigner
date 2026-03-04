@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Graph Plugin
  */

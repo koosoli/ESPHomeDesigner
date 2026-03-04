@@ -30,6 +30,7 @@ export function detectHaBackendBaseUrl() {
     }
 
     try {
+        if (typeof window === 'undefined') return null;
         const loc = window.location;
         if (loc.protocol === "file:") {
             return null;
@@ -45,7 +46,7 @@ export function detectHaBackendBaseUrl() {
             return `${loc.origin}/api/esphome_designer`;
         }
         return null;
-    } catch (e) { // eslint-disable-line no-unused-vars
+    } catch {
         return null;
     }
 }
@@ -56,8 +57,9 @@ export function detectHaBackendBaseUrl() {
  */
 export function getHaManualUrl() {
     try {
+        if (typeof localStorage === 'undefined') return null;
         return localStorage.getItem('ha_manual_url');
-    } catch (e) { // eslint-disable-line no-unused-vars
+    } catch {
         return null;
     }
 }
@@ -68,6 +70,7 @@ export function getHaManualUrl() {
  */
 export function setHaManualUrl(url) {
     try {
+        if (typeof localStorage === 'undefined') return;
         if (url) {
             let sanitizedUrl = url.trim();
             // Remove trailing slash if present
@@ -96,8 +99,9 @@ export function setHaManualUrl(url) {
  */
 export function getHaToken() {
     try {
+        if (typeof localStorage === 'undefined') return null;
         return localStorage.getItem('ha_llat_token');
-    } catch (e) { // eslint-disable-line no-unused-vars
+    } catch {
         return null;
     }
 }
@@ -108,6 +112,7 @@ export function getHaToken() {
  */
 export function setHaToken(token) {
     try {
+        if (typeof localStorage === 'undefined') return;
         if (token) {
             localStorage.setItem('ha_llat_token', token);
         } else {
@@ -118,6 +123,7 @@ export function setHaToken(token) {
     }
 }
 
+/** @type {string|null} */
 export let HA_API_BASE = detectHaBackendBaseUrl();
 
 /**
@@ -141,6 +147,7 @@ export function hasHaBackend() {
  */
 export function isDeployedInHa() {
     try {
+        if (typeof window === 'undefined') return false;
         const loc = window.location;
         // If we're not running on file:// and the hostname or path suggests HA,
         // we are "deployed" in HA (either via Addon or Custom Component).
@@ -152,18 +159,7 @@ export function isDeployedInHa() {
             loc.pathname.includes("/api/esphome_designer") ||
             loc.pathname.includes("/esphome-designer")
         );
-    } catch (e) { // eslint-disable-line no-unused-vars
+    } catch {
         return false;
     }
 }
-
-// Global exposure for transition
-window.detectHaBackendBaseUrl = detectHaBackendBaseUrl;
-window.getHaManualUrl = getHaManualUrl;
-window.setHaManualUrl = setHaManualUrl;
-window.getHaToken = getHaToken;
-window.setHaToken = setHaToken;
-window.HA_API_BASE = HA_API_BASE;
-window.refreshHaBaseUrl = refreshHaBaseUrl;
-window.hasHaBackend = hasHaBackend;
-window.isDeployedInHa = isDeployedInHa;

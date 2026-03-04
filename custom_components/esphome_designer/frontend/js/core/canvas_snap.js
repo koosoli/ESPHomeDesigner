@@ -1,3 +1,4 @@
+// @ts-check
 import { SNAP_DISTANCE } from './constants';
 import { AppState } from './state';
 
@@ -7,8 +8,13 @@ export function clearSnapGuides() {
     guides.forEach((g) => g.remove());
 }
 
+/**
+ * @param {import('./canvas').Canvas} canvasInstance
+ * @param {number} x
+ * @param {HTMLElement} [artboardEl]
+ */
 export function addSnapGuideVertical(canvasInstance, x, artboardEl) {
-    const parent = artboardEl || canvasInstance.canvas;
+    const parent = artboardEl || (canvasInstance ? canvasInstance.canvas : null);
     if (!parent || typeof parent.appendChild !== 'function') return;
     const guide = document.createElement("div");
     guide.className = "snap-guide snap-guide-vertical";
@@ -16,8 +22,13 @@ export function addSnapGuideVertical(canvasInstance, x, artboardEl) {
     parent.appendChild(guide);
 }
 
+/**
+ * @param {import('./canvas').Canvas} canvasInstance
+ * @param {number} y
+ * @param {HTMLElement} [artboardEl]
+ */
 export function addSnapGuideHorizontal(canvasInstance, y, artboardEl) {
-    const parent = artboardEl || canvasInstance.canvas;
+    const parent = artboardEl || (canvasInstance ? canvasInstance.canvas : null);
     if (!parent || typeof parent.appendChild !== 'function') return;
     const guide = document.createElement("div");
     guide.className = "snap-guide snap-guide-horizontal";
@@ -25,9 +36,15 @@ export function addSnapGuideHorizontal(canvasInstance, y, artboardEl) {
     parent.appendChild(guide);
 }
 
+/**
+ * @param {string|null} excludeWidgetId
+ * @param {{width: number, height: number}} dims
+ */
 export function getSnapLines(excludeWidgetId, dims) {
     const page = AppState.getCurrentPage();
+    /** @type {number[]} */
     const vertical = [];
+    /** @type {number[]} */
     const horizontal = [];
 
     vertical.push(0, dims.width / 2, dims.width);
@@ -50,8 +67,15 @@ export function getSnapLines(excludeWidgetId, dims) {
     return { vertical, horizontal };
 }
 
+/**
+ * @param {any} canvasInstance
+ * @param {{x: number, y: number, w: number, h: number}} rectA
+ * @param {{x: number, y: number, w: number, h: number}} rectB
+ * @param {string} axis
+ * @param {HTMLElement} [artboardEl]
+ */
 export function addDistanceMarker(canvasInstance, rectA, rectB, axis, artboardEl) {
-    const parent = artboardEl || canvasInstance.canvas;
+    const parent = artboardEl || (canvasInstance ? canvasInstance.canvas : null);
     if (!parent) return;
 
     const marker = document.createElement("div");
@@ -59,8 +83,8 @@ export function addDistanceMarker(canvasInstance, rectA, rectB, axis, artboardEl
 
     let x, y, w, h, val;
     if (axis === 'h') {
-        const left = Math.min(rectA.x + rectA.w, rectB.x + rectB.w); // eslint-disable-line no-unused-vars
-        const right = Math.max(rectA.x, rectB.x); // eslint-disable-line no-unused-vars
+        const _left = Math.min(rectA.x + rectA.w, rectB.x + rectB.w);
+        const _right = Math.max(rectA.x, rectB.x);
         // Correct gap calculation: distance between the closer edges
         const x1 = rectA.x < rectB.x ? rectA.x + rectA.w : rectB.x + rectB.w;
         const x2 = rectA.x < rectB.x ? rectB.x : rectA.x;
@@ -103,11 +127,21 @@ export function addDistanceMarker(canvasInstance, rectA, rectB, axis, artboardEl
 
     const label = document.createElement("div");
     label.className = "distance-marker-label";
-    label.textContent = val;
+    label.textContent = String(val);
     marker.appendChild(label);
     parent.appendChild(marker);
 }
 
+/**
+ * @param {import('./canvas').Canvas|{canvas: any, canvasContainer: any}} canvasInstance
+ * @param {Widget} widget
+ * @param {number} x
+ * @param {number} y
+ * @param {boolean} altKey
+ * @param {{width: number, height: number}} dims
+ * @param {HTMLElement} [artboardEl]
+ * @param {boolean} [ctrlKey]
+ */
 export function applySnapToPosition(canvasInstance, widget, x, y, altKey, dims, artboardEl, ctrlKey = false) {
     if (!AppState.snapEnabled || altKey) {
         clearSnapGuides();
@@ -167,8 +201,8 @@ export function applySnapToPosition(canvasInstance, widget, x, y, altKey, dims, 
     const myRect = { x: snappedX, y: snappedY, w, h };
 
     clearSnapGuides();
-    if (snappedV != null) addSnapGuideVertical(canvasInstance, snappedV, artboardEl);
-    if (snappedH != null) addSnapGuideHorizontal(canvasInstance, snappedH, artboardEl);
+    if (snappedV != null) addSnapGuideVertical(/** @type {any} */(canvasInstance), snappedV, artboardEl);
+    if (snappedH != null) addSnapGuideHorizontal(/** @type {any} */(canvasInstance), snappedH, artboardEl);
 
     // Show distances to neighbors if they are roughly aligned - ONLY IF CTRL IS PRESSED
     if (ctrlKey) {
@@ -180,7 +214,7 @@ export function applySnapToPosition(canvasInstance, widget, x, y, altKey, dims, 
             if (dominatesH) {
                 const gap = myRect.x < otherRect.x ? otherRect.x - (myRect.x + myRect.w) : myRect.x - (otherRect.x + otherRect.w);
                 if (gap > 0 && gap < 150) { // Only show if close enough
-                    addDistanceMarker(canvasInstance, myRect, otherRect, 'h', artboardEl);
+                    addDistanceMarker(/** @type {any} */(canvasInstance), myRect, otherRect, 'h', artboardEl);
                 }
             }
 
@@ -189,7 +223,7 @@ export function applySnapToPosition(canvasInstance, widget, x, y, altKey, dims, 
             if (dominatesV) {
                 const gap = myRect.y < otherRect.y ? otherRect.y - (myRect.y + myRect.h) : myRect.y - (otherRect.y + otherRect.h);
                 if (gap > 0 && gap < 150) {
-                    addDistanceMarker(canvasInstance, myRect, otherRect, 'v', artboardEl);
+                    addDistanceMarker(/** @type {any} */(canvasInstance), myRect, otherRect, 'v', artboardEl);
                 }
             }
         });
@@ -201,6 +235,14 @@ export function applySnapToPosition(canvasInstance, widget, x, y, altKey, dims, 
     };
 }
 
+/**
+ * @param {number} x
+ * @param {number} y
+ * @param {number} widgetWidth
+ * @param {number} widgetHeight
+ * @param {string} layout
+ * @param {{width: number, height: number}} dims
+ */
 export function snapToGridCell(x, y, widgetWidth, widgetHeight, layout, dims) {
     const match = layout.match(/^(\d+)x(\d+)$/);
     if (!match) return { x, y };
@@ -227,6 +269,9 @@ export function snapToGridCell(x, y, widgetWidth, widgetHeight, layout, dims) {
     };
 }
 
+/**
+ * @param {string} widgetId
+ */
 export function updateWidgetGridCell(widgetId) {
     const page = AppState.getCurrentPage();
     if (!page || !page.layout) return;
@@ -270,6 +315,9 @@ export function updateWidgetGridCell(widgetId) {
     AppState.updateWidget(widgetId, { props: newProps });
 }
 
+/**
+ * @param {string} widgetId
+ */
 export function forceSnapWidget(widgetId) {
     const widget = AppState.getWidgetById(widgetId);
     if (!widget) return;
@@ -284,9 +332,13 @@ export function forceSnapWidget(widgetId) {
         // Use applySnapToPosition but force it even if snap is disabled globally
         // We temporarily set snapEnabled to true to get the snapped position
         const oldSnap = AppState.snapEnabled;
-        AppState.setSnapEnabled(true);
-        snapped = applySnapToPosition({ canvas: { querySelectorAll: () => [] }, canvasContainer: {} }, widget, widget.x, widget.y, false, dims);
-        AppState.setSnapEnabled(oldSnap);
+        if (typeof AppState.setSnapEnabled === 'function') {
+            AppState.setSnapEnabled(true);
+        }
+        snapped = applySnapToPosition({ canvas: { querySelectorAll: () => [] }, canvasContainer: document.createElement('div'), rulers: null, viewport: null }, widget, widget.x, widget.y, false, dims);
+        if (typeof AppState.setSnapEnabled === 'function') {
+            AppState.setSnapEnabled(oldSnap);
+        }
     }
 
     if (snapped) {
@@ -296,6 +348,14 @@ export function forceSnapWidget(widgetId) {
     }
 }
 
+/**
+ * @param {number} value
+ * @param {string} axis
+ * @param {string} widgetId
+ * @param {boolean} altKey
+ * @param {{width: number, height: number}} dims
+ * @param {HTMLElement} [artboardEl]
+ */
 export function snapResizeValue(value, axis, widgetId, altKey, dims, artboardEl) {
     if (!AppState.snapEnabled || altKey) {
         return value; // No snapping
@@ -322,9 +382,10 @@ export function snapResizeValue(value, axis, widgetId, altKey, dims, artboardEl)
     // Draw snap guide if we snapped
     if (snappedLine !== null) {
         if (axis === 'v') {
-            addSnapGuideVertical({ canvas: artboardEl }, snappedLine, artboardEl);
+            addSnapGuideVertical(/** @type {any} */({ canvas: artboardEl }), snappedLine, artboardEl);
         } else {
-            addSnapGuideHorizontal({ canvas: artboardEl }, snappedLine, artboardEl);
+            addSnapGuideHorizontal(/** @type {any} */({ canvas: artboardEl }), snappedLine, artboardEl);
+
         }
     }
 

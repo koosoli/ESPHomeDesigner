@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ODP Debug Grid Plugin
  * Overlays a grid on the image canvas to help with layout debugging

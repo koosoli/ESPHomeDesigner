@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ODP Plot Plugin
  * Displays a sensor data graph/plot

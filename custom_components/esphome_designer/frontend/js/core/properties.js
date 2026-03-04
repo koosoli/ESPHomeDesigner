@@ -1,11 +1,6 @@
-import { fetchEntityStates } from '../io/ha_api.js'; // eslint-disable-line no-unused-vars
-import { MIXED_VALUE } from '../utils/color_utils.js'; // eslint-disable-line no-unused-vars
 import { PropertyControls } from '../ui/components/property_controls.js';
 import { AppState } from './state';
-import { getAvailableColors, getDeviceModel, isRGBDevice } from '../utils/device.js'; // eslint-disable-line no-unused-vars
 import { registry } from './plugin_registry';
-import { WidgetFactory } from './widget_factory'; // eslint-disable-line no-unused-vars
-import { getWeightsForFont, clampFontWeight } from './font_weights.js'; // eslint-disable-line no-unused-vars
 import { on, EVENTS } from './events.js';
 
 // Specialized Renderers
@@ -19,10 +14,14 @@ import { LegacyRenderer } from './properties/legacy_renderer.js';
  * It manages the UI for editing widget properties.
  */
 export class PropertiesPanel {
-    constructor() {
+    /** @param {any} appInstance */
+    constructor(appInstance = null) {
+        /** @type {any} */
+        this.app = appInstance;
         this.panel = document.getElementById("propertiesPanel");
         this.controls = new PropertyControls(this);
         this.lastRenderedWidgetId = null;
+        this.lastRenderedSelectionKey = "";
         this.activeWidget = null;
         this.containerStack = [];
         this.sectionStates = {};
@@ -38,11 +37,11 @@ export class PropertiesPanel {
         on(EVENTS.PAGE_UPDATED, () => this.render());
 
         // Bind Snap Toggle (Static in sidebar)
-        const snapToggle = document.getElementById("snapToggle");
+        const snapToggle = /** @type {HTMLInputElement | null} */ (document.getElementById("snapToggle"));
         if (snapToggle) {
             snapToggle.checked = AppState.snapEnabled;
             snapToggle.addEventListener("change", (e) => {
-                AppState.setSnapEnabled(e.target.checked);
+                AppState.setSnapEnabled(/** @type {HTMLInputElement} */(e.target).checked);
             });
             on(EVENTS.SETTINGS_CHANGED, (settings) => {
                 if (settings.snapEnabled !== undefined) {
@@ -57,7 +56,7 @@ export class PropertiesPanel {
             lockToggle.addEventListener("change", (e) => {
                 const selectedIds = AppState.selectedWidgetIds;
                 if (selectedIds.length > 0) {
-                    AppState.updateWidgets(selectedIds, { locked: e.target.checked });
+                    AppState.updateWidgets(selectedIds, { locked: /** @type {HTMLInputElement} */ (e.target).checked });
                 }
             });
         }
@@ -69,17 +68,27 @@ export class PropertiesPanel {
         if (!this.panel) return;
 
         // Suppress updates during lasso drag to keep 60fps
-        if (window.Canvas && window.Canvas.lassoState) return;
+        const canvas = window.Canvas || window.canvasInstance;
+        if (canvas && canvas.lassoState) return;
+
+        const selectedIds = AppState.selectedWidgetIds ||
+            (AppState.selectedWidgetId ? [AppState.selectedWidgetId] : []);
+        const selectionKey = selectedIds.join("|");
 
         const currentWidgetId = AppState.selectedWidgetId;
         const widgetChanged = this.lastRenderedWidgetId !== currentWidgetId;
+        const selectionChanged = this.lastRenderedSelectionKey !== selectionKey;
+
+        if (selectedIds.length > 1) {
+            console.log(`[PropertiesPanel] Multi-select detected: ${selectedIds.length} widgets. Selection key: ${selectionKey}`);
+        }
 
         // Prevent re-rendering if user is typing in the panel AND same widget
-        if (!widgetChanged && this.panel && this.panel.isConnected) {
-            const active = document.activeElement;
+        if (!widgetChanged && !selectionChanged && this.panel && this.panel.isConnected) {
+            const active = /** @type {HTMLElement} */ (document.activeElement);
             if (active && this.panel.contains(active)) {
                 const tag = active.tagName.toLowerCase();
-                const type = active.type ? active.type.toLowerCase() : "";
+                const type = /** @type {any} */ (active).type ? /** @type {any} */ (active).type.toLowerCase() : "";
                 const isLayoutControl = (tag === "input" && ["checkbox", "radio", "button"].includes(type)) || tag === "select";
 
                 if (!isLayoutControl && (tag === "input" || tag === "textarea" || active.classList.contains("prop-input"))) {
@@ -89,6 +98,7 @@ export class PropertiesPanel {
         }
 
         this.lastRenderedWidgetId = currentWidgetId;
+        this.lastRenderedSelectionKey = selectionKey;
         this.containerStack = [];
         this.panel.innerHTML = "";
 
@@ -99,13 +109,11 @@ export class PropertiesPanel {
             const allLocked = selectedWidgets.length > 0 && selectedWidgets.every(w => w.locked);
             const someLocked = selectedWidgets.some(w => w.locked);
 
-            lockToggle.checked = allLocked;
-            lockToggle.indeterminate = someLocked && !allLocked;
-            lockToggle.disabled = selectedWidgets.length === 0;
+            const input = /** @type {HTMLInputElement} */ (lockToggle);
+            input.checked = allLocked;
+            input.indeterminate = someLocked && !allLocked;
+            input.disabled = selectedWidgets.length === 0;
         }
-
-        const selectedIds = AppState.getSelectedWidgetIds ? AppState.getSelectedWidgetIds() :
-            (AppState.selectedWidgetId ? [AppState.selectedWidgetId] : []);
 
         if (selectedIds.length === 0) {
             this.panel.innerHTML = "<div style='padding:16px;color:#aaa;text-align:center;'>Select a widget to edit properties</div>";
@@ -163,7 +171,7 @@ export class PropertiesPanel {
         }
 
         // 2. Grid Properties
-        GridRenderer.render(this, widget, type);
+        GridRenderer.render(this, widget, type, this.app?.pageSettings);
 
         // 3. Specialized Rendering
         const mode = AppState.settings?.renderingMode || 'direct';
@@ -239,23 +247,38 @@ export class PropertiesPanel {
     }
 
     // --- Delegation Methods (to PropertyControls) ---
-
-    addLabeledInput(...args) { return this.controls.addLabeledInput(...args); }
-    addSelect(...args) { return this.controls.addSelect(...args); }
-    addCheckbox(...args) { return this.controls.addCheckbox(...args); }
-    addHint(...args) { return this.controls.addHint(...args); }
-    addLabeledInputWithPicker(...args) { return this.controls.addLabeledInputWithPicker(...args); }
-    addColorSelector(...args) { return this.controls.addColorSelector(...args); }
-    addColorMixer(...args) { return this.controls.addColorMixer(...args); }
-    addSegmentedControl(...args) { return this.controls.addSegmentedControl(...args); }
-    addIconPicker(...args) { return this.controls.addIconPicker ? this.controls.addIconPicker(...args) : null; }
-    addNumberWithSlider(...args) { return this.controls.addNumberWithSlider(...args); }
-    addCompactPropertyRow(...args) { return this.controls.addCompactPropertyRow(...args); }
-    addCommonLVGLProperties(...args) { return this.controls.addCommonLVGLProperties(...args); }
-    addVisibilityConditions(...args) { return this.controls.addVisibilityConditions(...args); }
-    addPageSelector(...args) { return this.controls.addPageSelector(...args); }
-    addIconInput(...args) { return this.controls.addIconInput ? this.controls.addIconInput(...args) : null; }
-    addLabeledInputWithIconPicker(...args) { return this.controls.addLabeledInputWithIconPicker ? this.controls.addLabeledInputWithIconPicker(...args) : null; }
+    /** @param {...any} args */
+    addLabeledInput(...args) { return this.controls.addLabeledInput.apply(this.controls, args); }
+    /** @param {...any} args */
+    addSelect(...args) { return this.controls.addSelect.apply(this.controls, args); }
+    /** @param {...any} args */
+    addCheckbox(...args) { return this.controls.addCheckbox.apply(this.controls, args); }
+    /** @param {...any} args */
+    addHint(...args) { return this.controls.addHint.apply(this.controls, args); }
+    /** @param {...any} args */
+    addLabeledInputWithPicker(...args) { return this.controls.addLabeledInputWithPicker.apply(this.controls, args); }
+    /** @param {...any} args */
+    addColorSelector(...args) { return this.controls.addColorSelector.apply(this.controls, args); }
+    /** @param {...any} args */
+    addColorMixer(...args) { return this.controls.addColorMixer.apply(this.controls, args); }
+    /** @param {...any} args */
+    addSegmentedControl(...args) { return this.controls.addSegmentedControl.apply(this.controls, args); }
+    /** @param {...any} args */
+    addIconPicker(...args) { return this.controls.addIconPicker ? this.controls.addIconPicker.apply(this.controls, args) : null; }
+    /** @param {...any} args */
+    addNumberWithSlider(...args) { return this.controls.addNumberWithSlider.apply(this.controls, args); }
+    /** @param {...any} args */
+    addCompactPropertyRow(...args) { return this.controls.addCompactPropertyRow.apply(this.controls, args); }
+    /** @param {...any} args */
+    addCommonLVGLProperties(...args) { return this.controls.addCommonLVGLProperties.apply(this.controls, args); }
+    /** @param {...any} args */
+    addVisibilityConditions(...args) { return this.controls.addVisibilityConditions.apply(this.controls, args); }
+    /** @param {...any} args */
+    addPageSelector(...args) { return this.controls.addPageSelector.apply(this.controls, args); }
+    /** @param {...any} args */
+    addIconInput(...args) { return this.controls.addIconInput ? this.controls.addIconInput.apply(this.controls, args) : null; }
+    /** @param {...any} args */
+    addLabeledInputWithIconPicker(...args) { return this.controls.addLabeledInputWithIconPicker ? this.controls.addLabeledInputWithIconPicker.apply(this.controls, args) : null; }
 
     // Polyfill for methods lost in refactoring to prevent crashes
     addDropShadowButton(container, widgetId) {

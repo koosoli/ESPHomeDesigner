@@ -1,8 +1,14 @@
+// @ts-ignore - Vite raw HTML import
 import headerHtml from './header.html?raw';
+// @ts-ignore - Vite raw HTML import
 import sidebarHtml from './sidebar.html?raw';
+// @ts-ignore - Vite raw HTML import
 import codePanelHtml from './code_panel.html?raw';
+// @ts-ignore - Vite raw HTML import
 import propertiesPanelHtml from './properties_panel.html?raw';
+// @ts-ignore - Vite raw HTML import
 import modalsHtml from './modals.html?raw';
+// @ts-ignore - Vite asset import
 import logoUrl from '../../../assets/logo_header.png';
 
 function injectComponent(id, htmlString) {

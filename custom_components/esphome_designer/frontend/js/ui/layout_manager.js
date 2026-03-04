@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Layout Manager UI
  * Handles listing, creating, switching, deleting, importing, and exporting layouts
@@ -9,12 +10,15 @@ import { DEVICE_PROFILES, SUPPORTED_DEVICE_IDS } from '../io/devices.js';
 import { AppState } from '../core/state';
 
 import { getHaHeaders } from '../io/ha_api.js';
-import { hasHaBackend, HA_API_BASE, getHaToken } from '../utils/env.js'; // eslint-disable-line no-unused-vars
+import { hasHaBackend, HA_API_BASE, } from '../utils/env.js';
 import { loadLayoutIntoState } from '../io/yaml_import';
 import { emit, EVENTS } from '../core/events.js';
 
-class LayoutManager {
+export let layoutManagerInstance = null;
+
+export class LayoutManager {
     constructor() {
+        layoutManagerInstance = this;
         this.modal = null;
         this.currentLayoutId = "reterminal_e1001"; // Default
         this.layouts = [];
@@ -97,6 +101,23 @@ class LayoutManager {
         modal.addEventListener("click", (e) => {
             if (e.target === modal) this.close();
         });
+
+        // Event delegation for table actions
+        const tbody = document.getElementById("layoutManagerTableBody");
+        if (tbody) {
+            tbody.addEventListener('click', (e) => {
+                const target = e.target.closest('button');
+                if (!target) return;
+
+                const action = target.dataset.action;
+                const id = target.dataset.id;
+                const name = target.dataset.name;
+
+                if (action === 'load') this.loadLayout(id);
+                if (action === 'export') this.exportLayout(id);
+                if (action === 'delete') this.deleteLayout(id, name);
+            });
+        }
     }
 
     async open() {
@@ -202,9 +223,9 @@ class LayoutManager {
                     <td style="padding: 8px 4px; font-size: 11px; color: var(--muted);">${layout.page_count} pages</td>
                     <td style="padding: 8px 4px; text-align: right;">
                         <div style="display: flex; gap: 4px; justify-content: flex-end;">
-                            ${!isCurrent ? `<button class="btn btn-sm btn-primary" style="font-size: 10px; padding: 4px 8px;" onclick="window.layoutManager.loadLayout('${layout.id}')">Load</button>` : ''}
-                            <button class="btn btn-sm btn-secondary" style="font-size: 10px; padding: 4px 8px;" onclick="window.layoutManager.exportLayout('${layout.id}')">📤</button>
-                            ${!isCurrent && this.layouts.length > 1 ? `<button class="btn btn-sm btn-secondary" style="font-size: 10px; padding: 4px 8px; color: var(--danger);" onclick="window.layoutManager.deleteLayout('${layout.id}', '${this.escapeHtml(layout.name)}')">🗑</button>` : ''}
+                            ${!isCurrent ? `<button class="btn btn-sm btn-primary" style="font-size: 10px; padding: 4px 8px;" data-action="load" data-id="${layout.id}">Load</button>` : ''}
+                            <button class="btn btn-sm btn-secondary" style="font-size: 10px; padding: 4px 8px;" data-action="export" data-id="${layout.id}">📤</button>
+                            ${!isCurrent && this.layouts.length > 1 ? `<button class="btn btn-sm btn-secondary" style="font-size: 10px; padding: 4px 8px; color: var(--danger);" data-action="delete" data-id="${layout.id}" data-name="${this.escapeHtml(layout.name)}">🗑</button>` : ''}
                         </div>
                     </td>
                 </tr>
@@ -458,7 +479,7 @@ class LayoutManager {
         nameInput.value = defaultName;
 
         // Default to first available device or fallback
-        const model = AppState.deviceModel || (AppState.settings ? AppState.settings.device_model : null) || "reterminal_e1001"; // eslint-disable-line no-unused-vars
+        const _model = AppState.deviceModel || (AppState.settings ? AppState.settings.device_model : null) || "reterminal_e1001";
         const defaultDevice = DEVICE_PROFILES ? Object.keys(DEVICE_PROFILES)[0] : "reterminal_e1001";
         document.getElementById("newLayoutDeviceType").value = defaultDevice;
 
@@ -590,7 +611,7 @@ class LayoutManager {
             // After loading, update the device model in AppState
             if (AppState) {
                 AppState.setDeviceModel(deviceModel);
-                window.currentDeviceModel = deviceModel;
+
 
                 // Force a state change event to trigger re-render
                 // This ensures the canvas is cleared and redrawn with the new (empty) layout
@@ -665,5 +686,4 @@ class LayoutManager {
     }
 }
 
-// Create global instance
-window.layoutManager = new LayoutManager();
+

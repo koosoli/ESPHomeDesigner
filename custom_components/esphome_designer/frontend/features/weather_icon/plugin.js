@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { AppState } from '@core/state';
 import { getNestedValue } from '../../js/utils/helpers.js';
 

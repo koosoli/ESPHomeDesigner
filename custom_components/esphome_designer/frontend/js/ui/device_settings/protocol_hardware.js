@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { AppState } from '../../core/state';
 import { DEVICE_PROFILES } from '../../io/devices.js';
 import { Logger } from '../../utils/logger.js';

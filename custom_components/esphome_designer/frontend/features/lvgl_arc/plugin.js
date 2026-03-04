@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { AppState } from '../../js/core/state';
 /**
  * LVGL Arc Plugin

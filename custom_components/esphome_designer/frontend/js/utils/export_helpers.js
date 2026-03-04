@@ -39,11 +39,12 @@ export function escapeFmt(str) {
  * Returns true if the value is explicitly non-numeric.
  * Returns false if numeric OR if missing/empty (safe fallback for registering as numeric sensor).
  * @param {string} eid Entity ID
- * @param {Object} [appState] Optional appState to read from (defaults to AppState)
+ * @param {any} [appState] Optional appState to read from (defaults to AppState)
  * @param {string|null} [attr] Optional attribute name
  * @returns {boolean}
  */
 export function isEntityStateNonNumeric(eid, appState = null, attr = null) {
+    // @ts-ignore
     const state = appState || AppState;
     if (!eid || !state?.entityStates) return false;
     const entityObj = state.entityStates[eid];

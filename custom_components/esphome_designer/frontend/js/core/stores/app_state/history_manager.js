@@ -1,14 +1,17 @@
 import { emit, EVENTS } from '../../events.js';
 
 export class HistoryManager {
+    /**
+     * @param {import('../index.js').AppStateFacade} app 
+     */
     constructor(app) {
-        /** @type {import('../index.js').AppStateFacade} */
         this.app = app;
     }
 
     recordHistory() {
         // Skip recording if we're in the middle of restoring history (undo/redo)
-        if (this.app._isRestoringHistory) {
+        const appAny = /** @type {any} */ (this.app);
+        if (appAny._isRestoringHistory) {
             return;
         }
         this.app.editor.recordHistory({
@@ -35,6 +38,7 @@ export class HistoryManager {
         }
     }
 
+    /** @param {any} s */
     restoreSnapshot(s) {
         // CRITICAL: Deep clone to prevent mutating the history stack object
         this.app.project.state.pages = JSON.parse(JSON.stringify(s.pages));

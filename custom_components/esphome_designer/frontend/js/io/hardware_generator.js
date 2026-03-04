@@ -7,7 +7,7 @@ export function generateCustomHardwareYaml(config) {
     const {
         name,
         chip,
-        tech, // eslint-disable-line no-unused-vars
+        _tech,
         resWidth,
         resHeight,
         shape,

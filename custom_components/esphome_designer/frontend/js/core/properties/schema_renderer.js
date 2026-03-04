@@ -4,7 +4,7 @@ import { getAvailableColors } from '../../utils/device.js';
 export class SchemaRenderer {
     /**
      * Renders properties for a widget based on a provided schema.
-     * @param {PropertiesPanel} panel - The main properties panel instance.
+        * @param {any} panel - The main properties panel instance.
      * @param {Object} widget - The widget being edited.
      * @param {Array} schema - The registry schema definition.
      */

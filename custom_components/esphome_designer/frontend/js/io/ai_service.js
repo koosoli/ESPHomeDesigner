@@ -1,5 +1,6 @@
 import { Logger } from '../utils/logger.js';
 import { AppState } from '../core/state';
+import { AIValidator } from './ai_validator';
 
 export class AIService {
     constructor() {
@@ -148,13 +149,25 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
 
             try {
                 const parsed = JSON.parse(jsonText);
-                return Array.isArray(parsed) ? parsed : (parsed.widgets || parsed);
+                const validation = AIValidator.validateResponse(parsed);
+                if (!validation.valid) {
+                    Logger.warn("[AI] Validation failed:", validation.errors);
+                    // We still return sanitized widgets if possible, or throw if too broken
+                    if (validation.sanitized.length === 0) {
+                        throw new Error("AI returned invalid widget data: " + validation.errors.join(", "));
+                    }
+                }
+                return validation.sanitized;
             } catch (innerErr) {
                 Logger.warn("Fast JSON parse failed, trying repair...", innerErr);
                 try {
                     const repaired = this.repairJson(jsonText);
                     const parsed = JSON.parse(repaired);
-                    return Array.isArray(parsed) ? parsed : (parsed.widgets || parsed);
+                    const validation = AIValidator.validateResponse(parsed);
+                    if (!validation.valid) {
+                        Logger.warn("[AI] Validation failed after repair:", validation.errors);
+                    }
+                    return validation.sanitized;
                 } catch (repairErr) {
                     Logger.error("JSON repair failed:", repairErr);
                     throw new Error("AI returned malformed JSON (possibly truncated). Try a shorter prompt or a more powerful model.");

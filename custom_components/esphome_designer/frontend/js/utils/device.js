@@ -7,11 +7,13 @@ import { AppState } from '../core/state';
 
 export function getDeviceModel() {
     // Check AppState first (Source of Truth)
+    // @ts-ignore
     if (AppState && AppState.deviceModel) {
+        // @ts-ignore
         return AppState.deviceModel;
     }
-    // Fallback to global or default
-    return (window.currentDeviceModel || "reterminal_e1001");
+    // Fallback to default
+    return "reterminal_e1001";
 }
 
 /**
@@ -20,7 +22,9 @@ export function getDeviceModel() {
  * @returns {string}
  */
 export function getDeviceDisplayName(model) {
+    // @ts-ignore
     if (DEVICE_PROFILES && DEVICE_PROFILES[model]) {
+        // @ts-ignore
         return DEVICE_PROFILES[model].name;
     }
     switch (model) {
@@ -38,9 +42,12 @@ export function getDeviceDisplayName(model) {
  */
 export function isRGBDevice() {
     const model = getDeviceModel();
+    // @ts-ignore
     if (DEVICE_PROFILES && DEVICE_PROFILES[model]) {
         // Legacy: check both top-level and features object
+        // @ts-ignore
         if (DEVICE_PROFILES[model].features?.lcd) return true;
+        // @ts-ignore
         if (DEVICE_PROFILES[model].features?.oled) return true;
 
         // If it's not explicitly e-paper and not the default monochrome
@@ -55,9 +62,11 @@ export function isRGBDevice() {
  */
 export function getAvailableColors() {
     // 1. Protocol Mode Logic
+    // @ts-ignore
     const mode = AppState?.settings?.renderingMode || 'direct';
 
     if (mode === 'oepl' || mode === 'opendisplay') {
+        // @ts-ignore
         const ph = AppState?.project?.protocolHardware || {};
         const colorMode = ph.colorMode || 'bw';
 
@@ -101,10 +110,12 @@ export function getColorStyle(colorName) {
 
     switch (colorName.toLowerCase()) {
         case "theme_auto": {
+            // @ts-ignore
             const isDark = window.WidgetFactory?.getEffectiveDarkMode?.() || false;
             return isDark ? "#ffffff" : "#000000";
         }
         case "theme_auto_inverse": {
+            // @ts-ignore
             const isDark = window.WidgetFactory?.getEffectiveDarkMode?.() || false;
             return isDark ? "#000000" : "#ffffff";
         }
@@ -122,8 +133,13 @@ export function getColorStyle(colorName) {
 }
 
 // Global exposure for transition
+// @ts-ignore
 window.getDeviceModel = getDeviceModel;
+// @ts-ignore
 window.getDeviceDisplayName = getDeviceDisplayName;
+// @ts-ignore
 window.isRGBDevice = isRGBDevice;
+// @ts-ignore
 window.getAvailableColors = getAvailableColors;
+// @ts-ignore
 window.getColorStyle = getColorStyle;

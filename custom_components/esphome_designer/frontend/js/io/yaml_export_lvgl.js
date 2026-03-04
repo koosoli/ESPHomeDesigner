@@ -339,7 +339,7 @@ export function serializeWidget(w) {
  */
 function transpileToLVGL(w, profile, darkMode = false) {
     const p = w.props || {};
-    const hasTouch = profile?.touch || (profile?.features && profile.features.touch); // eslint-disable-line no-unused-vars
+    const _hasTouch = profile?.touch || (profile?.features && profile.features.touch);
 
     // Convert coordinates to integers
     const x = Math.round(w.x || 0);

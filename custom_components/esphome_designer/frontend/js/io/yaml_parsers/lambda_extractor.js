@@ -5,10 +5,10 @@ import { Logger } from '../../utils/logger.js';
  * Handles indentation-sensitive block extraction (state machine).
  * 
  * @param {string[]} rawLines - The full list of lines from the original YAML
- * @param {string} yamlText - The full YAML text (for specific keyword checks)
+ * @param {string} _yamlText - The full YAML text (for specific keyword checks)
  * @returns {string[]} - The extracted lines belonging to the interactive display blocks
  */
-export function extractLambdaLines(rawLines, yamlText) { // eslint-disable-line no-unused-vars
+export function extractLambdaLines(rawLines, _yamlText) {
     const lambdaLines = [];
     let inBlock = false;
     let blockIndent = 0;

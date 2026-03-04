@@ -1,5 +1,6 @@
 import { Logger } from '../utils/logger.js';
 import { fetchDynamicHardwareProfiles, getOfflineProfilesFromStorage } from './hardware_import.js';
+import { emit, EVENTS } from '../core/events.js';
 
 // ============================================================================
 // DEVICE HARDWARE PROFILES
@@ -389,10 +390,7 @@ export async function loadExternalProfiles() {
       });
     }
 
-    // Trigger UI update if necessary (e.g., refresh device settings modal)
-    if (window.app && window.app.deviceSettings && typeof window.app.deviceSettings.populateDeviceSelect === 'function') {
-      window.app.deviceSettings.populateDeviceSelect();
-    }
+    emit(EVENTS.DEVICE_PROFILES_UPDATED);
   } catch (e) {
     Logger.error("Failed to load external hardware profiles:", e);
   }

@@ -1,20 +1,32 @@
+// @ts-check
 import { AppState } from './state';
-import { on, emit, EVENTS } from './events.js'; // eslint-disable-line no-unused-vars
+import { on, EVENTS } from './events.js';
 import { WidgetFactory } from './widget_factory';
 import { showToast } from '../utils/dom.js';
 import { Logger } from '../utils/logger.js';
+import { quickSearchInstance } from '../ui/quick_search.js';
 
 export class Sidebar {
-    constructor() {
+    /** @param {any} appInstance */
+    constructor(appInstance = null) {
         Logger.log("Sidebar: Constructor called");
+        /** @type {any} */
+        this.app = appInstance;
+        /** @type {HTMLElement|null} */
         this.pageListEl = document.getElementById("pageList");
+        /** @type {HTMLElement|null} */
         this.pagesHeader = document.getElementById("pagesHeader");
+        /** @type {HTMLElement|null} */
         this.pagesContent = document.getElementById("pagesContent");
+        /** @type {HTMLElement|null} */
         this.widgetPaletteEl = document.getElementById("widgetPalette");
         Logger.log("Sidebar: widgetPaletteEl found?", !!this.widgetPaletteEl);
         if (!this.widgetPaletteEl) Logger.error("Sidebar: widgetPalette element not found!");
+        /** @type {HTMLElement|null} */
         this.addPageBtn = document.getElementById("addPageBtn");
+        /** @type {HTMLElement|null} */
         this.currentPageNameEl = document.getElementById("currentPageName");
+        /** @type {any} */
         this.hoverTimeout = null;
         this.hoveredPageIndex = -1;
     }
@@ -31,10 +43,11 @@ export class Sidebar {
         if (this.pagesHeader && this.pagesContent) {
             this.pagesHeader.addEventListener("click", () => {
                 const isHidden = this.pagesContent.classList.toggle("hidden");
-                const chevron = this.pagesHeader.querySelector(".chevron");
+                const chevron = /** @type {HTMLElement|null} */(this.pagesHeader.querySelector(".chevron"));
                 if (chevron) {
                     chevron.style.transform = isHidden ? "rotate(-90deg)" : "rotate(0deg)";
                 }
+
             });
         }
 
@@ -48,12 +61,14 @@ export class Sidebar {
             this.widgetPaletteEl.addEventListener("click", (e) => this.handlePaletteClick(e));
 
             this.widgetPaletteEl.addEventListener("dragstart", (e) => {
-                const item = e.target.closest(".item[data-widget-type]");
+                const item = /** @type {HTMLElement} */(e.target).closest(".item[data-widget-type]");
                 if (item) {
                     const type = item.getAttribute("data-widget-type");
                     Logger.log("[Sidebar] Drag start:", type);
-                    e.dataTransfer.setData("application/widget-type", type);
-                    e.dataTransfer.effectAllowed = "copy";
+                    if (e.dataTransfer) {
+                        e.dataTransfer.setData("application/widget-type", type || "");
+                        e.dataTransfer.effectAllowed = "copy";
+                    }
                 }
             });
         }
@@ -61,7 +76,7 @@ export class Sidebar {
         // Global click debug
         document.addEventListener('click', (e) => {
             const debugDiv = document.getElementById('debug-overlay');
-            if (debugDiv) debugDiv.innerHTML += 'Global click: ' + e.target.tagName + '<br>';
+            if (debugDiv && e.target instanceof HTMLElement) debugDiv.innerHTML += 'Global click: ' + e.target.tagName + '<br>';
         });
 
         // Clear Page Button
@@ -75,8 +90,8 @@ export class Sidebar {
         if (quickSearchBtn) {
             quickSearchBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (window.QuickSearch) {
-                    window.QuickSearch.open();
+                if (quickSearchInstance) {
+                    quickSearchInstance.open();
                 } else {
                     Logger.warn("Sidebar: QuickSearch instance not found on window");
                 }
@@ -100,27 +115,32 @@ export class Sidebar {
             item.draggable = true;
 
             // Drag Handlers
+            /** @param {DragEvent} e */
             item.ondragstart = (e) => {
-                e.dataTransfer.setData("text/plain", index);
-                e.dataTransfer.effectAllowed = "move";
+                if (e.dataTransfer) {
+                    e.dataTransfer.setData("text/plain", String(index));
+                    e.dataTransfer.effectAllowed = "move";
+                }
                 item.style.opacity = "0.5";
             };
 
             item.ondragend = () => {
                 item.style.opacity = "1";
-                Array.from(this.pageListEl.children).forEach(el => {
+                Array.from(this.pageListEl.children).forEach((/** @type {any} */ el) => {
                     el.style.borderTop = "";
                     el.style.borderBottom = "";
                 });
             };
 
+            /** @param {DragEvent} e */
             item.ondragover = (e) => {
                 e.preventDefault();
+                if (!e.dataTransfer) return;
                 const isWidgetId = e.dataTransfer.types.includes("application/widget-id");
                 const isWidgetType = e.dataTransfer.types.includes("application/widget-type");
 
                 if (isWidgetId || isWidgetType) {
-                    e.dataTransfer.dropEffect = isWidgetId ? "move" : "copy";
+                    if (e.dataTransfer) e.dataTransfer.dropEffect = isWidgetId ? "move" : "copy";
                     item.style.backgroundColor = "var(--primary-subtle)";
 
                     // Switch page immediately (like clicking) when dragging a widget over it
@@ -129,7 +149,6 @@ export class Sidebar {
                     }
                     return;
                 }
-
                 const rect = item.getBoundingClientRect();
                 const midpoint = rect.top + rect.height / 2;
                 if (e.clientY < midpoint) {
@@ -141,10 +160,11 @@ export class Sidebar {
                 }
             };
 
+            /** @param {DragEvent} e */
             item.ondragleave = (e) => {
                 // Only clear if we're leaving the hovered page, not just re-entering child elements
                 const relatedTarget = e.relatedTarget;
-                if (!item.contains(relatedTarget)) {
+                if (!(relatedTarget instanceof Node) || !item.contains(relatedTarget)) {
                     if (this.hoveredPageIndex === index) {
                         if (this.hoverTimeout) {
                             clearTimeout(this.hoverTimeout);
@@ -158,6 +178,7 @@ export class Sidebar {
                 item.style.backgroundColor = "";
             };
 
+            /** @param {DragEvent} e */
             item.ondrop = (e) => {
                 e.preventDefault();
                 if (this.hoverTimeout) {
@@ -169,6 +190,7 @@ export class Sidebar {
                 item.style.borderBottom = "";
                 item.style.backgroundColor = "";
 
+                if (!e.dataTransfer) return;
                 const widgetId = e.dataTransfer.getData("application/widget-id");
                 const widgetType = e.dataTransfer.getData("application/widget-type");
 
@@ -276,10 +298,9 @@ export class Sidebar {
             }
 
             item.appendChild(actions);
-            this.pageListEl.appendChild(item);
+            if (this.pageListEl) this.pageListEl.appendChild(item);
         });
 
-        // Update current page name header
         if (this.currentPageNameEl) {
             const page = AppState.getCurrentPage();
             this.currentPageNameEl.textContent = page ? page.name : "None";
@@ -290,6 +311,12 @@ export class Sidebar {
         AppState.addPage();
     }
 
+    /**
+     * @param {number} fromIndex 
+     * @param {number} toIndex 
+     * @param {number} clientY 
+     * @param {HTMLElement} targetItem 
+     */
     handlePageReorder(fromIndex, toIndex, clientY, targetItem) {
         if (fromIndex === toIndex) return;
 
@@ -309,6 +336,7 @@ export class Sidebar {
         }
     }
 
+    /** @param {any} e */
     handlePaletteClick(e) {
         const debugDiv = document.getElementById('debug-overlay');
         if (debugDiv) debugDiv.innerHTML += 'handlePaletteClick triggered<br>';
@@ -333,25 +361,24 @@ export class Sidebar {
             Logger.log("Sidebar: Widget added to state");
 
             // Suppress focus skip when adding via click too
-            if (window.app && window.app.canvas) {
-                window.app.canvas.suppressNextFocus = true;
+            if (this.app && this.app.canvas) {
+                this.app.canvas.suppressNextFocus = true;
             }
 
             if (debugDiv) debugDiv.innerHTML += 'Widget added to state<br>';
         } catch (err) {
             Logger.error("Sidebar: Error creating/adding widget", err);
-            if (debugDiv) debugDiv.innerHTML += 'Error: ' + err.message + '<br>';
+            if (debugDiv) debugDiv.innerHTML += 'Error: ' + (/** @type {Error} */(err)).message + '<br>';
         }
     }
 
+    /** @param {number} index */
     openPageSettings(index) {
-        if (window.app && window.app.pageSettings) {
-            window.app.pageSettings.open(index);
+        if (this.app && this.app.pageSettings) {
+            this.app.pageSettings.open(index);
         } else {
-            Logger.error("Sidebar: PageSettings instance not found on window.app");
+            Logger.error("Sidebar: PageSettings instance not found on injected app reference");
             // Fallback (should not be needed if main.js initializes correctly)
-            const page = AppState.pages[index];
-            window.currentPageSettingsTarget = page;
             const modal = document.getElementById("pageSettingsModal");
             if (modal) {
                 modal.classList.remove("hidden");
@@ -360,6 +387,10 @@ export class Sidebar {
         }
     }
 
+    /**
+     * @param {number} index 
+     * @param {any} page 
+     */
     handlePageDelete(index, page) {
         // Use custom modal instead of native confirm
         const modal = document.createElement('div');
@@ -403,14 +434,17 @@ export class Sidebar {
             }
         };
 
-        modal.querySelectorAll('.close-btn').forEach(btn => btn.onclick = closeModal);
-        modal.querySelector('.confirm-btn').onclick = confirmAction;
+        /** @type {NodeListOf<HTMLElement>} */
+        const closeBtns = modal.querySelectorAll('.close-btn');
+        closeBtns.forEach(btn => btn.onclick = closeModal);
+        const confirmBtnEl = /** @type {HTMLElement|null} */(modal.querySelector('.confirm-btn'));
+        if (confirmBtnEl) confirmBtnEl.onclick = confirmAction;
         modal.onclick = (e) => { if (e.target === modal) closeModal(); };
     }
 
     handleClearPage() {
         // Defensive check for AppState as fallback
-        const State = AppState || AppState;
+        const State = AppState;
         if (!State) {
             console.error('[Sidebar] AppState is not defined!');
             if (typeof showToast === 'function') showToast('Error: Application State is not ready.', 'error');
@@ -446,7 +480,7 @@ export class Sidebar {
             closeModal();
             try {
                 console.log('[Sidebar] Executing clearCurrentPage...');
-                const result = State.clearCurrentPage(true); // true = preserve locked
+                const result = AppState.clearCurrentPage(true); // true = preserve locked
 
                 if (result.preserved > 0 && typeof showToast === 'function') {
                     showToast(`Cleared ${result.deleted} widgets. ${result.preserved} locked widget(s) were preserved.`, "info");
@@ -462,16 +496,16 @@ export class Sidebar {
                 Logger.log('Cleared widgets from current page via AppState');
             } catch (e) {
                 console.error('[Sidebar] Error clearing page:', e);
-                if (typeof showToast === 'function') showToast('Error clearing page: ' + e.message, 'error');
+                if (typeof showToast === 'function') showToast('Error clearing page: ' + (/** @type {Error} */(e)).message, 'error');
             }
         };
 
         // Bind events
-        const closeBtns = modal.querySelectorAll('.close-btn');
-        closeBtns.forEach(btn => btn.onclick = closeModal);
+        const closeBtns2 = modal.querySelectorAll('.close-btn');
+        /** @type {NodeListOf<HTMLElement>} */(closeBtns2).forEach(btn => btn.onclick = closeModal);
 
-        const confirmBtn = modal.querySelector('.confirm-btn');
-        confirmBtn.onclick = confirmAction;
+        const confirmBtn = /** @type {HTMLElement|null} */(modal.querySelector('.confirm-btn'));
+        if (confirmBtn) confirmBtn.onclick = confirmAction;
 
         // Click outside to close
         modal.onclick = (e) => {
@@ -514,13 +548,13 @@ export class Sidebar {
 
         mobileDeviceBtn?.addEventListener('click', () => {
             closeAll();
-            window.app?.deviceSettings?.open();
+            this.app?.deviceSettings?.open();
         });
 
         const mobileEditorSettingsBtn = document.getElementById('mobileEditorSettingsBtn');
         mobileEditorSettingsBtn?.addEventListener('click', () => {
             closeAll();
-            window.app?.editorSettings?.open();
+            this.app?.editorSettings?.open();
         });
 
         backdrop?.addEventListener('click', closeAll);

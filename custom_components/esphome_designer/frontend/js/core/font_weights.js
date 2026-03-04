@@ -3,11 +3,11 @@
  * Source of truth — imported by both the UI (properties.js) and YAML export (font_registry.js).
  * @see https://github.com/koosoli/ESPHomeDesigner/issues/317
  */
+/** @type {Record<string, number[]>} */
 export const FONT_WEIGHTS = {
     "Roboto": [100, 300, 400, 500, 700, 900],
     "Inter": [100, 200, 300, 400, 500, 600, 700, 800, 900],
     "Open Sans": [300, 400, 500, 600, 700, 800],
-    "Lato": [100, 300, 400, 700, 900],
     "Montserrat": [100, 200, 300, 400, 500, 600, 700, 800, 900],
     "Poppins": [100, 200, 300, 400, 500, 600, 700, 800, 900],
     "Raleway": [100, 200, 300, 400, 500, 600, 700, 800, 900],
@@ -37,7 +37,7 @@ export function getWeightsForFont(family) {
  * @returns {number}
  */
 export function clampFontWeight(family, weight) {
-    const w = parseInt(weight, 10);
+    const w = Math.trunc(weight);
     const available = getWeightsForFont(family);
     if (available.includes(w)) return w;
     return available.reduce((prev, curr) => Math.abs(curr - w) < Math.abs(prev - w) ? curr : prev);

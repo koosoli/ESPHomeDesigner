@@ -1,10 +1,9 @@
 import { AppState } from '../core/state';
 import { Logger } from '../utils/logger.js';
-import { emit, EVENTS } from '../core/events.js';
+import { emit, EVENTS, on } from '../core/events.js';
 import { DEVICE_PROFILES, loadExternalProfiles, SUPPORTED_DEVICE_IDS } from '../io/devices.js';
 import { hasHaBackend } from '../utils/env.js';
 import { showToast } from '../utils/dom.js';
-import { generateCustomHardwareYaml } from '../io/hardware_generator.js'; // eslint-disable-line no-unused-vars
 import { uploadHardwareTemplate } from '../io/hardware_import.js';
 import { saveLayoutToBackend } from '../io/ha_api.js';
 import { CustomHardwarePanel } from './device_settings/custom_hardware.js';
@@ -13,58 +12,62 @@ import { ProtocolHardwarePanel } from './device_settings/protocol_hardware.js';
 export class DeviceSettings {
     constructor() {
         Logger.log("[DeviceSettings] Constructor called");
-        this.modal = document.getElementById('deviceSettingsModal');
-        this.closeBtn = document.getElementById('deviceSettingsClose');
-        this.saveBtn = document.getElementById('deviceSettingsSave');
+        const getElement = (id) => /** @type {HTMLElement | null} */ (document.getElementById(id));
+        const getInput = (id) => /** @type {HTMLInputElement | null} */ (document.getElementById(id));
+        const getSelect = (id) => /** @type {HTMLSelectElement | null} */ (document.getElementById(id));
+
+        this.modal = getElement('deviceSettingsModal');
+        this.closeBtn = getElement('deviceSettingsClose');
+        this.saveBtn = getElement('deviceSettingsSave');
 
         // Inputs
-        this.nameInput = document.getElementById('deviceName');
-        this.modelInput = document.getElementById('deviceModel');
-        this.renderingModeInput = document.getElementById('renderingMode');
-        this.orientationInput = document.getElementById('deviceOrientation');
-        this.darkModeInput = document.getElementById('deviceDarkMode');
-        this.invertedColorsInput = document.getElementById('deviceInvertedColors');
+        this.nameInput = getInput('deviceName');
+        this.modelInput = getSelect('deviceModel');
+        this.renderingModeInput = getSelect('renderingMode');
+        this.orientationInput = getSelect('deviceOrientation');
+        this.darkModeInput = getInput('deviceDarkMode');
+        this.invertedColorsInput = getInput('deviceInvertedColors');
 
         // Power strategies
-        this.modeStandard = document.getElementById('modeStandard');
-        this.modeSleep = document.getElementById('modeSleep');
-        this.modeManual = document.getElementById('modeManual');
-        this.modeDeepSleep = document.getElementById('modeDeepSleep');
-        this.modeDaily = document.getElementById('modeDaily');
+        this.modeStandard = getInput('modeStandard');
+        this.modeSleep = getInput('modeSleep');
+        this.modeManual = getInput('modeManual');
+        this.modeDeepSleep = getInput('modeDeepSleep');
+        this.modeDaily = getInput('modeDaily');
 
         // Intervals/Times
-        this.sleepStart = document.getElementById('sleepStart');
-        this.sleepEnd = document.getElementById('sleepEnd');
-        this.dailyRefreshTime = document.getElementById('dailyRefreshTime');
-        this.deepSleepInterval = document.getElementById('deepSleepInterval');
-        this.refreshIntervalInput = document.getElementById('refreshInterval');
-        this.dimTimeoutInput = document.getElementById('dimTimeout');
+        this.sleepStart = getInput('sleepStart');
+        this.sleepEnd = getInput('sleepEnd');
+        this.dailyRefreshTime = getInput('dailyRefreshTime');
+        this.deepSleepInterval = getInput('deepSleepInterval');
+        this.refreshIntervalInput = getInput('refreshInterval');
+        this.dimTimeoutInput = getInput('dimTimeout');
 
         // Silent Hours
-        this.noRefreshStart = document.getElementById('noRefreshStart');
-        this.noRefreshEnd = document.getElementById('noRefreshEnd');
+        this.noRefreshStart = getInput('noRefreshStart');
+        this.noRefreshEnd = getInput('noRefreshEnd');
 
         // Auto-Cycle
-        this.autoCycleEnabled = document.getElementById('autoCycleEnabled');
-        this.autoCycleInterval = document.getElementById('autoCycleInterval');
+        this.autoCycleEnabled = getInput('autoCycleEnabled');
+        this.autoCycleInterval = getInput('autoCycleInterval');
 
         // Dynamic rows
-        this.sleepRow = document.getElementById('sleep-row');
-        this.dailyRefreshRow = document.getElementById('daily-refresh-row');
-        this.deepSleepRow = document.getElementById('deep-sleep-row');
-        this.refreshIntervalRow = document.getElementById('refresh-interval-row');
-        this.dimTimeoutRow = document.getElementById('lcd-strategy-dim-row');
-        this.autoCycleRow = document.getElementById('auto-cycle-row');
+        this.sleepRow = getElement('sleep-row');
+        this.dailyRefreshRow = getElement('daily-refresh-row');
+        this.deepSleepRow = getElement('deep-sleep-row');
+        this.refreshIntervalRow = getElement('refresh-interval-row');
+        this.dimTimeoutRow = getElement('lcd-strategy-dim-row');
+        this.autoCycleRow = getElement('auto-cycle-row');
 
         // Sections
-        this.powerStrategySection = document.getElementById('powerStrategySection');
-        this.protocolHardwareSection = document.getElementById('protocolHardwareSection');
-        this.deviceModelField = document.getElementById('deviceModelField');
-        this.deviceInvertedColorsField = document.getElementById('deviceInvertedColorsField');
-        this.oeplSettingsSection = document.getElementById('oeplSettingsSection');
-        this.odpSettingsSection = document.getElementById('odpSettingsSection');
-        this.strategyEpaperGroup = document.getElementById('strategy-epaper-group');
-        this.strategyLcdGroup = document.getElementById('strategy-lcd-group');
+        this.powerStrategySection = getElement('powerStrategySection');
+        this.protocolHardwareSection = getElement('protocolHardwareSection');
+        this.deviceModelField = getElement('deviceModelField');
+        this.deviceInvertedColorsField = getElement('deviceInvertedColorsField');
+        this.oeplSettingsSection = getElement('oeplSettingsSection');
+        this.odpSettingsSection = getElement('odpSettingsSection');
+        this.strategyEpaperGroup = getElement('strategy-epaper-group');
+        this.strategyLcdGroup = getElement('strategy-lcd-group');
 
         // Panels
         this.customHardwarePanel = new CustomHardwarePanel(this);
@@ -79,7 +82,10 @@ export class DeviceSettings {
             this.closeBtn.addEventListener('click', () => this.close());
         }
 
-        const reloadBtn = document.getElementById('reloadHardwareBtn');
+        this._profilesUpdatedHandler = () => this.populateDeviceSelect();
+        on(EVENTS.DEVICE_PROFILES_UPDATED, this._profilesUpdatedHandler);
+
+        const reloadBtn = /** @type {HTMLElement | null} */ (document.getElementById('reloadHardwareBtn'));
         if (reloadBtn) {
             reloadBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
@@ -91,7 +97,7 @@ export class DeviceSettings {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 const targetId = btn.getAttribute('data-target');
-                const input = document.getElementById(targetId);
+                const input = targetId ? /** @type {HTMLInputElement | null} */ (document.getElementById(targetId)) : null;
                 if (input) {
                     input.value = '';
                     input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -99,19 +105,20 @@ export class DeviceSettings {
             });
         });
 
-        const importBtn = document.getElementById('importHardwareBtn');
-        const fileInput = document.getElementById('hardwareFileInput');
+        const importBtn = /** @type {HTMLElement | null} */ (document.getElementById('importHardwareBtn'));
+        const fileInput = /** @type {HTMLInputElement | null} */ (document.getElementById('hardwareFileInput'));
         if (importBtn && fileInput) {
             importBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 fileInput.click();
             });
-            fileInput.addEventListener('change', async (e) => {
-                if (e.target.files.length > 0) {
-                    const file = e.target.files[0];
+            fileInput.addEventListener('change', async () => {
+                const files = fileInput.files;
+                if (files && files.length > 0) {
+                    const file = files[0];
                     try {
                         await uploadHardwareTemplate(file);
-                    } catch (err) { // eslint-disable-line no-unused-vars
+                    } catch {
                         // Silently ignore hardware import errors (user likely canceled or invalid file)
                     }
                     fileInput.value = "";
@@ -134,7 +141,8 @@ export class DeviceSettings {
         Logger.log("Reloading hardware profiles...");
         try {
             if (typeof loadExternalProfiles === "function") {
-                await loadExternalProfiles(true);
+                const reloadProfiles = /** @type {(force?: boolean) => Promise<void>} */ (loadExternalProfiles);
+                await reloadProfiles(true);
                 this.populateDeviceSelect();
                 showToast("Hardware profiles reloaded", "success");
             }
@@ -377,7 +385,6 @@ export class DeviceSettings {
         if (this.modelInput) {
             this.modelInput.addEventListener('change', async () => {
                 const newModel = this.modelInput.value;
-                window.currentDeviceModel = newModel;
                 AppState.setDeviceModel(newModel);
                 updateSetting('device_model', newModel);
                 this.updateVisibility();
@@ -433,7 +440,7 @@ export class DeviceSettings {
                 const val = parseInt(this.deepSleepInterval.value) || 600;
                 updateSetting('deepSleepInterval', val);
                 if (this.refreshIntervalInput) {
-                    this.refreshIntervalInput.value = val;
+                    this.refreshIntervalInput.value = String(val);
                     AppState.updateSettings({ refreshInterval: val });
                 }
             });
@@ -444,7 +451,7 @@ export class DeviceSettings {
                 const val = parseInt(this.refreshIntervalInput.value) || 600;
                 updateSetting('refreshInterval', val);
                 if (this.deepSleepInterval && this.modeDeepSleep?.checked) {
-                    this.deepSleepInterval.value = val;
+                    this.deepSleepInterval.value = String(val);
                     AppState.updateSettings({ deepSleepInterval: val });
                 }
             });
@@ -471,7 +478,7 @@ export class DeviceSettings {
             this.autoCycleInterval.addEventListener('input', () => updateSetting('autoCycleIntervalS', Math.max(5, parseInt(this.autoCycleInterval.value) || 30)));
         }
 
-        const lcdStrategyRadios = document.querySelectorAll('input[name="lcdEcoStrategy"]');
+        const lcdStrategyRadios = /** @type {NodeListOf<HTMLInputElement>} */ (document.querySelectorAll('input[name="lcdEcoStrategy"]'));
         lcdStrategyRadios.forEach(radio => {
             radio.addEventListener('change', () => {
                 if (radio.checked) {

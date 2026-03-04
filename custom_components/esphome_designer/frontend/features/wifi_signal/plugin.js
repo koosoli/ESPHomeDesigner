@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { AppState } from '@core/state';
 /**
  * WiFi Signal Plugin

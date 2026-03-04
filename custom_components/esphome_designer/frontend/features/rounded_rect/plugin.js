@@ -1,10 +1,11 @@
+// @ts-nocheck
 /**
  * Rounded Rectangle Shape Plugin
  */
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
-    const radius = parseInt(props.radius || 10, 10);
+    const radius = parseInt(props.radius ?? props.corner_radius ?? props.border_radius ?? 10, 10);
     const borderWidth = parseInt(props.border_width || 4, 10);
 
     const color = props.color || "theme_auto";
@@ -32,6 +33,7 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
     const p = w.props || {};
+    const radius = parseInt(p.radius ?? p.corner_radius ?? p.border_radius ?? 10, 10) || 10;
     return {
         obj: {
             ...common,
@@ -39,7 +41,7 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
             bg_opa: p.fill !== false ? "cover" : "transp",
             border_width: p.border_width,
             border_color: convertColor(p.border_color || p.color),
-            radius: p.radius || 10,
+            radius,
             opa: formatOpacity(p.opa)
         }
     };
@@ -60,8 +62,7 @@ export default {
         show_border: true,
         border_color: "theme_auto",
         opacity: 100,
-        x: 0,
-        y: 0
+        opa: 255
     },
     schema: [
         {
@@ -87,20 +88,12 @@ export default {
                 { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 },
                 { key: "drop_shadow", label: "Drop Shadow", type: "drop_shadow_button" }
             ]
-        },
-        {
-            section: "Placement (Root Targets)",
-            fields: [
-                { key: "x", target: "root", label: "X Position", type: "number", default: 0 },
-                { key: "y", target: "root", label: "Y Position", type: "number", default: 0 },
-                { key: "width", target: "root", label: "Width", type: "number", default: 100 },
-                { key: "height", target: "root", label: "Height", type: "number", default: 100 }
-            ]
         }
     ],
     render,
     exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
+        const radius = parseInt(p.radius ?? p.corner_radius ?? p.border_radius ?? 0, 10) || 0;
         // Resolve colors (handle theme_auto)
         // Fallback to p.color if border/bg not set (matching render logic)
         let fill = p.fill ? (p.bg_color || p.color) : null;
@@ -119,11 +112,12 @@ export default {
             fill: fill,
             outline: outline,
             width: p.border_width || 1,
-            radius: p.radius || 0
+            radius
         };
     },
     exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
+        const radius = parseInt(p.radius ?? p.corner_radius ?? p.border_radius ?? 0, 10) || 0;
         return {
             type: "rectangle",
             x_start: Math.round(w.x),
@@ -133,7 +127,7 @@ export default {
             fill: p.fill ? (p.bg_color || p.color || "black") : null,
             outline: p.border_color || p.color || "black",
             width: p.border_width || 1,
-            radius: p.radius || 0
+            radius
         };
     },
     exportLVGL,
@@ -145,7 +139,7 @@ export default {
         const p = w.props || {};
         const fill = !!p.fill;
         const showBorder = p.show_border !== false;
-        const r = parseInt(p.radius || 10, 10);
+        const r = parseInt(p.radius ?? p.corner_radius ?? p.border_radius ?? 10, 10);
         const thickness = parseInt(p.border_width || 4, 10);
 
         const colorProp = p.color || "theme_auto";

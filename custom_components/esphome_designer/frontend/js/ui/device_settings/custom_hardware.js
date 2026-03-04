@@ -1,7 +1,8 @@
+// @ts-nocheck
 import { AppState } from '../../core/state';
 import { Logger } from '../../utils/logger.js';
 import { showToast } from '../../utils/dom.js';
-import { DEVICE_PROFILES, loadExternalProfiles } from '../../io/devices.js'; // eslint-disable-line no-unused-vars
+import { DEVICE_PROFILES, } from '../../io/devices.js';
 import { generateCustomHardwareYaml } from '../../io/hardware_generator.js';
 import { uploadHardwareTemplate } from '../../io/hardware_import.js';
 

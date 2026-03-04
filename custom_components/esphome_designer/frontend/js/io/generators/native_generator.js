@@ -88,8 +88,8 @@ function sanitize(str) {
 
 /**
  * Orchestrates the export of a single widget by delegating to its plugin.
- * @param {import("../../types.js").WidgetConfig} widget 
- * @param {import("../../types.js").GenerationContext} context 
+ * @param {any} widget 
+ * @param {any} context 
  * @returns {string[]}
  */
 function generateWidget(widget, context) {
@@ -145,17 +145,17 @@ function generateWidget(widget, context) {
  * Core orchestrator for the native C++ display lambda.
  * Generates the `lambda: |-` block for ST7789, ILI9341, Waveshare e-Paper, etc.
  * 
- * @param {import("../../types.js").PageConfig[]} pages - Array of screen layout pages.
- * @param {import("../../types.js").ProjectPayload} layout - The root project containing global settings.
- * @param {import("../../types.js").DeviceProfile} profile - The targeted hardware profile definition.
- * @param {import("../../types.js").GenerationContext} context - Orchestration context (registered plugins, etc).
- * @param {import("../adapters/esphome_adapter").ESPHomeAdapter} adapter - Reference to the core adapter instance.
+ * @param {Array<any>} pages - Array of screen layout pages.
+ * @param {any} layout - The root project containing global settings.
+ * @param {any} profile - The targeted hardware profile definition.
+ * @param {any} context - Orchestration context (registered plugins, etc).
+ * @param {any} adapter - Reference to the core adapter instance.
  * @returns {string[]} Array of C++ code lines for the display lambda.
  */
 export function generateDisplayLambda(pages, layout, profile, context, adapter) {
     const lines = [];
-    const useInvertedColors = profile.features?.inverted_colors || layout.invertedColors;
     const isEpaper = !!(profile.features && (profile.features.epaper || profile.features.epd));
+    const useInvertedColors = layout.invertedColors || profile.features?.inverted_colors || (isEpaper && profile.features?.inverted_colors !== false);
 
     if (useInvertedColors) {
         lines.push("const auto COLOR_WHITE = Color(0, 0, 0); // Inverted for e-ink");

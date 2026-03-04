@@ -130,14 +130,32 @@ declare global {
         name: string;
         /** The sanitized internal ESPHome node name */
         device_name?: string;
+        /** Legacy camelCase device name used in runtime payloads */
+        deviceName?: string;
         /** Array of defined pages */
         pages: Page[];
         /** The specific device profile being targeted (e.g., "reterminal_e1001" or "custom") */
         deviceModel?: string;
+        /** Snake-case device model used by HA/backend payloads */
+        device_model?: string;
         /** Array of user-uploaded or Google font definitions */
         glyphsets?: Array<{ file: string, weight: number, name: string }>;
         /** Custom hardware configurations (if deviceModel is 'custom') */
         customHardware?: HardwareSettings;
+        /** Snake-case custom hardware payload */
+        custom_hardware?: HardwareSettings;
+        /** Protocol hardware payload for non-direct render modes */
+        protocolHardware?: Record<string, any>;
+        /** Snake-case protocol hardware payload */
+        protocol_hardware?: Record<string, any>;
+        /** Current page index persisted with payload */
+        currentPageIndex?: number;
+        /** Current layout identifier */
+        currentLayoutId?: string;
+        /** Orientation preference used by protocol adapters */
+        orientation?: string;
+        /** Nested settings bag for protocol adapters */
+        settings?: Record<string, any>;
         /** Flag indicating if this is just a clipboard/snippet export rather than full firmware */
         isSelectionSnippet?: boolean;
         /** Render mode preference */
@@ -210,14 +228,89 @@ declare global {
     }
 
     interface AppState {
-        state: any;
-        entityStates: Record<string, any>;
-        getPagesPayload: () => ProjectPayload;
+        // Properties from AppStateFacade
+        currentPageIndex: number;
+        selectedWidgetId: string | null;
+        selectedWidgetIds: string[];
+        deviceName: string | null;
+        deviceModel: string | null;
+        currentLayoutId: string | null;
+        snapEnabled: boolean;
+        showGrid: boolean;
+        showDebugGrid: boolean;
+        showRulers: boolean;
+        zoomLevel: number;
+
+        // Methods
+        reset: () => void;
+        getCurrentPage: () => Page | null;
+        getWidgetById: (id: string) => Widget | undefined;
+        getSelectedWidget: () => Widget | undefined;
+        getSelectedWidgets: () => Widget[];
+        getSelectedProfile: () => DeviceProfile | null;
         getCanvasDimensions: () => { width: number; height: number };
         getCanvasShape: () => string;
-        deviceModel?: string;
+        getPagesPayload: () => ProjectPayload;
+        getSettings: () => Record<string, any>;
+        setSettings: (s: any) => void;
+
+        // Actions
+        setCurrentPageIndex: (index: number, options?: any) => void;
+        selectWidget: (id: string, multi?: boolean) => void;
+        selectWidgets: (ids: string[]) => void;
+        selectAllWidgets: () => void;
+        deselectAll: () => void;
+        toggleSelection: (id: string) => void;
+        isWidgetSelected: (id: string) => boolean;
+
+        // Page Operations
+        addPage: (index?: number) => Page | null;
+        deletePage: (index: number) => void;
+        reorderPage: (from: number, to: number) => void;
+        renamePage: (index: number, name: string) => void;
+        duplicatePage: (index: number) => void;
+        clearCurrentPage: (preserveLocked?: boolean) => { deleted: number, preserved: number };
+
+        // Widget Operations
+        addWidget: (w: Widget, pageIndex?: number) => void;
+        updateWidget: (id: string, updates: Partial<Widget>) => void;
+        updateWidgets: (ids: string[], updates: Partial<Widget>) => void;
+        updateWidgetsProps: (ids: string[], propUpdates: any) => void;
+        moveWidgetToPage: (widgetId: string, targetPageIndex: number, x?: number | null, y?: number | null) => boolean;
+        deleteWidget: (id: string | null) => void;
+        copyWidget: (id?: string) => void;
+        pasteWidget: () => void;
+        createDropShadow: (widgetIdOrIds: string | string[]) => void;
+
+        // Alignment & Grouping
+        alignSelectedWidgets: (direction: string) => void;
+        distributeSelectedWidgets: (axis: string) => void;
+        groupSelection: () => void;
+        ungroupSelection: (idOrIds?: string | string[] | null) => void;
+
+        // History
+        undo: () => void;
+        redo: () => void;
+        recordHistory: () => void;
+
+        // Snap
+        setSnapEnabled: (enabled: boolean) => void;
+
+        // Visuals
+        setShowGrid: (val: boolean) => void;
+        setShowDebugGrid: (val: boolean) => void;
+        setShowRulers: (val: boolean) => void;
+        setZoomLevel: (val: number) => void;
+
+        // Event emitter interface
         emit: (event: string, data?: any) => void;
         on: (event: string, callback: Function) => void;
+
+        // Legacy/Internal
+        state: any;
+        entityStates: Record<string, any>;
+        isUndoRedoInProgress: boolean;
+        pages: Page[];
     }
 
     interface PluginRegistry {
@@ -239,13 +332,34 @@ declare global {
         ESPHomeAdapter: any;
         DEVICE_PROFILES: Record<string, DeviceProfile>;
         currentDeviceModel: string;
-        Utils: any;
+        // Utils: any; // Conflict with utils.ts
         COLORS: Record<string, string>;
         ALIGNMENT: Record<string, string>;
         generateDisplaySection?: (profile: DeviceProfile, orientation?: string) => string[];
         generateLVGLSnippet?: (pages: Page[], model: string) => string[];
-        app?: {
-            adapter?: any;
+        isAutoHighlight: boolean;
+        lastHighlightRange: { start: number, end: number } | null;
+        app: {
+            canvas: { suppressNextFocus: boolean } & Record<string, any>;
+            pageSettings: { open: (index: number) => void } & Record<string, any>;
+            deviceSettings: { open: () => void } & Record<string, any>;
+            editorSettings: { open: () => void } & Record<string, any>;
+            [key: string]: any;
+        };
+        openDeviceSettings: () => void;
+        openEditorSettingsModal: (section?: string) => void;
+        pageSettings: any;
+        KeyboardHandler: any;
+        BaseAdapter: any;
+        OEPLAdapter: any;
+        OpenDisplayAdapter: any;
+        ESPHomeDesigner: {
+            app: any;
+            ui: {
+                sidebar: any;
+                canvas: any;
+                properties: any;
+            }
         };
     }
 

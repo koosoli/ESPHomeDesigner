@@ -5,12 +5,14 @@ import { MIXED_VALUE } from '../../utils/color_utils.js';
 export class MultiSelectRenderer {
     /**
      * Renders properties for multiple selected widgets.
-     * @param {PropertiesPanel} panel - The main properties panel instance.
+        * @param {any} panel - The main properties panel instance.
      * @param {Array<string>} ids - The IDs of the selected widgets.
      */
     static render(panel, ids) {
         const widgets = ids.map(id => AppState.getWidgetById(id)).filter(w => !!w);
         if (widgets.length === 0) return;
+
+        console.log(`[MultiSelectRenderer] Rendering ${widgets.length} widgets. Display keys detection starting...`);
 
         panel.panel.innerHTML = "";
         panel.createSection(`${widgets.length} Widgets Selected`, true);
@@ -39,7 +41,7 @@ export class MultiSelectRenderer {
 
         // --- Common Appearance ---
         const commonAppearanceKeys = [
-            "color", "bg_color", "background_color", "border_width", "border_color", "border_radius",
+            "color", "bg_color", "background_color", "border_width", "border_color", "border_radius", "radius",
             "opacity", "font_size", "font_family", "font_weight", "text_align", "italic", "locked", "hidden"
         ];
 
@@ -52,18 +54,25 @@ export class MultiSelectRenderer {
         const displayKeysSet = new Set([...intersectionKeys, ...commonAppearanceKeys]);
 
         const displayKeys = Array.from(displayKeysSet).filter(key => {
-            if (["border_width", "border_color", "border_radius"].includes(key)) {
-                const supportedTypes = ["text", "label", "sensor_text", "lvgl_label", "shape_rect", "rounded_rect", "shape_circle", "datetime"];
-                return widgets.every(w => supportedTypes.includes(w.type));
+            if (["border_width", "border_color", "border_radius", "radius"].includes(key)) {
+                const supportedTypes = ["text", "label", "sensor_text", "lvgl_label", "lvgl_button", "shape_rect", "rounded_rect", "shape_circle", "datetime"];
+                return widgets.every(w => supportedTypes.includes(w.type) || (w.type && w.type.startsWith("lvgl_")));
             }
 
             if (commonAppearanceKeys.includes(key)) {
                 const existsInOne = widgets.some(w => w.props && w.props[key] !== undefined);
                 if (existsInOne) return true;
 
-                if (key.includes("font") || key === "color") {
-                    const textTypes = ["text", "label", "sensor_text", "lvgl_label", "datetime"];
-                    return widgets.every(w => textTypes.includes(w.type));
+                // Show font/text properties if all widgets are text-compatible
+                if (key.includes("font") || key === "text_align" || key === "italic") {
+                    const textTypes = ["text", "label", "sensor_text", "lvgl_label", "lvgl_button", "datetime"];
+                    return widgets.every(w => textTypes.includes(w.type) || (w.type && w.type.startsWith("lvgl_")));
+                }
+
+                // Show color/opacity for all shape-compatible types even if not set yet
+                if (key === "color" || key === "opacity") {
+                    const shapeTypes = ["text", "label", "sensor_text", "lvgl_label", "lvgl_button", "shape_rect", "rounded_rect", "shape_circle", "datetime", "icon"];
+                    return widgets.every(w => shapeTypes.includes(w.type) || (w.type && w.type.startsWith("lvgl_")));
                 }
             }
 

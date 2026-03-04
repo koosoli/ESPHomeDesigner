@@ -5,7 +5,7 @@ import { HISTORY_LIMIT } from '../constants';
 
 export interface EditorState {
     selectedWidgetIds: string[];
-    clipboardWidgets: any[];
+    clipboardWidgets: any[]; // Widgets can be complex
     zoomLevel: number;
     panX: number;
     panY: number;
@@ -13,7 +13,7 @@ export interface EditorState {
 
 export class EditorStore {
     state: EditorState;
-    historyStack: any[];
+    historyStack: any[]; // Snapshots of project state
     historyIndex: number;
 
     constructor() {

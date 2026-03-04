@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ODP Icon Sequence Plugin
  * Displays multiple icons in a row or column

@@ -5,6 +5,7 @@
  */
 
 import { Logger } from '../utils/logger.js';
+import { AppState } from '../core/state';
 
 // Global variables for snippet highlighting
 // Keeping them module-scoped since they are internal state for the highlighter
@@ -26,10 +27,10 @@ Object.defineProperty(window, 'isAutoHighlight', {
 
 /**
  * Highlights a widget's YAML block in the snippet editor.
- * @param {string} widgetId 
+ * @param {string|string[]} widgetIds
  */
 export function highlightWidgetInSnippet(widgetIds) {
-    const box = document.getElementById("snippetBox");
+    const box = /** @type {HTMLTextAreaElement | null} */ (document.getElementById("snippetBox"));
     if (!box) return;
 
     const yaml = box.value;
@@ -238,7 +239,8 @@ export function highlightWidgetInSnippet(widgetIds) {
         const isTyping = (activeTag === "input" || activeTag === "textarea") && document.activeElement !== box;
 
         // Only modify selection if we rely on auto-highlight (not typing/interacting)
-        const isInteracting = window.Canvas && (window.Canvas.dragState || window.Canvas.lassoState);
+        const canvas = window.Canvas || window.canvasInstance;
+        const isInteracting = canvas && (canvas.dragState || canvas.lassoState);
 
         if (!isTyping && !isInteracting) {
             window.isAutoHighlight = true;
@@ -251,10 +253,10 @@ export function highlightWidgetInSnippet(widgetIds) {
                 // to the box so Ctrl+C works immediately and the highlight is visible.
                 // For multiple/Select All, we skip this to stay on the canvas.
                 // Also skip if undo/redo is in progress to prevent focus stealing.
-                if (ids.length === 1 && !window._undoRedoInProgress) {
+                if (ids.length === 1 && !AppState.isUndoRedoInProgress) {
                     box.focus();
                 }
-            } catch (e) { // eslint-disable-line no-unused-vars
+            } catch {
                 // Ignore
             }
         }
@@ -263,15 +265,16 @@ export function highlightWidgetInSnippet(widgetIds) {
 
         // Scroll to selection
         setTimeout(() => {
-            if (box.scrollTo) {
+            const boxElement = /** @type {HTMLTextAreaElement} */ (box);
+            if (boxElement.scrollTo) {
                 const lines = yaml.substring(0, minStart).split('\n');
                 const totalLines = yaml.split('\n').length;
                 const lineNum = lines.length;
-                const lineHeight = box.scrollHeight / totalLines;
+                const lineHeight = boxElement.scrollHeight / totalLines;
 
                 // Align to top third
-                box.scrollTop = (lineNum * lineHeight) - 50;
-                box.scrollLeft = 0;
+                boxElement.scrollTop = (lineNum * lineHeight) - 50;
+                boxElement.scrollLeft = 0;
             }
         }, 10);
     }

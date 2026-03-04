@@ -9,6 +9,7 @@ import { Logger } from '../utils/logger.js';
 import { hasHaBackend, HA_API_BASE } from '../utils/env.js';
 import { getHaHeaders } from './ha_api.js';
 import { showToast } from '../utils/dom.js';
+import { emit, EVENTS } from '../core/events.js';
 
 export async function fetchDynamicHardwareProfiles() {
     // If we have an HA backend, try that first
@@ -33,9 +34,17 @@ export async function fetchDynamicHardwareProfiles() {
     Logger.log("[HardwareDiscovery] Attempting to load bundled profiles via glob...");
     const bundledTemplates = [];
 
-    // Use Vite's import.meta.glob to find all YAML files in the hardware directory
-    // This works at build time / dev server time to map files
-    const hardwareFiles = import.meta.glob('../../hardware/*.yaml', { query: '?raw', import: 'default', eager: true });
+    // Use Vite's import.meta.glob to find all YAML files in the hardware directory.
+    // In Home Assistant runtime this API may not exist, so feature-detect first.
+    const globFn = /** @type {any} */ (import.meta).glob;
+    if (typeof globFn !== 'function') {
+        Logger.warn("[HardwareDiscovery] import.meta.glob is unavailable in this runtime; skipping bundled profile fallback.");
+        return [];
+    }
+
+    const hardwareFiles = /** @type {Record<string, string>} */ (
+        globFn('../../hardware/*.yaml', { query: '?raw', import: 'default', eager: true })
+    );
 
     for (const path in hardwareFiles) {
         try {
@@ -136,7 +145,11 @@ async function handleOfflineHardwareImport(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
-            const content = e.target.result;
+            const content = e.target?.result;
+            if (typeof content !== 'string') {
+                reject(new Error("Failed to read file content"));
+                return;
+            }
             try {
                 if (!content.includes("__LAMBDA_PLACEHOLDER__")) {
                     throw new Error("Invalid template: Missing __LAMBDA_PLACEHOLDER__");
@@ -151,13 +164,10 @@ async function handleOfflineHardwareImport(file) {
                     DEVICE_PROFILES[profile.id] = profile;
                 } showToast(`Imported ${profile.name} (Offline Mode)`, "success");
 
-                // Refresh UI
-                if (window.app && window.app.deviceSettings) {
-                    window.app.deviceSettings.populateDeviceSelect();
-                }
-
                 // Persist to localStorage for offline resilience
                 saveOfflineProfileToStorage(profile);
+
+                emit(EVENTS.DEVICE_PROFILES_UPDATED);
 
                 resolve(profile);
             } catch (err) {

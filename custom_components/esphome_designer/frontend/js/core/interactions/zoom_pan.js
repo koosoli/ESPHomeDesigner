@@ -1,3 +1,4 @@
+// @ts-check
 import { AppState } from '../state';
 import { Logger } from '../../utils/logger.js';
 import { emit, EVENTS } from '../events.js';
@@ -111,7 +112,8 @@ export function setupZoomControls(canvasInstance) {
     }
     if (gridOpacityInput) {
         gridOpacityInput.addEventListener("input", (e) => {
-            AppState.updateSettings({ grid_opacity: parseInt(e.target.value, 10) });
+            const target = /** @type {HTMLInputElement} */ (e.target);
+            AppState.updateSettings({ grid_opacity: parseInt(target.value, 10) });
         });
     }
 

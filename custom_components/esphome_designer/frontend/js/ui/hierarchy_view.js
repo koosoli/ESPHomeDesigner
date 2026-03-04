@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { AppState } from '../core/state';
 import { on, EVENTS } from '../core/events.js';
 import { Logger } from '../utils/logger.js';

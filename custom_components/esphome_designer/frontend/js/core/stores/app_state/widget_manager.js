@@ -5,8 +5,10 @@ import { showToast } from '../../../utils/dom.js';
 import { registry } from '../../plugin_registry';
 
 export class WidgetManager {
+    /**
+     * @param {import('../index.js').AppStateFacade} app 
+     */
     constructor(app) {
-        /** @type {import('../index.js').AppStateFacade} */
         this.app = app;
     }
 
@@ -18,7 +20,7 @@ export class WidgetManager {
     }
 
     /**
-     * @param {import('../../../types.js').WidgetConfig} w 
+     * @param {Widget} w 
      * @param {number|null} pageIndex 
      */
     addWidget(w, pageIndex = null) {
@@ -31,22 +33,26 @@ export class WidgetManager {
 
     /**
      * @param {string} id 
-     * @param {Partial<import('../../../types.js').WidgetConfig>} u 
+     * @param {Partial<Widget>} u 
      */
     updateWidget(id, u) {
+        const appAny = /** @type {any} */ (this.app);
         this.app.project.updateWidget(id, u);
 
         // Recursive propagation for certain properties if it's a group
-        const widget = this.app.getWidgetById(id);
+        const widget = appAny.getWidgetById(id);
         if (widget && widget.type === 'group') {
+            /** @type {string[]} */
             const propsToPropagate = ['locked', 'hidden'];
+            /** @type {Record<string, any>} */
             const childUpdates = {};
+            const updates = /** @type {Record<string, any>} */ (u || {});
             propsToPropagate.forEach(p => {
-                if (u[p] !== undefined) childUpdates[p] = u[p];
+                if (updates[p] !== undefined) childUpdates[p] = updates[p];
             });
 
             if (Object.keys(childUpdates).length > 0) {
-                const page = this.app.pages[this.app.currentPageIndex];
+                const page = appAny.pages[appAny.currentPageIndex];
                 if (page && page.widgets) {
                     const children = page.widgets.filter(w => w.parentId === id);
                     children.forEach(c => this.updateWidget(c.id, childUpdates));
@@ -67,13 +73,38 @@ export class WidgetManager {
     }
 
     updateWidgetsProps(ids, propUpdates) {
+        // Keep track of secondary updates
+        const additionalUpdates = [];
+
         ids.forEach(id => {
             const widget = this.app.getWidgetById(id);
             if (widget) {
                 const newProps = { ...(widget.props || {}), ...propUpdates };
                 this.app.project.updateWidget(id, { props: newProps });
+
+                // Shadow Group Sync Logic: If radius changed and widget is in a shadow group, sync it to the shadow
+                if (propUpdates.radius !== undefined && widget.parentId) {
+                    const group = this.app.getWidgetById(widget.parentId);
+                    if (group && group.type === 'group' && group.title && group.title.endsWith('Group')) {
+                        // Find the sibling widget that represents the shadow
+                        const siblings = this.app.getCurrentPage()?.widgets.filter(w => w.parentId === group.id) || [];
+                        const shadowWidget = siblings.find(w => w.id !== widget.id && w.props?.name && w.props.name.endsWith('Shadow'));
+                        if (shadowWidget) {
+                            additionalUpdates.push({
+                                id: shadowWidget.id,
+                                props: { ...(shadowWidget.props || {}), radius: propUpdates.radius }
+                            });
+                        }
+                    }
+                }
             }
         });
+
+        // Apply shadow sync updates
+        additionalUpdates.forEach(update => {
+            this.app.project.updateWidget(update.id, { props: update.props });
+        });
+
         emit(EVENTS.STATE_CHANGED);
     }
 
@@ -98,24 +129,44 @@ export class WidgetManager {
 
     moveWidgetToPage(widgetId, targetPageIndex, x = null, y = null) {
         const widget = this.app.getWidgetById(widgetId);
-        if (!widget) return;
+        if (!widget) return false;
 
         const sourcePage = this.app.getCurrentPage();
         const targetPage = this.app.pages[targetPageIndex];
-        if (!sourcePage || !targetPage) return;
+        if (!sourcePage || !targetPage) return false;
 
-        // Remove from source
-        sourcePage.widgets = sourcePage.widgets.filter(w => w.id !== widgetId);
+        // Collect all widgets to move (widget + group children when moving a group)
+        const widgetsToMove = [widget];
+        if (widget.type === 'group') {
+            const children = sourcePage.widgets.filter(w => w.parentId === widgetId);
+            widgetsToMove.push(...children);
+        }
 
-        // Add to target
-        const cloned = JSON.parse(JSON.stringify(widget));
-        if (x !== null) cloned.x = x;
-        if (y !== null) cloned.y = y;
-        targetPage.widgets.push(cloned);
+        // Calculate position delta so children maintain relative placement
+        const dx = (x !== null) ? x - widget.x : 0;
+        const dy = (y !== null) ? y - widget.y : 0;
+
+        // Remove all moved widgets from source
+        const idsToMove = new Set(widgetsToMove.map(w => w.id));
+        sourcePage.widgets = sourcePage.widgets.filter(w => !idsToMove.has(w.id));
+
+        // Add cloned widgets to target
+        widgetsToMove.forEach(w => {
+            const cloned = JSON.parse(JSON.stringify(w));
+            if (w.id === widgetId) {
+                if (x !== null) cloned.x = x;
+                if (y !== null) cloned.y = y;
+            } else {
+                cloned.x += dx;
+                cloned.y += dy;
+            }
+            targetPage.widgets.push(cloned);
+        });
 
         this.app.project.rebuildWidgetsIndex();
         this.app.recordHistory();
         emit(EVENTS.STATE_CHANGED);
+        return true;
     }
 
     copyWidget(id) {
@@ -127,7 +178,8 @@ export class WidgetManager {
     }
 
     pasteWidget() {
-        const clipboard = this.app.editor.clipboardWidgets;
+        const editorAny = /** @type {any} */ (this.app.editor);
+        const clipboard = editorAny.clipboardWidgets;
         if (!clipboard || clipboard.length === 0) return;
 
         const newWidgets = clipboard.map(w => {
@@ -142,7 +194,7 @@ export class WidgetManager {
             this.checkRenderingModeForWidget(w);
             this.app.project.addWidget(w);
         });
-        this.app.editor.setSelectedWidgetIds(newWidgets.map(w => w.id));
+        editorAny.setSelectedWidgetIds(newWidgets.map(w => w.id));
         this.app.recordHistory();
         emit(EVENTS.STATE_CHANGED);
     }
@@ -211,8 +263,10 @@ export class WidgetManager {
             const isPureShape = ["shape_rect", "rounded_rect", "shape_circle", "rectangle", "rrect", "circle"].includes(widget.type);
 
             // Preserve original border color (if it was using 'color' property)
-            const originalColor = widget.props.color || defaultForeground;
-            if (!widget.props.border_color) {
+            const originalColor = (widget.props.color && widget.props.color !== 'theme_auto')
+                ? widget.props.color
+                : defaultForeground;
+            if (!widget.props.border_color || widget.props.border_color === 'theme_auto') {
                 widget.props.border_color = originalColor;
             }
 

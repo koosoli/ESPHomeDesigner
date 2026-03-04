@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Sidebar } from './core/sidebar.js';
 import { Canvas } from './core/canvas.js';
 import { PropertiesPanel } from './core/properties.js';
@@ -26,12 +27,10 @@ import './core/events.js';
 import './core/plugin_registry';
 import './core/widget_factory';
 import './core/layout_constants.js';
-import './ui/layout_manager.js';
 import './ui/splitters.js';
 import './ui/icon_picker.js';
 import './ui/radial_menu.js';
 import './ui/entity_picker.js';
-import './ui/llm_prompt.js';
 
 // Newly modularized imports
 import { showToast } from './utils/dom.js';
@@ -41,21 +40,22 @@ import { saveLayoutToFile, handleFileSelect } from './io/file_ops.js';
 
 import { loadLayoutIntoState } from './io/yaml_import';
 import './io/hardware_import.js'; // Register global hardware fetchers
-import { aiService } from './io/ai_service.js'; // eslint-disable-line no-unused-vars
 
 import { renderWidgetPalette } from './ui/widget_palette.js';
 import { QuickSearch } from './ui/quick_search.js';
 import { HierarchyView } from './ui/hierarchy_view.js';
+import { LLMPrompt } from './ui/llm_prompt.js';
+import { LayoutManager } from './ui/layout_manager.js';
 
 export class App {
     constructor() {
         try {
             Logger.log("[App] Constructor started");
-            this.sidebar = new Sidebar();
+            this.sidebar = new Sidebar(this);
             Logger.log("[App] Sidebar created");
-            this.canvas = new Canvas();
+            this.canvas = new Canvas(this);
             Logger.log("[App] Canvas created");
-            this.propertiesPanel = new PropertiesPanel();
+            this.propertiesPanel = new PropertiesPanel(this);
             Logger.log("[App] PropertiesPanel created");
             this.hierarchyView = new HierarchyView();
             Logger.log("[App] HierarchyView created");
@@ -67,10 +67,9 @@ export class App {
             Logger.log("[App] PageSettings created");
             this.keyboardHandler = new KeyboardHandler();
             Logger.log("[App] KeyboardHandler created");
-            this.llmPrompt = window.llmPrompt;
-            Logger.log("[App] LLMPrompt linked");
+            this.llmPrompt = new LLMPrompt();
+            Logger.log("[App] LLMPrompt initialized");
             this.quickSearch = new QuickSearch();
-            window.QuickSearch = this.quickSearch; // Global for back-compat if needed
             Logger.log("[App] QuickSearch initialized");
 
             // Initialize Output Adapter
@@ -82,10 +81,8 @@ export class App {
             Logger.log("[App] SnippetManager initialized");
 
             // Initialize Layout Manager
-            if (window.layoutManager) {
-                this.layoutManager = window.layoutManager;
-                Logger.log("[App] LayoutManager linked");
-            }
+            this.layoutManager = new LayoutManager();
+            Logger.log("[App] LayoutManager initialized");
 
         } catch (e) {
             Logger.error("[App] Critical Error in Constructor:", e);

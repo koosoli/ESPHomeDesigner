@@ -14,17 +14,18 @@ import { hasHaBackend } from '../../utils/env.js';
 import { DEVICE_PROFILES } from '../../io/devices.js';
 
 export class AppStateFacade {
-    project: any;
-    editor: any;
-    preferences: any;
-    secrets: any;
+    project: ProjectStore;
+    editor: EditorStore;
+    preferences: PreferencesStore;
+    secrets: SecretsStore;
 
-    selectionManager: any;
-    historyManager: any;
-    widgetManager: any;
-    pageManager: any;
+    selectionManager: SelectionManager;
+    historyManager: HistoryManager;
+    widgetManager: WidgetManager;
+    pageManager: PageManager;
 
     _isRestoringHistory: boolean;
+    isUndoRedoInProgress: boolean;
     $raw?: AppStateFacade; // For proxy bypass
 
     constructor() {
@@ -41,6 +42,7 @@ export class AppStateFacade {
 
         // Guard flag to prevent history recording during undo/redo
         this._isRestoringHistory = false;
+        this.isUndoRedoInProgress = false;
 
         this.recordHistory();
 
@@ -336,7 +338,7 @@ export class AppStateFacade {
         this.widgetManager.createDropShadow(widgetIdOrIds);
     }
 
-    clearCurrentPage(preserveLocked: boolean = false): void {
+    clearCurrentPage(preserveLocked: boolean = false): any {
         return this.pageManager.clearCurrentPage(preserveLocked);
     }
 
@@ -395,7 +397,7 @@ const handler = {
             return true;
         }
 
-        const allowedInternalProps = ['entityStates', '_isRestoringHistory'];
+        const allowedInternalProps = ['entityStates', '_isRestoringHistory', 'isUndoRedoInProgress'];
 
         // Log illegal direct mutations (exceptions: functions and whitelisted internal trackers)
         if (typeof prop === 'string' && !allowedInternalProps.includes(prop) && typeof target[prop] !== 'function') {

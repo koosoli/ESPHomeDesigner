@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ODP Ellipse Plugin
  * Draws an ellipse shape

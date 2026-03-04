@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ODP Arc Plugin
  * Draws an arc segment (different from LVGL arc)

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { AppState } from '@core/state';
 /**
  * Rectangle Shape Plugin
@@ -5,6 +6,7 @@ import { AppState } from '@core/state';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
+    const radius = parseInt(props.radius ?? props.corner_radius ?? props.border_radius ?? 0, 10) || 0;
 
     // bg_color/border_color only override 'color' when explicitly set to a real color
     // (theme_auto is treated as "not explicitly set" so 'color' takes precedence)
@@ -17,6 +19,7 @@ const render = (el, widget, { getColorStyle }) => {
     el.style.backgroundColor = props.fill ? getColorStyle(bgCol) : "transparent";
     el.style.border = `${props.border_width || 1}px solid ${getColorStyle(borderCol)}`;
     el.style.boxSizing = "border-box";
+    el.style.borderRadius = `${radius}px`;
 
     if (props.opacity !== undefined && props.opacity < 100) {
         el.style.opacity = props.opacity / 100;
@@ -25,6 +28,7 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
     const p = w.props || {};
+    const radius = parseInt(p.radius ?? p.corner_radius ?? p.border_radius ?? 0, 10) || 0;
     return {
         obj: {
             ...common,
@@ -32,7 +36,7 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
             bg_opa: p.fill !== false ? "cover" : "transp",
             border_width: p.border_width,
             border_color: convertColor(p.border_color || p.color),
-            radius: p.radius || 0,
+            radius,
             opa: formatOpacity(p.opa)
         }
     };
@@ -62,7 +66,6 @@ export default {
         };
 
         panel.createSection("Shape Settings", true);
-        panel.addLabeledInput("Corner Radius", "number", props.radius || 0, (v) => updateProp("radius", parseInt(v, 10)));
         panel.addCheckbox("Fill Rectangle", !!props.fill, (v) => updateProp("fill", v));
         panel.addColorSelector("Main Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
         panel.addColorSelector("Fill Color Override", props.bg_color || "theme_auto", null, (v) => updateProp("bg_color", v));
@@ -71,6 +74,7 @@ export default {
         panel.createSection("Border Settings", true);
         panel.addLabeledInput("Border Thickness", "number", props.border_width || 1, (v) => updateProp("border_width", parseInt(v, 10)));
         panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.radius || 0, (v) => updateProp("radius", parseInt(v, 10)));
         panel.endSection();
 
         panel.createSection("Appearance", true);
@@ -84,6 +88,7 @@ export default {
     render,
     exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
+        const radius = parseInt(p.radius ?? p.corner_radius ?? p.border_radius ?? 0, 10) || 0;
 
         // Resolve colors (handle theme_auto)
         // bg_color/border_color only override 'color' when explicitly set to a real color
@@ -106,12 +111,13 @@ export default {
             fill: fill,
             outline: outline,
             width: p.border_width || 1,
-            radius: p.radius || 0
+            radius
         };
     },
     exportLVGL,
     exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
+        const radius = parseInt(p.radius ?? p.corner_radius ?? p.border_radius ?? 0, 10) || 0;
         return {
             type: "rectangle",
             x_start: Math.round(w.x),
@@ -121,7 +127,7 @@ export default {
             fill: p.fill ? ((p.bg_color && p.bg_color !== "theme_auto" ? p.bg_color : null) || p.color || "black") : null,
             outline: (p.border_color && p.border_color !== "theme_auto" ? p.border_color : null) || p.color || "black",
             width: p.border_width || 1,
-            radius: p.radius || 0
+            radius
         };
     },
     export: (w, context) => {
@@ -130,6 +136,7 @@ export default {
         } = context;
 
         const p = w.props || {};
+        const radius = parseInt(p.radius ?? p.corner_radius ?? p.border_radius ?? 0, 10) || 0;
         const fill = !!p.fill;
         const borderWidth = parseInt(p.border_width || 1, 10);
         const colorProp = p.color || "theme_auto";
@@ -149,7 +156,7 @@ export default {
         if (cond) lines.push(`        ${cond}`);
 
         if (fill) {
-            addDitherMask(lines, fillColorProp, isEpaper, rectX, rectY, rectW, rectH, p.radius || 0);
+            addDitherMask(lines, fillColorProp, isEpaper, rectX, rectY, rectW, rectH, radius);
             if (!(fillColorProp.toLowerCase() === "gray" && isEpaper)) {
                 lines.push(`        it.filled_rectangle(${rectX}, ${rectY}, ${rectW}, ${rectH}, ${fillColor});`);
             }
@@ -161,7 +168,7 @@ export default {
             lines.push(`          it.rectangle(${rectX} + i, ${rectY} + i, ${rectW} - 2 * i, ${rectH} - 2 * i, ${borderColor});`);
             lines.push(`        }`);
             if (!fill) {
-                addDitherMask(lines, borderColorProp, isEpaper, rectX, rectY, rectW, rectH, p.radius || 0);
+                addDitherMask(lines, borderColorProp, isEpaper, rectX, rectY, rectW, rectH, radius);
             }
         }
 

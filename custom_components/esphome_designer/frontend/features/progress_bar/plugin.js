@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { AppState } from '@core/state';
 import { TemplateConverter } from '../../js/utils/template_converter.js';
 

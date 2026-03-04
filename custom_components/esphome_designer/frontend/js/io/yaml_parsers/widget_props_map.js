@@ -4,18 +4,22 @@ import { Logger } from '../../utils/logger.js';
  * Reconstructs a widget's props dictionary from the flat key-value pairs parsed in the YAML.
  * 
  * @param {string} widgetType - The resolved widget type (e.g. "text", "lvgl_button")
- * @param {Record<string, string>} p - The flat property key-value pairs (from // widget: marker)
- * @param {import('../../types.js').WidgetConfig} widget - The base widget object (initialized with core fields like x, y, id)
+ * @param {Record<string, any>} p - The flat property key-value pairs (from // widget: marker)
+ * @param {any} widget - The base widget object (initialized with core fields like x, y, id)
  * @returns {Record<string, any>} Rich typed properties for the widget
  */
 export function buildWidgetProps(widgetType, p, widget) {
     const props = {};
 
+    /**
+     * @param {any} c
+     * @param {string} fallback
+     */
     const normalizeColor = (c, fallback) => {
         if (c === undefined || c === null || c === "") return fallback;
         if (typeof c === 'number') {
-            const hex = c.toString(16).toLowerCase();
-            return "#" + (hex.length <= 3 ? hex.padStart(3, '0') : hex.padStart(6, '0'));
+            const h = String(c.toString(16).toLowerCase());
+            return "#" + (h.length <= 3 ? h.padStart(3, '0') : h.padStart(6, '0'));
         }
         let s = String(c).trim().toLowerCase();
         if (s.startsWith("0x")) return "#" + s.substring(2);
@@ -34,7 +38,7 @@ export function buildWidgetProps(widgetType, p, widget) {
             else if (key.includes("color") || key.includes("bg_") || key.startsWith("line_color")) {
                 props[key] = normalizeColor(val, val);
             }
-            else if (typeof val === 'string' && val !== "" && !isNaN(val) && !val.startsWith("0x")) props[key] = parseFloat(val);
+            else if (typeof val === 'string' && val !== "" && !Number.isNaN(Number(val)) && !val.startsWith("0x")) props[key] = parseFloat(val);
             else props[key] = val;
         });
 
@@ -596,7 +600,7 @@ export function buildWidgetProps(widgetType, p, widget) {
                 return;
             }
 
-            let normalizedVal = val;
+            let normalizedVal = String(val);
             if (Array.isArray(val)) {
                 if (key === "options") normalizedVal = val.join("\n");
                 else if (key === "points") normalizedVal = val.map(pt => Array.isArray(pt) ? pt.join(",") : String(pt)).join(" ");
@@ -607,13 +611,13 @@ export function buildWidgetProps(widgetType, p, widget) {
                 }
                 // Handle Unicode escapes
                 if (normalizedVal.includes("\\u")) {
-                    try { normalizedVal = JSON.parse(`"${normalizedVal}"`); } catch (e) { /* ignore */ } // eslint-disable-line no-unused-vars
+                    try { normalizedVal = JSON.parse(`"${normalizedVal}"`); } catch { /* ignore */ }
                 }
             }
 
             if (normalizedVal === "true") props[key] = true;
             else if (normalizedVal === "false") props[key] = false;
-            else if (typeof normalizedVal === 'string' && normalizedVal !== "" && !isNaN(normalizedVal) && !normalizedVal.startsWith("0x") && key !== "text" && key !== "id") {
+            else if (typeof normalizedVal === 'string' && normalizedVal !== "" && !Number.isNaN(Number(normalizedVal)) && !normalizedVal.startsWith("0x") && key !== "text" && key !== "id") {
                 props[key] = parseFloat(normalizedVal);
             }
             else props[key] = normalizedVal;

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { registry } from '../core/plugin_registry';
 import { AppState } from '../core/state';
 import { Logger } from '../utils/logger.js';

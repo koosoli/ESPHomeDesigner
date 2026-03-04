@@ -12,7 +12,7 @@ export class OEPLAdapter extends BaseAdapter {
 
     /**
      * Main entry point for generating the JSON configuration.
-     * @param {import("../../types.js").ProjectPayload} layout
+     * @param {ProjectPayload} layout
      * @returns {Promise<string>} The generated JSON configuration.
      */
     async generate(layout) {
@@ -82,8 +82,8 @@ export class OEPLAdapter extends BaseAdapter {
 
     /**
      * Generates an OEPL element for a single widget.
-     * @param {Object} widget 
-     * @param {Object} context 
+     * @param {Widget} widget 
+     * @param {Record<string, any>} context 
      * @returns {Object|Object[]|null}
      */
     generateWidget(widget, context) {

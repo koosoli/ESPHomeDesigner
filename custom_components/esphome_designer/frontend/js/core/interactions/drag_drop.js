@@ -1,34 +1,41 @@
+// @ts-check
 import { AppState } from '../state';
 import { Logger } from '../../utils/logger.js';
 import { WidgetFactory } from '../widget_factory';
 import { registry } from '../plugin_registry';
 
+/**
+ * @param {any} canvasInstance
+ */
 export function setupDragAndDrop(canvasInstance) {
     // Attach listeners to the viewport container instead of the canvas element
     if (!canvasInstance.viewport) return;
 
-    canvasInstance.viewport.addEventListener("dragenter", (e) => { // eslint-disable-line no-unused-vars
+    canvasInstance.viewport.addEventListener("dragenter", (/** @type {DragEvent} */ _e) => {
         // Guard against internal widget drags triggering this
         if (!canvasInstance.dragState) {
             canvasInstance.isExternalDragging = true;
         }
     });
 
-    canvasInstance.viewport.addEventListener("dragover", (e) => {
+    canvasInstance.viewport.addEventListener("dragover", (/** @type {DragEvent} */ e) => {
         e.preventDefault();
-        e.dataTransfer.dropEffect = "copy";
+        if (e.dataTransfer) {
+            e.dataTransfer.dropEffect = "copy";
+        }
 
         if (!canvasInstance.dragState) {
             canvasInstance.isExternalDragging = true;
         }
 
-        const wrapper = e.target.closest(".artboard-wrapper");
+        const target = /** @type {HTMLElement} */ (e.target);
+        const wrapper = target.closest(".artboard-wrapper");
         document.querySelectorAll(".artboard-wrapper.drag-over").forEach(el => {
             if (el !== wrapper) el.classList.remove("drag-over");
         });
         if (wrapper) wrapper.classList.add("drag-over");
 
-        const placeholder = e.target.closest(".add-page-placeholder");
+        const placeholder = /** @type {HTMLElement} */ (e.target).closest(".add-page-placeholder");
         if (placeholder) placeholder.classList.add("drag-over");
         else {
             const el = document.querySelector(".add-page-placeholder.drag-over");
@@ -36,8 +43,8 @@ export function setupDragAndDrop(canvasInstance) {
         }
     });
 
-    canvasInstance.viewport.addEventListener("dragleave", (e) => {
-        if (e.relatedTarget === null || !canvasInstance.viewport.contains(e.relatedTarget)) {
+    canvasInstance.viewport.addEventListener("dragleave", (/** @type {DragEvent} */ e) => {
+        if (e.relatedTarget === null || !canvasInstance.viewport.contains(/** @type {Node} */(e.relatedTarget))) {
             canvasInstance.isExternalDragging = false;
             document.querySelectorAll(".artboard-wrapper.drag-over, .add-page-placeholder.drag-over").forEach(el => {
                 el.classList.remove("drag-over");
@@ -45,7 +52,7 @@ export function setupDragAndDrop(canvasInstance) {
         }
     });
 
-    canvasInstance.viewport.addEventListener("drop", async (e) => {
+    canvasInstance.viewport.addEventListener("drop", async (/** @type {DragEvent} */ e) => {
         e.preventDefault();
         e.stopPropagation();
 
@@ -55,7 +62,10 @@ export function setupDragAndDrop(canvasInstance) {
             el.classList.remove("drag-over");
         });
 
-        const type = e.dataTransfer.getData("application/widget-type") || e.dataTransfer.getData("text/plain");
+        const dataTransfer = e.dataTransfer;
+        if (!dataTransfer) return;
+
+        const type = dataTransfer.getData("application/widget-type") || dataTransfer.getData("text/plain");
         if (!type) return;
 
         const clientX = e.clientX;
@@ -66,17 +76,17 @@ export function setupDragAndDrop(canvasInstance) {
             targetEl = document.elementFromPoint(clientX, clientY);
         }
 
-        const artboardWrapper = targetEl?.closest(".artboard-wrapper");
-        const placeholder = targetEl?.closest(".add-page-placeholder");
+        const artboardWrapper = targetEl instanceof HTMLElement ? targetEl.closest(".artboard-wrapper") : null;
+        const placeholder = targetEl instanceof HTMLElement ? targetEl.closest(".add-page-placeholder") : null;
 
         let targetPageIndex = -1;
         let targetRect = null;
 
-        if (artboardWrapper) {
-            targetPageIndex = parseInt(artboardWrapper.dataset.index, 10);
+        if (artboardWrapper instanceof HTMLElement) {
+            targetPageIndex = parseInt(artboardWrapper.dataset.index || "-1", 10);
             const artboardEl = artboardWrapper.querySelector(".artboard");
             if (artboardEl) targetRect = artboardEl.getBoundingClientRect();
-        } else if (placeholder) {
+        } else if (placeholder instanceof HTMLElement) {
             targetPageIndex = AppState.pages.length;
         } else {
             targetPageIndex = AppState.currentPageIndex;

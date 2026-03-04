@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Battery Icon Plugin
  */

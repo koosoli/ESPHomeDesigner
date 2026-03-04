@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { AppState } from '@core/state';
 import { wordWrap, parseColorMarkup, evaluateTemplatePreview } from '../../js/utils/text_utils.js';
 import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js';

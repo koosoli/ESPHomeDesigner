@@ -1,10 +1,11 @@
 import { AppState } from '../../core/state';
 import { MIXED_VALUE, parseColor, hexToRgb, rgbToHex } from '../../utils/color_utils.js';
 import { isRGBDevice, getAvailableColors } from '../../utils/device.js';
-import { fetchEntityStates, ENTITY_DATALIST_ID, ensureEntityDatalist } from '../../io/ha_api.js'; // eslint-disable-line no-unused-vars
+import { ENTITY_DATALIST_ID, ensureEntityDatalist } from '../../io/ha_api.js';
+import { debounce } from '../../utils/helpers.js';
 import { openEntityPickerForWidget } from '../entity_picker.js';
 import { openIconPickerForWidget } from '../icon_picker.js';
-import { getWeightsForFont, clampFontWeight } from '../../core/font_weights.js'; // eslint-disable-line no-unused-vars
+import { iconPickerData } from '../../core/constants_icons.js';
 
 /**
  * PropertyControls handles the creation of UI elements for the properties panel.
@@ -19,6 +20,12 @@ export class PropertyControls {
         return this.panel.getContainer();
     }
 
+    /**
+     * @param {string} label
+     * @param {string} type
+     * @param {any} value
+     * @param {(val: string) => void} onChange
+     */
     addLabeledInput(label, type, value, onChange) {
         const wrap = document.createElement("div");
         wrap.className = "field";
@@ -49,16 +56,21 @@ export class PropertyControls {
             }
         }
 
+        // Use no debounce for numeric inputs to allow real-time feedback when holding arrows
+        const debouncedOnChange = (type === 'number' || type === 'range') ? onChange : debounce(onChange, 50);
+
         input.addEventListener("input", () => {
             if (isMixed) {
                 input.style.fontStyle = "normal";
                 input.style.color = "inherit";
             }
-            onChange(input.value);
+            const el = /** @type {HTMLInputElement | HTMLTextAreaElement} */ (input);
+            debouncedOnChange(el.value);
         });
 
         input.addEventListener("change", () => {
-            onChange(input.value);
+            const el = /** @type {HTMLInputElement | HTMLTextAreaElement} */ (input);
+            onChange(el.value);
         });
 
         wrap.appendChild(lbl);
@@ -66,6 +78,12 @@ export class PropertyControls {
         this.getContainer().appendChild(wrap);
     }
 
+    /**
+     * @param {string} label
+     * @param {any} value
+     * @param {any[]} options
+     * @param {(val: string) => void} onChange
+     */
     addSelect(label, value, options, onChange) {
         const wrap = document.createElement("div");
         wrap.className = "field";
@@ -99,12 +117,20 @@ export class PropertyControls {
             }
             select.appendChild(o);
         });
-        select.addEventListener("change", () => onChange(select.value));
+        select.addEventListener("change", () => {
+            const el = /** @type {HTMLSelectElement} */ (select);
+            onChange(el.value);
+        });
         wrap.appendChild(lbl);
         wrap.appendChild(select);
         this.getContainer().appendChild(wrap);
     }
 
+    /**
+     * @param {string} label
+     * @param {any} value
+     * @param {(val: boolean) => void} onChange
+     */
     addCheckbox(label, value, onChange) {
         const wrap = document.createElement("div");
         wrap.className = "field";
@@ -132,8 +158,9 @@ export class PropertyControls {
         checkbox.style.margin = "0";
         checkbox.style.cursor = "pointer";
         checkbox.addEventListener("change", () => {
-            checkbox.indeterminate = false;
-            onChange(checkbox.checked);
+            const el = /** @type {HTMLInputElement} */ (checkbox);
+            el.indeterminate = false;
+            onChange(el.checked);
         });
 
         const span = document.createElement("span");
@@ -205,7 +232,6 @@ export class PropertyControls {
     }
 
     addIconPicker(label, currentValue, onSelect, widget) {
-        const iconPickerData = window.iconPickerData || [];
         const wrap = document.createElement("div");
         wrap.className = "field";
         const lbl = document.createElement("div");
@@ -405,9 +431,9 @@ export class PropertyControls {
             g = parseInt(gSlider.slider.value);
             b = parseInt(bSlider.slider.value);
 
-            rSlider.valLbl.textContent = r;
-            gSlider.valLbl.textContent = g;
-            bSlider.valLbl.textContent = b;
+            rSlider.valLbl.textContent = String(r);
+            gSlider.valLbl.textContent = String(g);
+            bSlider.valLbl.textContent = String(b);
 
             const newHex = rgbToHex(r, g, b).toUpperCase();
             hexInput.value = newHex;
@@ -424,9 +450,9 @@ export class PropertyControls {
                 const rgbVal = hexToRgb(val);
                 r = rgbVal.r; g = rgbVal.g; b = rgbVal.b;
 
-                rSlider.slider.value = r; rSlider.valLbl.textContent = r;
-                gSlider.slider.value = g; gSlider.valLbl.textContent = g;
-                bSlider.slider.value = b; bSlider.valLbl.textContent = b;
+                rSlider.slider.value = String(r); rSlider.valLbl.textContent = String(r);
+                gSlider.slider.value = String(g); gSlider.valLbl.textContent = String(g);
+                bSlider.slider.value = String(b); bSlider.valLbl.textContent = String(b);
 
                 previewBox.style.backgroundColor = val;
                 onChange(val);
@@ -512,15 +538,18 @@ export class PropertyControls {
         input.max = max;
         if (isMixed) input.placeholder = "Mixed";
 
+        // Numeric inputs with sliders should be immediate for maximum fluidity
+        const debouncedOnChange = onChange;
+
         slider.addEventListener("input", () => {
             if (isMixed) input.placeholder = "";
             input.value = slider.value;
-            onChange(parseInt(slider.value, 10));
+            debouncedOnChange(parseInt(slider.value, 10));
         });
 
         input.addEventListener("input", () => {
             slider.value = input.value;
-            onChange(parseInt(input.value, 10));
+            debouncedOnChange(parseInt(input.value, 10));
         });
 
         hybrid.appendChild(slider);
@@ -729,8 +758,8 @@ export class PropertyControls {
         input.value = value;
         input.style.flex = "1";
 
-        input.onchange = (e) => onChange(e.target.value);
-        input.oninput = (e) => onChange(e.target.value);
+        input.onchange = (e) => onChange((/** @type {HTMLInputElement} */(e.target)).value);
+        input.oninput = (e) => onChange((/** @type {HTMLInputElement} */(e.target)).value);
 
         const btn = document.createElement("button");
         btn.className = "btn btn-secondary";

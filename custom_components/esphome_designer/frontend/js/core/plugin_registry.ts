@@ -45,7 +45,8 @@ export class PluginRegistry {
             "ellipse": "odp_ellipse",
             "icon_sequence": "odp_icon_sequence",
             "weather_forcast": "weather_forecast",
-            "odp_debug_grid": "debug_grid"
+            "odp_debug_grid": "debug_grid",
+            "lv_chart": "lvgl_chart"
         };
     }
 

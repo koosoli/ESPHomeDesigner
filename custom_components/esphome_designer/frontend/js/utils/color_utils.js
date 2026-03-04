@@ -11,12 +11,14 @@ export const MIXED_VALUE = "__mixed__";
  * @returns {string} Standard hex color string.
  */
 export function parseColor(c) {
+    /** @type {Object.<string, string>} */
     const names = {
         "black": "#000000", "white": "#FFFFFF", "red": "#FF0000", "green": "#00FF00",
         "blue": "#0000FF", "yellow": "#FFFF00", "gray": "#808080", "grey": "#808080"
     };
     if (!c) return "#000000";
-    if (names[c.toLowerCase()]) return names[c.toLowerCase()];
+    const lowerC = c.toLowerCase();
+    if (names[lowerC]) return names[lowerC];
     if (c.startsWith("0x")) return "#" + c.substring(2);
     if (c.startsWith("#")) return c;
     return "#000000";
@@ -25,7 +27,7 @@ export function parseColor(c) {
 /**
  * Converts a hex color string to an RGB object.
  * @param {string} h Hex color string.
- * @returns {Object} {r, g, b}
+ * @returns {{r: number, g: number, b: number}}
  */
 export function hexToRgb(h) {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
@@ -44,6 +46,7 @@ export function hexToRgb(h) {
  * @returns {string} Hex color string.
  */
 export function rgbToHex(r, g, b) {
+    /** @param {number} c */
     const toHex = (c) => {
         const hx = Math.max(0, Math.min(255, c)).toString(16);
         return hx.length === 1 ? "0" + hx : hx;
@@ -53,6 +56,10 @@ export function rgbToHex(r, g, b) {
 
 /**
  * Generic HSL to RGB conversion helper if needed for advanced mixers.
+ * @param {number} h
+ * @param {number} s
+ * @param {number} l
+ * @returns {{r: number, g: number, b: number}}
  */
 export function hslToRgb(h, s, l) {
     let r, g, b;
@@ -72,6 +79,12 @@ export function hslToRgb(h, s, l) {
     };
 }
 
+/**
+ * @param {number} p
+ * @param {number} q
+ * @param {number} t
+ * @returns {number}
+ */
 function hue2rgb(p, q, t) {
     if (t < 0) t += 1;
     if (t > 1) t -= 1;

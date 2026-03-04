@@ -1,10 +1,14 @@
+// @ts-check
+
 import { AppState } from '../state';
-import { Logger } from '../../utils/logger.js';
+import { radialMenu } from '../../ui/radial_menu.js';
 import { emit, EVENTS } from '../events.js';
-import { WidgetFactory } from '../widget_factory'; // eslint-disable-line no-unused-vars
-import { registry } from '../plugin_registry'; // eslint-disable-line no-unused-vars
 import { snapToGridCell, applySnapToPosition, clearSnapGuides, updateWidgetGridCell, snapResizeValue } from '../canvas_snap.js';
-import { render, updateWidgetDOM, focusPage, applyZoom } from '../canvas_renderer.js'; // eslint-disable-line no-unused-vars
+import { render, updateWidgetDOM, focusPage, } from '../canvas_renderer.js';
+import { createDragGhost, updateDragGhost, updateDragGhostPosition, removeDragGhost, createPageDragGhost, updatePageDragGhost, removePageDragGhost } from './drag_ghost.js';
+import { startInlineEdit } from './inline_edit.js';
+
+export { createDragGhost, updateDragGhost, updateDragGhostPosition, removeDragGhost, createPageDragGhost, updatePageDragGhost, removePageDragGhost, startInlineEdit };
 
 // Helper for manual double-click detection
 let lastClickTime = 0;
@@ -14,342 +18,42 @@ let lastClickWidgetId = null;
 let lastBackgroundClickTime = 0;
 let lastBackgroundClickIndex = null;
 
-/**
- * Creates a floating drag ghost that follows the cursor during widget drags.
- * This enables smooth cross-page dragging without the widget being clamped to artboard bounds.
- */
-function createDragGhost(canvasInstance, widgets, clientX, clientY, zoom, widgetOffsets) {
-    // Remove any existing ghost
-    removeDragGhost(canvasInstance);
-
-    const ghostContainer = document.createElement('div');
-    ghostContainer.className = 'drag-ghost-container';
-    ghostContainer.style.cssText = `
-        position: fixed;
-        pointer-events: none;
-        z-index: 99999;
-        opacity: 1.0; 
-        transform-origin: top left;
-        transform: scale(${zoom});
-        transition: none;
-    `;
-
-    // Find the primary widget for relative coordinate calculation
-    // FIX: Use the specifically grabbed widget as anchor (primaryOffset.id)
-    // instead of defaulting to the first one in the list.
-    const grabbedId = canvasInstance.dragState?.id;
-    const primaryOffset = widgetOffsets.find(o => o.id === grabbedId) || widgetOffsets[0];
-    const primaryWidget = widgets.find(w => w.id === primaryOffset?.id) || widgets[0];
-    const primaryEl = document.querySelector(`.widget[data-id="${primaryWidget.id}"]`);
-
-    if (!primaryWidget || !primaryEl) return;
-
-    // 1. Flatten selection: ensure children of groups are also ghosted
-    const allWidgetsToGhost = [];
-    const currentPage = AppState.getCurrentPage();
-
-    widgets.forEach(w => {
-        allWidgetsToGhost.push(w);
-        if (w.type === 'group') {
-            const children = currentPage.widgets.filter(child => child.parentId === w.id);
-            allWidgetsToGhost.push(...children);
-        }
-    });
-
-    // 2. Clone each widget with full visual context
-    allWidgetsToGhost.forEach(widget => {
-        const widgetEl = document.querySelector(`.widget[data-id="${widget.id}"]`);
-        if (widgetEl) {
-            // Simulated Artboard Context (Ensures CSS variables like --accent, --white resolve)
-            const sourceArtboard = widgetEl.closest('.artboard');
-            const contextWrapper = document.createElement('div');
-            contextWrapper.className = (sourceArtboard ? sourceArtboard.className : 'artboard') + ' ghost-context-sim';
-
-            // Position wrapper relative to primary widget
-            contextWrapper.style.cssText = `
-                position: absolute;
-                left: ${(widget.x - primaryWidget.x)}px;
-                top: ${(widget.y - primaryWidget.y)}px;
-                width: ${widget.width}px;
-                height: ${widget.height}px;
-                pointer-events: none;
-                background: transparent !important;
-                box-shadow: none !important;
-                border: none !important;
-                transform: none !important;
-                overflow: visible;
-                display: block;
-            `;
-
-            // The Clone itself
-            const clone = document.createElement('div');
-
-            // Copy all attributes and most importantly the style attribute
-            for (const attr of widgetEl.attributes) {
-                clone.setAttribute(attr.name, attr.value);
-            }
-
-            // Clean state/interactive classes
-            clone.classList.remove('active', 'dragging-source', 'locked');
-            clone.classList.add('drag-ghost-widget');
-
-            // Copy raw computed styles for absolute safety on backgrounds/borders
-            const computed = window.getComputedStyle(widgetEl);
-            clone.style.cssText = widgetEl.style.cssText; // Base styles
-            clone.style.position = 'absolute';
-            clone.style.top = '0';
-            clone.style.left = '0';
-            clone.style.margin = '0';
-            clone.style.transform = 'none';
-            clone.style.setProperty('background', computed.background, 'important');
-            clone.style.setProperty('background-color', computed.backgroundColor, 'important');
-            clone.style.setProperty('border', computed.border, 'important');
-            clone.style.setProperty('border-radius', computed.borderRadius, 'important');
-
-            // Carry inner content (icons, labels, etc.)
-            clone.innerHTML = widgetEl.innerHTML;
-
-            contextWrapper.appendChild(clone);
-            ghostContainer.appendChild(contextWrapper);
-        }
-    });
-
-    // Store click offset in screen pixels
-    if (primaryOffset) {
-        canvasInstance.dragGhostOffset = {
-            x: primaryOffset.clickOffsetX * zoom,
-            y: primaryOffset.clickOffsetY * zoom
-        };
-    }
-
-    document.body.appendChild(ghostContainer);
-    canvasInstance.dragGhostEl = ghostContainer;
-
-    // Initial position
-    updateDragGhost(canvasInstance, clientX, clientY);
-
-    // Fade out original widgets during drag
-    widgets.forEach(widget => {
-        const widgetEl = document.querySelector(`.widget[data-id="${widget.id}"]`);
-        if (widgetEl) widgetEl.classList.add('dragging-source');
-    });
-}
 
 /**
- * Updates the drag ghost position to follow the cursor.
+ * @param {any} canvasInstance
  */
-function updateDragGhost(canvasInstance, clientX, clientY) {
-    if (!canvasInstance.dragGhostEl || !canvasInstance.dragGhostOffset) return;
-
-    const offset = canvasInstance.dragGhostOffset;
-    const x = clientX - offset.x;
-    const y = clientY - offset.y;
-
-    canvasInstance.dragGhostEl.style.left = x + 'px';
-    canvasInstance.dragGhostEl.style.top = y + 'px';
-}
-
-/**
- * Updates the drag ghost position to an absolute screen position (for snapped positions).
- * The screenX/screenY should be the top-left corner of where the primary widget should appear.
- */
-function updateDragGhostPosition(canvasInstance, screenX, screenY) {
-    if (!canvasInstance.dragGhostEl) return;
-
-    canvasInstance.dragGhostEl.style.left = screenX + 'px';
-    canvasInstance.dragGhostEl.style.top = screenY + 'px';
-}
-
-/**
- * Removes the drag ghost and restores original widget visibility.
- */
-function removeDragGhost(canvasInstance) {
-    if (canvasInstance.dragGhostEl) {
-        canvasInstance.dragGhostEl.remove();
-        canvasInstance.dragGhostEl = null;
-        canvasInstance.dragGhostOffset = null;
-    }
-
-    // Restore original widgets
-    document.querySelectorAll('.widget.dragging-source').forEach(el => {
-        el.classList.remove('dragging-source');
-    });
-}
-
-
-/**
- * Creates a floating ghost of the artboard header for page reordering.
- */
-function createPageDragGhost(canvasInstance, pageIndex, clientX, clientY) {
-    const wrapper = canvasInstance.canvas.querySelector(`.artboard-wrapper[data-index="${pageIndex}"]`);
-    if (!wrapper) return;
-
-    const header = wrapper.querySelector('.artboard-header');
-    if (!header) return;
-
-    const ghost = header.cloneNode(true);
-    ghost.classList.add('page-drag-ghost');
-
-    const rect = header.getBoundingClientRect();
-    const clickOffsetX = clientX - rect.left;
-    const clickOffsetY = clientY - rect.top;
-
-    ghost.style.cssText = `
-        position: fixed;
-        left: ${clientX}px;
-        top: ${clientY}px;
-        width: ${rect.width}px;
-        pointer-events: none;
-        z-index: 100000;
-        opacity: 0.9;
-        box-shadow: 0 12px 40px rgba(0,0,0,0.5);
-        border: 2px solid var(--accent);
-        border-radius: 10px;
-        background: var(--bg-surface);
-        transform: translate(-${clickOffsetX}px, -${clickOffsetY}px) scale(1.05);
-        transition: none;
-    `;
-
-    document.body.appendChild(ghost);
-    canvasInstance.pageDragGhost = ghost;
-    canvasInstance.pageDragOffset = { x: clickOffsetX, y: clickOffsetY };
-
-    // Dim the original artboard wrapper
-    wrapper.classList.add('reordering');
-}
-
-function updatePageDragGhost(canvasInstance, clientX, clientY) {
-    if (!canvasInstance.pageDragGhost) return;
-    canvasInstance.pageDragGhost.style.left = clientX + 'px';
-    canvasInstance.pageDragGhost.style.top = clientY + 'px';
-}
-
-function removePageDragGhost(canvasInstance, pageIndex) {
-    if (canvasInstance.pageDragGhost) {
-        canvasInstance.pageDragGhost.remove();
-        canvasInstance.pageDragGhost = null;
-    }
-    const wrapper = canvasInstance.canvas.querySelector(`.artboard-wrapper[data-index="${pageIndex}"]`);
-    if (wrapper) {
-        wrapper.classList.remove('reordering');
-    }
-}
-
-
-function startInlineEdit(canvasInstance, widgetId) {
-    const widget = AppState.getWidgetById(widgetId);
-    if (!widget) return;
-
-    // Only allow inline editing for text-based widgets
-    const type = (widget.type || "").toLowerCase();
-    if (type !== "text" && type !== "label") return;
-
-    // Find widget element again for fresh rect
-    const widgetEl = canvasInstance.canvas.querySelector(`.widget[data-id="${widgetId}"]`);
-    if (!widgetEl) return;
-
-    const zoom = AppState.zoomLevel;
-    const rect = widgetEl.getBoundingClientRect();
-
-    // Create overlay textarea
-    const textarea = document.createElement("textarea");
-    textarea.value = widget.props.text || widget.title || "";
-
-    // Style it to match the widget
-    textarea.style.position = "absolute";
-    // Append to body to ensure it's on top of everything
-    textarea.style.left = (rect.left + window.scrollX) + "px";
-    textarea.style.top = (rect.top + window.scrollY) + "px";
-    textarea.style.width = Math.max(50, rect.width) + "px";
-    textarea.style.height = Math.max(30, rect.height) + "px";
-    textarea.style.zIndex = "99999";
-
-    // Font styles
-    const props = widget.props || {};
-    const fontSize = (props.font_size || 20) * zoom;
-    textarea.style.fontSize = fontSize + "px";
-    textarea.style.fontFamily = (props.font_family || "Roboto") + ", sans-serif";
-    textarea.style.fontWeight = props.font_weight || 400;
-    textarea.style.fontStyle = props.italic ? "italic" : "normal";
-    textarea.style.textAlign = (props.text_align || "LEFT").split("_").pop().toLowerCase();
-    textarea.style.color = props.color || "black";
-
-    // Reset styles
-    textarea.style.background = "rgba(255, 255, 255, 0.9)";
-    textarea.style.border = "1px solid #1a73e8";
-    textarea.style.padding = "0px";
-    textarea.style.resize = "both";
-    textarea.style.outline = "none";
-    textarea.style.overflow = "hidden";
-    textarea.style.lineHeight = "1.2"; // Approximate default
-
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-
-    const finishEdit = () => {
-        if (!textarea.isConnected && !textarea.parentElement) return;
-
-        // Cleanup listeners to prevent re-entry (e.g. remove() triggering blur)
-        textarea.removeEventListener("blur", onBlur);
-        textarea.removeEventListener("keydown", onKeyDown);
-
-        const newText = textarea.value;
-        if (newText !== (widget.props.text || widget.title)) {
-            AppState.updateWidget(widgetId, {
-                props: { ...widget.props, text: newText }
-            });
-        }
-
-        textarea.remove();
-    };
-
-    const onBlur = () => finishEdit();
-    const onKeyDown = (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            finishEdit();
-        }
-        if (e.key === "Escape") {
-            textarea.remove(); // Cancel
-        }
-        // Auto-resize height
-        textarea.style.height = textarea.scrollHeight + "px";
-    };
-
-    textarea.addEventListener("blur", onBlur);
-    textarea.addEventListener("keydown", onKeyDown);
-}
-
 export function setupInteractions(canvasInstance) {
-    canvasInstance.canvas.addEventListener("mousedown", (ev) => {
+    canvasInstance.canvas.addEventListener("mousedown", (/** @type {MouseEvent} */ ev) => {
         if (ev.button !== 0) return; // Only handle left-click for widgets
 
         clearSnapGuides(); // Clean up any stale guides immediately
 
-        const wrapperEl = ev.target.closest(".artboard-wrapper");
-        if (!wrapperEl || ev.target.closest(".artboard-btn") || ev.target.closest("button")) {
+        const target = /** @type {HTMLElement} */ (ev.target);
+        const wrapperEl = target.closest(".artboard-wrapper");
+        if (!wrapperEl || target.closest(".artboard-btn") || target.closest("button")) {
             // Clicked on stage background OR a button - release focus from inputs
-            if (document.activeElement && !ev.target.closest("button")) document.activeElement.blur();
+            if (document.activeElement && !target.closest("button")) {
+                /** @type {any} */ (document.activeElement).blur();
+            }
 
             // If clicking strictly on the stage background (not a button), deselect everything
-            if (!ev.target.closest("button") && !ev.target.closest(".artboard-btn")) {
+            if (!target.closest("button") && !target.closest(".artboard-btn")) {
                 AppState.selectWidgets([]);
                 render(canvasInstance);
             }
             return;
         }
 
-        const pageIndex = parseInt(wrapperEl.dataset.index, 10);
+        const pageIndex = parseInt(/** @type {HTMLElement} */(wrapperEl).dataset.index || "0", 10);
         const artboardEl = wrapperEl.querySelector(".artboard");
         let currentArtboardEl = artboardEl;
-        const widgetEl = ev.target.closest(".widget");
-        let activeWidgetId = widgetEl?.dataset.id;
+        const widgetEl = target.closest(".widget");
+        let activeWidgetId = widgetEl instanceof HTMLElement ? widgetEl.dataset.id : undefined;
 
         // If switching pages OR clicking an empty area/header of the current page, focus it
         const isSwitching = AppState.currentPageIndex !== pageIndex;
-        const isHeaderClick = !!ev.target.closest(".artboard-header");
-        const isBackgroundClick = !!ev.target.closest(".artboard") && !widgetEl; // eslint-disable-line no-unused-vars
+        const isHeaderClick = !!target.closest(".artboard-header");
+        const _isBackgroundClick = !!target.closest(".artboard") && !widgetEl;
 
         if (isSwitching) {
             // Store selection before switching
@@ -383,7 +87,7 @@ export function setupInteractions(canvasInstance) {
         const rect = currentArtboardEl.getBoundingClientRect();
         const zoom = AppState.zoomLevel;
 
-        if (widgetEl) {
+        if (widgetEl instanceof HTMLElement) {
             const widgetId = widgetEl.dataset.id;
             const isMulti = ev.shiftKey || ev.ctrlKey;
 
@@ -423,7 +127,7 @@ export function setupInteractions(canvasInstance) {
                 }
             }
 
-            const isResizeHandle = ev.target.classList.contains("widget-resize-handle");
+            const isResizeHandle = target.classList.contains("widget-resize-handle");
 
             if (isResizeHandle) {
                 // Block resizing for widgets that are part of a group
@@ -433,7 +137,7 @@ export function setupInteractions(canvasInstance) {
                 if (effectiveWidget.locked) return;
                 canvasInstance.dragState = {
                     mode: "resize",
-                    handle: ev.target.dataset.handle || 'br',
+                    handle: /** @type {HTMLElement} */(target).dataset.handle || 'br',
                     id: effectiveWidgetId,
                     startX: ev.clientX,
                     startY: ev.clientY,
@@ -450,12 +154,6 @@ export function setupInteractions(canvasInstance) {
 
                 const selectedWidgets = AppState.getSelectedWidgets();
                 const widgetOffsets = selectedWidgets.map(w => {
-                    // DEBUG: Calculate widget element bounding rect vs widget data
-                    const widgetEl = canvasInstance.canvas.querySelector(`.widget[data-id="${w.id}"]`);
-                    const widgetRect = widgetEl ? widgetEl.getBoundingClientRect() : null; // eslint-disable-line no-unused-vars
-                    const expectedLeft = rect.left + w.x * zoom; // eslint-disable-line no-unused-vars
-                    const expectedTop = rect.top + w.y * zoom; // eslint-disable-line no-unused-vars
-
                     return {
                         id: w.id,
                         startX: w.x,
@@ -520,7 +218,7 @@ export function setupInteractions(canvasInstance) {
         }
     });
 
-    canvasInstance.canvas.addEventListener("contextmenu", (ev) => {
+    canvasInstance.canvas.addEventListener("contextmenu", (/** @type {MouseEvent} */ ev) => {
         // Prevent context menu ONLY if we have actually moved or are in a multi-finger state
         if (canvasInstance.pinchState ||
             (canvasInstance.touchState?.hasMoved) ||
@@ -530,16 +228,17 @@ export function setupInteractions(canvasInstance) {
             return;
         }
 
-        ev.preventDefault();
-        const widgetEl = ev.target.closest(".widget");
-        const widgetId = widgetEl ? widgetEl.dataset.id : null;
+        const currentTarget = /** @type {HTMLElement} */ (ev.target);
+        const ctxWidgetEl = currentTarget.closest(".widget");
+        const widgetId = ctxWidgetEl instanceof HTMLElement ? ctxWidgetEl.dataset.id : null;
 
-        if (window.RadialMenu) {
-            window.RadialMenu.show(ev.clientX, ev.clientY, widgetId);
+        if (radialMenu) {
+            radialMenu.show(ev.clientX, ev.clientY, widgetId || undefined);
         }
     });
 
     // --- DEBUG CURSOR TRACKER ---
+    /** @type {HTMLElement | null} */
     let debugTooltip = document.querySelector(".debug-cursor-tooltip");
     if (!debugTooltip) {
         debugTooltip = document.createElement("div");
@@ -547,15 +246,15 @@ export function setupInteractions(canvasInstance) {
         document.body.appendChild(debugTooltip);
     }
 
-    canvasInstance.canvas.addEventListener("mousemove", (ev) => {
+    canvasInstance.canvas.addEventListener("mousemove", (/** @type {MouseEvent} */ ev) => {
         if (!AppState.showDebugGrid) {
-            debugTooltip.style.display = "none";
+            if (debugTooltip) debugTooltip.style.display = "none";
             return;
         }
 
-        const artboard = ev.target.closest(".artboard");
+        const artboard = /** @type {HTMLElement} */ (ev.target).closest(".artboard");
         if (!artboard) {
-            debugTooltip.style.display = "none";
+            if (debugTooltip) debugTooltip.style.display = "none";
             return;
         }
 
@@ -564,17 +263,23 @@ export function setupInteractions(canvasInstance) {
         const x = Math.round((ev.clientX - rect.left) / zoom);
         const y = Math.round((ev.clientY - rect.top) / zoom);
 
-        debugTooltip.style.display = "block";
-        debugTooltip.style.left = ev.clientX + "px";
-        debugTooltip.style.top = ev.clientY + "px";
-        debugTooltip.innerHTML = `<span>X:</span>${x} <span>Y:</span>${y}`;
+        if (debugTooltip) {
+            debugTooltip.style.display = "block";
+            debugTooltip.style.left = ev.clientX + "px";
+            debugTooltip.style.top = ev.clientY + "px";
+            debugTooltip.innerHTML = `<span>X:</span>${x} <span>Y:</span>${y}`;
+        }
     });
 
     canvasInstance.canvas.addEventListener("mouseleave", () => {
-        debugTooltip.style.display = "none";
+        if (debugTooltip) debugTooltip.style.display = "none";
     });
 }
 
+/**
+ * @param {MouseEvent} ev
+ * @param {any} canvasInstance
+ */
 export function onMouseMove(ev, canvasInstance) {
     const zoom = AppState.zoomLevel;
     const dims = AppState.getCanvasDimensions();
@@ -582,7 +287,7 @@ export function onMouseMove(ev, canvasInstance) {
     if (canvasInstance.dragState) {
         if (canvasInstance.dragState.mode === "move") {
             // Re-query artboard to ensure it's still valid/attached
-            const currentArtboardEl = document.querySelector(`.artboard[data-index="${AppState.currentPageIndex}"]`);
+            const currentArtboardEl = /** @type {HTMLElement|null} */ (document.querySelector(`.artboard[data-index="${AppState.currentPageIndex}"]`));
             if (!currentArtboardEl) return;
 
             // Delta-based calculation with Pan Compensation
@@ -618,48 +323,37 @@ export function onMouseMove(ev, canvasInstance) {
             }
 
             // Update ghost position using SNAPPED position (not raw cursor)
-            // Convert snapped canvas coords to screen position for ghost
             const artboardRect = currentArtboardEl.getBoundingClientRect();
             const ghostScreenX = artboardRect.left + (targetX * zoom);
             const ghostScreenY = artboardRect.top + (targetY * zoom);
             updateDragGhostPosition(canvasInstance, ghostScreenX, ghostScreenY);
 
-            // NO BOUNDS CLAMPING during drag - ghost follows cursor freely
-            // Clamping is applied on drop to the target artboard
-
-            // Calculate exact displacement applied (including snap)
+            // Calculate exact displacement applied
             const dx = targetX - primaryOffset.startX;
             const dy = targetY - primaryOffset.startY;
-
-            // Move all selected widgets by the same displacement
-            const primaryDx = dx;
-            const primaryDy = dy;
 
             for (const wInfo of canvasInstance.dragState.widgets) {
                 const widget = AppState.getWidgetById(wInfo.id);
                 if (widget && !widget.locked) {
-                    widget.x = wInfo.startX + primaryDx;
-                    widget.y = wInfo.startY + primaryDy;
-                    // Don't update DOM during cross-page drag - ghost handles visualization
-                    // updateWidgetDOM(canvasInstance, widget, true);
+                    widget.x = wInfo.startX + dx;
+                    widget.y = wInfo.startY + dy;
 
-                    // If this is a group, move its children too
+                    // Group child movement
                     if (widget.type === 'group') {
-                        const children = page.widgets.filter(w => w.parentId === widget.id);
+                        /** @type {any[]} */
+                        const pageWidgets = page.widgets || [];
+                        const children = pageWidgets.filter(w => w.parentId === widget.id);
                         children.forEach(child => {
-                            // We need to keep track of child start positions separately if they aren't in dragState.widgets
-                            // For now, if they aren't in selection, we move them by delta
                             if (!canvasInstance.dragState.widgets.find(sw => sw.id === child.id)) {
-                                // Direct delta move for non-selected children
-                                child.x += primaryDx - (canvasInstance.dragState.lastDx || 0);
-                                child.y += primaryDy - (canvasInstance.dragState.lastDy || 0);
+                                child.x += dx - (canvasInstance.dragState.lastDx || 0);
+                                child.y += dy - (canvasInstance.dragState.lastDy || 0);
                             }
                         });
                     }
                 }
             }
-            canvasInstance.dragState.lastDx = primaryDx;
-            canvasInstance.dragState.lastDy = primaryDy;
+            canvasInstance.dragState.lastDx = dx;
+            canvasInstance.dragState.lastDy = dy;
 
             if (canvasInstance.rulers) {
                 canvasInstance.rulers.setIndicators({
@@ -707,7 +401,6 @@ export function onMouseMove(ev, canvasInstance) {
                 newH = snappedBottom - ds.startWidgetY;
             }
 
-            // NaN Safety and Minimum Clamping
             const minSize = 4;
             if (isNaN(newW)) newW = ds.startW;
             if (isNaN(newH)) newH = ds.startH;
@@ -737,8 +430,6 @@ export function onMouseMove(ev, canvasInstance) {
                 }
             }
 
-            // Bound clamping can interfere with smooth resizing if not careful, 
-            // but let's keep it consistent with the target artboard
             newX = Math.max(0, Math.min(dims.width - newW, newX));
             newY = Math.max(0, Math.min(dims.height - newH, newY));
 
@@ -770,19 +461,14 @@ export function onMouseMove(ev, canvasInstance) {
                 });
             }
         } else if (canvasInstance.dragState.mode === "reorder-page") {
-            // Update ghost
             updatePageDragGhost(canvasInstance, ev.clientX, ev.clientY);
-
-            // Visual feedback for drop targets
             document.querySelectorAll('.artboard-wrapper').forEach(el => el.classList.remove('drag-over'));
-
             const targetEl = document.elementFromPoint(ev.clientX, ev.clientY);
-            const targetWrapper = targetEl?.closest('.artboard-wrapper');
-            if (targetWrapper && parseInt(targetWrapper.dataset.index, 10) !== canvasInstance.dragState.pageIndex) {
+            const targetWrapper = targetEl instanceof HTMLElement ? targetEl.closest('.artboard-wrapper') : null;
+            if (targetWrapper instanceof HTMLElement && parseInt(targetWrapper.dataset.index || "-1", 10) !== canvasInstance.dragState.pageIndex) {
                 targetWrapper.classList.add('drag-over');
             }
         }
-        // render calls skipped for perf
     } else if (canvasInstance.lassoState) {
         const artboardEl = canvasInstance.lassoState.artboardEl;
         if (!artboardEl) return;
@@ -804,20 +490,12 @@ export function onMouseMove(ev, canvasInstance) {
             canvasInstance.lassoEl.style.height = h + "px";
         }
 
-        // Real-time selection feedback
-        // Real-time selection feedback
         const page = AppState.getCurrentPage();
         if (page) {
-            // Use initialSelection as base for additive logic
             const currentSelection = new Set(canvasInstance.lassoState.isAdditive ? canvasInstance.lassoState.initialSelection : []);
             canvasInstance.lassoState.currentSelection = [];
 
-            const lassoRect = {
-                x1: x,
-                y1: y,
-                x2: x + w,
-                y2: y + h
-            };
+            const lassoRect = { x1: x, y1: y, x2: x + w, y2: y + h };
 
             for (const widget of page.widgets) {
                 const widgetRect = {
@@ -838,7 +516,6 @@ export function onMouseMove(ev, canvasInstance) {
                         el.classList.add("active");
                         currentSelection.add(widget.id);
                     } else if (canvasInstance.lassoState.isAdditive && canvasInstance.lassoState.initialSelection.includes(widget.id)) {
-                        // Keep it active if it was initially selected
                         el.classList.add("active");
                     } else {
                         el.classList.remove("active");
@@ -846,9 +523,6 @@ export function onMouseMove(ev, canvasInstance) {
                 }
             }
             canvasInstance.lassoState.currentSelection = Array.from(currentSelection);
-
-            // SYNC GLOBAL STATE LIVE
-            // This triggers Hierarchy and Snippet updates via event listeners
             AppState.selectWidgets(canvasInstance.lassoState.currentSelection);
         }
 
@@ -857,6 +531,10 @@ export function onMouseMove(ev, canvasInstance) {
     }
 }
 
+/**
+ * @param {MouseEvent} ev
+ * @param {any} canvasInstance
+ */
 export function onMouseUp(ev, canvasInstance) {
     if (canvasInstance.dragState) {
         const widgetId = canvasInstance.dragState.id;
@@ -870,28 +548,19 @@ export function onMouseUp(ev, canvasInstance) {
             const targetEl = document.elementFromPoint(ev.clientX, ev.clientY);
             if (widgetEl) widgetEl.style.pointerEvents = prevPointerEvents;
 
-            // 1. Check if dropped onto another artboard (canvas page)
             const targetArtboard = targetEl?.closest(".artboard");
             const targetPlaceholder = targetEl?.closest(".add-page-placeholder");
             const sourcePageIndex = AppState.currentPageIndex;
             let targetPageIndex = -1;
 
             if (targetArtboard) {
-                targetPageIndex = parseInt(targetArtboard.dataset.index, 10);
+                targetPageIndex = parseInt(/** @type {HTMLElement} */(targetArtboard).dataset.index || "0", 10);
             } else if (targetPlaceholder) {
-                // DROP ONTO "+ ADD PAGE" PLACEHOLDER
-                // Create the page at the end of the list, but DON'T switch to it yet
-                // IMPORTANT: Suppress focus to prevent view recentering during widget drag
                 canvasInstance.suppressNextFocus = true;
                 const pageCount = AppState.pages.length;
                 const newPage = AppState.addPage(pageCount);
-                if (newPage) {
-                    targetPageIndex = pageCount;
-                    Logger.log(`[Canvas] Created new page ${targetPageIndex} at index ${targetPageIndex}. Source was ${sourcePageIndex}`);
-                }
-
+                if (newPage) targetPageIndex = pageCount;
             } else {
-                // 2. Check if dropped onto a page list item in the sidebar
                 const pageListItem = targetEl?.closest("#pageList .item");
                 if (pageListItem) {
                     const pageListEl = document.getElementById("pageList");
@@ -901,29 +570,23 @@ export function onMouseUp(ev, canvasInstance) {
             }
 
             if (targetPageIndex !== -1 && targetPageIndex !== sourcePageIndex) {
+                /** @type {any[]} */
                 const widgetsToMove = canvasInstance.dragState.widgets;
-
-                // FORCE RENDER to ensure the new artboard exists in DOM if we just added it
                 if (targetPlaceholder) render(canvasInstance);
 
                 let targetArtboardEl = canvasInstance.canvas.querySelector(`.artboard[data-index="${targetPageIndex}"]`);
                 let moveCount = 0;
 
-                // Clean up interactions first
                 window.removeEventListener("mousemove", canvasInstance._boundMouseMove);
                 window.removeEventListener("mouseup", canvasInstance._boundMouseUp);
                 removeDragGhost(canvasInstance);
                 canvasInstance.dragState = null;
                 clearSnapGuides();
 
-                // Cache target rect and zoom BEFORE the loop
-                let targetRect = null;
+                let targetRect = targetArtboardEl ? targetArtboardEl.getBoundingClientRect() : null;
                 const zoom = AppState.zoomLevel;
-                if (targetArtboardEl) {
-                    targetRect = targetArtboardEl.getBoundingClientRect();
-                }
+                const dims = AppState.getCanvasDimensions();
 
-                // Filter to identify "root movers"
                 const allMovedIds = new Set(widgetsToMove.map(w => w.id));
                 const rootMovers = widgetsToMove.filter(wInfo => {
                     const widget = AppState.getWidgetById(wInfo.id);
@@ -936,18 +599,14 @@ export function onMouseUp(ev, canvasInstance) {
 
                     if (targetRect) {
                         const widget = AppState.getWidgetById(widgetInfo.id);
-                        const dims = AppState.getCanvasDimensions();
-
                         dropX = Math.round((ev.clientX - targetRect.left) / zoom - widgetInfo.clickOffsetX);
                         dropY = Math.round((ev.clientY - targetRect.top) / zoom - widgetInfo.clickOffsetY);
-
                         const widgetW = widget?.width || 50;
                         const widgetH = widget?.height || 50;
                         dropX = Math.max(0, Math.min(dims.width - widgetW, dropX));
                         dropY = Math.max(0, Math.min(dims.height - widgetH, dropY));
                     } else if (targetPlaceholder) {
-                        dropX = 40;
-                        dropY = 40;
+                        dropX = 40; dropY = 40;
                     }
 
                     if (AppState.moveWidgetToPage(widgetInfo.id, targetPageIndex, dropX, dropY)) {
@@ -956,10 +615,8 @@ export function onMouseUp(ev, canvasInstance) {
                 });
 
                 if (moveCount > 0) {
-                    Logger.log(`[Canvas] Successfully moved ${moveCount} widgets to page ${targetPageIndex}`);
-                    AppState.setCurrentPageIndex(targetPageIndex, { suppressFocus: true });
-                    // Do NOT recenter the view when moving widgets to another page.
-                    // The user explicitly wants to keep their current viewport position.
+                    const droppedOntoPageList = !targetArtboard && !targetPlaceholder;
+                    AppState.setCurrentPageIndex(targetPageIndex, { suppressFocus: !droppedOntoPageList });
                     render(canvasInstance);
                     return;
                 }
@@ -973,21 +630,18 @@ export function onMouseUp(ev, canvasInstance) {
             document.querySelectorAll('.artboard-wrapper').forEach(el => el.classList.remove('drag-over'));
 
             if (targetWrapper) {
-                const targetIndex = parseInt(targetWrapper.dataset.index, 10);
+                const targetIndex = parseInt(/** @type {HTMLElement} */(targetWrapper).dataset.index || "0", 10);
                 if (targetIndex !== sourceIndex) {
                     AppState.reorderPage(sourceIndex, targetIndex);
-                    // focusPage will be called via EVENTS.PAGE_CHANGED listener in canvas.js if index changes
-                    // or we might need a manual call if it stays same but contents moved.
-                    // reorderPage emits STATE_CHANGED which triggers render.
                 }
             }
         }
 
-        window.removeEventListener("mousemove", canvasInstance._boundMouseMove);
-        window.removeEventListener("mouseup", canvasInstance._boundMouseUp);
+        removeEventListener("mousemove", canvasInstance._boundMouseMove);
+        removeEventListener("mouseup", canvasInstance._boundMouseUp);
         removeDragGhost(canvasInstance);
 
-        // Clamp all dragged widgets to canvas bounds (prevents "neverland" placement)
+        // Clamping and final state updates
         const dims = AppState.getCanvasDimensions();
         const widgetsToClamp = canvasInstance.dragState?.widgets || [];
         widgetsToClamp.forEach(wInfo => {
@@ -1001,47 +655,29 @@ export function onMouseUp(ev, canvasInstance) {
         canvasInstance.dragState = null;
         if (canvasInstance.rulers) canvasInstance.rulers.setIndicators(null);
         clearSnapGuides();
-
         updateWidgetGridCell(widgetId);
 
         AppState.recordHistory();
         emit(EVENTS.STATE_CHANGED);
         render(canvasInstance);
     } else if (canvasInstance.lassoState) {
-        window.removeEventListener("mousemove", canvasInstance._boundMouseMove);
-        window.removeEventListener("mouseup", canvasInstance._boundMouseUp);
+        removeEventListener("mousemove", canvasInstance._boundMouseMove);
+        removeEventListener("mouseup", canvasInstance._boundMouseUp);
 
         if (canvasInstance.lassoEl) {
             canvasInstance.lassoEl.remove();
             canvasInstance.lassoEl = null;
         }
 
-        const duration = Date.now() - canvasInstance.lassoState.startTime;
-        const hasMoved = !!canvasInstance.lassoState.rect;
-
-        if (hasMoved) {
+        if (canvasInstance.lassoState.rect) {
             const finalSelection = canvasInstance.lassoState.currentSelection || [];
             AppState.selectWidgets(finalSelection);
         } else {
-            // Clicked without dragging - clear selection
             if (!canvasInstance.lassoState.isAdditive) {
                 AppState.selectWidgets([]);
             }
-
-            // ONLY zoom/fit if no movement occurred and zoom was requested (double click or page switch)
-            if (canvasInstance.lassoState.focusParams) {
-                const { index, fitZoom } = canvasInstance.lassoState.focusParams; // eslint-disable-line no-unused-vars
-                // If fitZoom is true (double click), we always focus. 
-                // If fitZoom is false (page switch via single click), we might just want to switch context without moving camera,
-                // BUT the user specifically asked that ONLY double click zoom and recenter.
-                if (fitZoom) {
-                    // Strictly recenter ONLY the currently selected page as per state
-                    focusPage(canvasInstance, AppState.currentPageIndex, true, true);
-                } else if (duration < 300) {
-                    // This was a single click page switch - we ALREADY switched context in mousedown
-                    // so we do nothing here to satisfy "selecting a widget from another page should no recenter"
-                    // and "only double click zooms and recenters".
-                }
+            if (canvasInstance.lassoState.focusParams?.fitZoom) {
+                focusPage(canvasInstance, AppState.currentPageIndex, true, true);
             }
         }
 

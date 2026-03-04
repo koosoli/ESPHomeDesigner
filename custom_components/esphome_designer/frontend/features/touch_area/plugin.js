@@ -1,6 +1,8 @@
+// @ts-nocheck
 /**
  * Touch Area Plugin
  */
+import { iconPickerData } from '../../js/core/constants_icons.js';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -23,9 +25,9 @@ const render = (el, widget, { getColorStyle }) => {
                 const cp = 0xf0000 + parseInt(c.slice(1), 16);
                 return String.fromCodePoint(cp);
             }
-            if (window.iconPickerData) {
+            if (iconPickerData) {
                 const iconName = (code || "").trim().replace("mdi:", "").toLowerCase();
-                const iconData = window.iconPickerData.find(idx => idx.name === iconName);
+                const iconData = iconPickerData.find(idx => idx.name === iconName);
                 if (iconData) {
                     const cp = 0xf0000 + parseInt(iconData.code.slice(1), 16);
                     return String.fromCodePoint(cp);

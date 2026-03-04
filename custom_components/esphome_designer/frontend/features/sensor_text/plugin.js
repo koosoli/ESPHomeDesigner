@@ -1,8 +1,10 @@
+// @ts-nocheck
 import { AppState } from '@core/state';
 import { TemplateConverter } from '../../js/utils/template_converter.js';
 import { wordWrap, parseColorMarkup, evaluateTemplatePreview } from '../../js/utils/text_utils.js';
 import { getNestedValue } from '../../js/utils/helpers.js';
 import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js';
+import { emit } from '../../js/core/events.js';
 
 /** Strict check: returns true only if the entire value is a valid number. */
 const isStrictlyNumeric = (val) => {
@@ -330,8 +332,8 @@ const render = (el, widget, { getColorStyle }) => {
                 el.style.width = newWidth + "px";
 
                 // Emit event to update property panels if open
-                if (window.emit) {
-                    window.emit('widget:resized', { id: widget.id, width: newWidth, height: widget.height });
+                if (emit) {
+                    emit('widget:resized', { id: widget.id, width: newWidth, height: widget.height });
                 }
             }
         });

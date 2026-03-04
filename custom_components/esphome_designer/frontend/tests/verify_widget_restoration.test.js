@@ -16,9 +16,6 @@ describe('Widget Restoration Verification', () => {
             getAlignY: (a, y, h) => y, // eslint-disable-line no-unused-vars
             sanitize: (s) => s
         };
-        window.iconPickerData = [
-            { name: 'test', code: 'F0000' }
-        ];
 
         // Register mock profiles
         window.DEVICE_PROFILES = {

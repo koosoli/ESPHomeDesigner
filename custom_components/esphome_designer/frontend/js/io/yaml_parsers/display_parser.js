@@ -10,7 +10,7 @@ import { parseCppDrawingCommand } from './cpp_drawing_parser.js';
  * @param {string[]} rawLines - Array of all lines in the document for YAML sub-block extraction
  * @param {Object} deviceSettings - Base settings for the device layout
  * @param {Object} yaml - The loaded js-yaml module reference
- * @returns {import('../../types.js').ProjectPayload} The complete LayoutObject containing pages and widgets
+ * @returns {ProjectPayload} The complete LayoutObject containing pages and widgets
  */
 export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESPHomeSchema, yaml) {
     const pageMap = new Map();
@@ -51,7 +51,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
         }
     };
 
-    const lines = rawLines; // eslint-disable-line no-unused-vars
+    const _lines = rawLines;
     let currentPageIndex = null;
     let inWidgetsBlockLookahead = false;
 
@@ -151,6 +151,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
     if (pageMap.size === 0) pageMap.set(0, []);
 
     const layout = {
+        name: deviceSettings?.device_name || "Imported Layout",
         settings: deviceSettings,
         pages: Array.from(pageMap.entries()).sort((a, b) => a[0] - b[0]).map(([idx, _]) => ({
             id: `page_${idx}`,
@@ -204,7 +205,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
         if (lvglPageMatch) {
             const pageIdStr = lvglPageMatch[1];
             const numMatch = pageIdStr.match(/^page_(\d+)$/);
-            currentPageIndex = numMatch ? parseInt(numMatch[1], 10) : (Array.from(nameMap.entries()).find(([k, v]) => v === pageIdStr)?.[0] || 0); // eslint-disable-line no-unused-vars
+            currentPageIndex = numMatch ? parseInt(numMatch[1], 10) : (Array.from(nameMap.entries()).find(([_k, v]) => v === pageIdStr)?.[0] || 0);
             continue;
         }
 
@@ -230,7 +231,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
                 };
 
                 // Delegate property reconstruction to mapping module
-                widget.props = buildWidgetProps(widgetType, p, widget);
+                widget.props = buildWidgetProps(widgetType, /** @type {Record<string, string>} */ (p), widget);
 
                 widgets.push(widget);
                 skipRendering = true;
@@ -272,7 +273,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
             };
 
             // Reuse the widget prop builder even for native YAML to avoid duplication
-            widget.props = buildWidgetProps(widgetType, nativeProps, widget);
+            widget.props = buildWidgetProps(widgetType, /** @type {Record<string, string>} */ (/** @type {unknown} */ (nativeProps)), widget);
             widgets.push(widget);
 
             // Handle nested widgets (flattening into the page for now as per backup)

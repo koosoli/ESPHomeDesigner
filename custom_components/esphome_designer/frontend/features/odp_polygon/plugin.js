@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ODP Polygon Plugin
  * Draws a polygon with arbitrary points

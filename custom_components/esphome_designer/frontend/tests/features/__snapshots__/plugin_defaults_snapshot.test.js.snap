@@ -724,12 +724,11 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of round
   "color": "theme_auto",
   "fill": false,
   "height": 100,
+  "opa": 255,
   "opacity": 100,
   "radius": 10,
   "show_border": true,
   "width": 100,
-  "x": 0,
-  "y": 0,
 }
 `;
 

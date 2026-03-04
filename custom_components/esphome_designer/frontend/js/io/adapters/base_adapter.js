@@ -10,7 +10,8 @@ export class BaseAdapter {
      * @param {Object} layout - The full layout state object.
      * @returns {Promise<string>} The generated output string.
      */
-    async generate(layout) { // eslint-disable-line no-unused-vars
+    async generate(layout) {
+        void layout;
         throw new Error("Method 'generate()' must be implemented.");
     }
 
@@ -20,7 +21,9 @@ export class BaseAdapter {
      * @param {Object} context - Shared context and utilities.
      * @returns {string[]} Array of output lines.
      */
-    generatePage(page, context) { // eslint-disable-line no-unused-vars
+    generatePage(page, context) {
+        void page;
+        void context;
         throw new Error("Method 'generatePage()' must be implemented.");
     }
 
@@ -30,7 +33,9 @@ export class BaseAdapter {
      * @param {Object} context - Shared context and utilities.
      * @returns {string[]} Array of output lines.
      */
-    generateWidget(widget, context) { // eslint-disable-line no-unused-vars
+    generateWidget(widget, context) {
+        void widget;
+        void context;
         throw new Error("Method 'generateWidget()' must be implemented.");
     }
 

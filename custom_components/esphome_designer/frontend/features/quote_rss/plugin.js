@@ -1,7 +1,13 @@
+// @ts-nocheck
 /**
  * Quote RSS Plugin
  */
 import { getWeightsForFont } from '../../js/core/font_weights.js';
+import { emit, EVENTS } from '../../js/core/events.js';
+import { hasHaBackend } from '../../js/utils/env.js';
+
+let quoteCache = {};
+let quoteFetchTimers = {};
 
 const render = (element, widget, helpers) => {
     const { getColorStyle } = helpers;
@@ -44,31 +50,27 @@ const render = (element, widget, helpers) => {
     const hash = hashInput.split("").reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0);
     const sample = sampleQuotes[Math.abs(hash) % sampleQuotes.length];
 
-    const isOfflineMode = window.location.protocol === "file:" ||
-        (typeof window.hasHaBackend !== "function") || !window.hasHaBackend();
-
-    window.quoteCache = window.quoteCache || {};
-    window.quoteFetchTimers = window.quoteFetchTimers || {};
+    const isOfflineMode = window.location.protocol === "file:" || !hasHaBackend();
 
     const cacheKey = widget.id + "|" + feedUrl;
     const fetchingKey = cacheKey + "_fetching";
     const lastUrlKey = widget.id + "_lastUrl";
 
-    if (window.quoteCache[lastUrlKey] !== feedUrl) {
-        window.quoteCache[lastUrlKey] = feedUrl;
-        if (window.quoteFetchTimers[widget.id]) {
-            clearTimeout(window.quoteFetchTimers[widget.id]);
-            window.quoteFetchTimers[widget.id] = null;
+    if (quoteCache[lastUrlKey] !== feedUrl) {
+        quoteCache[lastUrlKey] = feedUrl;
+        if (quoteFetchTimers[widget.id]) {
+            clearTimeout(quoteFetchTimers[widget.id]);
+            quoteFetchTimers[widget.id] = null;
         }
     }
 
-    if (!window.quoteCache[cacheKey] && !window.quoteCache[fetchingKey]) {
-        window.quoteCache[fetchingKey] = true;
+    if (!quoteCache[cacheKey] && !quoteCache[fetchingKey]) {
+        quoteCache[fetchingKey] = true;
         const fetchFeedUrl = feedUrl;
         const fetchCacheKey = cacheKey;
         const fetchFetchingKey = fetchingKey;
 
-        window.quoteFetchTimers[widget.id] = setTimeout(async () => {
+        quoteFetchTimers[widget.id] = setTimeout(async () => {
             try {
                 let data;
                 if (isOfflineMode) {
@@ -82,22 +84,22 @@ const render = (element, widget, helpers) => {
                 }
 
                 if (data && data.success && data.quote) {
-                    window.quoteCache[fetchCacheKey] = data.quote;
-                    if (window.emit && window.EVENTS) {
-                        window.emit(window.EVENTS.STATE_CHANGED);
+                    quoteCache[fetchCacheKey] = data.quote;
+                    if (emit && EVENTS) {
+                        emit(EVENTS.STATE_CHANGED);
                     }
                 }
-            } catch (e) { // eslint-disable-line no-unused-vars
-                // console.debug("[Quote Widget] Fetch Error:", e);
+            } catch {
+                // console.debug("[Quote Widget] Fetch Error");
             } finally {
-                window.quoteCache[fetchFetchingKey] = false;
-                window.quoteFetchTimers[widget.id] = null;
+                quoteCache[fetchFetchingKey] = false;
+                quoteFetchTimers[widget.id] = null;
             }
         }, 500);
     }
 
-    const quoteData = window.quoteCache[cacheKey] || sample;
-    const isLive = !!window.quoteCache[cacheKey];
+    const quoteData = quoteCache[cacheKey] || sample;
+    const isLive = !!quoteCache[cacheKey];
 
     element.style.display = "flex";
     element.style.flexDirection = "column";

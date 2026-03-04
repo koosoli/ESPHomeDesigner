@@ -1,9 +1,12 @@
+
 import { generateId } from '../../../utils/helpers.js';
 import { emit, EVENTS } from '../../events.js';
 
 export class SelectionManager {
+    /**
+     * @param {import('../index.js').AppStateFacade} app 
+     */
     constructor(app) {
-        /** @type {import('../index.js').AppStateFacade} */
         this.app = app;
     }
 
@@ -23,17 +26,20 @@ export class SelectionManager {
             const page = this.app.getCurrentPage();
             const groupMembers = page.widgets.filter(w => w.parentId === id);
             const memberIds = groupMembers.map(w => w.id);
+            // Include the group itself + all children so drag code can find the group as primaryWidget
+            const allIds = [id, ...memberIds];
 
             if (multi) {
-                const anySelected = memberIds.some(mid => this.app.editor.selectedWidgetIds.includes(mid));
+                const anySelected = allIds.some(mid => this.app.editor.selectedWidgetIds.includes(mid));
                 if (anySelected) {
-                    const remainingIds = this.app.editor.selectedWidgetIds.filter(mid => !memberIds.includes(mid));
+                    const removeSet = new Set(allIds);
+                    const remainingIds = this.app.editor.selectedWidgetIds.filter(mid => !removeSet.has(mid));
                     this.app.editor.setSelectedWidgetIds(remainingIds);
                 } else {
-                    this.app.editor.setSelectedWidgetIds([...new Set([...this.app.editor.selectedWidgetIds, ...memberIds])]);
+                    this.app.editor.setSelectedWidgetIds([...new Set([...this.app.editor.selectedWidgetIds, ...allIds])]);
                 }
             } else {
-                this.app.editor.setSelectedWidgetIds(memberIds);
+                this.app.editor.setSelectedWidgetIds(allIds);
             }
         } else {
             this.app.editor.selectWidget(id, multi);
@@ -47,7 +53,7 @@ export class SelectionManager {
     selectAllWidgets() {
         const page = this.app.getCurrentPage();
         if (!page || !page.widgets) return;
-        const ids = page.widgets.map(w => w.id);
+        const ids = page.widgets.map((w) => w.id);
         this.selectWidgets(ids);
     }
 
@@ -105,11 +111,12 @@ export class SelectionManager {
     }
 
     ungroupSelection(idOrIds = null) {
+        const appAny = /** @type {any} */ (this.app);
         let targets = [];
         if (idOrIds) {
             targets = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
         } else {
-            const selected = this.app.getSelectedWidgets();
+            const selected = appAny.getSelectedWidgets();
             const foundIds = new Set();
             selected.forEach(w => {
                 if (w.type === 'group') foundIds.add(w.id);
@@ -120,7 +127,7 @@ export class SelectionManager {
 
         const groupIds = new Set();
         targets.forEach(id => {
-            const w = this.app.getWidgetById(id);
+            const w = appAny.getWidgetById(id);
             if (!w) return;
             if (w.type === 'group') groupIds.add(w.id);
             else if (w.parentId) groupIds.add(w.parentId);
@@ -131,10 +138,10 @@ export class SelectionManager {
 
         const allChildren = [];
         idsToProcess.forEach(groupId => {
-            const group = this.app.getWidgetById(groupId);
+            const group = appAny.getWidgetById(groupId);
             if (!group || group.type !== 'group') return;
 
-            const page = this.app.getCurrentPage();
+            const page = appAny.getCurrentPage();
             const children = page.widgets.filter(w => w.parentId === groupId);
 
             children.forEach(c => {
@@ -145,7 +152,7 @@ export class SelectionManager {
 
         this.app.project.deleteWidgets(idsToProcess);
 
-        const currentPage = this.app.getCurrentPage();
+        const currentPage = appAny.getCurrentPage();
         if (currentPage && currentPage.widgets) {
             currentPage.widgets = currentPage.widgets.filter(w => !idsToProcess.includes(w.id));
         }
@@ -154,13 +161,16 @@ export class SelectionManager {
             this.selectWidgets(allChildren);
         }
 
-        this.app.syncWidgetOrderWithHierarchy();
-        this.app.recordHistory();
+        appAny.syncWidgetOrderWithHierarchy();
+        appAny.recordHistory();
         emit(EVENTS.STATE_CHANGED);
     }
 
+    /**
+     * @param {string} direction 
+     */
     alignSelectedWidgets(direction) {
-        const widgets = this.app.getSelectedWidgets();
+        const widgets = /** @type {any[]} */ (this.app.getSelectedWidgets());
         if (widgets.length < 2) return;
 
         let targetVal;
@@ -201,8 +211,11 @@ export class SelectionManager {
         emit(EVENTS.STATE_CHANGED);
     }
 
+    /**
+     * @param {string} axis 
+     */
     distributeSelectedWidgets(axis) {
-        const widgets = this.app.getSelectedWidgets();
+        const widgets = /** @type {any[]} */ (this.app.getSelectedWidgets());
         if (widgets.length < 3) return;
 
         if (axis === 'horizontal') {

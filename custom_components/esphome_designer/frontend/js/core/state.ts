@@ -1,12 +1,5 @@
 import { AppState } from './stores/index';
 
-declare global {
-    interface Window {
-        AppState: typeof AppState;
-        ESPHomeDesigner: any;
-    }
-}
-
 export { AppState };
 window.AppState = AppState;
 

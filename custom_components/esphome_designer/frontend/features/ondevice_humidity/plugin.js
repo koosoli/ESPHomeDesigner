@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { AppState } from '../../js/core/state';
 /**
  * On-Device Humidity Plugin

@@ -1,5 +1,10 @@
 // --- Graph Preview Helpers ---
 
+/**
+ * Parses a duration string (e.g. "1h", "30m", "60s") into seconds.
+ * @param {string|number} durationStr
+ * @returns {number} Seconds
+ */
 export function parseDuration(durationStr) {
     if (!durationStr) return 3600; // Default 1h
 
@@ -27,7 +32,16 @@ export function parseDuration(durationStr) {
     return val;
 }
 
-export function generateMockData(width, height, min, max) { // eslint-disable-line no-unused-vars
+/**
+ * Generates mock data points for a graph.
+ * @param {number} width
+ * @param {number} height
+ * @param {number} [_min]
+ * @param {number} [_max]
+ * @returns {{x: number, y: number}[]}
+ */
+export function generateMockData(width, height, _min, _max) {
+    /** @type {{x: number, y: number}[]} */
     const points = [];
     const numPoints = 50;
 
@@ -52,11 +66,18 @@ export function generateMockData(width, height, min, max) { // eslint-disable-li
 
 /**
  * Maps Home Assistant history data to SVG coordinates for the graph.
- * Supports auto-scaling if min/max are not provided or effectively 0.
+ * @param {number} width
+ * @param {number} height
+ * @param {number} min
+ * @param {number} max
+ * @param {any[]} historyData
+ * @param {string|number} durationStr
+ * @returns {{x: number, y: number}[]}
  */
 export function generateHistoricalDataPoints(width, height, min, max, historyData, durationStr) {
     if (!historyData || historyData.length === 0) return generateMockData(width, height, min, max);
 
+    /** @type {{x: number, y: number}[]} */
     const points = [];
     const durationSec = parseDuration(durationStr);
     const now = Date.now();
@@ -119,7 +140,15 @@ export function generateHistoricalDataPoints(width, height, min, max, historyDat
     return points;
 }
 
-export function drawInternalGrid(svg, width, height, xGridStr, yGridStr, color = "rgba(0,0,0,0.1)") {
+/**
+ * @param {SVGElement} svg
+ * @param {number} width
+ * @param {number} height
+ * @param {string} _xGridStr
+ * @param {string} _yGridStr
+ * @param {string} [color="rgba(0,0,0,0.1)"]
+ */
+export function drawInternalGrid(svg, width, height, _xGridStr, _yGridStr, color = "rgba(0,0,0,0.1)") {
     const gridGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
     gridGroup.setAttribute("stroke", color);
     gridGroup.setAttribute("stroke-dasharray", "2,2");
@@ -132,26 +161,38 @@ export function drawInternalGrid(svg, width, height, xGridStr, yGridStr, color =
     for (let i = 1; i < xLines; i++) {
         const x = (i / xLines) * width;
         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        line.setAttribute("x1", x);
-        line.setAttribute("y1", 0);
-        line.setAttribute("x2", x);
-        line.setAttribute("y2", height);
+        line.setAttribute("x1", String(x));
+        line.setAttribute("y1", "0");
+        line.setAttribute("x2", String(x));
+        line.setAttribute("y2", String(height));
         gridGroup.appendChild(line);
     }
 
     for (let i = 1; i < yLines; i++) {
         const y = (i / yLines) * height;
         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        line.setAttribute("x1", 0);
-        line.setAttribute("y1", y);
-        line.setAttribute("x2", width);
-        line.setAttribute("y2", y);
+        line.setAttribute("x1", "0");
+        line.setAttribute("y1", String(y));
+        line.setAttribute("x2", String(width));
+        line.setAttribute("y2", String(y));
         gridGroup.appendChild(line);
     }
 
     svg.appendChild(gridGroup);
 }
 
+/**
+ * @param {HTMLElement|null} container
+ * @param {number} x
+ * @param {number} y
+ * @param {number} width
+ * @param {number} height
+ * @param {number} min
+ * @param {number} max
+ * @param {string|number} durationStr
+ * @param {string} widgetId
+ * @param {string} [color="#666"]
+ */
 export function drawSmartAxisLabels(container, x, y, width, height, min, max, durationStr, widgetId, color = "#666") {
     // container should be the ARTBOARD (div.artboard)
     if (!container) return;
@@ -165,7 +206,9 @@ export function drawSmartAxisLabels(container, x, y, width, height, min, max, du
     const steps = 4; // Min, 25%, 50%, 75%, Max
 
     // Use artboard dimensions for logical clamping
+    // @ts-ignore
     const canvasWidth = parseInt(container.style.width) || 800;
+    // @ts-ignore
     const canvasHeight = parseInt(container.style.height) || 480;
 
     // Determine if labels should be inside or outside
@@ -179,24 +222,36 @@ export function drawSmartAxisLabels(container, x, y, width, height, min, max, du
         const div = document.createElement("div");
         div.className = "graph-axis-label";
         div.dataset.widgetId = widgetId;
+        // @ts-ignore
         div.style.position = "absolute";
 
         if (yLabelsInside) {
+            // @ts-ignore
             div.style.left = `${x + 4}px`;
+            // @ts-ignore
             div.style.textAlign = "left";
         } else {
             // Positon to left of graph.
             // We use left-based positioning to be relative to artboard origin.
+            // @ts-ignore
             div.style.left = `${x - 4}px`;
+            // @ts-ignore
             div.style.transform = "translateX(-100%)";
+            // @ts-ignore
             div.style.textAlign = "right";
         }
 
+        // @ts-ignore
         div.style.top = `${labelY - 6}px`; // Center vertically
+        // @ts-ignore
         div.style.fontSize = "10px";
+        // @ts-ignore
         div.style.color = color;
+        // @ts-ignore
         div.style.opacity = yLabelsInside ? "0.7" : "1.0";
+        // @ts-ignore
         div.style.pointerEvents = "none";
+        // @ts-ignore
         div.style.zIndex = "10";
         div.textContent = val.toFixed(1);
         container.appendChild(div);
@@ -222,30 +277,45 @@ export function drawSmartAxisLabels(container, x, y, width, height, min, max, du
         const div = document.createElement("div");
         div.className = "graph-axis-label";
         div.dataset.widgetId = widgetId;
+        // @ts-ignore
         div.style.position = "absolute";
+        // @ts-ignore
         div.style.left = `${labelX}px`;
 
         if (xLabelsInside) {
+            // @ts-ignore
             div.style.top = `${y + height - 14}px`; // Inside, above bottom
         } else {
+            // @ts-ignore
             div.style.top = `${y + height + 4}px`; // Below graph
         }
 
+        // @ts-ignore
         div.style.fontSize = "10px";
+        // @ts-ignore
         div.style.color = color;
+        // @ts-ignore
         div.style.opacity = xLabelsInside ? "0.7" : "1.0";
+        // @ts-ignore
         div.style.pointerEvents = "none";
+        // @ts-ignore
         div.style.zIndex = "10";
 
         // Horizontal clamping for X labels relative to artboard
         if (labelX < 20) {
+            // @ts-ignore
             div.style.transform = "none";
+            // @ts-ignore
             div.style.textAlign = "left";
         } else if (labelX > canvasWidth - 20) {
+            // @ts-ignore
             div.style.transform = "translateX(-100%)";
+            // @ts-ignore
             div.style.textAlign = "right";
         } else {
+            // @ts-ignore
             div.style.transform = "translateX(-50%)";
+            // @ts-ignore
             div.style.textAlign = "center";
         }
 

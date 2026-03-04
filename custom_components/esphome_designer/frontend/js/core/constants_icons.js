@@ -2,6 +2,13 @@
 // Used for the "Quick icon picker" in the properties panel
 // Source: Curated list from js/data/icons.js
 
+/**
+ * @typedef {Object} IconData
+ * @property {string} code - Material Design Icon hex code
+ * @property {string} name - Material Design Icon name
+ */
+
+/** @type {IconData[]} */
 export const iconPickerData = [
     { code: "F0004", name: "account" },
     { code: "F0026", name: "alert" },

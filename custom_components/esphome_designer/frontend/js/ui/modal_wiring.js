@@ -1,5 +1,7 @@
+// @ts-nocheck
 import { Logger } from '../utils/logger.js';
 import { AppState } from '../core/state';
+import { getDeviceModel } from '../utils/device.js';
 
 // Modal Button Wiring - Matches reference implementation
 // This file must be loaded AFTER all modal elements exist in the DOM
@@ -45,7 +47,7 @@ function initModalWiring() {
         const deviceName = AppState ? AppState.settings.device_name : "reTerminal E1001";
 
         if (deviceNameInput) deviceNameInput.value = deviceName || "reTerminal E1001";
-        if (deviceModelInput) deviceModelInput.value = window.currentDeviceModel || "reterminal_e1001";
+        if (deviceModelInput) deviceModelInput.value = getDeviceModel();
         if (deviceOrientationInput) deviceOrientationInput.value = settings.orientation || "landscape";
         if (deviceDarkModeInput) deviceDarkModeInput.checked = !!settings.dark_mode;
 
@@ -142,7 +144,6 @@ function initModalWiring() {
             pageSettingsModal.classList.add('hidden');
             pageSettingsModal.style.display = 'none';
         }
-        window.currentPageSettingsTarget = null;
     }
 
     if (pageSettingsClose) {
