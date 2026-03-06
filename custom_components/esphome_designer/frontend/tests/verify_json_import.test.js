@@ -36,6 +36,7 @@ describe('JSON Import Verification', () => {
             deviceName: "Modern Device",
             deviceModel: "custom",
             currentLayoutId: "modern_id_456",
+            renderingMode: "lvgl",
             customHardware: {
                 resWidth: 800,
                 resHeight: 600,
@@ -48,11 +49,25 @@ describe('JSON Import Verification', () => {
         expect(AppState.deviceName).toBe("Modern Device");
         expect(AppState.deviceModel).toBe("custom");
         expect(AppState.currentLayoutId).toBe("modern_id_456");
+        expect(AppState.settings.renderingMode).toBe("lvgl");
 
         const customHw = AppState.project.state.customHardware;
         expect(customHw.resWidth).toBe(800);
         expect(customHw.resHeight).toBe(600);
         expect(customHw.shape).toBe("round");
+    });
+
+    it('should restore rendering mode from snake_case layout payloads', () => {
+        const layout = {
+            pages: [],
+            device_model: "waveshare_esp32_s3_touch_lcd_7",
+            rendering_mode: "lvgl"
+        };
+
+        loadLayoutIntoState(layout);
+
+        expect(AppState.deviceModel).toBe("waveshare_esp32_s3_touch_lcd_7");
+        expect(AppState.settings.renderingMode).toBe("lvgl");
     });
 
     it('should prioritize device_id from layout over current state', () => {

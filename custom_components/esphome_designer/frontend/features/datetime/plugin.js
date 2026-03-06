@@ -316,15 +316,55 @@ export default {
         const isDate = format === "date_only" || format === "weekday_day_month";
         const fontSize = isDate ? (p.date_font_size || 16) : (p.time_font_size || 28);
         const fontWeight = isDate ? 400 : 700;
+        const textAlign = String(p.text_align || "CENTER").toUpperCase();
+        const borderWidth = parseInt(p.border_width ?? 0, 10) || 0;
+        const borderRadius = parseInt(p.border_radius ?? 0, 10) || 0;
+        const bgColor = p.background_color || p.bg_color || (p.fill ? "white" : "transparent");
+        const hasBackground = !!(p.fill || (bgColor && bgColor !== "transparent"));
+
+        const label = {
+            text: lambdaStr,
+            text_font: getLVGLFont(p.font_family, fontSize, fontWeight, p.italic),
+            text_color: convertColor(p.color),
+            text_align: (convertAlign(p.text_align) || "center").replace("top_", "").replace("bottom_", ""),
+            opa: formatOpacity(p.opa)
+        };
+
+        if (borderWidth <= 0 && !hasBackground) {
+            return {
+                label: {
+                    ...common,
+                    ...label
+                }
+            };
+        }
+
+        const flexAlignMain = textAlign.includes("TOP") ? "start" : (textAlign.includes("BOTTOM") ? "end" : "center");
+        const flexAlignCross = textAlign.includes("LEFT") ? "start" : (textAlign.includes("RIGHT") ? "end" : "center");
 
         return {
-            label: {
+            obj: {
                 ...common,
-                text: lambdaStr,
-                text_font: getLVGLFont(p.font_family, fontSize, fontWeight, p.italic),
-                text_color: convertColor(p.color),
-                text_align: (convertAlign(p.text_align) || "center").replace("top_", "").replace("bottom_", ""),
-                opa: formatOpacity(p.opa)
+                bg_color: hasBackground ? convertColor(bgColor) : convertColor("transparent"),
+                bg_opa: hasBackground ? "cover" : "transp",
+                border_width: borderWidth,
+                border_color: convertColor(p.border_color || "theme_auto"),
+                radius: borderRadius,
+                pad_all: 0,
+                layout: {
+                    type: "flex",
+                    flex_flow: "column",
+                    flex_align_main: flexAlignMain,
+                    flex_align_cross: flexAlignCross
+                },
+                widgets: [
+                    {
+                        label: {
+                            ...label,
+                            width: "100%"
+                        }
+                    }
+                ]
             }
         };
     },

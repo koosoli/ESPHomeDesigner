@@ -2,7 +2,7 @@
 
 import { AppState } from './state';
 import { on, EVENTS } from './events.js';
-import { render, applyZoom, renderContextToolbar } from './canvas_renderer.js';
+import { render, applyZoom, renderContextToolbar, focusPage, zoomToFitAll } from './canvas_renderer.js';
 import { CanvasRulers } from './canvas_rulers.js';
 import { setupInteractions, setupPanning, setupZoomControls, setupDragAndDrop, zoomIn, zoomOut, zoomReset, onMouseMove, onMouseUp } from './canvas_interactions.js';
 import { setupTouchInteractions } from './canvas_touch.js';
@@ -206,10 +206,10 @@ export class Canvas {
         }
     }
     zoomToFitAll(smooth = true) {
-        import('./canvas_renderer.js').then(m => m.zoomToFitAll(this, smooth));
+        zoomToFitAll(this, smooth);
     }
     focusPage(index, smooth = true, fitZoom = false) {
-        import('./canvas_renderer.js').then(m => m.focusPage(this, index, smooth, fitZoom));
+        focusPage(this, index, smooth, fitZoom);
     }
 
     /**

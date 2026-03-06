@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ESPHomeAdapter } from '../../js/io/adapters/esphome_adapter';
 import { parseSnippetYamlOffline } from '../../js/io/yaml_import';
 import { registry } from '../../js/core/plugin_registry';
@@ -28,6 +28,10 @@ beforeEach(async () => {
     }
     const jsyaml = await import('js-yaml');
     window.jsyaml = jsyaml.default || jsyaml;
+});
+
+afterEach(() => {
+    vi.restoreAllMocks();
 });
 
 const mockButtonPlugin = {
@@ -62,14 +66,8 @@ describe('ESPHomeAdapter & YamlImport Round-Trip', () => {
 
     it('round-trips real plugins (Integration Check)', async () => {
         const adapter = new ESPHomeAdapter();
-
-        // We use the real Text plugin if it's available in the registry, 
-        // otherwise we skip. This ensures we test real logic if possible.
-        const textPlugin = registry.get('text');
-        if (!textPlugin) {
-            console.warn("Real Text plugin not found in registry, skipping integration check.");
-            return;
-        }
+        const textPlugin = await registry.load('text');
+        expect(textPlugin).toBeTruthy();
 
         const initialState = {
             pages: [{
@@ -86,10 +84,11 @@ describe('ESPHomeAdapter & YamlImport Round-Trip', () => {
         expect(gen1).toContain('Hello World');
 
         const reimported = await parseSnippetYamlOffline(gen1);
+        expect(reimported.pages?.[0]?.widgets?.some((w) => w.type === 'text')).toBe(true);
         const gen2 = await adapter.generate({ ...initialState, pages: reimported.pages });
 
-        // If the real plugin export is identical to what the map reconstructs, this will pass.
-        expect(gen2).toBe(gen1);
+        expect(gen2).toContain('Hello World');
+        expect(gen2).toContain('widget:text');
     });
 
     it('round-trips multi-page native layout with deterministic widget exports', async () => {

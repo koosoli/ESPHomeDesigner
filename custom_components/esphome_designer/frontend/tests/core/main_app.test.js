@@ -304,13 +304,13 @@ describe('App bootstrap', () => {
         app.bindGlobalButtons();
 
         document.getElementById('deviceSettingsBtn')?.click();
-        expect(mockDeviceSettingsOpen).toHaveBeenCalled();
+        await vi.waitFor(() => expect(mockDeviceSettingsOpen).toHaveBeenCalled());
 
         document.getElementById('editorSettingsBtn')?.click();
         expect(mockEditorSettingsOpen).toHaveBeenCalled();
 
         document.getElementById('aiPromptBtn')?.click();
-        expect(mockLLMOpen).toHaveBeenCalled();
+        await vi.waitFor(() => expect(mockLLMOpen).toHaveBeenCalled());
 
         document.getElementById('saveLayoutBtn')?.click();
         await Promise.resolve();

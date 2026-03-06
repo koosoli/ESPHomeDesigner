@@ -165,8 +165,37 @@ export function loadLayoutIntoState(layout: ParsedLayout | null | undefined): vo
     else if (data.currentLayoutId) AppState.setCurrentLayoutId(data.currentLayoutId);
 
     // 3. Map Settings / Project State
-    if (data.settings && AppState.updateSettings) {
-        AppState.updateSettings(data.settings);
+    const topLevelSettings: Record<string, any> = {};
+    const directSettingKeys = [
+        'orientation', 'renderingMode', 'darkMode', 'invertedColors',
+        'refreshInterval', 'manualRefreshOnly', 'autoCycleEnabled', 'autoCycleIntervalS',
+        'lcdEcoStrategy', 'dimTimeout', 'sleepEnabled', 'sleepStartHour', 'sleepEndHour',
+        'deepSleepEnabled', 'deepSleepInterval', 'dailyRefreshEnabled', 'dailyRefreshTime',
+        'noRefreshStartHour', 'noRefreshEndHour', 'oeplEntityId', 'oeplDither',
+        'opendisplayEntityId', 'opendisplayDither', 'opendisplayTtl', 'glyphsets',
+        'extendedLatinGlyphs', 'editor_light_mode', 'snapEnabled', 'showGrid',
+        'showDebugGrid', 'showRulers', 'gridOpacity'
+    ];
+
+    directSettingKeys.forEach((key) => {
+        if (data[key] !== undefined) topLevelSettings[key] = data[key];
+    });
+
+    if (data.rendering_mode !== undefined && topLevelSettings.renderingMode === undefined) {
+        topLevelSettings.renderingMode = data.rendering_mode;
+    }
+
+    if (data.dark_mode !== undefined && topLevelSettings.darkMode === undefined) {
+        topLevelSettings.darkMode = data.dark_mode;
+    }
+
+    const mergedSettings = {
+        ...topLevelSettings,
+        ...(data.settings || {})
+    };
+
+    if (Object.keys(mergedSettings).length > 0 && AppState.updateSettings) {
+        AppState.updateSettings(mergedSettings);
     }
 
     if (data.customHardware && AppState.setCustomHardware) {

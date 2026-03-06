@@ -1,6 +1,7 @@
 import { AppState } from '../core/state';
 import { emit, EVENTS } from '../core/events.js';
 import { getHaToken, hasHaBackend, HA_API_BASE } from '../utils/env.js';
+import { showToast } from '../utils/dom.js';
 import { loadLayoutIntoState } from './yaml_import';
 import { Logger } from '../utils/logger.js';
 
@@ -357,7 +358,7 @@ export async function loadLayoutFromBackend() {
 
     } catch (err) {
         Logger.error("Error loading layout from backend:", err);
-        import('../utils/dom.js').then(dom => dom.showToast("Error loading layout from backend", "error", 5000));
+        showToast("Error loading layout from backend", "error", 5000);
     }
 }
 

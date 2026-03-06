@@ -4,6 +4,45 @@ import fs from 'fs';
 
 const frontendRoot = resolve(__dirname, 'custom_components/esphome_designer/frontend');
 
+function getManualChunk(id) {
+    const normalizedId = id.replace(/\\/g, '/');
+
+    if (normalizedId.includes('/node_modules/')) {
+        return 'vendor';
+    }
+
+    // Preserve async boundaries for UI that only loads on demand.
+    if (
+        normalizedId.includes('/frontend/js/ui/device_settings/') ||
+        normalizedId.endsWith('/frontend/js/ui/device_settings.js') ||
+        normalizedId.endsWith('/frontend/js/ui/page_settings.js') ||
+        normalizedId.endsWith('/frontend/js/ui/llm_prompt.js') ||
+        normalizedId.endsWith('/frontend/js/ui/layout_manager.js')
+    ) {
+        return 'deferred-ui';
+    }
+
+    // Keep YAML parsing and export code off the initial entry chunk.
+    if (
+        normalizedId.includes('/frontend/js/io/adapters/') ||
+        normalizedId.includes('/frontend/js/io/generators/') ||
+        normalizedId.includes('/frontend/js/io/yaml_') ||
+        normalizedId.includes('/frontend/js/io/yaml_parsers/')
+    ) {
+        return 'yaml-engine';
+    }
+
+    // Group the editor shell so the HTML entry stays lightweight.
+    if (
+        normalizedId.includes('/frontend/js/core/') ||
+        normalizedId.includes('/frontend/js/ui/')
+    ) {
+        return 'app-shell';
+    }
+
+    return undefined;
+}
+
 export default defineConfig({
     root: frontendRoot,
     base: './',
@@ -27,7 +66,10 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 main: resolve(frontendRoot, 'index.html'),
-            }
+            },
+            output: {
+                manualChunks: getManualChunk,
+            },
         }
     },
     server: {

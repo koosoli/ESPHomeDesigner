@@ -1,5 +1,5 @@
 import { Logger } from '../utils/logger.js';
-import { fetchDynamicHardwareProfiles, getOfflineProfilesFromStorage } from './hardware_import.js';
+import { fetchDynamicHardwareProfiles, getOfflineProfilesFromStorage } from './hardware_profile_sources.js';
 import { emit, EVENTS } from '../core/events.js';
 
 // ============================================================================

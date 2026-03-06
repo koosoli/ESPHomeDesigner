@@ -10,68 +10,10 @@ import { hasHaBackend, HA_API_BASE } from '../utils/env.js';
 import { getHaHeaders } from './ha_api.js';
 import { showToast } from '../utils/dom.js';
 import { emit, EVENTS } from '../core/events.js';
+import { DEVICE_PROFILES, loadExternalProfiles } from './devices.js';
+import { parseHardwareRecipeClientSide, saveOfflineProfileToStorage } from './hardware_profile_sources.js';
 
-export async function fetchDynamicHardwareProfiles() {
-    // If we have an HA backend, try that first
-    if (hasHaBackend()) {
-        try {
-            const url = `${HA_API_BASE}/hardware/templates`;
-            Logger.log("[HardwareDiscovery] Fetching from:", url);
-            const response = await fetch(url, {
-                headers: getHaHeaders(),
-                cache: "no-store"
-            });
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const data = await response.json();
-            return data.templates || [];
-        } catch (e) {
-            Logger.error("Failed to fetch dynamic hardware templates from HA:", e);
-            // Fall through to local check? Or just return?
-        }
-    }
-
-    // Fallback: Try to load known bundled files (for standalone/offline mode)
-    Logger.log("[HardwareDiscovery] Attempting to load bundled profiles via glob...");
-    const bundledTemplates = [];
-
-    // Use Vite's import.meta.glob to find all YAML files in the hardware directory.
-    // In Home Assistant runtime this API may not exist, so feature-detect first.
-    const globFn = /** @type {any} */ (import.meta).glob;
-    if (typeof globFn !== 'function') {
-        Logger.warn("[HardwareDiscovery] import.meta.glob is unavailable in this runtime; skipping bundled profile fallback.");
-        return [];
-    }
-
-    const hardwareFiles = /** @type {Record<string, string>} */ (
-        globFn('../../hardware/*.yaml', { query: '?raw', import: 'default', eager: true })
-    );
-
-    for (const path in hardwareFiles) {
-        try {
-            const content = hardwareFiles[path];
-            const filename = path.split('/').pop();
-
-            // We reuse the client-side parser used for offline import
-            const profile = parseHardwareRecipeClientSide(content, filename);
-
-            // Adjust ID to be more stable than "dynamic_offline_..."
-            profile.id = filename.replace(/\.yaml$/i, '').replace(/[^a-z0-9]/gi, '_').toLowerCase();
-            profile.isPackageBased = true;
-
-            // Fix path for runtime loading if needed, though 'content' is already here.
-            // For local dev, we might not need to fetch again if we have content.
-            // But preserving the 'hardware/filename' path convention for the UI/logic.
-            profile.hardwarePackage = `hardware/${filename}`;
-
-            bundledTemplates.push(profile);
-        } catch (err) {
-            Logger.warn(`[HardwareDiscovery] Failed to parse bundled file ${path}:`, err);
-        }
-    }
-
-    Logger.log(`[HardwareDiscovery] Loaded ${bundledTemplates.length} bundled fallback profiles.`);
-    return bundledTemplates;
-}
+export { fetchDynamicHardwareProfiles, getOfflineProfilesFromStorage } from './hardware_profile_sources.js';
 
 export async function uploadHardwareTemplate(file) {
     if (!hasHaBackend()) {
@@ -104,7 +46,6 @@ export async function uploadHardwareTemplate(file) {
         showToast("Hardware template uploaded successfully!", "success");
 
         // Refresh profiles
-        const { loadExternalProfiles } = await import('./devices.js');
         if (loadExternalProfiles) {
             await loadExternalProfiles();
         }
@@ -119,7 +60,6 @@ export async function uploadHardwareTemplate(file) {
 
             // Still try to refresh profiles - the file was probably saved
             try {
-                const { loadExternalProfiles } = await import('./devices.js');
                 if (loadExternalProfiles) {
                     await loadExternalProfiles();
                 }
@@ -159,7 +99,6 @@ async function handleOfflineHardwareImport(file) {
                 Logger.log("[HardwareImport] Parsed offline profile:", profile);
 
                 // Add to runtime structure
-                const { DEVICE_PROFILES } = await import('./devices.js');
                 if (DEVICE_PROFILES) {
                     DEVICE_PROFILES[profile.id] = profile;
                 } showToast(`Imported ${profile.name} (Offline Mode)`, "success");
@@ -180,140 +119,4 @@ async function handleOfflineHardwareImport(file) {
     });
 }
 
-/**
- * Extracts basic metadata from a YAML recipe string.
- */
-function parseHardwareRecipeClientSide(yaml, filename) {
-    const id = "dynamic_offline_" + filename.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-
-    // Default values
-    let name = filename.replace(/\.yaml$/i, '');
-    let width = 800;
-    let height = 480;
-    let shape = "rect";
-
-    // Simple regex extraction
-    const nameMatch = yaml.match(/#\s*Name:\s*(.*)/i);
-    if (nameMatch) name = nameMatch[1].trim();
-
-    const resMatch = yaml.match(/#\s*Resolution:\s*(\d+)x(\d+)/i);
-    if (resMatch) {
-        width = parseInt(resMatch[1]);
-        height = parseInt(resMatch[2]);
-    }
-
-    const shapeMatch = yaml.match(/#\s*Shape:\s*(rect|round)/i);
-    if (shapeMatch) shape = shapeMatch[1].toLowerCase();
-
-    // Detect inverted colors from comment (# Inverted: true)
-    const invertedMatch = yaml.match(/#\s*Inverted:\s*(true|yes|1)/i);
-    const isInverted = !!invertedMatch;
-
-    // Detect display platform
-    const platformMatch = yaml.match(/^\s*-\s*platform:\s*([a-z0-9_]+)/m) || yaml.match(/^\s*platform:\s*([a-z0-9_]+)/m);
-    const displayPlatform = platformMatch ? platformMatch[1].trim() : undefined;
-
-    // Detect display model (generic search, typically found in display section)
-    const modelMatch = yaml.match(/^\s*model:\s*"?([^"\n]+)"?/m);
-    const displayModel = modelMatch ? modelMatch[1].trim() : undefined;
-
-    // Detect chip and board
-    let chip = "esp32-s3";
-    let board = undefined;
-
-    const esp8266Match = yaml.match(/^\s*esp8266:/m);
-    if (esp8266Match) {
-        chip = "esp8266";
-    } else {
-        const esp32Match = yaml.match(/^\s*esp32:/m);
-        if (esp32Match) {
-            if (yaml.toLowerCase().includes("esp32-s3")) chip = "esp32-s3";
-            else if (yaml.toLowerCase().includes("esp32-c3")) chip = "esp32-c3";
-            else if (yaml.toLowerCase().includes("esp32-c6")) chip = "esp32-c6";
-            else chip = "esp32";
-        }
-    }
-
-    const boardMatch = yaml.match(/^\s*board:\s*([^\n]+)/m);
-    if (boardMatch) {
-        board = boardMatch[1].trim();
-        if (!esp8266Match) {
-            if (board.toLowerCase().includes("s3")) chip = "esp32-s3";
-            else if (board.toLowerCase().includes("c3")) chip = "esp32-c3";
-            else if (board.toLowerCase().includes("c6")) chip = "esp32-c6";
-        }
-    }
-
-    // Explicit comment overrides
-    const chipCommentMatch = yaml.match(/#\s*Chip:\s*(.*)/i);
-    if (chipCommentMatch) chip = chipCommentMatch[1].trim();
-
-    const boardCommentMatch = yaml.match(/#\s*Board:\s*(.*)/i);
-    if (boardCommentMatch) board = boardCommentMatch[1].trim();
-
-    // Extract display-specific settings from YAML content
-    const colorPaletteMatch = yaml.match(/^\s*color_palette:\s*(\S+)/m);
-    const colorPalette = colorPaletteMatch ? colorPaletteMatch[1].trim() : undefined;
-
-    const colorOrderMatch = yaml.match(/^\s*color_order:\s*(\S+)/m);
-    const colorOrder = colorOrderMatch ? colorOrderMatch[1].trim() : undefined;
-
-    const updateIntervalMatch = yaml.match(/^\s*update_interval:\s*(\S+)/m);
-    const updateInterval = updateIntervalMatch ? updateIntervalMatch[1].trim() : undefined;
-
-    const invertColorsMatch = yaml.match(/^\s*invert_colors:\s*(true|false)/mi);
-    const invertColors = invertColorsMatch ? invertColorsMatch[1].toLowerCase() === 'true' : undefined;
-
-    return {
-        id: id,
-        name: name, // Label will be added by frontend based on isOfflineImport flag
-        resolution: { width, height },
-        shape: shape,
-        chip: chip,
-        board: board,
-        displayPlatform: displayPlatform,
-        displayModel: displayModel,
-        colorPalette: colorPalette,
-        colorOrder: colorOrder,
-        updateInterval: updateInterval,
-        invertColors: invertColors,
-        isPackageBased: true,
-        isOfflineImport: true,
-        content: yaml, // Store content for later use if needed
-        features: {
-            psram: yaml.includes("psram:"),
-            lcd: !yaml.includes("waveshare_epaper") && !yaml.includes("epaper_spi"),
-            lvgl: yaml.includes("lvgl:") || (!yaml.includes("waveshare_epaper") && !yaml.includes("epaper_spi")), // Most LCDs support LVGL
-            epaper: yaml.includes("waveshare_epaper") || yaml.includes("epaper_spi"),
-            touch: yaml.includes("touchscreen:"),
-            inverted_colors: isInverted
-        }
-    };
-}
-
-/**
- * Saves a hardware profile to localStorage.
- */
-function saveOfflineProfileToStorage(profile) {
-    try {
-        const saved = JSON.parse(localStorage.getItem('esphome-offline-profiles') || '{}');
-        saved[profile.id] = profile;
-        localStorage.setItem('esphome-offline-profiles', JSON.stringify(saved));
-        Logger.log("[HardwarePersistence] Saved offline profile to localStorage:", profile.id);
-    } catch (e) {
-        Logger.error("Failed to save profile to localStorage:", e);
-    }
-}
-
-/**
- * Returns all saved offline profiles from localStorage.
- */
-export function getOfflineProfilesFromStorage() {
-    try {
-        return JSON.parse(localStorage.getItem('esphome-offline-profiles') || '{}');
-    } catch (e) {
-        Logger.warn("Could not load offline profiles from storage:", e);
-        return {};
-    }
-}
 

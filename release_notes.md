@@ -1,20 +1,19 @@
 ## v1.0.0 RC8 - Architecture Cleanup & Stability
 **Release Date:** February 21, 2026
 
-### 🔧 Architecture & Quality Baseline
-- **Achieved A+ Quality Baseline**: Performed a massive cleanup pass to remove architectural debris and diagnostic leftovers.
-- **State Management Simplification**: Optimized `js/core/state.js` by removing redundant double-proxies, ensuring faster and more predictable state access.
-- **`js-yaml` Modernization**: Successfully migrated the project from legacy global scripts to a native NPM dependency for `js-yaml`, using robust ES Module namespace imports.
-- **Root Directory Sanitization**: Deleted 70+ legacy verification scripts, stale diagnostic logs, and outdated reproduction files to reduce cognitive load and reach a professional baseline.
-- **Test Suite Hygiene**: Purged all debug `console.log` statements from the 22-suite test layer and repaired brittle mocks.
-- **Stability Guarantee**: Verified 100% pass rate for the entire automated test suite (88/88 tests).
-- **Plugin Contract Compliance**: Audited and fixed all 55+ plugins to ensure strict alignment between `schema` and `defaults`, guaranteeing predictable fallback values and preventing YAML generation errors.
-- **Hourly Weather Forecast Feature**: Added a major new mode to the `weather_forecast` widget.
-    - **Hourly Forecast Mode**: Users can now toggle between Daily and Hourly forecasts.
-    - **Custom Hour Slots**: Configure specific hours (e.g., "06,09,12,15") to match your Home Assistant forecast type.
-    - **Start Offset**: Skip the first N hours/days (e.g., skip 'Today' or the next 3 hours) using the new `start_offset` parameter.
-    - **Automatic `templow` Handling**: The hourly mode automatically suppresses the `templow` attribute (which is not available in HA hourly data), preventing `N/A` errors and compilation failures.
-    - **Dynamic Render Logic**: Perfectly scales hour labels and weather icons across both Direct and LVGL rendering paths.
+### 🔧 Architecture & Verification
+- **Core Frontend Refactor**: Migrated key state, import/export, and registry paths from legacy `.js` modules to typed `.ts` modules, reducing ambiguity in the RC8 code path and making future maintenance safer.
+- **Import/Export Pipeline Split**: Broke ESPHome generation and YAML parsing into dedicated generators and parser modules, improving round-trip reliability and making hardware/package overrides easier to reason about.
+- **`js-yaml` Modernization**: Replaced the legacy bundled global script with the maintained NPM `js-yaml` dependency and ES module imports.
+- **Plugin Contract Hardening**: Audited and corrected `schema` / `defaults` alignment across the full plugin set so fallback values remain predictable during editing, export, and re-import.
+- **Current Verification Status**: The RC8 branch currently passes the automated frontend suite (`62` test files / `716` tests) and produces a successful production build.
+
+### 🌦️ Weather Forecast Upgrade
+- **Hourly Forecast Mode**: The `weather_forecast` widget can now switch between daily and hourly rendering.
+- **Custom Hour Slots**: Configure exact forecast hours such as `06,09,12,15` to match your Home Assistant forecast source.
+- **Start Offset Control**: Skip the first N hourly or daily entries with the new `start_offset` property.
+- **Hourly `templow` Guard**: Hourly mode now suppresses `templow` handling automatically, avoiding invalid low-temperature lookups in Home Assistant hourly forecast data.
+- **Direct + LVGL Parity**: Hour labels, icon selection, and refresh wiring now scale correctly across both direct rendering and LVGL export paths.
 
 
 ### 🐛 Bug Fixes

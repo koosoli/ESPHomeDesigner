@@ -2,6 +2,7 @@
 import { registry } from '../core/plugin_registry';
 import { AppState } from '../core/state';
 import { Logger } from '../utils/logger.js';
+import { showToast } from '../utils/dom.js';
 import { EVENTS, on } from '../core/events.js';
 
 export const WIDGET_CATEGORIES = [
@@ -441,9 +442,7 @@ export async function renderWidgetPalette(containerId) {
             } else {
                 itemEl.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    import('../utils/dom.js').then(dom => {
-                        dom.showToast(explanation, 'warning');
-                    });
+                    showToast(explanation, 'warning');
                 });
             }
 

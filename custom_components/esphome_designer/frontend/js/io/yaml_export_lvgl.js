@@ -233,6 +233,7 @@ function safeYamlValue(val) {
     // Also quote if it contains sequences like ": " or " #" which are sensitive in YAML.
     const needsQuoting = /^[*&!|>%@,\-{}[\]?#:]/.test(trimmed) ||
         /^(true|false|null|yes|no)$/i.test(trimmed) ||
+        /^[A-Z][A-Z0-9_]*$/.test(trimmed) ||
         trimmed.includes(': ') ||
         trimmed.includes(' #');
 

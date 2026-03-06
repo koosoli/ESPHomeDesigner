@@ -2,15 +2,14 @@
 import { Sidebar } from './core/sidebar.js';
 import { Canvas } from './core/canvas.js';
 import { PropertiesPanel } from './core/properties.js';
-import { DeviceSettings } from './ui/device_settings.js';
 import { EditorSettings } from './ui/editor_settings.js';
-import { PageSettings } from './ui/page_settings.js';
 import { SnippetManager } from './ui/snippet_manager.js';
 import { KeyboardHandler } from './core/keyboard.js';
 import { ESPHomeAdapter } from './io/adapters/esphome_adapter';
 import { OEPLAdapter } from './io/adapters/oepl_adapter.js';
 import { OpenDisplayAdapter } from './io/adapters/opendisplay_adapter.js';
 import { AppState } from './core/state';
+import { on, EVENTS } from './core/events.js';
 import { hasHaBackend } from './utils/env.js';
 import { Logger } from './utils/logger.js';
 
@@ -23,7 +22,6 @@ import './utils/graph_helpers.js';
 import './core/constants';
 import './core/utils';
 import './core/constants_icons.js';
-import './core/events.js';
 import './core/plugin_registry';
 import './core/widget_factory';
 import './core/layout_constants.js';
@@ -44,8 +42,6 @@ import './io/hardware_import.js'; // Register global hardware fetchers
 import { renderWidgetPalette } from './ui/widget_palette.js';
 import { QuickSearch } from './ui/quick_search.js';
 import { HierarchyView } from './ui/hierarchy_view.js';
-import { LLMPrompt } from './ui/llm_prompt.js';
-import { LayoutManager } from './ui/layout_manager.js';
 
 export class App {
     constructor() {
@@ -59,18 +55,23 @@ export class App {
             Logger.log("[App] PropertiesPanel created");
             this.hierarchyView = new HierarchyView();
             Logger.log("[App] HierarchyView created");
-            this.deviceSettings = new DeviceSettings();
-            Logger.log("[App] DeviceSettings created");
             this.editorSettings = new EditorSettings();
             Logger.log("[App] EditorSettings created");
-            this.pageSettings = new PageSettings();
-            Logger.log("[App] PageSettings created");
             this.keyboardHandler = new KeyboardHandler();
             Logger.log("[App] KeyboardHandler created");
-            this.llmPrompt = new LLMPrompt();
-            Logger.log("[App] LLMPrompt initialized");
             this.quickSearch = new QuickSearch();
             Logger.log("[App] QuickSearch initialized");
+
+            // Keep legacy open() call sites intact while deferring optional modal code.
+            this.deviceSettings = {
+                open: () => void this.openDeviceSettings(),
+            };
+            this.pageSettings = {
+                open: (index) => void this.openPageSettings(index),
+            };
+            this.llmPrompt = {
+                open: () => void this.openAiPrompt(),
+            };
 
             // Initialize Output Adapter
             this.adapter = this.createAdapter();
@@ -79,10 +80,6 @@ export class App {
             // Initialize Snippet Manager (Handles YAML IO mostly)
             this.snippetManager = new SnippetManager(this.adapter);
             Logger.log("[App] SnippetManager initialized");
-
-            // Initialize Layout Manager
-            this.layoutManager = new LayoutManager();
-            Logger.log("[App] LayoutManager initialized");
 
         } catch (e) {
             Logger.error("[App] Critical Error in Constructor:", e);
@@ -101,7 +98,6 @@ export class App {
         this.sidebar.init();
         this.propertiesPanel.init();
         this.hierarchyView.init();
-        this.deviceSettings.init();
         this.editorSettings.init();
         this.quickSearch.discoverWidgets();
 
@@ -119,13 +115,6 @@ export class App {
             }
         } catch (e) {
             Logger.log('Could not load theme preference:', e);
-        }
-
-        this.pageSettings.init();
-        if (this.llmPrompt) this.llmPrompt.init();
-
-        if (this.layoutManager) {
-            this.layoutManager.init();
         }
 
         // Setup auto-save
@@ -209,13 +198,9 @@ export class App {
         const deviceSettingsBtn = document.getElementById('deviceSettingsBtn');
         if (deviceSettingsBtn) {
             Logger.log("Device Settings button found, binding click listener.");
-            deviceSettingsBtn.addEventListener('click', () => {
+            deviceSettingsBtn.addEventListener('click', async () => {
                 Logger.log("Device Settings button clicked.");
-                if (this.deviceSettings) {
-                    this.deviceSettings.open();
-                } else {
-                    Logger.error("DeviceSettings instance not found on App.");
-                }
+                await this.openDeviceSettings();
             });
         } else {
             Logger.error("Device Settings button NOT found in DOM.");
@@ -232,14 +217,96 @@ export class App {
         // AI Prompt
         const aiPromptBtn = document.getElementById('aiPromptBtn');
         if (aiPromptBtn) {
-            aiPromptBtn.addEventListener('click', () => {
-                if (this.llmPrompt) {
-                    this.llmPrompt.open();
-                } else {
-                    Logger.error("LLMPrompt instance not found.");
-                }
+            aiPromptBtn.addEventListener('click', async () => {
+                await this.openAiPrompt();
             });
         }
+
+        const manageLayoutsBtn = document.getElementById('manageLayoutsBtn');
+        if (manageLayoutsBtn) {
+            manageLayoutsBtn.addEventListener('click', async () => {
+                await this.openLayoutManager();
+            });
+        }
+    }
+
+    async ensureDeviceSettings() {
+        if (this._deviceSettingsInstance) return this._deviceSettingsInstance;
+        if (!this._deviceSettingsPromise) {
+            this._deviceSettingsPromise = import('./ui/device_settings.js').then(({ DeviceSettings }) => {
+                const instance = new DeviceSettings();
+                instance.init();
+                this._deviceSettingsInstance = instance;
+                Logger.log('[App] DeviceSettings lazy-loaded');
+                return instance;
+            });
+        }
+
+        return this._deviceSettingsPromise;
+    }
+
+    async ensurePageSettings() {
+        if (this._pageSettingsInstance) return this._pageSettingsInstance;
+        if (!this._pageSettingsPromise) {
+            this._pageSettingsPromise = import('./ui/page_settings.js').then(({ PageSettings }) => {
+                const instance = new PageSettings();
+                instance.init();
+                this._pageSettingsInstance = instance;
+                Logger.log('[App] PageSettings lazy-loaded');
+                return instance;
+            });
+        }
+
+        return this._pageSettingsPromise;
+    }
+
+    async ensureLLMPrompt() {
+        if (this._llmPromptInstance) return this._llmPromptInstance;
+        if (!this._llmPromptPromise) {
+            this._llmPromptPromise = import('./ui/llm_prompt.js').then(({ LLMPrompt }) => {
+                const instance = new LLMPrompt();
+                instance.init();
+                this._llmPromptInstance = instance;
+                Logger.log('[App] LLMPrompt lazy-loaded');
+                return instance;
+            });
+        }
+
+        return this._llmPromptPromise;
+    }
+
+    async ensureLayoutManager() {
+        if (this._layoutManagerInstance) return this._layoutManagerInstance;
+        if (!this._layoutManagerPromise) {
+            this._layoutManagerPromise = import('./ui/layout_manager.js').then(({ LayoutManager }) => {
+                const instance = new LayoutManager();
+                this._layoutManagerInstance = instance;
+                Logger.log('[App] LayoutManager lazy-loaded');
+                return instance;
+            });
+        }
+
+        return this._layoutManagerPromise;
+    }
+
+    async openDeviceSettings() {
+        const deviceSettings = await this.ensureDeviceSettings();
+        deviceSettings.open();
+    }
+
+    async openPageSettings(index) {
+        const pageSettings = await this.ensurePageSettings();
+        pageSettings.open(index);
+    }
+
+    async openAiPrompt() {
+        const llmPrompt = await this.ensureLLMPrompt();
+        llmPrompt.open();
+    }
+
+    async openLayoutManager() {
+        const layoutManager = await this.ensureLayoutManager();
+        await layoutManager.open();
     }
 
     loadFromLocalStorage() {
@@ -259,30 +326,26 @@ export class App {
     setupAutoSave() {
         let autoSaveTimer = null;
         const SAVE_DEBOUNCE_MS = 2000;
+        on(EVENTS.STATE_CHANGED, () => {
+            // If rendering mode changed, we might need to swap the adapter
+            this.refreshAdapter();
 
-        import('./core/events.js').then(({ on, EVENTS }) => {
-            on(EVENTS.STATE_CHANGED, () => {
-                // If rendering mode changed, we might need to swap the adapter
-                this.refreshAdapter();
+            // Background save to appropriate storage
+            if (autoSaveTimer) clearTimeout(autoSaveTimer);
 
-                // Background save to appropriate storage
-                if (autoSaveTimer) clearTimeout(autoSaveTimer);
-
-                autoSaveTimer = setTimeout(() => {
-                    if (hasHaBackend()) {
-                        Logger.log("[AutoSave] Triggering background save to HA...");
-                        saveLayoutToBackend()
-                            .catch(() => {
-                                // Silently ignore - network errors are expected when backend is unreachable
-                                // The ha_api.js already handles logging for unexpected errors
-                            });
-                    } else {
-                        Logger.log("[AutoSave] Saving to local storage...");
-                        AppState.saveToLocalStorage();
-                    }
-                }, SAVE_DEBOUNCE_MS);
-            });
-
+            autoSaveTimer = setTimeout(() => {
+                if (hasHaBackend()) {
+                    Logger.log("[AutoSave] Triggering background save to HA...");
+                    saveLayoutToBackend()
+                        .catch(() => {
+                            // Silently ignore - network errors are expected when backend is unreachable
+                            // The ha_api.js already handles logging for unexpected errors
+                        });
+                } else {
+                    Logger.log("[AutoSave] Saving to local storage...");
+                    AppState.saveToLocalStorage();
+                }
+            }, SAVE_DEBOUNCE_MS);
         });
     }
 
