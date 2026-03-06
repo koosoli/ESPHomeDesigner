@@ -1,5 +1,37 @@
 import { Logger } from './logger.js';
 
+function normalizeHaManualUrl(url) {
+    if (!url) return null;
+
+    let sanitizedUrl = url.trim();
+    if (!sanitizedUrl) return null;
+
+    try {
+        const parsed = new URL(sanitizedUrl);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+            return null;
+        }
+
+        sanitizedUrl = `${parsed.origin}${parsed.pathname}`;
+        if (parsed.search) sanitizedUrl += parsed.search;
+        if (sanitizedUrl.endsWith('/')) {
+            sanitizedUrl = sanitizedUrl.slice(0, -1);
+        }
+
+        if (sanitizedUrl.includes('reterminal_dashboard')) {
+            sanitizedUrl = sanitizedUrl.replace('reterminal_dashboard', 'esphome_designer');
+        }
+
+        if (!sanitizedUrl.includes('/api/')) {
+            sanitizedUrl += '/api/esphome_designer';
+        }
+
+        return sanitizedUrl;
+    } catch {
+        return null;
+    }
+}
+
 /**
  * Detects the Home Assistant backend URL.
  * @returns {string|null} The API base URL or null.
@@ -8,25 +40,16 @@ export function detectHaBackendBaseUrl() {
     // Check manual configuration first (from localStorage)
     let manualUrl = getHaManualUrl();
     if (manualUrl) {
-        manualUrl = manualUrl.trim();
-
-        // MIGRATION: If the manual URL contains the old reterminal_dashboard path,
-        // automatically update it to the new esphome_designer path.
-        if (manualUrl.includes('reterminal_dashboard')) {
-            Logger.log("[Env] Migrating legacy manual URL to new domain");
-            manualUrl = manualUrl.replace('reterminal_dashboard', 'esphome_designer');
-            // Persist the migrated URL so we don't do this every time
-            setHaManualUrl(manualUrl);
+        const normalizedManualUrl = normalizeHaManualUrl(manualUrl);
+        if (!normalizedManualUrl) {
+            Logger.warn('[Env] Ignoring invalid manually configured HA URL');
+            return null;
         }
-
-        if (manualUrl.endsWith('/')) {
-            manualUrl = manualUrl.slice(0, -1);
+        if (normalizedManualUrl !== manualUrl.trim()) {
+            Logger.log('[Env] Normalizing stored manual HA URL');
+            setHaManualUrl(normalizedManualUrl);
         }
-        // Ensure suffix is present even if user entered only the base URL previously
-        if (manualUrl && !manualUrl.includes('/api/')) {
-            manualUrl += '/api/esphome_designer';
-        }
-        return manualUrl;
+        return normalizedManualUrl;
     }
 
     try {
@@ -72,16 +95,10 @@ export function setHaManualUrl(url) {
     try {
         if (typeof localStorage === 'undefined') return;
         if (url) {
-            let sanitizedUrl = url.trim();
-            // Remove trailing slash if present
-            if (sanitizedUrl.endsWith('/')) {
-                sanitizedUrl = sanitizedUrl.slice(0, -1);
-            }
-
-            // If the URL is just the base (e.g. http://ha.local:8123), 
-            // append the custom component API path automatically.
-            if (!sanitizedUrl.includes('/api/')) {
-                sanitizedUrl += '/api/esphome_designer';
+            const sanitizedUrl = normalizeHaManualUrl(url);
+            if (!sanitizedUrl) {
+                Logger.warn('[Env] Refusing to store invalid HA URL');
+                return;
             }
 
             localStorage.setItem('ha_manual_url', sanitizedUrl);
@@ -163,3 +180,5 @@ export function isDeployedInHa() {
         return false;
     }
 }
+
+export { normalizeHaManualUrl };
