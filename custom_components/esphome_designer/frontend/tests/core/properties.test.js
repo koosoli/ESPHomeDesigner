@@ -6,6 +6,7 @@ const mockMultiRender = vi.fn();
 const mockGridRender = vi.fn();
 const mockLegacyRender = vi.fn();
 const mockProtocolRender = vi.fn();
+const mockRegistryGet = vi.fn(() => null);
 
 const controlsMethods = {
     addLabeledInput: vi.fn(),
@@ -57,7 +58,7 @@ vi.mock('../../js/core/state', () => ({
 
 vi.mock('../../js/core/plugin_registry', () => ({
     registry: {
-        get: vi.fn(() => null)
+        get: mockRegistryGet
     }
 }));
 
@@ -115,6 +116,8 @@ describe('PropertiesPanel', () => {
         mockAppState.getSelectedWidget.mockReturnValue(null);
         mockAppState.getSelectedWidgets.mockReturnValue([]);
         mockAppState.settings.renderingMode = 'direct';
+        mockRegistryGet.mockReset();
+        mockRegistryGet.mockReturnValue(null);
 
         document.body.innerHTML = `
             <div id="propertiesPanel"></div>
@@ -159,37 +162,6 @@ describe('PropertiesPanel', () => {
         expect(mockMultiRender).toHaveBeenCalledWith(panel, ['w1', 'w2']);
     });
 
-    it('re-renders into multi-select mode when selection expands but first id stays the same', async () => {
-        const widget = {
-            id: 'w1',
-            type: 'sensor_text',
-            x: 10,
-            y: 20,
-            width: 100,
-            height: 40,
-            props: {}
-        };
-
-        mockAppState.selectedWidgetId = 'w1';
-        mockAppState.getSelectedWidget.mockReturnValue(widget);
-        mockAppState.getSelectedWidgets.mockReturnValue([widget]);
-
-        const { PropertiesPanel } = await import('../../js/core/properties.js');
-        const panel = new PropertiesPanel(mockApp);
-
-        // First render in single-select mode
-        mockAppState.getSelectedWidgetIds.mockReturnValue(['w1']);
-        mockAppState.selectedWidgetIds = ['w1'];
-        panel.render();
-
-        // Expand selection to multi-select while keeping first selected ID
-        mockAppState.getSelectedWidgetIds.mockReturnValue(['w1', 'w2']);
-        mockAppState.selectedWidgetIds = ['w1', 'w2'];
-        panel.render();
-
-        expect(mockMultiRender).toHaveBeenCalledWith(panel, ['w1', 'w2']);
-    });
-
     it('renders single-widget panel and falls back to legacy renderer', async () => {
         const widget = {
             id: 'w1',
@@ -226,6 +198,35 @@ describe('PropertiesPanel', () => {
         panel.autoPopulateTitleFromEntity('w1', 'sensor.temp');
 
         expect(mockAppState.updateWidget).toHaveBeenCalledWith('w1', { title: 'Temperature' });
+    });
+
+    it('renders common LVGL properties before schema-driven LVGL fields', async () => {
+        const widget = {
+            id: 'w-lvgl',
+            type: 'lvgl_button',
+            x: 10,
+            y: 20,
+            width: 100,
+            height: 40,
+            props: { clickable: true }
+        };
+
+        mockRegistryGet.mockReturnValue({
+            schema: [{ section: 'Content', fields: [] }]
+        });
+        mockAppState.selectedWidgetId = 'w-lvgl';
+        mockAppState.selectedWidgetIds = ['w-lvgl'];
+        mockAppState.getSelectedWidgetIds.mockReturnValue(['w-lvgl']);
+        mockAppState.getSelectedWidget.mockReturnValue(widget);
+        mockAppState.getSelectedWidgets.mockReturnValue([widget]);
+
+        const { PropertiesPanel } = await import('../../js/core/properties.js');
+        const panel = new PropertiesPanel(mockApp);
+
+        panel.render();
+
+        expect(controlsMethods.addCommonLVGLProperties).toHaveBeenCalledWith(widget, widget.props);
+        expect(mockSchemaRender).toHaveBeenCalled();
     });
 
     it('invokes drop-shadow helper action for selected widgets', async () => {

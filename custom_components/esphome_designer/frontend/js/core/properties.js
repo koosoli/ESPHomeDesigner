@@ -177,6 +177,9 @@ export class PropertiesPanel {
         const mode = AppState.settings?.renderingMode || 'direct';
 
         if (registryEntry && registryEntry.schema) {
+            if (type.startsWith('lvgl_')) {
+                this.addCommonLVGLProperties(widget, widget.props || {});
+            }
             SchemaRenderer.render(this, widget, registryEntry.schema);
         } else if (registryEntry && registryEntry.renderProperties) {
             registryEntry.renderProperties(this, widget);
