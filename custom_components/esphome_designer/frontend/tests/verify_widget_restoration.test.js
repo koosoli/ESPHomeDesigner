@@ -28,6 +28,12 @@ describe('Widget Restoration Verification', () => {
                 name: 'Test LCD',
                 features: { lcd: true },
                 width: 320, height: 240
+            },
+            'test_touch': {
+                name: 'Test Touch Device',
+                features: { lcd: true, touch: true },
+                touch: { platform: 'gt911' },
+                width: 320, height: 240
             }
         };
     });
@@ -95,6 +101,7 @@ describe('Widget Restoration Verification', () => {
 
     it('should generate valid YAML for touch_area', async () => {
         const payload = {
+            deviceModel: 'test_touch',
             pages: [{
                 widgets: [{
                     id: 't1',
@@ -103,8 +110,7 @@ describe('Widget Restoration Verification', () => {
                     entity_id: 'light.test',
                     props: { icon: 'mdi:test' }
                 }]
-            }],
-            profile: { name: 'Test Device', touch: true }
+            }]
         };
 
         const yaml = await adapter.generate(payload);
