@@ -1,9 +1,6 @@
 {
   "domain": "esphome_designer",
   "name": "ESPHome Designer",
-  "documentation": "https://github.com/koosoli/ESPHomeDesigner",
-  "issue_tracker": "https://github.com/koosoli/ESPHomeDesigner/issues",
-  "version": "1.0.0-rc.7",
   "after_dependencies": [
     "http",
     "frontend",
@@ -14,12 +11,15 @@
     "@koosoli"
   ],
   "config_flow": true,
-  "iot_class": "local_push",
+  "documentation": "https://github.com/koosoli/ESPHomeDesigner",
   "integration_type": "hub",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/koosoli/ESPHomeDesigner/issues",
+  "loggers": [
+    "custom_components.esphome_designer"
+  ],
   "requirements": [
     "aiofiles==24.1.0"
   ],
-  "loggers": [
-    "custom_components.esphome_designer"
-  ]
+  "version": "1.0.0-rc.7.1"
 }
