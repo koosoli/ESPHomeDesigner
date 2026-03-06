@@ -107,16 +107,20 @@ declare global {
     interface DeviceProfile {
         id: string;
         name: string;
+        isUntestedProfile?: boolean;
         model?: string;
         resolution?: { width: number, height: number };
         isPackageBased?: boolean;
         hardwarePackage?: string;
+        frameworkHint?: string;
         features?: Record<string, any>;
         isOfflineImport?: boolean;
         content?: string;
         displayPlatform?: string;
+        psram_speed?: string;
         battery?: boolean;
         external_components?: string[];
+        system_section_overrides?: Record<string, string[]>;
         m5paper?: boolean;
         touch?: boolean;
         pins?: Record<string, any>;

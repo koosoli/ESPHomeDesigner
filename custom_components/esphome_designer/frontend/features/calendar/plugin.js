@@ -917,11 +917,11 @@ template:
             if (radius > 0) {
                 // Fallback to sharp borders for now as per established pattern or use primitive if available
                 for (let i = 0; i < borderWidth; i++) {
-                    lines.push(`            it.rectangle(x + i, y + i, w - 2 * i, h - 2 * i, ${borderColor}); `);
+                    lines.push(`            it.rectangle(x + ${i}, y + ${i}, w - ${2 * i}, h - ${2 * i}, ${borderColor});`);
                 }
             } else {
                 for (let i = 0; i < borderWidth; i++) {
-                    lines.push(`            it.rectangle(x + i, y + i, w - 2 * i, h - 2 * i, ${borderColor}); `);
+                    lines.push(`            it.rectangle(x + ${i}, y + ${i}, w - ${2 * i}, h - ${2 * i}, ${borderColor});`);
                 }
             }
         }

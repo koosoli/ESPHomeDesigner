@@ -346,12 +346,67 @@ export const DEVICE_PROFILES = {
     external_components: [
       "  - source: github://Passific/m5paper_esphome"
     ]
+  },
+  lilygo_t5_47: {
+    id: "lilygo_t5_47",
+    name: "Lilygo T5 4.7\" E-Paper",
+    isUntestedProfile: true,
+    displayType: "binary",
+    chip: "esp32",
+    board: "esp-wrover-kit",
+    displayPlatform: "t547",
+    resolution: { width: 960, height: 540 },
+    shape: "rect",
+    psram_speed: "80MHz",
+    pins: {
+      batteryEnable: null,
+      batteryAdc: "GPIO36",
+      buttons: {
+        left: { number: "GPIO39", inverted: true, mode: "INPUT" },
+        right: { number: "GPIO34", inverted: true, mode: "INPUT" },
+        refresh: { number: "GPIO35", inverted: true, mode: "INPUT" }
+      }
+    },
+    battery: {
+      attenuation: "12db",
+      multiplier: 2.0
+    },
+    features: {
+      psram: true,
+      buzzer: false,
+      buttons: true,
+      epaper: true,
+      inverted_colors: true
+    },
+    frameworkHint: "Arduino 3.x (required by the t547 component)",
+    system_section_overrides: {
+      esphome: [
+        "  platformio_options:",
+        "    lib_deps:",
+        "      - https://github.com/Xinyuan-LilyGO/LilyGo-EPD47.git"
+      ],
+      esp32: [
+        "  framework:",
+        "    type: arduino",
+        "    version: 3.3.2",
+        "  flash_size: 16MB"
+      ]
+    },
+    external_components: [
+      "  - source:",
+      "      type: git",
+      "      url: https://github.com/cjb0001/esphome-components",
+      "      ref: idf5-arduino3",
+      "    components: [\"t547\"]"
+    ]
   }
 };
 
 // Expose generically for other modules (Adapter, etc.)
 // window.DEVICE_PROFILES = DEVICE_PROFILES; // REFACTOR: Removed in favor of strict imports
-export const SUPPORTED_DEVICE_IDS = Object.keys(DEVICE_PROFILES);
+export const SUPPORTED_DEVICE_IDS = Object.entries(DEVICE_PROFILES)
+  .filter(([, profile]) => !profile.isUntestedProfile)
+  .map(([id]) => id);
 
 /**
  * Dynamically loads external hardware profiles from the backend

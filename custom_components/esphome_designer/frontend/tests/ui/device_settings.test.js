@@ -52,6 +52,7 @@ vi.mock('../../js/core/events.js', () => ({
 vi.mock('../../js/io/devices.js', () => ({
     DEVICE_PROFILES: {
         reterminal_e1001: { name: 'reTerminal e1001' },
+        lilygo_t5_47: { name: 'Lilygo T5 4.7" E-Paper', isUntestedProfile: true },
         custom_user: { name: 'My Imported', isCustomProfile: true }
     },
     loadExternalProfiles: mockLoadExternalProfiles,
@@ -159,6 +160,7 @@ describe('DeviceSettings', () => {
         const options = Array.from(document.getElementById('deviceModel').options).map(o => o.textContent);
 
         expect(options.some(o => o.includes('reTerminal e1001'))).toBe(true);
+        expect(options.some(o => o.includes('Lilygo T5 4.7" E-Paper (untested)'))).toBe(true);
         expect(options.some(o => o.includes('Imported'))).toBe(true);
         expect(options.some(o => o.includes('Custom Profile'))).toBe(true);
     });

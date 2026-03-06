@@ -447,7 +447,7 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
         const isCoreInk = profile.name && profile.name.includes("CoreInk");
         const b = profile.pins.buttons || {};
 
-        if (b.left) {
+        if (b.left && numPages > 1) {
             lines.push("  - platform: gpio"); // Left Button
             lines.push(`    pin:`);
             if (typeof b.left === 'object') {
@@ -474,7 +474,7 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
             }
         }
 
-        if (b.right) {
+        if (b.right && numPages > 1) {
             lines.push("  - platform: gpio"); // Right Button
             lines.push(`    pin:`);
             if (typeof b.right === 'object') {
@@ -750,6 +750,10 @@ export function generatePSRAMSection(profile) {
     const lines = ["psram:"];
     if (profile.psram_mode) {
         lines.push(`  mode: ${profile.psram_mode}`);
+    }
+    if (profile.psram_speed) {
+        lines.push(`  speed: ${profile.psram_speed}`);
+    } else if (profile.psram_mode) {
         lines.push("  speed: 80MHz");
     }
     lines.push("");

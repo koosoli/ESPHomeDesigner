@@ -306,6 +306,7 @@ font:
             // Core infrastructure
             expect(yaml).toContain('globals:');
             expect(yaml).toContain('id: display_page');
+            expect(yaml).toContain('id: last_page_switch_time');
 
             // Page switching and navigation
             expect(yaml).toContain('script:');
@@ -337,6 +338,27 @@ font:
             expect(yaml).not.toContain('undefined');
             expect(yaml).not.toContain('NaN');
             expect(yaml).not.toContain('[object Object]');
+        });
+
+        it('omits page-switch debounce globals for single-page layouts', async () => {
+            const projectState = {
+                deviceName: 'Single Page Device',
+                deviceModel: 'reterminal_e1001',
+                pages: [
+                    {
+                        name: 'Home',
+                        widgets: [
+                            { id: 'txt1', type: 'text', props: { text: 'Dashboard' }, x: 0, y: 0, width: 200, height: 40 }
+                        ]
+                    }
+                ]
+            };
+
+            const yaml = await adapter.generate(projectState);
+
+            expect(yaml).toContain('id: display_page');
+            expect(yaml).toContain('id: page_refresh_current_s');
+            expect(yaml).not.toContain('id: last_page_switch_time');
         });
 
         it('handles entity deduplication arrays and attributes correctly', async () => {

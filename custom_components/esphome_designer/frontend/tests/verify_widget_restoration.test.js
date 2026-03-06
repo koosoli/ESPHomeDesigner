@@ -176,4 +176,31 @@ describe('Widget Restoration Verification', () => {
         expect(yaml).toContain('resize: 200x200');
         expect(yaml).toContain('it.image(0, 0, id(online_img_p1));');
     });
+
+    it('should generate calendar borders with concrete offsets', async () => {
+        const payload = {
+            pages: [{
+                widgets: [{
+                    id: 'cal1',
+                    type: 'calendar',
+                    x: 20, y: 30, width: 320, height: 260,
+                    entity_id: 'sensor.esp_calendar_data',
+                    props: {
+                        border_width: 2,
+                        border_color: 'black',
+                        show_header: true,
+                        show_grid: true,
+                        show_events: true
+                    }
+                }]
+            }],
+            deviceModel: 'test_epaper'
+        };
+
+        const yaml = await adapter.generate(payload);
+
+        expect(yaml).not.toContain('it.rectangle(x + i, y + i, w - 2 * i, h - 2 * i');
+        expect(yaml).toContain('it.rectangle(x + 0, y + 0, w - 0, h - 0');
+        expect(yaml).toContain('it.rectangle(x + 1, y + 1, w - 2, h - 2');
+    });
 });
