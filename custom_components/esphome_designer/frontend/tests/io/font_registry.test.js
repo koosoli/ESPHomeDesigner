@@ -34,4 +34,17 @@ describe('FontRegistry', () => {
         expect(yaml).toContain('weight: 700');
         expect(yaml).toContain('size: 24');
     });
+
+    it('should clamp invalid Google Font weights before generating YAML', () => {
+        const registry = new FontRegistry();
+        registry.addFont('Roboto Mono', 800, 14, false);
+
+        const lines = registry.getLines();
+        const yaml = lines.join('\n');
+
+        expect(yaml).toContain('family: "Roboto Mono"');
+        expect(yaml).toContain('weight: 700');
+        expect(yaml).not.toContain('weight: 800');
+        expect(yaml).toContain('id: font_roboto_mono_700_14');
+    });
 });

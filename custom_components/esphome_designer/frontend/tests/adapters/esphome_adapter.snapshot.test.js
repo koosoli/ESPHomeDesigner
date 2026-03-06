@@ -81,6 +81,45 @@ touchscreen:
       expect(result2).toContain('rotation: 180');
     });
 
+    it('should preserve sibling on_release block when replacing touchscreen transform', () => {
+      const yaml = `
+display:
+  - platform: st7789v
+    rotation: 0
+
+touchscreen:
+  - platform: gt911
+    id: my_touchscreen
+    i2c_id: bus_a
+    transform:
+      swap_xy: false
+      mirror_x: false
+      mirror_y: false
+    on_release:
+      - if:
+          condition: lvgl.is_paused
+          then:
+            - lvgl.resume:
+            - lvgl.widget.redraw:
+            - light.turn_on: display_backlight
+`;
+      const profile = {
+        name: 'Waveshare Touch LCD 7',
+        resolution: { width: 800, height: 480 }
+      };
+
+      const result = applyPackageOverrides(yaml, profile, 'portrait', true, { lcdEcoStrategy: 'dim_after_timeout' });
+
+      expect(result).toContain('rotation: 90');
+      expect(result).toContain('transform:');
+      expect(result).toContain('swap_xy: true');
+      expect(result).toContain('mirror_x: false');
+      expect(result).toContain('mirror_y: true');
+      expect(result).toContain('on_release:');
+      expect(result).toContain('- if:');
+      expect(result).not.toContain('mirror_y: true\n      - if:');
+    });
+
     it('should modify lvgl auto_clear_enabled', () => {
       const yaml = `
 lvgl:
