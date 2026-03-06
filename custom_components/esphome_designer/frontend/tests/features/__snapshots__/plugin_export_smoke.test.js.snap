@@ -1330,7 +1330,7 @@ exports[`Plugin Export Smoke Tests > Export for lvgl_qrcode > should export LVGL
   "qrcode": {
     "dark_color": "Color(black)",
     "light_color": "Color(white)",
-    "size": NaN,
+    "size": 100,
     "text": ""https://github.com/koosoli/ESPHomeDesigner/"",
   },
 }
@@ -1463,7 +1463,7 @@ exports[`Plugin Export Smoke Tests > Export for lvgl_textarea > should export LV
     "max_length": 128,
     "one_line": false,
     "password_mode": false,
-    "placeholder_text": undefined,
+    "placeholder_text": "Enter text...",
     "text": "",
   },
   "type": "textarea",

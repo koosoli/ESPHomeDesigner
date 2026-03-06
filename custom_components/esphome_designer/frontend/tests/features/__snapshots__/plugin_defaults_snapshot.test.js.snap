@@ -176,6 +176,8 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_
 {
   "bg_color": "theme_auto_inverse",
   "border_width": 2,
+  "checkable": false,
+  "color": "theme_auto",
   "entity_id": "",
   "font_family": "Roboto",
   "font_size": 14,
@@ -185,7 +187,6 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_
   "opacity": 255,
   "radius": 5,
   "text": "Button",
-  "text_color": "theme_auto",
 }
 `;
 
@@ -232,6 +233,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_
 {
   "bg_color": "transparent",
   "color": "blue",
+  "entity_id": "",
   "max": 100,
   "min": 0,
   "opa": 255,
@@ -288,7 +290,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_
   "mode": "TEXT_LOWER",
   "opa": 255,
   "opacity": 255,
-  "textarea": "",
+  "textarea_id": "",
 }
 `;
 
@@ -345,6 +347,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_
   "min": 0,
   "opa": 255,
   "opacity": 255,
+  "scale_width": 10,
   "tick_count": 11,
   "tick_length": 10,
   "value": 0,
@@ -374,6 +377,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_
   "opa": 255,
   "opacity": 255,
   "scale": 4,
+  "size": 100,
   "text": "https://github.com/koosoli/ESPHomeDesigner/",
   "width": 130,
 }
@@ -432,7 +436,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_
   "arc_length": 60,
   "opa": 255,
   "opacity": 255,
-  "time": 1000,
+  "spin_time": 1000,
   "track_color": "white",
 }
 `;

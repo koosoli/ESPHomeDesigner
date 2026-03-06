@@ -323,14 +323,14 @@ export function buildWidgetProps(widgetType, p, widget) {
         };
     } else if (widgetType === "lvgl_button") {
         if (p.title) widget.title = p.title;
-        const text_color = normalizeColor(p.text_color || p.color, "theme_auto");
+        const color = normalizeColor(p.color || p.text_color, "theme_auto");
         delete props.color;
         delete props.text_color;
         return {
             ...props,
             text: p.text || "Button",
             bg_color: normalizeColor(p.bg_color, "theme_auto_inverse"),
-            text_color,
+            color,
             font_size: parseInt(p.font_size || 14, 10),
             border_width: parseInt(p.border_width || p.border || 2, 10),
             radius: parseInt(p.radius || 5, 10),
@@ -378,6 +378,7 @@ export function buildWidgetProps(widgetType, p, widget) {
         return {
             ...props,
             text: p.text || "https://github.com/koosoli/ESPHomeDesigner/",
+            size: parseInt(p.size || 100, 10),
             scale: parseInt(p.scale || 4, 10),
             color: p.color || "black",
             bg_color: p.bg_color || "white"
@@ -426,7 +427,7 @@ export function buildWidgetProps(widgetType, p, widget) {
     } else if (widgetType === "lvgl_spinner") {
         return {
             ...props,
-            time: parseInt(p.time || p.spin_time || 1000, 10),
+            spin_time: parseInt(p.spin_time || p.time || 1000, 10),
             arc_length: parseInt(p.arc_length || 60, 10),
             arc_color: p.arc_color || "blue",
             track_color: p.track_color || "white"
@@ -497,7 +498,7 @@ export function buildWidgetProps(widgetType, p, widget) {
     } else if (widgetType === "lvgl_textarea") {
         return {
             ...props,
-            placeholder_text: (p.placeholder_text || p.placeholder || "").replace(/^"|"$/g, ''),
+            placeholder_text: (p.placeholder_text || p.placeholder || "Enter text...").replace(/^"|"$/g, ''),
             text: (p.text || "").replace(/^"|"$/g, ''),
             one_line: (p.one_line === "true" || p.one_line === true),
             max_length: parseInt(p.max_length || 128, 10),

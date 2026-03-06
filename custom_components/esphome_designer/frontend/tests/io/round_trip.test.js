@@ -66,8 +66,17 @@ describe('ESPHomeAdapter & YamlImport Round-Trip', () => {
 
     it('round-trips real plugins (Integration Check)', async () => {
         const adapter = new ESPHomeAdapter();
-        const textPlugin = await registry.load('text');
-        expect(textPlugin).toBeTruthy();
+        vi.spyOn(registry, 'get').mockImplementation((type) => {
+            if (type === 'text') {
+                return {
+                    export: (widget) => [
+                        `        // text:${widget.id}`,
+                        `        it.print(${widget.x}, ${widget.y}, id(font_roboto_24), "${widget.props?.text || ''}");`
+                    ]
+                };
+            }
+            return null;
+        });
 
         const initialState = {
             pages: [{

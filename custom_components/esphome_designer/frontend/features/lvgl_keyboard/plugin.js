@@ -39,7 +39,7 @@ const exportLVGL = (w, { common, formatOpacity }) => {
         keyboard: {
             ...common,
             mode: p.mode || "TEXT_LOWER",
-            textarea: textareaId || undefined,
+            ...(textareaId ? { textarea: textareaId } : {}),
             opa: formatOpacity(p.opa)
         }
     };
@@ -53,7 +53,6 @@ export default {
         mode: "TEXT_LOWER",
         opa: 255,
         textarea_id: "",
-        textarea: "",
         opacity: 255
     },
     schema: [

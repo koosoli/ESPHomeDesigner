@@ -69,7 +69,6 @@ export default {
     category: "LVGL",
     defaults: {
         text: "",
-        placeholder: "Enter text...",
         placeholder_text: "Enter text...",
         max_length: 128,
         accepted_chars: "",

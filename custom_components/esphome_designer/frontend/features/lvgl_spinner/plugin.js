@@ -64,7 +64,6 @@ export default {
     category: "LVGL",
     defaults: {
         spin_time: 1000,
-        time: 1000,
         arc_length: 60,
         arc_color: "blue",
         track_color: "white",
