@@ -63,6 +63,7 @@ export default {
     name: "Spinner",
     category: "LVGL",
     defaults: {
+        spin_time: 1000,
         time: 1000,
         arc_length: 60,
         arc_color: "blue",
@@ -74,7 +75,7 @@ export default {
         {
             section: "Settings",
             fields: [
-                { key: "time", label: "Cycle Time (ms)", type: "number", default: 1000 },
+                { key: "spin_time", label: "Spin Time (ms)", type: "number", default: 1000 },
                 { key: "arc_length", label: "Arc Length (deg)", type: "number", default: 60 }
             ]
         },
@@ -91,11 +92,12 @@ export default {
     render,
     exportLVGL: (w, { common, convertColor }) => {
         const props = w.props || {};
+        const spinTime = props.spin_time ?? props.time ?? 1000;
         return {
             "spinner": {
                 ...common,
                 "arc_length": props.arc_length || 60,
-                "spin_time": `${props.time || 1000}ms`,
+                "spin_time": `${spinTime}ms`,
                 "indicator": {
                     "arc_color": convertColor(props.arc_color || "blue")
                 },

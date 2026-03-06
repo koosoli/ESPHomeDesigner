@@ -46,6 +46,7 @@ const render = (el, widget, { getColorStyle }) => {
 const exportLVGL = (w, { common, convertColor }) => {
     const p = w.props || {};
     let qrText = `"${p.text || 'https://github.com/koosoli/ESPHomeDesigner/'}"`;
+    const size = p.size || Math.min(common.width, common.height);
 
     if (w.entity_id) {
         const safeId = w.entity_id.replace(/[^a-zA-Z0-9_]/g, "_");
@@ -56,7 +57,7 @@ const exportLVGL = (w, { common, convertColor }) => {
         qrcode: {
             ...common,
             text: qrText,
-            size: Math.min(common.width, common.height),
+            size,
             dark_color: convertColor(p.color),
             light_color: convertColor(p.bg_color || "white")
         }
@@ -90,6 +91,7 @@ export default {
         text: "https://github.com/koosoli/ESPHomeDesigner/",
         color: "black",
         bg_color: "white",
+        size: 100,
         scale: 4,
         width: 130,
         height: 130,
@@ -108,6 +110,7 @@ export default {
         {
             section: "Appearance",
             fields: [
+                { key: "size", label: "Size (px)", type: "number", default: 100 },
                 { key: "color", label: "Foreground Color", type: "color", default: "black" },
                 { key: "bg_color", label: "Background Color", type: "color", default: "white" },
                 { key: "scale", label: "Pixel Scale", type: "number", default: 4 },

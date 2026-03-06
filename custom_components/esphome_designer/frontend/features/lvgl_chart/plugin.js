@@ -131,6 +131,7 @@ export default {
     name: "Chart",
     category: "LVGL",
     defaults: {
+        entity_id: "",
         min: 0,
         max: 100,
         color: "blue",
@@ -147,7 +148,8 @@ export default {
         {
             section: "Content",
             fields: [
-                { key: "title", label: "Chart Title", type: "text", default: "Chart" }
+                { key: "title", label: "Chart Title", type: "text", default: "Chart" },
+                { key: "entity_id", target: "root", label: "Entity ID", type: "entity_picker", default: "" }
             ]
         },
         {

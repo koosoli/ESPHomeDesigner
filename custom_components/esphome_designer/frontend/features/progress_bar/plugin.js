@@ -355,6 +355,9 @@ export default {
 
         panel.createSection("Labels", false);
         panel.addCheckbox("Display Title", props.show_label !== false, (v) => updateProp("show_label", v));
+        panel.addLabeledInput("Title", "text", widget.title || "", (v) => {
+            AppState.updateWidget(widget.id, { title: v });
+        });
         panel.addCheckbox("Display Percentage", props.show_percentage !== false, (v) => updateProp("show_percentage", v));
         panel.addLabeledInput("Font Size", "number", props.font_size || 12, (v) => updateProp("font_size", parseInt(v, 10)));
         panel.addSelect("Text Align", props.text_align || "CENTER", ["LEFT", "CENTER", "RIGHT"], (v) => updateProp("text_align", v));

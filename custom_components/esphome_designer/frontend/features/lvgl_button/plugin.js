@@ -7,18 +7,19 @@ import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.j
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
+    const textColor = props.color || props.text_color || "theme_auto";
     el.innerHTML = "";
     el.style.display = "flex";
     el.style.alignItems = "center";
     el.style.justifyContent = "center";
     el.style.boxSizing = "border-box";
     el.style.backgroundColor = getColorStyle(props.bg_color || "white");
-    el.style.border = `${props.border_width || 2}px solid ${getColorStyle(props.text_color || "black")}`;
+    el.style.border = `${props.border_width || 2}px solid ${getColorStyle(textColor)}`;
     el.style.borderRadius = `${props.radius || 5}px`;
 
     const text = document.createElement("span");
     text.textContent = props.text || "BTN";
-    text.style.color = getColorStyle(props.text_color || "black");
+    text.style.color = getColorStyle(textColor);
     text.style.fontFamily = props.font_family || "Roboto, sans-serif";
     text.style.fontSize = (props.font_size || 14) + "px";
     text.style.fontWeight = props.font_weight || 400;
@@ -29,6 +30,7 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportLVGL = (w, { common, convertColor, formatOpacity, _profile, getLVGLFont }) => {
     const p = w.props || {};
+    const textColor = p.color || p.text_color;
 
     // Robust entity ID detection: check top-level, props.entity_id, and props.entity
     const entityId = (w.entity_id || p.entity_id || p.entity || "").trim();
@@ -39,7 +41,7 @@ const exportLVGL = (w, { common, convertColor, formatOpacity, _profile, getLVGLF
             bg_color: convertColor(p.bg_color),
             bg_opa: "cover",
             border_width: p.border_width,
-            border_color: convertColor(p.text_color),
+            border_color: convertColor(textColor),
             radius: p.radius,
             opa: formatOpacity(p.opa),
             on_click: undefined,
@@ -49,7 +51,7 @@ const exportLVGL = (w, { common, convertColor, formatOpacity, _profile, getLVGLF
                         align: "center",
                         text: `"${p.text || 'BTN'}"`,
                         text_font: getLVGLFont ? getLVGLFont(p.font_family, p.font_size, p.font_weight, p.italic) : undefined,
-                        text_color: convertColor(p.text_color)
+                        text_color: convertColor(textColor)
                     }
                 }
             ]
@@ -83,9 +85,10 @@ export default {
     defaults: {
         text: "Button",
         bg_color: "theme_auto_inverse",
-        text_color: "theme_auto",
+        color: "theme_auto",
         border_width: 2,
         radius: 5,
+        checkable: false,
         opa: 255,
         font_size: 14,
         font_family: "Roboto",
@@ -105,10 +108,11 @@ export default {
         {
             section: "Appearance",
             fields: [
-                { key: "text_color", label: "Text/Border Color", type: "color", default: "theme_auto" },
+                { key: "color", label: "Text/Border Color", type: "color", default: "theme_auto" },
                 { key: "bg_color", label: "Background color", type: "color", default: "theme_auto_inverse" },
                 { key: "border_width", label: "Border width", type: "number", default: 2 },
                 { key: "radius", label: "Corner Radius", type: "number", default: 5 },
+                { key: "checkable", label: "Checkable (Toggle)", type: "checkbox", default: false },
                 { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
                 { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
             ]

@@ -192,6 +192,7 @@ export default {
         bg_color: "lightgray",
         color: "black",
         indicator_color: "red",
+        scale_width: 10,
         opa: 255,
         entity_id: "",
         tick_count: 11,
@@ -220,6 +221,7 @@ export default {
             fields: [
                 { key: "color", label: "Tick/Label Color", type: "color", default: "black" },
                 { key: "bg_color", label: "Arc/Scale Color", type: "color", default: "lightgray" },
+                { key: "scale_width", label: "Scale Width", type: "number", default: 10 },
                 { key: "tick_count", label: "Ticks", type: "number", default: 11 },
                 { key: "tick_length", label: "Tick Length", type: "number", default: 10 },
                 { key: "label_gap", label: "Label Gap", type: "number", default: 10 }

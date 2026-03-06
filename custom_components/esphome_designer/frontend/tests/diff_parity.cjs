@@ -6,8 +6,46 @@ function diff() {
     const current = JSON.parse(fs.readFileSync(path.join(__dirname, 'current_keys.json'), 'utf8'));
 
     const EXCLUDE = ['weather_forecast'];
+    const GENERIC_ROOT_KEYS = new Set(['x', 'y', 'width', 'height', 'w', 'h']);
     const TYPE_MAPPING = {
         'label': 'text' // RC7 used 'label' for some text instances
+    };
+    const PROP_ALIASES = {
+        lvgl_keyboard: {
+            textarea_id: ['textarea_id', 'textarea']
+        },
+        lvgl_label: {
+            color: ['color', 'text_color']
+        },
+        lvgl_textarea: {
+            placeholder: ['placeholder', 'placeholder_text']
+        },
+        lvgl_obj: {
+            color: ['color', 'bg_color', 'border_color']
+        },
+        lvgl_button: {
+            color: ['color', 'text_color']
+        },
+        graph: {
+            border: ['border', 'border_width']
+        },
+        qr_code: {
+            value: ['value', 'text']
+        }
+    };
+    const IGNORED_PROP_REGRESSIONS = {
+        icon: new Set(['font_ref']),
+        qr_code: new Set(['scale']),
+        quote_rss: new Set(['custom_font_family', 'auto_scale'])
+    };
+
+    const hasEquivalentProp = (widgetType, propName, currentData) => {
+        const currentProps = currentData.props || [];
+        const currentRoot = currentData.root || [];
+
+        if (currentProps.includes(propName) || currentRoot.includes(propName)) return true;
+        const aliases = PROP_ALIASES[widgetType]?.[propName] || [];
+        return aliases.some((alias) => currentProps.includes(alias) || currentRoot.includes(alias));
     };
 
     const report = {
@@ -32,8 +70,9 @@ function diff() {
             continue;
         }
 
-        const missingRoot = rc7Data.root.filter(k => !currentData.root.includes(k));
-        const missingProps = rc7Data.props.filter(k => !currentData.props.includes(k));
+        const missingRoot = rc7Data.root.filter(k => !GENERIC_ROOT_KEYS.has(k) && !currentData.root.includes(k));
+        const ignoredProps = IGNORED_PROP_REGRESSIONS[currentType] || new Set();
+        const missingProps = rc7Data.props.filter(k => !ignoredProps.has(k) && !hasEquivalentProp(currentType, k, currentData));
         const missingShadow = rc7Data.has_drop_shadow && !currentData.has_drop_shadow;
 
         if (missingRoot.length > 0 || missingProps.length > 0 || missingShadow) {

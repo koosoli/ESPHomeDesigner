@@ -2,6 +2,44 @@ const fs = require('fs');
 const path = require('path');
 
 const FEATURES_PATH = `c:\\Users\\mail\\Downloads\\ESPHome_desinger\\Codebasecleanup\\0.9\\custom_components\\esphome_designer\\frontend\\features`;
+const LEGACY_RENDERER_PATH = `c:\\Users\\mail\\Downloads\\ESPHome_desinger\\Codebasecleanup\\0.9\\custom_components\\esphome_designer\\frontend\\js\\core\\properties\\legacy_renderer.js`;
+
+function applyRendererKeyData(results, widgetId, content) {
+    if (!results[widgetId]) {
+        results[widgetId] = { root: [], props: [], has_drop_shadow: false };
+    }
+
+    const root = new Set(results[widgetId].root || []);
+    const props = new Set(results[widgetId].props || []);
+
+    for (const propMatch of content.matchAll(/updateProp\("([^"]+)"/g)) {
+        props.add(propMatch[1]);
+    }
+    for (const newPropsMatch of content.matchAll(/newProps\.([a-zA-Z0-9_]+)\s*=/g)) {
+        props.add(newPropsMatch[1]);
+    }
+    for (const rootMatch of content.matchAll(/AppState\.updateWidget\(widget\.id,\s*\{\s*([a-zA-Z0-9_]+)\s*:/g)) {
+        root.add(rootMatch[1]);
+    }
+    if (content.includes('addDropShadowButton')) {
+        results[widgetId].has_drop_shadow = true;
+    }
+
+    results[widgetId].root = Array.from(root);
+    results[widgetId].props = Array.from(props);
+}
+
+function applyLegacyRendererData(results) {
+    const content = fs.readFileSync(LEGACY_RENDERER_PATH, 'utf8');
+    const branchRegex = /else if \(type === "([^"]+)"\) \{([\s\S]*?)(?=\n\s*else if \(type ===|\n\s*\}\n\s*else if \(type ===|\n\s*\}\n\s*if \(type ===|$)/g;
+
+    let match;
+    while ((match = branchRegex.exec(content)) !== null) {
+        const widgetId = match[1];
+        const block = match[2];
+        applyRendererKeyData(results, widgetId, block);
+    }
+}
 
 function extract() {
     console.log(`Scanning features for schemas in: ${FEATURES_PATH}`);
@@ -58,7 +96,11 @@ function extract() {
             props: Array.from(props),
             has_drop_shadow: hasDropShadow
         };
+
+        applyRendererKeyData(results, id, content);
     }
+
+    applyLegacyRendererData(results);
 
     const outputPath = path.join(__dirname, 'current_keys.json');
     fs.writeFileSync(outputPath, JSON.stringify(results, null, 2));

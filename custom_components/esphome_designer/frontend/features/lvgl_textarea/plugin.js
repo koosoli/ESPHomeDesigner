@@ -6,7 +6,7 @@
 const render = (el, widget, { _getColorStyle }) => {
     const props = widget.props || {};
     const text = props.text || "";
-    const placeholder = props.placeholder_text || "Enter text...";
+    const placeholder = props.placeholder_text || props.placeholder || "Enter text...";
 
     el.innerHTML = "";
     el.style.display = "flex";
@@ -53,7 +53,7 @@ const exportLVGL = (w, context) => {
     obj.type = "textarea";
     obj.attrs = {
         ...obj.attrs,
-        placeholder_text: props.placeholder,
+        placeholder_text: props.placeholder_text ?? props.placeholder,
         text: props.text,
         max_length: props.max_length,
         one_line: props.one_line ?? false,
@@ -69,6 +69,7 @@ export default {
     category: "LVGL",
     defaults: {
         text: "",
+        placeholder: "Enter text...",
         placeholder_text: "Enter text...",
         max_length: 128,
         accepted_chars: "",

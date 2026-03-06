@@ -34,10 +34,12 @@ const render = (el, widget, { _getColorStyle }) => {
 
 const exportLVGL = (w, { common, formatOpacity }) => {
     const p = w.props || {};
+    const textareaId = w.textarea_id || p.textarea_id || w.textarea || p.textarea || "";
     return {
         keyboard: {
             ...common,
             mode: p.mode || "TEXT_LOWER",
+            textarea: textareaId || undefined,
             opa: formatOpacity(p.opa)
         }
     };
@@ -50,6 +52,7 @@ export default {
     defaults: {
         mode: "TEXT_LOWER",
         opa: 255,
+        textarea_id: "",
         textarea: "",
         opacity: 255
     },
@@ -58,7 +61,7 @@ export default {
             section: "Keyboard Settings",
             fields: [
                 { key: "mode", label: "Initial Mode", type: "select", options: ["TEXT_LOWER", "TEXT_UPPER", "SPECIAL", "NUMBER", "USER_1", "USER_2", "USER_3", "USER_4"], default: "TEXT_LOWER" },
-                { key: "textarea", target: "root", label: "Target Textarea ID", type: "text", default: "" }
+                { key: "textarea_id", target: "root", label: "Target Textarea ID", type: "text", default: "" }
             ]
         },
         {
