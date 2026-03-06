@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { generateDisplayLambda, getCondProps } from '../../js/io/generators/native_generator.js';
 import { registry } from '../../js/core/plugin_registry';
+import { serializeWidget } from '../../js/io/yaml_export_lvgl.js';
 
 // Deep-Mocking infrastructure for ULTRATHINK compliance
 vi.mock('../../js/core/plugin_registry', () => ({
@@ -182,6 +183,19 @@ describe('Native Generator', () => {
             expect(output).toContain('// page:refresh_time ""');
             expect(output).toContain('// page:visible_from ""');
             expect(output).toContain('// page:visible_to ""');
+        });
+
+        it('should rewrite YAML widget markers to C++ comments inside the native lambda', () => {
+            vi.mocked(registry.get).mockReturnValue({
+                export: () => ['it.print(10, 10, "safe");']
+            });
+            vi.mocked(serializeWidget).mockReturnValue('# widget:text id:w1 type:text x:10 y:10 w:100 h:20');
+
+            const lines = generateDisplayLambda(mockPages, mockLayout, mockProfile, mockContext, mockAdapter);
+            const output = lines.join('\n');
+
+            expect(output).toContain('// widget:text id:w1 type:text x:10 y:10 w:100 h:20');
+            expect(output).not.toContain('# widget:text id:w1 type:text x:10 y:10 w:100 h:20');
         });
     });
 });

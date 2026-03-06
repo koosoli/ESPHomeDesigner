@@ -9,6 +9,11 @@ import { COLORS, ALIGNMENT } from '../../core/constants';
 import { isEntityStateNonNumeric } from '../../utils/export_helpers.js';
 import { serializeWidget } from '../yaml_export_lvgl.js';
 
+function toCppRoundTripComment(serialized) {
+    if (!serialized) return serialized;
+    return serialized.replace(/^\s*#\s*widget:/, '// widget:');
+}
+
 export function getCondProps(w) {
     const ent = (w.condition_entity || "").trim();
     if (!ent) return "";
@@ -100,7 +105,7 @@ function generateWidget(widget, context) {
 
     if (plugin && typeof plugin.export === 'function') {
         // Automatically prepend the round-trip marker comment
-        const serialized = serializeWidget(widget);
+        const serialized = toCppRoundTripComment(serializeWidget(widget));
         if (serialized) widgetLines.push(serialized);
 
         const exportContext = {
@@ -131,7 +136,7 @@ function generateWidget(widget, context) {
         // If it's an LVGL widget but we aren't using the direct LVGL generator 
         // (e.g. on an e-paper device or if isLvgl=false), we MUST still export 
         // the marker comment so it doesn't get lost on Update.
-        const serialized = serializeWidget(widget);
+        const serialized = toCppRoundTripComment(serializeWidget(widget));
         widgetLines.push(serialized ? serialized.replace(/[\r\n]+/g, " ") : "");
     } else {
         widgetLines.push(`// widget:${widget.type} id:${widget.id} status:unsupported`);

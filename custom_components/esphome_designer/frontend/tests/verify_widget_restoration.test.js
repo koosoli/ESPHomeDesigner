@@ -209,4 +209,28 @@ describe('Widget Restoration Verification', () => {
         expect(yaml).toContain('it.rectangle(x + 0, y + 0, w - 0, h - 0');
         expect(yaml).toContain('it.rectangle(x + 1, y + 1, w - 2, h - 2');
     });
+
+    it('should emit widget round-trip markers as C++ comments in native display lambdas', async () => {
+        const payload = {
+            pages: [{
+                name: 'Overview',
+                widgets: [{
+                    id: 'w1',
+                    type: 'weather_icon',
+                    x: 10,
+                    y: 10,
+                    width: 48,
+                    height: 48,
+                    entity_id: 'weather.forecast_home',
+                    props: { size: 48, color: 'black' }
+                }]
+            }],
+            deviceModel: 'test_epaper'
+        };
+
+        const yaml = await adapter.generate(payload);
+
+        expect(yaml).toContain('// widget:weather_icon');
+        expect(yaml).not.toContain('# widget:weather_icon');
+    });
 });
