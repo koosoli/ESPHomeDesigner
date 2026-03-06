@@ -547,16 +547,18 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
     }
 
     // 2. Touch Area Buttons
-    if (hasTouchAreas) {
+    if (hasTouchAreas && profile?.touch) {
         lines.push(`  # Touch Area Binary Sensors`);
+        const totalPages = touchAreaWidgets.reduce((max, widget) => Math.max(max, (widget._pageIndex ?? 0) + 1), 0) || 1;
         touchAreaWidgets.forEach(w => {
             const t = (w.type || "").toLowerCase();
             const p = w.props || {};
 
             if (t === "template_nav_bar") {
-                const showPrev = p.show_prev !== false;
+                const allowPaging = totalPages > 1;
+                const showPrev = allowPaging && p.show_prev !== false;
                 const showHome = p.show_home !== false;
-                const showNext = p.show_next !== false;
+                const showNext = allowPaging && p.show_next !== false;
 
                 let activeCount = 0;
                 if (showPrev) activeCount++;
@@ -620,7 +622,10 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
                 xMin = Math.max(0, xMin);
                 yMin = Math.max(0, yMin);
 
-                const navAction = p.nav_action || "none";
+                const requestedNavAction = p.nav_action || "none";
+                const navAction = totalPages > 1
+                    ? requestedNavAction
+                    : (requestedNavAction === "reload_page" ? "reload_page" : "none");
                 const pageIdx = w._pageIndex !== undefined ? w._pageIndex : 0;
 
                 lines.push(`  - platform: touchscreen`);
@@ -666,21 +671,24 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
 export function generateButtonSection(profile, numPages, displayId = "my_display") {
     const lines = [];
     lines.push("button:");
-    lines.push("  - platform: template");
-    lines.push("    name: \"Next Page\"");
-    lines.push("    on_press:");
-    lines.push("      then:");
-    lines.push("        - script.execute:");
-    lines.push("            id: change_page_to");
-    lines.push("            target_page: !lambda 'return id(display_page) + 1;'");
 
-    lines.push("  - platform: template");
-    lines.push("    name: \"Previous Page\"");
-    lines.push("    on_press:");
-    lines.push("      then:");
-    lines.push("        - script.execute:");
-    lines.push("            id: change_page_to");
-    lines.push("            target_page: !lambda 'return id(display_page) - 1;'");
+    if (numPages > 1) {
+        lines.push("  - platform: template");
+        lines.push("    name: \"Next Page\"");
+        lines.push("    on_press:");
+        lines.push("      then:");
+        lines.push("        - script.execute:");
+        lines.push("            id: change_page_to");
+        lines.push("            target_page: !lambda 'return id(display_page) + 1;'");
+
+        lines.push("  - platform: template");
+        lines.push("    name: \"Previous Page\"");
+        lines.push("    on_press:");
+        lines.push("      then:");
+        lines.push("        - script.execute:");
+        lines.push("            id: change_page_to");
+        lines.push("            target_page: !lambda 'return id(display_page) - 1;'");
+    }
 
     lines.push("  - platform: template");
     lines.push("    name: \"Refresh Display\"");
@@ -689,6 +697,7 @@ export function generateButtonSection(profile, numPages, displayId = "my_display
     lines.push(`        - component.update: ${displayId}`);
 
     for (let i = 0; i < numPages; i++) {
+        if (numPages <= 1) break;
         lines.push("  - platform: template");
         lines.push(`    name: "Go to Page ${i + 1}"`);
         lines.push("    on_press:");

@@ -167,11 +167,14 @@ const onExportBinarySensors = (context) => {
     const navBarWidgets = widgets.filter(w => w.type === 'template_nav_bar');
     if (navBarWidgets.length === 0) return;
 
+    const totalPages = widgets.reduce((max, widget) => Math.max(max, (widget._pageIndex ?? 0) + 1), 0) || 1;
+
     navBarWidgets.forEach(w => {
         const p = w.props || {};
-        const showPrev = p.show_prev !== false;
+        const allowPaging = totalPages > 1;
+        const showPrev = allowPaging && p.show_prev !== false;
         const showHome = p.show_home !== false;
-        const showNext = p.show_next !== false;
+        const showNext = allowPaging && p.show_next !== false;
 
         let activeCount = 0;
         if (showPrev) activeCount++;

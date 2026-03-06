@@ -3,6 +3,8 @@
  * LVGL Switch Plugin
  */
 
+import { makeSafeId } from '../../js/utils/export_helpers.js';
+
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     const checked = props.checked || false;
@@ -47,12 +49,15 @@ const exportLVGL = (w, { common, convertColor, formatOpacity, _profile }) => {
 
     // Robust entity ID detection
     const entityId = (w.entity_id || p.entity_id || p.entity || "").trim();
+    const checkedState = entityId
+        ? `!lambda return id(${makeSafeId(entityId)}).state;`
+        : p.checked;
 
     const switchObj = {
         switch: {
             ...common,
             state: {
-                checked: p.checked
+                checked: checkedState
             },
             bg_color: convertColor(p.bg_color),
             indicator: { bg_color: convertColor(p.color) },

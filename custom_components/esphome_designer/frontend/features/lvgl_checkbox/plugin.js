@@ -3,6 +3,8 @@
  * LVGL Checkbox Plugin
  */
 
+import { makeSafeId } from '../../js/utils/export_helpers.js';
+
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     const color = getColorStyle(props.color || "blue");
@@ -51,13 +53,16 @@ const exportLVGL = (w, { common, convertColor, formatOpacity, _profile }) => {
 
     // Robust entity ID detection
     const entityId = (w.entity_id || p.entity_id || p.entity || "").trim();
+    const checkedState = entityId
+        ? `!lambda return id(${makeSafeId(entityId)}).state;`
+        : p.checked;
 
     const checkboxObj = {
         checkbox: {
             ...common,
             text: `"${p.text || 'Checkbox'}"`,
             state: {
-                checked: p.checked
+                checked: checkedState
             },
             indicator: {
                 bg_color: convertColor(p.color || "blue"),

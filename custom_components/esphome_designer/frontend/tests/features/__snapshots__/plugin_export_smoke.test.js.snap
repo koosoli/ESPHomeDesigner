@@ -514,24 +514,178 @@ exports[`Plugin Export Smoke Tests > Export for debug_grid > should export OpenD
 
 exports[`Plugin Export Smoke Tests > Export for graph > should export LVGL with stable output 1`] = `
 {
-  "lv_chart": {
-    "bg_color": "Color(transparent)",
-    "duration": "1h",
-    "id": "chart_w_test",
-    "series": [
+  "obj": {
+    "bg_opa": "transp",
+    "border_color": "Color(theme_auto)",
+    "border_width": 1,
+    "radius": 0,
+    "widgets": [
       {
-        "color": "Color(theme_auto)",
-        "sensor": "",
-        "width": 3,
+        "line": {
+          "line_color": "Color(gray)",
+          "line_width": 1,
+          "points": [
+            {
+              "x": 0,
+              "y": 28,
+            },
+            {
+              "x": 99,
+              "y": 28,
+            },
+          ],
+        },
+      },
+      {
+        "line": {
+          "line_color": "Color(gray)",
+          "line_width": 1,
+          "points": [
+            {
+              "x": 25,
+              "y": 6,
+            },
+            {
+              "x": 25,
+              "y": 94,
+            },
+          ],
+        },
+      },
+      {
+        "line": {
+          "line_color": "Color(gray)",
+          "line_width": 1,
+          "points": [
+            {
+              "x": 0,
+              "y": 50,
+            },
+            {
+              "x": 99,
+              "y": 50,
+            },
+          ],
+        },
+      },
+      {
+        "line": {
+          "line_color": "Color(gray)",
+          "line_width": 1,
+          "points": [
+            {
+              "x": 50,
+              "y": 6,
+            },
+            {
+              "x": 50,
+              "y": 94,
+            },
+          ],
+        },
+      },
+      {
+        "line": {
+          "line_color": "Color(gray)",
+          "line_width": 1,
+          "points": [
+            {
+              "x": 0,
+              "y": 72,
+            },
+            {
+              "x": 99,
+              "y": 72,
+            },
+          ],
+        },
+      },
+      {
+        "line": {
+          "line_color": "Color(gray)",
+          "line_width": 1,
+          "points": [
+            {
+              "x": 74,
+              "y": 6,
+            },
+            {
+              "x": 74,
+              "y": 94,
+            },
+          ],
+        },
+      },
+      {
+        "line": {
+          "id": "lvgl_graph_w_test_line",
+          "line_color": "Color(theme_auto)",
+          "line_rounded": true,
+          "line_width": 3,
+          "points": [
+            {
+              "x": 0,
+              "y": 50,
+            },
+            {
+              "x": 8,
+              "y": 33,
+            },
+            {
+              "x": 17,
+              "y": 19,
+            },
+            {
+              "x": 25,
+              "y": 9,
+            },
+            {
+              "x": 33,
+              "y": 6,
+            },
+            {
+              "x": 41,
+              "y": 9,
+            },
+            {
+              "x": 50,
+              "y": 19,
+            },
+            {
+              "x": 58,
+              "y": 33,
+            },
+            {
+              "x": 66,
+              "y": 50,
+            },
+            {
+              "x": 74,
+              "y": 67,
+            },
+            {
+              "x": 83,
+              "y": 81,
+            },
+            {
+              "x": 91,
+              "y": 91,
+            },
+            {
+              "x": 99,
+              "y": 94,
+            },
+          ],
+        },
+      },
+      {
+        "label": {
+          "align": "top_mid",
+          "text": ""Graph"",
+          "text_color": "Color(theme_auto)",
+        },
       },
     ],
-    "type": "LINE",
-    "y_axis": {
-      "num_ticks": 5,
-      "show_labels": true,
-    },
-    "y_max": 100,
-    "y_min": 0,
   },
 }
 `;
@@ -542,31 +696,7 @@ exports[`Plugin Export Smoke Tests > Export for graph > should export standard C
 ]
 `;
 
-exports[`Plugin Export Smoke Tests > Export for graph > should handle onExportComponents with stable output 1`] = `
-[
-  "color:",
-  "  - id: graph_color_w_test",
-  "    red_int: 0",
-  "    green_int: 0",
-  "    blue_int: 0",
-  "",
-  "graph:",
-  "  - id: graph_w_test",
-  "    duration: 1h",
-  "    width: 100",
-  "    height: 100",
-  "    border: true",
-  "    x_grid: 15min",
-  "    y_grid: 50",
-  "    traces:",
-  "      - sensor: none",
-  "        color: graph_color_w_test",
-  "        line_thickness: 3",
-  "        continuous: true",
-  "    min_range: 10",
-  "",
-]
-`;
+exports[`Plugin Export Smoke Tests > Export for graph > should handle onExportComponents with stable output 1`] = `[]`;
 
 exports[`Plugin Export Smoke Tests > Export for graph > should handle onExportGlobals with stable output 1`] = `[]`;
 
@@ -852,23 +982,158 @@ exports[`Plugin Export Smoke Tests > Export for lvgl_buttonmatrix > should expor
 
 exports[`Plugin Export Smoke Tests > Export for lvgl_chart > should export LVGL with stable output 1`] = `
 {
-  "lv_chart": {
-    "bg_color": "Color(transparent)",
+  "obj": {
+    "bg_opa": "transp",
     "border_color": "Color(blue)",
     "border_width": 1,
-    "div_line_count": {
-      "x": 3,
-      "y": 3,
-    },
     "opa": 255,
-    "point_count": 10,
-    "series": [
-      {
-        "color": "Color(blue)",
-      },
-    ],
-    "type": "line",
     "widgets": [
+      {
+        "line": {
+          "line_color": "Color(gray)",
+          "line_width": 1,
+          "points": [
+            {
+              "x": 0,
+              "y": 37,
+            },
+            {
+              "x": 99,
+              "y": 37,
+            },
+          ],
+        },
+      },
+      {
+        "line": {
+          "line_color": "Color(gray)",
+          "line_width": 1,
+          "points": [
+            {
+              "x": 25,
+              "y": 18,
+            },
+            {
+              "x": 25,
+              "y": 94,
+            },
+          ],
+        },
+      },
+      {
+        "line": {
+          "line_color": "Color(gray)",
+          "line_width": 1,
+          "points": [
+            {
+              "x": 0,
+              "y": 56,
+            },
+            {
+              "x": 99,
+              "y": 56,
+            },
+          ],
+        },
+      },
+      {
+        "line": {
+          "line_color": "Color(gray)",
+          "line_width": 1,
+          "points": [
+            {
+              "x": 50,
+              "y": 18,
+            },
+            {
+              "x": 50,
+              "y": 94,
+            },
+          ],
+        },
+      },
+      {
+        "line": {
+          "line_color": "Color(gray)",
+          "line_width": 1,
+          "points": [
+            {
+              "x": 0,
+              "y": 75,
+            },
+            {
+              "x": 99,
+              "y": 75,
+            },
+          ],
+        },
+      },
+      {
+        "line": {
+          "line_color": "Color(gray)",
+          "line_width": 1,
+          "points": [
+            {
+              "x": 74,
+              "y": 18,
+            },
+            {
+              "x": 74,
+              "y": 94,
+            },
+          ],
+        },
+      },
+      {
+        "line": {
+          "id": "w_test_line",
+          "line_color": "Color(blue)",
+          "line_rounded": true,
+          "line_width": 2,
+          "points": [
+            {
+              "x": 0,
+              "y": 56,
+            },
+            {
+              "x": 11,
+              "y": 37,
+            },
+            {
+              "x": 22,
+              "y": 23,
+            },
+            {
+              "x": 33,
+              "y": 18,
+            },
+            {
+              "x": 44,
+              "y": 23,
+            },
+            {
+              "x": 55,
+              "y": 37,
+            },
+            {
+              "x": 66,
+              "y": 56,
+            },
+            {
+              "x": 77,
+              "y": 75,
+            },
+            {
+              "x": 88,
+              "y": 89,
+            },
+            {
+              "x": 99,
+              "y": 94,
+            },
+          ],
+        },
+      },
       {
         "label": {
           "align": "top_mid",
@@ -877,10 +1142,6 @@ exports[`Plugin Export Smoke Tests > Export for lvgl_chart > should export LVGL 
         },
       },
     ],
-    "y_axis": {
-      "num_ticks": 4,
-      "show_labels": true,
-    },
   },
 }
 `;
@@ -2611,18 +2872,7 @@ exports[`Plugin Export Smoke Tests > Export for text > should export standard C+
 
 exports[`Plugin Export Smoke Tests > Export for touch_area > should export standard C++ with stable output 1`] = `[]`;
 
-exports[`Plugin Export Smoke Tests > Export for touch_area > should handle onExportBinarySensors with stable output 1`] = `
-[
-  "# Touch Area Binary Sensors",
-  "- platform: touchscreen",
-  "  id: touch_area_w_test",
-  "  touchscreen_id: my_touchscreen",
-  "  x_min: 10",
-  "  x_max: 110",
-  "  y_min: 10",
-  "  y_max: 110",
-]
-`;
+exports[`Plugin Export Smoke Tests > Export for touch_area > should handle onExportBinarySensors with stable output 1`] = `[]`;
 
 exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export LVGL with stable output 1`] = `
 {

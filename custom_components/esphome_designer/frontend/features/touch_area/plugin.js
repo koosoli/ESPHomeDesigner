@@ -114,12 +114,13 @@ const exportDoc = (w, context) => {
 };
 
 const onExportBinarySensors = (context) => {
-    const { lines, widgets, profile } = context; // eslint-disable-line no-unused-vars
-    // Fix #180: Don't restrict by profile flags. If user added touch widgets, we should try to generate.
-    // if (!profile || (!profile.touch && !profile.features?.touch)) return;
+    const { lines, widgets, profile } = context;
+    if (!profile?.touch) return;
 
     const targets = widgets.filter(w => w.type === 'touch_area' || w.type === 'nav_next_page' || w.type === 'nav_previous_page' || w.type === 'nav_reload_page');
     if (targets.length === 0) return;
+
+    const totalPages = widgets.reduce((max, widget) => Math.max(max, (widget._pageIndex ?? 0) + 1), 0) || 1;
 
     lines.push("# Touch Area Binary Sensors");
     targets.forEach(w => {
@@ -134,7 +135,10 @@ const onExportBinarySensors = (context) => {
         lines.push(`  y_min: ${w.y}`);
         lines.push(`  y_max: ${w.y + w.height}`);
 
-        const navAction = p.nav_action || "none";
+        const requestedNavAction = p.nav_action || "none";
+        const navAction = totalPages > 1
+            ? requestedNavAction
+            : (requestedNavAction === "reload_page" ? "reload_page" : "none");
         const pageIdx = w._pageIndex !== undefined ? w._pageIndex : 0;
 
         if (navAction !== "none" || w.entity_id) {

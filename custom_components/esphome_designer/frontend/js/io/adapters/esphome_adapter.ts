@@ -53,14 +53,7 @@ export class ESPHomeAdapter extends BaseAdapter {
 
         const lines: string[] = [];
 
-        // 1. Instructions & Setup Comments
-        if (!layout.isSelectionSnippet) {
-            lines.push(...this.yaml.generateInstructionHeader(profile, layout));
-            lines.push(...this.yaml.generateSystemSections(profile, layout));
-            lines.push("");
-        }
-
-        // 2. Preparation
+        // 1. Preparation
         const displayId = profile.features?.lcd ? "my_display" : "epaper_display";
 
         this.preProcessWidgetsPromise = this.preProcessWidgets(pages);
@@ -133,13 +126,11 @@ export class ESPHomeAdapter extends BaseAdapter {
             layout.plugin_includes = includeLines;
         }
 
-        if (!profile.isPackageBased) {
-            lines.length = 0; // Reset lines to handle the header/system sections after hook collection
-            if (!layout.isSelectionSnippet) {
-                lines.push(...this.yaml.generateInstructionHeader(profile, layout));
-                lines.push(...this.yaml.generateSystemSections(profile, layout));
-                lines.push("");
-            }
+        const requiresMaterialIcons = this.fonts.iconCodesBySize.size > 0;
+        if (!layout.isSelectionSnippet) {
+            lines.push(...this.yaml.generateInstructionHeader(profile, layout, requiresMaterialIcons));
+            lines.push(...this.yaml.generateSystemSections(profile, layout));
+            lines.push("");
         }
 
         if (globalLines.length > 0 && !layout.isSelectionSnippet) {
