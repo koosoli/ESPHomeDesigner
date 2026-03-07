@@ -51,22 +51,37 @@ export function createDragGhost(canvasInstance, widgets, clientX, clientY, zoom,
         }
     });
 
-    // 2. Clone each widget with full visual context
-    allWidgetsToGhost.forEach(widget => {
+    // 2. Read all widget styles first so cloning can write in one batch.
+    const ghostSpecs = allWidgetsToGhost.map(widget => {
         const widgetEl = /** @type {HTMLElement} */ (document.querySelector(`.widget[data-id="${widget.id}"]`));
-        if (widgetEl) {
-            // Simulated Artboard Context (Ensures CSS variables like --accent, --white resolve)
-            const sourceArtboard = /** @type {HTMLElement} */ (widgetEl.closest('.artboard'));
-            const contextWrapper = document.createElement('div');
-            contextWrapper.className = (sourceArtboard ? sourceArtboard.className : 'artboard') + ' ghost-context-sim';
+        if (!widgetEl) return null;
 
-            // Position wrapper relative to primary widget
-            contextWrapper.style.cssText = `
+        const sourceArtboard = /** @type {HTMLElement} */ (widgetEl.closest('.artboard'));
+        const computed = window.getComputedStyle(widgetEl);
+
+        return {
+            widget,
+            className: (sourceArtboard ? sourceArtboard.className : 'artboard') + ' ghost-context-sim',
+            attrs: Array.from(widgetEl.attributes).map(attr => ({ name: attr.name, value: attr.value })),
+            styleCssText: widgetEl.style.cssText,
+            innerHTML: widgetEl.innerHTML,
+            background: computed.background,
+            backgroundColor: computed.backgroundColor,
+            border: computed.border,
+            borderRadius: computed.borderRadius
+        };
+    }).filter(Boolean);
+
+    // 3. Clone each widget with full visual context in a write-only pass.
+    ghostSpecs.forEach(spec => {
+        const contextWrapper = document.createElement('div');
+        contextWrapper.className = spec.className;
+        contextWrapper.style.cssText = `
                 position: absolute;
-                left: ${(widget.x - primaryWidget.x)}px;
-                top: ${(widget.y - primaryWidget.y)}px;
-                width: ${widget.width}px;
-                height: ${widget.height}px;
+                left: ${(spec.widget.x - primaryWidget.x)}px;
+                top: ${(spec.widget.y - primaryWidget.y)}px;
+                width: ${spec.widget.width}px;
+                height: ${spec.widget.height}px;
                 pointer-events: none;
                 background: transparent !important;
                 box-shadow: none !important;
@@ -76,37 +91,28 @@ export function createDragGhost(canvasInstance, widgets, clientX, clientY, zoom,
                 display: block;
             `;
 
-            // The Clone itself
-            const clone = document.createElement('div');
+        const clone = document.createElement('div');
 
-            // Copy all attributes and most importantly the style attribute
-            for (const attr of widgetEl.attributes) {
-                clone.setAttribute(attr.name, attr.value);
-            }
+        spec.attrs.forEach(attr => {
+            clone.setAttribute(attr.name, attr.value);
+        });
 
-            // Clean state/interactive classes
-            clone.classList.remove('active', 'dragging-source', 'locked');
-            clone.classList.add('drag-ghost-widget');
+        clone.classList.remove('active', 'dragging-source', 'locked');
+        clone.classList.add('drag-ghost-widget');
+        clone.style.cssText = spec.styleCssText;
+        clone.style.position = 'absolute';
+        clone.style.top = '0';
+        clone.style.left = '0';
+        clone.style.margin = '0';
+        clone.style.transform = 'none';
+        clone.style.setProperty('background', spec.background, 'important');
+        clone.style.setProperty('background-color', spec.backgroundColor, 'important');
+        clone.style.setProperty('border', spec.border, 'important');
+        clone.style.setProperty('border-radius', spec.borderRadius, 'important');
+        clone.innerHTML = spec.innerHTML;
 
-            // Copy raw computed styles for absolute safety on backgrounds/borders
-            const computed = window.getComputedStyle(widgetEl);
-            clone.style.cssText = widgetEl.style.cssText; // Base styles
-            clone.style.position = 'absolute';
-            clone.style.top = '0';
-            clone.style.left = '0';
-            clone.style.margin = '0';
-            clone.style.transform = 'none';
-            clone.style.setProperty('background', computed.background, 'important');
-            clone.style.setProperty('background-color', computed.backgroundColor, 'important');
-            clone.style.setProperty('border', computed.border, 'important');
-            clone.style.setProperty('border-radius', computed.borderRadius, 'important');
-
-            // Carry inner content (icons, labels, etc.)
-            clone.innerHTML = widgetEl.innerHTML;
-
-            contextWrapper.appendChild(clone);
-            ghostContainer.appendChild(contextWrapper);
-        }
+        contextWrapper.appendChild(clone);
+        ghostContainer.appendChild(contextWrapper);
     });
 
     // Store click offset in screen pixels

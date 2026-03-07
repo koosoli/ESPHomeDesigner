@@ -105,6 +105,7 @@ export class Sidebar {
     render() {
         if (!this.pageListEl) return;
 
+        const fragment = document.createDocumentFragment();
         this.pageListEl.innerHTML = "";
         const pages = AppState.pages;
         const currentIndex = AppState.currentPageIndex;
@@ -298,8 +299,10 @@ export class Sidebar {
             }
 
             item.appendChild(actions);
-            if (this.pageListEl) this.pageListEl.appendChild(item);
+            fragment.appendChild(item);
         });
+
+        this.pageListEl.appendChild(fragment);
 
         if (this.currentPageNameEl) {
             const page = AppState.getCurrentPage();

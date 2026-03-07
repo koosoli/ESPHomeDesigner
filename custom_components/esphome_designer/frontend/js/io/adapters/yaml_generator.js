@@ -4,6 +4,15 @@
  */
 export class YamlGenerator {
     /**
+     * @param {Object} payload
+     * @returns {string}
+     */
+    getStayAwakeEntityId(payload) {
+        const value = payload.deepSleepStayAwakeEntityId;
+        return (typeof value === 'string' && value.trim()) ? value.trim() : 'input_boolean.esphome_stay_awake';
+    }
+
+    /**
      * Generates the instruction header with setup guidance.
      * @param {Object} profile 
      * @param {Object} layout 
@@ -112,6 +121,10 @@ export class YamlGenerator {
             strategy = layout.deepSleepEnabled ? "Ultra Eco (Deep Sleep)" : (layout.sleepEnabled ? "Eco (Light Sleep)" : "Always On");
         }
         lines.push(`# Power Strategy: ${strategy}`);
+        lines.push(`# Deep Sleep: ${layout.deepSleepEnabled ? 'enabled' : 'disabled'}`);
+        lines.push(`# Deep Sleep Stay Awake Switch: ${layout.deepSleepStayAwakeSwitch ? 'enabled' : 'disabled'}`);
+        lines.push(`# Deep Sleep Stay Awake Entity: ${this.getStayAwakeEntityId(layout)}`);
+        lines.push(`# Deep Sleep Firmware Guard: ${layout.deepSleepFirmwareGuard ? 'enabled' : 'disabled'}`);
         lines.push(`# Deep Sleep Interval: ${layout.deepSleepEnabled ? `${layout.deepSleepInterval || 600}s` : 'Disabled'}`);
         lines.push("# ====================================");
         lines.push("");
@@ -251,6 +264,78 @@ export class YamlGenerator {
     }
 
     /**
+     * Generates the stay-awake binary sensor if the feature is enabled.
+     * @param {Object} payload 
+     * @returns {string[]}
+     */
+    generateStayAwakeSection(payload) {
+        if (!payload.deepSleepEnabled || !payload.deepSleepStayAwakeSwitch) return [];
+        const stayAwakeEntityId = this.getStayAwakeEntityId(payload);
+        if (payload.deepSleepFirmwareGuard) {
+            return [
+                "binary_sensor:",
+                "  - platform: homeassistant",
+                "    id: stay_awake_switch",
+                `    entity_id: !lambda 'return "${stayAwakeEntityId}";'`,
+                "    on_state:",
+                "      - if:",
+                "          condition:",
+                "            binary_sensor.is_on: stay_awake_switch",
+                "          then:",
+                "            - logger.log: \"Deep Sleep PREVENTED by HA switch\"",
+                "            - deep_sleep.prevent: deep_sleep_control",
+                "          else:",
+                "            - logger.log: \"Stay-awake switch OFF\"",
+                "            - if:",
+                "                condition:",
+                "                  lambda: 'return id(is_new_flash);'",
+                "                then:",
+                "                  - logger.log: \"Deep sleep still prevented by firmware guard\"",
+                "                  - deep_sleep.prevent: deep_sleep_control",
+                "                else:",
+                "                  - logger.log: \"Deep Sleep ALLOWED\"",
+                "                  - deep_sleep.allow: deep_sleep_control"
+            ];
+        }
+
+        return [
+            "binary_sensor:",
+            "  - platform: homeassistant",
+            "    id: stay_awake_switch",
+            `    entity_id: !lambda 'return "${stayAwakeEntityId}";'`,
+            "    on_state:",
+            "      - if:",
+            "          condition:",
+            "            binary_sensor.is_on: stay_awake_switch",
+            "          then:",
+            "            - logger.log: \"Deep Sleep PREVENTED by HA switch\"",
+            "            - deep_sleep.prevent: deep_sleep_control",
+            "          else:",
+            "            - logger.log: \"Deep Sleep ALLOWED\"",
+            "            - deep_sleep.allow: deep_sleep_control"
+        ];
+    }
+
+    /**
+     * Generates the firmware fingerprint globals if the guard feature is enabled.
+     * @param {Object} payload 
+     * @returns {string[]}
+     */
+    generateFirmwareGuardGlobals(payload) {
+        if (!payload.deepSleepEnabled || !payload.deepSleepFirmwareGuard) return [];
+        return [
+            "  - id: firmware_fingerprint",
+            "    type: uint32_t",
+            "    restore_value: true",
+            "    initial_value: '0'",
+            "  - id: is_new_flash",
+            "    type: bool",
+            "    restore_value: false",
+            "    initial_value: 'false'"
+        ];
+    }
+
+    /**
      * Generates the script section for page switching and sleep management.
      * @param {Object} payload 
      * @param {Object[]} pages 
@@ -279,6 +364,50 @@ export class YamlGenerator {
         const lcdStrategy = payload.lcdEcoStrategy || 'backlight_off';
         const isBacklightStrategy = isLcd && lcdStrategy === 'backlight_off' && backlightPin;
         const isDeepSleep = isEpaper && payload.deepSleepEnabled;
+        const appendFirmwareGuardDelay = (baseIndent) => {
+            if (!payload.deepSleepFirmwareGuard) return;
+            lines.push(`${baseIndent}- if:`);
+            lines.push(`${baseIndent}    condition:`);
+            lines.push(`${baseIndent}      lambda: 'return id(is_new_flash);'`);
+            lines.push(`${baseIndent}    then:`);
+            lines.push(`${baseIndent}      - logger.log: "New firmware - staying awake 90s to prevent rollback"`);
+            lines.push(`${baseIndent}      - deep_sleep.prevent: deep_sleep_control`);
+            lines.push(`${baseIndent}      - delay: 90s`);
+            lines.push(`${baseIndent}      - deep_sleep.allow: deep_sleep_control`);
+            lines.push(`${baseIndent}      - lambda: 'id(is_new_flash) = false;'`);
+        };
+
+        const appendDeepSleepEnter = (baseIndent, logMessage, untilTime = null) => {
+            lines.push(`${baseIndent}- logger.log: "${logMessage}"`);
+            if (payload.deepSleepStayAwakeSwitch) {
+                lines.push(`${baseIndent}- if:`);
+                lines.push(`${baseIndent}    condition:`);
+                lines.push(`${baseIndent}      binary_sensor.is_off: stay_awake_switch`);
+                lines.push(`${baseIndent}    then:`);
+                if (untilTime) {
+                    lines.push(`${baseIndent}      - deep_sleep.enter:`);
+                    lines.push(`${baseIndent}          id: deep_sleep_control`);
+                    lines.push(`${baseIndent}          until: "${untilTime}:00:00"`);
+                    lines.push(`${baseIndent}          time_id: ha_time`);
+                } else {
+                    lines.push(`${baseIndent}      - deep_sleep.enter: deep_sleep_control`);
+                }
+                lines.push(`${baseIndent}    else:`);
+                lines.push(`${baseIndent}      - logger.log: "Deep Sleep prevented, retrying in 60s"`);
+                lines.push(`${baseIndent}      - delay: 60s`);
+                lines.push(`${baseIndent}      - script.execute: deep_sleep_cycle`);
+                return;
+            }
+
+            if (untilTime) {
+                lines.push(`${baseIndent}- deep_sleep.enter:`);
+                lines.push(`${baseIndent}    id: deep_sleep_control`);
+                lines.push(`${baseIndent}    until: "${untilTime}:00:00"`);
+                lines.push(`${baseIndent}    time_id: ha_time`);
+            } else {
+                lines.push(`${baseIndent}- deep_sleep.enter: deep_sleep_control`);
+            }
+        };
 
         lines.push("script:");
 
@@ -335,11 +464,12 @@ export class YamlGenerator {
 
 
             const sEnabled = (
-                payload.sleepEnabled === true || payload.sleepEnabled === "true" || payload.sleepEnabled === 1 || payload.sleepEnabled === "1" ||
-                payload.deepSleepEnabled === true || payload.deepSleepEnabled === "true" || payload.deepSleepEnabled === 1 || payload.deepSleepEnabled === "1"
+                payload.sleepEnabled === true || payload.sleepEnabled === "true" || payload.sleepEnabled === 1 || payload.sleepEnabled === "1"
             );
 
             if (sEnabled) {
+                // Night-time long-sleep (uses `until:` parameter inside the configured sleep window)
+                const endStr = String(sEnd).padStart(2, '0');
                 lines.push("      - if:");
                 lines.push("          condition:");
                 lines.push("            lambda: |-");
@@ -349,21 +479,27 @@ export class YamlGenerator {
                 lines.push(`                  int start = ${sStart};`);
                 lines.push(`                  int end = ${sEnd};`);
                 lines.push("                  if (start < end) {");
-                lines.push("                      if (hour >= start && hour < end) return false;");
+                lines.push("                      if (hour >= start && hour < end) return true;");
                 lines.push("                  } else {");
-                lines.push("                      if (hour >= start || hour < end) return false;");
+                lines.push("                      if (hour >= start || hour < end) return true;");
                 lines.push("                  }");
                 lines.push("              }");
-                lines.push("              return true;");
+                lines.push("              return false;");
                 lines.push("          then:");
+                appendFirmwareGuardDelay('            ');
+                appendDeepSleepEnter('            ', 'Entering Night-time Deep Sleep...', endStr);
+                lines.push("          else:");
                 lines.push(`            - component.update: ${displayId}`);
                 lines.push("            - delay: 5s # Ensure refresh starts before sleep");
+                appendFirmwareGuardDelay('            ');
+                appendDeepSleepEnter('            ', 'Entering Deep Sleep now...');
+
             } else {
                 lines.push(`      - component.update: ${displayId}`);
                 lines.push("      - delay: 5s # Ensure refresh starts before sleep");
+                appendFirmwareGuardDelay('      ');
+                appendDeepSleepEnter('      ', 'Entering Deep Sleep now...');
             }
-            lines.push("      - logger.log: \"Entering Deep Sleep now...\"");
-            lines.push("      - deep_sleep.enter: deep_sleep_control");
         }
 
         // Manage Run and Sleep (Looping version)
@@ -376,6 +512,22 @@ export class YamlGenerator {
         }
         if (profile.m5paper?.battery_power_pin || profile.pins?.battery_power_pin) {
             lines.push("      - output.turn_on: battery_power");
+        }
+
+        if (isDeepSleep && payload.deepSleepFirmwareGuard) {
+            lines.push("      - lambda: |-");
+            lines.push("          std::string version_str = __DATE__ \" \" __TIME__;");
+            lines.push("          uint32_t current_hash = 0;");
+            lines.push("          for (char c : version_str) {");
+            lines.push("            current_hash = ((current_hash << 5) + current_hash) + c;");
+            lines.push("          }");
+            lines.push("          if (id(firmware_fingerprint) != current_hash) {");
+            lines.push("            ESP_LOGW(\"firmware\", \"New firmware detected! Hash: %u\", current_hash);");
+            lines.push("            id(is_new_flash) = true;");
+            lines.push("            id(firmware_fingerprint) = current_hash;");
+            lines.push("          } else {");
+            lines.push("            id(is_new_flash) = false;");
+            lines.push("          }");
         }
 
         lines.push("      - logger.log: \"Waiting for sync...\"");

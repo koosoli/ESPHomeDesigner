@@ -20,6 +20,7 @@ export function render(canvasInstance) {
     // Maintain lasso and snap guides if they existed (though they might need artboard-specific logic)
     const _existingGuides = canvasInstance.canvas.querySelectorAll(".snap-guide");
     const existingLasso = canvasInstance.canvas.querySelector(".lasso-selection");
+    const fragment = document.createDocumentFragment();
 
     canvasInstance.canvas.innerHTML = "";
 
@@ -234,7 +235,7 @@ export function render(canvasInstance) {
         }
 
         artboardWrapper.appendChild(artboard);
-        canvasInstance.canvas.appendChild(artboardWrapper);
+        fragment.appendChild(artboardWrapper);
     });
 
     // 3. Render Add Page Placeholder (nice faded plus icon)
@@ -284,13 +285,29 @@ export function render(canvasInstance) {
     addPlaceholder.addEventListener('click', handleClick);
 
     // Append to the end of the canvas (after the last page)
-    canvasInstance.canvas.appendChild(addPlaceholder);
+    fragment.appendChild(addPlaceholder);
 
 
-    if (existingLasso) canvasInstance.canvas.appendChild(existingLasso);
+    if (existingLasso) fragment.appendChild(existingLasso);
+
+    canvasInstance.canvas.appendChild(fragment);
 
     // Render contextual toolbar for selection
     renderContextToolbar(canvasInstance);
+}
+
+function scheduleLayoutMeasurement(canvasInstance, key, measureFn) {
+    if (!canvasInstance || typeof measureFn !== 'function') return;
+
+    const existingHandle = canvasInstance[key];
+    if (existingHandle) {
+        cancelAnimationFrame(existingHandle);
+    }
+
+    canvasInstance[key] = requestAnimationFrame(() => {
+        canvasInstance[key] = 0;
+        measureFn();
+    });
 }
 
 function _createIconButton(text, title, onClick) {
@@ -390,16 +407,18 @@ export function applyZoom(canvasInstance) {
  * @param {boolean} [fitZoom=false]
  */
 export function focusPage(canvasInstance, index, smooth = true, fitZoom = false) {
-    const wrappers = canvasInstance.canvas.querySelectorAll('.artboard-wrapper');
-    const target = wrappers[index];
-    if (target) {
+    scheduleLayoutMeasurement(canvasInstance, '_focusPageRaf', () => {
+        const wrappers = canvasInstance.canvas.querySelectorAll('.artboard-wrapper');
+        const target = wrappers[index];
+        if (!target) return;
+
         const viewportRect = canvasInstance.viewport.getBoundingClientRect();
         const vw = viewportRect.width;
         const vh = viewportRect.height;
 
-        // If viewport has no size yet, defer to next frame to avoid off-screen jump
+        // If viewport has no size yet, defer again to avoid off-screen jumps.
         if (vw === 0 || vh === 0) {
-            requestAnimationFrame(() => focusPage(canvasInstance, index, smooth, fitZoom));
+            focusPage(canvasInstance, index, smooth, fitZoom);
             return;
         }
 
@@ -409,18 +428,15 @@ export function focusPage(canvasInstance, index, smooth = true, fitZoom = false)
         }
 
         const zoom = AppState.zoomLevel;
-
         const hTarget = /** @type {HTMLElement} */(target);
-        // Offset relative to the canvas-stage (which has 1000px padding)
         const targetX = hTarget.offsetLeft + (hTarget.offsetWidth / 2);
         const targetY = hTarget.offsetTop + (hTarget.offsetHeight / 2);
 
-        // Calculate the pan required to center this target point in the viewport
         canvasInstance.panX = (vw / 2) - (targetX * zoom);
         canvasInstance.panY = (vh / 2) - (targetY * zoom);
 
         applyZoom(canvasInstance);
-    }
+    });
 }
 
 /**
@@ -429,52 +445,48 @@ export function focusPage(canvasInstance, index, smooth = true, fitZoom = false)
  * @param {boolean} [_smooth=true]
  */
 export function zoomToFitAll(canvasInstance, _smooth = true) {
-    const wrappers = canvasInstance.canvas.querySelectorAll('.artboard-wrapper');
-    if (wrappers.length === 0) return;
+    scheduleLayoutMeasurement(canvasInstance, '_zoomToFitAllRaf', () => {
+        const wrappers = canvasInstance.canvas.querySelectorAll('.artboard-wrapper');
+        if (wrappers.length === 0) return;
 
-    // The canvas-stage has 1000px padding and artboards have 150px gap.
-    // We calculate bounds in local canvas coordinates.
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
-    wrappers.forEach(wrapper => {
-        const hWrapper = /** @type {HTMLElement} */(wrapper);
-        const x = hWrapper.offsetLeft;
-        const y = hWrapper.offsetTop;
-        const w = hWrapper.offsetWidth;
-        const h = hWrapper.offsetHeight;
+        wrappers.forEach(wrapper => {
+            const hWrapper = /** @type {HTMLElement} */(wrapper);
+            const x = hWrapper.offsetLeft;
+            const y = hWrapper.offsetTop;
+            const w = hWrapper.offsetWidth;
+            const h = hWrapper.offsetHeight;
 
-        minX = Math.min(minX, x);
-        minY = Math.min(minY, y);
-        maxX = Math.max(maxX, x + w);
-        maxY = Math.max(maxY, y + h);
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x + w);
+            maxY = Math.max(maxY, y + h);
+        });
+
+        const viewportRect = canvasInstance.viewport.getBoundingClientRect();
+        const vw = viewportRect.width;
+        const vh = viewportRect.height;
+        if (vw === 0 || vh === 0) return;
+
+        const padding = 80;
+        const boxW = (maxX - minX) + padding;
+        const boxH = (maxY - minY) + padding;
+        const scaleX = vw / boxW;
+        const scaleY = vh / boxH;
+        let fitScale = Math.min(scaleX, scaleY);
+
+        fitScale = Math.max(0.05, Math.min(2.0, fitScale));
+        AppState.setZoomLevel(fitScale);
+
+        const centerX = minX + (maxX - minX) / 2;
+        const centerY = minY + (maxY - minY) / 2;
+
+        canvasInstance.panX = (vw / 2) - (centerX * fitScale);
+        canvasInstance.panY = (vh / 2) - (centerY * fitScale);
+
+        applyZoom(canvasInstance);
     });
-
-    const viewportRect = canvasInstance.viewport.getBoundingClientRect();
-    const vw = viewportRect.width;
-    const vh = viewportRect.height;
-    if (vw === 0 || vh === 0) return;
-
-    const padding = 80;
-    const boxW = (maxX - minX) + padding;
-    const boxH = (maxY - minY) + padding;
-
-    const scaleX = vw / boxW;
-    const scaleY = vh / boxH;
-    let fitScale = Math.min(scaleX, scaleY);
-
-    // Apply sane limits
-    fitScale = Math.max(0.05, Math.min(2.0, fitScale));
-
-    AppState.setZoomLevel(fitScale);
-
-    // Center the bounding box
-    const centerX = minX + (maxX - minX) / 2;
-    const centerY = minY + (maxY - minY) / 2;
-
-    canvasInstance.panX = (vw / 2) - (centerX * fitScale);
-    canvasInstance.panY = (vh / 2) - (centerY * fitScale);
-
-    applyZoom(canvasInstance);
 }
 
 /**

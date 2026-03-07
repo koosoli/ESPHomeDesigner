@@ -174,6 +174,8 @@ declare global {
         dimTimeout?: number;
         /** Plugin dynamic includes */
         plugin_includes?: string[];
+        /** Home Assistant helper used to hold the device awake during deep sleep flows */
+        deepSleepStayAwakeEntityId?: string;
     }
 
     /**

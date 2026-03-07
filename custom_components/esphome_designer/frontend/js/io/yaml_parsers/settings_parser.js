@@ -8,6 +8,9 @@ export function parseSettings(lines, doc) {
         manual_refresh_only: false,
         deep_sleep_enabled: false,
         deep_sleep_interval: 600,
+        deep_sleep_stay_awake_switch: false,
+        deep_sleep_stay_awake_entity_id: "input_boolean.esphome_stay_awake",
+        deep_sleep_firmware_guard: false,
         daily_refresh_enabled: false,
         daily_refresh_time: "08:00",
         refresh_interval: 600
@@ -72,6 +75,15 @@ export function parseSettings(lines, doc) {
 
         m = line.match(/Deep Sleep:\s*(enabled|disabled)/i);
         if (m) deviceSettings.deep_sleep_enabled = (m[1].toLowerCase() === "enabled");
+
+        m = line.match(/Deep Sleep Stay Awake Switch:\s*(enabled|disabled)/i);
+        if (m) deviceSettings.deep_sleep_stay_awake_switch = (m[1].toLowerCase() === "enabled");
+
+        m = line.match(/Deep Sleep Stay Awake Entity:\s*(.+)/i);
+        if (m) deviceSettings.deep_sleep_stay_awake_entity_id = m[1].trim();
+
+        m = line.match(/Deep Sleep Firmware Guard:\s*(enabled|disabled)/i);
+        if (m) deviceSettings.deep_sleep_firmware_guard = (m[1].toLowerCase() === "enabled");
 
         m = line.match(/Deep Sleep Interval:\s*(\d+)/i);
         if (m) deviceSettings.deep_sleep_interval = parseInt(m[1], 10);

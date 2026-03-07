@@ -86,29 +86,35 @@ describe('DeviceSettings', () => {
             <input id="deviceDarkMode" type="checkbox" />
             <input id="deviceInvertedColors" type="checkbox" />
 
-            <input id="modeStandard" type="radio" name="powerMode" />
-            <input id="modeSleep" type="radio" name="powerMode" />
-            <input id="modeManual" type="radio" name="powerMode" />
-            <input id="modeDeepSleep" type="radio" name="powerMode" />
-            <input id="modeDaily" type="radio" name="powerMode" />
+            <input id="mode-standard" type="radio" name="powerStrategy" value="standard" />
+            <input id="setting-sleep-enabled" type="radio" name="powerStrategy" value="night" />
+            <input id="setting-manual-refresh" type="radio" name="powerStrategy" value="manual" />
+            <input id="setting-deep-sleep-enabled" type="radio" name="powerStrategy" value="deepsleep" />
+            <input id="setting-daily-refresh-enabled" type="radio" name="powerStrategy" value="daily" />
 
-            <input id="sleepStart" value="0" />
-            <input id="sleepEnd" value="5" />
-            <input id="dailyRefreshTime" value="08:00" />
-            <input id="deepSleepInterval" value="600" />
-            <input id="refreshInterval" value="600" />
-            <input id="dimTimeout" value="10" />
-            <input id="noRefreshStart" value="" />
-            <input id="noRefreshEnd" value="" />
-            <input id="autoCycleEnabled" type="checkbox" />
-            <input id="autoCycleInterval" value="30" />
+            <select id="setting-sleep-start"><option value="0">00:00</option></select>
+            <select id="setting-sleep-end"><option value="5">05:00</option></select>
+            <input id="setting-daily-refresh-time" type="time" value="08:00" />
+            <input id="setting-deep-sleep-interval" type="number" value="600" />
+            <input id="setting-refresh-interval" type="number" value="600" />
+            <input id="setting-dim-timeout" type="number" value="10" />
+            <select id="setting-no-refresh-start"><option value="">None</option></select>
+            <select id="setting-no-refresh-end"><option value="">None</option></select>
+            <input id="setting-auto-cycle" type="checkbox" />
+            <input id="setting-auto-cycle-interval" type="number" value="30" />
 
-            <div id="sleep-row"></div>
+            <input id="setting-deep-sleep-stay-awake" type="checkbox" />
+            <input id="setting-deep-sleep-stay-awake-entity" type="text" value="input_boolean.esphome_stay_awake" />
+            <input id="setting-deep-sleep-firmware-guard" type="checkbox" />
+
+            <div id="sleep-times-row"></div>
             <div id="daily-refresh-row"></div>
-            <div id="deep-sleep-row"></div>
-            <div id="refresh-interval-row"></div>
-            <div id="lcd-strategy-dim-row"></div>
+            <div id="deep-sleep-interval-row"></div>
+            <div id="deep-sleep-options-row"></div>
+            <div id="global-refresh-row"></div>
+            <div id="dim-timeout-row"></div>
             <div id="auto-cycle-row"></div>
+            <div id="deep-sleep-stay-awake-entity-row"></div>
 
             <div id="powerStrategySection"></div>
             <div id="protocolHardwareSection"></div>
@@ -122,7 +128,7 @@ describe('DeviceSettings', () => {
             <button id="reloadHardwareBtn"></button>
             <button id="importHardwareBtn"></button>
             <input id="hardwareFileInput" type="file" />
-            <button class="clear-pin-btn" data-target="sleepStart"></button>
+            <button class="clear-pin-btn" data-target="setting-sleep-start"></button>
 
             <input type="radio" name="lcdEcoStrategy" value="backlight_off" checked />
             <input type="radio" name="lcdEcoStrategy" value="dim_after_timeout" />
@@ -198,12 +204,15 @@ describe('DeviceSettings', () => {
 
     it('falls back to localStorage persistence when backend unavailable', async () => {
         mockHasHaBackend.mockReturnValue(false);
-        const setItemSpy = vi.spyOn(global.localStorage, 'setItem');
+        const originalSetItem = window.localStorage.setItem;
+        const setItemMock = vi.fn();
+        window.localStorage.setItem = setItemMock;
 
         ds.persistToBackend();
         await vi.advanceTimersByTimeAsync(1000);
 
-        expect(setItemSpy).toHaveBeenCalled();
+        expect(setItemMock).toHaveBeenCalled();
+        window.localStorage.setItem = originalSetItem;
     });
 
     it('wires autosave listeners for core settings changes', async () => {
@@ -230,5 +239,25 @@ describe('DeviceSettings', () => {
     it('delegates custom profile save handler', async () => {
         await ds.handleSaveCustomProfile();
         expect(mockCustomPanel.handleSaveCustomProfile).toHaveBeenCalled();
+    });
+
+    it('persists deep-sleep stay-awake and firmware-guard checkboxes on change', () => {
+        ds.init();
+
+        const stayAwake = document.getElementById('setting-deep-sleep-stay-awake');
+        const stayAwakeEntity = document.getElementById('setting-deep-sleep-stay-awake-entity');
+        const fwGuard = document.getElementById('setting-deep-sleep-firmware-guard');
+
+        stayAwake.checked = true;
+        stayAwake.dispatchEvent(new Event('change'));
+        expect(mockAppState.updateSettings).toHaveBeenCalledWith({ deepSleepStayAwakeSwitch: true });
+
+        stayAwakeEntity.value = 'input_boolean.office_panel_awake';
+        stayAwakeEntity.dispatchEvent(new Event('change'));
+        expect(mockAppState.updateSettings).toHaveBeenCalledWith({ deepSleepStayAwakeEntityId: 'input_boolean.office_panel_awake' });
+
+        fwGuard.checked = true;
+        fwGuard.dispatchEvent(new Event('change'));
+        expect(mockAppState.updateSettings).toHaveBeenCalledWith({ deepSleepFirmwareGuard: true });
     });
 });

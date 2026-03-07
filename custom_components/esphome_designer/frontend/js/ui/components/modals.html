@@ -643,8 +643,7 @@
             <div>
               <label
                 style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
-                <input type="radio" id="mode-standard" name="powerStrategy" value="standard"
-                  onchange="togglePowerSettings()">
+                <input type="radio" id="mode-standard" name="powerStrategy" value="standard">
                 Full Power (Always On)
               </label>
               <div style="font-size:10px; opacity:0.6; margin-left:24px;">Device stays connected to Wi-Fi. Fast
@@ -655,8 +654,7 @@
             <div>
               <label
                 style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
-                <input type="radio" id="setting-sleep-enabled" name="powerStrategy" value="night"
-                  onchange="togglePowerSettings()">
+                <input type="radio" id="setting-sleep-enabled" name="powerStrategy" value="night">
                 Eco (Scheduled Night Sleep)
               </label>
               <div style="font-size:10px; opacity:0.6; margin-left:24px; margin-bottom:4px;">Stops refreshing during
@@ -667,8 +665,7 @@
             <div>
               <label
                 style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
-                <input type="radio" id="setting-daily-refresh-enabled" name="powerStrategy" value="daily"
-                  onchange="togglePowerSettings()">
+                <input type="radio" id="setting-daily-refresh-enabled" name="powerStrategy" value="daily">
                 Daily Scheduled Refresh
               </label>
               <div style="font-size:10px; opacity:0.6; margin-left:24px; margin-bottom:4px;">Wakes up once per day at a
@@ -679,8 +676,7 @@
             <div>
               <label
                 style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
-                <input type="radio" id="setting-manual-refresh" name="powerStrategy" value="manual"
-                  onchange="togglePowerSettings()">
+                <input type="radio" id="setting-manual-refresh" name="powerStrategy" value="manual">
                 Manual Refresh Only
               </label>
               <div style="font-size:10px; opacity:0.6; margin-left:24px;">Never updates automatically. Only refreshes
@@ -691,8 +687,7 @@
             <div>
               <label
                 style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
-                <input type="radio" id="setting-deep-sleep-enabled" name="powerStrategy" value="deepsleep"
-                  onchange="togglePowerSettings()">
+                <input type="radio" id="setting-deep-sleep-enabled" name="powerStrategy" value="deepsleep">
                 Ultra Eco (Deep Sleep)
               </label>
               <div style="font-size:10px; opacity:0.6; margin-left:24px; margin-bottom:4px;">Shuts down completely
@@ -708,7 +703,7 @@
             <div>
               <label
                 style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
-                <input type="radio" name="lcdEcoStrategy" value="always_on" onchange="togglePowerSettings()">
+                <input type="radio" name="lcdEcoStrategy" value="always_on">
                 Always On (Full Brightness)
               </label>
             </div>
@@ -716,7 +711,7 @@
             <div>
               <label
                 style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
-                <input type="radio" name="lcdEcoStrategy" value="backlight_off" onchange="togglePowerSettings()">
+                <input type="radio" name="lcdEcoStrategy" value="backlight_off">
                 Eco (Backlight Off Schedule)
               </label>
               <div style="font-size:10px; opacity:0.6; margin-left:24px;">Turns off backlight during sleep hours
@@ -726,7 +721,7 @@
             <div id="lcd-strategy-dim-row">
               <label
                 style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
-                <input type="radio" name="lcdEcoStrategy" value="dim_after_timeout" onchange="togglePowerSettings()">
+                <input type="radio" name="lcdEcoStrategy" value="dim_after_timeout">
                 Eco (Dim after timeout)
               </label>
               <div style="font-size:10px; opacity:0.6; margin-left:24px;">Turns off backlight and pauses LVGL after
@@ -736,7 +731,7 @@
             <div>
               <label
                 style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
-                <input type="radio" name="lcdEcoStrategy" value="halt_updates" onchange="togglePowerSettings()">
+                <input type="radio" name="lcdEcoStrategy" value="halt_updates">
                 Eco (Halt Loop)
               </label>
               <div style="font-size:10px; opacity:0.6; margin-left:24px;">Stops update cycle but leaves screen powered.
@@ -746,7 +741,7 @@
             <div>
               <label
                 style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-sm); font-weight: 500;">
-                <input type="radio" name="lcdEcoStrategy" value="deep_sleep" onchange="togglePowerSettings()">
+                <input type="radio" name="lcdEcoStrategy" value="deep_sleep">
                 Ultra Eco (Deep Sleep)
               </label>
               <div style="font-size:10px; opacity:0.6; margin-left:24px;">Power down between updates.</div>
@@ -835,6 +830,25 @@
             <input type="number" id="setting-deep-sleep-interval" class="prop-input" placeholder="Seconds"
               style="width:80px;">
             <span style="font-size: 11px; opacity: 0.7;">sec</span>
+          </div>
+
+          <div id="deep-sleep-options-row"
+            style="display:none; flex-direction:column; gap:6px; margin-left:24px; margin-top:8px; background: rgba(0,0,0,0.03); padding: 8px 10px; border-radius: 4px;">
+            <div style="font-size:10px; font-weight:600; opacity:0.5; text-transform:uppercase; margin-bottom:2px;">Deep Sleep Options</div>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:11px;">
+              <input type="checkbox" id="setting-deep-sleep-stay-awake">
+              <span>HA Stay-Awake Switch</span>
+            </label>
+            <div style="font-size:9px; opacity:0.5; margin-left:22px; margin-top:-2px;">Adds a Home Assistant switch to prevent deep sleep remotely.</div>
+            <label id="deep-sleep-stay-awake-entity-row" style="display:flex; flex-direction:column; gap:4px; margin-left:22px; font-size:10px;">
+              <span style="opacity:0.7;">Home Assistant entity ID</span>
+              <input type="text" id="setting-deep-sleep-stay-awake-entity" class="prop-input" placeholder="input_boolean.esphome_stay_awake">
+            </label>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:11px;">
+              <input type="checkbox" id="setting-deep-sleep-firmware-guard">
+              <span>Firmware Flash Guard</span>
+            </label>
+            <div style="font-size:9px; opacity:0.5; margin-left:22px; margin-top:-2px;">Keeps device awake 90s after new firmware to prevent rollback.</div>
           </div>
 
           <!-- Silent Hours -->

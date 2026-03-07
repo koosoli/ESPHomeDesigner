@@ -41,6 +41,10 @@ exports[`ESPHomeAdapter & YamlImport Round-Trip > round-trips a layout with mock
 # Dark Mode: disabled
 # Refresh Interval: 600
 # Power Strategy: Always On
+# Deep Sleep: disabled
+# Deep Sleep Stay Awake Switch: disabled
+# Deep Sleep Stay Awake Entity: input_boolean.esphome_stay_awake
+# Deep Sleep Firmware Guard: disabled
 # Deep Sleep Interval: Disabled
 # ====================================
 

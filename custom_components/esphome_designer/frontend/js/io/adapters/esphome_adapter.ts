@@ -122,6 +122,11 @@ export class ESPHomeAdapter extends BaseAdapter {
             globalLines.push("- id: last_page_switch_time", "  type: uint32_t", "  restore_value: false", "  initial_value: '0'");
         }
 
+        const firmwareGlobals = this.yaml.generateFirmwareGuardGlobals(layout);
+        if (firmwareGlobals.length > 0) {
+            globalLines.push(...firmwareGlobals.map(l => l.startsWith("  ") ? l.substring(2) : l));
+        }
+
         registry.onExportGlobals({ ...context, lines: globalLines });
 
         if (includeLines.length > 0) {
@@ -504,6 +509,11 @@ export class ESPHomeAdapter extends BaseAdapter {
         }
 
         const binarySensorLinesOrig: string[] = [];
+
+        const stayAwakeSensor = this.yaml.generateStayAwakeSection(context.layout);
+        if (stayAwakeSensor.length > 0) {
+            binarySensorLinesOrig.push(...stayAwakeSensor.slice(1).map(l => l.startsWith("  ") ? l.slice(2) : l));
+        }
 
         if (!profile.isPackageBased && Generators.generateBinarySensorSection) {
             const legacyBinary = Generators.generateBinarySensorSection(profile, pages.length, displayId, []);

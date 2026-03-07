@@ -255,6 +255,9 @@ class DeviceConfig:
     # Deep Sleep / Battery Saver
     deep_sleep_enabled: bool = False
     deep_sleep_interval: int = 600  # Default 10 minutes
+    deep_sleep_stay_awake_switch: bool = False
+    deep_sleep_stay_awake_entity_id: str = "input_boolean.esphome_stay_awake"
+    deep_sleep_firmware_guard: bool = False
     
     # Refresh Strategy
     manual_refresh_only: bool = False

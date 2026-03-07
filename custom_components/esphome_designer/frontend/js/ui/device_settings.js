@@ -29,35 +29,38 @@ export class DeviceSettings {
         this.invertedColorsInput = getInput('deviceInvertedColors');
 
         // Power strategies
-        this.modeStandard = getInput('modeStandard');
-        this.modeSleep = getInput('modeSleep');
-        this.modeManual = getInput('modeManual');
-        this.modeDeepSleep = getInput('modeDeepSleep');
-        this.modeDaily = getInput('modeDaily');
+        this.modeStandard = getInput('mode-standard');
+        this.modeSleep = getInput('setting-sleep-enabled');
+        this.modeManual = getInput('setting-manual-refresh');
+        this.modeDeepSleep = getInput('setting-deep-sleep-enabled');
+        this.modeDaily = getInput('setting-daily-refresh-enabled');
 
         // Intervals/Times
-        this.sleepStart = getInput('sleepStart');
-        this.sleepEnd = getInput('sleepEnd');
-        this.dailyRefreshTime = getInput('dailyRefreshTime');
-        this.deepSleepInterval = getInput('deepSleepInterval');
-        this.refreshIntervalInput = getInput('refreshInterval');
-        this.dimTimeoutInput = getInput('dimTimeout');
+        this.sleepStart = getInput('setting-sleep-start');
+        this.sleepEnd = getInput('setting-sleep-end');
+        this.dailyRefreshTime = getInput('setting-daily-refresh-time');
+        this.deepSleepInterval = getInput('setting-deep-sleep-interval');
+        this.refreshIntervalInput = getInput('setting-refresh-interval');
+        this.dimTimeoutInput = getInput('setting-dim-timeout');
 
         // Silent Hours
-        this.noRefreshStart = getInput('noRefreshStart');
-        this.noRefreshEnd = getInput('noRefreshEnd');
+        this.noRefreshStart = getInput('setting-no-refresh-start');
+        this.noRefreshEnd = getInput('setting-no-refresh-end');
 
         // Auto-Cycle
-        this.autoCycleEnabled = getInput('autoCycleEnabled');
-        this.autoCycleInterval = getInput('autoCycleInterval');
+        this.autoCycleEnabled = getInput('setting-auto-cycle');
+        this.autoCycleInterval = getInput('setting-auto-cycle-interval');
+        this.deepSleepStayAwakeEntityInput = getInput('setting-deep-sleep-stay-awake-entity');
 
         // Dynamic rows
-        this.sleepRow = getElement('sleep-row');
+        this.sleepRow = getElement('sleep-times-row');
         this.dailyRefreshRow = getElement('daily-refresh-row');
-        this.deepSleepRow = getElement('deep-sleep-row');
-        this.refreshIntervalRow = getElement('refresh-interval-row');
-        this.dimTimeoutRow = getElement('lcd-strategy-dim-row');
+        this.deepSleepRow = getElement('deep-sleep-interval-row');
+        this.deepSleepOptionsRow = getElement('deep-sleep-options-row');
+        this.refreshIntervalRow = getElement('global-refresh-row');
+        this.dimTimeoutRow = getElement('dim-timeout-row');
         this.autoCycleRow = getElement('auto-cycle-row');
+        this.deepSleepStayAwakeEntityRow = getElement('deep-sleep-stay-awake-entity-row');
 
         // Sections
         this.powerStrategySection = getElement('powerStrategySection');
@@ -189,6 +192,15 @@ export class DeviceSettings {
         if (this.autoCycleEnabled) this.autoCycleEnabled.checked = !!s.autoCycleEnabled;
         if (this.autoCycleInterval) this.autoCycleInterval.value = s.autoCycleIntervalS ?? 30;
 
+        // Deep sleep options
+        const stayAwakeCb = document.getElementById('setting-deep-sleep-stay-awake');
+        const fwGuardCb = document.getElementById('setting-deep-sleep-firmware-guard');
+        if (stayAwakeCb) stayAwakeCb.checked = !!s.deepSleepStayAwakeSwitch;
+        if (this.deepSleepStayAwakeEntityInput) {
+            this.deepSleepStayAwakeEntityInput.value = s.deepSleepStayAwakeEntityId || 'input_boolean.esphome_stay_awake';
+        }
+        if (fwGuardCb) fwGuardCb.checked = !!s.deepSleepFirmwareGuard;
+
         // Populate sub-panels
         this.customHardwarePanel.populateFields();
         this.protocolHardwarePanel.populateFields();
@@ -296,6 +308,7 @@ export class DeviceSettings {
         if (this.sleepRow) this.sleepRow.style.display = (isSleep || isDeepSleep) ? 'flex' : 'none';
         if (this.dailyRefreshRow) this.dailyRefreshRow.style.display = isDaily ? 'flex' : 'none';
         if (this.deepSleepRow) this.deepSleepRow.style.display = isDeepSleep ? 'block' : 'none';
+        if (this.deepSleepOptionsRow) this.deepSleepOptionsRow.style.display = isDeepSleep ? 'flex' : 'none';
 
         const lcdStrategy = AppState.settings.lcdEcoStrategy || 'backlight_off';
         if (this.dimTimeoutRow) this.dimTimeoutRow.style.display = (lcdStrategy === 'dim_after_timeout') ? 'flex' : 'none';
@@ -313,6 +326,11 @@ export class DeviceSettings {
 
         if (this.autoCycleRow) {
             this.autoCycleRow.style.display = this.autoCycleEnabled?.checked ? 'flex' : 'none';
+        }
+
+        if (this.deepSleepStayAwakeEntityRow) {
+            const stayAwakeEnabled = /** @type {HTMLInputElement | null} */ (document.getElementById('setting-deep-sleep-stay-awake'));
+            this.deepSleepStayAwakeEntityRow.style.display = stayAwakeEnabled?.checked ? 'flex' : 'none';
         }
 
         this.customHardwarePanel.updateVisibility();
@@ -459,6 +477,24 @@ export class DeviceSettings {
 
         if (this.noRefreshStart) this.noRefreshStart.addEventListener('change', () => updateSetting('noRefreshStartHour', this.noRefreshStart.value === "" ? null : parseInt(this.noRefreshStart.value)));
         if (this.noRefreshEnd) this.noRefreshEnd.addEventListener('change', () => updateSetting('noRefreshEndHour', this.noRefreshEnd.value === "" ? null : parseInt(this.noRefreshEnd.value)));
+
+        // Deep sleep option checkboxes
+        const stayAwakeCb = /** @type {HTMLInputElement | null} */ (document.getElementById('setting-deep-sleep-stay-awake'));
+        const fwGuardCb = /** @type {HTMLInputElement | null} */ (document.getElementById('setting-deep-sleep-firmware-guard'));
+        if (stayAwakeCb) {
+            stayAwakeCb.addEventListener('change', () => {
+                updateSetting('deepSleepStayAwakeSwitch', stayAwakeCb.checked);
+                this.updateVisibility();
+            });
+        }
+        if (this.deepSleepStayAwakeEntityInput) {
+            this.deepSleepStayAwakeEntityInput.addEventListener('change', () => {
+                const value = this.deepSleepStayAwakeEntityInput.value.trim() || 'input_boolean.esphome_stay_awake';
+                updateSetting('deepSleepStayAwakeEntityId', value);
+                this.deepSleepStayAwakeEntityInput.value = value;
+            });
+        }
+        if (fwGuardCb) fwGuardCb.addEventListener('change', () => updateSetting('deepSleepFirmwareGuard', fwGuardCb.checked));
     }
 
     /** @private */
