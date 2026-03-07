@@ -1,6 +1,11 @@
 // @ts-nocheck
 import { on, EVENTS } from '../core/events.js';
 import { AppState } from '../core/state';
+import {
+    getLastSnippetHighlightRange,
+    isSnippetAutoHighlightActive,
+    SNIPPET_SELECTION_STATE_EVENT
+} from '../core/snippet_selection_bridge.js';
 import { Logger } from '../utils/logger.js';
 import { showToast } from '../utils/dom.js';
 import { highlightWidgetInSnippet } from '../io/yaml_export.js';
@@ -187,6 +192,12 @@ export class SnippetManager {
                 }
             });
         }
+
+        window.addEventListener(SNIPPET_SELECTION_STATE_EVENT, () => {
+            if (this.isHighlighted) {
+                this.updateHighlightLayer();
+            }
+        });
     }
 
     setupScrollSync() {
@@ -222,7 +233,8 @@ export class SnippetManager {
         const mainBox = document.getElementById('snippetBox');
         const mainLayer = document.getElementById('highlightLayer');
         if (mainBox && mainLayer) {
-            mainLayer.innerHTML = this.highlighter.highlight(mainBox.value);
+            const selectionRange = isSnippetAutoHighlightActive() ? getLastSnippetHighlightRange() : null;
+            mainLayer.innerHTML = this.highlighter.highlight(mainBox.value, selectionRange);
         }
 
         // Also update fullscreen if active
@@ -231,7 +243,8 @@ export class SnippetManager {
         if (modalLayer && modalContent) {
             const textarea = modalContent.querySelector('textarea');
             if (textarea) {
-                modalLayer.innerHTML = this.highlighter.highlight(textarea.value);
+                const selectionRange = isSnippetAutoHighlightActive() ? getLastSnippetHighlightRange() : null;
+                modalLayer.innerHTML = this.highlighter.highlight(textarea.value, selectionRange);
             }
         }
     }
@@ -360,7 +373,8 @@ export class SnippetManager {
                 toggleBtn.classList.toggle('active', this.isHighlighted);
 
                 if (this.isHighlighted) {
-                    highlightLayer.innerHTML = this.highlighter.highlight(textarea.value);
+                    const selectionRange = isSnippetAutoHighlightActive() ? getLastSnippetHighlightRange() : null;
+                    highlightLayer.innerHTML = this.highlighter.highlight(textarea.value, selectionRange);
                     this.updateHighlightLayer(); // Also update main panel
                 }
             });
@@ -410,9 +424,10 @@ export class SnippetManager {
 
         textarea.value = snippetBox.value || "";
 
-        // Initial highlight for fullscreen
+            // Initial highlight for fullscreen
         if (this.isHighlighted) {
-            highlightLayer.innerHTML = this.highlighter.highlight(textarea.value);
+            const selectionRange = isSnippetAutoHighlightActive() ? getLastSnippetHighlightRange() : null;
+            highlightLayer.innerHTML = this.highlighter.highlight(textarea.value, selectionRange);
             setTimeout(() => {
                 highlightLayer.scrollTop = textarea.scrollTop;
                 highlightLayer.scrollLeft = textarea.scrollLeft;

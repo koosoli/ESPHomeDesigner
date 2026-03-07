@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+    resetSnippetSelectionState,
+    setLastSnippetHighlightRange,
+    setSnippetAutoHighlight
+} from '../../js/core/snippet_selection_bridge.js';
 
 const mockEmit = vi.fn();
 const mockQuickSearchOpen = vi.fn();
@@ -83,8 +88,9 @@ describe('KeyboardHandler', () => {
             <input id="inputA" />
         `;
 
-        window.isAutoHighlight = true;
-        window.lastHighlightRange = { start: 0, end: 5 };
+        resetSnippetSelectionState();
+        setSnippetAutoHighlight(true);
+        setLastSnippetHighlightRange({ start: 0, end: 5 });
     });
 
     it('opens quick search on Shift+Space even from input fields', async () => {

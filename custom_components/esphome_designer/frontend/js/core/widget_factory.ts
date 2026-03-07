@@ -6,12 +6,6 @@ import { registry } from './plugin_registry';
  * Shared widget factory for ESPHome Designer.
  */
 
-declare global {
-    interface Window {
-        WidgetFactory: typeof WidgetFactory;
-    }
-}
-
 export interface Widget {
     id: string;
     type: string;
@@ -181,5 +175,3 @@ export class WidgetFactory {
     }
 }
 
-// Global exposure for transition
-window.WidgetFactory = WidgetFactory;

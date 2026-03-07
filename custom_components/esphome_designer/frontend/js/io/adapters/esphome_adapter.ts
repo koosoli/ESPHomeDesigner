@@ -46,7 +46,7 @@ export class ESPHomeAdapter extends BaseAdapter {
         this.reset();
 
         const pages = layout.pages || [];
-        const model = layout.deviceModel || (AppState ? (AppState as any).deviceModel : null) || (window as any).currentDeviceModel || "reterminal_e1001";
+        const model = layout.deviceModel || (AppState ? (AppState as any).deviceModel : null) || "reterminal_e1001";
         const profile = this._resolveProfile(model, layout);
 
         const isLvgl = this._detectRenderingMode(layout, profile, pages);
@@ -339,10 +339,7 @@ export class ESPHomeAdapter extends BaseAdapter {
     }
 
     _resolveProfile(model: string, layout: any): any {
-        const importedProfiles = DEVICE_PROFILES || {};
-        const globalProfiles = (window as any).DEVICE_PROFILES || {};
-        const profiles = { ...importedProfiles, ...globalProfiles };
-        let profile = profiles[model] || {};
+        let profile = DEVICE_PROFILES[model] || {};
 
         if (model === 'custom' && layout.customHardware) {
             const ch = layout.customHardware;

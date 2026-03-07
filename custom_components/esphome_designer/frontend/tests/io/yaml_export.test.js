@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { highlightWidgetInSnippet } from '../../js/io/yaml_export.js';
+import {
+    getLastSnippetHighlightRange,
+    isSnippetAutoHighlightActive,
+    resetSnippetSelectionState
+} from '../../js/core/snippet_selection_bridge.js';
 
 describe('yaml_export highlightWidgetInSnippet', () => {
     beforeEach(() => {
@@ -13,8 +18,7 @@ describe('yaml_export highlightWidgetInSnippet', () => {
         title.textContent = 'ESPHome YAML';
         document.body.appendChild(title);
 
-        window.isAutoHighlight = false;
-        window.lastHighlightRange = null;
+        resetSnippetSelectionState();
     });
 
     it('clears selection when no ids are provided', () => {
@@ -25,7 +29,7 @@ describe('yaml_export highlightWidgetInSnippet', () => {
 
         expect(box.selectionStart).toBe(0);
         expect(box.selectionEnd).toBe(0);
-        expect(window.lastHighlightRange).toBeNull();
+        expect(getLastSnippetHighlightRange()).toBeNull();
     });
 
     it('selects entire snippet in selection-snippet mode', () => {
@@ -39,7 +43,7 @@ describe('yaml_export highlightWidgetInSnippet', () => {
 
         expect(box.selectionStart).toBe(0);
         expect(box.selectionEnd).toBe(box.value.length);
-        expect(window.lastHighlightRange).toEqual({ start: 0, end: box.value.length });
+        expect(getLastSnippetHighlightRange()).toEqual({ start: 0, end: box.value.length });
     });
 
     it('highlights standard widget marker blocks', () => {
@@ -56,8 +60,9 @@ describe('yaml_export highlightWidgetInSnippet', () => {
 
         expect(box.selectionStart).toBeGreaterThan(0);
         expect(box.selectionEnd).toBeGreaterThan(box.selectionStart);
-        expect(window.lastHighlightRange.start).toBe(box.selectionStart);
-        expect(window.lastHighlightRange.end).toBe(box.selectionEnd);
+        expect(isSnippetAutoHighlightActive()).toBe(true);
+        expect(getLastSnippetHighlightRange()?.start).toBe(box.selectionStart);
+        expect(getLastSnippetHighlightRange()?.end).toBe(box.selectionEnd);
     });
 
     it('highlights json widget objects by id fallback', () => {
@@ -71,6 +76,6 @@ describe('yaml_export highlightWidgetInSnippet', () => {
         highlightWidgetInSnippet('beta');
 
         expect(box.selectionEnd).toBeGreaterThan(box.selectionStart);
-        expect(window.lastHighlightRange).not.toBeNull();
+        expect(getLastSnippetHighlightRange()).not.toBeNull();
     });
 });

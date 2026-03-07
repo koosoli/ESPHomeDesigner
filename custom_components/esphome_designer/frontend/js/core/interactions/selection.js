@@ -664,24 +664,27 @@ export function onMouseUp(ev, canvasInstance) {
         removeEventListener("mousemove", canvasInstance._boundMouseMove);
         removeEventListener("mouseup", canvasInstance._boundMouseUp);
 
+        const finalLassoState = canvasInstance.lassoState;
+
         if (canvasInstance.lassoEl) {
             canvasInstance.lassoEl.remove();
             canvasInstance.lassoEl = null;
         }
 
-        if (canvasInstance.lassoState.rect) {
-            const finalSelection = canvasInstance.lassoState.currentSelection || [];
+        canvasInstance.lassoState = null;
+
+        if (finalLassoState.rect) {
+            const finalSelection = finalLassoState.currentSelection || [];
             AppState.selectWidgets(finalSelection);
         } else {
-            if (!canvasInstance.lassoState.isAdditive) {
+            if (!finalLassoState.isAdditive) {
                 AppState.selectWidgets([]);
             }
-            if (canvasInstance.lassoState.focusParams?.fitZoom) {
+            if (finalLassoState.focusParams?.fitZoom) {
                 focusPage(canvasInstance, AppState.currentPageIndex, true, true);
             }
         }
 
-        canvasInstance.lassoState = null;
         render(canvasInstance);
         ev.preventDefault();
         ev.stopPropagation();

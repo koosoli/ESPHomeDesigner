@@ -6,24 +6,13 @@
 
 import { Logger } from '../utils/logger.js';
 import { AppState } from '../core/state';
-
-// Global variables for snippet highlighting
-// Keeping them module-scoped since they are internal state for the highlighter
-let lastHighlightRange = null;
-let isAutoHighlight = false;
-
-// EXPOSE TO WINDOW for keyboard.js compatibility
-// This handles the "smart delete/copy" when snippet box is focused
-Object.defineProperty(window, 'lastHighlightRange', {
-    get: () => lastHighlightRange,
-    set: function (val) { lastHighlightRange = val; },
-    configurable: true
-});
-Object.defineProperty(window, 'isAutoHighlight', {
-    get: () => isAutoHighlight,
-    set: function (val) { isAutoHighlight = val; },
-    configurable: true
-});
+import { canvasInstance } from '../core/canvas.js';
+import {
+    clearSnippetAutoHighlight,
+    isSnippetAutoHighlightActive,
+    setLastSnippetHighlightRange,
+    setSnippetAutoHighlight
+} from '../core/snippet_selection_bridge.js';
 
 /**
  * Highlights a widget's YAML block in the snippet editor.
@@ -44,7 +33,7 @@ export function highlightWidgetInSnippet(widgetIds) {
         try {
             box.setSelectionRange(0, 0);
             box.scrollTop = 0;
-            lastHighlightRange = null;
+            setLastSnippetHighlightRange(null);
         } catch (e) {
             Logger.error("[highlightWidgetInSnippet] Selection error:", e);
         }
@@ -60,7 +49,7 @@ export function highlightWidgetInSnippet(widgetIds) {
         try {
             box.setSelectionRange(0, yaml.length);
             box.focus();
-            lastHighlightRange = { start: 0, end: yaml.length };
+            setLastSnippetHighlightRange({ start: 0, end: yaml.length });
         } catch (e) {
             Logger.error("[highlightWidgetInSnippet] Selection error (SnippetMode):", e);
         }
@@ -239,12 +228,10 @@ export function highlightWidgetInSnippet(widgetIds) {
         const isTyping = (activeTag === "input" || activeTag === "textarea") && document.activeElement !== box;
 
         // Only modify selection if we rely on auto-highlight (not typing/interacting)
-        const windowAny = /** @type {any} */ (window);
-        const canvas = windowAny.Canvas || windowAny.canvasInstance;
-        const isInteracting = canvas && (canvas.dragState || canvas.lassoState);
+        const isInteracting = canvasInstance && (canvasInstance.dragState || canvasInstance.lassoState);
 
         if (!isTyping && !isInteracting) {
-            window.isAutoHighlight = true;
+            setSnippetAutoHighlight(true);
 
             // Apply selection - Visually highlight the range
             try {
@@ -262,7 +249,7 @@ export function highlightWidgetInSnippet(widgetIds) {
             }
         }
 
-        window.lastHighlightRange = { start: minStart, end: maxEnd };
+        setLastSnippetHighlightRange({ start: minStart, end: maxEnd });
 
         // Scroll to selection
         setTimeout(() => {
@@ -291,8 +278,8 @@ function initSnippetUILogic() {
 
     // If user clicks or moves cursor manually, it's no longer an "auto" highlight
     const clearAuto = () => {
-        if (window.isAutoHighlight) {
-            window.isAutoHighlight = false;
+        if (isSnippetAutoHighlightActive()) {
+            clearSnippetAutoHighlight();
         }
     };
 

@@ -240,8 +240,7 @@ export class CustomHardwarePanel {
 
             let attempts = 0;
             const findAndSelect = async () => {
-                const profiles = window.DEVICE_PROFILES || DEVICE_PROFILES || {};
-                const modelId = Object.keys(profiles).find(k => k === expectedId || profiles[k].name === name);
+                const modelId = Object.keys(DEVICE_PROFILES).find(k => k === expectedId || DEVICE_PROFILES[k].name === name);
 
                 if (modelId) {
                     this.parent.modelInput.value = modelId;

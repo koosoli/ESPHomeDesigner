@@ -1,4 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import {
+    resetSnippetSelectionState,
+    setLastSnippetHighlightRange,
+    setSnippetAutoHighlight
+} from '../../js/core/snippet_selection_bridge.js';
 
 const mockOn = vi.fn();
 const mockLogger = { log: vi.fn(), error: vi.fn(), warn: vi.fn() };
@@ -8,6 +13,12 @@ const mockLoadLayoutIntoState = vi.fn();
 const mockParseSnippetYamlOffline = vi.fn();
 const mockImportSnippetBackend = vi.fn();
 const mockHasHaBackend = vi.fn(() => false);
+const mockHighlighterHighlight = vi.fn((text, range) => {
+    if (range) {
+        return `<span data-range="${range.start}:${range.end}">${text}</span>`;
+    }
+    return `<span>${text}</span>`;
+});
 
 const mockAppState = {
     selectedWidgetIds: ['widget_1'],
@@ -39,8 +50,8 @@ vi.mock('../../js/io/ha_api.js', () => ({ importSnippetBackend: mockImportSnippe
 vi.mock('../../js/utils/env.js', () => ({ hasHaBackend: mockHasHaBackend }));
 vi.mock('../../js/ui/yaml_highlighter.js', () => ({
     YamlHighlighter: class {
-        highlight(text) {
-            return `<span>${text}</span>`;
+        highlight(text, range) {
+            return mockHighlighterHighlight(text, range);
         }
     }
 }));
@@ -86,6 +97,7 @@ describe('SnippetManager', () => {
         vi.clearAllMocks();
         vi.useFakeTimers();
         seedDom();
+        resetSnippetSelectionState();
 
         Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
         Object.defineProperty(navigator, 'clipboard', {
@@ -130,6 +142,18 @@ describe('SnippetManager', () => {
         snippetBox.dispatchEvent(new Event('scroll'));
         expect(highlightLayer.scrollTop).toBe(12);
         expect(highlightLayer.scrollLeft).toBe(6);
+    });
+
+    it('renders snippet auto-highlight ranges into the visible highlight layer', () => {
+        const snippetBox = document.getElementById('snippetBox');
+        const highlightLayer = document.getElementById('highlightLayer');
+        snippetBox.value = 'display:\n  - platform: ili9xxx';
+
+        setSnippetAutoHighlight(true);
+        setLastSnippetHighlightRange({ start: 11, end: 29 });
+
+        expect(highlightLayer.innerHTML).toContain('data-range="11:29"');
+        expect(mockHighlighterHighlight).toHaveBeenLastCalledWith(snippetBox.value, { start: 11, end: 29 });
     });
 
     it('opens fullscreen modal and syncs content', () => {

@@ -123,4 +123,3 @@ export class OpenDisplayAdapter extends BaseAdapter {
 }
 
 // Expose globally
-window.OpenDisplayAdapter = OpenDisplayAdapter;

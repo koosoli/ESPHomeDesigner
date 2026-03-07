@@ -108,4 +108,3 @@ export class OEPLAdapter extends BaseAdapter {
 }
 
 // Expose globally
-window.OEPLAdapter = OEPLAdapter;

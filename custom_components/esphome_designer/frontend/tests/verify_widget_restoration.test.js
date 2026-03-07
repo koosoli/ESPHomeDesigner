@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'; // eslint-disable-line no-unused-vars
 import { ESPHomeAdapter } from '../js/io/adapters/esphome_adapter';
+import { DEVICE_PROFILES } from '../js/io/devices.js';
 
 describe('Widget Restoration Verification', () => {
     let adapter;
@@ -7,18 +8,12 @@ describe('Widget Restoration Verification', () => {
     beforeEach(() => {
         adapter = new ESPHomeAdapter();
 
-        // Mock global window and Utils
+        // Mock global window
         global.window = global;
-        window.Utils = {
-            getColorConst: (c) => `COLOR_${(c || "black").toUpperCase()}`,
-            getIconCode: (name) => name === 'test' ? 'F0000' : 'F0599',
-            getAlignX: (a, x, w) => x, // eslint-disable-line no-unused-vars
-            getAlignY: (a, y, h) => y, // eslint-disable-line no-unused-vars
-            sanitize: (s) => s
-        };
 
         // Register mock profiles
-        window.DEVICE_PROFILES = {
+        Object.keys(DEVICE_PROFILES).forEach(key => delete DEVICE_PROFILES[key]);
+        Object.assign(DEVICE_PROFILES, {
             'test_epaper': {
                 name: 'Test E-Paper',
                 features: { epaper: true },
@@ -35,7 +30,7 @@ describe('Widget Restoration Verification', () => {
                 touch: { platform: 'gt911' },
                 width: 320, height: 240
             }
-        };
+        });
     });
 
     it('should generate valid YAML for weather_icon', async () => {

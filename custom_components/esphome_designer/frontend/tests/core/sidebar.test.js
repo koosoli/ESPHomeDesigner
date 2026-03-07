@@ -66,6 +66,8 @@ vi.mock('../../js/ui/quick_search.js', () => ({
 }));
 
 describe('Sidebar', () => {
+    let mockApp;
+
     beforeEach(() => {
         vi.clearAllMocks();
         mockAppState.currentPageIndex = 0;
@@ -93,7 +95,7 @@ describe('Sidebar', () => {
             <div id="debug-overlay"></div>
         `;
 
-        window.app = {
+        mockApp = {
             canvas: { suppressNextFocus: false },
             pageSettings: { open: vi.fn() },
             deviceSettings: { open: vi.fn() },
@@ -103,7 +105,7 @@ describe('Sidebar', () => {
 
     it('initializes and renders pages with current page label', async () => {
         const { Sidebar } = await import('../../js/core/sidebar.js');
-        const sidebar = new Sidebar(window.app);
+        const sidebar = new Sidebar(mockApp);
 
         sidebar.init();
 
@@ -115,7 +117,7 @@ describe('Sidebar', () => {
 
     it('handles add page and quick search button clicks', async () => {
         const { Sidebar } = await import('../../js/core/sidebar.js');
-        const sidebar = new Sidebar(window.app);
+        const sidebar = new Sidebar(mockApp);
         sidebar.init();
 
         document.getElementById('addPageBtn')?.click();
@@ -127,7 +129,7 @@ describe('Sidebar', () => {
 
     it('creates widget from palette click and updates state', async () => {
         const { Sidebar } = await import('../../js/core/sidebar.js');
-        const sidebar = new Sidebar(window.app);
+        const sidebar = new Sidebar(mockApp);
         sidebar.init();
 
         const paletteInner = document.querySelector('#widgetPalette .inner');
@@ -135,12 +137,12 @@ describe('Sidebar', () => {
 
         expect(mockCreateWidget).toHaveBeenCalledWith('text');
         expect(mockAppState.addWidget).toHaveBeenCalled();
-        expect(window.app.canvas.suppressNextFocus).toBe(true);
+        expect(mockApp.canvas.suppressNextFocus).toBe(true);
     });
 
     it('reorders pages based on drop position', async () => {
         const { Sidebar } = await import('../../js/core/sidebar.js');
-        const sidebar = new Sidebar(window.app);
+        const sidebar = new Sidebar(mockApp);
 
         const target = document.createElement('div');
         vi.spyOn(target, 'getBoundingClientRect').mockReturnValue({
@@ -154,7 +156,7 @@ describe('Sidebar', () => {
 
     it('opens and confirms clear page modal', async () => {
         const { Sidebar } = await import('../../js/core/sidebar.js');
-        const sidebar = new Sidebar(window.app);
+        const sidebar = new Sidebar(mockApp);
 
         sidebar.handleClearPage();
 
@@ -170,7 +172,7 @@ describe('Sidebar', () => {
 
     it('opens and confirms delete page modal', async () => {
         const { Sidebar } = await import('../../js/core/sidebar.js');
-        const sidebar = new Sidebar(window.app);
+        const sidebar = new Sidebar(mockApp);
 
         sidebar.handlePageDelete(1, { name: 'Status' });
 
@@ -185,16 +187,16 @@ describe('Sidebar', () => {
 
     it('toggles mobile panels and opens mobile settings actions', async () => {
         const { Sidebar } = await import('../../js/core/sidebar.js');
-        const sidebar = new Sidebar(window.app);
+        const sidebar = new Sidebar(mockApp);
         sidebar.init();
 
         document.getElementById('mobileWidgetsBtn')?.click();
         expect(document.querySelector('.sidebar')?.classList.contains('mobile-active')).toBe(true);
 
         document.getElementById('mobileDeviceBtn')?.click();
-        expect(window.app.deviceSettings.open).toHaveBeenCalled();
+        expect(mockApp.deviceSettings.open).toHaveBeenCalled();
 
         document.getElementById('mobileEditorSettingsBtn')?.click();
-        expect(window.app.editorSettings.open).toHaveBeenCalled();
+        expect(mockApp.editorSettings.open).toHaveBeenCalled();
     });
 });

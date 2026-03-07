@@ -8,7 +8,6 @@ import { iconPickerData } from './constants_icons.js';
 
 declare global {
     interface Window {
-        Utils: typeof Utils;
         ESPHomeDesigner: any;
     }
 }
@@ -155,9 +154,6 @@ export const Utils = {
         return icon ? icon.code : null;
     }
 };
-
-// Expose to window for global access
-window.Utils = Utils;
 
 // Attach to unified namespace
 window.ESPHomeDesigner = (window as any).ESPHomeDesigner || {};

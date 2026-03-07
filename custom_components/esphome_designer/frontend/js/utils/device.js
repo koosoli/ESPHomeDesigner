@@ -4,6 +4,7 @@
  */
 import { DEVICE_PROFILES } from '../io/devices.js';
 import { AppState } from '../core/state';
+import { WidgetFactory } from '../core/widget_factory';
 
 export function getDeviceModel() {
     // Check AppState first (Source of Truth)
@@ -110,13 +111,11 @@ export function getColorStyle(colorName) {
 
     switch (colorName.toLowerCase()) {
         case "theme_auto": {
-            // @ts-ignore
-            const isDark = window.WidgetFactory?.getEffectiveDarkMode?.() || false;
+            const isDark = WidgetFactory.getEffectiveDarkMode();
             return isDark ? "#ffffff" : "#000000";
         }
         case "theme_auto_inverse": {
-            // @ts-ignore
-            const isDark = window.WidgetFactory?.getEffectiveDarkMode?.() || false;
+            const isDark = WidgetFactory.getEffectiveDarkMode();
             return isDark ? "#000000" : "#ffffff";
         }
         case "white": return "#ffffff";
@@ -132,14 +131,3 @@ export function getColorStyle(colorName) {
     }
 }
 
-// Global exposure for transition
-// @ts-ignore
-window.getDeviceModel = getDeviceModel;
-// @ts-ignore
-window.getDeviceDisplayName = getDeviceDisplayName;
-// @ts-ignore
-window.isRGBDevice = isRGBDevice;
-// @ts-ignore
-window.getAvailableColors = getAvailableColors;
-// @ts-ignore
-window.getColorStyle = getColorStyle;

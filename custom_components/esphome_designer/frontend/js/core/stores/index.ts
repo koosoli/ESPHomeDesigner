@@ -410,7 +410,6 @@ const handler = {
 };
 
 export const AppState = new Proxy(AppStateInstance, handler);
-(window as any).AppState = AppState; // Global export for legacy DOM access
 
 // Support Legacy Unified Object Reference
 (window as any).ESPHomeDesigner = (window as any).ESPHomeDesigner || {};

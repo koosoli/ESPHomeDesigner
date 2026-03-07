@@ -449,7 +449,8 @@ textarea {
     transition: opacity var(--t-base);
 }
 
-.snippet-container.highlighted .highlight-layer {
+.snippet-container.highlighted .highlight-layer,
+.snippet-container.auto-highlight-visible .highlight-layer {
     opacity: 1;
 }
 
@@ -462,7 +463,8 @@ textarea {
     outline: none;
 }
 
-.snippet-container.highlighted .snippet-box {
+.snippet-container.highlighted .snippet-box,
+.snippet-container.auto-highlight-visible .snippet-box {
     color: transparent;
     caret-color: var(--text);
 }
@@ -477,6 +479,12 @@ textarea {
 .snippet-container.highlighted .snippet-box::-moz-selection {
     color: transparent;
     background: rgba(82, 199, 234, 0.4);
+}
+
+.hl-selected {
+    background: rgba(82, 199, 234, 0.28);
+    box-shadow: inset 0 0 0 1px rgba(82, 199, 234, 0.32);
+    border-radius: 2px;
 }
 
 /* Light Syntax Highlighting Palette - "Goldilocks" Saturation Refinement */

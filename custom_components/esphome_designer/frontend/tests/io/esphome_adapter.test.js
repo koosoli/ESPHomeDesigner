@@ -3,7 +3,7 @@ import { ESPHomeAdapter } from '../../js/io/adapters/esphome_adapter';
 import { getCondProps } from '../../js/io/generators/native_generator.js';
 import { mergeYamlSections } from '../../js/io/generators/yaml_merger.js';
 
-const { mockRegistry } = vi.hoisted(() => ({
+const { mockRegistry, mockDeviceProfiles } = vi.hoisted(() => ({
     mockRegistry: {
         get: vi.fn(),
         getAll: vi.fn(() => []),
@@ -15,7 +15,8 @@ const { mockRegistry } = vi.hoisted(() => ({
         onExportComponents: vi.fn(),
         onExportHelpers: vi.fn(),
         onExportEsphome: vi.fn()
-    }
+    },
+    mockDeviceProfiles: {}
 }));
 
 // Top-level mocks for dependencies
@@ -51,7 +52,7 @@ vi.mock('../../js/core/utils', () => ({
 }));
 
 vi.mock('../../js/io/devices.js', () => ({
-    DEVICE_PROFILES: {}
+    DEVICE_PROFILES: mockDeviceProfiles
 }));
 
 vi.mock('../../js/io/hardware_generators.js', () => ({
@@ -111,12 +112,12 @@ describe('ESPHomeAdapter', () => {
         });
 
         global.AppState = mockAppState;
-        window.AppState = mockAppState;
         window.LVGLExport = {
             generateLVGLSnippet: vi.fn(() => []),
             serializeWidget: vi.fn(() => '')
         };
-        window.DEVICE_PROFILES = {
+        Object.keys(mockDeviceProfiles).forEach(key => delete mockDeviceProfiles[key]);
+        Object.assign(mockDeviceProfiles, {
             'reterminal_e1001': {
                 name: 'Test Device',
                 features: {},
@@ -126,8 +127,7 @@ describe('ESPHomeAdapter', () => {
                     multiplier: 2.0
                 }
             }
-        };
-        window.currentDeviceModel = 'reterminal_e1001';
+        });
     });
 
     it('should be instantiable', () => {
@@ -381,7 +381,7 @@ font:
             };
 
             // Mock state so entity_dedup recognizes the types
-            window.AppState.entityStates = {
+            global.AppState.entityStates = {
                 "sensor.temperature": { state: "20", attributes: { calibration: "2" } },
                 "weather.home": { state: "sunny", attributes: { temperature: "25" } },
                 "sensor.state": { state: "Playing" },

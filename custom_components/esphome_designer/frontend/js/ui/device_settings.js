@@ -193,8 +193,8 @@ export class DeviceSettings {
         if (this.autoCycleInterval) this.autoCycleInterval.value = s.autoCycleIntervalS ?? 30;
 
         // Deep sleep options
-        const stayAwakeCb = document.getElementById('setting-deep-sleep-stay-awake');
-        const fwGuardCb = document.getElementById('setting-deep-sleep-firmware-guard');
+        const stayAwakeCb = /** @type {HTMLInputElement | null} */ (document.getElementById('setting-deep-sleep-stay-awake'));
+        const fwGuardCb = /** @type {HTMLInputElement | null} */ (document.getElementById('setting-deep-sleep-firmware-guard'));
         if (stayAwakeCb) stayAwakeCb.checked = !!s.deepSleepStayAwakeSwitch;
         if (this.deepSleepStayAwakeEntityInput) {
             this.deepSleepStayAwakeEntityInput.value = s.deepSleepStayAwakeEntityId || 'input_boolean.esphome_stay_awake';

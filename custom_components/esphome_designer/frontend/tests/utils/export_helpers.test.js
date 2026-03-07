@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { makeSafeId, escapeFmt, isEntityStateNonNumeric } from '../../js/utils/export_helpers.js';
 
 describe('Export Helpers', () => {
@@ -58,10 +58,6 @@ describe('Export Helpers', () => {
     });
 
     describe('isEntityStateNonNumeric', () => {
-        beforeEach(() => {
-            window.AppState = { entityStates: {} };
-        });
-
         it('returns false if entity or appState is missing (safe fallback for registration)', () => {
             expect(isEntityStateNonNumeric('sensor.missing')).toBe(false);
             expect(isEntityStateNonNumeric('sensor.temp', null)).toBe(false);

@@ -3,6 +3,7 @@ import { AppState } from './state';
 import { Logger } from '../utils/logger.js';
 import { quickSearchInstance } from '../ui/quick_search.js';
 import { emit, EVENTS } from './events.js';
+import { getLastSnippetHighlightRange, isSnippetAutoHighlightActive } from './snippet_selection_bridge.js';
 
 export class KeyboardHandler {
     constructor() {
@@ -28,7 +29,7 @@ export class KeyboardHandler {
 
         const hasSelection = state.selectedWidgetIds.length > 0;
         const _selectedWidgetId = state.selectedWidgetId; // Reference for single-widget ops
-        const isAutoHighlight = window.isAutoHighlight || false; // Global flag from snippet editor
+        const isAutoHighlight = isSnippetAutoHighlightActive();
 
         // Quick Search: Shift+Space
         // Quick Search: Shift+Space
@@ -49,7 +50,7 @@ export class KeyboardHandler {
         if ((ev.key === "Delete" || ev.key === "Backspace") && hasSelection) {
             // Special case: If snippet box is focused but selection matches the auto-highlight,
             // treat it as a widget delete.
-            const lastHighlightRange = window.lastHighlightRange;
+            const lastHighlightRange = getLastSnippetHighlightRange();
             if (ev.target instanceof HTMLElement && ev.target.id === "snippetBox" && lastHighlightRange) {
                 const inputTarget = /** @type {HTMLInputElement} */(ev.target);
                 if (inputTarget.selectionStart === lastHighlightRange.start &&
@@ -255,6 +256,3 @@ export class KeyboardHandler {
         if (state) state.pasteWidget();
     }
 }
-
-// Initialize globally
-window.KeyboardHandler = KeyboardHandler;

@@ -265,6 +265,7 @@ export class App {
         if (!this._llmPromptPromise) {
             this._llmPromptPromise = import('./ui/llm_prompt.js').then(({ LLMPrompt }) => {
                 const instance = new LLMPrompt();
+                instance.onOpenEditorSettings = (section) => this.editorSettings?.open(section);
                 instance.init();
                 this._llmPromptInstance = instance;
                 Logger.log('[App] LLMPrompt lazy-loaded');
@@ -379,13 +380,6 @@ export class App {
 // Start the app
 document.addEventListener('DOMContentLoaded', async () => {
     const app = new App();
-    window.app = app;
-
-    // Expose modal functions globally for button event listeners (matches old monolithic pattern)
-    // Exposed globals for legacy/external compatibility
-    window.openDeviceSettings = () => app.deviceSettings?.open();
-    window.openEditorSettingsModal = (section) => app.editorSettings?.open(section);
-    window.pageSettings = app.pageSettings;
 
     // Attach to unified namespace
     window.ESPHomeDesigner = window.ESPHomeDesigner || {};

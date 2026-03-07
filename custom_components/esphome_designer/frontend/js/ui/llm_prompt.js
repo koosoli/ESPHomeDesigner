@@ -15,12 +15,14 @@ export class LLMPrompt {
         this.closeBtn = document.getElementById('aiPromptClose');
         this.submitBtn = document.getElementById('aiPromptSubmit');
         this.applyBtn = document.getElementById('aiPromptApply');
+        this.openEditorSettingsBtn = document.getElementById('aiOpenEditorSettingsBtn');
         this.input = document.getElementById('aiPromptInput');
         this.status = document.getElementById('aiPromptStatus');
         this.diffPanel = document.getElementById('aiPreviewDiff');
         this.diffContent = document.getElementById('aiDiffContent');
 
         this.generatedWidgets = null;
+        this.onOpenEditorSettings = null;
     }
 
     init() {
@@ -29,6 +31,12 @@ export class LLMPrompt {
         this.closeBtn.onclick = () => this.close();
         this.submitBtn.onclick = () => this.handleSubmit();
         this.applyBtn.onclick = () => this.handleApply();
+        if (this.openEditorSettingsBtn) {
+            this.openEditorSettingsBtn.onclick = () => {
+                this.close();
+                this.onOpenEditorSettings?.('ai');
+            };
+        }
 
         window.addEventListener('click', (e) => {
             if (e.target === this.modal) this.close();

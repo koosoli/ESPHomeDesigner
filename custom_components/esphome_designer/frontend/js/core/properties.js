@@ -2,6 +2,7 @@ import { PropertyControls } from '../ui/components/property_controls.js';
 import { AppState } from './state';
 import { registry } from './plugin_registry';
 import { on, EVENTS } from './events.js';
+import { canvasInstance } from './canvas.js';
 
 // Specialized Renderers
 import { SchemaRenderer } from './properties/schema_renderer.js';
@@ -68,9 +69,7 @@ export class PropertiesPanel {
         if (!this.panel) return;
 
         // Suppress updates during lasso drag to keep 60fps
-        const windowAny = /** @type {any} */ (window);
-        const canvas = windowAny.Canvas || windowAny.canvasInstance;
-        if (canvas && canvas.lassoState) return;
+        if (canvasInstance && canvasInstance.lassoState) return;
 
         const selectedIds = AppState.selectedWidgetIds ||
             (AppState.selectedWidgetId ? [AppState.selectedWidgetId] : []);

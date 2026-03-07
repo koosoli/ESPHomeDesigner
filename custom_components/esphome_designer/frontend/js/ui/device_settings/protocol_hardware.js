@@ -130,8 +130,7 @@ export class ProtocolHardwarePanel {
             const ch = (AppState.project && AppState.project.state && AppState.project.state.customHardware) || {};
             isLcd = ch.tech === 'lcd';
         } else {
-            const profiles = window.DEVICE_PROFILES || DEVICE_PROFILES || {};
-            const profile = profiles[modelId];
+            const profile = DEVICE_PROFILES[modelId];
             isLcd = !!(profile && profile.features && (profile.features.lcd || profile.features.oled));
         }
 
@@ -172,8 +171,7 @@ export class ProtocolHardwarePanel {
         // Inverted colors visibility (E-Paper only)
         if (this.parent.deviceInvertedColorsField) {
             const isESPHome = mode === 'lvgl' || mode === 'direct';
-            const profiles = window.DEVICE_PROFILES || DEVICE_PROFILES || {};
-            const profile = modelId ? profiles[modelId] : null;
+            const profile = modelId ? DEVICE_PROFILES[modelId] : null;
             const isEpaper = !!(profile && profile.features && profile.features.epaper);
             this.parent.deviceInvertedColorsField.style.display = (isESPHome && isEpaper) ? 'block' : 'none';
         }

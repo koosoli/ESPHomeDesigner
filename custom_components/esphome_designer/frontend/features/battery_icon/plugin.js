@@ -3,6 +3,7 @@
  * Battery Icon Plugin
  */
 import { AppState } from '@core/state';
+import { WidgetFactory } from '@core/widget_factory';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -85,7 +86,7 @@ const exportDoc = (w, context) => {
     const entityId = (w.entity_id || "").trim();
     const size = parseInt(p.size || 36, 10);
     const fontSize = parseInt(p.font_size || 14, 10);
-    const isDark = context.isDark || (window.WidgetFactory?.getEffectiveDarkMode?.() || false); // eslint-disable-line no-unused-vars
+    const isDark = context.isDark || WidgetFactory.getEffectiveDarkMode(); // eslint-disable-line no-unused-vars
     const colorProp = p.color || "theme_auto";
     const color = getColorConst(colorProp);
 

@@ -333,32 +333,12 @@ declare global {
     }
 
     interface Window {
-        AppState: AppState;
         PluginRegistry: PluginRegistry;
         ESPHomeAdapter: any;
         DEVICE_PROFILES: Record<string, DeviceProfile>;
-        currentDeviceModel: string;
         // Utils: any; // Conflict with utils.ts
-        COLORS: Record<string, string>;
-        ALIGNMENT: Record<string, string>;
         generateDisplaySection?: (profile: DeviceProfile, orientation?: string) => string[];
         generateLVGLSnippet?: (pages: Page[], model: string) => string[];
-        isAutoHighlight: boolean;
-        lastHighlightRange: { start: number, end: number } | null;
-        app: {
-            canvas: { suppressNextFocus: boolean } & Record<string, any>;
-            pageSettings: { open: (index: number) => void } & Record<string, any>;
-            deviceSettings: { open: () => void } & Record<string, any>;
-            editorSettings: { open: () => void } & Record<string, any>;
-            [key: string]: any;
-        };
-        openDeviceSettings: () => void;
-        openEditorSettingsModal: (section?: string) => void;
-        pageSettings: any;
-        KeyboardHandler: any;
-        BaseAdapter: any;
-        OEPLAdapter: any;
-        OpenDisplayAdapter: any;
         ESPHomeDesigner: {
             app: any;
             ui: {
@@ -369,14 +349,10 @@ declare global {
         };
     }
 
-    var AppState: AppState;
     var PluginRegistry: PluginRegistry;
     var ESPHomeAdapter: any;
     var DEVICE_PROFILES: Record<string, DeviceProfile>;
-    var currentDeviceModel: string;
     var Utils: any;
-    var COLORS: Record<string, string>;
-    var ALIGNMENT: Record<string, string>;
 }
 
 export { };

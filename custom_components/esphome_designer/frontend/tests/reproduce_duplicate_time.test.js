@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ESPHomeAdapter } from '../js/io/adapters/esphome_adapter';
 import { registry } from '../js/core/plugin_registry';
+import { DEVICE_PROFILES } from '../js/io/devices.js';
 
 describe('Duplicate Time Key Reproduction', () => {
     let adapter;
@@ -10,7 +11,8 @@ describe('Duplicate Time Key Reproduction', () => {
 
         // Mock window/global objects
         global.window = global;
-        window.DEVICE_PROFILES = {
+        Object.keys(DEVICE_PROFILES).forEach(key => delete DEVICE_PROFILES[key]);
+        Object.assign(DEVICE_PROFILES, {
             'reterminal_e1001': {
                 name: "Seeedstudio reTerminal E1001",
                 chip: "esp32-s3",
@@ -26,8 +28,7 @@ describe('Duplicate Time Key Reproduction', () => {
                 },
                 battery: { attenuation: "12db", multiplier: 2.0 }
             }
-        };
-        window.currentDeviceModel = 'reterminal_e1001';
+        });
 
         // Mock registry singletons using vi.spyOn
         vi.spyOn(registry, 'get').mockImplementation((type) => {
@@ -67,6 +68,7 @@ describe('Duplicate Time Key Reproduction', () => {
 
     it('should NOT produce duplicate time: keys for reterminal_e1001', async () => {
         const projectState = {
+            deviceModel: 'reterminal_e1001',
             pages: [
                 {
                     name: "Page 1",
@@ -95,10 +97,9 @@ describe('Duplicate Time Key Reproduction', () => {
                 lcd: true
             }
         };
-        window.DEVICE_PROFILES['waveshare_esp32_s3_touch_lcd_7'] = packageProfile;
-        window.currentDeviceModel = 'waveshare_esp32_s3_touch_lcd_7';
-
+        DEVICE_PROFILES['waveshare_esp32_s3_touch_lcd_7'] = packageProfile;
         const projectState = {
+            deviceModel: 'waveshare_esp32_s3_touch_lcd_7',
             pages: [
                 {
                     name: "Page 1",

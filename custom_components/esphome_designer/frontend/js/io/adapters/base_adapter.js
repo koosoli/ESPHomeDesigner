@@ -49,5 +49,3 @@ export class BaseAdapter {
     }
 }
 
-// Expose globally for now to match the project's architecture
-window.BaseAdapter = BaseAdapter;
