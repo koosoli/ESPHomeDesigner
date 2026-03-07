@@ -385,6 +385,14 @@ export class YamlGenerator {
         lines.push("          timeout: 120s");
         lines.push("      - delay: 5s");
 
+        // Kick off auto-cycle timer (if enabled) so page cycling starts
+        // without requiring the user to uncomment the on_boot section.
+        // auto_cycle_timer has mode:restart, so re-triggering it here
+        // on each manage_run_and_sleep loop simply resets the countdown.
+        if (autoCycleEnabled) {
+            lines.push("      - script.execute: auto_cycle_timer");
+        }
+
         // Logic for Sleep & Refresh
         lines.push("      - lambda: |-");
         if (hasMultiplePages || hasPageRefreshOverrides) {
