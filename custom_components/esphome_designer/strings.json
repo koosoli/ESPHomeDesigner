@@ -1,0 +1,27 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up ESPHome Designer",
+        "description": "Create the ESPHome Designer integration entry.",
+        "data": {
+          "name": "Name"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Only a single ESPHome Designer instance is allowed."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "ESPHome Designer options",
+        "description": "{info_text}",
+        "data": {
+          "show_in_sidebar": "Show in sidebar"
+        }
+      }
+    }
+  }
+}
