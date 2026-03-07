@@ -68,7 +68,8 @@ export class PropertiesPanel {
         if (!this.panel) return;
 
         // Suppress updates during lasso drag to keep 60fps
-        const canvas = window.Canvas || window.canvasInstance;
+        const windowAny = /** @type {any} */ (window);
+        const canvas = windowAny.Canvas || windowAny.canvasInstance;
         if (canvas && canvas.lassoState) return;
 
         const selectedIds = AppState.selectedWidgetIds ||

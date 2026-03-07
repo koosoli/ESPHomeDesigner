@@ -240,6 +240,14 @@ export function generateDisplaySection(profile, layout = {}, isLvgl = false) {
         const configLines = profile.display_config.filter(l => !l.trim().startsWith("rotation:"));
         lines.push(...configLines);
 
+        // Fix #330: Ensure display ID is always present in display_config profiles
+        const isLcd = !!(profile.features && (profile.features.lcd || profile.features.oled));
+        const expectedId = isLcd ? 'my_display' : 'epaper_display';
+        const hasId = configLines.some(l => l.trim().startsWith('id:'));
+        if (!hasId) {
+            lines.push(`    id: ${expectedId}`);
+        }
+
         // Correct auto_clear_enabled for LVGL if present in config
         if (isLvgl) {
             for (let i = 0; i < lines.length; i++) {

@@ -125,8 +125,12 @@ export function generateCustomHardwareYaml(config) {
     }
 
     // Display
+    // Fix #330: Always emit a display id so scripts can reference it
+    const isLcdTech = config.tech === 'lcd' || (!config.tech);
+    const displayIdValue = isLcdTech ? 'my_display' : 'epaper_display';
     lines.push("display:");
     lines.push(`  - platform: ${displayDriver}`);
+    lines.push(`    id: ${displayIdValue}`);
     if (pins.cs) lines.push(`    cs_pin: ${pins.cs}`);
     if (pins.dc) lines.push(`    dc_pin: ${pins.dc}`);
     if (pins.rst) lines.push(`    reset_pin: ${pins.rst}`);
@@ -141,14 +145,12 @@ export function generateCustomHardwareYaml(config) {
     // For many drivers, we need model or specific init
     if (displayDriver === "st7789v" && !config.displayModel) {
         lines.push("    model: Custom");
-        lines.push("    id: my_display");
         lines.push(`    width: ${resWidth}`);
         lines.push(`    height: ${resHeight}`);
         lines.push("    offset_height: 0");
         lines.push("    offset_width: 0");
     } else if (displayDriver === "st7789v") {
         // If model IS provided for st7789v (rare but possible custom), still might need dims
-        lines.push("    id: my_display");
         lines.push(`    width: ${resWidth}`);
         lines.push(`    height: ${resHeight}`);
     }

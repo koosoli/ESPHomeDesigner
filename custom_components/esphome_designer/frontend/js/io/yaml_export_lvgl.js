@@ -251,7 +251,7 @@ function safeYamlValue(val) {
  * @returns {string} The serialized widget comment.
  */
 export function serializeWidget(w) {
-    const parts = [`# widget:${w.type}`];
+    const parts = [`// widget:${w.type}`];
 
     // Core properties
     parts.push(`id:${w.id}`);

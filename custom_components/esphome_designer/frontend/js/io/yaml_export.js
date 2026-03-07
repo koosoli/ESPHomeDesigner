@@ -239,7 +239,8 @@ export function highlightWidgetInSnippet(widgetIds) {
         const isTyping = (activeTag === "input" || activeTag === "textarea") && document.activeElement !== box;
 
         // Only modify selection if we rely on auto-highlight (not typing/interacting)
-        const canvas = window.Canvas || window.canvasInstance;
+        const windowAny = /** @type {any} */ (window);
+        const canvas = windowAny.Canvas || windowAny.canvasInstance;
         const isInteracting = canvas && (canvas.dragState || canvas.lassoState);
 
         if (!isTyping && !isInteracting) {
