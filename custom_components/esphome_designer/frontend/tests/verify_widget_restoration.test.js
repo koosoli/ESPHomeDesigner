@@ -206,8 +206,8 @@ describe('Widget Restoration Verification', () => {
         const yaml = await adapter.generate(payload);
 
         expect(yaml).not.toContain('it.rectangle(x + i, y + i, w - 2 * i, h - 2 * i');
-        expect(yaml).toContain('it.rectangle(x + 0, y + 0, w - 0, h - 0');
-        expect(yaml).toContain('it.rectangle(x + 1, y + 1, w - 2, h - 2');
+        expect(yaml).toContain('it.rectangle(20 + 0, 30 + 0, 320 - 0, 260 - 0');
+        expect(yaml).toContain('it.rectangle(20 + 1, 30 + 1, 320 - 2, 260 - 2');
     });
 
     it('should emit widget round-trip markers as C++ comments in native display lambdas', async () => {

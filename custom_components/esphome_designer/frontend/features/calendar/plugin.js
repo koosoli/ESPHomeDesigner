@@ -915,13 +915,13 @@ template:
 
         if (borderWidth > 0) {
             if (radius > 0) {
-                // Fallback to sharp borders for now as per established pattern or use primitive if available
+                // Use concrete widget coordinates to avoid minification variable shadowing (Issue #323)
                 for (let i = 0; i < borderWidth; i++) {
-                    lines.push(`            it.rectangle(x + ${i}, y + ${i}, w - ${2 * i}, h - ${2 * i}, ${borderColor});`);
+                    lines.push(`            it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - ${2 * i}, ${w.height} - ${2 * i}, ${borderColor});`);
                 }
             } else {
                 for (let i = 0; i < borderWidth; i++) {
-                    lines.push(`            it.rectangle(x + ${i}, y + ${i}, w - ${2 * i}, h - ${2 * i}, ${borderColor});`);
+                    lines.push(`            it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - ${2 * i}, ${w.height} - ${2 * i}, ${borderColor});`);
                 }
             }
         }
