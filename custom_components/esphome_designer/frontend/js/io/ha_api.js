@@ -1,14 +1,13 @@
-import { AppState } from '../core/state.js';
+import { AppState } from '../core/state';
 import { emit, EVENTS } from '../core/events.js';
 import { getHaToken, hasHaBackend, HA_API_BASE } from '../utils/env.js';
-import { loadLayoutIntoState } from './yaml_import.js';
+import { showToast } from '../utils/dom.js';
+import { loadLayoutIntoState } from './yaml_import';
 import { Logger } from '../utils/logger.js';
 
 // --- HA Entity States Cache ---
 export let entityStatesCache = [];
 let entityStatesFetchInProgress = false;
-let haEntitiesLoaded = false;
-let haEntitiesLoadError = false;
 
 /**
  * Gets the headers required for Home Assistant API requests.
@@ -75,7 +74,7 @@ export async function fetchEntityStates() {
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
         // Determine which API to use
-        const isStandaloneMode = HA_API_BASE.includes('api/esphome_designer') &&
+        const _isStandaloneMode = HA_API_BASE.includes('api/esphome_designer') &&
             !window.location.pathname.includes('esphome-designer');
 
         let apiUrl;
@@ -115,7 +114,6 @@ export async function fetchEntityStates() {
 
         if (!resp.ok) {
             Logger.warn("[EntityStates] Failed to fetch:", resp.status);
-            haEntitiesLoadError = true;
             return [];
         }
 
@@ -146,7 +144,6 @@ export async function fetchEntityStates() {
 
         if (!Array.isArray(entities)) {
             Logger.warn("[EntityStates] Invalid response format");
-            haEntitiesLoadError = true;
             return [];
         }
 
@@ -165,8 +162,6 @@ export async function fetchEntityStates() {
             };
         });
 
-        haEntitiesLoaded = true;
-        haEntitiesLoadError = false;
         Logger.log(`[EntityStates] Cached ${entityStatesCache.length} entity states`);
 
         // Also populate AppState.entityStates as lookup object for render functions
@@ -190,7 +185,6 @@ export async function fetchEntityStates() {
         } else {
             Logger.warn("[EntityStates] Error fetching:", err);
         }
-        haEntitiesLoadError = true;
         return [];
     } finally {
         entityStatesFetchInProgress = false;
@@ -202,7 +196,7 @@ export async function fetchEntityStates() {
  * @param {string} entityId 
  * @returns {string|null} Formatted state or null if not found.
  */
-export function getEntityState(entityId) {
+function _getEntityState(entityId) {
     const entry = entityStatesCache.find(e => e.entity_id === entityId);
     return entry ? entry.formatted : null;
 }
@@ -255,7 +249,7 @@ export async function fetchEntityHistory(entityId, duration = "24h") {
         }
 
         return [];
-    } catch (err) {
+    } catch {
         // Silently fail - history is only for editor preview
         return [];
     }
@@ -364,7 +358,7 @@ export async function loadLayoutFromBackend() {
 
     } catch (err) {
         Logger.error("Error loading layout from backend:", err);
-        import('../utils/dom.js').then(dom => dom.showToast("Error loading layout from backend", 5000, "error"));
+        showToast("Error loading layout from backend", "error", 5000);
     }
 }
 
@@ -492,7 +486,7 @@ export async function importSnippetBackend(yaml) {
 }
 
 // Init function to be called by main
-export function initHaApi() {
+function _initHaApi() {
     if (hasHaBackend()) {
         fetchEntityStates();
         setInterval(fetchEntityStates, 30000);

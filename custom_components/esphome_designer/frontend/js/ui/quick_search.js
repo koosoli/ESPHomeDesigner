@@ -3,6 +3,12 @@
  * Opens with Shift+Space, allows quick searching and adding widgets
  */
 import { Logger } from '../utils/logger.js';
+import { AppState } from '../core/state';
+import { WidgetFactory } from '../core/widget_factory';
+import { showToast } from '../utils/dom.js';
+
+export let quickSearchInstance = null;
+
 export class QuickSearch {
     constructor() {
         this.isOpen = false;
@@ -13,6 +19,7 @@ export class QuickSearch {
         this.input = null;
         this.resultsContainer = null;
 
+        quickSearchInstance = this;
         this.init();
     }
 
@@ -78,8 +85,8 @@ export class QuickSearch {
         `;
         document.body.appendChild(this.modal);
 
-        this.input = this.modal.querySelector(".quick-search-input");
-        this.resultsContainer = this.modal.querySelector(".quick-search-results");
+        this.input = /** @type {HTMLInputElement} */ (this.modal.querySelector(".quick-search-input"));
+        this.resultsContainer = /** @type {HTMLElement} */ (this.modal.querySelector(".quick-search-results"));
     }
 
     bindEvents() {
@@ -194,7 +201,7 @@ export class QuickSearch {
             this.close();
         } catch (err) {
             Logger.error("[QuickSearch] Error adding widget:", err);
-            AppState.notify("Failed to add widget: " + err.message, "error");
+            showToast("Failed to add widget: " + err.message, "error");
         }
     }
 }

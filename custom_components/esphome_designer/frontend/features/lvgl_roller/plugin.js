@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * LVGL Roller Plugin
  */
@@ -110,8 +111,39 @@ export default {
         selected_bg_color: "blue",
         selected_text_color: "white",
         mode: "normal",
-        opa: 255
+        opa: 255,
+        entity_id: "",
+        selected_index: 0,
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Roller Content",
+            fields: [
+                { key: "options", label: "Options (One per line)", type: "textarea", default: "Option A\nOption B\nOption C" },
+                { key: "entity_id", target: "root", label: "Selected Index Entity", type: "entity_picker", default: "" },
+                { key: "selected_index", label: "Static Selected Index", type: "number", default: 0 }
+            ]
+        },
+        {
+            section: "Display Settings",
+            fields: [
+                { key: "visible_row_count", label: "Visible Rows", type: "number", default: 3 },
+                { key: "mode", label: "Infinite Mode", type: "select", options: ["normal", "infinite"], default: "normal" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "bg_color", label: "Background", type: "color", default: "white" },
+                { key: "color", label: "Text Color", type: "color", default: "black" },
+                { key: "selected_bg_color", label: "Selection Color", type: "color", default: "blue" },
+                { key: "selected_text_color", label: "Selection Text", type: "color", default: "white" },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL,
     onExportNumericSensors

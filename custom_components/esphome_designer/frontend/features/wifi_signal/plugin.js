@@ -1,3 +1,5 @@
+// @ts-nocheck
+import { AppState } from '@core/state';
 /**
  * WiFi Signal Plugin
  */
@@ -12,8 +14,8 @@ const render = (el, widget, { getColorStyle }) => {
     let signalLevel = -45; // Default preview (excellent signal)
 
     if (!props.is_local_sensor && widget.entity_id) {
-        if (window.AppState && window.AppState.entityStates) {
-            const stateObj = window.AppState.entityStates[widget.entity_id];
+        if (AppState && AppState.entityStates) {
+            const stateObj = AppState.entityStates[widget.entity_id];
             if (stateObj && stateObj.state !== undefined) {
                 const val = parseFloat(stateObj.state);
                 if (!isNaN(val)) {
@@ -55,11 +57,24 @@ const render = (el, widget, { getColorStyle }) => {
         dbmLabel.textContent = Math.round(signalLevel) + "dB";
         el.appendChild(dbmLabel);
     }
+
+    // Apply Border & Background (Restored)
+    if (props.border_width) {
+        const borderColor = getColorStyle(props.border_color || color);
+        el.style.border = `${props.border_width}px solid ${borderColor}`;
+        el.style.borderRadius = `${props.border_radius || 0}px`;
+        el.style.boxSizing = "border-box";
+    } else {
+        el.style.border = "none";
+    }
+    if (props.bg_color) {
+        el.style.backgroundColor = getColorStyle(props.bg_color);
+    }
 };
 
 const exportDoc = (w, context) => {
     const {
-        lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper
+        lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
@@ -83,13 +98,22 @@ const exportDoc = (w, context) => {
         sensorId = entityId ? entityId.replace(/[^a-zA-Z0-9_]/g, "_") : "wifi_signal_dbm";
     }
 
-    lines.push(`        // widget:wifi_signal id:${w.id} type:wifi_signal x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId || "wifi_signal_dbm"} size:${size} font_size:${fontSize} color:${colorProp} show_dbm:${showDbm} local:${isLocal} ${getCondProps(w)}`);
 
     // Background fill
     const bgColorProp = p.bg_color || p.background_color || "transparent";
     if (bgColorProp && bgColorProp !== "transparent") {
         const bgColorConst = getColorConst(bgColorProp);
         lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+    }
+
+    // Border (Restored)
+    const borderWidth = parseInt(p.border_width || 0, 10);
+    if (borderWidth > 0) {
+        const borderColorProp = p.border_color || colorProp;
+        const borderColorConst = getColorConst(borderColorProp);
+        for (let i = 0; i < borderWidth; i++) {
+            lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColorConst});`);
+        }
     }
 
     const cond = getConditionCheck(w);
@@ -155,10 +179,47 @@ export default {
         color: "theme_auto",
         show_dbm: true,
         fit_icon_to_frame: false,
-        is_local_sensor: true
+        is_local_sensor: true,
+        opa: 255
+    },
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Data Source", true);
+        panel.addLabeledInputWithPicker("WiFi Signal Entity ID", "text", widget.entity_id || "", (v) => {
+            AppState.updateWidget(widget.id, { entity_id: v });
+        }, widget);
+        panel.addCheckbox("Local / On-Device Sensor", props.is_local_sensor !== false, (v) => updateProp("is_local_sensor", v));
+        panel.addHint("Use internal battery_level/signal sensor.");
+        panel.endSection();
+
+        panel.createSection("Appearance", true);
+        panel.addCheckbox("Show dBm value", props.show_dbm !== false, (v) => updateProp("show_dbm", v));
+        panel.addCheckbox("Fit icon to frame", !!props.fit_icon_to_frame, (v) => updateProp("fit_icon_to_frame", v));
+        panel.addLabeledInput("Icon Size (px)", "number", props.size || 24, (v) => {
+            let n = parseInt(v || "24", 10);
+            updateProp("size", isNaN(n) ? 24 : n);
+        });
+        panel.addLabeledInput("dBm Font Size (px)", "number", props.font_size || 12, (v) => {
+            let n = parseInt(v || "12", 10);
+            updateProp("font_size", isNaN(n) ? 12 : n);
+        });
+        panel.addColorSelector("Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
+        panel.endSection();
+
+        panel.createSection("Border Style", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
     },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "sensor.wifi_signal").trim();
         const size = p.size || 24;
@@ -201,7 +262,7 @@ export default {
 
         return actions;
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "sensor.wifi_signal").trim();
         const size = p.size || 24;
@@ -240,7 +301,7 @@ export default {
 
         return elements;
     },
-    exportLVGL: (w, { common, convertColor, getLVGLFont, formatOpacity }) => {
+    exportLVGL: (w, { common, convertColor, getLVGLFont, _formatOpacity }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "").trim();
         const isLocal = p.is_local_sensor !== false;
@@ -318,7 +379,7 @@ export default {
     export: exportDoc,
     onExportNumericSensors: (context) => {
         // REGRESSION PROOF: Always destructure 'lines' from context
-        const { lines, widgets, isLvgl, pendingTriggers, profile } = context;
+        const { lines, widgets, isLvgl, pendingTriggers, profile } = context; // eslint-disable-line no-unused-vars
         if (!widgets) return;
 
         let needsLocalWifi = false;

@@ -1,4 +1,6 @@
 import { Logger } from '../utils/logger.js';
+import { AppState } from '../core/state';
+import { AIValidator } from './ai_validator';
 
 export class AIService {
     constructor() {
@@ -8,7 +10,7 @@ export class AIService {
     }
 
     getSettings() {
-        return window.AppState.settings;
+        return AppState.settings;
     }
 
     async fetchModels(provider, apiKey) {
@@ -75,19 +77,18 @@ export class AIService {
                     Logger.log(`Auto-detected model: ${model}`);
 
                     // Persist for next time
-                    window.AppState.updateSettings({ [`ai_model_${provider}`]: model });
+                    AppState.updateSettings({ [`ai_model_${provider}`]: model });
                 } else {
                     throw new Error("No models found for this API Key.");
                 }
             } catch (e) {
                 Logger.error("Auto-detection failed:", e);
-                // Fallback to flash if detection fails (most likely to work)
-                model = 'gemini-1.5-flash';
+                model = 'gemini-2.0-flash';
             }
         }
 
-        if (!apiKey) throw new Error(`Missing API Key for ${provider}`);
-        if (!model) throw new Error(`No model selected for ${provider}`);
+        if (!apiKey) throw new Error(`Missing API Key for ${provider}. Configure it in Editor Settings → AI.`);
+        if (!model) throw new Error(`No model selected for ${provider}. Please pick one in Editor Settings → AI.`);
 
         const systemPrompt = this.getSystemPrompt();
 
@@ -148,13 +149,25 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
 
             try {
                 const parsed = JSON.parse(jsonText);
-                return Array.isArray(parsed) ? parsed : (parsed.widgets || parsed);
+                const validation = AIValidator.validateResponse(parsed);
+                if (!validation.valid) {
+                    Logger.warn("[AI] Validation failed:", validation.errors);
+                    // We still return sanitized widgets if possible, or throw if too broken
+                    if (validation.sanitized.length === 0) {
+                        throw new Error("AI returned invalid widget data: " + validation.errors.join(", "));
+                    }
+                }
+                return validation.sanitized;
             } catch (innerErr) {
                 Logger.warn("Fast JSON parse failed, trying repair...", innerErr);
                 try {
                     const repaired = this.repairJson(jsonText);
                     const parsed = JSON.parse(repaired);
-                    return Array.isArray(parsed) ? parsed : (parsed.widgets || parsed);
+                    const validation = AIValidator.validateResponse(parsed);
+                    if (!validation.valid) {
+                        Logger.warn("[AI] Validation failed after repair:", validation.errors);
+                    }
+                    return validation.sanitized;
                 } catch (repairErr) {
                     Logger.error("JSON repair failed:", repairErr);
                     throw new Error("AI returned malformed JSON (possibly truncated). Try a shorter prompt or a more powerful model.");
@@ -292,7 +305,7 @@ STRICT OPERATIONAL RULES:
 2. TYPOGRAPHY: "Bold" = font_weight: 700. "Normal/Regular" = font_weight: 400. "Large" = font_size: 28+.
 3. VISUAL HIERARCHY: Use 'shape_rect' or 'rounded_rect' to create headers, footers, or background cards for groups of widgets. Use small thin shapes as dividers.
 4. UNIQUE IDS: Every new widget MUST have a unique ID like "w_" + timestamp or a short descriptive string. Never leave ID as null or undefined.
-5. CANVAS BOUNDS: Stay within ${JSON.stringify(window.AppState.getCanvasDimensions())}.
+5. CANVAS BOUNDS: Stay within ${JSON.stringify(AppState.getCanvasDimensions())}.
 6. COLOR USAGE: Check "display_type" in context:
    - "monochrome": Use ONLY "black" or "white". No grays, no colors.
    - "color_epaper": Use limited palette: black, white, red, green, blue, yellow, orange. No gradients.
@@ -374,3 +387,5 @@ DESIGN GOAL: Create "Beautiful" layouts. Use whitespace, professional alignment,
         return { id, type, x, y, width, height, ...props };
     }
 }
+
+export const aiService = new AIService();

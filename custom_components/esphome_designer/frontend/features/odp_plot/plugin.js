@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ODP Plot Plugin
  * Displays a sensor data graph/plot
@@ -81,8 +82,25 @@ export default {
         outline: "#ccc",
         ylegend: null
     },
+    schema: [
+        {
+            section: "Data Source",
+            fields: [
+                { key: "duration", label: "Duration (Seconds)", type: "number", default: 36400 }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "background", label: "Background", type: "color", default: "white" },
+                { key: "outline", label: "Outline", type: "color", default: "#ccc" },
+                { key: "data", label: "Series Config", type: "hidden", default: [{ entity: "sensor.temperature", color: "black", width: 1, smooth: true, show_points: true }] },
+                { key: "ylegend", label: "Y Legend", type: "text", default: null }
+            ]
+        }
+    ],
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { _layout, _page }) => {
         const p = w.props || {};
         const exportData = (Array.isArray(p.data) ? p.data : [p.data]).map(item => ({
             entity: item.entity || "",
@@ -108,7 +126,7 @@ export default {
         if (p.ylegend) result.ylegend = p.ylegend;
         return result;
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const exportData = (Array.isArray(p.data) ? p.data : [p.data]).map(item => ({
             entity: item.entity || "",

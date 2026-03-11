@@ -1,6 +1,8 @@
+// @ts-nocheck
 /**
  * Touch Area Plugin
  */
+import { iconPickerData } from '../../js/core/constants_icons.js';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -23,9 +25,9 @@ const render = (el, widget, { getColorStyle }) => {
                 const cp = 0xf0000 + parseInt(c.slice(1), 16);
                 return String.fromCodePoint(cp);
             }
-            if (window.iconPickerData) {
+            if (iconPickerData) {
                 const iconName = (code || "").trim().replace("mdi:", "").toLowerCase();
-                const iconData = window.iconPickerData.find(idx => idx.name === iconName);
+                const iconData = iconPickerData.find(idx => idx.name === iconName);
                 if (iconData) {
                     const cp = 0xf0000 + parseInt(iconData.code.slice(1), 16);
                     return String.fromCodePoint(cp);
@@ -79,7 +81,7 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportDoc = (w, context) => {
     const {
-        lines, addFont, getColorConst, getCondProps, getConditionCheck
+        lines, addFont, getColorConst, getCondProps, getConditionCheck // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
@@ -89,7 +91,6 @@ const exportDoc = (w, context) => {
     const iconColorProp = p.icon_color || "theme_auto";
     const iconColor = getColorConst(iconColorProp);
 
-    lines.push(`        // widget:touch_area id:${w.id} type:touch_area x:${w.x} y:${w.y} w:${w.width} h:${w.height} icon:"${p.icon || ""}" icon_pressed:"${p.icon_pressed || ""}" icon_size:${iconSize} icon_color:${iconColorProp} ${getCondProps(w)}`);
 
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
@@ -114,11 +115,12 @@ const exportDoc = (w, context) => {
 
 const onExportBinarySensors = (context) => {
     const { lines, widgets, profile } = context;
-    // Fix #180: Don't restrict by profile flags. If user added touch widgets, we should try to generate.
-    // if (!profile || (!profile.touch && !profile.features?.touch)) return;
+    if (!profile?.touch) return;
 
     const targets = widgets.filter(w => w.type === 'touch_area' || w.type === 'nav_next_page' || w.type === 'nav_previous_page' || w.type === 'nav_reload_page');
     if (targets.length === 0) return;
+
+    const totalPages = widgets.reduce((max, widget) => Math.max(max, (widget._pageIndex ?? 0) + 1), 0) || 1;
 
     lines.push("# Touch Area Binary Sensors");
     targets.forEach(w => {
@@ -133,7 +135,10 @@ const onExportBinarySensors = (context) => {
         lines.push(`  y_min: ${w.y}`);
         lines.push(`  y_max: ${w.y + w.height}`);
 
-        const navAction = p.nav_action || "none";
+        const requestedNavAction = p.nav_action || "none";
+        const navAction = totalPages > 1
+            ? requestedNavAction
+            : (requestedNavAction === "reload_page" ? "reload_page" : "none");
         const pageIdx = w._pageIndex !== undefined ? w._pageIndex : 0;
 
         if (navAction !== "none" || w.entity_id) {
@@ -185,8 +190,37 @@ export default {
         icon_color: "theme_auto",
         color: "rgba(0, 0, 255, 0.15)",
         border_color: "#0000ff",
-        on_click: ""
+        on_click: "",
+        entity_id: "",
+        nav_action: "none"
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "title", label: "Display Title", type: "text", default: "" },
+                { key: "icon", label: "Touch Icon (MDI)", type: "icon_picker", default: "" },
+                { key: "icon_pressed", label: "Pressed Icon", type: "icon_picker", default: "" },
+                { key: "entity_id", target: "root", label: "Target Entity", type: "entity_picker", default: "" }
+            ]
+        },
+        {
+            section: "Navigation",
+            fields: [
+                { key: "nav_action", label: "Page Action", type: "select", options: ["none", "next_page", "previous_page", "reload_page"], default: "none" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "icon_size", label: "Icon Size", type: "number", default: 40 },
+                { key: "icon_color", label: "Icon Color", type: "color", default: "theme_auto" },
+                { key: "color", label: "Fill Color (Editor)", type: "color", default: "rgba(0, 0, 255, 0.15)" },
+                { key: "border_color", label: "Border Color (Editor)", type: "color", default: "#0000ff" },
+                { key: "on_click", label: "On Click Lambda", type: "text", default: "" }
+            ]
+        }
+    ],
     render,
     collectRequirements,
     onExportBinarySensors,

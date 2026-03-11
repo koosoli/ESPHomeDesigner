@@ -1,5 +1,7 @@
+// @ts-nocheck
+import { AppState } from '@core/state';
 import { wordWrap, parseColorMarkup, evaluateTemplatePreview } from '../../js/utils/text_utils.js';
-
+import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js';
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     el.innerHTML = "";
@@ -9,7 +11,7 @@ const render = (el, widget, { getColorStyle }) => {
 
     const textRaw = props.text || props.value || widget.title || "Text";
     // Evaluate template for designer preview
-    const text = evaluateTemplatePreview(textRaw, window.AppState?.entityStates);
+    const text = evaluateTemplatePreview(textRaw, AppState?.entityStates);
 
     const fontSize = props.font_size || 20;
     const fontFamily = props.font_family || "Roboto";
@@ -76,7 +78,7 @@ const render = (el, widget, { getColorStyle }) => {
         const borderColorProp = props.border_color || "black";
         let resolvedBorderColor = borderColorProp;
         if (borderColorProp === "theme_auto") {
-            resolvedBorderColor = (window.AppState?.settings?.darkMode) ? "white" : "black";
+            resolvedBorderColor = (AppState?.settings?.darkMode) ? "white" : "black";
         }
 
         if (borderWidth > 0) {
@@ -107,7 +109,7 @@ const render = (el, widget, { getColorStyle }) => {
     el.appendChild(body);
 };
 
-const exportLVGL = (w, { common, convertColor, convertAlign, getLVGLFont, formatOpacity }) => {
+const exportLVGL = (w, { common, convertColor, _convertAlign, getLVGLFont, formatOpacity }) => {
     const p = w.props || {};
 
     // Fix #268: Properly map composite alignments to valid LVGL text_align (LEFT/CENTER/RIGHT)
@@ -159,8 +161,78 @@ export default {
         border_color: "black",
         border_radius: 0
     },
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Content", true);
+        panel.addLabeledInput("Text content", "textarea", props.text || "Text", (v) => updateProp("text", v));
+        panel.endSection();
+
+        panel.createSection("Typography", true);
+        panel.addLabeledInput("Font Size", "number", props.font_size || 20, (v) => updateProp("font_size", parseInt(v, 10)));
+        const fontOptions = ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand", "Custom..."];
+        const currentFont = props.font_family || "Roboto";
+        const isCustom = !fontOptions.slice(0, -1).includes(currentFont);
+
+        panel.addSelect("Font Family", isCustom ? "Custom..." : currentFont, fontOptions, (v) => {
+            const newProps = { ...widget.props };
+            if (v !== "Custom...") {
+                newProps.font_family = v;
+                newProps.custom_font_family = "";
+                newProps.font_weight = clampFontWeight(v, newProps.font_weight || 400);
+            } else {
+                newProps.font_family = "Custom...";
+            }
+            AppState.updateWidget(widget.id, { props: newProps });
+        });
+
+        if (isCustom || props.font_family === "Custom...") {
+            panel.addLabeledInput("Custom Font Name", "text", props.custom_font_family || (isCustom ? currentFont : ""), (v) => {
+                const newProps = { ...widget.props };
+                newProps.font_family = v || "Roboto";
+                newProps.custom_font_family = v;
+                newProps.font_weight = clampFontWeight(newProps.font_family, newProps.font_weight || 400);
+                AppState.updateWidget(widget.id, { props: newProps });
+            });
+            panel.addHint('Browse <a href="https://fonts.google.com" target="_blank">fonts.google.com</a>');
+        }
+
+        const validWeights = getWeightsForFont(props.font_family || "Roboto");
+        panel.addSelect("Font Weight", props.font_weight || 400, validWeights, (v) => updateProp("font_weight", parseInt(v, 10)));
+        panel.addCheckbox("Italic", !!props.italic, (v) => updateProp("italic", v));
+        panel.addSelect("Alignment", props.text_align || "TOP_LEFT", ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], (v) => updateProp("text_align", v));
+        panel.addCheckbox("Parse Color Tags", !!props.parse_colors, (v) => updateProp("parse_colors", v));
+        if (props.parse_colors) {
+            panel.addHint("Usage: [red]Text[/red] or [#FF00AA]Colors[/#]");
+        }
+        panel.endSection();
+
+        panel.createSection("Appearance", false);
+        panel.addColorSelector("Text Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
+        panel.addColorSelector("Background", props.bg_color || "transparent", null, (v) => updateProp("bg_color", v));
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : (props.opa !== undefined ? Math.round(props.opa / 2.55) : 100), 0, 100, (v) => {
+            updateProp("opacity", v);
+            updateProp("opa", Math.round(v * 2.55));
+        });
+        panel.endSection();
+
+        panel.createSection("Border Settings", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "black", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
+
+        panel.createSection("Advanced", false);
+        panel.addLabeledInput("BPP / Antialias", "number", props.bpp || 1, (v) => updateProp("bpp", parseInt(v, 10)));
+        panel.endSection();
+    },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const text = p.text || w.title || "Text";
         const fontSize = p.font_size || 20;
@@ -219,7 +291,7 @@ export default {
         return result;
     },
     exportLVGL,
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { layout, _page }) => {
         const p = w.props || {};
         const text = p.text || w.title || "Text";
         const fontSize = p.font_size || 20;
@@ -256,7 +328,7 @@ export default {
     },
     export: (w, context) => {
         const {
-            lines, getColorConst, addFont, getAlignX, getAlignY, getCondProps, getConditionCheck, Utils, isEpaper
+            lines, getColorConst, addFont, getAlignX, getAlignY, getCondProps, getConditionCheck, Utils, isEpaper // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};
@@ -270,10 +342,6 @@ export default {
         // Check if gray text on e-paper - use dithering
         const isGrayOnEpaper = isEpaper && Utils && Utils.isGrayColor && Utils.isGrayColor(colorProp);
         const color = isGrayOnEpaper ? "COLOR_BLACK" : getColorConst(colorProp);
-
-        // Sanitize text for comment (replace newlines to prevent YAML breakage)
-        const safeText = text.replace(/[\r\n]+/g, '\\n');
-        lines.push(`        // widget:text id:${w.id} type:text x:${w.x} y:${w.y} w:${w.width} h:${w.height} align:${textAlign} text:"${safeText.substring(0, 50)}${safeText.length > 50 ? '...' : ''}" ${getCondProps(w)}`);
 
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);

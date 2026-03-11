@@ -8,9 +8,15 @@ export default [
     // Ignore vendor libraries
     {
         ignores: [
+            "**/dist/**",
+            "**/build/**",
+            "**/*.min.js",
             "custom_components/**/js/lib/**",
             "coverage/**",
-            "node_modules/**"
+            "node_modules/**",
+            "oldversions/**",
+            ".venv/**",
+            "custom_components/!(esphome_designer)/**"
         ]
     },
     {
@@ -21,46 +27,18 @@ export default [
                 ...globals.browser,
                 ...globals.node,
                 // Core app globals
-                AppState: "readonly",
-                DEVICE_PROFILES: "readonly",
-                createWidget: "readonly",
-                showToast: "readonly",
-                on: "readonly",
-                emit: "readonly",
-                EVENTS: "readonly",
-                deepClone: "readonly",
-                hasHaBackend: "readonly",
-                PluginRegistry: "readonly",
                 jsyaml: "readonly",
                 qrcode: "readonly",
-                // API globals
-                getHaHeaders: "readonly",
-                HA_API_BASE: "readonly",
                 // Test globals
-                vi: "readonly",
-                // Utility globals
-                Logger: "readonly",
-                isRGBDevice: "readonly",
-                CALENDAR_HELPER_SCRIPT: "readonly",
-                loadExternalProfiles: "readonly",
-                findAndSelect: "readonly",
-                // UI/Factory globals
-                app: "readonly",
-                WidgetFactory: "readonly",
-                SUPPORTED_DEVICE_IDS: "readonly",
-                uploadHardwareTemplate: "readonly",
-                generateCustomHardwareYaml: "readonly",
-                saveLayoutToBackend: "readonly",
-                loadLayoutIntoState: "readonly",
-                CANVAS_WIDTH: "readonly",
-                attempts: "writable"
+                vi: "readonly"
             }
         },
         rules: {
             "no-unused-vars": [
-                "warn",
+                "error",
                 {
-                    "argsIgnorePattern": "^_"
+                    "argsIgnorePattern": "^_",
+                    "varsIgnorePattern": "^_"
                 }
             ],
             "no-undef": "error",

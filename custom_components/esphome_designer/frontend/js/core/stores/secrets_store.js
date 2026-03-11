@@ -1,7 +1,10 @@
 import { Logger } from '../../utils/logger.js';
 
+/** @typedef {'ai_api_key_gemini'|'ai_api_key_openai'|'ai_api_key_openrouter'} SecretKey */
+
 export class SecretsStore {
     constructor() {
+        /** @type {Record<SecretKey, string>} */
         this.keys = {
             ai_api_key_gemini: "",
             ai_api_key_openai: "",
@@ -10,13 +13,23 @@ export class SecretsStore {
         this.loadFromLocalStorage();
     }
 
+    /**
+     * @param {string} key 
+     * @returns {string}
+     */
     get(key) {
-        return this.keys[key];
+        const keys = /** @type {Record<string, string>} */ (this.keys);
+        return keys[key] || "";
     }
 
+    /**
+     * @param {string} key 
+     * @param {string} value 
+     */
     set(key, value) {
         if (key in this.keys) {
-            this.keys[key] = value;
+            const keys = /** @type {Record<string, string>} */ (this.keys);
+            keys[key] = value;
             this.saveToLocalStorage();
         }
     }

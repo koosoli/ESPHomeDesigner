@@ -1,6 +1,10 @@
+// @ts-nocheck
+import { AppState } from '@core/state';
 import { TemplateConverter } from '../../js/utils/template_converter.js';
 import { wordWrap, parseColorMarkup, evaluateTemplatePreview } from '../../js/utils/text_utils.js';
 import { getNestedValue } from '../../js/utils/helpers.js';
+import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js';
+import { emit } from '../../js/core/events.js';
 
 /** Strict check: returns true only if the entire value is a valid number. */
 const isStrictlyNumeric = (val) => {
@@ -14,7 +18,7 @@ const HA_TEXT_DOMAINS = ["text_sensor.", "weather.", "calendar.", "person.", "de
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
-    const entityStates = window.AppState?.entityStates || {};
+    const entityStates = AppState?.entityStates || {};
     const entityId = widget.entity_id || "";
     const title = widget.title || "";
     const format = props.value_format || "label_value";
@@ -38,8 +42,8 @@ const render = (el, widget, { getColorStyle }) => {
 
     // Helper to format a single value
     const formatValue = (eId, attrPathOverride = null) => {
-        if (window.AppState && window.AppState.entityStates && eId) {
-            const entityObj = window.AppState.entityStates[eId];
+        if (AppState && AppState.entityStates && eId) {
+            const entityObj = AppState.entityStates[eId];
             if (entityObj && entityObj.state !== undefined) {
                 // If an attribute is specified, read that instead of the state. Supports nested paths.
                 const attributePath = (attrPathOverride !== null ? attrPathOverride : (props.attribute || "")).trim();
@@ -59,7 +63,7 @@ const render = (el, widget, { getColorStyle }) => {
                 }
 
                 const strState = entityObj.formatted || String(entityObj.state);
-                const rawState = entityObj.state;
+                const rawState = entityObj.state; // eslint-disable-line no-unused-vars
 
                 const match = strState.match(/^([-+]?\d*[.,]?\d+)(.*)$/);
                 if (match) {
@@ -123,8 +127,8 @@ const render = (el, widget, { getColorStyle }) => {
     // Evaluate title template
     let effectiveTitleRaw = title;
     if (!effectiveTitleRaw && (format.startsWith("label_") || format === "value_label")) {
-        if (window.AppState && window.AppState.entityStates && entityId) {
-            const eObj = window.AppState.entityStates[entityId];
+        if (AppState && AppState.entityStates && entityId) {
+            const eObj = AppState.entityStates[entityId];
             if (eObj && eObj.attributes && eObj.attributes.friendly_name) {
                 effectiveTitleRaw = eObj.attributes.friendly_name;
             } else if (entityId) {
@@ -297,7 +301,7 @@ const render = (el, widget, { getColorStyle }) => {
     if (borderWidth > 0 || hasBackground) {
         let resolvedBorderColor = props.border_color || "theme_auto";
         if (resolvedBorderColor === "theme_auto") {
-            resolvedBorderColor = (window.AppState?.settings?.darkMode) ? "white" : "black";
+            resolvedBorderColor = (AppState?.settings?.darkMode) ? "white" : "black";
         }
 
         if (borderWidth > 0) {
@@ -328,8 +332,8 @@ const render = (el, widget, { getColorStyle }) => {
                 el.style.width = newWidth + "px";
 
                 // Emit event to update property panels if open
-                if (window.emit) {
-                    window.emit('widget:resized', { id: widget.id, width: newWidth, height: widget.height });
+                if (emit) {
+                    emit('widget:resized', { id: widget.id, width: newWidth, height: widget.height });
                 }
             }
         });
@@ -355,13 +359,24 @@ export default {
         parse_colors: false,
         bg_color: "transparent",
         opa: 255,
+        opacity: 100,
         border_width: 0,
         border_color: "theme_auto",
         border_radius: 0,
+        bpp: 1,
+        custom_font_family: "",
+        font_weight: 400,
+        italic: false,
+        label_align: "TOP_LEFT",
+        value_align: "TOP_LEFT",
+        hide_unit: false,
+        is_local_sensor: false,
+        is_text_sensor: false,
+        separator: " ~ "
     },
 
     render,
-    exportLVGL: (w, { common, convertColor, convertAlign, getLVGLFont, formatOpacity }) => {
+    exportLVGL: (w, { common, convertColor, _convertAlign, getLVGLFont, formatOpacity }) => {
         const p = w.props || {};
         const format = p.value_format || "label_value";
         let entityId = (w.entity_id || "").trim();
@@ -378,8 +393,8 @@ export default {
         let unit = (p.unit || "").trim();
 
         // Auto-detect unit if missing and not suppressed (same logic as direct export)
-        if (!unit && !p.hide_unit && !format.endsWith("_no_unit") && window.AppState && window.AppState.entityStates) {
-            const eObj = window.AppState.entityStates[entityId];
+        if (!unit && !p.hide_unit && !format.endsWith("_no_unit") && AppState && AppState.entityStates) {
+            const eObj = AppState.entityStates[entityId];
             if (eObj) {
                 if (eObj.attributes && eObj.attributes.unit_of_measurement) {
                     unit = eObj.attributes.unit_of_measurement;
@@ -420,13 +435,13 @@ export default {
 
             if (isTextDomain) {
                 isText1 = true;
-            } else if (attribute && window.AppState?.entityStates?.[entityId]) {
+            } else if (attribute && AppState?.entityStates?.[entityId]) {
                 // If using an attribute, check the ACTUAL current value to decide type
-                const attrVal = getNestedValue(window.AppState.entityStates[entityId].attributes, attribute);
+                const attrVal = getNestedValue(AppState.entityStates[entityId].attributes, attribute);
                 isText1 = !isStrictlyNumeric(attrVal);
-            } else if (window.AppState?.entityStates?.[entityId]) {
+            } else if (AppState?.entityStates?.[entityId]) {
                 // Check state if no attribute
-                const stateVal = window.AppState.entityStates[entityId].state;
+                const stateVal = AppState.entityStates[entityId].state;
                 isText1 = !isStrictlyNumeric(stateVal);
             }
         }
@@ -438,19 +453,19 @@ export default {
 
             if (isTextDomain2) {
                 isText2 = true;
-            } else if (attribute2 && window.AppState?.entityStates?.[entityId2]) {
-                const attrVal2 = getNestedValue(window.AppState.entityStates[entityId2].attributes, attribute2);
+            } else if (attribute2 && AppState?.entityStates?.[entityId2]) {
+                const attrVal2 = getNestedValue(AppState.entityStates[entityId2].attributes, attribute2);
                 isText2 = !isStrictlyNumeric(attrVal2);
-            } else if (window.AppState?.entityStates?.[entityId2]) {
-                const stateVal2 = window.AppState.entityStates[entityId2].state;
+            } else if (AppState?.entityStates?.[entityId2]) {
+                const stateVal2 = AppState.entityStates[entityId2].state;
                 isText2 = !isStrictlyNumeric(stateVal2);
             }
         }
 
         const attributePath = (p.attribute || "").trim();
-        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.\[]/)[0] : attributePath;
+        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[ ]/)[0] : attributePath;
         const attributePath2 = (p.attribute2 || "").trim();
-        const rootAttr2 = (attributePath2.includes(".") || attributePath2.includes("[")) ? attributePath2.split(/[.\[]/)[0] : attributePath2;
+        const rootAttr2 = (attributePath2.includes(".") || attributePath2.includes("[")) ? attributePath2.split(/[.[ ]/)[0] : attributePath2;
 
         const makeSafeId = (eid, attr, suffix = "") => {
             const base = attr ? (eid + "_" + attr) : eid;
@@ -547,7 +562,7 @@ export default {
             }
         };
     },
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "").trim();
         const entityId2 = (w.entity_id_2 || "").trim();
@@ -628,7 +643,7 @@ export default {
 
         return result;
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "").trim();
         const entityId2 = (w.entity_id_2 || "").trim();
@@ -710,7 +725,7 @@ export default {
 
     export: (w, context) => {
         const {
-            lines, getColorConst, addFont, getCondProps, getConditionCheck, Utils
+            lines, getColorConst, addFont, getCondProps, getConditionCheck, Utils // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};
@@ -729,8 +744,8 @@ export default {
         let unit = (p.unit || "").trim();
 
         // Auto-detect unit if missing and not suppressed
-        if (!unit && !p.hide_unit && !format.endsWith("_no_unit") && window.AppState && window.AppState.entityStates) {
-            const eObj = window.AppState.entityStates[entityId];
+        if (!unit && !p.hide_unit && !format.endsWith("_no_unit") && AppState && AppState.entityStates) {
+            const eObj = AppState.entityStates[entityId];
             if (eObj) {
                 if (eObj.attributes && eObj.attributes.unit_of_measurement) {
                     unit = eObj.attributes.unit_of_measurement;
@@ -773,7 +788,6 @@ export default {
         // Escaping helper for printf
         const escapeFmt = (str) => (str || "").replace(/%/g, "%%");
 
-        lines.push(`        // widget:sensor_text id:${w.id} type:sensor_text x:${w.x} y:${w.y} w:${w.width} h:${w.height} align:${textAlign} entity:"${entityId}" format:"${format}" ${getCondProps(w)}`);
 
         // Background fill
         const bgColorProp = p.bg_color || p.background_color || "transparent";
@@ -805,9 +819,9 @@ export default {
 
         // Helper to create safe ESPHome ID (max 59 chars before suffix for 63 char limit)
         const attributePath1 = (p.attribute || "").trim();
-        const rootAttr1 = (attributePath1.includes(".") || attributePath1.includes("[")) ? attributePath1.split(/[.\[]/)[0] : attributePath1;
+        const rootAttr1 = (attributePath1.includes(".") || attributePath1.includes("[")) ? attributePath1.split(/[.[ ]/)[0] : attributePath1;
         const attributePath2 = (p.attribute2 || "").trim();
-        const rootAttr2 = (attributePath2.includes(".") || attributePath2.includes("[")) ? attributePath2.split(/[.\[]/)[0] : attributePath2;
+        const rootAttr2 = (attributePath2.includes(".") || attributePath2.includes("[")) ? attributePath2.split(/[.[ ]/)[0] : attributePath2;
 
         const makeSafeId = (eid, attr, suffix = "") => {
             const base = attr ? (eid + "_" + attr) : eid;
@@ -820,13 +834,13 @@ export default {
 
         // Auto-detect: Check domain and if entity state is non-numeric (like "pm25") or using a string attribute
         let isText1 = p.is_text_sensor || (entityId && HA_TEXT_DOMAINS.some(d => entityId.startsWith(d)));
-        if (!isText1 && entityId && window.AppState?.entityStates?.[entityId]) {
+        if (!isText1 && entityId && AppState?.entityStates?.[entityId]) {
             const attribute = (p.attribute || "").trim();
             if (attribute) {
-                const attrVal = getNestedValue(window.AppState.entityStates[entityId].attributes, attribute);
+                const attrVal = getNestedValue(AppState.entityStates[entityId].attributes, attribute);
                 isText1 = !isStrictlyNumeric(attrVal);
             } else {
-                isText1 = !isStrictlyNumeric(window.AppState.entityStates[entityId].state);
+                isText1 = !isStrictlyNumeric(AppState.entityStates[entityId].state);
             }
         }
 
@@ -837,11 +851,11 @@ export default {
 
             if (isTextDomain2) {
                 isText2 = true;
-            } else if (attribute2 && window.AppState?.entityStates?.[entityId2]) {
-                const attrVal2 = getNestedValue(window.AppState.entityStates[entityId2].attributes, attribute2);
+            } else if (attribute2 && AppState?.entityStates?.[entityId2]) {
+                const attrVal2 = getNestedValue(AppState.entityStates[entityId2].attributes, attribute2);
                 isText2 = !isStrictlyNumeric(attrVal2);
-            } else if (window.AppState?.entityStates?.[entityId2]) {
-                const stateVal2 = window.AppState.entityStates[entityId2].state;
+            } else if (AppState?.entityStates?.[entityId2]) {
+                const stateVal2 = AppState.entityStates[entityId2].state;
                 isText2 = !isStrictlyNumeric(stateVal2);
             }
         }
@@ -978,8 +992,8 @@ export default {
 
         // Helper to check if an entity's current state is non-numeric
         const isEntityStateNonNumeric = (eid) => {
-            if (!eid || !window.AppState?.entityStates) return false;
-            const entityObj = window.AppState.entityStates[eid];
+            if (!eid || !AppState?.entityStates) return false;
+            const entityObj = AppState.entityStates[eid];
             if (!entityObj || entityObj.state === undefined) return false;
             const stateStr = String(entityObj.state);
             return isNaN(parseFloat(stateStr)) || !isFinite(parseFloat(stateStr));
@@ -1037,7 +1051,7 @@ export default {
                 // For nested paths (e.g. entries.days.0), we only want to register the root attribute (entries) in HA.
                 const attributePath = (attribute || "").trim();
                 const isNested = attributePath.includes(".") || attributePath.includes("[");
-                const rootAttr = isNested ? attributePath.split(/[.\[]/)[0] : attributePath;
+                const rootAttr = isNested ? attributePath.split(/[.[ ]/)[0] : attributePath;
 
                 const safeId = makeSafeId(entityId, rootAttr, "_txt");
 
@@ -1072,7 +1086,7 @@ export default {
                 // For nested paths (e.g. entries.days.0), we only want to register the root attribute (entries) in HA.
                 const attributePath = (attribute || "").trim();
                 const isNested = attributePath.includes(".") || attributePath.includes("[");
-                const rootAttr = isNested ? attributePath.split(/[.\[]/)[0] : attributePath;
+                const rootAttr = isNested ? attributePath.split(/[.[ ]/)[0] : attributePath;
 
                 const safeId = makeSafeId(entityId, rootAttr, "_txt");
 
@@ -1100,14 +1114,119 @@ export default {
         }
     },
 
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Data Source", true);
+        panel.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
+            AppState.updateWidget(widget.id, { entity_id: v });
+            if (v && !widget.title) panel.autoPopulateTitleFromEntity(widget.id, v);
+        }, widget);
+        panel.addLabeledInput("Attribute (optional)", "text", props.attribute || "", (v) => updateProp("attribute", v.trim()));
+        panel.addHint("Read a specific attribute, supports nested paths (e.g. 'entries.days.0.day').");
+
+        panel.addCheckbox("Text Sensor (string value)", !!props.is_text_sensor, (v) => updateProp("is_text_sensor", v));
+        panel.addHint("Enable if entity returns text instead of numbers.");
+
+        panel.addCheckbox("Local / On-Device Sensor", !!props.is_local_sensor, (v) => updateProp("is_local_sensor", v));
+        panel.addHint("Use internal battery_level/signal sensor.");
+
+        panel.addLabeledInputWithPicker("Secondary Entity ID", "text", widget.entity_id_2 || "", (v) => {
+            AppState.updateWidget(widget.id, { entity_id_2: v });
+        }, widget);
+        panel.addLabeledInput("Secondary Attribute", "text", props.attribute2 || "", (v) => updateProp("attribute2", v.trim()));
+        panel.addHint("Optional attribute for the secondary entity.");
+
+        panel.addLabeledInput("Title/Label", "text", widget.title || "", (v) => {
+            AppState.updateWidget(widget.id, { title: v });
+        });
+        panel.endSection();
+
+        panel.createSection("Format", false);
+        panel.addSelect("Display Format", props.value_format || "label_value", [
+            { value: "label_value", label: "Label: Value & Unit" },
+            { value: "label_value_no_unit", label: "Label: Value Only" },
+            { value: "label_newline_value", label: "Label [newline] Value & Unit" },
+            { value: "label_newline_value_no_unit", label: "Label [newline] Value Only" },
+            { value: "value_only", label: "Value & Unit" },
+            { value: "value_only_no_unit", label: "Value Only" }
+        ], (v) => updateProp("value_format", v));
+        panel.addLabeledInput("Precision", "number", props.precision !== undefined ? props.precision : 2, (v) => updateProp("precision", parseInt(v, 10)));
+        panel.addLabeledInputWithDataList("Prefix", "text", props.prefix || "", ["€", "$", "£", "¥", "CHF", "kr"], (v) => updateProp("prefix", v));
+        panel.addLabeledInputWithDataList("Postfix", "text", props.postfix || "", [" kWh", " W", " V", " A", " °C", " %", " ppm", " lx"], (v) => updateProp("postfix", v));
+        panel.addLabeledInput("Unit (Manual helper)", "text", props.unit || "", (v) => updateProp("unit", v));
+        panel.addCheckbox("Hide default unit", !!props.hide_unit, (v) => updateProp("hide_unit", v));
+        panel.endSection();
+
+        panel.createSection("Appearance", true);
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => updateProp("opacity", v));
+        panel.addCompactPropertyRow(() => {
+            panel.addLabeledInput("Label Size", "number", props.label_font_size || 14, (v) => updateProp("label_font_size", parseInt(v, 10)));
+            panel.addLabeledInput("Value Size", "number", props.value_font_size || 20, (v) => updateProp("value_font_size", parseInt(v, 10)));
+        });
+        panel.addColorSelector("Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
+
+        const fontOptions = ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand", "Custom..."];
+        const currentFont = props.font_family || "Roboto";
+        const isCustom = !fontOptions.slice(0, -1).includes(currentFont);
+        panel.addSelect("Font", isCustom ? "Custom..." : currentFont, fontOptions, (v) => {
+            const newProps = { ...widget.props };
+            if (v !== "Custom...") {
+                newProps.font_family = v;
+                newProps.custom_font_family = "";
+                newProps.font_weight = clampFontWeight(v, newProps.font_weight || 400);
+            } else {
+                newProps.font_family = "Custom...";
+            }
+            AppState.updateWidget(widget.id, { props: newProps });
+        });
+        if (isCustom || props.font_family === "Custom...") {
+            panel.addLabeledInput("Custom Font Name", "text", props.custom_font_family || (isCustom ? currentFont : ""), (v) => {
+                const newProps = { ...widget.props };
+                newProps.font_family = v || "Roboto";
+                newProps.custom_font_family = v;
+                newProps.font_weight = clampFontWeight(newProps.font_family, newProps.font_weight || 400);
+                AppState.updateWidget(widget.id, { props: newProps });
+            });
+            panel.addHint('Browse <a href="https://fonts.google.com" target="_blank">fonts.google.com</a>');
+        }
+
+        const validWeights = getWeightsForFont(props.font_family || "Roboto");
+        panel.addSelect("Weight", props.font_weight || 400, validWeights, (v) => updateProp("font_weight", parseInt(v, 10)));
+        panel.addCheckbox("Italic", !!props.italic, (v) => updateProp("italic", v));
+        panel.addSelect("Align", props.text_align || "TOP_LEFT", ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], (v) => {
+            updateProp("text_align", v);
+            updateProp("label_align", v);
+            updateProp("value_align", v);
+        });
+        panel.addCheckbox("Parse Color Tags", !!props.parse_colors, (v) => updateProp("parse_colors", v));
+        panel.addHint("Enable to use [color]text[/color] markup, also supports HA templates.");
+        panel.endSection();
+
+        panel.createSection("Border Style", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addColorSelector("Background", props.bg_color || "transparent", null, (v) => updateProp("bg_color", v));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
+
+        panel.createSection("Advanced", false);
+        panel.addLabeledInput("BPP / Antialias", "number", props.bpp || 1, (v) => updateProp("bpp", parseInt(v, 10)));
+        panel.endSection();
+    },
     onExportNumericSensors: (context) => {
         const { widgets, isLvgl, pendingTriggers } = context;
         if (!widgets) return;
 
         // Helper to check if an entity's current state is non-numeric
         const isEntityStateNonNumeric = (eid) => {
-            if (!eid || !window.AppState?.entityStates) return false;
-            const entityObj = window.AppState.entityStates[eid];
+            if (!eid || !AppState?.entityStates) return false;
+            const entityObj = AppState.entityStates[eid];
             if (!entityObj || entityObj.state === undefined) return false;
             const stateStr = String(entityObj.state);
             return isNaN(parseFloat(stateStr)) || !isFinite(parseFloat(stateStr));

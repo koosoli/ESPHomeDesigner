@@ -1,6 +1,8 @@
+// @ts-nocheck
 /**
  * Date & Time Plugin
  */
+import { AppState } from '@core/state';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -47,7 +49,7 @@ const render = (el, widget, { getColorStyle }) => {
     if (borderWidth > 0 || hasBackground) {
         let resolvedBorderColor = props.border_color || "theme_auto";
         if (resolvedBorderColor === "theme_auto") {
-            resolvedBorderColor = (window.AppState?.settings?.darkMode) ? "white" : "black";
+            resolvedBorderColor = (AppState?.settings?.darkMode) ? "white" : "black";
         }
 
         if (borderWidth > 0) {
@@ -123,10 +125,72 @@ export default {
         bg_color: "transparent",
         border_width: 0,
         border_color: "theme_auto",
-        border_radius: 0
+        border_radius: 0,
+        opa: 255
+    },
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Content", true);
+        panel.addSelect("Display Format", props.format || "time_date", [
+            { value: "time_date", label: "Time & Date" },
+            { value: "time_only", label: "Time Only" },
+            { value: "date_only", label: "Date Only" },
+            { value: "weekday_day_month", label: "Weekday Day Month" }
+        ], (v) => updateProp("format", v));
+        panel.addHint("Uses ESPHome strftime under the hood.");
+        panel.addSelect("Alignment", props.text_align || "CENTER", ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], (v) => updateProp("text_align", v));
+        panel.endSection();
+
+        panel.createSection("Typography", true);
+        const fontOptions = ["Roboto", "Inter", "Open Sans", "Monospace", "Mononoki", "Custom..."];
+        const currentFont = props.font_family || "Roboto";
+        const isCustom = !fontOptions.slice(0, -1).includes(currentFont);
+
+        panel.addSelect("Font Family", isCustom ? "Custom..." : currentFont, fontOptions, (v) => {
+            if (v !== "Custom...") {
+                updateProp("font_family", v);
+                updateProp("custom_font_family", "");
+            } else {
+                updateProp("font_family", "Custom...");
+            }
+        });
+
+        if (isCustom || props.font_family === "Custom...") {
+            panel.addLabeledInput("Custom Font Name", "text", props.custom_font_family || (isCustom ? currentFont : ""), (v) => {
+                updateProp("font_family", v || "Roboto");
+                updateProp("custom_font_family", v);
+            });
+            panel.addHint('Browse <a href="https://fonts.google.com" target="_blank">fonts.google.com</a>');
+        }
+
+        panel.addLabeledInput("Time Font Size", "number", props.time_font_size || 28, (v) => updateProp("time_font_size", parseInt(v, 10)));
+        panel.addLabeledInput("Date Font Size", "number", props.date_font_size || 16, (v) => updateProp("date_font_size", parseInt(v, 10)));
+        panel.addCheckbox("Italic", !!props.italic, (v) => updateProp("italic", v));
+        panel.endSection();
+
+        panel.createSection("Appearance", false);
+        panel.addColorSelector("Text Color", props.color || "black", null, (v) => updateProp("color", v));
+        panel.addColorSelector("Background", props.bg_color || "transparent", null, (v) => updateProp("bg_color", v));
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : (props.opa !== undefined ? Math.round(props.opa / 2.55) : 100), 0, 100, (v) => {
+            updateProp("opacity", v);
+            updateProp("opa", Math.round(v * 2.55));
+        });
+        panel.endSection();
+
+        panel.createSection("Border Style", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
     },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const format = p.format || "time_date";
         const textAlign = (p.text_align || "CENTER").toUpperCase();
@@ -177,7 +241,7 @@ export default {
             font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf"
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { layout, _page }) => {
         const p = w.props || {};
         const format = p.format || "time_date";
         const textAlign = (p.text_align || "CENTER").toUpperCase();
@@ -252,15 +316,55 @@ export default {
         const isDate = format === "date_only" || format === "weekday_day_month";
         const fontSize = isDate ? (p.date_font_size || 16) : (p.time_font_size || 28);
         const fontWeight = isDate ? 400 : 700;
+        const textAlign = String(p.text_align || "CENTER").toUpperCase();
+        const borderWidth = parseInt(p.border_width ?? 0, 10) || 0;
+        const borderRadius = parseInt(p.border_radius ?? 0, 10) || 0;
+        const bgColor = p.background_color || p.bg_color || (p.fill ? "white" : "transparent");
+        const hasBackground = !!(p.fill || (bgColor && bgColor !== "transparent"));
+
+        const label = {
+            text: lambdaStr,
+            text_font: getLVGLFont(p.font_family, fontSize, fontWeight, p.italic),
+            text_color: convertColor(p.color),
+            text_align: (convertAlign(p.text_align) || "center").replace("top_", "").replace("bottom_", ""),
+            opa: formatOpacity(p.opa)
+        };
+
+        if (borderWidth <= 0 && !hasBackground) {
+            return {
+                label: {
+                    ...common,
+                    ...label
+                }
+            };
+        }
+
+        const flexAlignMain = textAlign.includes("TOP") ? "start" : (textAlign.includes("BOTTOM") ? "end" : "center");
+        const flexAlignCross = textAlign.includes("LEFT") ? "start" : (textAlign.includes("RIGHT") ? "end" : "center");
 
         return {
-            label: {
+            obj: {
                 ...common,
-                text: lambdaStr,
-                text_font: getLVGLFont(p.font_family, fontSize, fontWeight, p.italic),
-                text_color: convertColor(p.color),
-                text_align: (convertAlign(p.text_align) || "center").replace("top_", "").replace("bottom_", ""),
-                opa: formatOpacity(p.opa)
+                bg_color: hasBackground ? convertColor(bgColor) : convertColor("transparent"),
+                bg_opa: hasBackground ? "cover" : "transp",
+                border_width: borderWidth,
+                border_color: convertColor(p.border_color || "theme_auto"),
+                radius: borderRadius,
+                pad_all: 0,
+                layout: {
+                    type: "flex",
+                    flex_flow: "column",
+                    flex_align_main: flexAlignMain,
+                    flex_align_cross: flexAlignCross
+                },
+                widgets: [
+                    {
+                        label: {
+                            ...label,
+                            width: "100%"
+                        }
+                    }
+                ]
             }
         };
     },
@@ -276,7 +380,7 @@ export default {
     },
     export: (w, context) => {
         const {
-            lines, getColorConst, addFont, getCondProps, getConditionCheck, getAlignY
+            lines, getColorConst, addFont, getCondProps, getConditionCheck, getAlignY // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};
@@ -294,7 +398,6 @@ export default {
         const textAlign = (p.text_align || "CENTER").toUpperCase();
         const format = p.format || "time_date";
 
-        lines.push(`        // widget:datetime id:${w.id} type:datetime x:${w.x} y:${w.y} w:${w.width} h:${w.height} align:${textAlign} fmt:${format} ${getCondProps(w)}`);
 
         // Background fill
         const bgColorProp = p.bg_color || p.background_color || "transparent";

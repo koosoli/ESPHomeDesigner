@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ESPHomeAdapter } from '../js/io/adapters/esphome_adapter.js';
+import { describe, it, expect, beforeEach, vi } from 'vitest'; // eslint-disable-line no-unused-vars
+import { ESPHomeAdapter } from '../js/io/adapters/esphome_adapter';
+import { DEVICE_PROFILES } from '../js/io/devices.js';
 
 describe('Widget Restoration Verification', () => {
     let adapter;
@@ -7,21 +8,12 @@ describe('Widget Restoration Verification', () => {
     beforeEach(() => {
         adapter = new ESPHomeAdapter();
 
-        // Mock global window and Utils
+        // Mock global window
         global.window = global;
-        window.Utils = {
-            getColorConst: (c) => `COLOR_${(c || "black").toUpperCase()}`,
-            getIconCode: (name) => name === 'test' ? 'F0000' : 'F0599',
-            getAlignX: (a, x, w) => x,
-            getAlignY: (a, y, h) => y,
-            sanitize: (s) => s
-        };
-        window.iconPickerData = [
-            { name: 'test', code: 'F0000' }
-        ];
 
         // Register mock profiles
-        window.DEVICE_PROFILES = {
+        Object.keys(DEVICE_PROFILES).forEach(key => delete DEVICE_PROFILES[key]);
+        Object.assign(DEVICE_PROFILES, {
             'test_epaper': {
                 name: 'Test E-Paper',
                 features: { epaper: true },
@@ -31,12 +23,17 @@ describe('Widget Restoration Verification', () => {
                 name: 'Test LCD',
                 features: { lcd: true },
                 width: 320, height: 240
+            },
+            'test_touch': {
+                name: 'Test Touch Device',
+                features: { lcd: true, touch: true },
+                touch: { platform: 'gt911' },
+                width: 320, height: 240
             }
-        };
+        });
     });
 
     it('should generate valid YAML for weather_icon', async () => {
-        console.log("Starting weather_icon test");
         const payload = {
             pages: [{
                 widgets: [{
@@ -53,14 +50,14 @@ describe('Widget Restoration Verification', () => {
         const yaml = await adapter.generate(payload);
 
         // Check lambda content
-        expect(yaml).toContain('std::string weather_state = id(weather_home).state;');
-        expect(yaml).toContain('it.printf(10, 10, id(font_material_design_icons_400_40),');
+        expect(yaml).toContain('std::string raw_state = id(weather_home_txt).state;');
+        expect(yaml).toContain('weather_state += tolower(c);');
 
         // Check text_sensor section
         expect(yaml).toContain('text_sensor:');
         expect(yaml).toContain('platform: homeassistant');
         expect(yaml).toContain('entity_id: weather.home');
-        expect(yaml).toContain('id: weather_home');
+        expect(yaml).toContain('id: weather_home_txt');
     });
 
     it('should generate valid YAML for quote_rss', async () => {
@@ -89,7 +86,8 @@ describe('Widget Restoration Verification', () => {
         expect(yaml).toContain('interval:');
         expect(yaml).toContain('interval: 2h');
         expect(yaml).toContain('http_request.get:');
-        expect(yaml).toContain('url: "/api/esphome_designer/rss_proxy?url=http%3A%2F%2Fexample.com%2Frss"');
+        expect(yaml).toContain('url: "http://homeassistant.local:8123/api/esphome_designer/rss_proxy');
+        expect(yaml).toContain('&random=true"');
 
         // Check lambda
         expect(yaml).toContain('std::string q_text = id(quote_q1_text_global);');
@@ -98,6 +96,7 @@ describe('Widget Restoration Verification', () => {
 
     it('should generate valid YAML for touch_area', async () => {
         const payload = {
+            deviceModel: 'test_touch',
             pages: [{
                 widgets: [{
                     id: 't1',
@@ -106,8 +105,7 @@ describe('Widget Restoration Verification', () => {
                     entity_id: 'light.test',
                     props: { icon: 'mdi:test' }
                 }]
-            }],
-            profile: { name: 'Test Device', touch: true }
+            }]
         };
 
         const yaml = await adapter.generate(payload);
@@ -159,6 +157,7 @@ describe('Widget Restoration Verification', () => {
 
     it('should generate valid YAML for online_image (puppet)', async () => {
         const payload = {
+            isSelectionSnippet: true,
             pages: [{
                 widgets: [{
                     id: 'p1',
@@ -167,7 +166,7 @@ describe('Widget Restoration Verification', () => {
                     props: { url: 'http://example.com/img.jpg' }
                 }]
             }],
-            device_model: 'test_lcd'
+            deviceModel: 'test_lcd'
         };
 
         const yaml = await adapter.generate(payload);
@@ -177,5 +176,56 @@ describe('Widget Restoration Verification', () => {
         expect(yaml).toContain('type: RGB565');
         expect(yaml).toContain('resize: 200x200');
         expect(yaml).toContain('it.image(0, 0, id(online_img_p1));');
+    });
+
+    it('should generate calendar borders with concrete offsets', async () => {
+        const payload = {
+            pages: [{
+                widgets: [{
+                    id: 'cal1',
+                    type: 'calendar',
+                    x: 20, y: 30, width: 320, height: 260,
+                    entity_id: 'sensor.esp_calendar_data',
+                    props: {
+                        border_width: 2,
+                        border_color: 'black',
+                        show_header: true,
+                        show_grid: true,
+                        show_events: true
+                    }
+                }]
+            }],
+            deviceModel: 'test_epaper'
+        };
+
+        const yaml = await adapter.generate(payload);
+
+        expect(yaml).not.toContain('it.rectangle(x + i, y + i, w - 2 * i, h - 2 * i');
+        expect(yaml).toContain('it.rectangle(20 + 0, 30 + 0, 320 - 0, 260 - 0');
+        expect(yaml).toContain('it.rectangle(20 + 1, 30 + 1, 320 - 2, 260 - 2');
+    });
+
+    it('should emit widget round-trip markers as C++ comments in native display lambdas', async () => {
+        const payload = {
+            pages: [{
+                name: 'Overview',
+                widgets: [{
+                    id: 'w1',
+                    type: 'weather_icon',
+                    x: 10,
+                    y: 10,
+                    width: 48,
+                    height: 48,
+                    entity_id: 'weather.forecast_home',
+                    props: { size: 48, color: 'black' }
+                }]
+            }],
+            deviceModel: 'test_epaper'
+        };
+
+        const yaml = await adapter.generate(payload);
+
+        expect(yaml).toContain('// widget:weather_icon');
+        expect(yaml).not.toContain('# widget:weather_icon');
     });
 });

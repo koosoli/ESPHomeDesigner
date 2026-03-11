@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ODP Ellipse Plugin
  * Draws an ellipse shape
@@ -24,8 +25,18 @@ export default {
         outline: "black",
         border_width: 1
     },
+    schema: [
+        {
+            section: "Appearance",
+            fields: [
+                { key: "fill", label: "Fill Color", type: "color", default: null },
+                { key: "outline", label: "Outline Color", type: "color", default: "black" },
+                { key: "border_width", label: "Border Width", type: "number", default: 1 }
+            ]
+        }
+    ],
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         let fill = (p.fill === "theme_auto") ? (layout?.darkMode ? "white" : "black") : (p.fill || null);
         if (fill === "transparent") fill = null;
@@ -45,7 +56,7 @@ export default {
             width: p.border_width || 1
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         let fill = p.fill || null;
         if (fill === "transparent") fill = null;

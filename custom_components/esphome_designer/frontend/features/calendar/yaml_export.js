@@ -1,4 +1,4 @@
-export function generateSnippet(widget, pages, deviceModel) {
+export function generateSnippet(widget, _pages, _deviceModel) {
     const id = widget.id;
     const x = widget.x;
     const y = widget.y;

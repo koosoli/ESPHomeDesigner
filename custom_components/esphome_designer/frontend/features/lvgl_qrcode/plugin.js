@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * LVGL QR Code Plugin
  */
@@ -37,7 +38,7 @@ const render = (el, widget, { getColorStyle }) => {
             el.textContent = "QR";
             el.style.outline = "2px solid " + fgColor;
         }
-    } catch (e) {
+    } catch (e) { // eslint-disable-line no-unused-vars
         el.textContent = "QR Error";
     }
 };
@@ -45,6 +46,7 @@ const render = (el, widget, { getColorStyle }) => {
 const exportLVGL = (w, { common, convertColor }) => {
     const p = w.props || {};
     let qrText = `"${p.text || 'https://github.com/koosoli/ESPHomeDesigner/'}"`;
+    const size = p.size || Math.min(common.width, common.height);
 
     if (w.entity_id) {
         const safeId = w.entity_id.replace(/[^a-zA-Z0-9_]/g, "_");
@@ -55,7 +57,7 @@ const exportLVGL = (w, { common, convertColor }) => {
         qrcode: {
             ...common,
             text: qrText,
-            size: Math.min(common.width, common.height),
+            size,
             dark_color: convertColor(p.color),
             light_color: convertColor(p.bg_color || "white")
         }
@@ -89,10 +91,34 @@ export default {
         text: "https://github.com/koosoli/ESPHomeDesigner/",
         color: "black",
         bg_color: "white",
+        size: 100,
         scale: 4,
         width: 130,
-        height: 130
+        height: 130,
+        opa: 255,
+        entity_id: "",
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "text", label: "QR Payload / URL", type: "text", default: "https://github.com/koosoli/ESPHomeDesigner/" },
+                { key: "entity_id", target: "root", label: "Bind to String Entity", type: "entity_picker", default: "" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "size", label: "Size (px)", type: "number", default: 100 },
+                { key: "color", label: "Foreground Color", type: "color", default: "black" },
+                { key: "bg_color", label: "Background Color", type: "color", default: "white" },
+                { key: "scale", label: "Pixel Scale", type: "number", default: 4 },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL,
     onExportTextSensors

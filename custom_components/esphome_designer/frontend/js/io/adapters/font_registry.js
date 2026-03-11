@@ -1,3 +1,6 @@
+import { clampFontWeight } from '../../core/font_weights.js';
+import { Utils } from '../../core/utils';
+
 /**
  * Modular font and glyph registry for ESPHome.
  */
@@ -15,7 +18,7 @@ export class FontRegistry {
     reset() {
         /** @type {Set<string>} */
         this.definedFontIds = new Set();
-        /** @type {string[]} */
+        /** @type {any[]} */
         this.fontLines = [];
         /** @type {Map<number, Set<string>>} */
         this.iconCodesBySize = new Map();
@@ -31,7 +34,13 @@ export class FontRegistry {
      */
     addFont(family, weight, size, italic = false) {
         const safeFamily = family.replace(/\s+/g, "_").toLowerCase();
-        const weightNum = parseInt(weight) || 400;
+        let weightNum = parseInt(String(weight), 10) || 400;
+
+        // Guard against invalid Google Font weights (Issue #317)
+        if (family !== "Material Design Icons") {
+            weightNum = clampFontWeight(family, weightNum);
+        }
+
         const italicSuffix = italic ? "_italic" : "";
         const idSize = String(size).replace(".", "_");
         const id = `font_${safeFamily}_${weightNum}_${idSize}${italicSuffix}`;
@@ -66,7 +75,7 @@ export class FontRegistry {
      */
     trackIcon(iconName, size) {
         if (!iconName) return;
-        const sizeInt = parseInt(size, 10);
+        const sizeInt = parseInt(String(size), 10);
         if (!this.iconCodesBySize.has(sizeInt)) {
             this.iconCodesBySize.set(sizeInt, new Set());
         }
@@ -74,7 +83,7 @@ export class FontRegistry {
         // Handle both raw hex codes (from plugins) and icon names (from UI)
         let code = iconName;
         if (!/^F[0-9A-F]{4}$/i.test(iconName)) {
-            code = window.Utils ? window.Utils.getIconCode(iconName) : null;
+            code = Utils.getIconCode(iconName);
         } else {
             code = iconName.toUpperCase();
         }

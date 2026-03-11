@@ -1,6 +1,8 @@
+// @ts-nocheck
 /**
  * QR Code Plugin
  */
+import { AppState } from '@core/state';
 
 
 
@@ -69,6 +71,18 @@ const render = (element, widget, helpers) => {
         element.appendChild(canvas);
         widget.props._calculatedScale = cellSize;
 
+        // Apply Border & Background (Restored)
+        if (props.border_width) {
+            const borderColor = helpers.getColorStyle(props.border_color || color);
+            element.style.border = `${props.border_width}px solid ${borderColor}`;
+            element.style.borderRadius = `${props.border_radius || 0}px`;
+        } else {
+            element.style.border = "none";
+        }
+        if (props.bg_color) {
+            element.style.backgroundColor = helpers.getColorStyle(props.bg_color);
+        }
+
     } catch (e) {
         element.innerHTML = '<div style="color:#c00;font-size:10px;text-align:center;">QR Error:<br>' + e.message + '</div>';
     }
@@ -76,12 +90,12 @@ const render = (element, widget, helpers) => {
 
 const exportDoc = (w, context) => {
     const {
-        lines, getColorConst, addDitherMask, sanitize, getCondProps, getConditionCheck, isEpaper
+        lines, getColorConst, addDitherMask, sanitize, getCondProps, getConditionCheck, isEpaper // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
     const value = sanitize(p.value || "https://github.com/koosoli/ESPHomeDesigner/");
-    const ecc = p.ecc || "LOW";
+    const ecc = p.ecc || "LOW"; // eslint-disable-line no-unused-vars
     const colorProp = p.color || "theme_auto";
 
     const color = getColorConst(colorProp);
@@ -92,12 +106,23 @@ const exportDoc = (w, context) => {
     const estimatedModules = Math.min(177, 21 + Math.ceil(contentLen / 10) * 2);
     const scale = Math.max(1, Math.floor(availableSize / estimatedModules));
 
-    lines.push(`        // widget:qr_code id:${w.id} type:qr_code x:${w.x} y:${w.y} w:${w.width} h:${w.height} value:"${value}" scale:${scale} ecc:${ecc} color:${colorProp} ${getCondProps(w)}`);
 
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
 
     lines.push(`        it.qr_code(${w.x}, ${w.y}, id(${safeId}), ${color}, ${scale});`);
+
+    // Border (Restored)
+    const borderWidth = parseInt(p.border_width || 0, 10);
+    if (borderWidth > 0) {
+        const borderColorProp = p.border_color || colorProp;
+        const borderColorConst = getColorConst(borderColorProp);
+        const radius = p.border_radius || 0; // eslint-disable-line no-unused-vars
+        for (let i = 0; i < borderWidth; i++) {
+            lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColorConst});`);
+        }
+    }
+
     addDitherMask(lines, colorProp, isEpaper, w.x, w.y, w.width, w.height);
 
     if (cond) lines.push(`        }`);
@@ -133,11 +158,44 @@ export default {
         ecc: "LOW",
         color: "theme_auto",
         bg_color: "white",
+        scale: 2,
         width: 130,
-        height: 130
+        height: 130,
+        opa: 255
+    },
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Content", true);
+        panel.addLabeledInput("QR Content / URL", "text", props.value || "https://github.com/koosoli/ESPHomeDesigner/", (v) => updateProp("value", v));
+        panel.addSelect("Error Correction", props.ecc || "LOW", [
+            { value: "LOW", label: "Low (7% recovery)" },
+            { value: "MEDIUM", label: "Medium (15% recovery)" },
+            { value: "QUARTILE", label: "Quartile (25% recovery)" },
+            { value: "HIGH", label: "High (30% recovery)" }
+        ], (v) => updateProp("ecc", v));
+        panel.addHint("Higher ECC allows for smaller scale on some displays but is more robust.");
+        panel.endSection();
+
+        panel.createSection("Appearance", true);
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => updateProp("opacity", v));
+        panel.addColorSelector("Dark Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
+        panel.addColorSelector("Light Color", props.bg_color || "white", null, (v) => updateProp("bg_color", v));
+        panel.endSection();
+
+        panel.createSection("Border Style", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
     },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { _layout, _page }) => {
         const p = w.props || {};
         const value = p.value || "https://github.com/koosoli/ESPHomeDesigner/";
 
@@ -152,7 +210,7 @@ export default {
             bgcolor: p.bg_color || "white"
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const value = p.value || "https://github.com/koosoli/ESPHomeDesigner/";
 

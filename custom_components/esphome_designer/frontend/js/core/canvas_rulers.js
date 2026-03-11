@@ -1,13 +1,17 @@
-import { AppState } from './state.js';
+import { AppState } from './state';
 
 /**
  * Handles rendering of pixel rulers on the canvas viewport.
  */
 export class CanvasRulers {
     constructor(canvasInstance) {
+        /** @type {any} */
         this.canvasInstance = canvasInstance;
+        /** @type {HTMLElement | null} */
         this.topRuler = document.getElementById('rulerTop');
+        /** @type {HTMLElement | null} */
         this.leftRuler = document.getElementById('rulerLeft');
+        /** @type {HTMLElement | null} */
         this.container = document.querySelector('.canvas-rulers');
         this.viewport = canvasInstance.viewport;
         this.indicators = null; // { x, y, w, h }
@@ -17,8 +21,8 @@ export class CanvasRulers {
 
     init() {
         if (!this.topRuler || !this.leftRuler) return;
-        this.topCtx = this.createRulerCanvas(this.topRuler);
-        this.leftCtx = this.createRulerCanvas(this.leftRuler);
+        this.topCtx = this.createRulerCanvas(/** @type {HTMLElement} */(this.topRuler));
+        this.leftCtx = this.createRulerCanvas(/** @type {HTMLElement} */(this.leftRuler));
         this.update();
     }
 

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * LVGL Bar Plugin
  */
@@ -80,8 +81,38 @@ export default {
         color: "blue",
         bg_color: "gray",
         start_value: 0,
-        mode: "normal"
+        mode: "normal",
+        opa: 255,
+        entity_id: "",
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "entity_id", target: "root", label: "Value Entity ID", type: "entity_picker", default: "" }
+            ]
+        },
+        {
+            section: "Range",
+            fields: [
+                { key: "value", label: "Current Value", type: "number", default: 50 },
+                { key: "min", label: "Min Value", type: "number", default: 0 },
+                { key: "max", label: "Max Value", type: "number", default: 100 },
+                { key: "start_value", label: "Start Value (Range)", type: "number", default: 0 },
+                { key: "mode", label: "Mode", type: "select", options: ["normal", "symmetrical", "range"], default: "normal" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "color", label: "Progress Color", type: "color", default: "blue" },
+                { key: "bg_color", label: "Track Color", type: "color", default: "gray" },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL,
     onExportNumericSensors

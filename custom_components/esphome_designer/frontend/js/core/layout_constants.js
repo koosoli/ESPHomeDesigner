@@ -4,7 +4,9 @@
  * Centralizes duplicate "magic numbers" found across multiple plugins.
  */
 
-window.LAYOUT = {
+const win = /** @type {any} */ (window);
+
+win.LAYOUT = {
     // Standard Widget Dimensions (Defaults)
     WIDGET: {
         SMALL: { W: 100, H: 20 },
@@ -39,4 +41,4 @@ window.LAYOUT = {
 };
 
 // Freeze to prevent accidental modification
-Object.freeze(window.LAYOUT);
+Object.freeze(win.LAYOUT);

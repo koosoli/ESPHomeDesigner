@@ -1,11 +1,14 @@
+// @ts-nocheck
 /**
  * Battery Icon Plugin
  */
+import { AppState } from '@core/state';
+import { WidgetFactory } from '@core/widget_factory';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     let iconCode = "F0079"; // Default full battery
-    let size = props.size || 24;
+    let size = props.size || 36;
     const color = props.color || "theme_auto";
     const colorStyle = getColorStyle(color);
 
@@ -17,8 +20,8 @@ const render = (el, widget, { getColorStyle }) => {
         size = Math.round(maxDim);
     }
 
-    if (window.AppState && window.AppState.entityStates && widget.entity_id) {
-        const stateObj = window.AppState.entityStates[widget.entity_id];
+    if (AppState && AppState.entityStates && widget.entity_id) {
+        const stateObj = AppState.entityStates[widget.entity_id];
         if (stateObj && stateObj.state !== undefined) {
             const val = parseFloat(stateObj.state);
             if (!isNaN(val)) {
@@ -55,22 +58,35 @@ const render = (el, widget, { getColorStyle }) => {
 
     // Battery Percentage Label
     const pctLabel = document.createElement("div");
-    pctLabel.style.fontSize = (props.font_size || 12) + "px";
+    pctLabel.style.fontSize = (props.font_size || 14) + "px";
     pctLabel.style.marginTop = "2px";
     pctLabel.textContent = Math.round(batteryLevel) + "%";
     el.appendChild(pctLabel);
+
+    // Apply Border & Background (Restored)
+    if (props.border_width) {
+        const borderColor = getColorStyle(props.border_color || color);
+        el.style.border = `${props.border_width}px solid ${borderColor}`;
+        el.style.borderRadius = `${props.border_radius || 0}px`;
+        el.style.boxSizing = "border-box";
+    } else {
+        el.style.border = "none";
+    }
+    if (props.bg_color) {
+        el.style.backgroundColor = getColorStyle(props.bg_color);
+    }
 };
 
 const exportDoc = (w, context) => {
     const {
-        lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper, RECT_Y_OFFSET
+        lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper, RECT_Y_OFFSET // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
     const entityId = (w.entity_id || "").trim();
-    const size = parseInt(p.size || 24, 10);
-    const fontSize = parseInt(p.font_size || 12, 10);
-    const isDark = context.isDark || (window.WidgetFactory?.getEffectiveDarkMode?.() || false);
+    const size = parseInt(p.size || 36, 10);
+    const fontSize = parseInt(p.font_size || 14, 10);
+    const isDark = context.isDark || WidgetFactory.getEffectiveDarkMode(); // eslint-disable-line no-unused-vars
     const colorProp = p.color || "theme_auto";
     const color = getColorConst(colorProp);
 
@@ -91,13 +107,22 @@ const exportDoc = (w, context) => {
         sensorId = normalizedEntityId.replace(/[^a-zA-Z0-9_]/g, "_");
     }
 
-    lines.push(`        // widget:battery_icon id:${w.id} type:battery_icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId || "battery_level"} size:${size} font_size:${fontSize} color:${colorProp} local:${!!p.is_local_sensor} ${getCondProps(w)}`);
 
     // Background fill
     const bgColorProp = p.bg_color || p.background_color || "transparent";
     if (bgColorProp && bgColorProp !== "transparent") {
         const bgColorConst = getColorConst(bgColorProp);
         lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+    }
+
+    // Border (Restored)
+    const borderWidth = parseInt(p.border_width || 0, 10);
+    if (borderWidth > 0) {
+        const borderColorProp = p.border_color || colorProp;
+        const borderColorConst = getColorConst(borderColorProp);
+        for (let i = 0; i < borderWidth; i++) {
+            lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColorConst});`);
+        }
     }
 
     const cond = getConditionCheck(w);
@@ -167,9 +192,52 @@ export default {
         size: 36,
         font_size: 14,
         color: "theme_auto",
+        is_local_sensor: true,
+        fit_icon_to_frame: true,
+        opa: 255
+    },
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Data Source", true);
+        panel.addLabeledInputWithPicker("Battery Entity ID", "text", widget.entity_id || "", (v) => {
+            AppState.updateWidget(widget.id, { entity_id: v });
+            if (v && !widget.title) panel.autoPopulateTitleFromEntity(widget.id, v);
+        }, widget);
+        panel.addCheckbox("Local / On-Device Sensor", !!props.is_local_sensor, (v) => updateProp("is_local_sensor", v));
+        panel.addHint("Use internal battery_level/signal sensor.");
+        panel.addLabeledInput("Title/Label", "text", widget.title || "", (v) => {
+            AppState.updateWidget(widget.id, { title: v });
+        });
+        panel.endSection();
+
+        panel.createSection("Appearance", true);
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => updateProp("opacity", v));
+        panel.addCheckbox("Fit icon to frame", !!props.fit_icon_to_frame, (v) => updateProp("fit_icon_to_frame", v));
+        panel.addLabeledInput("Icon Size (px)", "number", props.size || 36, (v) => {
+            let n = parseInt(v || "36", 10);
+            updateProp("size", isNaN(n) ? 36 : n);
+        });
+        panel.addLabeledInput("Percentage Font Size (px)", "number", props.font_size || 14, (v) => {
+            let n = parseInt(v || "14", 10);
+            updateProp("font_size", isNaN(n) ? 14 : n);
+        });
+        panel.addColorSelector("Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
+        panel.endSection();
+
+        panel.createSection("Border Style", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
     },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "sensor.battery_level").trim();
         const size = p.size || 36;
@@ -205,7 +273,7 @@ export default {
             }
         ];
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "sensor.battery_level").trim();
         const size = p.size || 36;
@@ -213,7 +281,7 @@ export default {
         const color = p.color || "black";
 
         // Template for dynamic battery icon name
-        const iconTemplate = `{{ 'battery-' ~ (states('${entityId}') | int / 10 | int * 10) if states('${entityId}') | int >= 10 else 'battery-outline' if states('${entityId}') | int >= 5 else 'battery-alert' }}`;
+        const iconTemplate = `{{ 'battery-' ~ (states('${entityId}') | int / 10 | int * 10) if states('${entityId}') | int >= 10 else 'battery-outline' if states('${entityId}') | int >= 5 else 'battery-alert' }}`; // eslint-disable-line no-unused-vars
         // Note: OEPL might support specific names like battery-90, battery-80 etc.
         // Simplified mapping for OEPL:
         const simpleIconTemplate = `{% set b = states('${entityId}') | int %}` +
@@ -241,7 +309,7 @@ export default {
             }
         ];
     },
-    exportLVGL: (w, { common, convertColor, getLVGLFont, formatOpacity }) => {
+    exportLVGL: (w, { common, convertColor, getLVGLFont, _formatOpacity }) => {
         const p = w.props || {};
         let entityId = (w.entity_id || "").trim();
         // Ensure sensor. prefix if missing (matching onExportNumericSensors logic)

@@ -1,0 +1,682 @@
+{
+  "icon": {
+    "root": [],
+    "props": [
+      "fit_icon_to_frame",
+      "code",
+      "size",
+      "font_ref",
+      "color",
+      "bg_color",
+      "border_width",
+      "border_color",
+      "border_radius"
+    ],
+    "has_drop_shadow": true
+  },
+  "sensor_text": {
+    "root": [
+      "entity_id",
+      "entity_id_2",
+      "title"
+    ],
+    "props": [
+      "attribute",
+      "is_text_sensor",
+      "is_local_sensor",
+      "attribute2",
+      "value_format",
+      "precision",
+      "prefix",
+      "postfix",
+      "unit",
+      "hide_unit",
+      "opacity",
+      "label_font_size",
+      "value_font_size",
+      "color",
+      "font_family",
+      "custom_font_family",
+      "font_weight",
+      "italic",
+      "text_align",
+      "label_align",
+      "value_align",
+      "border_width",
+      "border_color",
+      "border_radius",
+      "bg_color"
+    ],
+    "has_drop_shadow": true
+  },
+  "lvgl_label": {
+    "root": [],
+    "props": [
+      "text",
+      "font_size",
+      "color",
+      "bg_color",
+      "font_family",
+      "font_weight",
+      "italic",
+      "text_align"
+    ],
+    "has_drop_shadow": false
+  },
+  "qr_code": {
+    "root": [],
+    "props": [
+      "value",
+      "scale",
+      "ecc",
+      "color"
+    ],
+    "has_drop_shadow": false
+  },
+  "datetime": {
+    "root": [],
+    "props": [
+      "opacity",
+      "format",
+      "time_font_size",
+      "date_font_size",
+      "color",
+      "font_family",
+      "custom_font_family",
+      "italic",
+      "text_align",
+      "bg_color",
+      "border_width",
+      "border_color",
+      "border_radius"
+    ],
+    "has_drop_shadow": true
+  },
+  "image": {
+    "root": [
+      "x"
+    ],
+    "props": [
+      "path",
+      "invert",
+      "render_mode"
+    ],
+    "has_drop_shadow": false
+  },
+  "odp_rectangle_pattern": {
+    "root": [],
+    "props": [
+      "x_repeat",
+      "y_repeat",
+      "x_size",
+      "y_size"
+    ],
+    "has_drop_shadow": false
+  },
+  "odp_arc": {
+    "root": [],
+    "props": [
+      "start_angle",
+      "end_angle"
+    ],
+    "has_drop_shadow": false
+  },
+  "odp_plot": {
+    "root": [],
+    "props": [
+      "duration",
+      "background",
+      "outline"
+    ],
+    "has_drop_shadow": false
+  },
+  "odp_multiline": {
+    "root": [],
+    "props": [
+      "text",
+      "delimiter",
+      "font_size",
+      "line_spacing",
+      "color",
+      "font_family"
+    ],
+    "has_drop_shadow": false
+  },
+  "rounded_rect": {
+    "root": [],
+    "props": [
+      "opacity",
+      "fill",
+      "show_border",
+      "border_width",
+      "radius",
+      "color",
+      "border_color"
+    ],
+    "has_drop_shadow": true
+  },
+  "line": {
+    "root": [
+      "width",
+      "height",
+      "y",
+      "x"
+    ],
+    "props": [
+      "opacity",
+      "orientation",
+      "stroke_width",
+      "color"
+    ],
+    "has_drop_shadow": false
+  },
+  "progress_bar": {
+    "root": [
+      "entity_id",
+      "title"
+    ],
+    "props": [
+      "is_local_sensor",
+      "opacity",
+      "show_label",
+      "show_percentage",
+      "bar_height",
+      "border_width",
+      "color"
+    ],
+    "has_drop_shadow": false
+  },
+  "graph": {
+    "root": [
+      "entity_id",
+      "title"
+    ],
+    "props": [
+      "duration",
+      "use_ha_history",
+      "history_attribute",
+      "history_points",
+      "history_smoothing",
+      "auto_scale",
+      "min_value",
+      "max_value",
+      "min_range",
+      "color",
+      "line_type",
+      "line_thickness",
+      "border",
+      "grid",
+      "x_grid",
+      "y_grid"
+    ],
+    "has_drop_shadow": false
+  },
+  "battery_icon": {
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "is_local_sensor",
+      "fit_icon_to_frame",
+      "size",
+      "font_size",
+      "color"
+    ],
+    "has_drop_shadow": false
+  },
+  "wifi_signal": {
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "is_local_sensor",
+      "show_dbm",
+      "fit_icon_to_frame",
+      "size",
+      "font_size",
+      "color"
+    ],
+    "has_drop_shadow": false
+  },
+  "quote_rss": {
+    "root": [],
+    "props": [
+      "feed_url",
+      "show_author",
+      "random",
+      "refresh_interval",
+      "ha_url",
+      "quote_font_size",
+      "author_font_size",
+      "font_family",
+      "custom_font_family",
+      "font_weight",
+      "text_align",
+      "color",
+      "word_wrap",
+      "auto_scale",
+      "italic_quote"
+    ],
+    "has_drop_shadow": false
+  },
+  "ondevice_temperature": {
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "is_local_sensor",
+      "fit_icon_to_frame",
+      "show_label",
+      "size",
+      "font_size",
+      "label_font_size",
+      "unit",
+      "precision",
+      "color"
+    ],
+    "has_drop_shadow": false
+  },
+  "ondevice_humidity": {
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "is_local_sensor",
+      "fit_icon_to_frame",
+      "show_label",
+      "size",
+      "font_size",
+      "label_font_size",
+      "unit",
+      "precision",
+      "color"
+    ],
+    "has_drop_shadow": false
+  },
+  "weather_icon": {
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "attribute",
+      "fit_icon_to_frame",
+      "size",
+      "color",
+      "bg_color",
+      "border_width",
+      "border_color",
+      "border_radius"
+    ],
+    "has_drop_shadow": true
+  },
+  "weather_forecast": {
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "days",
+      "layout",
+      "show_high_low",
+      "temp_unit",
+      "day_font_size",
+      "temp_font_size",
+      "icon_size",
+      "precision",
+      "font_family",
+      "custom_font_family",
+      "color",
+      "background_color",
+      "border_width",
+      "border_color",
+      "border_radius"
+    ],
+    "has_drop_shadow": true
+  },
+  "template_sensor_bar": {
+    "root": [],
+    "props": [
+      "show_wifi",
+      "show_temperature",
+      "show_humidity",
+      "show_battery",
+      "wifi_entity",
+      "wifi_is_local",
+      "temp_entity",
+      "temp_is_local",
+      "temp_unit",
+      "hum_entity",
+      "hum_is_local",
+      "bat_entity",
+      "bat_is_local",
+      "show_background",
+      "background_color",
+      "color",
+      "border_radius",
+      "border_thickness",
+      "border_color",
+      "icon_size",
+      "font_size"
+    ],
+    "has_drop_shadow": false
+  },
+  "template_nav_bar": {
+    "root": [],
+    "props": [
+      "show_prev",
+      "show_home",
+      "show_next",
+      "prev_target",
+      "home_target",
+      "next_target",
+      "show_background",
+      "background_color",
+      "color",
+      "border_radius",
+      "border_thickness",
+      "border_color",
+      "icon_size"
+    ],
+    "has_drop_shadow": false
+  },
+  "online_image": {
+    "root": [
+      "x"
+    ],
+    "props": [
+      "url",
+      "interval_s",
+      "invert",
+      "render_mode"
+    ],
+    "has_drop_shadow": false
+  },
+  "calendar": {
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "text_color",
+      "background_color",
+      "border_width",
+      "border_color",
+      "border_radius",
+      "font_size_date",
+      "font_size_day",
+      "font_size_grid",
+      "font_size_event",
+      "show_header",
+      "show_grid",
+      "show_events",
+      "max_events"
+    ],
+    "has_drop_shadow": true
+  },
+  "puppet": {
+    "root": [],
+    "props": [
+      "image_url",
+      "image_type",
+      "transparency"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_line": {
+    "root": [
+      "x"
+    ],
+    "props": [
+      "line_width",
+      "line_color",
+      "line_rounded",
+      "opa"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_meter": {
+    "root": [
+      "entity_id",
+      "width"
+    ],
+    "props": [
+      "min",
+      "max",
+      "value",
+      "color",
+      "indicator_color",
+      "scale_width",
+      "indicator_width",
+      "tick_count",
+      "tick_length",
+      "label_gap"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_button": {
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "text",
+      "bg_color",
+      "color",
+      "border_width",
+      "radius",
+      "checkable"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_arc": {
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "min",
+      "max",
+      "value",
+      "thickness",
+      "start_angle",
+      "end_angle",
+      "mode",
+      "color"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_chart": {
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "title",
+      "type",
+      "min",
+      "max",
+      "point_count",
+      "x_div_lines",
+      "y_div_lines",
+      "color"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_img": {
+    "root": [],
+    "props": [
+      "src",
+      "rotation",
+      "scale",
+      "color"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_qrcode": {
+    "root": [],
+    "props": [
+      "text",
+      "size",
+      "color",
+      "bg_color"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_bar": {
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "min",
+      "max",
+      "value",
+      "color",
+      "bg_color",
+      "start_value",
+      "mode",
+      "range_mode"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_slider": {
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "min",
+      "max",
+      "value",
+      "color",
+      "bg_color",
+      "border_width",
+      "mode"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_tabview": {
+    "root": [],
+    "props": [
+      "tabs",
+      "bg_color"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_tileview": {
+    "root": [],
+    "props": [
+      "bg_color"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_led": {
+    "root": [],
+    "props": [
+      "color",
+      "brightness"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_spinner": {
+    "root": [],
+    "props": [
+      "spin_time",
+      "arc_length",
+      "arc_color",
+      "track_color"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_buttonmatrix": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  },
+  "lvgl_checkbox": {
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "text",
+      "checked",
+      "color"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_dropdown": {
+    "root": [],
+    "props": [
+      "options",
+      "selected_index",
+      "max_height",
+      "direction",
+      "color"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_keyboard": {
+    "root": [],
+    "props": [
+      "mode",
+      "textarea_id"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_roller": {
+    "root": [],
+    "props": [
+      "options",
+      "visible_row_count",
+      "color",
+      "bg_color",
+      "selected_bg_color",
+      "selected_text_color",
+      "mode"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_spinbox": {
+    "root": [],
+    "props": [
+      "min",
+      "max",
+      "value",
+      "digit_count",
+      "step"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_switch": {
+    "root": [
+      "entity_id"
+    ],
+    "props": [
+      "checked",
+      "color",
+      "bg_color",
+      "knob_color"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_textarea": {
+    "root": [],
+    "props": [
+      "placeholder",
+      "text",
+      "one_line",
+      "password_mode",
+      "accepted_chars",
+      "max_length"
+    ],
+    "has_drop_shadow": false
+  },
+  "lvgl_obj": {
+    "root": [],
+    "props": [
+      "color",
+      "border_width",
+      "border_color",
+      "radius"
+    ],
+    "has_drop_shadow": false
+  },
+  "textarea": {
+    "root": [],
+    "props": [],
+    "has_drop_shadow": false
+  }
+}

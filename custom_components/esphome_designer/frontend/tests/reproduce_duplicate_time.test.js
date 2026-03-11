@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ESPHomeAdapter } from '../js/io/adapters/esphome_adapter.js';
+import { ESPHomeAdapter } from '../js/io/adapters/esphome_adapter';
+import { registry } from '../js/core/plugin_registry';
+import { DEVICE_PROFILES } from '../js/io/devices.js';
 
 describe('Duplicate Time Key Reproduction', () => {
     let adapter;
@@ -9,7 +11,8 @@ describe('Duplicate Time Key Reproduction', () => {
 
         // Mock window/global objects
         global.window = global;
-        window.DEVICE_PROFILES = {
+        Object.keys(DEVICE_PROFILES).forEach(key => delete DEVICE_PROFILES[key]);
+        Object.assign(DEVICE_PROFILES, {
             'reterminal_e1001': {
                 name: "Seeedstudio reTerminal E1001",
                 chip: "esp32-s3",
@@ -25,45 +28,47 @@ describe('Duplicate Time Key Reproduction', () => {
                 },
                 battery: { attenuation: "12db", multiplier: 2.0 }
             }
-        };
-        window.currentDeviceModel = 'reterminal_e1001';
+        });
 
-        // Mock PluginRegistry
-        window.PluginRegistry = {
-            get: vi.fn((type) => {
-                if (type === 'graph') {
-                    return {
-                        id: 'graph',
-                        onExportComponents: (ctx) => {
-                            ctx.lines.push("graph:");
-                            ctx.lines.push("  - id: graph_id");
-                        }
-                    };
-                }
-                return null;
-            }),
-            getAll: vi.fn(() => [{
-                id: 'graph',
-                onExportComponents: (ctx) => {
-                    ctx.lines.push("graph:");
-                    ctx.lines.push("  - id: graph_id");
-                }
-            }]),
-            onExportGlobals: vi.fn(),
-            onExportNumericSensors: vi.fn(),
-            onExportTextSensors: vi.fn(),
-            onExportBinarySensors: vi.fn(),
+        // Mock registry singletons using vi.spyOn
+        vi.spyOn(registry, 'get').mockImplementation((type) => {
+            if (type === 'graph') {
+                return {
+                    id: 'graph',
+                    onExportComponents: (ctx) => {
+                        ctx.lines.push("graph:");
+                        ctx.lines.push("  - id: graph_id");
+                    }
+                };
+            }
+            return null;
+        });
+
+        vi.spyOn(registry, 'getAll').mockImplementation(() => [{
+            id: 'graph',
             onExportComponents: (ctx) => {
-                // Manually trigger the graph plugin's component export
                 ctx.lines.push("graph:");
                 ctx.lines.push("  - id: graph_id");
-            },
-            onExportHelpers: vi.fn()
-        };
+            }
+        }]);
+
+        // Mock other hooks to prevent logic issues during test
+        vi.spyOn(registry, 'onExportGlobals').mockImplementation(() => { });
+        vi.spyOn(registry, 'onExportNumericSensors').mockImplementation(() => { });
+        vi.spyOn(registry, 'onExportTextSensors').mockImplementation(() => { });
+        vi.spyOn(registry, 'onExportBinarySensors').mockImplementation(() => { });
+        vi.spyOn(registry, 'onExportHelpers').mockImplementation(() => { });
+
+        // Mock onExportComponents on registry to trigger the graph plugin's component export
+        vi.spyOn(registry, 'onExportComponents').mockImplementation((ctx) => {
+            ctx.lines.push("graph:");
+            ctx.lines.push("  - id: graph_id");
+        });
     });
 
     it('should NOT produce duplicate time: keys for reterminal_e1001', async () => {
         const projectState = {
+            deviceModel: 'reterminal_e1001',
             pages: [
                 {
                     name: "Page 1",
@@ -80,8 +85,6 @@ describe('Duplicate Time Key Reproduction', () => {
         // Count occurrences of "time:"
         const timeOccurrences = (yaml.match(/^time:$/gm) || []).length;
 
-        console.log("YAML (reterminal_e1001):\n", yaml);
-
         expect(timeOccurrences).toBe(1);
     });
 
@@ -94,10 +97,9 @@ describe('Duplicate Time Key Reproduction', () => {
                 lcd: true
             }
         };
-        window.DEVICE_PROFILES['waveshare_esp32_s3_touch_lcd_7'] = packageProfile;
-        window.currentDeviceModel = 'waveshare_esp32_s3_touch_lcd_7';
-
+        DEVICE_PROFILES['waveshare_esp32_s3_touch_lcd_7'] = packageProfile;
         const projectState = {
+            deviceModel: 'waveshare_esp32_s3_touch_lcd_7',
             pages: [
                 {
                     name: "Page 1",
@@ -114,8 +116,6 @@ describe('Duplicate Time Key Reproduction', () => {
 
         // Count occurrences of "time:"
         const timeOccurrences = (yaml.match(/^time:$/gm) || []).length;
-
-        console.log("YAML (package-based):\n", yaml);
 
         expect(timeOccurrences).toBe(1);
         expect(yaml).toContain("id: ha_time");

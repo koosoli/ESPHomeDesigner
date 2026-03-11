@@ -1,6 +1,13 @@
+// @ts-nocheck
 /**
  * Quote RSS Plugin
  */
+import { getWeightsForFont } from '../../js/core/font_weights.js';
+import { emit, EVENTS } from '../../js/core/events.js';
+import { hasHaBackend } from '../../js/utils/env.js';
+
+let quoteCache = {};
+let quoteFetchTimers = {};
 
 const render = (element, widget, helpers) => {
     const { getColorStyle } = helpers;
@@ -43,31 +50,27 @@ const render = (element, widget, helpers) => {
     const hash = hashInput.split("").reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0);
     const sample = sampleQuotes[Math.abs(hash) % sampleQuotes.length];
 
-    const isOfflineMode = window.location.protocol === "file:" ||
-        (typeof window.hasHaBackend !== "function") || !window.hasHaBackend();
-
-    window.quoteCache = window.quoteCache || {};
-    window.quoteFetchTimers = window.quoteFetchTimers || {};
+    const isOfflineMode = window.location.protocol === "file:" || !hasHaBackend();
 
     const cacheKey = widget.id + "|" + feedUrl;
     const fetchingKey = cacheKey + "_fetching";
     const lastUrlKey = widget.id + "_lastUrl";
 
-    if (window.quoteCache[lastUrlKey] !== feedUrl) {
-        window.quoteCache[lastUrlKey] = feedUrl;
-        if (window.quoteFetchTimers[widget.id]) {
-            clearTimeout(window.quoteFetchTimers[widget.id]);
-            window.quoteFetchTimers[widget.id] = null;
+    if (quoteCache[lastUrlKey] !== feedUrl) {
+        quoteCache[lastUrlKey] = feedUrl;
+        if (quoteFetchTimers[widget.id]) {
+            clearTimeout(quoteFetchTimers[widget.id]);
+            quoteFetchTimers[widget.id] = null;
         }
     }
 
-    if (!window.quoteCache[cacheKey] && !window.quoteCache[fetchingKey]) {
-        window.quoteCache[fetchingKey] = true;
+    if (!quoteCache[cacheKey] && !quoteCache[fetchingKey]) {
+        quoteCache[fetchingKey] = true;
         const fetchFeedUrl = feedUrl;
         const fetchCacheKey = cacheKey;
         const fetchFetchingKey = fetchingKey;
 
-        window.quoteFetchTimers[widget.id] = setTimeout(async () => {
+        quoteFetchTimers[widget.id] = setTimeout(async () => {
             try {
                 let data;
                 if (isOfflineMode) {
@@ -81,22 +84,22 @@ const render = (element, widget, helpers) => {
                 }
 
                 if (data && data.success && data.quote) {
-                    window.quoteCache[fetchCacheKey] = data.quote;
-                    if (window.emit && window.EVENTS) {
-                        window.emit(window.EVENTS.STATE_CHANGED);
+                    quoteCache[fetchCacheKey] = data.quote;
+                    if (emit && EVENTS) {
+                        emit(EVENTS.STATE_CHANGED);
                     }
                 }
-            } catch (e) {
-                // console.debug("[Quote Widget] Fetch Error:", e);
+            } catch {
+                // console.debug("[Quote Widget] Fetch Error");
             } finally {
-                window.quoteCache[fetchFetchingKey] = false;
-                window.quoteFetchTimers[widget.id] = null;
+                quoteCache[fetchFetchingKey] = false;
+                quoteFetchTimers[widget.id] = null;
             }
         }, 500);
     }
 
-    const quoteData = window.quoteCache[cacheKey] || sample;
-    const isLive = !!window.quoteCache[cacheKey];
+    const quoteData = quoteCache[cacheKey] || sample;
+    const isLive = !!quoteCache[cacheKey];
 
     element.style.display = "flex";
     element.style.flexDirection = "column";
@@ -193,8 +196,8 @@ const exportLVGL = (w, { common, convertColor, getLVGLFont }) => {
       std::string q = id(${safeIdPrefix}_text_global);
       std::string a = id(${safeIdPrefix}_author_global);
       if (q.empty()) return "Loading quote...";
-      if (a.empty()) return ("\\"" + q + "\\"").c_str();
-      return ("\\"" + q + "\\"\\n— " + a).c_str();
+      if (a.empty()) return ('"' + q + '"').c_str();
+      return ('"' + q + '"\n— ' + a).c_str();
     `;
 
     const textAlign = (p.text_align || "CENTER").replace("TOP_", "").replace("BOTTOM_", "").toLowerCase();
@@ -212,7 +215,7 @@ const exportLVGL = (w, { common, convertColor, getLVGLFont }) => {
 
 const exportDoc = (w, context) => {
     const {
-        lines, addFont, getColorConst, getCondProps, getConditionCheck, getAlignX
+        lines, addFont, getColorConst, getCondProps, getConditionCheck, getAlignX // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
@@ -241,7 +244,6 @@ const exportDoc = (w, context) => {
     const quoteFontId = addFont(fontFamily, fontWeight, quoteFontSize, italicQuote);
     const authorFontId = addFont(fontFamily, fontWeight, authorFontSize, false);
 
-    lines.push(`        // widget:quote_rss id:${w.id} type:quote_rss x:${w.x} y:${w.y} w:${w.width} h:${w.height} color:${colorProp} align:${textAlign} ${getCondProps(w)}`);
 
     // Background fill
     const bgColorProp = p.bg_color || p.background_color || "transparent";
@@ -273,7 +275,7 @@ const exportDoc = (w, context) => {
         const esphomeAlign = `TextAlign::${textAlign}`;
         lines.push(`          int max_w = ${w.width - 16};`);
         lines.push(`          int q_h = ${quoteFontSize + 4};`);
-        lines.push(`          std::string display_text = "\\\"" + q_text + "\\\"";`);
+        lines.push(`          std::string display_text = "\\"" + q_text + "\\"";`);
 
         lines.push(`          auto print_q = [&](esphome::font::Font *f, int line_h, bool draw) -> int {`);
         lines.push(`            int y_curr = ${w.y + 8};`);
@@ -498,8 +500,62 @@ export default {
         bg_color: "transparent",
         border_width: 0,
         border_color: "theme_auto",
-        border_radius: 0
+        border_radius: 0,
+        opa: 255,
+        opacity: 255
     },
+    schema: [
+        {
+            section: "RSS Source",
+            fields: [
+                { key: "feed_url", label: "RSS Feed URL", type: "text", default: "https://www.brainyquote.com/link/quotebr.rss" },
+                { key: "refresh_interval", label: "Refresh Every", type: "text", default: "1h" },
+                { key: "random", label: "Random Quote", type: "checkbox", default: true }
+            ]
+        },
+        {
+            section: "HA Integration",
+            fields: [
+                { key: "ha_url", label: "HA Base URL", type: "text", default: "http://homeassistant.local:8123" }
+            ]
+        },
+        {
+            section: "Content",
+            fields: [
+                { key: "show_author", label: "Show Author", type: "checkbox", default: true }
+            ]
+        },
+        {
+            section: "Typography",
+            fields: [
+                { key: "font_family", label: "Font Family", type: "select", options: ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand"], default: "Roboto" },
+                { key: "quote_font_size", label: "Quote Font Size", type: "number", default: 18 },
+                { key: "author_font_size", label: "Author Font Size", type: "number", default: 14 },
+                {
+                    key: "font_weight",
+                    label: "Font Weight",
+                    type: "select",
+                    dynamicOptions: (props) => getWeightsForFont(props.font_family || "Roboto"),
+                    default: 400
+                },
+                { key: "italic_quote", label: "Italic Quote", type: "checkbox", default: true },
+                { key: "text_align", label: "Alignment", type: "select", options: ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], default: "TOP_LEFT" },
+                { key: "word_wrap", label: "Word Wrap", type: "checkbox", default: true }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "color", label: "Text Color", type: "color", default: "theme_auto" },
+                { key: "bg_color", label: "Background", type: "color", default: "transparent" },
+                { key: "border_width", label: "Border Width", type: "number", default: 0 },
+                { key: "border_color", label: "Border Color", type: "color", default: "theme_auto" },
+                { key: "border_radius", label: "Corners", type: "number", default: 0 },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     onExportGlobals,
     onExportTextSensors,

@@ -1,48 +1,54 @@
-import { AppState } from '../core/state.js';
+import { AppState } from '../core/state';
 import { emit, EVENTS } from '../core/events.js';
 import { setHaManualUrl, refreshHaBaseUrl, setHaToken, getHaManualUrl, getHaToken, isDeployedInHa } from '../utils/env.js';
 import { showToast } from '../utils/dom.js';
-import { fetchEntityStates } from '../io/ha_api.js';
+import { fetchEntityStates, entityStatesCache } from '../io/ha_api.js';
+import { aiService } from '../io/ai_service.js';
 import { Logger } from '../utils/logger.js';
 
 export class EditorSettings {
     constructor() {
-        this.modal = document.getElementById('editorSettingsModal');
-        this.closeBtn = document.getElementById('editorSettingsClose');
-        this.doneBtn = document.getElementById('editorSettingsDone');
+        const getElement = (id) => /** @type {HTMLElement | null} */ (document.getElementById(id));
+        const getInput = (id) => /** @type {HTMLInputElement | null} */ (document.getElementById(id));
+        const getSelect = (id) => /** @type {HTMLSelectElement | null} */ (document.getElementById(id));
+        const getButton = (id) => /** @type {HTMLButtonElement | null} */ (document.getElementById(id));
+
+        this.modal = getElement('editorSettingsModal');
+        this.closeBtn = getElement('editorSettingsClose');
+        this.doneBtn = getElement('editorSettingsDone');
 
         // Inputs
-        this.snapToGrid = document.getElementById('editorSnapToGrid');
-        this.showGrid = document.getElementById('editorShowGrid');
-        this.lightMode = document.getElementById('editorLightMode');
-        this.refreshEntitiesBtn = document.getElementById('editorRefreshEntities');
-        this.entityCountLabel = document.getElementById('editorEntityCount');
-        this.gridOpacity = document.getElementById('editorGridOpacity');
-        this.extendedLatinGlyphs = document.getElementById('editorExtendedLatinGlyphs');
+        this.snapToGrid = getInput('editorSnapToGrid');
+        this.showGrid = getInput('editorShowGrid');
+        this.lightMode = getInput('editorLightMode');
+        this.refreshEntitiesBtn = getButton('editorRefreshEntities');
+        this.entityCountLabel = getElement('editorEntityCount');
+        this.gridOpacity = getInput('editorGridOpacity');
+        this.extendedLatinGlyphs = getInput('editorExtendedLatinGlyphs');
 
         // HA Connection
-        this.haManualUrl = document.getElementById('haManualUrl');
-        this.haLlatToken = document.getElementById('haLlatToken');
-        this.testHaBtn = document.getElementById('editorTestHaBtn');
-        this.haTestResult = document.getElementById('haTestResult');
-        this.haDeployedWarning = document.getElementById('haDeployedWarning');
-        this.haCorsTip = document.getElementById('haCorsTip');
+        this.haManualUrl = getInput('haManualUrl');
+        this.haLlatToken = getInput('haLlatToken');
+        this.testHaBtn = getButton('editorTestHaBtn');
+        this.haTestResult = getElement('haTestResult');
+        this.haDeployedWarning = getElement('haDeployedWarning');
+        this.haCorsTip = getElement('haCorsTip');
 
 
         // AI Settings
-        this.aiProvider = document.getElementById('aiProvider');
-        this.aiApiKeyGemini = document.getElementById('aiApiKeyGemini');
-        this.aiApiKeyOpenai = document.getElementById('aiApiKeyOpenai');
-        this.aiApiKeyOpenrouter = document.getElementById('aiApiKeyOpenrouter');
-        this.aiModelFilter = document.getElementById('aiModelFilter');
-        this.aiModelSelect = document.getElementById('aiModelSelect');
-        this.aiRefreshModelsBtn = document.getElementById('aiRefreshModelsBtn');
-        this.aiTestResult = document.getElementById('aiTestResult');
+        this.aiProvider = getSelect('aiProvider');
+        this.aiApiKeyGemini = getInput('aiApiKeyGemini');
+        this.aiApiKeyOpenai = getInput('aiApiKeyOpenai');
+        this.aiApiKeyOpenrouter = getInput('aiApiKeyOpenrouter');
+        this.aiModelFilter = getInput('aiModelFilter');
+        this.aiModelSelect = getSelect('aiModelSelect');
+        this.aiRefreshModelsBtn = getButton('aiRefreshModelsBtn');
+        this.aiTestResult = getElement('aiTestResult');
 
         this.aiKeyRows = {
-            gemini: document.getElementById('aiKeyGeminiRow'),
-            openai: document.getElementById('aiKeyOpenaiRow'),
-            openrouter: document.getElementById('aiKeyOpenrouterRow')
+            gemini: getElement('aiKeyGeminiRow'),
+            openai: getElement('aiKeyOpenaiRow'),
+            openrouter: getElement('aiKeyOpenrouterRow')
         };
     }
 
@@ -90,12 +96,13 @@ export class EditorSettings {
 
         // Grid Opacity
         if (this.gridOpacity) {
-            this.gridOpacity.value = settings.grid_opacity !== undefined ? settings.grid_opacity : 20;
+            this.gridOpacity.value = String(settings.grid_opacity !== undefined ? settings.grid_opacity : 20);
         }
 
         // Glyphsets
         const selectedGlyphsets = settings.glyphsets || ["GF_Latin_Kernel"];
-        document.querySelectorAll('.glyphset-checkbox').forEach(cb => {
+        const glyphsetCheckboxes = /** @type {NodeListOf<HTMLInputElement>} */ (document.querySelectorAll('.glyphset-checkbox'));
+        glyphsetCheckboxes.forEach(cb => {
             cb.checked = selectedGlyphsets.includes(cb.value);
         });
 
@@ -128,7 +135,7 @@ export class EditorSettings {
 
 
         // Dynamically show current origin for CORS tip
-        const originPlaceholder = document.getElementById('haOriginPlaceholder');
+        const originPlaceholder = /** @type {HTMLElement | null} */ (document.getElementById('haOriginPlaceholder'));
         if (originPlaceholder) {
             originPlaceholder.textContent = window.location.origin;
         }
@@ -149,13 +156,15 @@ export class EditorSettings {
     }
 
     updateEntityCount() {
-        if (this.entityCountLabel && window.entityStatesCache) {
-            const count = Object.keys(window.entityStatesCache).length;
+        if (this.entityCountLabel && entityStatesCache) {
+            const count = Object.keys(entityStatesCache).length;
             this.entityCountLabel.textContent = `${count} entities cached`;
         }
     }
 
     setupListeners() {
+        if (!this.modal) return;
+
         // Snap to Grid
         if (this.snapToGrid) {
             this.snapToGrid.addEventListener('change', () => {
@@ -168,7 +177,7 @@ export class EditorSettings {
             this.showGrid.addEventListener('change', () => {
                 AppState.setShowGrid(this.showGrid.checked);
                 // Also toggle DOM immediately for responsiveness
-                const gridEl = document.querySelector('.canvas-grid');
+                const gridEl = /** @type {HTMLElement | null} */ (document.querySelector('.canvas-grid'));
                 if (gridEl) {
                     gridEl.style.display = this.showGrid.checked ? 'block' : 'none';
                 }
@@ -200,11 +209,9 @@ export class EditorSettings {
                 this.refreshEntitiesBtn.disabled = true;
                 this.refreshEntitiesBtn.textContent = "Refreshing...";
 
-                // Use imported fetchEntityStates, fallback to window not needed if import works
+                // Use imported fetchEntityStates
                 if (fetchEntityStates) {
                     await fetchEntityStates();
-                } else if (window.fetchEntityStates) {
-                    await window.fetchEntityStates();
                 }
 
                 this.updateEntityCount();
@@ -247,7 +254,7 @@ export class EditorSettings {
                         this.haTestResult.innerHTML = "❌ Failed.<br>Did you add <strong>cors_allowed_origins</strong> to HA and <strong>restart</strong> it?";
                         this.haTestResult.style.color = "var(--danger)";
                     }
-                } catch (e) {
+                } catch {
                     this.haTestResult.innerHTML = "❌ Connection Error.<br>Check browser console.";
                     this.haTestResult.style.color = "var(--danger)";
                 } finally {
@@ -266,7 +273,7 @@ export class EditorSettings {
         }
 
         const bindAIKey = (id, key) => {
-            const el = document.getElementById(id);
+            const el = /** @type {HTMLInputElement | null} */ (document.getElementById(id));
             if (el) el.addEventListener('input', () => AppState.updateSettings({ [key]: el.value.trim() }));
         };
         bindAIKey('aiApiKeyGemini', 'ai_api_key_gemini');
@@ -295,7 +302,7 @@ export class EditorSettings {
                 // even if the 'input' event hasn't fully propagated to settings yet.
                 let apiKey = AppState.settings[`ai_api_key_${provider}`];
                 const inputId = `aiApiKey${provider.charAt(0).toUpperCase() + provider.slice(1)}`;
-                const inputEl = document.getElementById(inputId);
+                const inputEl = /** @type {HTMLInputElement | null} */ (document.getElementById(inputId));
 
                 if (inputEl) {
                     apiKey = inputEl.value.trim();
@@ -304,7 +311,7 @@ export class EditorSettings {
                 }
 
                 if (!apiKey) {
-                    showToast("Please enter an API key first", 3000, "error");
+                    showToast("Please enter an API key first", "error", 3000);
                     return;
                 }
 
@@ -317,15 +324,15 @@ export class EditorSettings {
 
                 try {
                     // Assuming aiService is still attached to window for now until refactored
-                    const models = await window.aiService.fetchModels(provider, apiKey);
-                    window.aiService.cache.models[provider] = models;
+                    const models = await aiService.fetchModels(provider, apiKey);
+                    aiService.cache.models[provider] = models;
                     this.refreshModelSelect();
                     // showToast(`Fetched ${models.length} models`, "success");
                     if (this.aiTestResult) {
                         this.aiTestResult.textContent = `✅ Success! Found ${models.length} models.`;
                         this.aiTestResult.style.color = "var(--success)";
                     }
-                } catch (e) {
+                } catch {
                     // showToast("Failed to fetch models", "error");
                     if (this.aiTestResult) {
                         this.aiTestResult.textContent = "❌ Failed. Check key/console.";
@@ -339,9 +346,11 @@ export class EditorSettings {
         }
 
         // Glyphsets
-        document.querySelectorAll('.glyphset-checkbox').forEach(cb => {
+        const glyphsetCheckboxes = /** @type {NodeListOf<HTMLInputElement>} */ (document.querySelectorAll('.glyphset-checkbox'));
+        glyphsetCheckboxes.forEach(cb => {
             cb.addEventListener('change', () => {
-                const checked = Array.from(document.querySelectorAll('.glyphset-checkbox:checked')).map(el => el.value);
+                const checkedBoxes = /** @type {NodeListOf<HTMLInputElement>} */ (document.querySelectorAll('.glyphset-checkbox:checked'));
+                const checked = Array.from(checkedBoxes).map(el => el.value);
                 AppState.updateSettings({ glyphsets: checked });
             });
         });
@@ -354,10 +363,11 @@ export class EditorSettings {
         }
 
         // Collapsible Categories logic
-        const categoryHeaders = this.modal.querySelectorAll('.settings-category-header');
+        const categoryHeaders = /** @type {NodeListOf<HTMLElement>} */ (this.modal.querySelectorAll('.settings-category-header'));
         categoryHeaders.forEach(header => {
             header.addEventListener('click', () => {
-                const category = header.closest('.settings-category');
+            const category = /** @type {HTMLElement | null} */ (header.closest('.settings-category'));
+            if (!category) return;
                 const isExpanded = category.classList.contains('expanded');
 
                 if (isExpanded) {
@@ -382,15 +392,15 @@ export class EditorSettings {
         if (!this.aiModelSelect) return;
         const provider = AppState.settings.ai_provider || "gemini";
 
-        // Assuming aiService global
-        if (!window.aiService || !window.aiService.cache) return;
+        // Use imported aiService
+        if (!aiService || !aiService.cache) return;
 
-        let models = window.aiService.cache.models[provider];
+        let models = aiService.cache.models[provider];
         if (!models) {
-            // No models in cache, but we don't hardcode them anymore.
-            // User must click "Test & Load Models" to populate.
+            // No models in cache...
             models = [];
-            window.aiService.cache.models[provider] = models;
+            models = await aiService.fetchModels(provider, AppState.settings.ai_api_key);
+            aiService.cache.models[provider] = models;
         }
 
         this.filterModels();
@@ -401,8 +411,8 @@ export class EditorSettings {
         const provider = AppState.settings.ai_provider || "gemini";
         const filterStr = (AppState.settings.ai_model_filter || "").toLowerCase();
 
-        if (!window.aiService || !window.aiService.cache) return;
-        const models = window.aiService.cache.models[provider] || [];
+        if (!aiService || !aiService.cache) return;
+        const models = aiService.cache.models[provider] || [];
 
         const filtered = models.filter(m =>
             m.name.toLowerCase().includes(filterStr) ||

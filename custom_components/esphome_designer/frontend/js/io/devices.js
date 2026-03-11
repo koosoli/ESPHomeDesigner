@@ -1,5 +1,6 @@
 import { Logger } from '../utils/logger.js';
-import { fetchDynamicHardwareProfiles, getOfflineProfilesFromStorage } from './hardware_import.js';
+import { fetchDynamicHardwareProfiles, getOfflineProfilesFromStorage } from './hardware_profile_sources.js';
+import { emit, EVENTS } from '../core/events.js';
 
 // ============================================================================
 // DEVICE HARDWARE PROFILES
@@ -8,24 +9,7 @@ import { fetchDynamicHardwareProfiles, getOfflineProfilesFromStorage } from './h
 // Used to generate all hardware-related YAML sections (sensors, buttons, etc.)
 // ============================================================================
 
-// List of devices explicitly confirmed to work.
-// All other devices will be marked as (untested) in the UI.
-// IMPORTANT: Most device profiles here are snippet-based. 
-// System sections (esphome, esp32, psram, etc.) MUST be commented out 
-// in the generated YAML to allow users to merge this into their 
-// existing device configurations without conflicts.
-export const SUPPORTED_DEVICE_IDS = [
-  'reterminal_e1001',
-  'reterminal_e1002',
-  'trmnl_diy_esp32s3',
-  'esp32_s3_photopainter',
-  'm5stack_paper',
-  'm5stack_coreink',
-  'trmnl',
-  'waveshare_esp32_s3_touch_lcd_7',
-  'waveshare_esp32_s3_touch_lcd_4_3',
-  'seeedstudio_sensecap_indicator'
-];
+
 
 export const DEVICE_PROFILES = {
   // ========================================================================
@@ -362,11 +346,67 @@ export const DEVICE_PROFILES = {
     external_components: [
       "  - source: github://Passific/m5paper_esphome"
     ]
+  },
+  lilygo_t5_47: {
+    id: "lilygo_t5_47",
+    name: "Lilygo T5 4.7\" E-Paper",
+    isUntestedProfile: true,
+    displayType: "binary",
+    chip: "esp32",
+    board: "esp-wrover-kit",
+    displayPlatform: "t547",
+    resolution: { width: 960, height: 540 },
+    shape: "rect",
+    psram_speed: "80MHz",
+    pins: {
+      batteryEnable: null,
+      batteryAdc: "GPIO36",
+      buttons: {
+        left: { number: "GPIO39", inverted: true, mode: "INPUT" },
+        right: { number: "GPIO34", inverted: true, mode: "INPUT" },
+        refresh: { number: "GPIO35", inverted: true, mode: "INPUT" }
+      }
+    },
+    battery: {
+      attenuation: "12db",
+      multiplier: 2.0
+    },
+    features: {
+      psram: true,
+      buzzer: false,
+      buttons: true,
+      epaper: true,
+      inverted_colors: true
+    },
+    frameworkHint: "Arduino 3.x (required by the t547 component)",
+    system_section_overrides: {
+      esphome: [
+        "  platformio_options:",
+        "    lib_deps:",
+        "      - https://github.com/Xinyuan-LilyGO/LilyGo-EPD47.git"
+      ],
+      esp32: [
+        "  framework:",
+        "    type: arduino",
+        "    version: 3.3.2",
+        "  flash_size: 16MB"
+      ]
+    },
+    external_components: [
+      "  - source:",
+      "      type: git",
+      "      url: https://github.com/cjb0001/esphome-components",
+      "      ref: idf5-arduino3",
+      "    components: [\"t547\"]"
+    ]
   }
 };
 
 // Expose generically for other modules (Adapter, etc.)
 // window.DEVICE_PROFILES = DEVICE_PROFILES; // REFACTOR: Removed in favor of strict imports
+export const SUPPORTED_DEVICE_IDS = Object.entries(DEVICE_PROFILES)
+  .filter(([, profile]) => !profile.isUntestedProfile)
+  .map(([id]) => id);
 
 /**
  * Dynamically loads external hardware profiles from the backend
@@ -405,10 +445,7 @@ export async function loadExternalProfiles() {
       });
     }
 
-    // Trigger UI update if necessary (e.g., refresh device settings modal)
-    if (window.app && window.app.deviceSettings && typeof window.app.deviceSettings.populateDeviceSelect === 'function') {
-      window.app.deviceSettings.populateDeviceSelect();
-    }
+    emit(EVENTS.DEVICE_PROFILES_UPDATED);
   } catch (e) {
     Logger.error("Failed to load external hardware profiles:", e);
   }

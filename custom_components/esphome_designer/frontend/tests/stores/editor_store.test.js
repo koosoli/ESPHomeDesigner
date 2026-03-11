@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { EditorStore } from '../../js/core/stores/editor_store.js';
+import { describe, it, expect, beforeEach, vi } from 'vitest'; // eslint-disable-line no-unused-vars
+import { EditorStore } from '../../js/core/stores/editor_store';
 
 describe('EditorStore', () => {
     let store;

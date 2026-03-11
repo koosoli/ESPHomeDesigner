@@ -2,7 +2,7 @@
 // HARDWARE SECTION GENERATORS
 // ============================================================================
 
-export function generateTouchscreenSection(profile, displayId = "my_display", displayRotation = 0, layout = {}, isLvgl = false) {
+function generateTouchscreenSection(profile, displayId = "my_display", _displayRotation = 0, layout = {}, isLvgl = false) {
     if (!profile || !profile.touch) return []; // E-paper usually has no touch or handled differently
 
     const t = profile.touch;
@@ -240,6 +240,14 @@ export function generateDisplaySection(profile, layout = {}, isLvgl = false) {
         const configLines = profile.display_config.filter(l => !l.trim().startsWith("rotation:"));
         lines.push(...configLines);
 
+        // Fix #330: Ensure display ID is always present in display_config profiles
+        const isLcd = !!(profile.features && (profile.features.lcd || profile.features.oled));
+        const expectedId = isLcd ? 'my_display' : 'epaper_display';
+        const hasId = configLines.some(l => l.trim().startsWith('id:'));
+        if (!hasId) {
+            lines.push(`    id: ${expectedId}`);
+        }
+
         // Correct auto_clear_enabled for LVGL if present in config
         if (isLvgl) {
             for (let i = 0; i < lines.length; i++) {
@@ -318,7 +326,7 @@ export function generateDisplaySection(profile, layout = {}, isLvgl = false) {
     return lines;
 }
 
-export function generateSensorSection(profile, widgetSensorLines = [], displayId = "my_display", allWidgets = []) {
+export function generateSensorSection(profile, widgetSensorLines = [], _displayId = "my_display", _allWidgets = []) {
     const lines = [];
     if (!profile) return lines;
 
@@ -447,7 +455,7 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
         const isCoreInk = profile.name && profile.name.includes("CoreInk");
         const b = profile.pins.buttons || {};
 
-        if (b.left) {
+        if (b.left && numPages > 1) {
             lines.push("  - platform: gpio"); // Left Button
             lines.push(`    pin:`);
             if (typeof b.left === 'object') {
@@ -474,7 +482,7 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
             }
         }
 
-        if (b.right) {
+        if (b.right && numPages > 1) {
             lines.push("  - platform: gpio"); // Right Button
             lines.push(`    pin:`);
             if (typeof b.right === 'object') {
@@ -547,16 +555,18 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
     }
 
     // 2. Touch Area Buttons
-    if (hasTouchAreas) {
+    if (hasTouchAreas && profile?.touch) {
         lines.push(`  # Touch Area Binary Sensors`);
+        const totalPages = touchAreaWidgets.reduce((max, widget) => Math.max(max, (widget._pageIndex ?? 0) + 1), 0) || 1;
         touchAreaWidgets.forEach(w => {
             const t = (w.type || "").toLowerCase();
             const p = w.props || {};
 
             if (t === "template_nav_bar") {
-                const showPrev = p.show_prev !== false;
+                const allowPaging = totalPages > 1;
+                const showPrev = allowPaging && p.show_prev !== false;
                 const showHome = p.show_home !== false;
-                const showNext = p.show_next !== false;
+                const showNext = allowPaging && p.show_next !== false;
 
                 let activeCount = 0;
                 if (showPrev) activeCount++;
@@ -567,7 +577,7 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
                     const widthPerButton = Math.floor(w.width / activeCount);
                     let currentIdx = 0;
 
-                    const addNavTouch = (action, label) => {
+                    const addNavTouch = (action, _label) => {
                         const xMin = w.x + (currentIdx * widthPerButton);
                         const xMax = xMin + widthPerButton;
                         const yMin = w.y;
@@ -620,7 +630,10 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
                 xMin = Math.max(0, xMin);
                 yMin = Math.max(0, yMin);
 
-                const navAction = p.nav_action || "none";
+                const requestedNavAction = p.nav_action || "none";
+                const navAction = totalPages > 1
+                    ? requestedNavAction
+                    : (requestedNavAction === "reload_page" ? "reload_page" : "none");
                 const pageIdx = w._pageIndex !== undefined ? w._pageIndex : 0;
 
                 lines.push(`  - platform: touchscreen`);
@@ -666,21 +679,24 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
 export function generateButtonSection(profile, numPages, displayId = "my_display") {
     const lines = [];
     lines.push("button:");
-    lines.push("  - platform: template");
-    lines.push("    name: \"Next Page\"");
-    lines.push("    on_press:");
-    lines.push("      then:");
-    lines.push("        - script.execute:");
-    lines.push("            id: change_page_to");
-    lines.push("            target_page: !lambda 'return id(display_page) + 1;'");
 
-    lines.push("  - platform: template");
-    lines.push("    name: \"Previous Page\"");
-    lines.push("    on_press:");
-    lines.push("      then:");
-    lines.push("        - script.execute:");
-    lines.push("            id: change_page_to");
-    lines.push("            target_page: !lambda 'return id(display_page) - 1;'");
+    if (numPages > 1) {
+        lines.push("  - platform: template");
+        lines.push("    name: \"Next Page\"");
+        lines.push("    on_press:");
+        lines.push("      then:");
+        lines.push("        - script.execute:");
+        lines.push("            id: change_page_to");
+        lines.push("            target_page: !lambda 'return id(display_page) + 1;'");
+
+        lines.push("  - platform: template");
+        lines.push("    name: \"Previous Page\"");
+        lines.push("    on_press:");
+        lines.push("      then:");
+        lines.push("        - script.execute:");
+        lines.push("            id: change_page_to");
+        lines.push("            target_page: !lambda 'return id(display_page) - 1;'");
+    }
 
     lines.push("  - platform: template");
     lines.push("    name: \"Refresh Display\"");
@@ -689,6 +705,7 @@ export function generateButtonSection(profile, numPages, displayId = "my_display
     lines.push(`        - component.update: ${displayId}`);
 
     for (let i = 0; i < numPages; i++) {
+        if (numPages <= 1) break;
         lines.push("  - platform: template");
         lines.push(`    name: "Go to Page ${i + 1}"`);
         lines.push("    on_press:");
@@ -741,6 +758,10 @@ export function generatePSRAMSection(profile) {
     const lines = ["psram:"];
     if (profile.psram_mode) {
         lines.push(`  mode: ${profile.psram_mode}`);
+    }
+    if (profile.psram_speed) {
+        lines.push(`  speed: ${profile.psram_speed}`);
+    } else if (profile.psram_mode) {
         lines.push("  speed: 80MHz");
     }
     lines.push("");

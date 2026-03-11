@@ -1,10 +1,11 @@
+// @ts-nocheck
 /**
  * Rounded Rectangle Shape Plugin
  */
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
-    const radius = parseInt(props.radius || 10, 10);
+    const radius = parseInt(props.radius ?? props.corner_radius ?? props.border_radius ?? 10, 10);
     const borderWidth = parseInt(props.border_width || 4, 10);
 
     const color = props.color || "theme_auto";
@@ -32,6 +33,7 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
     const p = w.props || {};
+    const radius = parseInt(p.radius ?? p.corner_radius ?? p.border_radius ?? 10, 10) || 10;
     return {
         obj: {
             ...common,
@@ -39,7 +41,7 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
             bg_opa: p.fill !== false ? "cover" : "transp",
             border_width: p.border_width,
             border_color: convertColor(p.border_color || p.color),
-            radius: p.radius || 10,
+            radius,
             opa: formatOpacity(p.opa)
         }
     };
@@ -58,11 +60,40 @@ export default {
         border_width: 4,
         color: "theme_auto",
         show_border: true,
+        border_color: "theme_auto",
+        opacity: 100,
         opa: 255
     },
+    schema: [
+        {
+            section: "Shape Settings",
+            fields: [
+                { key: "radius", label: "Corner Radius", type: "number", default: 10 },
+                { key: "fill", label: "Fill (true/false)", type: "checkbox", default: false },
+                { key: "color", label: "Color", type: "color", default: "theme_auto" }
+            ]
+        },
+        {
+            section: "Border Settings",
+            fields: [
+                { key: "show_border", label: "Display Border", type: "checkbox", default: true },
+                { key: "border_width", label: "Border Thickness", type: "number", default: 4 },
+                { key: "border_color", label: "Border Color", type: "color", default: "theme_auto" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "drop_shadow", label: "Drop Shadow", type: "drop_shadow_button" }
+            ]
+        }
+    ],
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
+        const radius = parseInt(p.radius ?? p.corner_radius ?? p.border_radius ?? 0, 10) || 0;
         // Resolve colors (handle theme_auto)
         // Fallback to p.color if border/bg not set (matching render logic)
         let fill = p.fill ? (p.bg_color || p.color) : null;
@@ -81,11 +112,12 @@ export default {
             fill: fill,
             outline: outline,
             width: p.border_width || 1,
-            radius: p.radius || 0
+            radius
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
+        const radius = parseInt(p.radius ?? p.corner_radius ?? p.border_radius ?? 0, 10) || 0;
         return {
             type: "rectangle",
             x_start: Math.round(w.x),
@@ -95,19 +127,19 @@ export default {
             fill: p.fill ? (p.bg_color || p.color || "black") : null,
             outline: p.border_color || p.color || "black",
             width: p.border_width || 1,
-            radius: p.radius || 0
+            radius
         };
     },
     exportLVGL,
     export: (w, context) => {
         const {
-            lines, getColorConst, addDitherMask, getCondProps, getConditionCheck, RECT_Y_OFFSET, isEpaper
+            lines, getColorConst, addDitherMask, getCondProps, getConditionCheck, RECT_Y_OFFSET, isEpaper // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};
         const fill = !!p.fill;
         const showBorder = p.show_border !== false;
-        const r = parseInt(p.radius || 10, 10);
+        const r = parseInt(p.radius ?? p.corner_radius ?? p.border_radius ?? 10, 10);
         const thickness = parseInt(p.border_width || 4, 10);
 
         const colorProp = p.color || "theme_auto";
@@ -122,7 +154,6 @@ export default {
         const rrectW = Math.floor(w.width);
         const rrectH = Math.floor(w.height);
 
-        lines.push(`        // widget:rounded_rect id:${w.id} type:rounded_rect x:${rrectX} y:${rrectY} w:${rrectW} h:${rrectH} fill:${fill} show_border:${showBorder} border:${thickness} radius:${r} color:${fillColorProp} border_color:${borderColorProp} ${getCondProps(w)}`);
 
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);

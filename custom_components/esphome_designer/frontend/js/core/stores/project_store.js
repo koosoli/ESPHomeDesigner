@@ -1,20 +1,20 @@
 import { emit, EVENTS } from '../events.js';
-import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, ORIENTATIONS } from '../constants.js';
+import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, ORIENTATIONS } from '../constants';
 import { DEVICE_PROFILES } from '../../io/devices.js';
-import { Logger } from '../../utils/logger.js';
-import { hasHaBackend } from '../../utils/env.js';
 import { generateId, deepClone } from '../../utils/helpers.js';
 
 export class ProjectStore {
     constructor() {
         /**
          * @type {{
-         *  pages: import("../../types.js").PageConfig[],
+         *  pages: Page[],
          *  currentPageIndex: number,
          *  deviceName: string,
          *  deviceModel: string,
          *  currentLayoutId: string,
-         *  widgetsById: Map<string, import("../../types.js").WidgetConfig>
+         *  customHardware: any,
+         *  protocolHardware: any,
+         *  widgetsById: Map<string, Widget>
          * }}
          */
         this.state = {
@@ -45,7 +45,7 @@ export class ProjectStore {
         this.rebuildWidgetsIndex();
     }
 
-    /** @returns {import("../../types.js").PageConfig[]} */
+    /** @returns {Page[]} */
     get pages() { return this.state.pages; }
     /** @returns {number} */
     get currentPageIndex() { return this.state.currentPageIndex; }
@@ -57,15 +57,16 @@ export class ProjectStore {
     get currentLayoutId() { return this.state.currentLayoutId; }
     /** @returns {Object} */
     get protocolHardware() { return this.state.protocolHardware; }
+    get customHardware() { return this.state.customHardware; }
 
-    /** @returns {import("../../types.js").PageConfig} */
+    /** @returns {Page} */
     getCurrentPage() {
         return this.state.pages[this.state.currentPageIndex] || this.state.pages[0];
     }
 
     /**
      * @param {string} id 
-     * @returns {import("../../types.js").WidgetConfig|undefined}
+    * @returns {Widget|undefined}
      */
     getWidgetById(id) {
         return this.state.widgetsById.get(id);
@@ -80,7 +81,7 @@ export class ProjectStore {
         }
     }
 
-    /** @param {import("../../types.js").PageConfig[]} pages */
+    /** @param {Page[]} pages */
     setPages(pages) {
         this.state.pages = pages;
         this.rebuildWidgetsIndex();
@@ -234,7 +235,7 @@ export class ProjectStore {
     }
 
     /** 
-     * @param {import("../../types.js").WidgetConfig} widget 
+    * @param {Widget} widget 
      * @param {number|null} targetPageIndex
      */
     addWidget(widget, targetPageIndex = null) {
@@ -248,7 +249,7 @@ export class ProjectStore {
 
     /**
      * @param {string} widgetId 
-     * @param {Partial<import("../../types.js").WidgetConfig>} updates 
+    * @param {Partial<Widget>} updates 
      */
     updateWidget(widgetId, updates) {
         const widget = this.getWidgetById(widgetId);
@@ -374,7 +375,7 @@ export class ProjectStore {
 
         // 3. Bounds clamping for ROOT widgets only
         // Only clamp roots to preserve relative positioning within groups
-        const dims = this.getCanvasDimensions();
+        const dims = this.getCanvasDimensions(this.state.protocolHardware?.orientation);
         for (const id of allMovedIds) {
             const widget = this.state.widgetsById.get(id);
             if (!widget) continue;
@@ -467,7 +468,6 @@ export class ProjectStore {
         if (name) this.state.deviceName = name;
         if (model) {
             this.state.deviceModel = model;
-            window.currentDeviceModel = model;
         }
         emit(EVENTS.SETTINGS_CHANGED);
     }
@@ -503,9 +503,10 @@ export class ProjectStore {
         }
     }
 
-    /** @returns {import("../../types.js").ProjectPayload} */
+    /** @returns {ProjectPayload} */
     getPagesPayload() {
         return {
+            name: this.state.deviceName,
             pages: this.state.pages,
             deviceName: this.state.deviceName,
             deviceModel: this.state.deviceModel,

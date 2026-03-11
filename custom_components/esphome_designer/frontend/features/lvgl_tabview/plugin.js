@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * LVGL Tabview Plugin
  */
@@ -91,8 +92,34 @@ export default {
     defaults: {
         tabs: ["Page 1", "Page 2", "Page 3"],
         tab_pos: "TOP",
-        bg_color: "white"
+        bg_color: "white",
+        tab_size: 10,
+        opa: 255,
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Tabs",
+            fields: [
+                { key: "tabs", label: "Tab Names (CSV or Newline)", type: "textarea", default: "Page 1\nPage 2\nPage 3" }
+            ]
+        },
+        {
+            section: "Layout",
+            fields: [
+                { key: "tab_pos", label: "Tab Position", type: "select", options: ["TOP", "BOTTOM", "LEFT", "RIGHT"], default: "TOP" },
+                { key: "tab_size", label: "Tab Bar Size (%)", type: "number", default: 10 }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "bg_color", label: "Background", type: "color", default: "white" },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL
 };

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ODP Multiline Text Plugin
  * Displays multiple lines of text separated by a delimiter
@@ -45,8 +46,26 @@ export default {
         color: "black",
         line_spacing: 4
     },
+    schema: [
+        {
+            section: "Text",
+            fields: [
+                { key: "text", label: "Value", type: "text", default: "Line 1|Line 2|Line 3" },
+                { key: "delimiter", label: "Delimiter", type: "text", default: "|" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "font_size", label: "Size", type: "number", default: 16 },
+                { key: "line_spacing", label: "Spacing", type: "number", default: 4 },
+                { key: "color", label: "Color", type: "color", default: "black" },
+                { key: "font_family", label: "Font", type: "select", options: ["Roboto", "Inter", "Mononoki"], default: "Roboto" }
+            ]
+        }
+    ],
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
 
         // Convert theme_auto to actual color
@@ -68,7 +87,7 @@ export default {
             font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf"
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { layout, _page }) => {
         const p = w.props || {};
 
         // Convert theme_auto to actual color

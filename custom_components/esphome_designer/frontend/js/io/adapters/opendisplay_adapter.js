@@ -1,6 +1,6 @@
 import { BaseAdapter } from './base_adapter.js';
 import { Logger } from '../../utils/logger.js';
-import { registry as PluginRegistry } from '../../core/plugin_registry.js';
+import { registry } from '../../core/plugin_registry';
 
 /**
  * OpenDisplay-specific adapter for generating ODP v1 JSON payloads.
@@ -13,7 +13,7 @@ export class OpenDisplayAdapter extends BaseAdapter {
 
     /**
      * Main entry point for generating the ODP YAML configuration.
-     * @param {import("../../types.js").ProjectPayload} layout
+     * @param {ProjectPayload} layout
      * @returns {Promise<string>} The generated YAML configuration.
      */
     async generate(layout) {
@@ -33,7 +33,7 @@ export class OpenDisplayAdapter extends BaseAdapter {
         const payloadItems = [];
 
         // Color Mode & Theme considerations
-        const ph = layout.protocolHardware || {};
+        const _ph = layout.protocolHardware || {};
         const isDark = page.dark_mode === 'dark' || (page.dark_mode === 'inherit' && layout.darkMode);
         const background = isDark ? "black" : "white";
 
@@ -97,12 +97,12 @@ export class OpenDisplayAdapter extends BaseAdapter {
 
     /**
      * Generates an ODP action for a single widget.
-     * @param {Object} widget 
-     * @param {Object} context 
+     * @param {Widget} widget 
+     * @param {Record<string, any>} context 
      * @returns {Object|Object[]|null}
      */
     generateWidget(widget, context) {
-        const plugin = PluginRegistry ? PluginRegistry.get(widget.type) : null;
+        const plugin = registry.get(widget.type);
         if (plugin && typeof plugin.exportOpenDisplay === 'function') {
             try {
                 return plugin.exportOpenDisplay(widget, context);
@@ -123,4 +123,3 @@ export class OpenDisplayAdapter extends BaseAdapter {
 }
 
 // Expose globally
-window.OpenDisplayAdapter = OpenDisplayAdapter;

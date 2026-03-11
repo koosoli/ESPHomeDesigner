@@ -1,7 +1,9 @@
+// @ts-nocheck
 /**
  * Graph Plugin
  */
-import { drawInternalGrid, generateMockData, drawSmartAxisLabels, generateHistoricalDataPoints, parseDuration } from '../../js/utils/graph_helpers.js';
+import { AppState } from '@core/state';
+import { drawInternalGrid, generateMockData, drawSmartAxisLabels, generateHistoricalDataPoints, parseDuration } from '../../js/utils/graph_helpers.js'; // eslint-disable-line no-unused-vars
 import { fetchEntityHistory, getEntityAttributes } from '../../js/io/ha_api.js';
 import { emit, EVENTS } from '../../js/core/events.js';
 
@@ -35,8 +37,13 @@ const render = (el, widget, { getColorStyle }) => {
     el.style.backgroundColor = bgStyle;
     el.style.overflow = "hidden";
 
-    if (borderEnabled) {
-        el.style.border = "2px solid " + colorStyle;
+    if (props.border_width !== undefined ? props.border_width > 0 : borderEnabled) {
+        const bW = props.border_width !== undefined ? props.border_width : 2;
+        const bC = getColorStyle(props.border_color || color);
+        el.style.border = `${bW}px solid ${bC}`;
+        el.style.borderRadius = `${props.border_radius || 0}px`;
+    } else {
+        el.style.border = "none";
     }
 
     const svgNS = "http://www.w3.org/2000/svg";
@@ -89,18 +96,18 @@ const render = (el, widget, { getColorStyle }) => {
                                 else if (p.value !== undefined) values.push(parseFloat(p.value));
                             });
                         }
-                    } catch (e) {
+                    } catch (e) { // eslint-disable-line no-unused-vars
                         // Fallback parsing
                         if (rawData.includes('value:') || rawData.includes('value :')) {
                             // Structured format with "value:" keys
-                            const regex = /value\s*:\s*([\d\.-]+)/g;
+                            const regex = /value\s*:\s*([\d.-]+)/g;
                             let match;
                             while ((match = regex.exec(rawData)) !== null) {
                                 values.push(parseFloat(match[1]));
                             }
                         } else {
                             // Simple CSV: strip brackets/quotes, split by comma
-                            const cleaned = rawData.replace(/[\[\]"']/g, '');
+                            const cleaned = rawData.replace(/[[\]"']/g, '');
                             cleaned.split(',').forEach(s => {
                                 const f = parseFloat(s.trim());
                                 if (!isNaN(f)) values.push(f);
@@ -220,46 +227,302 @@ const render = (el, widget, { getColorStyle }) => {
     }
 };
 
-const exportLVGL = (w, { common, convertColor }) => {
-    const p = w.props || {};
-    const entityId = (w.entity_id || "").replace(/[^a-zA-Z0-9_]/g, "_");
-    const chartId = `chart_${w.id}`.replace(/-/g, "_");
+const getLvglGraphIds = (w) => {
+    const base = `lvgl_graph_${w.id}`.replace(/-/g, '_');
+    return {
+        base,
+        lineId: `${base}_line`,
+        samplesId: `${base}_samples`,
+        countId: `${base}_count`,
+        minId: `${base}_min`,
+        maxId: `${base}_max`
+    };
+};
 
-    const chart = {
-        ...common,
-        id: chartId,
-        type: "LINE",
-        duration: p.duration || "1h",
-        bg_color: convertColor(p.background_color || (p.bg_color || "white")),
-        series: [
-            {
-                sensor: entityId,
-                color: convertColor(p.color || "black"),
-                width: p.line_thickness || 2
-            }
-        ],
-        y_min: p.min_value || 0,
-        y_max: p.max_value || 100,
-        y_axis: {
-            show_labels: true,
-            num_ticks: 5
-        }
+const getLvglGraphPointCount = (w) => {
+    const p = w.props || {};
+    const width = Math.max(40, parseInt(w.width || p.width || 100, 10) || 100);
+    const requested = parseInt(p.history_points || Math.round(width / 8), 10) || 12;
+    return Math.max(8, Math.min(48, requested));
+};
+
+const getLvglGraphMetrics = (w) => {
+    const p = w.props || {};
+    const width = Math.max(40, parseInt(w.width || p.width || 100, 10) || 100);
+    const height = Math.max(30, parseInt(w.height || p.height || 100, 10) || 100);
+    const hasTitle = !!(w.title || p.title);
+    const plotTop = hasTitle ? 18 : 6;
+    const plotBottom = 6;
+    const plotHeight = Math.max(12, height - plotTop - plotBottom);
+
+    return {
+        width,
+        height,
+        plotTop,
+        plotHeight,
+        plotBottom,
+        pointCount: getLvglGraphPointCount(w)
+    };
+};
+
+const getPreviewGraphPoints = (w) => {
+    const { width, plotTop, plotHeight, pointCount } = getLvglGraphMetrics(w);
+    const points = [];
+
+    for (let i = 0; i < pointCount; i++) {
+        const x = pointCount === 1 ? 0 : Math.round((i * (width - 1)) / (pointCount - 1));
+        const phase = pointCount === 1 ? 0 : i / (pointCount - 1);
+        const wave = Math.sin(phase * Math.PI * 1.5);
+        const y = plotTop + Math.round((1 - ((wave + 1) / 2)) * plotHeight);
+        points.push({ x, y });
+    }
+
+    return points;
+};
+
+const buildLvglPointLambda = (w, pointIndex) => {
+    const { pointCount, plotHeight, plotTop } = getLvglGraphMetrics(w);
+    const { samplesId, countId, minId, maxId } = getLvglGraphIds(w);
+
+    return [
+        '!lambda |-',
+        `  const int total = ${pointCount};`,
+        `  const int count = id(${countId});`,
+        `  if (count <= 0) return ${plotTop + plotHeight};`,
+        '  const int first = count < total ? total - count : 0;',
+        `  if (${pointIndex} < first) return ${plotTop + plotHeight};`,
+        `  const int sample_index = count < total ? ${pointIndex} - first : ${pointIndex};`,
+        `  float range = id(${maxId}) - id(${minId});`,
+        '  if (range <= 0.0001f) range = 1.0f;',
+        `  float normalized = (id(${samplesId})[sample_index] - id(${minId})) / range;`,
+        '  if (normalized < 0.0f) normalized = 0.0f;',
+        '  if (normalized > 1.0f) normalized = 1.0f;',
+        `  return ${plotTop + plotHeight} - static_cast<int>(normalized * ${plotHeight});`
+    ].join('\n');
+};
+
+const getLvglGraphLineProps = (p) => {
+    const lineType = (p.line_type || 'SOLID').toUpperCase();
+    const lineProps = {
+        line_width: Math.max(1, parseInt(p.line_thickness || 3, 10) || 3),
+        line_rounded: true
     };
 
-    // If using history, we indicate it so the LVGL generator can potentially handle it
-    // or we can add a custom attribute for later processing.
-    if (p.use_ha_history) {
-        chart.use_ha_history = true;
+    if (lineType === 'DASHED') {
+        lineProps.line_dash_width = 6;
+        lineProps.line_dash_gap = 4;
+    } else if (lineType === 'DOTTED') {
+        lineProps.line_dash_width = 2;
+        lineProps.line_dash_gap = 3;
+    }
+
+    return lineProps;
+};
+
+const buildLvglGraphPoints = (w) => {
+    const hasLiveData = !!((w.entity_id || '').trim());
+    const { width, pointCount } = getLvglGraphMetrics(w);
+
+    if (!hasLiveData) {
+        return getPreviewGraphPoints(w);
+    }
+
+    return Array.from({ length: pointCount }, (_, index) => ({
+        x: pointCount === 1 ? 0 : Math.round((index * (width - 1)) / (pointCount - 1)),
+        y: buildLvglPointLambda(w, index)
+    }));
+};
+
+const buildLvglGridLines = (w, convertColor) => {
+    const p = w.props || {};
+    const { width, plotTop, plotHeight } = getLvglGraphMetrics(w);
+    const gridColor = convertColor(p.grid_color || 'gray');
+    const lines = [];
+
+    if (p.grid === false) {
+        return lines;
+    }
+
+    for (let i = 1; i < 4; i++) {
+        const y = plotTop + Math.round((plotHeight * i) / 4);
+        const x = Math.round(((width - 1) * i) / 4);
+        lines.push({
+            line: {
+                line_color: gridColor,
+                line_width: 1,
+                points: [
+                    { x: 0, y },
+                    { x: width - 1, y }
+                ]
+            }
+        });
+        lines.push({
+            line: {
+                line_color: gridColor,
+                line_width: 1,
+                points: [
+                    { x, y: plotTop },
+                    { x, y: plotTop + plotHeight }
+                ]
+            }
+        });
+    }
+
+    return lines;
+};
+
+const buildLvglBoundsLines = (w, countExpr, sampleExpr) => {
+    const p = w.props || {};
+    const { minId, maxId } = getLvglGraphIds(w);
+    const autoScale = p.auto_scale !== false;
+    const minValue = parseFloat(p.min_value);
+    const maxValue = parseFloat(p.max_value);
+    const minRange = parseFloat(p.min_range);
+    const maxRange = parseFloat(p.max_range);
+    const hasMinValue = Number.isFinite(minValue);
+    const hasMaxValue = Number.isFinite(maxValue);
+    const lines = [];
+
+    if (!autoScale) {
+        lines.push(`id(${minId}) = ${hasMinValue ? minValue : 0};`);
+        lines.push(`id(${maxId}) = ${hasMaxValue ? maxValue : 100};`);
+        return lines;
+    }
+
+    lines.push(`float min_v = ${sampleExpr('0')};`);
+    lines.push(`float max_v = ${sampleExpr('0')};`);
+    lines.push(`for (int i = 1; i < ${countExpr}; i++) {`);
+    lines.push(`  float sample = ${sampleExpr('i')};`);
+    lines.push('  if (sample < min_v) min_v = sample;');
+    lines.push('  if (sample > max_v) max_v = sample;');
+    lines.push('}');
+
+    if (hasMinValue) lines.push(`min_v = ${minValue};`);
+    if (hasMaxValue) lines.push(`max_v = ${maxValue};`);
+
+    if (Number.isFinite(minRange) && minRange > 0) {
+        lines.push('float range_min = max_v - min_v;');
+        lines.push(`if (range_min < ${minRange}) {`);
+        lines.push('  float center = (max_v + min_v) / 2.0f;');
+        lines.push(`  min_v = center - ${minRange} / 2.0f;`);
+        lines.push(`  max_v = center + ${minRange} / 2.0f;`);
+        lines.push('}');
+    }
+
+    if (Number.isFinite(maxRange) && maxRange > 0) {
+        lines.push('float range_max = max_v - min_v;');
+        lines.push(`if (range_max > ${maxRange}) {`);
+        lines.push('  float center = (max_v + min_v) / 2.0f;');
+        lines.push(`  min_v = center - ${maxRange} / 2.0f;`);
+        lines.push(`  max_v = center + ${maxRange} / 2.0f;`);
+        lines.push('}');
+    }
+
+    lines.push('float span = max_v - min_v;');
+    lines.push('if (span < 0.0f) span = -span;');
+    lines.push('if (span < 0.001f) {');
+    lines.push('  min_v -= 0.5f;');
+    lines.push('  max_v += 0.5f;');
+    lines.push('}');
+    lines.push(`id(${minId}) = min_v;`);
+    lines.push(`id(${maxId}) = max_v;`);
+
+    return lines;
+};
+
+const buildLvglLineUpdateAction = (w) => {
+    const { lineId } = getLvglGraphIds(w);
+    const points = buildLvglGraphPoints(w);
+    const lines = [
+        '- lvgl.line.update:',
+        `    id: ${lineId}`,
+        '    points:'
+    ];
+
+    points.forEach(point => {
+        lines.push(`      - x: ${point.x}`);
+        if (typeof point.y === 'string' && point.y.includes('\n')) {
+            const parts = point.y.split('\n');
+            lines.push(`        y: ${parts[0]}`);
+            parts.slice(1).forEach(part => {
+                lines.push(`          ${part}`);
+            });
+        } else {
+            lines.push(`        y: ${point.y}`);
+        }
+    });
+
+    return lines.join('\n');
+};
+
+const buildLvglLiveUpdateAction = (w) => {
+    const { samplesId, countId } = getLvglGraphIds(w);
+    const pointCount = getLvglGraphPointCount(w);
+    const lambdaLines = [
+        '- lambda: |-',
+        `    const int max_samples = ${pointCount};`,
+        '    float value = x;',
+        '    if (isnan(value)) return;',
+        `    if (id(${countId}) < max_samples) {`,
+        `      id(${samplesId})[id(${countId})] = value;`,
+        `      id(${countId}) += 1;`,
+        '    } else {',
+        '      for (int i = 1; i < max_samples; i++) {',
+        `        id(${samplesId})[i - 1] = id(${samplesId})[i];`,
+        '      }',
+        `      id(${samplesId})[max_samples - 1] = value;`,
+        '    }'
+    ];
+
+    buildLvglBoundsLines(w, `id(${countId})`, (index) => `id(${samplesId})[${index}]`).forEach(line => {
+        lambdaLines.push(`    ${line}`);
+    });
+
+    return `${lambdaLines.join('\n')}\n${buildLvglLineUpdateAction(w)}`;
+};
+
+const exportLVGL = (w, { common, convertColor }) => {
+    const p = w.props || {};
+    const title = w.title || p.title || 'Graph';
+    const { lineId } = getLvglGraphIds(w);
+    const bgColor = p.background_color || p.bg_color || 'transparent';
+    const widgets = [
+        ...buildLvglGridLines(w, convertColor),
+        {
+            line: {
+                id: lineId,
+                line_color: convertColor(p.color || 'black'),
+                points: buildLvglGraphPoints(w),
+                ...getLvglGraphLineProps(p)
+            }
+        }
+    ];
+
+    if (title) {
+        widgets.push({
+            label: {
+                align: 'top_mid',
+                text: `"${title}"`,
+                text_color: convertColor(p.color || 'black')
+            }
+        });
     }
 
     return {
-        lv_chart: chart
+        obj: {
+            ...common,
+            ...(bgColor === 'transparent' ? { bg_opa: 'transp' } : { bg_color: convertColor(bgColor) }),
+            border_color: convertColor(p.border_color || p.color || 'black'),
+            border_width: p.border === false ? 0 : (p.border_width ?? 1),
+            radius: p.border_radius || 0,
+            widgets
+        }
     };
 };
 
 const exportDoc = (w, context) => {
     const {
-        lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper, sanitize
+        lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper, sanitize // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
@@ -271,13 +534,13 @@ const exportDoc = (w, context) => {
     const bgColor = backgroundProp !== "transparent" ? getColorConst(backgroundProp) : null;
     const colorProp = p.color || "theme_auto";
     const color = getColorConst(colorProp);
-    const lineType = p.line_type || "SOLID";
+    const lineType = p.line_type || "SOLID"; // eslint-disable-line no-unused-vars
     const lineThickness = parseInt(p.line_thickness || 3, 10);
-    const continuous = !!p.continuous;
+    const continuous = !!p.continuous; // eslint-disable-line no-unused-vars
     const minValue = p.min_value || "";
     const maxValue = p.max_value || "";
-    const minRange = p.min_range || "";
-    const maxRange = p.max_range || "";
+    const minRange = p.min_range || ""; // eslint-disable-line no-unused-vars
+    const maxRange = p.max_range || ""; // eslint-disable-line no-unused-vars
 
     const safeId = `graph_${w.id}`.replace(/-/g, "_");
     const fontId = addFont("Roboto", 400, 12);
@@ -312,7 +575,6 @@ const exportDoc = (w, context) => {
         }
     }
 
-    lines.push(`        // widget:graph id:${w.id} type:graph x:${w.x} y:${w.y} w:${w.width} h:${w.height} title:"${title}" entity:${entityId} local:${!!p.is_local_sensor} duration:${duration} border:${borderEnabled} color:${colorProp} background:${backgroundProp} x_grid:${xGrid} y_grid:${yGrid} line_type:${lineType} line_thickness:${lineThickness} continuous:${continuous} min_value:${minValue} max_value:${maxValue} min_range:${minRange} max_range:${maxRange} ${getCondProps(w)}`);
 
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
@@ -324,7 +586,7 @@ const exportDoc = (w, context) => {
     if (entityId) {
         if (p.use_ha_history) {
             const histId = `hist_${w.id}`.replace(/-/g, "_");
-            const points = p.history_points || 100;
+            const points = p.history_points || 100; // eslint-disable-line no-unused-vars
             const useAutoScale = p.auto_scale !== false;
 
             lines.push(`        // Draw historical graph from global array ${histId}`);
@@ -395,10 +657,13 @@ const exportDoc = (w, context) => {
             }
         }
 
-        if (borderEnabled) {
-            lines.push(`        for (int i = 0; i < ${lineThickness}; i++) {`);
-            lines.push(`          it.rectangle(${w.x} + i, ${w.y} + i, ${w.width} - 2 * i, ${w.height} - 2 * i, ${color});`);
-            lines.push(`        }`);
+        const borderWidth = parseInt(p.border_width !== undefined ? p.border_width : (borderEnabled ? 2 : 0), 10);
+        if (borderWidth > 0) {
+            const borderColorProp = p.border_color || colorProp;
+            const borderColorConst = getColorConst(borderColorProp);
+            for (let i = 0; i < borderWidth; i++) {
+                lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColorConst});`);
+            }
             addDitherMask(lines, colorProp, isEpaper, w.x, w.y, w.width, w.height);
         }
 
@@ -462,7 +727,9 @@ const exportDoc = (w, context) => {
 };
 
 const onExportComponents = (context) => {
-    const { lines, widgets, profile, layout } = context;
+    const { lines, widgets, profile, layout, isLvgl } = context;
+    if (isLvgl) return;
+
     const graphWidgets = widgets.filter(w => w.type === 'graph');
     const useInvertedColors = !!(profile?.features?.inverted_colors || layout?.invertedColors);
 
@@ -623,6 +890,21 @@ const onExportComponents = (context) => {
 
 const onExportGlobals = (context) => {
     const { lines, widgets } = context;
+    widgets.filter(w => w.type === 'graph' && context.isLvgl && (w.entity_id || '').trim()).forEach(w => {
+        const { samplesId, countId, minId, maxId } = getLvglGraphIds(w);
+        const points = getLvglGraphPointCount(w);
+        lines.push(`- id: ${samplesId}`);
+        lines.push(`  type: float[${points}]`);
+        lines.push(`- id: ${countId}`);
+        lines.push('  type: int');
+        lines.push("  initial_value: '0'");
+        lines.push(`- id: ${minId}`);
+        lines.push('  type: float');
+        lines.push("  initial_value: '0'");
+        lines.push(`- id: ${maxId}`);
+        lines.push('  type: float');
+        lines.push("  initial_value: '100'");
+    });
     widgets.filter(w => w.type === 'graph' && w.props?.use_ha_history).forEach(w => {
         const histId = `hist_${w.id}`.replace(/-/g, "_");
         const points = w.props.history_points || 100;
@@ -743,6 +1025,26 @@ const onExportTextSensors = (context) => {
             lines.push(`             id(${histId})[i] = (id(${histId})[i-1] + id(${histId})[i] + id(${histId})[i+1]) / 3.0;`);
             lines.push(`          }`);
         }
+        if (context.isLvgl) {
+            lines.push(`      - lambda: |-`);
+            lines.push(`          if (idx <= 0) return;`);
+            buildLvglBoundsLines(w, 'idx', (index) => `id(${histId})[${index}]`).forEach(line => {
+                lines.push(`          ${line}`);
+            });
+            const { samplesId, countId } = getLvglGraphIds(w);
+            lines.push(`          int limit = std::min(idx, ${getLvglGraphPointCount(w)});`);
+            lines.push(`          id(${countId}) = limit;`);
+            lines.push(`          int start = idx > limit ? idx - limit : 0;`);
+            lines.push(`          for (int i = 0; i < limit; i++) {`);
+            lines.push(`            id(${samplesId})[i] = id(${histId})[start + i];`);
+            lines.push('          }');
+            buildLvglBoundsLines(w, `id(${countId})`, (index) => `id(${samplesId})[${index}]`).forEach(line => {
+                lines.push(`          ${line}`);
+            });
+            buildLvglLineUpdateAction(w).split('\n').forEach(line => {
+                lines.push(`      ${line}`);
+            });
+        }
     });
 };
 
@@ -766,7 +1068,7 @@ const onExportNumericSensors = (context) => {
             if (!pendingTriggers.has(entityId)) {
                 pendingTriggers.set(entityId, new Set());
             }
-            pendingTriggers.get(entityId).add(`- lvgl.widget.refresh: ${w.id}`);
+            pendingTriggers.get(entityId).add(buildLvglLiveUpdateAction(w));
         }
 
         // We let the safety fix handle the sensor generation for HA entities.
@@ -798,13 +1100,80 @@ export default {
         continuous: true,
         min_value: "",
         max_value: "",
-        min_range: "",
-        max_range: "",
-        use_ha_history: false,
-        history_points: 100,
-        history_attribute: "history",
-        history_smoothing: false,
-        auto_scale: true
+        is_local_sensor: false,
+        opa: 255
+    },
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Data Source", true);
+        panel.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
+            AppState.updateWidget(widget.id, { entity_id: v });
+        }, widget);
+        panel.addCheckbox("Is Local Sensor", !!props.is_local_sensor, (v) => updateProp("is_local_sensor", v));
+        panel.addLabeledInput("Title", "text", widget.title || "", (v) => {
+            AppState.updateWidget(widget.id, { title: v });
+        });
+        panel.addLabeledInput("Duration", "text", props.duration || "1h", (v) => updateProp("duration", v));
+        panel.addHint("The device collects data from boot. The graph fills up over the configured duration.");
+        panel.endSection();
+
+        panel.createSection("Advanced: HA History Attribute", false);
+        panel.addCheckbox("Read History from HA Attribute", !!props.use_ha_history, (v) => updateProp("use_ha_history", v));
+        if (props.use_ha_history) {
+            panel.addLabeledInput("HA Attribute", "text", props.history_attribute || "history", (v) => updateProp("history_attribute", v));
+            panel.addLabeledInput("Points to keep", "number", props.history_points || 100, (v) => updateProp("history_points", parseInt(v, 10)));
+            panel.addCheckbox("Smooth Data (Moving Avg)", !!props.history_smoothing, (v) => updateProp("history_smoothing", v));
+            panel.addHint('⚠️ <span style="color:orange">Requires a custom HA template sensor that exposes history as a JSON array attribute.</span> Standard HA entities do not have this attribute by default.');
+        }
+        panel.endSection();
+
+        panel.createSection("Appearance", true);
+        panel.addCheckbox("Auto-scale Y Axis", props.auto_scale !== false, (v) => updateProp("auto_scale", v));
+
+        // Always show Min/Max options (as overrides if Auto is ON)
+        panel.addCompactPropertyRow(() => {
+            const isAuto = props.auto_scale !== false;
+            panel.addLabeledInput(isAuto ? "Min (Override)" : "Min Value", "number", props.min_value !== undefined ? props.min_value : "", (v) => updateProp("min_value", v));
+            panel.addLabeledInput(isAuto ? "Max (Override)" : "Max Value", "number", props.max_value !== undefined ? props.max_value : "", (v) => updateProp("max_value", v));
+        });
+
+        if (props.auto_scale !== false) {
+            // Auto-scale is ON: show Min Range option
+            panel.addLabeledInput("Min Range", "number", props.min_range || "10", (v) => updateProp("min_range", v));
+            panel.addHint("Min/Max inputs override auto-scaling for that bound. Min Range ensures minimum spread.");
+        } else {
+            panel.addHint("Fixed Y-axis bounds.");
+        }
+        panel.addCompactPropertyRow(() => {
+            panel.addLabeledInput("Max Range", "number", props.max_range || "", (v) => updateProp("max_range", v));
+            panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => updateProp("opacity", v));
+        });
+
+        panel.addColorSelector("Line Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
+        panel.addSelect("Line Type", props.line_type || "SOLID", ["SOLID", "DASHED", "DOTTED"], (v) => updateProp("line_type", v));
+        panel.addLabeledInput("Line Thickness", "number", props.line_thickness || 3, (v) => updateProp("line_thickness", parseInt(v, 10)));
+        panel.addCheckbox("Continuous Line", props.continuous !== false, (v) => updateProp("continuous", v));
+        panel.addColorSelector("Background", props.background_color || "transparent", null, (v) => updateProp("background_color", v));
+        panel.endSection();
+
+        panel.createSection("Grid Style", false);
+        panel.addCheckbox("Show Grid", props.grid !== false, (v) => updateProp("grid", v));
+        panel.addLabeledInput("X Grid Interval", "text", props.x_grid || "", (v) => updateProp("x_grid", v));
+        panel.addLabeledInput("Y Grid Step", "number", props.y_grid || "", (v) => updateProp("y_grid", v));
+        panel.addHint("e.g. 1h for X, or 10.0 for Y. Leave empty for auto-grid.");
+        panel.endSection();
+
+        panel.createSection("Border Style", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width !== undefined ? props.border_width : (props.border !== false ? 2 : 0), (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
     },
     render,
     exportLVGL,

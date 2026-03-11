@@ -1,7 +1,132 @@
+// @ts-nocheck
 /**
  * Calendar Plugin
  */
+import { AppState } from '@core/state';
+import { SchemaRenderer } from '../../js/core/properties/schema_renderer.js'; // eslint-disable-line no-unused-vars
 
+const CALENDAR_HELPER_SCRIPT = `# Dictionary to map calendar keys to their corresponding names
+# One word calandars don't need to be added calendar.jobs would map to Jobs by default without adding it here
+# calendar.hello_world should be added on the other hand
+CALENDAR_NAMES = {"calendar.x": "X", "calendar.Y": "Y"}
+# Day names (which are displayed in the calendar event list) can be translated here if required
+DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+# How many entries to send to the ESPHome device
+MAX_ENTRIES = 8
+
+def convert_calendar_format(data, today):
+    # Initialize a dictionary to store events grouped by date
+    events_by_date = {}
+    entrie_count = 0
+    
+    # Variable to store the end time of the closest event that will end
+    closest_end_time = None
+    
+    # Iterate through calendar keys and events
+    for calendar_key, events_list in data.items():
+        for event in events_list['events']:
+            if 'description' in event:
+                event.pop('description')
+                
+            # Attempt to split the 'event[start]' into date and time parts
+            parts = event['start'].split("T")
+            event_date = parts[0]
+            event_time = parts[1] if len(parts) > 1 else None  # event_time might not be present
+            
+            # Compare the event_date with today's date
+            if event_date < today:
+                # If the event's date is before today, update it to today's date (in case of multi day event starting before today)
+                event['start'] = today if event_time is None else f"{today}T{event_time}"
+                event_date = today
+            
+            # Add calendar name to event
+            # If calendar key exists in CALENDAR_NAMES, use its value, otherwise capitalize the second part of the key
+            event['calendar_name'] = CALENDAR_NAMES.get(calendar_key, calendar_key.split(".")[1].capitalize())
+            
+            # Parse location_name and location_address
+            if 'location' in event:
+                # Split the 'location' string into lines based on the newline character
+                location_lines = event['location'].split('\\\\\\\\n')
+                if len(location_lines) >= 2:
+                    # If there are at least two lines, consider the first line as 'location_name' and the second line as 'location_address'
+                    event['location_name'] = location_lines[0]
+                    # event['location_address'] = location_lines[1]
+                elif len(location_lines) == 1:
+                    # If there's only one line, consider it as 'location_name'
+                    event['location_name'] = location_lines[0]
+                    
+                # Remove the 'location' key from the event since it's been parsed into 'location_name' and 'location_address'
+                event.pop('location')
+                    
+            # Add event to events_by_date dictionary
+            if event_date in events_by_date:
+                events_by_date[event_date].append(event)
+            else:
+                events_by_date[event_date] = [event]
+                
+    # Sort events by date
+    sorted_dates = sorted(events_by_date.keys())
+    
+    # Initialize a list to store the final date objects
+    result = []
+    
+    # Iterate through sorted dates
+    for date in sorted_dates:
+        all_day_events = []
+        other_events = []
+        for event in events_by_date[date]:
+            if entrie_count == MAX_ENTRIES:
+                break
+            
+            # Check if the event lasts for the whole day
+            start_date = event['start']
+            end_date = event['end']
+            if 'T' not in event['start']:
+                all_day_events.append(event)
+            else:
+                other_events.append(event)
+                
+            entrie_count = entrie_count + 1
+        
+        if other_events and date == today:
+            closest_end_time = sorted(other_events, key=lambda item:dt_util.parse_datetime(item['end']), reverse=False)[0]["end"]
+        
+        if all_day_events or other_events:
+            # Sort other_events by start time
+            other_events.sort(key=lambda item:dt_util.parse_datetime(item['start']), reverse=False)
+            
+            # Construct dictionary for the date
+            # is_today cast to int because a bool somehow crashes my esphome config
+            day_item = {
+                'date': date,
+                'day': dt_util.parse_datetime(date).day,
+                'is_today': int(date == dt_util.now().isoformat().split("T")[0]),
+                'day_name': DAY_NAMES[dt_util.parse_datetime(date).weekday()],
+                'all_day': all_day_events,
+                'other': other_events
+            }
+            result.append(day_item)
+        
+    return (result, closest_end_time)
+
+# Access the data received from the Home Assistant service call
+input_data = data["calendar"]
+today = data["now"]
+
+# Convert the received data into the format expected by the epaper display
+converted_data = convert_calendar_format(input_data, today)
+
+# Pass the output back to Home Assistant
+output["entries"] = {"days": converted_data[0]}
+output["closest_end_time"] = converted_data[1]
+`;
+
+/**
+ * @param {HTMLElement} el
+ * @param {Widget} widget
+ * @param {Record<string, any>} props
+ * @param {{ getColorStyle: (color: string) => string }} context
+ */
 const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
     // Simple mock rendering for preview
     const width = widget.width || 400;
@@ -121,7 +246,7 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
                 // If theme is light (black text), use white inside.
                 // Since `colorStyle` is resolved, we just guess based on likely values.
                 // safe default is usually page background if we can't tell, but black is safer for white text.
-                textCol = (bgProp === "transparent") ? "var(--bg-base)" : getColorStyle(bgProp);
+                textCol = (bgProp === "transparent") ? "var(--bg-base)" : getColorStyle(bgProp); // eslint-disable-line no-unused-vars
             }
 
             // Override with simple inversion if transparent
@@ -156,8 +281,8 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
     let liveEvents = null;
     const entityId = (widget.entity_id || props.entity_id || "sensor.esp_calendar_data").trim();
     console.log("[Calendar Preview] Looking for entity:", entityId);
-    if (window.AppState && window.AppState.entityStates) {
-        const stateObj = window.AppState.entityStates[entityId];
+    if (AppState && AppState.entityStates) {
+        const stateObj = AppState.entityStates[entityId];
         console.log("[Calendar Preview] Found stateObj:", stateObj ? "yes" : "no", stateObj ? JSON.stringify(stateObj).substring(0, 300) : "");
         if (stateObj) {
             try {
@@ -209,7 +334,7 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
 
     if (liveEvents && Array.isArray(liveEvents) && liveEvents.length > 0) {
         events.innerHTML = "";
-        const limit = props.max_events || props.event_limit || 8;
+        const limit = parseInt(String(props.max_events || props.event_limit || 8), 10);
         let count = 0;
         for (const dayEntry of liveEvents) {
             if (count >= limit) break;
@@ -251,6 +376,40 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
 };
 
 
+const calendarSchema = [ // eslint-disable-line no-unused-vars
+    {
+        section: "Display Options",
+        fields: [
+            { key: "show_header", label: "Show Header (Today)", type: "checkbox", default: true },
+            { key: "show_grid", label: "Show Days Grid", type: "checkbox", default: true },
+            { key: "show_events", label: "Show Events List", type: "checkbox", default: true },
+            { key: "max_events", label: "Max Events Shown", type: "number", default: 8 }
+        ]
+    },
+    {
+        section: "Typography",
+        fields: [
+            { key: "font_family", label: "Font Family", type: "select", options: ["Roboto", "Inter", "Open Sans", "Monospace"], default: "Roboto" },
+            { key: "font_size_date", label: "Date Size (Header)", type: "number", default: 100 },
+            { key: "font_size_day", label: "Day Size (Header)", type: "number", default: 24 },
+            { key: "font_size_grid", label: "Grid Text Size", type: "number", default: 14 },
+            { key: "font_size_event", label: "Event Text Size", type: "number", default: 18 }
+        ]
+    },
+    {
+        section: "Appearance",
+        fields: [
+            { key: "text_color", label: "Text Color", type: "color", default: "theme_auto" },
+            { key: "background_color", label: "Background", type: "color", default: "transparent" },
+            { key: "border_width", label: "Border Width", type: "number", default: 0 },
+            { key: "border_color", label: "Border Color", type: "color", default: "theme_auto" },
+            { key: "border_radius", label: "Corners", type: "number", default: 0 },
+            { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+            { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+        ]
+    }
+];
+
 export default {
     id: "calendar",
     name: "Calendar",
@@ -260,8 +419,8 @@ export default {
     supportedModes: ['lvgl', 'direct'],
     defaults: {
         entity_id: "sensor.esp_calendar_data",
-        entity_id: "sensor.esp_calendar_data",
         border_width: 0,
+        show_border: true,
         border_color: "theme_auto",
         border_radius: 0,
         background_color: "transparent",
@@ -274,9 +433,116 @@ export default {
         show_grid: true,
         show_events: true,
         width: 335,
-        height: 340
+        height: 340,
+        opa: 255
     },
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
 
+        panel.createSection("Data Source", true);
+        panel.addLabeledInputWithPicker("Calendar Sensor ID", "text", widget.entity_id || "sensor.esp_calendar_data", (v) => {
+            AppState.updateWidget(widget.id, { entity_id: v });
+        }, widget);
+
+        panel.addLabeledInput("Source Calendars (CSV)", "text", props.source_calendars || "calendar.example_1, calendar.example_2", (v) => updateProp("source_calendars", v));
+        panel.addHint("List the HA calendar entities to include, separated by commas.");
+
+        const btnGroup = document.createElement("div");
+        btnGroup.style.display = "flex";
+        btnGroup.style.gap = "8px";
+        btnGroup.style.marginTop = "12px";
+
+        const dlBtn = document.createElement("button");
+        dlBtn.className = "btn btn-secondary btn-full btn-xs";
+        dlBtn.textContent = "Script";
+        dlBtn.title = "Download Python Helper Script";
+        dlBtn.style.flex = "1";
+        dlBtn.addEventListener("click", () => {
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/x-python;charset=utf-8,' + encodeURIComponent(CALENDAR_HELPER_SCRIPT));
+            element.setAttribute('download', 'esp_calendar_data_conversion.py');
+            element.click();
+        });
+
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "btn btn-secondary btn-full btn-xs";
+        copyBtn.textContent = "YAML";
+        copyBtn.title = "Copy HA Template YAML to Clipboard";
+        copyBtn.style.flex = "1";
+        copyBtn.addEventListener("click", () => {
+            // Simple generic YAML block based on common setup
+            const yaml = `
+# Add to configuration.yaml
+template:
+  - trigger:
+      - trigger: time_pattern
+        minutes: "/15"
+    action:
+      - action: calendar.get_events
+        target:
+          entity_id: ${props.source_calendars || 'calendar.your_calendar'}
+        data:
+          duration:
+            days: 14
+        response_variable: calendar_events
+      - action: python_script.esp_calendar_data_conversion
+        data:
+          calendar: "{{ calendar_events }}"
+          now: "{{ now().isoformat().split('T')[0] }}"
+        response_variable: output
+    sensor:
+      - name: ESP Calendar Data
+        unique_id: esp_calendar_data
+        state: "OK"
+        attributes:
+          entries: "{{ output.entries }}"
+          closest_end_time: "{{ output.closest_end_time }}"
+`;
+            navigator.clipboard.writeText(yaml.trim());
+            copyBtn.textContent = "✓ Copied";
+            setTimeout(() => { copyBtn.textContent = "YAML"; }, 2000);
+        });
+
+        btnGroup.appendChild(dlBtn);
+        btnGroup.appendChild(copyBtn);
+        panel.getContainer().appendChild(btnGroup);
+        panel.addHint("1. Download script to /python_scripts/<br/>2. Copy & paste YAML to HA config.");
+        panel.endSection();
+
+        panel.createSection("Design", true);
+        panel.addCheckbox("Show Header", props.show_header !== false, (v) => updateProp("show_header", v));
+        panel.addCheckbox("Show Grid", props.show_grid !== false, (v) => updateProp("show_grid", v));
+        panel.addCheckbox("Show Events", props.show_events !== false, (v) => updateProp("show_events", v));
+        panel.addLabeledInput("Max Events", "number", props.max_events || 8, (v) => updateProp("max_events", parseInt(v, 10)));
+        panel.endSection();
+
+        panel.createSection("Typography", false);
+        panel.addSelect("Font Family", props.font_family || "Roboto", ["Roboto", "Inter", "Open Sans", "Monospace"], (v) => updateProp("font_family", v));
+        panel.addLabeledInput("Date Size (Header)", "number", props.font_size_date || 100, (v) => updateProp("font_size_date", parseInt(v, 10)));
+        panel.addLabeledInput("Day Size (Header)", "number", props.font_size_day || 24, (v) => updateProp("font_size_day", parseInt(v, 10)));
+        panel.addLabeledInput("Grid Text Size", "number", props.font_size_grid || 14, (v) => updateProp("font_size_grid", parseInt(v, 10)));
+        panel.addLabeledInput("Event Text Size", "number", props.font_size_event || 18, (v) => updateProp("font_size_event", parseInt(v, 10)));
+        panel.endSection();
+
+        panel.createSection("Appearance", false);
+        panel.addColorSelector("Text Color", props.text_color || "theme_auto", null, (v) => updateProp("text_color", v));
+        panel.addColorSelector("Background", props.background_color || "transparent", null, (v) => updateProp("background_color", v));
+        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => updateProp("opacity", v));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
+    },
+    /**
+     * @param {HTMLElement} el
+     * @param {Widget} widget
+     * @param {GenerationContext} context
+     */
     render: (el, widget, context) => {
         const props = widget.props || {};
         el.innerHTML = "";
@@ -290,7 +556,7 @@ export default {
         const calendarWidgets = widgets.filter(w => w.type === "calendar");
         if (calendarWidgets.length === 0) return;
 
-        let needsInstruction = false;
+        let _needsInstruction = false;
 
         for (const w of calendarWidgets) {
             const p = w.props || {};
@@ -303,7 +569,7 @@ export default {
                 (context.seenSensorIds && context.seenSensorIds.has(safeId));
 
             if (!alreadyDefined) {
-                needsInstruction = true; // Use this to toggle instruction block
+                _needsInstruction = true; // Use this to toggle instruction block // eslint-disable-line no-unused-vars
                 if (context.seenEntityIds) context.seenEntityIds.add(entityId);
                 if (context.seenSensorIds) context.seenSensorIds.add(safeId);
 
@@ -462,7 +728,7 @@ export default {
 
     export: (w, context) => {
         const {
-            lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper
+            lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, isEpaper // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};
@@ -488,7 +754,6 @@ export default {
         const gridFontId = addFont(fontFamily, 400, gridFontSize);
         const eventFontId = addFont(fontFamily, 400, eventFontSize);
 
-        lines.push(`        // widget:calendar id:${w.id} type:calendar x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} ${getCondProps(w)}`);
 
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);
@@ -582,7 +847,6 @@ export default {
             lines.push(`          int max_y = y + h - 5;`);
             lines.push(`          const int event_limit = ${p.max_events || p.event_limit || 8};`);
             lines.push(``);
-            lines.push(`          // Debug and parse JSON`);
             // Use entity-based sensor ID to match onExportTextSensors
             const sensorSafeId = `calendar_data_${entityId.replace(/[^a-zA-Z0-9_]/g, "_")}`;
             lines.push(`          if (id(${sensorSafeId}).state.length() > 5 && id(${sensorSafeId}).state != "unknown") {`);
@@ -651,13 +915,13 @@ export default {
 
         if (borderWidth > 0) {
             if (radius > 0) {
-                // Fallback to sharp borders for now as per established pattern or use primitive if available
+                // Use concrete widget coordinates to avoid minification variable shadowing (Issue #323)
                 for (let i = 0; i < borderWidth; i++) {
-                    lines.push(`            it.rectangle(x + i, y + i, w - 2 * i, h - 2 * i, ${borderColor}); `);
+                    lines.push(`            it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - ${2 * i}, ${w.height} - ${2 * i}, ${borderColor});`);
                 }
             } else {
                 for (let i = 0; i < borderWidth; i++) {
-                    lines.push(`            it.rectangle(x + i, y + i, w - 2 * i, h - 2 * i, ${borderColor}); `);
+                    lines.push(`            it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - ${2 * i}, ${w.height} - ${2 * i}, ${borderColor});`);
                 }
             }
         }

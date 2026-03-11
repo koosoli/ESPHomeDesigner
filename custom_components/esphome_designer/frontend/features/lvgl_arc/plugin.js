@@ -1,3 +1,5 @@
+// @ts-nocheck
+import { AppState } from '../../js/core/state';
 /**
  * LVGL Arc Plugin
  */
@@ -83,8 +85,8 @@ const render = (el, widget, { getColorStyle }) => {
     let val = props.value !== undefined ? props.value : 50;
 
     const entityId = widget.entity_id;
-    if (entityId && window.AppState && window.AppState.entityStates) {
-        const stateObj = window.AppState.entityStates[entityId];
+    if (entityId && AppState && AppState.entityStates) {
+        const stateObj = AppState.entityStates[entityId];
         if (stateObj && stateObj.state !== undefined) {
             const parsed = parseFloat(stateObj.state);
             if (!isNaN(parsed)) {
@@ -202,8 +204,45 @@ export default {
         title: "",
         start_angle: 135,
         end_angle: 45,
-        mode: "normal"
+        mode: "normal",
+        opa: 255,
+        entity_id: "",
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "entity_id", target: "root", label: "Value Entity ID", type: "entity_picker", default: "" }
+            ]
+        },
+        {
+            section: "Settings",
+            fields: [
+                { key: "value", label: "Value", type: "number", default: 50 },
+                { key: "min", label: "Min Value", type: "number", default: 0 },
+                { key: "max", label: "Max Value", type: "number", default: 100 },
+                { key: "thickness", label: "Thickness", type: "number", default: 10 }
+            ]
+        },
+        {
+            section: "Angles",
+            fields: [
+                { key: "start_angle", label: "Start Angle", type: "number", default: 135 },
+                { key: "end_angle", label: "End Angle", type: "number", default: 45 },
+                { key: "mode", label: "Mode", type: "select", options: ["normal", "symmetrical", "reverse"], default: "normal" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "title", label: "Center Label", type: "text", default: "" },
+                { key: "color", label: "Main Color", type: "color", default: "blue" },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL,
     onExportNumericSensors

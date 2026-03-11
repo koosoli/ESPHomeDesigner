@@ -1,3 +1,32 @@
+## v1.0.0 RC8 - Architecture Cleanup & Stability
+**Release Date:** February 21, 2026
+
+### 🔧 Architecture & Verification
+- **Core Frontend Refactor**: Migrated key state, import/export, and registry paths from legacy `.js` modules to typed `.ts` modules, reducing ambiguity in the RC8 code path and making future maintenance safer.
+- **Import/Export Pipeline Split**: Broke ESPHome generation and YAML parsing into dedicated generators and parser modules, improving round-trip reliability and making hardware/package overrides easier to reason about.
+- **`js-yaml` Modernization**: Replaced the legacy bundled global script with the maintained NPM `js-yaml` dependency and ES module imports.
+- **Plugin Contract Hardening**: Audited and corrected `schema` / `defaults` alignment across the full plugin set so fallback values remain predictable during editing, export, and re-import.
+- **Current Verification Status**: The RC8 branch currently passes the automated frontend suite (`62` test files / `716` tests) and produces a successful production build.
+
+### 🌦️ Weather Forecast Upgrade
+- **Hourly Forecast Mode**: The `weather_forecast` widget can now switch between daily and hourly rendering.
+- **Custom Hour Slots**: Configure exact forecast hours such as `06,09,12,15` to match your Home Assistant forecast source.
+- **Start Offset Control**: Skip the first N hourly or daily entries with the new `start_offset` property.
+- **Hourly `templow` Guard**: Hourly mode now suppresses `templow` handling automatically, avoiding invalid low-temperature lookups in Home Assistant hourly forecast data.
+- **Direct + LVGL Parity**: Hour labels, icon selection, and refresh wiring now scale correctly across both direct rendering and LVGL export paths.
+
+
+### 🐛 Bug Fixes
+
+- **Graph History Guidance**: Added explicit property hints to the `graph` widget clarifying that native graphs collect data starting from device boot. Documentation for the "HA History" mode was also improved to clearly state it requires a custom HA template sensor for pre-existing data.
+- **LVGL Refresh Warning (Issue #255)**: Fixed an ESPHome 2024.12+ compiler warning ("Widget does not have any dynamic properties to refresh"). The `wifi_signal`, `weather_forecast`, `weather_icon`, `ondevice_temperature`, and `ondevice_humidity` plugins were incorrectly registering their static parent wrapper object for UI refreshes instead of the dynamic child labels. The generator now correctly targets the inner child text widgets.
+- **YAML Indentation Corruption (Issue #319)**: Fixed a bug where the hardware generator would output "mapping values are not allowed here" when merging touch panel configurations. The regex responsible for swapping `transform:` properties based on rotation was too greedy and incorrectly swallowed trailing `on_release:` event blocks.
+- **Vitest Teardown Fix**: Resolved a silent crash during asynchronous Vitest worker teardown by implementing an intelligent fallback target for the global State Proxy.
+- **Mock Registry Repair**: Restored broken unit tests in `esphome_adapter.snapshot.test.js` by transitioning to correctly decoupled utility functions.
+- **LVGL Line Fix**: Added missing `points` property to the `lvgl_line` plugin's default configuration, resolving a validation failure in the plugin contract tests.
+
+---
+
 ## v1.0.0 RC7 - Extended Domains & Deep Attributes
 **Release Date:** February 19, 2026
 

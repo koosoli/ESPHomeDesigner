@@ -1,46 +1,89 @@
-import { AppState } from './state.js';
+// @ts-check
+
+import { AppState } from './state';
 import { on, EVENTS } from './events.js';
-import { render, applyZoom, renderContextToolbar } from './canvas_renderer.js';
+import { render, applyZoom, renderContextToolbar, focusPage, zoomToFitAll } from './canvas_renderer.js';
 import { CanvasRulers } from './canvas_rulers.js';
 import { setupInteractions, setupPanning, setupZoomControls, setupDragAndDrop, zoomIn, zoomOut, zoomReset, onMouseMove, onMouseUp } from './canvas_interactions.js';
 import { setupTouchInteractions } from './canvas_touch.js';
-import { clearSnapGuides, addSnapGuideVertical, addSnapGuideHorizontal, getSnapLines, applySnapToPosition } from './canvas_snap.js';
+
+export let canvasInstance = null;
 
 export class Canvas {
-    constructor() {
-        this.canvas = document.getElementById("canvas");
-        this.canvasContainer = document.getElementById("canvasContainer");
-        this.viewport = document.querySelector(".canvas-viewport");
+    constructor(appInstance = null) {
+        /** @type {HTMLElement} */
+        this.canvas = /** @type {HTMLElement} */ (document.getElementById("canvas"));
+        /** @type {HTMLElement} */
+        this.canvasContainer = /** @type {HTMLElement} */ (document.getElementById("canvasContainer"));
+        /** @type {HTMLElement} */
+        this.viewport = /** @type {HTMLElement} */ (document.querySelector(".canvas-viewport"));
+
+        /** @type {any} */
         this.dragState = null;
+        /** @type {number} */
         this.panX = 0;
+        /** @type {number} */
         this.panY = 0;
 
         // Touch state for mobile devices
+        /** @type {any} */
         this.touchState = null;    // Single-touch widget drag state
+        /** @type {any} */
         this.pinchState = null;    // Two-finger pinch/pan state
+        /** @type {number} */
         this.lastTapTime = 0;      // Double-tap detection
 
         // External drag state (from palette)
         // Fixes race condition where auto-refresh destroys drop target
+        /** @type {boolean} */
         this.isExternalDragging = false;
 
         // Focus suppression flag - set by Add Page to prevent jarring zoom
+        /** @type {boolean} */
         this.suppressNextFocus = false;
+
+        /** @type {number} */
+        this._lastFocusedIndex = -1;
 
         // Helper bindings for listeners that need removal reference
         // (Though interactions module manages them via direct reference or stored props)
-        this._boundMouseMove = (ev) => onMouseMove(ev, this);
-        this._boundMouseUp = (ev) => onMouseUp(ev, this);
+        this._boundMouseMove = (/** @type {MouseEvent} */ ev) => onMouseMove(ev, this);
+        this._boundMouseUp = (/** @type {MouseEvent} */ ev) => onMouseUp(ev, this);
+
+        /** @type {any} */
+        this.longPressTimer = null;
+        /** @type {string|null} */
+        this.lastWidgetTapId = null;
+        /** @type {number} */
+        this.lastWidgetTapTime = 0;
+        /** @type {number} */
+        this.lastCanvasTapTime = 0;
+        /** @type {any} */
+        this._boundTouchMove = null;
+        /** @type {any} */
+        this._boundTouchEnd = null;
+
+        /** @type {any} */
+        this.panState = null;
+        /** @type {any} */
+        this.lassoState = null;
 
         this.rulers = new CanvasRulers(this);
 
+        /** @type {any} */
+        this.updateInterval = null;
+
+        /** @type {any} */
+        this.app = appInstance;
+
+        canvasInstance = this;
         this.init();
     }
 
     init() {
         // Subscribe to events
         on(EVENTS.STATE_CHANGED, () => this.render());
-        on(EVENTS.PAGE_CHANGED, (e) => {
+        on(EVENTS.PAGE_CHANGED, (/** @type {any} */ e) => {
             this.render();
 
             // Check canvas-level suppression flag (set by Add Page placeholder)
@@ -62,11 +105,11 @@ export class Canvas {
         on(EVENTS.SETTINGS_CHANGED, () => {
             this.render();
             this.applyZoom();
-            this.rulers.update();
+            if (this.rulers) this.rulers.update();
         });
         on(EVENTS.ZOOM_CHANGED, () => {
             this.applyZoom();
-            this.rulers.update();
+            if (this.rulers) this.rulers.update();
         });
 
         // Pages Header (clickable to fit all)
@@ -74,7 +117,7 @@ export class Canvas {
         if (pagesHeader) {
             pagesHeader.addEventListener('click', (e) => {
                 // Only trigger if we aren't clicking the chevron (which is for collapsing)
-                if (e.target.closest('.chevron')) return;
+                if (e.target instanceof HTMLElement && e.target.closest('.chevron')) return;
                 this.zoomToFitAll();
             });
         }
@@ -124,10 +167,11 @@ export class Canvas {
      */
     updateSelectionVisuals() {
         const selectedIds = AppState.selectedWidgetIds;
+        /** @type {NodeListOf<HTMLElement>} */
         const widgetEls = this.canvas.querySelectorAll('.widget');
         widgetEls.forEach(el => {
             const id = el.dataset.id;
-            if (selectedIds.includes(id)) {
+            if (id && selectedIds.includes(id)) {
                 el.classList.add('active');
             } else {
                 el.classList.remove('active');
@@ -162,10 +206,10 @@ export class Canvas {
         }
     }
     zoomToFitAll(smooth = true) {
-        import('./canvas_renderer.js').then(m => m.zoomToFitAll(this, smooth));
+        zoomToFitAll(this, smooth);
     }
     focusPage(index, smooth = true, fitZoom = false) {
-        import('./canvas_renderer.js').then(m => m.focusPage(this, index, smooth, fitZoom));
+        focusPage(this, index, smooth, fitZoom);
     }
 
     /**

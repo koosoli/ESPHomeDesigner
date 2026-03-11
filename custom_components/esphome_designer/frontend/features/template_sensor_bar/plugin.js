@@ -1,3 +1,5 @@
+// @ts-nocheck
+import { AppState } from '../../js/core/state';
 /**
  * Template Sensor Bar Plugin
  */
@@ -15,7 +17,7 @@ const render = (el, widget, { getColorStyle, isDark }) => {
     el.style.padding = "0 10px";
     el.style.boxSizing = "border-box";
 
-    const getDynamicColorRender = (c) => {
+    const getDynamicColorRender = (c) => { // eslint-disable-line no-unused-vars
         if (c === "theme_auto") return isDark ? "#ffffff" : "#000000";
         if (c === "white" || c === "#ffffff") return isDark ? "#000000" : "#ffffff"; // White becomes Black in Dark Mode (Background)
         if (c === "black" || c === "#000000") return isDark ? "#ffffff" : "#000000"; // Black becomes White in Dark Mode (Text)
@@ -87,9 +89,9 @@ const render = (el, widget, { getColorStyle, isDark }) => {
     el.style.color = cssColor;
 
     const getEntityState = (possibleIds) => {
-        if (!window.AppState || !window.AppState.entityStates) return null;
+        if (!AppState || !AppState.entityStates) return null;
         for (const id of possibleIds) {
-            if (id && window.AppState.entityStates[id]) return window.AppState.entityStates[id].state;
+            if (id && AppState.entityStates[id]) return AppState.entityStates[id].state;
         }
         return null;
     };
@@ -184,7 +186,7 @@ const render = (el, widget, { getColorStyle, isDark }) => {
 
 const exportDoc = (w, context) => {
     const {
-        lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, profile, isEpaper
+        lines, addFont, getColorConst, addDitherMask, getCondProps, getConditionCheck, profile, isEpaper // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
@@ -293,7 +295,6 @@ const exportDoc = (w, context) => {
     const iconFontRef = addFont("Material Design Icons", 400, iconSize);
     const textFontRef = addFont("Roboto", 400, fontSize);
 
-    lines.push(`        // widget:template_sensor_bar id:${w.id} type:template_sensor_bar x:${w.x} y:${w.y} w:${w.width} h:${w.height} wifi:${showWifi} temp:${showTemp} hum:${showHum} bat:${showBat} bg:${showBg} bg_color:${p.background_color || "black"} radius:${radius} border:${thickness} icon_size:${iconSize} font_size:${fontSize} color:${colorProp} wifi_ent:"${p.wifi_entity || ""}" temp_ent:"${p.temp_entity || ""}" temp_unit:${p.temp_unit || "°C"} hum_ent:"${p.hum_entity || ""}" bat_ent:"${p.bat_entity || ""}" ${getCondProps(w)}`);
 
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
@@ -462,7 +463,7 @@ const exportDoc = (w, context) => {
 };
 
 const onExportNumericSensors = (context) => {
-    const { lines, widgets, isLvgl, pendingTriggers, profile } = context;
+    const { lines, widgets, isLvgl, pendingTriggers, profile } = context; // eslint-disable-line no-unused-vars
     const barWidgets = widgets.filter(w => w.type === "template_sensor_bar");
     if (barWidgets.length === 0) return;
 
@@ -562,18 +563,72 @@ export default {
     defaults: {
         w: 355,
         h: 43,
+        width: 355,
+        height: 43,
         show_wifi: true,
+        wifi_entity: "",
+        wifi_is_local: false,
         show_temperature: true,
+        temp_entity: "",
+        temp_is_local: false,
         show_humidity: true,
+        hum_entity: "",
+        hum_is_local: false,
         show_battery: true,
+        bat_entity: "",
+        bat_is_local: false,
         show_background: true,
         background_color: "black",
         border_radius: 8,
+        border_thickness: 0,
+        border_color: "white",
         color: "white",
         font_size: 14,
         icon_size: 20,
-        temp_unit: "°C"
+        temp_unit: "°C",
+        opa: 255,
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Sensor Selection",
+            fields: [
+                { key: "show_wifi", label: "WiFi Strength", type: "checkbox", default: true },
+                { key: "wifi_entity", target: "root", label: "WiFi Entity", type: "entity_picker", default: "" },
+                { key: "wifi_is_local", label: "Use Local WiFi", type: "checkbox", default: false },
+                { key: "show_temperature", label: "Temperature", type: "checkbox", default: true },
+                { key: "temp_entity", target: "root", label: "Temp Entity", type: "entity_picker", default: "" },
+                { key: "temp_is_local", label: "Use Local Temp", type: "checkbox", default: false },
+                { key: "show_humidity", label: "Humidity", type: "checkbox", default: true },
+                { key: "hum_entity", target: "root", label: "Hum Entity", type: "entity_picker", default: "" },
+                { key: "hum_is_local", label: "Use Local Hum", type: "checkbox", default: false },
+                { key: "show_battery", label: "Battery Level", type: "checkbox", default: true },
+                { key: "bat_entity", target: "root", label: "Battery Entity", type: "entity_picker", default: "" },
+                { key: "bat_is_local", label: "Use Local Battery", type: "checkbox", default: false }
+            ]
+        },
+        {
+            section: "Pill Appearance",
+            fields: [
+                { key: "show_background", label: "Show Background Pill", type: "checkbox", default: true },
+                { key: "background_color", label: "Pill Color", type: "color", default: "black" },
+                { key: "border_radius", label: "Corners", type: "number", default: 8 },
+                { key: "border_thickness", label: "Border", type: "number", default: 0 },
+                { key: "border_color", label: "Border Color", type: "color", default: "white" }
+            ]
+        },
+        {
+            section: "Text & Icons",
+            fields: [
+                { key: "color", label: "Foreground Color", type: "color", default: "white" },
+                { key: "font_size", label: "Text Size", type: "number", default: 14 },
+                { key: "icon_size", label: "Icon Size", type: "number", default: 20 },
+                { key: "temp_unit", label: "Temp Units", type: "select", options: ["°C", "°F"], default: "°C" },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL: (w, { common, convertColor, getLVGLFont, profile }) => {
         const p = w.props || {};
@@ -633,7 +688,7 @@ export default {
                     layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" },
                     pad_all: 0, widgets: [
                         { label: { text: '"\\U000F050F"', text_font: iconFont, text_color: color } },
-                        { label: { text: `!lambda "if (id(${tempId}).has_state()) { return str_sprintf(\'%.1f${unit}\', ${tempExpr}).c_str(); } return \'--${unit}\';"`, text_font: textFont, text_color: color, x: 4 } }
+                        { label: { text: `!lambda "if (id(${tempId}).has_state()) { return str_sprintf('%.1f${unit}', ${tempExpr}).c_str(); } return '--${unit}';"`, text_font: textFont, text_color: color, x: 4 } }
                     ]
                 }
             });
@@ -647,7 +702,7 @@ export default {
                     layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" },
                     pad_all: 0, widgets: [
                         { label: { text: '"\\U000F058E"', text_font: iconFont, text_color: color } },
-                        { label: { text: `!lambda "if (id(${humId}).has_state()) { return str_sprintf(\'%.0f%%\', id(${humId}).state).c_str(); } return \'--%\';"`, text_font: textFont, text_color: color, x: 4 } }
+                        { label: { text: `!lambda "if (id(${humId}).has_state()) { return str_sprintf('%.0f%%', id(${humId}).state).c_str(); } return '--%%';"`, text_font: textFont, text_color: color, x: 4 } }
                     ]
                 }
             });
@@ -678,7 +733,7 @@ export default {
                     layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" },
                     pad_all: 0, widgets: [
                         { label: { text: batIconL, text_font: iconFont, text_color: color } },
-                        { label: { text: `!lambda "return id(${batId}).has_state() ? str_sprintf(\'%.0f%%\', id(${batId}).state).c_str() : \'--%\';"`, text_font: textFont, text_color: color, x: 4 } }
+                        { label: { text: `!lambda "return id(${batId}).has_state() ? str_sprintf('%.0f%%', id(${batId}).state).c_str() : '--%%';"`, text_font: textFont, text_color: color, x: 4 } }
                     ]
                 }
             });

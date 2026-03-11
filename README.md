@@ -91,6 +91,17 @@ You can use the designer without installing anything!
 3. Restart Home Assistant
 4. Add the integration via **Settings** → **Devices & Services**
 
+### Where Home Assistant Stores Your Data
+
+When you run ESPHome Designer inside Home Assistant, your saved layouts are stored in Home Assistant's storage folder:
+
+- **Layouts and editor state**: `/config/.storage/esphome_designer`
+- **Custom layouts you create in the editor**: saved inside that same `/config/.storage/esphome_designer` file as separate layout entries
+- **Legacy installs (0.8.6.2 and older)**: may still have old data in `/config/.storage/reterminal_dashboard`; the integration can read that and migrate it on a later save
+- **Uploaded custom hardware profiles**: `/config/esphomedesigner_custom_profiles/*.yaml`
+
+If you are browsing the Home Assistant filesystem from the host OS, replace `/config` with your actual Home Assistant configuration directory.
+
 #### 4. Local Development Server
 
 Run the editor locally without Home Assistant:
@@ -354,4 +365,3 @@ Made with love ❤️ - free and Open Source under the GPL 3.0 license. Share th
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/koosoli)
 
 </div>
-

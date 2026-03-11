@@ -1,3 +1,5 @@
+// @ts-nocheck
+import { AppState } from '@core/state';
 import { getNestedValue } from '../../js/utils/helpers.js';
 
 const render = (el, widget, { getColorStyle }) => {
@@ -20,8 +22,8 @@ const render = (el, widget, { getColorStyle }) => {
     let weatherState = "sunny"; // Default preview
     const entityId = widget.entity_id || props.weather_entity || "weather.forecast_home";
 
-    if (entityId && window.AppState && window.AppState.entityStates) {
-        const stateSet = window.AppState.entityStates[entityId];
+    if (entityId && AppState && AppState.entityStates) {
+        const stateSet = AppState.entityStates[entityId];
         const attribute = (props.attribute || "").trim();
 
         if (stateSet) {
@@ -92,7 +94,7 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportDoc = (w, context) => {
     const {
-        lines, addFont, getColorConst, getCondProps, getConditionCheck
+        lines, addFont, getColorConst, getCondProps, getConditionCheck // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
@@ -107,7 +109,6 @@ const exportDoc = (w, context) => {
     if (colorProp === "black") color = "color_on";
     const fontRef = addFont("Material Design Icons", 400, size);
 
-    lines.push(`        // widget:weather_icon id:${w.id} type:weather_icon x:${w.x} y:${w.y} w:${w.width} h:${w.height} entity:${entityId} size:${size} color:${colorProp} ${getCondProps(w)}`);
 
     // Background fill
     const bgColorProp = p.bg_color || p.background_color || "transparent";
@@ -130,7 +131,7 @@ const exportDoc = (w, context) => {
 
     if (entityId) {
         const attributePath = (p.attribute || "").trim();
-        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.\[]/)[0] : attributePath;
+        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[ ]/)[0] : attributePath;
         const makeSafeId = (eid, suffix = "") => {
             const base = rootAttr ? (eid + "_" + rootAttr) : eid;
             let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");
@@ -196,7 +197,7 @@ const onExportTextSensors = (context) => {
 
     weatherEntities.forEach(({ id, entity_id, attribute }) => {
         const attributePath = (attribute || "").trim();
-        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.\[]/)[0] : attributePath;
+        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[ ]/)[0] : attributePath;
         const makeSafeId = (eid, suffix = "") => {
             const base = rootAttr ? (eid + "_" + rootAttr) : eid;
             let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");
@@ -248,15 +249,52 @@ export default {
         size: 48,
         color: "theme_auto",
         background_color: "transparent",
-        background_color: "transparent",
+        bg_color: "transparent",
         weather_entity: "weather.forecast_home",
+        entity_id: "weather.forecast_home",
+        attribute: "",
         fit_icon_to_frame: true,
         border_width: 0,
         border_color: "theme_auto",
-        border_radius: 0
+        border_radius: 0,
+        opa: 255,
+        opacity: 100
+    },
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Data Source", true);
+        panel.addLabeledInputWithPicker("Weather Entity", "text", widget.entity_id || props.weather_entity || "weather.forecast_home", (v) => {
+            AppState.updateWidget(widget.id, { entity_id: v });
+        }, widget);
+        panel.addLabeledInput("Entity Attribute", "text", props.attribute || "", (v) => updateProp("attribute", v.trim()));
+        panel.addHint("Optional: Read condition from an attribute (e.g. for forecasts).");
+        panel.endSection();
+
+        panel.createSection("Icon Settings", true);
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => updateProp("opacity", v));
+        panel.addLabeledInput("Icon Size (px)", "number", props.size || 48, (v) => {
+            let n = parseInt(v || "48", 10);
+            updateProp("size", isNaN(n) ? 48 : n);
+        });
+        panel.addCheckbox("Fit icon to frame", !!props.fit_icon_to_frame, (v) => updateProp("fit_icon_to_frame", v));
+        panel.addColorSelector("Icon Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
+        panel.endSection();
+
+        panel.createSection("Appearance", false);
+        panel.addColorSelector("Background", props.bg_color || props.background_color || "transparent", null, (v) => updateProp("bg_color", v));
+        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
     },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || p.weather_entity || "weather.forecast_home").trim();
 
@@ -293,7 +331,7 @@ export default {
             anchor: "mm"
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || p.weather_entity || "weather.forecast_home").trim();
         const size = p.size || 48;
@@ -337,7 +375,7 @@ export default {
         if (entityId) {
             // Helper to create safe ESPHome ID (max 59 chars)
             const attributePath = (p.attribute || "").trim();
-            const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.\[]/)[0] : attributePath;
+            const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[ ]/)[0] : attributePath;
             const makeSafeId = (eid, suffix = "") => {
                 const base = rootAttr ? (eid + "_" + rootAttr) : eid;
                 let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");

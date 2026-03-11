@@ -1,11 +1,12 @@
+// @ts-nocheck
 /**
  * LVGL Textarea Plugin
  */
 
-const render = (el, widget, { getColorStyle }) => {
+const render = (el, widget, { _getColorStyle }) => {
     const props = widget.props || {};
     const text = props.text || "";
-    const placeholder = props.placeholder || "Enter text...";
+    const placeholder = props.placeholder_text || props.placeholder || "Enter text...";
 
     el.innerHTML = "";
     el.style.display = "flex";
@@ -45,14 +46,14 @@ const render = (el, widget, { getColorStyle }) => {
 };
 
 const exportLVGL = (w, context) => {
-    const { getStyleProps, getObjectDescriptor } = context;
+    const { getStyleProps, getObjectDescriptor } = context; // eslint-disable-line no-unused-vars
     const props = w.props || {};
 
     const obj = getObjectDescriptor(w);
     obj.type = "textarea";
     obj.attrs = {
         ...obj.attrs,
-        placeholder_text: props.placeholder,
+        placeholder_text: props.placeholder_text ?? props.placeholder,
         text: props.text,
         max_length: props.max_length,
         one_line: props.one_line ?? false,
@@ -68,9 +69,39 @@ export default {
     category: "LVGL",
     defaults: {
         text: "",
-        placeholder: "Enter text...",
-        max_length: 128
+        placeholder_text: "Enter text...",
+        max_length: 128,
+        accepted_chars: "",
+        one_line: false,
+        password_mode: false,
+        opa: 255,
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "text", label: "Initial Text", type: "text", default: "" },
+                { key: "placeholder_text", label: "Placeholder", type: "text", default: "Enter text..." },
+                { key: "accepted_chars", label: "Accepted Characters", type: "text", default: "" }
+            ]
+        },
+        {
+            section: "Settings",
+            fields: [
+                { key: "max_length", label: "Max Length", type: "number", default: 128 },
+                { key: "one_line", label: "One Line Mode", type: "checkbox", default: false },
+                { key: "password_mode", label: "Password Mode", type: "checkbox", default: false }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL
 };

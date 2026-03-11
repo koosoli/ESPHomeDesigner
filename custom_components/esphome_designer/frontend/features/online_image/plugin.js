@@ -1,6 +1,8 @@
+// @ts-nocheck
 /**
  * Online Image Plugin
  */
+import { AppState } from '@core/state';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -8,7 +10,21 @@ const render = (el, widget, { getColorStyle }) => {
     const invert = !!props.invert;
 
     el.style.boxSizing = "border-box";
-    el.style.backgroundColor = "#f5f5f5";
+
+    // Apply Border & Background (Restored)
+    if (props.border_width) {
+        const borderColor = getColorStyle(props.border_color || "black");
+        el.style.border = `${props.border_width}px solid ${borderColor}`;
+        el.style.borderRadius = `${props.border_radius || 0}px`;
+    } else {
+        el.style.border = "none";
+    }
+    if (props.bg_color) {
+        el.style.backgroundColor = getColorStyle(props.bg_color);
+    } else {
+        el.style.backgroundColor = "#f5f5f5";
+    }
+
     el.style.display = "flex";
     el.style.alignItems = "center";
     el.style.justifyContent = "center";
@@ -84,17 +100,16 @@ const getSafeId = (w) => `online_img_${w.id.replace(/-/g, "_")}`;
 
 const exportDoc = (w, context) => {
     const {
-        lines, getCondProps, getConditionCheck, profile
+        lines, getCondProps, getConditionCheck, profile // eslint-disable-line no-unused-vars
     } = context;
 
     const p = w.props || {};
-    const url = (p.url || "").trim();
+    const url = (p.url || "").trim(); // eslint-disable-line no-unused-vars
     const invert = !!p.invert;
     const renderMode = p.render_mode || "Auto";
 
     const safeId = getSafeId(w);
 
-    lines.push(`        // widget:${w.type} id:${w.id} x:${w.x} y:${w.y} w:${w.width} h:${w.height} url:"${url}" invert:${invert} render_mode:"${renderMode}" ${getCondProps(w)}`);
 
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
@@ -120,6 +135,16 @@ const exportDoc = (w, context) => {
         }
     } else {
         lines.push(`        it.image(${w.x}, ${w.y}, id(${safeId}));`);
+    }
+
+    // Border (Restored)
+    const borderWidth = parseInt(p.border_width || 0, 10);
+    if (borderWidth > 0) {
+        const borderColorProp = p.border_color || "theme_auto";
+        const borderColorConst = context.getColorConst(borderColorProp);
+        for (let i = 0; i < borderWidth; i++) {
+            lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColorConst});`);
+        }
     }
 
     if (cond) lines.push(`        }`);
@@ -203,12 +228,44 @@ export default {
     defaults: {
         url: "",
         invert: false,
+        interval_s: 300,
+        render_mode: "Auto",
         update_interval: "1h",
         rotation: 0,
-        color: "black"
+        color: "black",
+        opa: 255
+    },
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Content", true);
+        panel.addHint("💡 Fetch remote images dynamically (Puppet support):<br/><code style='background:#f0f0f0;padding:2px 4px;border-radius:2px;'>https://example.com/camera/snapshot.jpg </code><br/><span style='color:#4a9eff;'>ℹ️ Images are downloaded at specified intervals</span>");
+        panel.addLabeledInput("Remote URL", "text", props.url || "", (v) => updateProp("url", v));
+        panel.addLabeledInputWithPicker("Dynamic URL Entity", "text", widget.entity_id || "", (v) => {
+            AppState.updateWidget(widget.id, { entity_id: v });
+        }, widget);
+        panel.addLabeledInput("Update interval (seconds)", "number", props.interval_s || 300, (v) => updateProp("interval_s", parseInt(v, 10)));
+        panel.endSection();
+
+        panel.createSection("Appearance", true);
+        panel.addCheckbox("Invert colors", props.invert || false, (v) => updateProp("invert", v));
+        panel.addSelect("Render Mode", props.render_mode || "Auto", ["Auto", "Binary", "Grayscale", "Color (RGB565)"], (v) => updateProp("render_mode", v));
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => updateProp("opacity", v));
+        panel.endSection();
+
+        panel.createSection("Border Style", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
     },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { _layout, _page }) => {
         const p = w.props || {};
         const url = (p.url || "").trim();
 
@@ -224,7 +281,7 @@ export default {
             rotate: p.rotation || 0
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const url = (p.url || "").trim();
 

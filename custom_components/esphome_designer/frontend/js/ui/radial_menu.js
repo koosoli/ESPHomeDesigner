@@ -1,6 +1,6 @@
-import { AppState } from '../core/state.js';
+// @ts-nocheck
+import { AppState } from '../core/state';
 import { forceSnapWidget } from '../core/canvas_snap.js';
-import { Logger } from '../utils/logger.js';
 
 export class RadialMenu {
     constructor() {
@@ -208,5 +208,5 @@ export class RadialMenu {
     }
 }
 
-// Global instance
-window.RadialMenu = new RadialMenu();
+// Global instance export
+export const radialMenu = new RadialMenu();

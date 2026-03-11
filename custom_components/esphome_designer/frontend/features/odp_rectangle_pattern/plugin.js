@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ODP Rectangle Pattern Plugin
  * Creates a pattern of repeated rectangles
@@ -53,8 +54,29 @@ export default {
         outline: "black",
         border_width: 1
     },
+    schema: [
+        {
+            section: "Pattern",
+            fields: [
+                { key: "x_size", label: "Rect Width", type: "number", default: 30 },
+                { key: "y_size", label: "Rect Height", type: "number", default: 15 },
+                { key: "x_offset", label: "X Gap", type: "number", default: 5 },
+                { key: "y_offset", label: "Y Gap", type: "number", default: 5 },
+                { key: "x_repeat", label: "X Count", type: "number", default: 3 },
+                { key: "y_repeat", label: "Y Count", type: "number", default: 2 }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "fill", label: "Fill Color", type: "color", default: "white" },
+                { key: "outline", label: "Outline Color", type: "color", default: "black" },
+                { key: "border_width", label: "Line Width", type: "number", default: 1 }
+            ]
+        }
+    ],
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         let fill = (p.fill === "theme_auto" || !p.fill) ? (layout?.darkMode ? "white" : "black") : p.fill;
         if (fill === "transparent") fill = null;
@@ -79,7 +101,7 @@ export default {
             y_end: Math.round(w.y + w.height)
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         let fill = p.fill || "white";
         if (fill === "transparent") fill = null;

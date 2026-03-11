@@ -1,6 +1,8 @@
+// @ts-nocheck
 /**
  * Image Plugin
  */
+import { AppState } from '@core/state';
 
 const isOffline = () => window.location.protocol === 'file:' || !window.location.hostname;
 
@@ -43,6 +45,18 @@ const render = (el, widget, context) => {
 
     el.innerText = "";
     el.appendChild(content);
+
+    // Apply Border & Background (Restored)
+    if (props.border_width) {
+        const borderColor = getColorStyle(props.border_color || "black");
+        el.style.border = `${props.border_width}px solid ${borderColor}`;
+        el.style.borderRadius = `${props.border_radius || 0}px`;
+    } else {
+        el.style.border = "none";
+    }
+    if (props.bg_color) {
+        el.style.backgroundColor = getColorStyle(props.bg_color);
+    }
 
     if (path) {
         const filename = path.split(/[/\\]/).pop() || path;
@@ -164,7 +178,7 @@ const getSafeImageId = (w) => {
 };
 
 const exportDoc = (w, context) => {
-    const { lines, getCondProps, getConditionCheck, profile } = context;
+    const { lines, getCondProps, getConditionCheck, profile } = context; // eslint-disable-line no-unused-vars
     const props = w.props || {};
     const path = (props.path || "").replace(/^"|"$/g, '').trim();
     const invert = !!props.invert;
@@ -172,7 +186,6 @@ const exportDoc = (w, context) => {
     if (!path) return;
 
     const safeId = getSafeImageId(w);
-    lines.push(`        // widget:image id:${w.id} type:image x:${w.x} y:${w.y} w:${w.width} h:${w.height} path:"${path}" invert:${invert} ${getCondProps(w)}`);
 
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
@@ -189,7 +202,34 @@ const exportDoc = (w, context) => {
         lines.push(`        it.image(${w.x}, ${w.y}, id(${safeId}));`);
     }
 
+    // Border (Restored)
+    const borderWidth = parseInt(props.border_width || 0, 10);
+    if (borderWidth > 0) {
+        const borderColorProp = props.border_color || "theme_auto";
+        const borderColorConst = context.getColorConst(borderColorProp);
+        for (let i = 0; i < borderWidth; i++) {
+            lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColorConst});`);
+        }
+    }
+
     if (cond) lines.push(`        }`);
+};
+
+const exportLVGL = (w, { common, _convertColor }) => {
+    const p = w.props || {};
+    const path = (p.path || "").replace(/^"|"$/g, '').trim();
+    const url = p.url || "";
+    // Favor local path for LVGL as it's more stable for background images
+    const src = path || url || "symbol_image";
+
+    return {
+        image: {
+            ...common,
+            src: src,
+            angle: (p.rotation || 0),
+            image_recolor_opa: "transp" // Don't recolor by default for regular images
+        }
+    };
 };
 
 const onExportComponents = (context) => {
@@ -238,12 +278,61 @@ export default {
         path: "/config/esphome/images/logo.png",
         url: "",
         invert: false,
+        dither: "FLOYDSTEINBERG",
+        image_type: "BINARY",
+        render_mode: "Auto",
         size: "native",
         width: 200,
-        height: 130
+        height: 130,
+        opa: 255
+    },
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Content", true);
+        panel.addHint("🖼️ Static image from ESPHome.<br/><span style='color:#888;font-size:11px;'>Replace the default path with your actual image file path.</span>");
+        panel.addLabeledInput("Image Path", "text", props.path || "", (v) => updateProp("path", v));
+        panel.addLabeledInput("Online Image URL", "text", props.url || "", (v) => updateProp("url", v));
+        panel.endSection();
+
+        panel.createSection("Appearance", true);
+        panel.addCheckbox("Invert colors", props.invert || false, (v) => updateProp("invert", v));
+        panel.addSelect("Render Mode", props.render_mode || "Auto", ["Auto", "Binary", "Grayscale", "Color (RGB565)"], (v) => updateProp("render_mode", v));
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : 100, 0, 100, (v) => updateProp("opacity", v));
+
+        const fillWrap = document.createElement("div");
+        fillWrap.className = "field";
+        fillWrap.style.marginTop = "12px";
+        const isFullScreen = (widget.x === 0 && widget.y === 0 && (widget.width === 800 || widget.width === 480));
+        const fillBtn = document.createElement("button");
+        fillBtn.className = "btn " + (isFullScreen ? "btn-primary" : "btn-secondary") + " btn-full";
+        fillBtn.textContent = isFullScreen ? "✓ Full Screen (click to restore)" : "⛶ Fill Screen";
+        fillBtn.type = "button";
+        fillBtn.addEventListener("click", () => {
+            if (isFullScreen) {
+                AppState.updateWidget(widget.id, { x: 50, y: 50, width: 200, height: 150 });
+            } else {
+                const res = AppState.getCanvasDimensions();
+                AppState.updateWidget(widget.id, { x: 0, y: 0, width: res.width, height: res.height });
+            }
+        });
+        fillWrap.appendChild(fillBtn);
+        panel.getContainer().appendChild(fillWrap);
+        panel.endSection();
+
+        panel.createSection("Border Style", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
     },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { _layout, _page }) => {
         const p = w.props || {};
         const url = (p.url || "").trim();
         const path = (p.path || "").replace(/^"|"$/g, '').trim();
@@ -270,7 +359,7 @@ export default {
             color: "red"
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const url = (p.url || "").trim();
         const path = (p.path || "").replace(/^"|"$/g, '').trim();
@@ -300,5 +389,6 @@ export default {
         return null;
     },
     export: exportDoc,
+    exportLVGL,
     onExportComponents
 };

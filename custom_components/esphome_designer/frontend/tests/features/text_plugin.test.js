@@ -21,7 +21,7 @@ describe('Text Plugin', () => {
             type: 'text',
             x: 10,
             y: 20,
-            width: 100,
+            width: 500,
             height: 30,
             props: {
                 text: 'Hello World',
@@ -47,9 +47,9 @@ describe('Text Plugin', () => {
         textPlugin.export(mockWidget, mockContext);
 
         const output = mockContext.lines.join('\n');
-        // x = 10 + 100/2 = 60
+        // x = 10 + 500/2 = 260
         // y = 20 + 30/2 = 35
-        expect(output).toContain('it.printf(60, 35, id(font_id_123), COLOR_BLUE, TextAlign::CENTER, "Hello World");');
+        expect(output).toContain('it.printf(260, 35, id(font_id_123), COLOR_BLUE, TextAlign::CENTER, "Hello World");');
     });
 
     it('should handle bottom right alignment correctly', () => {
@@ -57,9 +57,9 @@ describe('Text Plugin', () => {
         textPlugin.export(mockWidget, mockContext);
 
         const output = mockContext.lines.join('\n');
-        // x = 10 + 100 = 110
+        // x = 10 + 500 = 510
         // y = 20 + 30 = 50
-        expect(output).toContain('it.printf(110, 50, id(font_id_123), COLOR_BLUE, TextAlign::BOTTOM_RIGHT, "Hello World");');
+        expect(output).toContain('it.printf(510, 50, id(font_id_123), COLOR_BLUE, TextAlign::BOTTOM_RIGHT, "Hello World");');
     });
 
     it('should escape quotes in text', () => {

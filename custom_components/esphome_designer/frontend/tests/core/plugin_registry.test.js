@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PluginRegistry } from '../../js/core/plugin_registry.js';
+import { PluginRegistry } from '../../js/core/plugin_registry';
 
 // Mock Logger
 vi.mock('../utils/logger.js', () => ({
@@ -29,6 +29,13 @@ describe('PluginRegistry', () => {
 
         // 'label' is an alias for 'text'
         expect(registry.get('label')).toEqual(mockPlugin);
+    });
+
+    it('should map legacy lv_chart alias to lvgl_chart', () => {
+        const mockPlugin = { id: 'lvgl_chart', name: 'LVGL Chart Widget' };
+        registry.register(mockPlugin);
+
+        expect(registry.get('lv_chart')).toEqual(mockPlugin);
     });
 
     it('should delegate hook calls to all plugins', () => {

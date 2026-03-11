@@ -1,5 +1,5 @@
-import { AppState } from '../core/state.js';
-import { loadLayoutIntoState } from './yaml_import.js';
+import { AppState } from '../core/state';
+import { loadLayoutIntoState } from './yaml_import';
 import { Logger } from '../utils/logger.js';
 
 /**
@@ -31,7 +31,11 @@ export function loadLayoutFromFile(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
-            const content = e.target.result;
+            const target = /** @type {FileReader|null} */ (e.target);
+            const content = target ? target.result : null;
+            if (typeof content !== 'string') {
+                throw new Error('Invalid file content');
+            }
             const layout = JSON.parse(content);
             loadLayoutIntoState(layout);
         } catch (err) {
@@ -47,8 +51,9 @@ export function loadLayoutFromFile(file) {
  * @param {Event} event 
  */
 export function handleFileSelect(event) {
-    const file = event.target.files[0];
+    const target = /** @type {HTMLInputElement|null} */ (event.target);
+    const file = target?.files ? target.files[0] : null;
     loadLayoutFromFile(file);
     // Reset input so the same file can be selected again if needed
-    event.target.value = '';
+    if (target) target.value = '';
 }

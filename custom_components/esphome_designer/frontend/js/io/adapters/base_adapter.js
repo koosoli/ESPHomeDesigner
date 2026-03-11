@@ -11,6 +11,7 @@ export class BaseAdapter {
      * @returns {Promise<string>} The generated output string.
      */
     async generate(layout) {
+        void layout;
         throw new Error("Method 'generate()' must be implemented.");
     }
 
@@ -21,6 +22,8 @@ export class BaseAdapter {
      * @returns {string[]} Array of output lines.
      */
     generatePage(page, context) {
+        void page;
+        void context;
         throw new Error("Method 'generatePage()' must be implemented.");
     }
 
@@ -31,6 +34,8 @@ export class BaseAdapter {
      * @returns {string[]} Array of output lines.
      */
     generateWidget(widget, context) {
+        void widget;
+        void context;
         throw new Error("Method 'generateWidget()' must be implemented.");
     }
 
@@ -44,5 +49,3 @@ export class BaseAdapter {
     }
 }
 
-// Expose globally for now to match the project's architecture
-window.BaseAdapter = BaseAdapter;

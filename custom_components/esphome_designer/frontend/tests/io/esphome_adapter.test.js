@@ -1,17 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ESPHomeAdapter } from '../../js/io/adapters/esphome_adapter.js';
+import { ESPHomeAdapter } from '../../js/io/adapters/esphome_adapter';
+import { getCondProps } from '../../js/io/generators/native_generator.js';
+import { mergeYamlSections } from '../../js/io/generators/yaml_merger.js';
 
-const { mockRegistry } = vi.hoisted(() => ({
+const { mockRegistry, mockDeviceProfiles } = vi.hoisted(() => ({
     mockRegistry: {
-        get: vi.fn((type) => {
-            if (type === 'text') {
-                return {
-                    id: 'text',
-                    export: (w, ctx) => ctx.lines.push(`  - type: text\n    content: "${w.content}"\n    # id:${w.id}`)
-                };
-            }
-            return null;
-        }),
+        get: vi.fn(),
         getAll: vi.fn(() => []),
         load: vi.fn(async (type) => mockRegistry.get(type)),
         onExportGlobals: vi.fn(),
@@ -19,8 +13,10 @@ const { mockRegistry } = vi.hoisted(() => ({
         onExportTextSensors: vi.fn(),
         onExportBinarySensors: vi.fn(),
         onExportComponents: vi.fn(),
-        onExportHelpers: vi.fn()
-    }
+        onExportHelpers: vi.fn(),
+        onExportEsphome: vi.fn()
+    },
+    mockDeviceProfiles: {}
 }));
 
 // Top-level mocks for dependencies
@@ -33,11 +29,11 @@ vi.mock('../../js/utils/logger.js', () => ({
     }
 }));
 
-vi.mock('../../js/core/plugin_registry.js', () => ({
+vi.mock('../../js/core/plugin_registry', () => ({
     registry: mockRegistry
 }));
 
-vi.mock('../../js/core/state.js', () => ({
+vi.mock('../../js/core/state', () => ({
     AppState: {
         deviceModel: 'reterminal_e1001',
         getCanvasDimensions: vi.fn(() => ({ width: 800, height: 480 })),
@@ -45,9 +41,9 @@ vi.mock('../../js/core/state.js', () => ({
     }
 }));
 
-vi.mock('../../js/core/utils.js', () => ({
+vi.mock('../../js/core/utils', () => ({
     Utils: {
-        getIconCode: vi.fn((name) => 'F000'),
+        getIconCode: vi.fn((name) => 'F000'), // eslint-disable-line no-unused-vars
         getColorConst: vi.fn((c) => `Color(${c})`),
         getAlignX: vi.fn((a, x) => x),
         getAlignY: vi.fn((a, y) => y),
@@ -56,7 +52,7 @@ vi.mock('../../js/core/utils.js', () => ({
 }));
 
 vi.mock('../../js/io/devices.js', () => ({
-    DEVICE_PROFILES: {}
+    DEVICE_PROFILES: mockDeviceProfiles
 }));
 
 vi.mock('../../js/io/hardware_generators.js', () => ({
@@ -85,7 +81,7 @@ vi.mock('../../js/io/adapters/base_adapter.js', () => ({
     }
 }));
 
-vi.mock('../../js/core/constants.js', () => ({
+vi.mock('../../js/core/constants', () => ({
     COLORS: {},
     ALIGNMENT: {}
 }));
@@ -96,20 +92,32 @@ const mockAppState = {
     getCanvasShape: vi.fn(() => 'rect')
 };
 
+import textPlugin from '../../features/text/plugin.js';
+import iconPlugin from '../../features/icon/plugin.js';
+import touchAreaPlugin from '../../features/touch_area/plugin.js';
+import sensorTextPlugin from '../../features/sensor_text/plugin.js';
+
 describe('ESPHomeAdapter', () => {
     let adapter;
 
     beforeEach(() => {
         adapter = new ESPHomeAdapter();
-        global.PluginRegistry = mockRegistry;
-        window.PluginRegistry = mockRegistry;
+        // Use real plugins for rendering in tests
+        mockRegistry.get.mockImplementation((type) => {
+            if (type === 'text') return textPlugin;
+            if (type === 'icon') return iconPlugin;
+            if (type === 'button' || type === 'touch_area') return touchAreaPlugin;
+            if (type === 'sensor_text') return sensorTextPlugin;
+            return null;
+        });
+
         global.AppState = mockAppState;
-        window.AppState = mockAppState;
         window.LVGLExport = {
             generateLVGLSnippet: vi.fn(() => []),
             serializeWidget: vi.fn(() => '')
         };
-        window.DEVICE_PROFILES = {
+        Object.keys(mockDeviceProfiles).forEach(key => delete mockDeviceProfiles[key]);
+        Object.assign(mockDeviceProfiles, {
             'reterminal_e1001': {
                 name: 'Test Device',
                 features: {},
@@ -119,8 +127,7 @@ describe('ESPHomeAdapter', () => {
                     multiplier: 2.0
                 }
             }
-        };
-        window.currentDeviceModel = 'reterminal_e1001';
+        });
     });
 
     it('should be instantiable', () => {
@@ -140,7 +147,7 @@ sensor:
 display:
   - platform: ili9xxx
     model: ILI9342`;
-            
+
             const extraYaml = `sensor:
   - platform: homeassistant
     id: sensor_temp
@@ -149,13 +156,13 @@ display:
   - platform: wifi_signal
     name: "WiFi Signal"
     id: wifi_signal_dbm`;
-            
-            const result = adapter.mergeYamlSections(baseYaml, extraYaml);
-            
+
+            const result = mergeYamlSections(baseYaml, extraYaml);
+
             // Should have only ONE sensor: section
             const sensorMatches = result.match(/^sensor:$/gm);
             expect(sensorMatches).toHaveLength(1);
-            
+
             // Should contain all sensors
             expect(result).toContain('platform: adc');
             expect(result).toContain('board_ldr');
@@ -169,8 +176,8 @@ display:
             const baseYaml = `sensor:
   - platform: adc
     pin: GPIO34`;
-            
-            const result = adapter.mergeYamlSections(baseYaml, '');
+
+            const result = mergeYamlSections(baseYaml, '');
             expect(result).toBe(baseYaml);
         });
 
@@ -178,8 +185,8 @@ display:
             const extraYaml = `sensor:
   - platform: homeassistant
     id: test`;
-            
-            const result = adapter.mergeYamlSections('', extraYaml);
+
+            const result = mergeYamlSections('', extraYaml);
             expect(result).toBe(extraYaml);
         });
 
@@ -198,12 +205,12 @@ font:
   - file: fonts/roboto.ttf
     id: font_extra`;
 
-            const result = adapter.mergeYamlSections(baseYaml, extraYaml);
-            
+            const result = mergeYamlSections(baseYaml, extraYaml);
+
             // Should have only ONE of each section
             expect(result.match(/^sensor:$/gm)).toHaveLength(1);
             expect(result.match(/^font:$/gm)).toHaveLength(1);
-            
+
             // Should contain all entries
             expect(result).toContain('platform: adc');
             expect(result).toContain('platform: homeassistant');
@@ -218,7 +225,7 @@ font:
                 {
                     name: "Main",
                     widgets: [
-                        { id: "w1", type: "text", content: "Hello" }
+                        { id: "w1", type: "text", props: { text: "Hello" }, x: 10, y: 10, width: 100, height: 30 }
                     ]
                 }
             ],
@@ -245,31 +252,170 @@ font:
         const widget = {
             condition_entity: 'switch.test',
             condition_operator: '==',
-            condition_state: 'on',
-            condition_min: '0',
-            condition_max: '100'
+            condition_value: 'on',
+            condition_invert: false
         };
-        const props = adapter.getCondProps(widget);
-        expect(props).toContain('cond_ent:"switch.test"');
-        expect(props).toContain('cond_op:"=="');
-        expect(props).toContain('cond_state:"on"');
-        expect(props).not.toContain('cond_min');
-        expect(props).not.toContain('cond_max');
+        // getCondProps returns a space-separated string, we can split it or check inclusion
+        const propsStr = getCondProps(widget);
+        expect(propsStr).toContain('cond_ent:"switch.test"');
+        expect(propsStr).toContain('cond_op:"=="');
+        expect(propsStr).toContain('cond_val:"on"');
+        expect(propsStr).toContain('cond_inv:"false"');
+        expect(propsStr).not.toContain('cond_ent_2');
     });
 
-    it('should generate correct condition properties for range comparison', () => {
+    it('should generate correct condition properties for entity comparison', () => {
         const widget = {
             condition_entity: 'sensor.temp',
-            condition_operator: 'range',
-            condition_state: 'on',
-            condition_min: '20',
-            condition_max: '30'
+            condition_operator: '>',
+            condition_entity_2: 'sensor.target',
+            condition_invert: true
         };
-        const props = adapter.getCondProps(widget);
-        expect(props).toContain('cond_ent:"sensor.temp"');
-        expect(props).toContain('cond_op:"range"');
-        expect(props).toContain('cond_min:"20"');
-        expect(props).toContain('cond_max:"30"');
-        expect(props).not.toContain('cond_state');
+        const propsStr = getCondProps(widget);
+        expect(propsStr).toContain('cond_ent:"sensor.temp"');
+        expect(propsStr).toContain('cond_op:">"');
+        expect(propsStr).toContain('cond_ent_2:"sensor.target"');
+        expect(propsStr).toContain('cond_inv:"true"');
+        expect(propsStr).not.toContain('cond_val');
+    });
+
+    describe('End-to-End Golden Master Replacement (Structural Assertions)', () => {
+        it('generates correct structure for multi-page native layout', async () => {
+            const projectState = {
+                deviceName: "Native Device",
+                deviceModel: "reterminal_e1001",
+                pages: [
+                    {
+                        name: "Home",
+                        widgets: [
+                            { id: "txt1", type: "text", props: { text: "Dashboard" }, x: 0, y: 0, width: 200, height: 40 },
+                            { id: "icon1", type: "icon", props: { icon: "mdi:home" }, x: 10, y: 50, width: 32, height: 32 }
+                        ]
+                    },
+                    {
+                        name: "Lights",
+                        widgets: [
+                            { id: "btn1", type: "button", entity_id: "light.living_room", x: 20, y: 20, width: 100, height: 100 }
+                        ]
+                    }
+                ]
+            };
+
+            const yaml = await adapter.generate(projectState);
+
+            // Core infrastructure
+            expect(yaml).toContain('globals:');
+            expect(yaml).toContain('id: display_page');
+            expect(yaml).toContain('id: last_page_switch_time');
+
+            // Page switching and navigation
+            expect(yaml).toContain('script:');
+            expect(yaml).toContain('id: change_page_to');
+            expect(yaml).toContain('id: manage_run_and_sleep');
+
+            // Fonts and Time
+            expect(yaml).toContain('font:');
+            expect(yaml).toContain('font_roboto');
+            expect(yaml).toContain('time:');
+            expect(yaml).toContain('ha_time');
+
+            // Entity registration
+            expect(yaml).toContain('binary_sensor:');
+            expect(yaml).toContain('light_living_room'); // Expected sanitized ID
+
+            // Display & Lambda correctness
+            expect(yaml).toContain('display:');
+            expect(yaml).toContain('lambda: |-');
+            expect(yaml).toContain('page:name "Home"');
+            expect(yaml).toContain('page:name "Lights"');
+
+            // Widget metadata
+            expect(yaml).toMatch(/id:txt1/);
+            expect(yaml).toMatch(/id:icon1/);
+            expect(yaml).toContain('"Dashboard"');
+
+            // Sanitization checks
+            expect(yaml).not.toContain('undefined');
+            expect(yaml).not.toContain('NaN');
+            expect(yaml).not.toContain('[object Object]');
+        });
+
+        it('omits page-switch debounce globals for single-page layouts', async () => {
+            const projectState = {
+                deviceName: 'Single Page Device',
+                deviceModel: 'reterminal_e1001',
+                pages: [
+                    {
+                        name: 'Home',
+                        widgets: [
+                            { id: 'txt1', type: 'text', props: { text: 'Dashboard' }, x: 0, y: 0, width: 200, height: 40 }
+                        ]
+                    }
+                ]
+            };
+
+            const yaml = await adapter.generate(projectState);
+
+            expect(yaml).toContain('id: display_page');
+            expect(yaml).toContain('id: page_refresh_current_s');
+            expect(yaml).not.toContain('id: last_page_switch_time');
+        });
+
+        it('handles entity deduplication arrays and attributes correctly', async () => {
+            const projectState = {
+                deviceName: "Dense Dedup Tester",
+                deviceModel: "reterminal_e1001",
+                pages: [
+                    {
+                        name: "Sensors",
+                        widgets: [
+                            { id: "w1", type: "sensor_text", entity_id: "sensor.temperature", x: 0, y: 0, width: 50, height: 20 },
+                            { id: "w2", type: "sensor_text", entity_id: "sensor.temperature", props: { attribute: "calibration" }, x: 60, y: 0, width: 50, height: 20 },
+                            { id: "w3", type: "text", entity_id: "weather.home", props: { attribute: "temperature" }, x: 0, y: 30, width: 100, height: 30 },
+                            { id: "w4", type: "icon", condition_entity: "binary_sensor.door", condition_state: "off", x: 0, y: 70, width: 40, height: 40 },
+                            { id: "w5", type: "icon", condition_entity: "sensor.state", condition_state: "Playing", x: 50, y: 70, width: 40, height: 40 },
+                            { id: "w6", type: "text", entity_id: "sensor.weather", props: { attribute: "forecast[0].condition" }, x: 0, y: 120, width: 150, height: 30 }
+                        ]
+                    }
+                ]
+            };
+
+            // Mock state so entity_dedup recognizes the types
+            global.AppState.entityStates = {
+                "sensor.temperature": { state: "20", attributes: { calibration: "2" } },
+                "weather.home": { state: "sunny", attributes: { temperature: "25" } },
+                "sensor.state": { state: "Playing" },
+                "sensor.weather": { state: "clear", attributes: { forecast: [{ condition: "cloudy" }] } }
+            };
+
+            const yaml = await adapter.generate(projectState);
+
+            // Verify dedup logic creates correct sensor types
+            expect(yaml).toContain('id: sensor_temperature');
+            expect(yaml).toContain('id: sensor_temperature_calibration');
+            expect(yaml).toContain('attribute: calibration');
+
+            // Text sensors
+            expect(yaml).toContain('text_sensor:');
+            expect(yaml).toContain('id: weather_home_temperature_txt');
+            expect(yaml).toContain('id: sensor_state_txt');
+
+            // Binary sensors
+            expect(yaml).toContain('id: binary_sensor_door');
+
+            // Deep attributes
+            expect(yaml).toContain('id: sensor_weather_forecast_0__condition');
+            expect(yaml).toContain('attribute: forecast[0].condition');
+
+            // Ensure sections only appear once
+            const sensorMatches = yaml.match(/^sensor:$/gm);
+            expect(sensorMatches).toHaveLength(1);
+
+            const textSensorMatches = yaml.match(/^text_sensor:$/gm);
+            expect(textSensorMatches).toHaveLength(1);
+
+            const binarySensorMatches = yaml.match(/^binary_sensor:$/gm);
+            expect(binarySensorMatches).toHaveLength(1);
+        });
     });
 });

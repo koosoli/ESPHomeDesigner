@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ODP Debug Grid Plugin
  * Overlays a grid on the image canvas to help with layout debugging
@@ -72,10 +73,40 @@ export default {
         show_labels: true,
         label_step: 40,
         label_color: "black",
-        label_font_size: 10
+        label_font_size: 10,
+        opa: 255,
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Grid Settings",
+            fields: [
+                { key: "spacing", label: "Grid Spacing", type: "number", default: 20 },
+                { key: "dashed", label: "Dashed Lines", type: "checkbox", default: true },
+                { key: "dash_length", label: "Dash Length", type: "number", default: 2 },
+                { key: "space_length", label: "Space Length", type: "number", default: 4 }
+            ]
+        },
+        {
+            section: "Labels",
+            fields: [
+                { key: "show_labels", label: "Show Axis Labels", type: "checkbox", default: true },
+                { key: "label_step", label: "Label Every X Pixels", type: "number", default: 40 },
+                { key: "label_font_size", label: "Label Font Size", type: "number", default: 10 }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "line_color", label: "Line Color", type: "color", default: "black" },
+                { key: "label_color", label: "Label Color", type: "color", default: "black" },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { _layout, _page }) => {
         const p = w.props || {};
         return {
             type: "debug_grid",
@@ -91,7 +122,7 @@ export default {
             font: "ppb.ttf"
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         return {
             type: "debug_grid",

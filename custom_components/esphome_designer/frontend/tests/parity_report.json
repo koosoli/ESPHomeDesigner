@@ -1,0 +1,10 @@
+{
+  "widgets": {},
+  "summary": {
+    "total_widgets_audited": 47,
+    "widgets_with_regressions": 0,
+    "total_missing_props": 0,
+    "total_missing_root": 0,
+    "total_missing_shadows": 0
+  }
+}

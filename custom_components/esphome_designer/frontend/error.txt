@@ -1,0 +1,2 @@
+falls back to localStorage persistence when backend unavailable
+expected "setItem" to be called at least once

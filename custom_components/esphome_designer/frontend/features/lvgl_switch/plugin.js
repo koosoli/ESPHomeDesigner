@@ -1,6 +1,9 @@
+// @ts-nocheck
 /**
  * LVGL Switch Plugin
  */
+
+import { makeSafeId } from '../../js/utils/export_helpers.js';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -41,17 +44,20 @@ const render = (el, widget, { getColorStyle }) => {
     el.appendChild(track);
 };
 
-const exportLVGL = (w, { common, convertColor, formatOpacity, profile }) => {
+const exportLVGL = (w, { common, convertColor, formatOpacity, _profile }) => {
     const p = w.props || {};
 
     // Robust entity ID detection
     const entityId = (w.entity_id || p.entity_id || p.entity || "").trim();
+    const checkedState = entityId
+        ? `!lambda return id(${makeSafeId(entityId)}).state;`
+        : p.checked;
 
     const switchObj = {
         switch: {
             ...common,
             state: {
-                checked: p.checked
+                checked: checkedState
             },
             bg_color: convertColor(p.bg_color),
             indicator: { bg_color: convertColor(p.color) },
@@ -96,8 +102,29 @@ export default {
         bg_color: "gray",
         color: "blue",
         knob_color: "white",
-        opa: 255
+        opa: 255,
+        entity_id: "",
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "entity_id", target: "root", label: "Control Entity ID", type: "entity_picker", default: "" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "checked", label: "Checked", type: "checkbox", default: false },
+                { key: "color", label: "Indicator Color", type: "color", default: "blue" },
+                { key: "bg_color", label: "Track Color", type: "color", default: "gray" },
+                { key: "knob_color", label: "Knob Color", type: "color", default: "white" },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL,
     onExportBinarySensors

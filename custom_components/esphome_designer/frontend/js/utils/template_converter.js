@@ -5,12 +5,17 @@
 export class TemplateConverter {
     /**
      * Converts a value (ESPHome-style or direct) to a Home Assistant template
-     * @param {string} value - e.g. "id(sensor_temp).state" or just "sensor.temperature"
-     * @param {Object} options - formatting options
+     * @param {string|number} value - e.g. "id(sensor_temp).state" or just "sensor.temperature"
+     * @param {Object} [options={}] - formatting options
+     * @param {number} [options.precision]
+     * @param {string} [options.unit]
+     * @param {string} [options.prefix]
+     * @param {string} [options.postfix]
+     * @param {boolean} [options.isNumeric]
      * @returns {string} - e.g. "{{ states('sensor.temperature') }}"
      */
     static toHATemplate(value, options = {}) {
-        if (!value) return "";
+        if (!value && value !== 0) return "";
 
         const { precision = 1, unit = "", prefix = "", postfix = "" } = options;
 
@@ -30,7 +35,7 @@ export class TemplateConverter {
         }
         // Pattern 3: Already an expression or template - wrap if needed or return
         else if (String(value).includes('{{') || String(value).includes('{%')) {
-            return value;
+            return String(value);
         }
         // Fallback: literal string
         else {
@@ -45,11 +50,13 @@ export class TemplateConverter {
             return `{{ ${prefix}${template}${unit ? " ~ ' " + unit + "'" : ""}${postfix} }}`;
         }
 
-        return value;
+        return String(value);
     }
 
     /**
      * Tries to convert a HA template back to an ESPHome sensor ID (best effort)
+     * @param {string} template
+     * @returns {string}
      */
     static toESPHomeID(template) {
         if (!template) return "";
@@ -58,8 +65,10 @@ export class TemplateConverter {
             const entityId = match[1];
             const parts = entityId.split('.');
             // Map text_sensor specifically if possible, otherwise use standard id()
-            if (parts[0] === 'text_sensor') return `id(${parts[1]}).state`;
-            return `id(${parts[1]}).state`;
+            if (parts.length > 1) {
+                if (parts[0] === 'text_sensor') return `id(${parts[1]}).state`;
+                return `id(${parts[1]}).state`;
+            }
         }
         return template;
     }

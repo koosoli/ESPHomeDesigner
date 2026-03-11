@@ -1,9 +1,14 @@
-import { AppState } from './state.js';
-import { Logger } from '../utils/logger.js';
+// @ts-check
+import { AppState } from './state';
 import { emit, EVENTS } from './events.js';
 import { snapToGridCell, applySnapToPosition, clearSnapGuides } from './canvas_snap.js';
-import { render, applyZoom, updateWidgetDOM, focusPage } from './canvas_renderer.js';
+import { render, applyZoom, focusPage } from './canvas_renderer.js';
+import { Logger } from '../utils/logger.js';
+import { radialMenu } from '../ui/radial_menu.js';
 
+/**
+ * @param {import('./canvas').Canvas} canvasInstance
+ */
 export function setupTouchInteractions(canvasInstance) {
     if (!canvasInstance.canvas || !canvasInstance.canvasContainer) return;
 
@@ -43,23 +48,38 @@ export function setupTouchInteractions(canvasInstance) {
 
         if (touches.length === 1) {
             const touch = touches[0];
-            const widgetEl = touch.target.closest(".widget");
-            const widgetId = widgetEl ? widgetEl.dataset.id : null;
-
+            const hTarget = /** @type {HTMLElement} */(touch.target);
+            const widgetEl = hTarget.closest(".widget");
+            const widgetId = (widgetEl instanceof HTMLElement) ? widgetEl.dataset.id : null;
+            
             if (canvasInstance.longPressTimer) clearTimeout(canvasInstance.longPressTimer);
             canvasInstance.longPressTimer = setTimeout(() => {
-                if (window.RadialMenu) {
-                    window.RadialMenu.show(touch.clientX, touch.clientY, widgetId);
+                if (radialMenu) {
+                    radialMenu.show(touch.clientX, touch.clientY, widgetId);
                 }
                 canvasInstance.touchState = null;
             }, 500);
+
+            if (ev.target instanceof HTMLElement && ev.target.classList.contains("canvas-viewport")) {
+                // Touch started directly on the canvas viewport, not a widget.
+                // This might be for panning or general canvas interaction.
+                // The existing 'else' block below handles this, so we can just let it fall through.
+            } else if (ev.target instanceof HTMLElement) {
+                const item = ev.target.closest(".item[data-widget-type]");
+                if (item) {
+                    const type = item.getAttribute("data-widget-type");
+                    Logger.log("[CanvasTouch] Touch start on palette item:", type);
+                    return; // Do not handle palette item touches as canvas interactions
+                }
+            }
 
             if (widgetEl) {
                 ev.preventDefault();
                 const widget = AppState.getWidgetById(widgetId);
                 if (!widget) return;
 
-                const isResizeHandle = touch.target.classList.contains("widget-resize-handle");
+                const hTarget = /** @type {HTMLElement} */(touch.target);
+                const isResizeHandle = hTarget.classList.contains("widget-resize-handle");
 
                 if (isResizeHandle) {
                     canvasInstance.touchState = {
@@ -103,10 +123,13 @@ export function setupTouchInteractions(canvasInstance) {
     }, { passive: false });
 }
 
+/**
+ * @param {TouchEvent} ev
+ * @param {import('./canvas').Canvas} canvasInstance
+ */
 function onTouchMove(ev, canvasInstance) {
     const touches = ev.touches;
     const rect = canvasInstance.viewport.getBoundingClientRect();
-
     if (canvasInstance.pinchState && touches.length === 2) {
         ev.preventDefault();
         const currentDistance = getTouchDistance(touches[0], touches[1]);
@@ -201,6 +224,10 @@ function onTouchMove(ev, canvasInstance) {
     }
 }
 
+/**
+ * @param {TouchEvent} ev
+ * @param {import('./canvas').Canvas} canvasInstance
+ */
 function onTouchEnd(ev, canvasInstance) {
     const state = canvasInstance.touchState;
     const now = Date.now();
@@ -211,52 +238,59 @@ function onTouchEnd(ev, canvasInstance) {
         const moved = Math.hypot(touchX - (state.startTouchX || state.startX), touchY - (state.startTouchY || state.startY)) > 10;
 
         if (!moved) {
-            const widgetEl = ev.target.closest(".widget");
-            const widgetId = widgetEl ? widgetEl.dataset.id : null;
+            if (!(ev.target instanceof HTMLElement)) return;
+            const hTarget = /** @type {HTMLElement} */(ev.target);
+            const item = hTarget.closest(".item[data-widget-type]");
+            if (item) {
+                const type = item.getAttribute("data-widget-type");
+                Logger.log("[CanvasTouch] Touch end on palette item:", type);
+                return; // Do not handle palette item touches as canvas interactions
+            }
 
-            if (widgetId) {
-                if (widgetId === canvasInstance.lastWidgetTapId && (now - canvasInstance.lastWidgetTapTime < 350)) {
-                    if (window.RadialMenu) {
-                        window.RadialMenu.show(touchX, touchY, widgetId);
-                    }
-                    canvasInstance.lastWidgetTapTime = 0;
-                } else {
-                    canvasInstance.lastWidgetTapId = widgetId;
-                    canvasInstance.lastWidgetTapTime = now;
-                    AppState.selectWidget(widgetId);
+            const widgetEl = hTarget.closest(".widget");
+            const widgetId = widgetEl instanceof HTMLElement ? widgetEl.dataset.id : null;
+
+            if (widgetId === canvasInstance.lastWidgetTapId && (now - canvasInstance.lastWidgetTapTime < 350)) {
+                if (radialMenu) {
+                    radialMenu.show(touchX, touchY, widgetId);
                 }
+                canvasInstance.lastWidgetTapTime = 0;
             } else {
-                if (now - canvasInstance.lastCanvasTapTime < 350) {
-                    AppState.setZoomLevel(1.0);
-                    focusPage(canvasInstance, AppState.currentPageIndex, true);
-                    canvasInstance.lastCanvasTapTime = 0;
-                } else {
-                    canvasInstance.lastCanvasTapTime = now;
-                    AppState.selectWidgets([]);
-                }
+                canvasInstance.lastWidgetTapId = widgetId;
+                canvasInstance.lastWidgetTapTime = now;
+                AppState.selectWidget(widgetId);
+            }
+        } else {
+            if (now - canvasInstance.lastCanvasTapTime < 350) {
+                AppState.setZoomLevel(1.0);
+                focusPage(canvasInstance, AppState.currentPageIndex, true);
+                canvasInstance.lastCanvasTapTime = 0;
+            } else {
+                canvasInstance.lastCanvasTapTime = now;
+                AppState.selectWidgets([]);
             }
         }
+    }
 
-        if (state.id && state.hasMoved) {
-            const widget = AppState.getWidgetById(state.id);
-            if (widget) {
-                if (state.mode === "move") {
-                    const dims = AppState.getCanvasDimensions();
-                    const page = AppState.getCurrentPage();
-                    if (page?.layout) {
-                        const snapped = snapToGridCell(widget.x, widget.y, widget.width, widget.height, page.layout, dims);
-                        widget.x = snapped.x;
-                        widget.y = snapped.y;
-                    } else {
-                        const snapped = applySnapToPosition(canvasInstance, widget, widget.x, widget.y, false, dims);
-                        widget.x = snapped.x;
-                        widget.y = snapped.y;
-                    }
+    if (state.id && state.hasMoved) {
+        const widget = AppState.getWidgetById(state.id);
+        if (widget) {
+            if (state.mode === "move") {
+                const dims = AppState.getCanvasDimensions();
+                const page = AppState.getCurrentPage();
+                if (page?.layout) {
+                    const snapped = snapToGridCell(widget.x, widget.y, widget.width, widget.height, page.layout, dims);
+                    widget.x = snapped.x;
+                    widget.y = snapped.y;
+                } else {
+                    const snapped = applySnapToPosition(canvasInstance, widget, widget.x, widget.y, false, dims);
+                    widget.x = snapped.x;
+                    widget.y = snapped.y;
                 }
-                updateWidgetGridCell(canvasInstance, state.id);
-                AppState.recordHistory();
-                emit(EVENTS.STATE_CHANGED);
             }
+            updateWidgetGridCell(state.id);
+            AppState.recordHistory();
+            emit(EVENTS.STATE_CHANGED);
         }
     }
 
@@ -274,14 +308,21 @@ function onTouchEnd(ev, canvasInstance) {
     document.body.classList.remove("interaction-active");
 
     render(canvasInstance);
-    clearSnapGuides(canvasInstance);
+    clearSnapGuides();
 }
 
+/**
+ * @param {Touch} t1
+ * @param {Touch} t2
+ */
 function getTouchDistance(t1, t2) {
     return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
 }
 
-function updateWidgetGridCell(canvasInstance, widgetId) {
+/**
+ * @param {string} widgetId
+ */
+export function updateWidgetGridCell(widgetId) {
     const page = AppState.getCurrentPage();
     if (!page || !page.layout) return;
 

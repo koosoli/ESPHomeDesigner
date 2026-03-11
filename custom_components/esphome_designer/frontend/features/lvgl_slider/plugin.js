@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * LVGL Slider Plugin
  */
@@ -76,7 +77,7 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportLVGL = (w, { common, convertColor, profile }) => {
     const p = w.props || {};
-    const hasTouch = profile?.touch;
+    const hasTouch = profile?.touch; // eslint-disable-line no-unused-vars
     let sliderValue = p.value || 30;
 
     if (w.entity_id) {
@@ -152,8 +153,39 @@ export default {
         bg_color: "gray",
         border_width: 2,
         mode: "normal",
-        vertical: false
+        vertical: false,
+        opa: 255,
+        entity_id: "",
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "entity_id", target: "root", label: "Control Entity ID", type: "entity_picker", default: "" }
+            ]
+        },
+        {
+            section: "Range",
+            fields: [
+                { key: "value", label: "Value", type: "number", default: 30 },
+                { key: "min", label: "Min Value", type: "number", default: 0 },
+                { key: "max", label: "Max Value", type: "number", default: 100 },
+                { key: "mode", label: "Mode", type: "select", options: ["normal", "symmetrical", "range"], default: "normal" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "color", label: "Main Color", type: "color", default: "blue" },
+                { key: "bg_color", label: "Track Color", type: "color", default: "gray" },
+                { key: "border_width", label: "Knob Border", type: "number", default: 2 },
+                { key: "vertical", label: "Vertical Orientation", type: "checkbox", default: false },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL,
     onExportNumericSensors

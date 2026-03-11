@@ -1,3 +1,5 @@
+// @ts-nocheck
+import { AppState } from '@core/state';
 /**
  * Circle Shape Plugin
  */
@@ -48,10 +50,38 @@ export default {
         fill: false,
         border_width: 1,
         color: "theme_auto",
+        border_color: "theme_auto",
+        opacity: 100,
         opa: 255
     },
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Shape Settings", true);
+        panel.addCheckbox("Fill Circle", !!props.fill, (v) => updateProp("fill", v));
+        panel.addColorSelector("Main Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
+        panel.addColorSelector("Fill Color Override", props.bg_color || "theme_auto", null, (v) => updateProp("bg_color", v));
+        panel.endSection();
+
+        panel.createSection("Border Settings", true);
+        panel.addLabeledInput("Border Thickness", "number", props.border_width || 1, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.endSection();
+
+        panel.createSection("Appearance", true);
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : (props.opa !== undefined ? Math.round(props.opa / 2.55) : 100), 0, 100, (v) => {
+            updateProp("opacity", v);
+            updateProp("opa", Math.round(v * 2.55));
+        });
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
+    },
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
 
         // Resolve colors (handle theme_auto)
@@ -76,7 +106,7 @@ export default {
             width: p.border_width || 1
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         return {
             type: "circle",
@@ -91,7 +121,7 @@ export default {
     exportLVGL,
     export: (w, context) => {
         const {
-            lines, getColorConst, addDitherMask, getCondProps, getConditionCheck, RECT_Y_OFFSET, isEpaper
+            lines, getColorConst, addDitherMask, getCondProps, getConditionCheck, RECT_Y_OFFSET, isEpaper // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};
@@ -108,7 +138,6 @@ export default {
         const circleY = Math.floor(w.y + w.height / 2 + (typeof RECT_Y_OFFSET !== 'undefined' ? RECT_Y_OFFSET : 0));
         const radius = Math.floor(Math.min(w.width, w.height) / 2);
 
-        lines.push(`        // widget:shape_circle id:${w.id} type:shape_circle x:${circleX} y:${circleY} r:${radius} fill:${fill} border:${borderWidth} color:${fillColorProp} border_color:${borderColorProp} ${getCondProps(w)}`);
 
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);

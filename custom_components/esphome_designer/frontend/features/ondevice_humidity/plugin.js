@@ -1,3 +1,5 @@
+// @ts-nocheck
+import { AppState } from '../../js/core/state';
 /**
  * On-Device Humidity Plugin
  */
@@ -29,8 +31,8 @@ const render = (el, widget, { getColorStyle }) => {
     }
 
     if (!props.is_local_sensor && widget.entity_id) {
-        if (window.AppState && window.AppState.entityStates) {
-            const stateObj = window.AppState.entityStates[widget.entity_id];
+        if (AppState && AppState.entityStates) {
+            const stateObj = AppState.entityStates[widget.entity_id];
             if (stateObj && stateObj.state !== undefined) {
                 const val = parseFloat(stateObj.state);
                 if (!isNaN(val)) {
@@ -100,10 +102,47 @@ export default {
         show_label: true,
         precision: 0,
         fit_icon_to_frame: true,
-        is_local_sensor: true
+        is_local_sensor: true,
+        entity_id: "",
+        opa: 255,
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Sensor Data",
+            fields: [
+                { key: "is_local_sensor", label: "Use Onboard Sensor", type: "checkbox", default: true },
+                { key: "entity_id", target: "root", label: "External Entity ID", type: "entity_picker", default: "" },
+                { key: "unit", label: "Unit", type: "text", default: "%" },
+                { key: "precision", label: "Precision", type: "number", default: 0 }
+            ]
+        },
+        {
+            section: "Content",
+            fields: [
+                { key: "show_label", label: "Show 'Humidity' Label", type: "checkbox", default: true }
+            ]
+        },
+        {
+            section: "Sizing",
+            fields: [
+                { key: "fit_icon_to_frame", label: "Auto-Fit to Widget", type: "checkbox", default: true },
+                { key: "size", label: "Fixed Icon Size", type: "number", default: 32 },
+                { key: "font_size", label: "Fixed Value Size", type: "number", default: 16 },
+                { key: "label_font_size", label: "Fixed Label Size", type: "number", default: 10 }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "color", label: "Main Color", type: "color", default: "black" },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "sensor.humidity").trim();
         const size = p.size || 32;
@@ -140,7 +179,7 @@ export default {
             }
         ];
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const entityId = (w.entity_id || "sensor.humidity").trim();
         const size = p.size || 32;
@@ -318,7 +357,7 @@ export default {
     },
     export: (w, context) => {
         const {
-            lines, getColorConst, getCondProps, getConditionCheck, addFont, profile
+            lines, getColorConst, getCondProps, getConditionCheck, addFont, profile // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};
@@ -339,7 +378,6 @@ export default {
         }
         if (!sensorId) sensorId = "onboard_humidity";
 
-        lines.push(`        // widget:ondevice_humidity id:${w.id} type:ondevice_humidity x:${w.x} y:${w.y} w:${w.width} h:${w.height} unit:${unit} local:${isLocal} ent:${w.entity_id || ""} ${getCondProps(w)}`);
 
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);

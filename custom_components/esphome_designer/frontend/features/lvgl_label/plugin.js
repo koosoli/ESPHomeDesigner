@@ -1,6 +1,10 @@
+// @ts-nocheck
 /**
  * LVGL Label Plugin
  */
+import { AppState } from '@core/state';
+
+import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -8,8 +12,8 @@ const render = (el, widget, { getColorStyle }) => {
 
     if (widget.entity_id || props.entity_id) {
         const eid = widget.entity_id || props.entity_id;
-        if (window.AppState && window.AppState.entityStates && window.AppState.entityStates[eid]) {
-            text = String(window.AppState.entityStates[eid].state);
+        if (AppState && AppState.entityStates && AppState.entityStates[eid]) {
+            text = String(AppState.entityStates[eid].state);
         } else {
             text = "{" + eid.split('.').pop() + "}";
         }
@@ -17,7 +21,7 @@ const render = (el, widget, { getColorStyle }) => {
 
     el.innerText = text;
     el.style.fontSize = (props.font_size || 20) + "px";
-    el.style.color = getColorStyle(props.color || "black");
+    el.style.color = getColorStyle(props.text_color || "black");
     el.style.backgroundColor = (props.bg_color && props.bg_color !== "transparent") ? getColorStyle(props.bg_color) : "transparent";
     el.style.display = "flex";
 
@@ -50,7 +54,7 @@ const render = (el, widget, { getColorStyle }) => {
     }
 };
 
-const exportLVGL = (w, { common, convertColor, convertAlign, getLVGLFont, formatOpacity }) => {
+const exportLVGL = (w, { common, convertColor, _convertAlign, getLVGLFont, formatOpacity }) => {
     const p = w.props || {};
     let labelText = `"${p.text || 'Label'}"`;
 
@@ -80,7 +84,7 @@ const exportLVGL = (w, { common, convertColor, convertAlign, getLVGLFont, format
             ...common,
             text: labelText,
             text_font: getLVGLFont(p.font_family, p.font_size, p.font_weight, p.italic),
-            text_color: convertColor(p.color || p.text_color),
+            text_color: convertColor(p.text_color),
             text_align: textAlign,
             bg_color: p.bg_color === "transparent" ? undefined : convertColor(p.bg_color),
             opa: formatOpacity(p.opa),
@@ -100,7 +104,7 @@ export default {
         text: "Label",
         font_size: 20,
         font_family: "Roboto",
-        color: "theme_auto",
+        text_color: "theme_auto",
         font_weight: 400,
         italic: false,
         text_align: "CENTER",
@@ -111,11 +115,76 @@ export default {
         border_radius: 0,
         entity_id: ""
     },
+    renderProperties: (panel, widget) => {
+        const props = widget.props || {};
+        const updateProp = (key, val) => {
+            const newProps = { ...widget.props, [key]: val };
+            AppState.updateWidget(widget.id, { props: newProps });
+        };
+
+        panel.createSection("Content", true);
+        panel.addLabeledInput("Text Content", "text", props.text || "Label", (v) => updateProp("text", v));
+        panel.addLabeledInputWithPicker("Bind to Entity", "text", widget.entity_id || props.entity_id || "", (v) => {
+            AppState.updateWidget(widget.id, { entity_id: v });
+        }, widget);
+        panel.endSection();
+
+        panel.createSection("Typography", true);
+        panel.addLabeledInput("Font Size", "number", props.font_size || 20, (v) => updateProp("font_size", parseInt(v, 10)));
+        const fontOptions = ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand", "Custom..."];
+        const currentFont = props.font_family || "Roboto";
+        const isCustom = !fontOptions.slice(0, -1).includes(currentFont);
+
+        panel.addSelect("Font Family", isCustom ? "Custom..." : currentFont, fontOptions, (v) => {
+            const newProps = { ...widget.props };
+            if (v !== "Custom...") {
+                newProps.font_family = v;
+                newProps.custom_font_family = "";
+                newProps.font_weight = clampFontWeight(v, newProps.font_weight || 400);
+            } else {
+                newProps.font_family = "Custom...";
+            }
+            AppState.updateWidget(widget.id, { props: newProps });
+        });
+
+        if (isCustom || props.font_family === "Custom...") {
+            panel.addLabeledInput("Custom Font Name", "text", props.custom_font_family || (isCustom ? currentFont : ""), (v) => {
+                const newProps = { ...widget.props };
+                newProps.font_family = v || "Roboto";
+                newProps.custom_font_family = v;
+                newProps.font_weight = clampFontWeight(newProps.font_family, newProps.font_weight || 400);
+                AppState.updateWidget(widget.id, { props: newProps });
+            });
+            panel.addHint('Browse <a href="https://fonts.google.com" target="_blank">fonts.google.com</a>');
+        }
+
+        const validWeights = getWeightsForFont(props.font_family || "Roboto");
+        panel.addSelect("Font Weight", props.font_weight || 400, validWeights, (v) => updateProp("font_weight", parseInt(v, 10)));
+        panel.addCheckbox("Italic", !!props.italic, (v) => updateProp("italic", v));
+        panel.addSelect("Alignment", props.text_align || "CENTER", ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], (v) => updateProp("text_align", v));
+        panel.endSection();
+
+        panel.createSection("Appearance", false);
+        panel.addColorSelector("Text Color", props.text_color || "theme_auto", null, (v) => updateProp("text_color", v));
+        panel.addColorSelector("Background", props.bg_color || "transparent", null, (v) => updateProp("bg_color", v));
+        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : (props.opa !== undefined ? Math.round(props.opa / 2.55) : 100), 0, 100, (v) => {
+            updateProp("opacity", v);
+            updateProp("opa", Math.round(v * 2.55));
+        });
+        panel.endSection();
+
+        panel.createSection("Border Settings", false);
+        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
+        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
+        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
+        panel.addDropShadowButton(panel.getContainer(), widget.id);
+        panel.endSection();
+    },
     render,
     exportLVGL,
     export: (w, context) => {
         const {
-            lines, getColorConst, addFont, getCondProps, getConditionCheck, Utils
+            lines, getColorConst, addFont, getCondProps, getConditionCheck, Utils // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};
@@ -126,7 +195,6 @@ export default {
         const text = p.text || "Label";
         const textAlign = p.text_align || "CENTER";
 
-        lines.push(`        // widget:lvgl_label id:${w.id} type:lvgl_label x:${w.x} y:${w.y} w:${w.width} h:${w.height} align:${textAlign} text:"${text.substring(0, 50)}" ${getCondProps(w)}`);
 
         // Background fill
         const bgColorProp = p.bg_color || p.background_color || "transparent";

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * LVGL Chart Plugin
  */
@@ -56,31 +57,71 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
     const p = w.props || {};
+    const width = Math.max(40, parseInt(common.width || w.width || 100, 10) || 100);
+    const height = Math.max(30, parseInt(common.height || w.height || 100, 10) || 100);
+    const title = p.title || 'Chart';
+    const plotTop = title ? 18 : 6;
+    const plotHeight = Math.max(12, height - plotTop - 6);
+    const pointCount = Math.max(4, Math.min(24, parseInt(p.point_count || 10, 10) || 10));
+    const linePoints = Array.from({ length: pointCount }, (_, index) => {
+        const x = pointCount === 1 ? 0 : Math.round((index * (width - 1)) / (pointCount - 1));
+        const phase = pointCount === 1 ? 0 : index / (pointCount - 1);
+        const y = plotTop + Math.round((1 - ((Math.sin(phase * Math.PI * 1.5) + 1) / 2)) * plotHeight);
+        return { x, y };
+    });
+    const gridLines = [];
+
+    for (let i = 1; i < 4; i++) {
+        const y = plotTop + Math.round((plotHeight * i) / 4);
+        const x = Math.round(((width - 1) * i) / 4);
+        gridLines.push({
+            line: {
+                line_color: convertColor('gray'),
+                line_width: 1,
+                points: [
+                    { x: 0, y },
+                    { x: width - 1, y }
+                ]
+            }
+        });
+        gridLines.push({
+            line: {
+                line_color: convertColor('gray'),
+                line_width: 1,
+                points: [
+                    { x, y: plotTop },
+                    { x, y: plotTop + plotHeight }
+                ]
+            }
+        });
+    }
+
     return {
-        lv_chart: {
+        obj: {
             ...common,
-            type: p.type || "line",
-            bg_color: convertColor(p.bg_color || "white"),
+            ...(p.bg_color === 'transparent' ? { bg_opa: 'transp' } : { bg_color: convertColor(p.bg_color || 'white') }),
             border_color: convertColor(p.color),
             border_width: 1,
             opa: formatOpacity(p.opa),
-            point_count: p.point_count || 10,
-            div_line_count: p.x_div_lines !== undefined || p.y_div_lines !== undefined ? {
-                x: p.x_div_lines,
-                y: p.y_div_lines
-            } : undefined,
-            series: [{ color: convertColor(p.color) }],
-            y_axis: {
-                show_labels: true,
-                num_ticks: p.y_div_lines !== undefined ? p.y_div_lines + 1 : 5
-            },
-            widgets: [{
-                label: {
-                    align: "top_mid",
-                    text: `"${p.title || 'Graph'}"`,
-                    text_color: convertColor(p.color)
+            widgets: [
+                ...gridLines,
+                {
+                    line: {
+                        id: `${w.id}_line`,
+                        line_color: convertColor(p.color),
+                        line_width: 2,
+                        line_rounded: true,
+                        points: linePoints
+                    }
+                },
+                {
+                    label: {
+                        align: 'top_mid',
+                        text: `"${title}"`,
+                        text_color: convertColor(p.color)
+                    }
                 }
-            }]
+            ]
         }
     };
 };
@@ -90,6 +131,7 @@ export default {
     name: "Chart",
     category: "LVGL",
     defaults: {
+        entity_id: "",
         min: 0,
         max: 100,
         color: "blue",
@@ -97,8 +139,40 @@ export default {
         type: "line",
         point_count: 10,
         x_div_lines: 3,
-        y_div_lines: 3
+        y_div_lines: 3,
+        bg_color: "transparent",
+        opa: 255,
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "title", label: "Chart Title", type: "text", default: "Chart" },
+                { key: "entity_id", target: "root", label: "Entity ID", type: "entity_picker", default: "" }
+            ]
+        },
+        {
+            section: "Data Source",
+            fields: [
+                { key: "min", label: "Min Value", type: "number", default: 0 },
+                { key: "max", label: "Max Value", type: "number", default: 100 },
+                { key: "point_count", label: "Points", type: "number", default: 10 }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "type", label: "Chart Type", type: "select", options: ["line", "bar", "scatter"], default: "line" },
+                { key: "color", label: "Recolor", type: "color", default: "blue" },
+                { key: "bg_color", label: "Background color", type: "color", default: "transparent" },
+                { key: "x_div_lines", label: "X Grid Lines", type: "number", default: 3 },
+                { key: "y_div_lines", label: "Y Grid Lines", type: "number", default: 3 },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL
 };

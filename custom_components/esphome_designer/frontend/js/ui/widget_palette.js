@@ -1,5 +1,8 @@
-import { registry as PluginRegistry } from '../core/plugin_registry.js';
+// @ts-nocheck
+import { registry } from '../core/plugin_registry';
+import { AppState } from '../core/state';
 import { Logger } from '../utils/logger.js';
+import { showToast } from '../utils/dom.js';
 import { EVENTS, on } from '../core/events.js';
 
 export const WIDGET_CATEGORIES = [
@@ -304,7 +307,7 @@ export async function renderWidgetPalette(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    const currentMode = window.AppState?.settings?.renderingMode || 'direct';
+    const currentMode = AppState?.settings?.renderingMode || 'direct';
     Logger.log(`[Palette] Rendering palette for mode: ${currentMode}`);
 
     container.innerHTML = '<div class="palette-loading" style="padding: 20px; color: #999; text-align: center; font-size: 13px;">Loading widgets...</div>';
@@ -322,7 +325,7 @@ export async function renderWidgetPalette(containerId) {
     // Load all plugins in parallel
     Logger.log(`[Palette] Pre-loading ${allTypes.length} widget plugins...`);
     try {
-        await Promise.all(allTypes.map(type => PluginRegistry.load(type)));
+        await Promise.all(allTypes.map(type => registry.load(type)));
     } catch (e) {
         Logger.error("[Palette] Failed to load some plugins:", e);
     }
@@ -367,7 +370,7 @@ export async function renderWidgetPalette(containerId) {
 
         category.widgets.forEach(widget => {
             const itemEl = document.createElement('div');
-            const plugin = PluginRegistry.get(widget.type);
+            const plugin = registry.get(widget.type);
 
             // STRICT COMPATIBILITY CHECK
             let isCompatible = true;
@@ -400,8 +403,14 @@ export async function renderWidgetPalette(containerId) {
                 } else if (currentMode === 'direct') {
                     // Direct mode is display.lambda.
                     // Compatible if it has 'export' method AND is not strictly for another protocol (LVGL/OEPL).
+                    // DEFENSIVE: if plugin is null (failed to pre-load), default to compatible rather than
+                    // incorrectly graying out a widget that may be valid.
                     const isProtocolSpecific = widget.type.startsWith('lvgl_') || widget.type.startsWith('oepl_');
-                    isCompatible = !!plugin?.export && !isProtocolSpecific;
+                    if (!plugin) {
+                        isCompatible = !isProtocolSpecific; // Unknown plugin = assume compatible in direct mode
+                    } else {
+                        isCompatible = !!plugin.export && !isProtocolSpecific;
+                    }
                     explanation = 'Not supported in Direct rendering mode';
                 }
             }
@@ -433,9 +442,7 @@ export async function renderWidgetPalette(containerId) {
             } else {
                 itemEl.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    import('../utils/dom.js').then(dom => {
-                        dom.showToast(explanation, 'warning');
-                    });
+                    showToast(explanation, 'warning');
                 });
             }
 

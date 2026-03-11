@@ -1,9 +1,15 @@
+// @ts-nocheck
 import { on, EVENTS } from '../core/events.js';
-import { AppState } from '../core/state.js';
+import { AppState } from '../core/state';
+import {
+    getLastSnippetHighlightRange,
+    isSnippetAutoHighlightActive,
+    SNIPPET_SELECTION_STATE_EVENT
+} from '../core/snippet_selection_bridge.js';
 import { Logger } from '../utils/logger.js';
 import { showToast } from '../utils/dom.js';
 import { highlightWidgetInSnippet } from '../io/yaml_export.js';
-import { loadLayoutIntoState, parseSnippetYamlOffline } from '../io/yaml_import.js';
+import { loadLayoutIntoState, parseSnippetYamlOffline } from '../io/yaml_import';
 import { importSnippetBackend } from '../io/ha_api.js';
 import { hasHaBackend } from '../utils/env.js';
 import { YamlHighlighter } from './yaml_highlighter.js';
@@ -81,7 +87,7 @@ export class SnippetManager {
                             iconSpan.className = originalClass;
                         }, 1500);
                     }
-                } catch (err) {
+                } catch {
                     // Show error state
                     if (iconSpan) {
                         iconSpan.className = 'mdi mdi-alert-circle-outline';
@@ -148,7 +154,7 @@ export class SnippetManager {
 
         // Toggle Syntax Highlighting
         const toggleHighlightBtn = document.getElementById('toggleHighlightBtn');
-        const snippetContainer = document.querySelector('.snippet-container');
+        const _snippetContainer = document.querySelector('.snippet-container');
         if (toggleHighlightBtn) {
             // Apply initial state to ALL containers
             document.querySelectorAll('.snippet-container').forEach(c => {
@@ -186,6 +192,12 @@ export class SnippetManager {
                 }
             });
         }
+
+        window.addEventListener(SNIPPET_SELECTION_STATE_EVENT, () => {
+            if (this.isHighlighted) {
+                this.updateHighlightLayer();
+            }
+        });
     }
 
     setupScrollSync() {
@@ -221,7 +233,8 @@ export class SnippetManager {
         const mainBox = document.getElementById('snippetBox');
         const mainLayer = document.getElementById('highlightLayer');
         if (mainBox && mainLayer) {
-            mainLayer.innerHTML = this.highlighter.highlight(mainBox.value);
+            const selectionRange = isSnippetAutoHighlightActive() ? getLastSnippetHighlightRange() : null;
+            mainLayer.innerHTML = this.highlighter.highlight(mainBox.value, selectionRange);
         }
 
         // Also update fullscreen if active
@@ -230,7 +243,8 @@ export class SnippetManager {
         if (modalLayer && modalContent) {
             const textarea = modalContent.querySelector('textarea');
             if (textarea) {
-                modalLayer.innerHTML = this.highlighter.highlight(textarea.value);
+                const selectionRange = isSnippetAutoHighlightActive() ? getLastSnippetHighlightRange() : null;
+                modalLayer.innerHTML = this.highlighter.highlight(textarea.value, selectionRange);
             }
         }
     }
@@ -248,8 +262,8 @@ export class SnippetManager {
                 }
 
                 try {
-                    const selectedIds = window.AppState ? window.AppState.selectedWidgetIds : [];
-                    const isMultiSelect = selectedIds.length > 1;
+                    const selectedIds = AppState ? AppState.selectedWidgetIds : [];
+                    const _isMultiSelect = selectedIds.length > 1;
 
                     const mode = this.adapter && this.adapter.constructor.name;
                     const isOEPL = mode === 'OEPLAdapter';
@@ -297,19 +311,10 @@ export class SnippetManager {
                     if (importBtn) importBtn.style.display = 'inline-block';
 
                     // IMPORTANT: Deep clone to prevent mutating AppState
-                    const rawPayload = window.AppState ? window.AppState.getPagesPayload() : { pages: [] };
+                    const rawPayload = AppState ? AppState.getPagesPayload() : { pages: [] };
                     const payload = JSON.parse(JSON.stringify(rawPayload));
 
-                    // FORCE SYNC: Ensure the generator uses the latest UI selection
-                    // This fixes an issue where AppState might be momentarily stale
-                    if (window.currentDeviceModel && window.currentDeviceModel !== payload.deviceModel) {
-                        Logger.log(`[SnippetManager] Overriding stale deviceModel '${payload.deviceModel}' with '${window.currentDeviceModel}'`);
-                        payload.deviceModel = window.currentDeviceModel;
-                        payload.device_model = window.currentDeviceModel;
-                        if (payload.settings) {
-                            payload.settings.device_model = window.currentDeviceModel;
-                        }
-                    }
+                    // Using AppState directly without global overrides
 
                     this.adapter.generate(payload).then(yaml => {
                         this.lastGeneratedYaml = yaml;
@@ -319,7 +324,7 @@ export class SnippetManager {
                             this.updateHighlightLayer();
                         }
 
-                        const selectedIds = window.AppState ? window.AppState.selectedWidgetIds : [];
+                        const selectedIds = AppState ? AppState.selectedWidgetIds : [];
 
                         if (typeof highlightWidgetInSnippet === 'function') {
                             highlightWidgetInSnippet(selectedIds);
@@ -368,7 +373,8 @@ export class SnippetManager {
                 toggleBtn.classList.toggle('active', this.isHighlighted);
 
                 if (this.isHighlighted) {
-                    highlightLayer.innerHTML = this.highlighter.highlight(textarea.value);
+                    const selectionRange = isSnippetAutoHighlightActive() ? getLastSnippetHighlightRange() : null;
+                    highlightLayer.innerHTML = this.highlighter.highlight(textarea.value, selectionRange);
                     this.updateHighlightLayer(); // Also update main panel
                 }
             });
@@ -418,9 +424,10 @@ export class SnippetManager {
 
         textarea.value = snippetBox.value || "";
 
-        // Initial highlight for fullscreen
+            // Initial highlight for fullscreen
         if (this.isHighlighted) {
-            highlightLayer.innerHTML = this.highlighter.highlight(textarea.value);
+            const selectionRange = isSnippetAutoHighlightActive() ? getLastSnippetHighlightRange() : null;
+            highlightLayer.innerHTML = this.highlighter.highlight(textarea.value, selectionRange);
             setTimeout(() => {
                 highlightLayer.scrollTop = textarea.scrollTop;
                 highlightLayer.scrollLeft = textarea.scrollLeft;
@@ -485,9 +492,9 @@ export class SnippetManager {
         }
 
         try {
-            const currentLayoutId = window.AppState?.currentLayoutId || "reterminal_e1001";
-            const currentDeviceName = window.AppState?.deviceName || "Layout 1";
-            const currentDeviceModel = window.AppState?.deviceModel || window.AppState?.settings?.device_model || "reterminal_e1001";
+            const currentLayoutId = AppState?.currentLayoutId || "reterminal_e1001";
+            const currentDeviceName = AppState?.deviceName || "Layout 1";
+            const currentDeviceModel = AppState?.deviceModel || AppState?.settings?.device_model || "reterminal_e1001";
 
             Logger.log(`[handleUpdateLayoutFromSnippetBox] Preserving context - ID: ${currentLayoutId}, Name: ${currentDeviceName}`);
 
@@ -504,7 +511,7 @@ export class SnippetManager {
             layout.settings.device_name = currentDeviceName;
 
             // Preserve dark_mode setting from current state
-            const currentDarkMode = window.AppState?.settings?.dark_mode || false;
+            const currentDarkMode = AppState?.settings?.dark_mode || false;
             layout.settings.dark_mode = currentDarkMode;
 
             this.suppressSnippetUpdate = true;

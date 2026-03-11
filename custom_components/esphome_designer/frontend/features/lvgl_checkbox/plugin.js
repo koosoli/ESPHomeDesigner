@@ -1,6 +1,9 @@
+// @ts-nocheck
 /**
  * LVGL Checkbox Plugin
  */
+
+import { makeSafeId } from '../../js/utils/export_helpers.js';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -45,18 +48,21 @@ const render = (el, widget, { getColorStyle }) => {
     el.appendChild(label);
 };
 
-const exportLVGL = (w, { common, convertColor, formatOpacity, profile }) => {
+const exportLVGL = (w, { common, convertColor, formatOpacity, _profile }) => {
     const p = w.props || {};
 
     // Robust entity ID detection
     const entityId = (w.entity_id || p.entity_id || p.entity || "").trim();
+    const checkedState = entityId
+        ? `!lambda return id(${makeSafeId(entityId)}).state;`
+        : p.checked;
 
     const checkboxObj = {
         checkbox: {
             ...common,
             text: `"${p.text || 'Checkbox'}"`,
             state: {
-                checked: p.checked
+                checked: checkedState
             },
             indicator: {
                 bg_color: convertColor(p.color || "blue"),
@@ -99,8 +105,28 @@ export default {
         text: "Checkbox",
         checked: false,
         color: "blue",
-        opa: 255
+        opa: 255,
+        entity_id: "",
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "text", label: "Label Text", type: "text", default: "Checkbox" },
+                { key: "entity_id", target: "root", label: "Control Entity ID", type: "entity_picker", default: "" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "checked", label: "Initially Checked", type: "checkbox", default: false },
+                { key: "color", label: "Check Color", type: "color", default: "blue" },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL,
     onExportBinarySensors

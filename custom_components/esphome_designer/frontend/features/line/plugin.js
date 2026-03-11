@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Line Shape Plugin
  */
@@ -51,10 +52,39 @@ export default {
         stroke_width: 3,
         color: "theme_auto",
         orientation: "horizontal",
-        opa: 255
+        opa: 255,
+        opacity: 255,
+        x: 0,
+        y: 0
     },
+    schema: [
+        {
+            section: "Line Settings",
+            fields: [
+                { key: "orientation", label: "Orientation", type: "select", options: ["horizontal", "vertical"], default: "horizontal" },
+                { key: "stroke_width", label: "Thickness", type: "number", default: 3 }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "color", label: "Color", type: "color", default: "theme_auto" },
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        },
+        {
+            section: "Placement (Root Targets)",
+            fields: [
+                { key: "x", target: "root", label: "X Position", type: "number", default: 0 },
+                { key: "y", target: "root", label: "Y Position", type: "number", default: 0 },
+                { key: "width", target: "root", label: "Width", type: "number", default: 100 },
+                { key: "height", target: "root", label: "Height", type: "number", default: 10 }
+            ]
+        }
+    ],
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const strokeWidth = parseInt(p.stroke_width || 3, 10);
         const orientation = p.orientation || "horizontal";
@@ -70,12 +100,11 @@ export default {
             y_start: y_start,
             x_end: x_end,
             y_end: y_end,
-            y_end: y_end,
             fill: (p.color === "theme_auto") ? (layout?.darkMode ? "white" : "black") : (p.color || "black"),
             width: strokeWidth
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         const strokeWidth = parseInt(p.stroke_width || 3, 10);
         const orientation = p.orientation || "horizontal";
@@ -98,7 +127,7 @@ export default {
     exportLVGL,
     export: (w, context) => {
         const {
-            lines, getColorConst, getCondProps, getConditionCheck
+            lines, getColorConst, getCondProps, getConditionCheck // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};
@@ -112,7 +141,6 @@ export default {
         let rectW = Math.floor((orientation === "vertical") ? strokeWidth : w.width);
         let rectH = Math.floor((orientation === "vertical") ? w.height : strokeWidth);
 
-        lines.push(`        // widget:line id:${w.id} type:line x:${rectX} y:${rectY} w:${rectW} h:${rectH} stroke:${strokeWidth} color:${colorProp} orientation:${orientation} ${getCondProps(w)}`);
 
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);

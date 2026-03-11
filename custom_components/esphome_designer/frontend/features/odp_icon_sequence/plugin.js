@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ODP Icon Sequence Plugin
  * Displays multiple icons in a row or column
@@ -59,8 +60,25 @@ export default {
         spacing: 6,
         fill: "black"
     },
+    schema: [
+        {
+            section: "Content",
+            fields: [
+                { key: "icons", label: "Icons (comma-sep)", type: "text", default: "mdi:home, mdi:arrow-right, mdi:office-building" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "size", label: "Icon Size", type: "number", default: 24 },
+                { key: "direction", label: "Direction", type: "select", options: ["right", "left", "up", "down"], default: "right" },
+                { key: "spacing", label: "Spacing", type: "number", default: 6 },
+                { key: "fill", label: "Icon Color", type: "color", default: "black" }
+            ]
+        }
+    ],
     render,
-    exportOpenDisplay: (w, { layout, page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         let icons = p.icons || ["mdi:home", "mdi:arrow-right", "mdi:office-building"];
         if (typeof icons === "string") {
@@ -83,7 +101,7 @@ export default {
             fill: color
         };
     },
-    exportOEPL: (w, { layout, page }) => {
+    exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         let icons = p.icons || ["mdi:home", "mdi:arrow-right", "mdi:office-building"];
         if (typeof icons === "string") {

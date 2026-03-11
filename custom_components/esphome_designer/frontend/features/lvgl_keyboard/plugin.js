@@ -1,9 +1,10 @@
+// @ts-nocheck
 /**
  * LVGL Keyboard Plugin
  */
 
-const render = (el, widget, { getColorStyle }) => {
-    const props = widget.props || {};
+const render = (el, widget, { _getColorStyle }) => {
+    const props = widget.props || {}; // eslint-disable-line no-unused-vars
 
     el.innerHTML = "";
     el.style.display = "grid";
@@ -33,10 +34,12 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportLVGL = (w, { common, formatOpacity }) => {
     const p = w.props || {};
+    const textareaId = w.textarea_id || p.textarea_id || w.textarea || p.textarea || "";
     return {
         keyboard: {
             ...common,
             mode: p.mode || "TEXT_LOWER",
+            ...(textareaId ? { textarea: textareaId } : {}),
             opa: formatOpacity(p.opa)
         }
     };
@@ -48,8 +51,26 @@ export default {
     category: "LVGL",
     defaults: {
         mode: "TEXT_LOWER",
-        opa: 255
+        opa: 255,
+        textarea_id: "",
+        opacity: 255
     },
+    schema: [
+        {
+            section: "Keyboard Settings",
+            fields: [
+                { key: "mode", label: "Initial Mode", type: "select", options: ["TEXT_LOWER", "TEXT_UPPER", "SPECIAL", "NUMBER", "USER_1", "USER_2", "USER_3", "USER_4"], default: "TEXT_LOWER" },
+                { key: "textarea_id", target: "root", label: "Target Textarea ID", type: "text", default: "" }
+            ]
+        },
+        {
+            section: "Appearance",
+            fields: [
+                { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },
+                { key: "opacity", label: "Opacity (0 - 255)", type: "number", default: 255 }
+            ]
+        }
+    ],
     render,
     exportLVGL
 };

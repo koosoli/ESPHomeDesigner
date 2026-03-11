@@ -1,26 +1,26 @@
-import { AppState } from '../core/state.js';
+import { AppState } from '../core/state';
 import { hasHaBackend } from '../utils/env.js';
 import { saveLayoutToBackend } from '../io/ha_api.js';
 import { Logger } from '../utils/logger.js';
 
 export class PageSettings {
     constructor() {
-        this.modal = document.getElementById('pageSettingsModal');
-        this.closeBtn = document.getElementById('pageSettingsClose');
-        this.saveBtn = document.getElementById('pageSettingsSave');
-        this.nameInput = document.getElementById('pageSettingsName');
-        this.refreshInput = document.getElementById('pageSettingsRefresh');
-        this.refreshModeInput = document.getElementById('pageSettingsRefreshMode');
-        this.refreshTimeInput = document.getElementById('pageSettingsRefreshTime');
-        this.fieldInterval = document.getElementById('field-refresh-interval');
-        this.fieldTime = document.getElementById('field-refresh-time');
-        this.darkModeInput = document.getElementById('pageSettingsDarkMode');
+        this.modal = /** @type {HTMLElement|null} */ (document.getElementById('pageSettingsModal'));
+        this.closeBtn = /** @type {HTMLButtonElement|null} */ (document.getElementById('pageSettingsClose'));
+        this.saveBtn = /** @type {HTMLButtonElement|null} */ (document.getElementById('pageSettingsSave'));
+        this.nameInput = /** @type {HTMLInputElement|null} */ (document.getElementById('pageSettingsName'));
+        this.refreshInput = /** @type {HTMLInputElement|null} */ (document.getElementById('pageSettingsRefresh'));
+        this.refreshModeInput = /** @type {HTMLSelectElement|null} */ (document.getElementById('pageSettingsRefreshMode'));
+        this.refreshTimeInput = /** @type {HTMLInputElement|null} */ (document.getElementById('pageSettingsRefreshTime'));
+        this.fieldInterval = /** @type {HTMLElement|null} */ (document.getElementById('field-refresh-interval'));
+        this.fieldTime = /** @type {HTMLElement|null} */ (document.getElementById('field-refresh-time'));
+        this.darkModeInput = /** @type {HTMLSelectElement|null} */ (document.getElementById('pageSettingsDarkMode'));
         // Grid layout fields
-        this.layoutModeInput = document.getElementById('pageSettingsLayoutMode');
-        this.gridSizeInput = document.getElementById('pageSettingsGridSize');
-        this.fieldGridSize = document.getElementById('field-grid-size');
-        this.visibleFromInput = document.getElementById('pageSettingsVisibleFrom');
-        this.visibleToInput = document.getElementById('pageSettingsVisibleTo');
+        this.layoutModeInput = /** @type {HTMLSelectElement|null} */ (document.getElementById('pageSettingsLayoutMode'));
+        this.gridSizeInput = /** @type {HTMLInputElement|null} */ (document.getElementById('pageSettingsGridSize'));
+        this.fieldGridSize = /** @type {HTMLElement|null} */ (document.getElementById('field-grid-size'));
+        this.visibleFromInput = /** @type {HTMLInputElement|null} */ (document.getElementById('pageSettingsVisibleFrom'));
+        this.visibleToInput = /** @type {HTMLInputElement|null} */ (document.getElementById('pageSettingsVisibleTo'));
         this.pageIndex = -1;
     }
 
