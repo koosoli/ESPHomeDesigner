@@ -1,0 +1,603 @@
+const { execSync } = require('child_process');
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = path.join(__dirname, '..');
+const FRONTEND = path.join(ROOT, 'custom_components', 'esphome_designer', 'frontend');
+const JS_DIR = path.join(FRONTEND, 'js');
+const FEATURES_DIR = path.join(FRONTEND, 'features');
+const baselinesPath = path.join(__dirname, 'baselines.json');
+const baselines = JSON.parse(fs.readFileSync(baselinesPath, 'utf8'));
+
+const args = new Set(process.argv.slice(2));
+const UPDATE_MODE = args.has('--update-baselines');
+const JSON_MODE = args.has('--json');
+const stageArg = process.argv.find((arg) => arg.startsWith('--stage='));
+const proofDirArg = process.argv.find((arg) => arg.startsWith('--proof-dir='));
+const STAGE = stageArg ? Number.parseInt(stageArg.split('=')[1], 10) : null;
+const PROOF_DIR = proofDirArg ? path.resolve(ROOT, proofDirArg.split('=')[1]) : null;
+
+const COLORS = {
+    GREEN: '\x1b[32m',
+    RED: '\x1b[31m',
+    YELLOW: '\x1b[33m',
+    CYAN: '\x1b[36m',
+    BOLD: '\x1b[1m',
+    RESET: '\x1b[0m'
+};
+
+const startedAt = new Date().toISOString();
+const commandRecords = [];
+
+function sha256(content) {
+    return crypto.createHash('sha256').update(content || '', 'utf8').digest('hex');
+}
+
+function rel(filePath) {
+    return path.relative(ROOT, filePath).replace(/\\/g, '/');
+}
+
+function ensureDir(dirPath) {
+    fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function readJson(filePath) {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
+function normalizeCoveragePath(filePath) {
+    return path.resolve(filePath).replace(/\//g, '\\');
+}
+
+function computeLinePctFromRawCoverage(entry) {
+    if (!entry || !entry.statementMap || !entry.s) return null;
+
+    const totalLines = new Set();
+    const coveredLines = new Set();
+
+    Object.entries(entry.statementMap).forEach(([statementId, location]) => {
+        const hits = entry.s[statementId] || 0;
+        const startLine = location.start.line;
+        const endLine = location.end.line;
+        for (let line = startLine; line <= endLine; line += 1) {
+            totalLines.add(line);
+            if (hits > 0) coveredLines.add(line);
+        }
+    });
+
+    if (totalLines.size === 0) return null;
+    return Number(((coveredLines.size / totalLines.size) * 100).toFixed(2));
+}
+
+function hashPath(targetPath) {
+    const stat = fs.statSync(targetPath);
+    if (stat.isFile()) {
+        return sha256(fs.readFileSync(targetPath));
+    }
+
+    const entries = [];
+    function walk(dir) {
+        const children = fs.readdirSync(dir).sort();
+        children.forEach((child) => {
+            const childPath = path.join(dir, child);
+            const childStat = fs.statSync(childPath);
+            if (childStat.isDirectory()) {
+                walk(childPath);
+                return;
+            }
+            entries.push(`${rel(childPath)}:${sha256(fs.readFileSync(childPath))}`);
+        });
+    }
+
+    walk(targetPath);
+    return sha256(entries.join('\n'));
+}
+
+function getGitSha() {
+    try {
+        return execSync('git rev-parse HEAD', {
+            cwd: ROOT,
+            encoding: 'utf8',
+            stdio: ['ignore', 'pipe', 'ignore']
+        }).trim();
+    } catch {
+        return null;
+    }
+}
+
+function resolvePythonCommand() {
+    const candidates = ['python', 'py -3'];
+    for (const candidate of candidates) {
+        const result = run(`${candidate} --version`);
+        if (result.status === 0) {
+            return candidate;
+        }
+    }
+    return null;
+}
+
+function run(cmd, options = {}) {
+    try {
+        const stdout = execSync(cmd, {
+            cwd: ROOT,
+            encoding: 'utf8',
+            maxBuffer: 10 * 1024 * 1024,
+            stdio: ['pipe', 'pipe', 'pipe'],
+            ...options
+        });
+        const commandIndex = commandRecords.push({
+            cmd,
+            cwd: rel(ROOT),
+            exit: 0,
+            stdout_sha256: sha256(stdout),
+            stderr_sha256: sha256('')
+        }) - 1;
+        return { stdout, stderr: '', status: 0, commandIndex };
+    } catch (error) {
+        const stdout = error.stdout ? error.stdout.toString() : '';
+        const stderr = error.stderr ? error.stderr.toString() : '';
+        const status = error.status || 1;
+        const commandIndex = commandRecords.push({
+            cmd,
+            cwd: rel(ROOT),
+            exit: status,
+            stdout_sha256: sha256(stdout),
+            stderr_sha256: sha256(stderr)
+        }) - 1;
+        return { stdout, stderr, status, error, commandIndex };
+    }
+}
+
+function attachArtifacts(commandIndex, artifactPaths) {
+    if (commandIndex == null || commandIndex < 0 || commandIndex >= commandRecords.length) return;
+    const artifacts = artifactPaths
+        .filter((filePath) => fs.existsSync(filePath))
+        .map((filePath) => ({
+            path: rel(filePath),
+            sha256: hashPath(filePath)
+        }));
+    if (artifacts.length > 0) {
+        commandRecords[commandIndex].artifacts = artifacts;
+    }
+}
+
+function makeGate(section, gate, passed, details, extras = {}) {
+    return { section, gate, passed, details, ...extras };
+}
+
+function checkEslint() {
+    const result = run('npx eslint . --format json');
+    try {
+        const report = JSON.parse(result.stdout);
+        const errors = report.reduce((sum, file) => sum + file.errorCount, 0);
+        const passed = errors <= baselines.eslintErrors;
+        return makeGate('web', 'ESLint', passed, passed ? `${errors} errors` : `${errors} errors (max: ${baselines.eslintErrors})`);
+    } catch {
+        return makeGate('web', 'ESLint', false, 'Failed to parse ESLint JSON output');
+    }
+}
+
+let vitestSummary = null;
+function runVitestWithCoverage() {
+    if (vitestSummary) return vitestSummary;
+
+    console.log(`${COLORS.CYAN}  Running Vitest with Coverage...${COLORS.RESET}`);
+    const result = run('npx vitest run --coverage --reporter=json --outputFile=vitest-report.json');
+
+    try {
+        const reportPath = path.join(ROOT, 'vitest-report.json');
+        const coveragePath = path.join(ROOT, 'coverage', 'coverage-summary.json');
+        const rawCoveragePath = path.join(ROOT, 'coverage', 'coverage-final.json');
+        if (!fs.existsSync(reportPath)) {
+            throw new Error('vitest-report.json was not produced');
+        }
+
+        const report = readJson(reportPath);
+        if (typeof report.numPassedTests !== 'number' || typeof report.numFailedTests !== 'number') {
+            throw new Error('vitest-report.json missing expected summary fields');
+        }
+
+        let coverage = null;
+        if (fs.existsSync(coveragePath)) {
+            coverage = readJson(coveragePath);
+            if (!coverage.total || !coverage.total.lines || typeof coverage.total.lines.pct !== 'number') {
+                throw new Error('coverage-summary.json missing total.lines.pct');
+            }
+        }
+
+        const rawCoverage = fs.existsSync(rawCoveragePath) ? readJson(rawCoveragePath) : null;
+
+        attachArtifacts(result.commandIndex, [reportPath, coveragePath, rawCoveragePath]);
+        vitestSummary = {
+            report,
+            coverage,
+            rawCoverage,
+            status: result.status
+        };
+    } catch (error) {
+        vitestSummary = { error: 'Failed to run tests or parse reports', details: error.message };
+    }
+
+    return vitestSummary;
+}
+
+function checkVitest() {
+    const summary = runVitestWithCoverage();
+    if (summary.error) return makeGate('web', 'Vitest', false, summary.error);
+
+    const passed = summary.report.numFailedTests === 0 && summary.report.numFailedTestSuites === 0;
+    const regression = summary.report.numPassedTests < baselines.testCount;
+    let details = `${summary.report.numPassedTests} passed, ${summary.report.numFailedTests} failed`;
+    if (regression) details += ` (REGRESSION: baseline was ${baselines.testCount})`;
+
+    return makeGate('web', 'Vitest', passed && !regression, details);
+}
+
+function checkCoverage() {
+    const summary = runVitestWithCoverage();
+    if (summary.error) return makeGate('web', 'Coverage', false, summary.error);
+    if (!summary.coverage) return makeGate('web', 'Coverage', false, 'coverage-summary.json not found');
+
+    const lineCoverage = summary.coverage.total.lines.pct;
+    const passed = lineCoverage >= (baselines.coverageMin - 0.01);
+    return makeGate('web', 'Coverage', passed, `${lineCoverage}% lines (min: ${baselines.coverageMin}%)`);
+}
+
+function checkFileCoverage() {
+    const summary = runVitestWithCoverage();
+    if (summary.error) return makeGate('web', 'FileCoverage', false, summary.error);
+    if (!summary.coverage && !summary.rawCoverage) return makeGate('web', 'FileCoverage', false, 'coverage artifacts not found');
+
+    const configured = baselines.fileCoverageMins || {};
+    const entries = Object.entries(configured);
+    if (entries.length === 0) {
+        return makeGate('web', 'FileCoverage', true, '0 files configured', { fileCoverageMins: {} });
+    }
+
+    const measured = {};
+    const details = [];
+    const failures = [];
+
+    entries.forEach(([relativePath, minPct]) => {
+        const normalizedRel = relativePath.replace(/\\/g, '/');
+        const absolutePath = path.resolve(ROOT, relativePath);
+        const normalizedAbs = normalizeCoveragePath(absolutePath);
+        const rawCoverageEntry = summary.rawCoverage?.[absolutePath]
+            || summary.rawCoverage?.[normalizedAbs]
+            || summary.rawCoverage?.[absolutePath.replace(/\//g, '\\')];
+        let actual = computeLinePctFromRawCoverage(rawCoverageEntry);
+
+        if (actual == null) {
+            const coverageEntry = summary.coverage?.[absolutePath]
+                || summary.coverage?.[path.normalize(absolutePath)]
+                || summary.coverage?.[normalizedAbs];
+
+            if (coverageEntry && coverageEntry.lines && typeof coverageEntry.lines.pct === 'number') {
+                actual = coverageEntry.lines.pct;
+            }
+        }
+
+        if (actual == null) {
+            failures.push(`${normalizedRel} missing`);
+            details.push(`${normalizedRel} missing from coverage`);
+            return;
+        }
+
+        measured[normalizedRel] = actual;
+        details.push(`${path.basename(normalizedRel)} ${actual}% (min: ${minPct}%)`);
+        if (actual < (minPct - 0.01)) {
+            failures.push(`${normalizedRel} ${actual}% < ${minPct}%`);
+        }
+    });
+
+    return makeGate('web', 'FileCoverage', failures.length === 0, details.join(', '), { fileCoverageMins: measured });
+}
+
+function checkTypeScript() {
+    const result = run('npx tsc --noEmit');
+    return makeGate('web', 'TypeScript', result.status === 0, result.status === 0 ? 'No type errors' : 'Type errors detected');
+}
+
+function checkBuild() {
+    const result = run('npx vite build');
+    const distPath = path.join(FRONTEND, 'dist');
+    attachArtifacts(result.commandIndex, [distPath]);
+    return makeGate('web', 'Build', result.status === 0, result.status === 0 ? 'Success' : 'Build failed');
+}
+
+function checkGlobals() {
+    let count = 0;
+    function walk(dir) {
+        const files = fs.readdirSync(dir);
+        for (const file of files) {
+            const fullPath = path.join(dir, file);
+            if (fs.statSync(fullPath).isDirectory()) {
+                if (file !== 'lib' && file !== 'node_modules') walk(fullPath);
+            } else if (file.endsWith('.js') && !file.endsWith('.min.js')) {
+                const content = fs.readFileSync(fullPath, 'utf8');
+                const matches = content.match(/window\./g);
+                if (matches) count += matches.length;
+            }
+        }
+    }
+    walk(JS_DIR);
+    const passed = count <= baselines.windowRefsMax;
+    return makeGate('web', 'Globals', passed, `${count} window.* refs (max: ${baselines.windowRefsMax})`);
+}
+
+function checkSuppressions() {
+    let noCheckCount = 0;
+    let ignoreCoreIoCount = 0;
+
+    function walk(dir, onFile) {
+        const files = fs.readdirSync(dir);
+        for (const file of files) {
+            const fullPath = path.join(dir, file);
+            if (fs.statSync(fullPath).isDirectory()) {
+                if (file !== 'node_modules') walk(fullPath, onFile);
+            } else if (file.endsWith('.js')) {
+                onFile(fullPath);
+            }
+        }
+    }
+
+    walk(JS_DIR, (filePath) => {
+        const content = fs.readFileSync(filePath, 'utf8');
+        const noChecks = content.match(/@ts-nocheck/g);
+        if (noChecks) noCheckCount += noChecks.length;
+    });
+
+    const coreDir = path.join(JS_DIR, 'core');
+    const ioDir = path.join(JS_DIR, 'io');
+    [coreDir, ioDir].forEach((dir) => {
+        if (!fs.existsSync(dir)) return;
+        walk(dir, (filePath) => {
+            const content = fs.readFileSync(filePath, 'utf8');
+            const ignores = content.match(/@ts-ignore/g);
+            if (ignores) ignoreCoreIoCount += ignores.length;
+        });
+    });
+
+    const maxNoCheck = typeof baselines.tsNoCheckMax === 'number' ? baselines.tsNoCheckMax : 17;
+    const maxIgnoreCoreIo = typeof baselines.tsIgnoreCoreIoMax === 'number' ? baselines.tsIgnoreCoreIoMax : 0;
+    const passed = noCheckCount <= maxNoCheck && ignoreCoreIoCount <= maxIgnoreCoreIo;
+    return makeGate('repo', 'Suppressions', passed, `@ts-nocheck ${noCheckCount} (max: ${maxNoCheck}), @ts-ignore(core+io) ${ignoreCoreIoCount} (max: ${maxIgnoreCoreIo})`);
+}
+
+function checkPythonSmoke() {
+    const pythonCmd = resolvePythonCommand();
+    if (!pythonCmd) {
+        return makeGate('python', 'PythonSmoke', false, 'No Python interpreter found');
+    }
+
+    const result = run(`${pythonCmd} -m compileall custom_components/esphome_designer`);
+    return makeGate('python', 'PythonSmoke', result.status === 0, result.status === 0 ? `compileall via ${pythonCmd}` : `compileall failed via ${pythonCmd}`);
+}
+
+function checkSchemaHash() {
+    const result = run('node scripts/schema_hash.cjs --check');
+    return makeGate('repo', 'SchemaHash', result.status === 0, result.status === 0 ? 'Hash matches baseline' : 'Hash mismatch');
+}
+
+function checkBundleSize() {
+    const distPath = path.join(FRONTEND, 'dist');
+    if (!fs.existsSync(distPath)) {
+        return makeGate('web', 'BundleSize', false, 'dist/ directory not found');
+    }
+
+    let totalSize = 0;
+    function walk(dir) {
+        const files = fs.readdirSync(dir);
+        for (const file of files) {
+            const fullPath = path.join(dir, file);
+            const stat = fs.statSync(fullPath);
+            if (stat.isDirectory()) walk(fullPath);
+            else totalSize += stat.size;
+        }
+    }
+    walk(distPath);
+
+    const passed = baselines.bundleSizeMax === 0 || totalSize <= baselines.bundleSizeMax;
+    const maxText = baselines.bundleSizeMax === 0 ? 'Unset' : `${(baselines.bundleSizeMax / 1024).toFixed(0)}KB`;
+    return makeGate('web', 'BundleSize', passed, `${(totalSize / 1024).toFixed(0)}KB (max: ${maxText})`);
+}
+
+function checkPlugins() {
+    const dirs = fs.readdirSync(FEATURES_DIR);
+    let count = 0;
+    for (const dir of dirs) {
+        if (fs.existsSync(path.join(FEATURES_DIR, dir, 'plugin.js'))) {
+            count++;
+        }
+    }
+    const passed = count >= baselines.pluginCount;
+    return makeGate('web', 'Plugins', passed, `${count} plugins (min: ${baselines.pluginCount})`);
+}
+
+function checkSourceLines() {
+    let lines = 0;
+    function walk(dir) {
+        const files = fs.readdirSync(dir);
+        for (const file of files) {
+            const fullPath = path.join(dir, file);
+            if (fs.statSync(fullPath).isDirectory()) {
+                if (file !== 'lib') walk(fullPath);
+            } else if ((file.endsWith('.js') || file.endsWith('.ts')) && !file.endsWith('.min.js')) {
+                const content = fs.readFileSync(fullPath, 'utf8');
+                lines += content.split('\n').length;
+            }
+        }
+    }
+    walk(JS_DIR);
+    const warning = lines > baselines.sourceLines * 1.1;
+    return makeGate('repo', 'SourceLines', true, `${lines} lines (baseline: ${baselines.sourceLines})`, { warning });
+}
+
+function printResults(results) {
+    console.log(`${COLORS.BOLD}${COLORS.CYAN}Running Quality Gates...${COLORS.RESET}\n`);
+    console.log(`  ${COLORS.BOLD}${'Gate'.padEnd(20)}${'Status'.padEnd(12)}Details${COLORS.RESET}`);
+    console.log(`  ${'-'.repeat(60)}`);
+
+    results.forEach((result) => {
+        let status = `${COLORS.GREEN}PASS${COLORS.RESET}`;
+        if (!result.passed) status = `${COLORS.RED}FAIL${COLORS.RESET}`;
+        if (result.warning) status = `${COLORS.YELLOW}WARN${COLORS.RESET}`;
+        console.log(`  ${result.gate.padEnd(20)}${status.padEnd(21)}${result.details}`);
+    });
+
+    console.log(`\n  ${'-'.repeat(60)}`);
+}
+
+function updateBaselines(results) {
+    const measured = {};
+    results.forEach((result) => {
+        if (result.gate === 'ESLint') measured.eslintErrors = Number.parseInt(result.details, 10) || 0;
+        if (result.gate === 'Vitest') {
+            const match = result.details.match(/(\d+) passed/);
+            measured.testCount = match ? Number.parseInt(match[1], 10) : baselines.testCount;
+        }
+        if (result.gate === 'Globals') {
+            const match = result.details.match(/(\d+) window/);
+            const current = match ? Number.parseInt(match[1], 10) : baselines.windowRefsMax;
+            measured.windowRefsMax = Math.min(current, baselines.windowRefsMax || current);
+        }
+        if (result.gate === 'Plugins') {
+            const match = result.details.match(/(\d+) plugins/);
+            measured.pluginCount = match ? Number.parseInt(match[1], 10) : baselines.pluginCount;
+        }
+        if (result.gate === 'SourceLines') {
+            const match = result.details.match(/(\d+) lines/);
+            measured.sourceLines = match ? Number.parseInt(match[1], 10) : baselines.sourceLines;
+        }
+        if (result.gate === 'Coverage') {
+            const match = result.details.match(/(\d[\d.]+)% lines/);
+            const current = match ? Number.parseFloat(match[1]) : baselines.coverageMin;
+            measured.coverageMin = Math.max(current, baselines.coverageMin || current);
+        }
+        if (result.gate === 'FileCoverage') {
+            const next = {};
+            const configured = baselines.fileCoverageMins || {};
+            Object.entries(configured).forEach(([relativePath, baseline]) => {
+                const current = result.fileCoverageMins?.[relativePath.replace(/\\/g, '/')] ?? baseline;
+                next[relativePath.replace(/\\/g, '/')] = Math.max(current, baseline);
+            });
+            measured.fileCoverageMins = next;
+        }
+        if (result.gate === 'Suppressions') {
+            const noCheck = result.details.match(/@ts-nocheck (\d+)/);
+            const ignore = result.details.match(/@ts-ignore\(core\+io\) (\d+)/);
+            measured.tsNoCheckMax = noCheck ? Number.parseInt(noCheck[1], 10) : (baselines.tsNoCheckMax ?? 17);
+            measured.tsIgnoreCoreIoMax = ignore ? Number.parseInt(ignore[1], 10) : (baselines.tsIgnoreCoreIoMax ?? 0);
+        }
+        if (result.gate === 'BundleSize') {
+            const match = result.details.match(/(\d+)KB/);
+            const currentKb = match ? Number.parseInt(match[1], 10) : 0;
+            const nextMax = currentKb > 0 ? currentKb * 1024 * 1.05 : baselines.bundleSizeMax;
+            measured.bundleSizeMax = Math.round(nextMax);
+        }
+    });
+
+    measured.testFiles = baselines.testFiles;
+    measured.schemaHash = baselines.schemaHash;
+    measured.fileCoverageMins = measured.fileCoverageMins || baselines.fileCoverageMins || {};
+
+    console.log(`\n  ${COLORS.CYAN}Updating baselines:${COLORS.RESET}`);
+    Object.entries(measured).forEach(([key, value]) => {
+        const old = baselines[key];
+        const arrow = value !== old ? `${old} -> ${value}` : `${value} (unchanged)`;
+        console.log(`    ${key}: ${arrow}`);
+    });
+
+    fs.writeFileSync(baselinesPath, JSON.stringify(measured, null, 2) + '\n');
+    console.log(`\n  ${COLORS.GREEN}Baselines updated!${COLORS.RESET}\n`);
+}
+
+function buildProofBundle(results, allPassed) {
+    const sections = { repo: [], web: [], python: [] };
+    results.forEach((result) => {
+        sections[result.section] = sections[result.section] || [];
+        sections[result.section].push({
+            gate: result.gate,
+            passed: result.passed,
+            details: result.details,
+            warning: !!result.warning
+        });
+    });
+
+    const summary = {
+        tests_passed: null,
+        tests_failed: null,
+        coverage_lines_pct: null
+    };
+
+    const vitestGate = results.find((result) => result.gate === 'Vitest');
+    if (vitestGate) {
+        const match = vitestGate.details.match(/(\d+) passed, (\d+) failed/);
+        if (match) {
+            summary.tests_passed = Number.parseInt(match[1], 10);
+            summary.tests_failed = Number.parseInt(match[2], 10);
+        }
+    }
+
+    const coverageGate = results.find((result) => result.gate === 'Coverage');
+    if (coverageGate) {
+        const match = coverageGate.details.match(/(\d[\d.]+)% lines/);
+        if (match) {
+            summary.coverage_lines_pct = Number.parseFloat(match[1]);
+        }
+    }
+
+    return {
+        phase: STAGE == null ? 'quality-gate' : `stage-${STAGE}`,
+        stage: STAGE,
+        started_at: startedAt,
+        finished_at: new Date().toISOString(),
+        git_sha: getGitSha(),
+        baselines,
+        sections,
+        commands: commandRecords,
+        metrics: summary,
+        decision: allPassed ? 'pass' : 'fail'
+    };
+}
+
+function writeProofBundle(bundle) {
+    if (!JSON_MODE || !PROOF_DIR) return;
+    ensureDir(PROOF_DIR);
+    fs.writeFileSync(path.join(PROOF_DIR, 'proof.json'), JSON.stringify(bundle, null, 2) + '\n');
+}
+
+const results = [
+    checkEslint(),
+    checkVitest(),
+    checkTypeScript(),
+    checkBuild(),
+    checkGlobals(),
+    checkSuppressions(),
+    checkPythonSmoke(),
+    checkPlugins(),
+    checkSourceLines(),
+    checkCoverage(),
+    checkFileCoverage(),
+    checkSchemaHash(),
+    checkBundleSize()
+];
+
+printResults(results);
+
+const allPassed = results.every((result) => result.passed);
+const proofBundle = buildProofBundle(results, allPassed);
+writeProofBundle(proofBundle);
+
+if (!allPassed) {
+    console.log(`\n  ${COLORS.BOLD}${COLORS.RED}Result: QUALITY GATES FAILED${COLORS.RESET}\n`);
+    process.exit(1);
+}
+
+if (UPDATE_MODE) {
+    updateBaselines(results);
+}
+
+console.log(`\n  ${COLORS.BOLD}${COLORS.GREEN}Result: ALL GATES PASSED${COLORS.RESET}\n`);
+process.exit(0);

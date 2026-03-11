@@ -1,0 +1,32 @@
+{
+  "eslintErrors": 0,
+  "testCount": 709,
+  "windowRefsMax": 58,
+  "tsNoCheckMax": 12,
+  "tsIgnoreCoreIoMax": 0,
+  "pluginCount": 55,
+  "sourceLines": 24242,
+  "coverageMin": 56.16,
+  "fileCoverageMins": {
+    "custom_components/esphome_designer/frontend/js/core/canvas.js": 84.05,
+    "custom_components/esphome_designer/frontend/js/core/properties.js": 91.59,
+    "custom_components/esphome_designer/frontend/js/core/sidebar.js": 69.74,
+    "custom_components/esphome_designer/frontend/js/ui/llm_prompt.js": 92.59,
+    "custom_components/esphome_designer/frontend/js/ui/layout_manager.js": 61.86,
+    "custom_components/esphome_designer/frontend/js/ui/page_settings.js": 100,
+    "custom_components/esphome_designer/frontend/js/ui/quick_search.js": 98.55,
+    "custom_components/esphome_designer/frontend/js/ui/splitters.js": 98.96,
+    "custom_components/esphome_designer/frontend/js/ui/yaml_highlighter.js": 97.5,
+    "custom_components/esphome_designer/frontend/js/ui/device_settings.js": 88.01,
+    "custom_components/esphome_designer/frontend/js/ui/entity_picker.js": 90.95,
+    "custom_components/esphome_designer/frontend/js/ui/components/property_controls.js": 93.64,
+    "custom_components/esphome_designer/frontend/js/core/snippet_selection_bridge.js": 100,
+    "custom_components/esphome_designer/frontend/js/utils/device.js": 100,
+    "custom_components/esphome_designer/frontend/js/utils/template_converter.js": 97.33,
+    "custom_components/esphome_designer/frontend/js/utils/helpers.js": 100,
+    "custom_components/esphome_designer/frontend/js/utils/text_utils.js": 100
+  },
+  "bundleSizeMax": 2794445,
+  "testFiles": 33,
+  "schemaHash": "cc10cf1978c2a1048b71dba1c2dd3e248dd987ccfe5a723bf7c5be4bd7710663"
+}
