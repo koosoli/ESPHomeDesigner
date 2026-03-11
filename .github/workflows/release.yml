@@ -34,7 +34,6 @@ jobs:
 
       - name: Build Frontend
         run: |
-          cd custom_components/esphome_designer/frontend
           npm ci
           npm run build
 

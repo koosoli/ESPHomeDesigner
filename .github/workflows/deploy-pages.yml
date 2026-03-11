@@ -41,7 +41,6 @@ jobs:
 
       - name: Build Frontend
         run: |
-          cd custom_components/esphome_designer/frontend
           npm ci
           npx vite build --base=/ESPHomeDesigner/
 

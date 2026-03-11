@@ -4,7 +4,6 @@ node_modules/
 # Build outputs
 dist/
 coverage/
-tmp/proof/
 
 # IDE/Editor
 .vscode/
@@ -23,8 +22,6 @@ __pycache__/
 *.py[cod]
 *.pyo
 .pytest_cache/
-.venv/
-venv/
 
 # Logs
 *.log
@@ -34,24 +31,5 @@ npm-debug.log*
 test_output*.txt
 lint_output*.txt
 *.tmp
-.esphome/
-
-# ESPHome Designer specific noise
-dead_code_report.txt
-plugin_fails.json
-plugin_fails.log
-test_results.txt
-diff.txt
-parse_fails.js
-test_esp8266.js
-
-# Legacy and reference backups
-oldversions/
-references/
-
-# Frontend test output files
-custom_components/**/test_out.txt
-custom_components/**/vitest_output*.txt
-
-
-_archive/
+custom_components/esphome_designer/frontend/error.txt
+custom_components/esphome_designer/frontend/eslint_utf8.txt

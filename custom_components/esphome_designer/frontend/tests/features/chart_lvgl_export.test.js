@@ -29,13 +29,18 @@ describe('chart LVGL export', () => {
         const output = lvglChartPlugin.exportLVGL({
             id: 'chart_1',
             type: 'lvgl_chart',
+            entity_id: 'sensor.trend',
             props: { ...lvglChartPlugin.defaults, title: 'Trend' }
         }, ctx);
 
-        expect(output).toHaveProperty('obj');
-        expect(output).not.toHaveProperty('lv_chart');
-        expect(output.obj.widgets.some((entry) => entry.line?.id === 'chart_1_line')).toBe(true);
-        expect(output.obj.widgets.some((entry) => entry.label?.text === '"Trend"')).toBe(true);
+        expect(output).toHaveProperty('lv_chart');
+        expect(output).not.toHaveProperty('obj');
+        expect(output.lv_chart.type).toBe('line');
+        expect(output.lv_chart.series[0]).toMatchObject({
+            sensor: 'sensor_trend',
+            color: 'Color(blue)'
+        });
+        expect(output.lv_chart.widgets.some((entry) => entry.label?.text === '"Trend"')).toBe(true);
     });
 
     it('injects lvgl.line.update actions for live graph sensors', () => {

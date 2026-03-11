@@ -57,73 +57,48 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
     const p = w.props || {};
-    const width = Math.max(40, parseInt(common.width || w.width || 100, 10) || 100);
-    const height = Math.max(30, parseInt(common.height || w.height || 100, 10) || 100);
-    const title = p.title || 'Chart';
-    const plotTop = title ? 18 : 6;
-    const plotHeight = Math.max(12, height - plotTop - 6);
-    const pointCount = Math.max(4, Math.min(24, parseInt(p.point_count || 10, 10) || 10));
-    const linePoints = Array.from({ length: pointCount }, (_, index) => {
-        const x = pointCount === 1 ? 0 : Math.round((index * (width - 1)) / (pointCount - 1));
-        const phase = pointCount === 1 ? 0 : index / (pointCount - 1);
-        const y = plotTop + Math.round((1 - ((Math.sin(phase * Math.PI * 1.5) + 1) / 2)) * plotHeight);
-        return { x, y };
-    });
-    const gridLines = [];
+    const chart = {
+        ...common,
+        type: p.type || 'line',
+        point_count: p.point_count || 10,
+        border_color: convertColor(p.color || 'black'),
+        border_width: 1,
+        opa: formatOpacity(p.opa || p.opacity || 255),
+        series: [{ color: convertColor(p.color || 'black') }],
+        y_axis: {
+            show_labels: true,
+            num_ticks: p.y_div_lines !== undefined ? p.y_div_lines + 1 : 5
+        },
+        widgets: [{
+            label: {
+                align: 'top_mid',
+                text: `"${p.title || 'Chart'}"`,
+                text_color: convertColor(p.color || 'black')
+            }
+        }]
+    };
 
-    for (let i = 1; i < 4; i++) {
-        const y = plotTop + Math.round((plotHeight * i) / 4);
-        const x = Math.round(((width - 1) * i) / 4);
-        gridLines.push({
-            line: {
-                line_color: convertColor('gray'),
-                line_width: 1,
-                points: [
-                    { x: 0, y },
-                    { x: width - 1, y }
-                ]
-            }
-        });
-        gridLines.push({
-            line: {
-                line_color: convertColor('gray'),
-                line_width: 1,
-                points: [
-                    { x, y: plotTop },
-                    { x, y: plotTop + plotHeight }
-                ]
-            }
-        });
+    if (p.bg_color === 'transparent' || !p.bg_color) {
+        chart.bg_opa = 'transp';
+    } else {
+        chart.bg_color = convertColor(p.bg_color || 'white');
     }
 
-    return {
-        obj: {
-            ...common,
-            ...(p.bg_color === 'transparent' ? { bg_opa: 'transp' } : { bg_color: convertColor(p.bg_color || 'white') }),
-            border_color: convertColor(p.color),
-            border_width: 1,
-            opa: formatOpacity(p.opa),
-            widgets: [
-                ...gridLines,
-                {
-                    line: {
-                        id: `${w.id}_line`,
-                        line_color: convertColor(p.color),
-                        line_width: 2,
-                        line_rounded: true,
-                        points: linePoints
-                    }
-                },
-                {
-                    label: {
-                        align: 'top_mid',
-                        text: `"${title}"`,
-                        text_color: convertColor(p.color)
-                    }
-                }
-            ]
-        }
-    };
+    if (p.x_div_lines !== undefined || p.y_div_lines !== undefined) {
+        chart.div_line_count = {
+            x: p.x_div_lines,
+            y: p.y_div_lines
+        };
+    }
+
+    const entityId = (w.entity_id || p.entity_id || '').trim();
+    if (entityId) {
+        chart.series[0].sensor = entityId.replace(/[^a-zA-Z0-9_]/g, '_');
+        chart.y_min = p.min ?? 0;
+        chart.y_max = p.max ?? 100;
+    }
+
+    return { lv_chart: chart };
 };
 
 export default {
