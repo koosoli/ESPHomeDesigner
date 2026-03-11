@@ -1,3 +1,15 @@
+## v1.0.0 RC8.1 - Hotfix
+**Release Date:** March 11, 2026
+
+### Hotfix
+- Updated the release version to `1.0.0-rc.8.1` so HACS and release metadata can point to a distinct prerelease instead of reusing the original `rc8` artifact.
+- Fixed GitHub workflow drift by aligning the root release and Pages workflows with the current root-level Node project layout.
+- Restored `lvgl_chart` to a chart-shaped LVGL export contract and updated the focused chart export test to match that behavior.
+- Removed transient frontend artifact files and cleaned up stale nested `.github` workflow duplicates under `custom_components/esphome_designer`.
+- Synced the touch-area export behavior, smoke snapshot contract, and schema baseline so the quality gate and CI no longer drift from the validated local state.
+
+---
+
 ## v1.0.0 RC8 - Architecture Cleanup & Stability
 **Release Date:** February 21, 2026
 
