@@ -81,7 +81,7 @@ class ReTerminalHardwareListView(DesignerBaseView):
                         features["inverted_colors"] = True
                     
                     # Detect chip and board from early comments or esp32/esp8266 blocks
-                    chip = "esp32-s3"
+                    chip = "esp32"
                     board = None
                     
                     esp8266_match = re.search(r"^\s*esp8266:", content, re.MULTILINE)

@@ -23,10 +23,10 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN, STORAGE_KEY, STORAGE_VERSION
 from .http_api import async_register_http_views
-from .models import DashboardState, DeviceConfig, PageConfig, WidgetConfig
 from .panel import ESPHomeDesignerPanelView, ESPHomeDesignerFontView
 from .services import async_register_services, async_unregister_services
 from .storage import DashboardStorage
+from .models import DashboardState, DeviceConfig, PageConfig, WidgetConfig
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -198,7 +198,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register static view for frontend assets (CSS/JS)
     # This manually serves editor.css and editor.js to avoid issues with register_static_path
     from .panel import ESPHomeDesignerStaticView
-
     hass.http.register_view(ESPHomeDesignerStaticView(hass))
     _LOGGER.info("%s: Static view registered at /esphome-designer/static/{filename}", DOMAIN)
 
@@ -206,7 +205,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if entry.options.get("show_in_sidebar", True):
         try:
             from homeassistant.components import frontend
-
             frontend.async_register_built_in_panel(
                 hass,
                 component_name="iframe",  # Use iframe panel type to load our view
@@ -239,11 +237,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if len(entries) <= 1:
         async_unregister_services(hass)
         _LOGGER.debug("%s: Unregistered services (last entry unloaded)", DOMAIN)
-
+    
     # Remove the sidebar panel
     try:
         from homeassistant.components import frontend
-
         frontend.async_remove_panel(hass, "esphome-designer")
     except Exception:
         pass

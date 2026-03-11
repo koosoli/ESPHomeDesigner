@@ -131,7 +131,7 @@ const exportDoc = (w, context) => {
 
     if (entityId) {
         const attributePath = (p.attribute || "").trim();
-        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[ ]/)[0] : attributePath;
+        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[]/)[0] : attributePath;
         const makeSafeId = (eid, suffix = "") => {
             const base = rootAttr ? (eid + "_" + rootAttr) : eid;
             let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");
@@ -197,7 +197,7 @@ const onExportTextSensors = (context) => {
 
     weatherEntities.forEach(({ id, entity_id, attribute }) => {
         const attributePath = (attribute || "").trim();
-        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[ ]/)[0] : attributePath;
+        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[]/)[0] : attributePath;
         const makeSafeId = (eid, suffix = "") => {
             const base = rootAttr ? (eid + "_" + rootAttr) : eid;
             let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");
@@ -375,7 +375,7 @@ export default {
         if (entityId) {
             // Helper to create safe ESPHome ID (max 59 chars)
             const attributePath = (p.attribute || "").trim();
-            const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[ ]/)[0] : attributePath;
+            const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[]/)[0] : attributePath;
             const makeSafeId = (eid, suffix = "") => {
                 const base = rootAttr ? (eid + "_" + rootAttr) : eid;
                 let safe = base.replace(/[^a-zA-Z0-9_]/g, "_");

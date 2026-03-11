@@ -114,8 +114,7 @@ const exportDoc = (w, context) => {
 };
 
 const onExportBinarySensors = (context) => {
-    const { lines, widgets, profile } = context;
-    if (!profile?.touch) return;
+    const { lines, widgets } = context;
 
     const targets = widgets.filter(w => w.type === 'touch_area' || w.type === 'nav_next_page' || w.type === 'nav_previous_page' || w.type === 'nav_reload_page');
     if (targets.length === 0) return;

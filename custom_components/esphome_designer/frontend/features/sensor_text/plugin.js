@@ -463,9 +463,9 @@ export default {
         }
 
         const attributePath = (p.attribute || "").trim();
-        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[ ]/)[0] : attributePath;
+            const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[]/)[0] : attributePath;
         const attributePath2 = (p.attribute2 || "").trim();
-        const rootAttr2 = (attributePath2.includes(".") || attributePath2.includes("[")) ? attributePath2.split(/[.[ ]/)[0] : attributePath2;
+            const rootAttr2 = (attributePath2.includes(".") || attributePath2.includes("[")) ? attributePath2.split(/[.[]/)[0] : attributePath2;
 
         const makeSafeId = (eid, attr, suffix = "") => {
             const base = attr ? (eid + "_" + attr) : eid;
@@ -819,9 +819,9 @@ export default {
 
         // Helper to create safe ESPHome ID (max 59 chars before suffix for 63 char limit)
         const attributePath1 = (p.attribute || "").trim();
-        const rootAttr1 = (attributePath1.includes(".") || attributePath1.includes("[")) ? attributePath1.split(/[.[ ]/)[0] : attributePath1;
+            const rootAttr1 = (attributePath1.includes(".") || attributePath1.includes("[")) ? attributePath1.split(/[.[]/)[0] : attributePath1;
         const attributePath2 = (p.attribute2 || "").trim();
-        const rootAttr2 = (attributePath2.includes(".") || attributePath2.includes("[")) ? attributePath2.split(/[.[ ]/)[0] : attributePath2;
+            const rootAttr2 = (attributePath2.includes(".") || attributePath2.includes("[")) ? attributePath2.split(/[.[]/)[0] : attributePath2;
 
         const makeSafeId = (eid, attr, suffix = "") => {
             const base = attr ? (eid + "_" + attr) : eid;
@@ -1051,7 +1051,7 @@ export default {
                 // For nested paths (e.g. entries.days.0), we only want to register the root attribute (entries) in HA.
                 const attributePath = (attribute || "").trim();
                 const isNested = attributePath.includes(".") || attributePath.includes("[");
-                const rootAttr = isNested ? attributePath.split(/[.[ ]/)[0] : attributePath;
+                    const rootAttr = isNested ? attributePath.split(/[.[]/)[0] : attributePath;
 
                 const safeId = makeSafeId(entityId, rootAttr, "_txt");
 
@@ -1086,7 +1086,7 @@ export default {
                 // For nested paths (e.g. entries.days.0), we only want to register the root attribute (entries) in HA.
                 const attributePath = (attribute || "").trim();
                 const isNested = attributePath.includes(".") || attributePath.includes("[");
-                const rootAttr = isNested ? attributePath.split(/[.[ ]/)[0] : attributePath;
+                    const rootAttr = isNested ? attributePath.split(/[.[]/)[0] : attributePath;
 
                 const safeId = makeSafeId(entityId, rootAttr, "_txt");
 

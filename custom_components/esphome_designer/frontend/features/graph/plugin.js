@@ -107,7 +107,7 @@ const render = (el, widget, { getColorStyle }) => {
                             }
                         } else {
                             // Simple CSV: strip brackets/quotes, split by comma
-                            const cleaned = rawData.replace(/[[\]"']/g, '');
+                                const cleaned = rawData.replace(/[[\]"']/g, '');
                             cleaned.split(',').forEach(s => {
                                 const f = parseFloat(s.trim());
                                 if (!isNaN(f)) values.push(f);

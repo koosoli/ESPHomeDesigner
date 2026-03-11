@@ -982,158 +982,23 @@ exports[`Plugin Export Smoke Tests > Export for lvgl_buttonmatrix > should expor
 
 exports[`Plugin Export Smoke Tests > Export for lvgl_chart > should export LVGL with stable output 1`] = `
 {
-  "obj": {
+  "lv_chart": {
     "bg_opa": "transp",
     "border_color": "Color(blue)",
     "border_width": 1,
+    "div_line_count": {
+      "x": 3,
+      "y": 3,
+    },
     "opa": 255,
+    "point_count": 10,
+    "series": [
+      {
+        "color": "Color(blue)",
+      },
+    ],
+    "type": "line",
     "widgets": [
-      {
-        "line": {
-          "line_color": "Color(gray)",
-          "line_width": 1,
-          "points": [
-            {
-              "x": 0,
-              "y": 37,
-            },
-            {
-              "x": 99,
-              "y": 37,
-            },
-          ],
-        },
-      },
-      {
-        "line": {
-          "line_color": "Color(gray)",
-          "line_width": 1,
-          "points": [
-            {
-              "x": 25,
-              "y": 18,
-            },
-            {
-              "x": 25,
-              "y": 94,
-            },
-          ],
-        },
-      },
-      {
-        "line": {
-          "line_color": "Color(gray)",
-          "line_width": 1,
-          "points": [
-            {
-              "x": 0,
-              "y": 56,
-            },
-            {
-              "x": 99,
-              "y": 56,
-            },
-          ],
-        },
-      },
-      {
-        "line": {
-          "line_color": "Color(gray)",
-          "line_width": 1,
-          "points": [
-            {
-              "x": 50,
-              "y": 18,
-            },
-            {
-              "x": 50,
-              "y": 94,
-            },
-          ],
-        },
-      },
-      {
-        "line": {
-          "line_color": "Color(gray)",
-          "line_width": 1,
-          "points": [
-            {
-              "x": 0,
-              "y": 75,
-            },
-            {
-              "x": 99,
-              "y": 75,
-            },
-          ],
-        },
-      },
-      {
-        "line": {
-          "line_color": "Color(gray)",
-          "line_width": 1,
-          "points": [
-            {
-              "x": 74,
-              "y": 18,
-            },
-            {
-              "x": 74,
-              "y": 94,
-            },
-          ],
-        },
-      },
-      {
-        "line": {
-          "id": "w_test_line",
-          "line_color": "Color(blue)",
-          "line_rounded": true,
-          "line_width": 2,
-          "points": [
-            {
-              "x": 0,
-              "y": 56,
-            },
-            {
-              "x": 11,
-              "y": 37,
-            },
-            {
-              "x": 22,
-              "y": 23,
-            },
-            {
-              "x": 33,
-              "y": 18,
-            },
-            {
-              "x": 44,
-              "y": 23,
-            },
-            {
-              "x": 55,
-              "y": 37,
-            },
-            {
-              "x": 66,
-              "y": 56,
-            },
-            {
-              "x": 77,
-              "y": 75,
-            },
-            {
-              "x": 88,
-              "y": 89,
-            },
-            {
-              "x": 99,
-              "y": 94,
-            },
-          ],
-        },
-      },
       {
         "label": {
           "align": "top_mid",
@@ -1142,6 +1007,10 @@ exports[`Plugin Export Smoke Tests > Export for lvgl_chart > should export LVGL 
         },
       },
     ],
+    "y_axis": {
+      "num_ticks": 4,
+      "show_labels": true,
+    },
   },
 }
 `;
@@ -2872,7 +2741,18 @@ exports[`Plugin Export Smoke Tests > Export for text > should export standard C+
 
 exports[`Plugin Export Smoke Tests > Export for touch_area > should export standard C++ with stable output 1`] = `[]`;
 
-exports[`Plugin Export Smoke Tests > Export for touch_area > should handle onExportBinarySensors with stable output 1`] = `[]`;
+exports[`Plugin Export Smoke Tests > Export for touch_area > should handle onExportBinarySensors with stable output 1`] = `
+[
+  "# Touch Area Binary Sensors",
+  "- platform: touchscreen",
+  "  id: touch_area_w_test",
+  "  touchscreen_id: my_touchscreen",
+  "  x_min: 10",
+  "  x_max: 110",
+  "  y_min: 10",
+  "  y_max: 110",
+]
+`;
 
 exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export LVGL with stable output 1`] = `
 {

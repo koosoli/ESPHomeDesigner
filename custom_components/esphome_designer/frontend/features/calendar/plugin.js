@@ -280,10 +280,8 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
     // Try to get live data from AppState
     let liveEvents = null;
     const entityId = (widget.entity_id || props.entity_id || "sensor.esp_calendar_data").trim();
-    console.log("[Calendar Preview] Looking for entity:", entityId);
     if (AppState && AppState.entityStates) {
         const stateObj = AppState.entityStates[entityId];
-        console.log("[Calendar Preview] Found stateObj:", stateObj ? "yes" : "no", stateObj ? JSON.stringify(stateObj).substring(0, 300) : "");
         if (stateObj) {
             try {
                 // STRATEGY 1: Check Attributes (The new "Sensor" way)
