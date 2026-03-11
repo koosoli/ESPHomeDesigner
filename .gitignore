@@ -2,8 +2,9 @@
 node_modules/
 
 # Build outputs
-/dist/
+dist/
 coverage/
+tmp/proof/
 
 # IDE/Editor
 .vscode/
@@ -35,3 +36,22 @@ lint_output*.txt
 *.tmp
 .esphome/
 
+# ESPHome Designer specific noise
+dead_code_report.txt
+plugin_fails.json
+plugin_fails.log
+test_results.txt
+diff.txt
+parse_fails.js
+test_esp8266.js
+
+# Legacy and reference backups
+oldversions/
+references/
+
+# Frontend test output files
+custom_components/**/test_out.txt
+custom_components/**/vitest_output*.txt
+
+
+_archive/
