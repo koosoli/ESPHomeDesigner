@@ -3,6 +3,7 @@
  * Calendar Plugin
  */
 import { AppState } from '@core/state';
+import { getWeightsForFont, clampFontWeight } from '@core/font_weights.js';
 import { SchemaRenderer } from '../../js/core/properties/schema_renderer.js'; // eslint-disable-line no-unused-vars
 
 const CALENDAR_HELPER_SCRIPT = `# Dictionary to map calendar keys to their corresponding names
@@ -166,20 +167,21 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
 
     const bigDate = document.createElement("div");
     bigDate.style.fontSize = Math.min((props.font_size_date || 100) * 0.7, 80) + "px";
-    bigDate.style.fontWeight = "100";
+    bigDate.style.fontWeight = props.font_weight_header_date || "100";
     bigDate.style.lineHeight = "0.8";
     bigDate.innerText = date;
     header.appendChild(bigDate);
 
     const dayName = document.createElement("div");
     dayName.style.fontSize = (props.font_size_day || 24) + "px";
-    dayName.style.fontWeight = "bold";
+    dayName.style.fontWeight = props.font_weight_header_day || "bold";
     dayName.style.marginTop = "4px"; // Add space below the date
     dayName.innerText = dayNameText;
     header.appendChild(dayName);
 
     const dateLine = document.createElement("div");
     dateLine.style.fontSize = (props.font_size_grid || 14) + "px";
+    dateLine.style.fontWeight = props.font_weight_month || "normal";
     dateLine.innerText = monthYearText;
     header.appendChild(dateLine);
 
@@ -202,7 +204,7 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
         const d = document.createElement("div");
         d.innerText = day;
         d.style.textAlign = "center";
-        d.style.fontWeight = "bold";
+        d.style.fontWeight = props.font_weight_grid_header || "bold";
         d.style.fontSize = gridFontSize;
         grid.appendChild(d);
     });
@@ -224,6 +226,7 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
         d.innerText = i;
         d.style.textAlign = "center";
         d.style.fontSize = gridFontSize;
+        d.style.fontWeight = props.font_weight_dates !== undefined ? props.font_weight_dates : (props.bold_dates !== false ? 700 : 400);
 
         if (i === date) {
             d.style.backgroundColor = colorStyle;
@@ -263,7 +266,7 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
             d.style.height = "1.5em";
             d.style.lineHeight = "1.5em";
             d.style.margin = "0 auto";
-            d.style.fontWeight = "bold";
+            d.style.fontWeight = props.font_weight_dates || "bold";
         }
         grid.appendChild(d);
     }
@@ -274,6 +277,7 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
     const events = document.createElement("div");
     events.style.padding = "5px";
     events.style.fontSize = (props.font_size_event || 18) + "px";
+    events.style.fontWeight = props.font_weight_events || "normal";
     events.style.flexGrow = "1";
     events.style.overflow = "hidden";
 
@@ -432,7 +436,13 @@ export default {
         show_events: true,
         width: 335,
         height: 340,
-        opa: 255
+        opa: 255,
+        font_weight_header_date: 100,
+        font_weight_header_day: 700,
+        font_weight_month: 400,
+        font_weight_grid_header: 700,
+        font_weight_dates: 700,
+        font_weight_events: 400
     },
     renderProperties: (panel, widget) => {
         const props = widget.props || {};
@@ -524,6 +534,23 @@ template:
         panel.addLabeledInput("Day Size (Header)", "number", props.font_size_day || 24, (v) => updateProp("font_size_day", parseInt(v, 10)));
         panel.addLabeledInput("Grid Text Size", "number", props.font_size_grid || 14, (v) => updateProp("font_size_grid", parseInt(v, 10)));
         panel.addLabeledInput("Event Text Size", "number", props.font_size_event || 18, (v) => updateProp("font_size_event", parseInt(v, 10)));
+        
+        const fontFam = props.font_family || "Roboto";
+        const availableWeights = getWeightsForFont(fontFam);
+        
+        const addWeightSelect = (label, propKey, defaultVal) => {
+            let val = props[propKey] !== undefined ? props[propKey] : defaultVal;
+            val = clampFontWeight(fontFam, val);
+            panel.addSelect(label, val, availableWeights, (v) => updateProp(propKey, parseInt(v, 10)));
+        };
+
+        addWeightSelect("Header Date Weight", "font_weight_header_date", 100);
+        addWeightSelect("Header Day Weight", "font_weight_header_day", 700);
+        addWeightSelect("Month Weight", "font_weight_month", 400);
+        addWeightSelect("Grid Header Weight", "font_weight_grid_header", 700);
+        addWeightSelect("Dates Weight", "font_weight_dates", 700);
+        addWeightSelect("Events Weight", "font_weight_events", 400);
+        
         panel.endSection();
 
         panel.createSection("Appearance", false);
@@ -747,10 +774,25 @@ template:
         const eventFontSize = parseInt(p.font_size_event || 18, 10);
         const fontFamily = p.font_family || "Roboto";
 
-        const dateFontId = addFont(fontFamily, 100, dateFontSize); // Full size
-        const dayFontId = addFont(fontFamily, 700, dayFontSize);
-        const gridFontId = addFont(fontFamily, 400, gridFontSize);
-        const eventFontId = addFont(fontFamily, 400, eventFontSize);
+        const getW = (key, def) => {
+            if (p[key] !== undefined) return clampFontWeight(fontFamily, p[key]);
+            if (key === "font_weight_dates" && p.bold_dates !== undefined) return p.bold_dates ? 700 : 400;
+            return def;
+        };
+
+        const wHeaderDate = getW("font_weight_header_date", 100);
+        const wHeaderDay = getW("font_weight_header_day", 700);
+        const wMonth = getW("font_weight_month", 400);
+        const wGridHeader = getW("font_weight_grid_header", 700);
+        const wDates = getW("font_weight_dates", 700);
+        const wEvents = getW("font_weight_events", 400);
+
+        const fontHeaderDateId = addFont(fontFamily, wHeaderDate, dateFontSize);
+        const fontHeaderDayId = addFont(fontFamily, wHeaderDay, dayFontSize);
+        const fontMonthId = addFont(fontFamily, wMonth, gridFontSize);
+        const fontGridHeaderId = addFont(fontFamily, wGridHeader, gridFontSize);
+        const fontGridDatesId = addFont(fontFamily, wDates, gridFontSize);
+        const fontEventId = addFont(fontFamily, wEvents, eventFontSize);
 
 
         const cond = getConditionCheck(w);
@@ -775,9 +817,9 @@ template:
         lines.push(`          int headH = ${dateFontSize + dayFontSize + gridFontSize + 15};`);
 
         if (showHeader) {
-            lines.push(`          it.strftime(x + w/2, y + 2, id(${dateFontId}), ${color}, TextAlign::TOP_CENTER, "%d", now);`);
-            lines.push(`          it.strftime(x + w/2, y + ${dateFontSize + 6}, id(${dayFontId}), ${color}, TextAlign::TOP_CENTER, "%A", now);`);
-            lines.push(`          it.strftime(x + w/2, y + ${dateFontSize + dayFontSize + 10}, id(${gridFontId}), ${color}, TextAlign::TOP_CENTER, "%B %Y", now);`);
+            lines.push(`          it.strftime(x + w/2, y + 2, id(${fontHeaderDateId}), ${color}, TextAlign::TOP_CENTER, "%d", now);`);
+            lines.push(`          it.strftime(x + w/2, y + ${dateFontSize + 6}, id(${fontHeaderDayId}), ${color}, TextAlign::TOP_CENTER, "%A", now);`);
+            lines.push(`          it.strftime(x + w/2, y + ${dateFontSize + dayFontSize + 10}, id(${fontMonthId}), ${color}, TextAlign::TOP_CENTER, "%B %Y", now);`);
             lines.push(`          it.line(x, y + headH, x + w, y + headH, ${color});`);
         } else {
             lines.push(`          headH = 0;`); // Reset headH if hidden so subsequent elements flow up
@@ -794,7 +836,7 @@ template:
         if (showGrid) {
             lines.push(`          const char* days[] = {"Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"};`);
             lines.push(`          for(int i=0; i<7; i++) {`);
-            lines.push(`            it.print(x + i*cellW + cellW/2, gridY, id(${gridFontId}), ${color}, TextAlign::TOP_CENTER, days[i]);`);
+            lines.push(`            it.print(x + i*cellW + cellW/2, gridY, id(${fontGridHeaderId}), ${color}, TextAlign::TOP_CENTER, days[i]);`);
             lines.push(`          }`);
 
             // Calendar Logic (Simplified for static display or needs helper)
@@ -816,9 +858,9 @@ template:
             lines.push(`          for(int d=1; d<=daysInMonth; d++) {`);
             lines.push(`            if(d == now.day_of_month) {`);
             lines.push(`               it.filled_circle(x + c*cellW + cellW/2, gridY + r*rowH + 6, ${Math.floor(gridFontSize / 1.5)}, ${color});`);
-            lines.push(`               it.printf(x + c*cellW + cellW/2, gridY + r*rowH, id(${gridFontId}), ${bgColorProp === "transparent" ? (colorProp.includes('black') || colorProp.includes('000000') ? "Color::WHITE" : "Color::BLACK") : bgColor}, TextAlign::TOP_CENTER, "%d", d);`);
+            lines.push(`               it.printf(x + c*cellW + cellW/2, gridY + r*rowH, id(${fontGridDatesId}), ${bgColorProp === "transparent" ? (colorProp.includes('black') || colorProp.includes('000000') ? "Color::WHITE" : "Color::BLACK") : bgColor}, TextAlign::TOP_CENTER, "%d", d);`);
             lines.push(`            } else {`);
-            lines.push(`               it.printf(x + c*cellW + cellW/2, gridY + r*rowH, id(${gridFontId}), ${color}, TextAlign::TOP_CENTER, "%d", d);`);
+            lines.push(`               it.printf(x + c*cellW + cellW/2, gridY + r*rowH, id(${fontGridDatesId}), ${color}, TextAlign::TOP_CENTER, "%d", d);`);
             lines.push(`            }`);
             lines.push(`            c++; if(c>6) { c=0; r++; }`);
             lines.push(`          }`);
@@ -876,17 +918,17 @@ template:
             lines.push(`                             const char* start = event["start"] | "";`);
             lines.push(``);
             lines.push(`                             // Draw Day Number`);
-            lines.push(`                             it.printf(x + 10, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
+            lines.push(`                             it.printf(x + 10, eventY, id(${fontEventId}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
             lines.push(``);
             lines.push(`                             // Draw Summary`);
-            lines.push(`                             it.printf(x + 50, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_LEFT, "%.25s", summary);`);
+            lines.push(`                             it.printf(x + 50, eventY, id(${fontEventId}), ${color}, TextAlign::TOP_LEFT, "%.25s", summary);`);
             lines.push(``);
             lines.push(`                             // Draw Time`);
             lines.push(`                             if (is_all_day) {`);
-            lines.push(`                                 it.printf(x + w - 10, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_RIGHT, "All Day");`);
+            lines.push(`                                 it.printf(x + w - 10, eventY, id(${fontEventId}), ${color}, TextAlign::TOP_RIGHT, "All Day");`);
             lines.push(`                             } else {`);
             lines.push(`                                 std::string timeStr = extract_time(start);`);
-            lines.push(`                                 it.printf(x + w - 10, eventY, id(${eventFontId}), ${color}, TextAlign::TOP_RIGHT, "%s", timeStr.c_str());`);
+            lines.push(`                                 it.printf(x + w - 10, eventY, id(${fontEventId}), ${color}, TextAlign::TOP_RIGHT, "%s", timeStr.c_str());`);
             lines.push(`                             }`);
             lines.push(`                             eventY += ${eventFontSize + 6};`);
             lines.push(`                             event_count++;`);
@@ -936,10 +978,18 @@ template:
         const eventFontSize = parseInt(p.font_size_event || 18, 10);
         const fontFamily = p.font_family || "Roboto";
 
-        addFont(fontFamily, 100, dateFontSize);
-        addFont(fontFamily, 700, dayFontSize);
-        addFont(fontFamily, 400, gridFontSize);
-        addFont(fontFamily, 400, eventFontSize);
+        const getW = (key, def) => {
+            if (p[key] !== undefined) return clampFontWeight(fontFamily, p[key]);
+            if (key === "font_weight_dates" && p.bold_dates !== undefined) return p.bold_dates ? 700 : 400;
+            return def;
+        };
+
+        addFont(fontFamily, getW("font_weight_header_date", 100), dateFontSize);
+        addFont(fontFamily, getW("font_weight_header_day", 700), dayFontSize);
+        addFont(fontFamily, getW("font_weight_month", 400), gridFontSize);
+        addFont(fontFamily, getW("font_weight_grid_header", 700), gridFontSize);
+        addFont(fontFamily, getW("font_weight_dates", 700), gridFontSize);
+        addFont(fontFamily, getW("font_weight_events", 400), eventFontSize);
         addFont("Material Design Icons", 400, 24);
     }
 };

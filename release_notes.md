@@ -1,3 +1,18 @@
+## v1.0.0 RC8.2 - Granular Font Weights
+**Release Date:** March 13, 2026
+
+### 🎨 Design & Typography
+- **Granular Font Weights (Issue #337)**: Implemented exhaustive font weight controls for all text elements within the Calendar and Datetime widgets.
+  - **Calendar**: Added independent weight selectors for Header Date, Header Day, Month, Grid Headers, Grid Dates, and Events.
+  - **Datetime**: Replaced simple "Bold" toggles with precise numeric weight dropdowns for Time and Date elements separately.
+  - **Consistency**: Aligned all textual widgets with the standard numeric weight system (100-900) used in the Text widget.
+- **Improved Preview Parity**: The designer canvas now accurately renders all individual font weights, ensuring your dashboard looks exactly as intended during the design phase.
+- **Reference Error Fix**: Resolved a critical YAML generation error where the "Grid Font ID" was incorrectly referenced during export.
+
+Many thanks to **Richhoef** for the suggestions and detailed feedback in [Issue #337](https://github.com/koosoli/ESPHomeDesigner/issues/337)!
+
+---
+
 ## v1.0.0 RC8.1 - Hotfix
 **Release Date:** March 11, 2026
 

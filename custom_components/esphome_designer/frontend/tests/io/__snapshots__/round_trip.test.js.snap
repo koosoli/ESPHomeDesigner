@@ -79,7 +79,7 @@ exports[`ESPHomeAdapter & YamlImport Round-Trip > round-trips a layout with mock
 globals:
   - id: display_page
     type: int
-    restore_value: false
+    restore_value: true
     initial_value: '0'
   - id: page_refresh_default_s
     type: int

@@ -24,6 +24,12 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of calen
   "font_size_day": 24,
   "font_size_event": 18,
   "font_size_grid": 14,
+  "font_weight_dates": 700,
+  "font_weight_events": 400,
+  "font_weight_grid_header": 700,
+  "font_weight_header_date": 100,
+  "font_weight_header_day": 700,
+  "font_weight_month": 400,
   "height": 340,
   "opa": 255,
   "show_border": true,
@@ -38,6 +44,8 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of calen
 exports[`Plugin Defaults Snapshots > should match snapshot for defaults of datetime 1`] = `
 {
   "bg_color": "transparent",
+  "bold_date": false,
+  "bold_time": true,
   "border_color": "theme_auto",
   "border_radius": 0,
   "border_width": 0,

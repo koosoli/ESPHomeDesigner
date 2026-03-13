@@ -209,7 +209,7 @@ export class YamlGenerator {
             lines.push("#       # 3. Initial Screen Update");
             lines.push("#       - component.update: epaper_display");
         } else if (isEpaper && layout.deepSleepEnabled) {
-            lines.push("#       - script.execute: deep_sleep_cycle");
+            lines.push("#       - script.execute: manage_run_and_sleep");
         } else {
             lines.push("#       - script.execute: manage_run_and_sleep");
         }
@@ -437,9 +437,7 @@ export class YamlGenerator {
             lines.push("            id(display_page) = target;");
             lines.push(`            id(${displayId}).update();`);
             lines.push(`            ESP_LOGI("display", "Switched to page %d", target);`);
-            lines.push("            // Restart refresh logic");
-            lines.push("            if (id(manage_run_and_sleep).is_running()) id(manage_run_and_sleep).stop();");
-            lines.push("            id(manage_run_and_sleep).execute();");
+            // Restart refresh logic removed for Bug 8 to preserve is_new_flash state
             if (isBacklightStrategy) {
                 lines.push(`            // LCD Strategy: Wake up backlight on interaction/page change`);
                 lines.push(`            id(backlight_pwm).set_level(0.8); // Restore brightness`);
@@ -452,6 +450,14 @@ export class YamlGenerator {
             lines.push("");
             lines.push("  - id: deep_sleep_cycle");
             lines.push("    then:");
+            if (payload.deepSleepStayAwakeSwitch) {
+                lines.push("      - if:");
+                lines.push("          condition:");
+                lines.push("            binary_sensor.is_on: stay_awake_switch");
+                lines.push("          then:");
+                lines.push("            - logger.log: \"Stay-awake active, deep sleep cycle aborted.\"");
+                lines.push("            - return:");
+            }
             lines.push("      - logger.log: \"Waiting for sync before Deep Sleep...\"");
             lines.push("      - wait_until:");
             lines.push("          condition:");
@@ -617,7 +623,7 @@ export class YamlGenerator {
 
                 lines.push("");
                 lines.push("             // If current page is invisible OR another should be shown, switch");
-                lines.push("             if (best_page != -1 && best_page != p) {");
+                lines.push("             if (best_page != -1 && (best_page != p || id(last_page_switch_time) == 0)) {");
                 lines.push("                 ESP_LOGI(\"display\", \"Auto-switching to scheduled page %d\", best_page);");
                 lines.push("                 id(change_page_to).execute(best_page);");
                 lines.push("                 return;");
@@ -689,8 +695,12 @@ export class YamlGenerator {
         // Manual Refresh Only: Do NOT loop. Stop after initial update.
         const isManualRefresh = !!payload.manualRefreshOnly;
         if (!isManualRefresh) {
-            lines.push("      - delay: !lambda 'return id(page_refresh_current_s) * 1000;'");
-            lines.push("      - script.execute: manage_run_and_sleep");
+            if (isDeepSleep) {
+                lines.push("      - script.execute: deep_sleep_cycle");
+            } else {
+                lines.push("      - delay: !lambda 'return id(page_refresh_current_s) * 1000;'");
+                lines.push("      - script.execute: manage_run_and_sleep");
+            }
         } else {
             lines.push("      - logger.log: \"Manual Refresh Only mode: stopping automatic refresh loop.\"");
         }

@@ -110,7 +110,7 @@ export class ESPHomeAdapter extends BaseAdapter {
         registry.onExportEsphome({ ...context, lines: includeLines });
 
         // Core Globals
-        globalLines.push("- id: display_page", "  type: int", "  restore_value: false", "  initial_value: '0'");
+        globalLines.push("- id: display_page", "  type: int", "  restore_value: true", "  initial_value: '0'");
 
         // Match legacy epaper detection for regression testing
         const isEpaper = !!(profile.features && (profile.features.epaper || profile.features.epd));
@@ -545,6 +545,10 @@ export class ESPHomeAdapter extends BaseAdapter {
         if (binarySensorLines.length > 0 && !profile.isPackageBased) {
             lines.push("binary_sensor:");
             lines.push(...binarySensorLines.flatMap(l => l.split('\n').map(sub => "  " + sub)));
+        } else if (binarySensorLines.length > 0 && profile.isPackageBased) {
+            // Merge stay-awake sensor into package content
+            const binaryBlock = ["binary_sensor:", ...binarySensorLines.map(l => "  " + l)];
+            lines.push(...binaryBlock);
         }
 
         const binarySensorLinesExtra = collectBinarySensors(pages, context);

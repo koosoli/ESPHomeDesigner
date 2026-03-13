@@ -459,20 +459,37 @@ const onExportTextSensors = (context) => {
     });
 
     // Generate HA template sensor comments for each unique mode
-    const seenModes = new Set();
+    const modeConfigs = new Map();
     targets.forEach(w => {
         const p = w.props || {};
         const mode = p.forecast_mode || "daily";
-        if (seenModes.has(mode)) return;
-        seenModes.add(mode);
-
         const weatherEntity = w.entity_id || p.weather_entity || "weather.forecast_home";
+        const tempUnit = p.temp_unit || "C";
+        
+        if (!modeConfigs.has(mode)) {
+            modeConfigs.set(mode, {
+                entity: weatherEntity,
+                tempUnit: tempUnit,
+                slots: new Set()
+            });
+        }
+        
+        const config = modeConfigs.get(mode);
         const startOffset = parseInt(p.start_offset || 0, 10);
-        const hourlySlots = (p.hourly_slots || "06,09,12,15,18,21")
-            .split(',').map(s => s.trim()).filter(Boolean);
-        const actualSlots = mode === "hourly" ? hourlySlots.slice(startOffset) : [];
-        const count = mode === "hourly" ? actualSlots.length : Math.min(7, Math.max(1, parseInt(p.days, 10) || 5));
+        
+        if (mode === "hourly") {
+            const hourlySlots = (p.hourly_slots || "06,09,12,15,18,21").split(',').map(s => s.trim()).filter(Boolean);
+            const actualSlots = hourlySlots.slice(startOffset);
+            actualSlots.forEach(s => config.slots.add(s));
+        } else {
+            const count = Math.min(7, Math.max(1, parseInt(p.days, 10) || 5));
+            for (let day = 0; day < count; day++) {
+                config.slots.add(day + startOffset);
+            }
+        }
+    });
 
+    modeConfigs.forEach((config, mode) => {
         lines.push("");
         lines.push("# ============================================================================");
         lines.push(`# HOME ASSISTANT TEMPLATE SENSORS (${mode.toUpperCase()})`);
@@ -480,6 +497,10 @@ const onExportTextSensors = (context) => {
         lines.push("# ============================================================================");
         lines.push("#");
         lines.push("# template:");
+        
+        const sortedSlots = Array.from(config.slots).sort((a, b) => parseInt(a) - parseInt(b));
+        const unitSymbol = config.tempUnit === "F" ? "°F" : "°C";
+        
         if (mode === "hourly") {
             lines.push("#   - trigger:");
             lines.push("#       - trigger: time_pattern");
@@ -489,58 +510,55 @@ const onExportTextSensors = (context) => {
             lines.push("#     action:");
             lines.push("#       - action: weather.get_forecasts");
             lines.push("#         target:");
-            lines.push(`#           entity_id: ${weatherEntity}`);
+            lines.push(`#           entity_id: ${config.entity}`);
             lines.push("#         data:");
             lines.push("#           type: hourly");
             lines.push("#         response_variable: hourly");
             lines.push("#     sensor:");
-            const tempUnit = p.temp_unit || "C";
-            const unitSymbol = tempUnit === "F" ? "°F" : "°C";
-            for (let day = 0; day < count; day++) {
-                lines.push(`#       - name: 'Weather Forecast Hour ${actualSlots[day]}00'`);
-                lines.push(`#         unique_id: weather_forecast_hour_${actualSlots[day]}00_high`);
+            
+            sortedSlots.forEach(slot => {
+                lines.push(`#       - name: 'Weather Forecast Hour ${slot}00'`);
+                lines.push(`#         unique_id: weather_forecast_hour_${slot}00_high`);
                 lines.push(`#         unit_of_measurement: '${unitSymbol}'`);
                 lines.push(`#         state: >`);
-                lines.push(`#           {% set fc = hourly['${weatherEntity}'].forecast %}`);
-                lines.push(`#           {% set hit = fc | selectattr('datetime','search','T${actualSlots[day]}:00') | list | first %}`);
+                lines.push(`#           {% set fc = hourly['${config.entity}'].forecast %}`);
+                lines.push(`#           {% set hit = fc | selectattr('datetime','search','T${slot}:') | list | first %}`);
                 lines.push(`#           {{ hit.temperature if hit else 'N/A' }}`);
-                lines.push(`#       - name: 'Weather Forecast Hour ${actualSlots[day]}00 Condition'`);
-                lines.push(`#         unique_id: weather_forecast_hour_${actualSlots[day]}00_condition`);
+                lines.push(`#       - name: 'Weather Forecast Hour ${slot}00 Condition'`);
+                lines.push(`#         unique_id: weather_forecast_hour_${slot}00_condition`);
                 lines.push(`#         state: >`);
-                lines.push(`#           {% set fc = hourly['${weatherEntity}'].forecast %}`);
-                lines.push(`#           {% set hit = fc | selectattr('datetime','search','T${actualSlots[day]}:00') | list | first %}`);
+                lines.push(`#           {% set fc = hourly['${config.entity}'].forecast %}`);
+                lines.push(`#           {% set hit = fc | selectattr('datetime','search','T${slot}:') | list | first %}`);
                 lines.push(`#           {{ hit.condition if hit else 'cloudy' }}`);
-            }
+            });
         } else {
             lines.push("#   - trigger:");
             lines.push("#       - trigger: state");
-            lines.push(`#         entity_id: ${weatherEntity}`);
+            lines.push(`#         entity_id: ${config.entity}`);
             lines.push("#       - trigger: time_pattern");
             lines.push("#         hours: '/1'");
             lines.push("#     action:");
             lines.push("#       - action: weather.get_forecasts");
             lines.push("#         target:");
-            lines.push(`#           entity_id: ${weatherEntity}`);
+            lines.push(`#           entity_id: ${config.entity}`);
             lines.push("#         data:");
             lines.push("#           type: daily");
             lines.push("#         response_variable: forecast_data");
             lines.push("#     sensor:");
-            const tempUnit = p.temp_unit || "C";
-            const unitSymbol = tempUnit === "F" ? "°F" : "°C";
-            for (let day = 0; day < count; day++) {
-                const dayIdx = day + startOffset;
+            
+            sortedSlots.forEach(dayIdx => {
                 lines.push(`#       - name: 'Weather Forecast Day ${dayIdx} High'`);
                 lines.push(`#         unique_id: weather_forecast_day_${dayIdx}_high`);
                 lines.push(`#         unit_of_measurement: '${unitSymbol}'`);
-                lines.push(`#         state: '{{ forecast_data["${weatherEntity}"].forecast[${dayIdx}].temperature | default("N/A") }}'`);
+                lines.push(`#         state: '{{ forecast_data["${config.entity}"].forecast[${dayIdx}].temperature | default("N/A") }}'`);
                 lines.push(`#       - name: 'Weather Forecast Day ${dayIdx} Low'`);
                 lines.push(`#         unique_id: weather_forecast_day_${dayIdx}_low`);
                 lines.push(`#         unit_of_measurement: '${unitSymbol}'`);
-                lines.push(`#         state: '{{ forecast_data["${weatherEntity}"].forecast[${dayIdx}].templow | default("N/A") }}'`);
+                lines.push(`#         state: '{{ forecast_data["${config.entity}"].forecast[${dayIdx}].templow | default("N/A") }}'`);
                 lines.push(`#       - name: 'Weather Forecast Day ${dayIdx} Condition'`);
                 lines.push(`#         unique_id: weather_forecast_day_${dayIdx}_condition`);
-                lines.push(`#         state: '{{ forecast_data["${weatherEntity}"].forecast[${dayIdx}].condition | default("cloudy") }}'`);
-            }
+                lines.push(`#         state: '{{ forecast_data["${config.entity}"].forecast[${dayIdx}].condition | default("cloudy") }}'`);
+            });
         }
         lines.push("#");
         lines.push("# ============================================================================");
@@ -674,13 +692,13 @@ template:
         unit_of_measurement: '${unitSymbol}'
         state: >
           {% set fc = hourly['${weatherEntity}'].forecast %}
-          {% set hit = fc | selectattr('datetime','search','T${slot}:00') | list | first %}
+          {% set hit = fc | selectattr('datetime','search','T${slot}:') | list | first %}
           {{ hit.temperature if hit else 'N/A' }}
       - name: 'Weather Forecast Hour ${slot}00 Condition'
         unique_id: weather_forecast_hour_${slot}00_condition
         state: >
           {% set fc = hourly['${weatherEntity}'].forecast %}
-          {% set hit = fc | selectattr('datetime','search','T${slot}:00') | list | first %}
+          {% set hit = fc | selectattr('datetime','search','T${slot}:') | list | first %}
           {{ hit.condition if hit else 'cloudy' }}`;
                 });
             } else {

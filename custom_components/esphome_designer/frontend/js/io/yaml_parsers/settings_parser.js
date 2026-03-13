@@ -107,5 +107,29 @@ export function parseSettings(lines, doc) {
         }
     }
 
+    // Normalize snake_case → camelCase for downstream consumers
+    const keyMap = {
+        sleep_enabled: 'sleepEnabled',
+        sleep_start_hour: 'sleepStartHour',
+        sleep_end_hour: 'sleepEndHour',
+        manual_refresh_only: 'manualRefreshOnly',
+        deep_sleep_enabled: 'deepSleepEnabled',
+        deep_sleep_interval: 'deepSleepInterval',
+        deep_sleep_stay_awake_switch: 'deepSleepStayAwakeSwitch',
+        deep_sleep_stay_awake_entity_id: 'deepSleepStayAwakeEntityId',
+        deep_sleep_firmware_guard: 'deepSleepFirmwareGuard',
+        daily_refresh_enabled: 'dailyRefreshEnabled',
+        daily_refresh_time: 'dailyRefreshTime',
+        refresh_interval: 'refreshInterval',
+        no_refresh_start_hour: 'noRefreshStartHour',
+        no_refresh_end_hour: 'noRefreshEndHour',
+        dark_mode: 'darkMode',
+    };
+    for (const [snake, camel] of Object.entries(keyMap)) {
+        if (deviceSettings[snake] !== undefined) {
+            deviceSettings[camel] = deviceSettings[snake];
+        }
+    }
+
     return deviceSettings;
 }

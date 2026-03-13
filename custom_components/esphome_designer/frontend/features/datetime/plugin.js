@@ -3,6 +3,7 @@
  * Date & Time Plugin
  */
 import { AppState } from '@core/state';
+import { getWeightsForFont, clampFontWeight } from '@core/font_weights.js';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -69,13 +70,14 @@ const render = (el, widget, { getColorStyle }) => {
     timeDiv.style.fontSize = `${props.time_font_size || 28}px`;
     timeDiv.style.color = color;
     timeDiv.style.fontFamily = fontFamily;
-    timeDiv.style.fontWeight = "bold";
+    timeDiv.style.fontWeight = props.font_weight_time !== undefined ? props.font_weight_time : (props.bold_time !== false ? 700 : 400);
 
     const dateDiv = document.createElement("div");
     dateDiv.style.fontSize = `${props.date_font_size || 16}px`;
     dateDiv.style.color = color;
     dateDiv.style.fontFamily = fontFamily;
     dateDiv.style.opacity = "0.8";
+    dateDiv.style.fontWeight = props.font_weight_date !== undefined ? props.font_weight_date : (props.bold_date ? 700 : 400);
 
     const now = new Date();
     const dayNamesShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -126,7 +128,9 @@ export default {
         border_width: 0,
         border_color: "theme_auto",
         border_radius: 0,
-        opa: 255
+        opa: 255,
+        bold_time: true,
+        bold_date: false
     },
     renderProperties: (panel, widget) => {
         const props = widget.props || {};
@@ -168,8 +172,21 @@ export default {
             panel.addHint('Browse <a href="https://fonts.google.com" target="_blank">fonts.google.com</a>');
         }
 
+        const fontFam = props.font_family || "Roboto";
+        const availableWeights = getWeightsForFont(fontFam);
+
         panel.addLabeledInput("Time Font Size", "number", props.time_font_size || 28, (v) => updateProp("time_font_size", parseInt(v, 10)));
+        
+        let tWeight = props.font_weight_time !== undefined ? props.font_weight_time : (props.bold_time !== false ? 700 : 400);
+        tWeight = clampFontWeight(fontFam, tWeight);
+        panel.addSelect("Time Weight", tWeight, availableWeights, (v) => updateProp("font_weight_time", parseInt(v, 10)));
+
         panel.addLabeledInput("Date Font Size", "number", props.date_font_size || 16, (v) => updateProp("date_font_size", parseInt(v, 10)));
+        
+        let dWeight = props.font_weight_date !== undefined ? props.font_weight_date : (props.bold_date ? 700 : 400);
+        dWeight = clampFontWeight(fontFam, dWeight);
+        panel.addSelect("Date Weight", dWeight, availableWeights, (v) => updateProp("font_weight_date", parseInt(v, 10)));
+
         panel.addCheckbox("Italic", !!props.italic, (v) => updateProp("italic", v));
         panel.endSection();
 
@@ -375,8 +392,10 @@ export default {
         const dateSize = parseInt(p.date_font_size || 16, 10);
 
         // Register likely fonts
-        addFont(p.font_family || "Roboto", 700, timeSize, !!p.italic);
-        addFont(p.font_family || "Roboto", 400, dateSize, !!p.italic);
+        const tw = p.font_weight_time !== undefined ? p.font_weight_time : (p.bold_time !== false ? 700 : 400);
+        const dw = p.font_weight_date !== undefined ? p.font_weight_date : (p.bold_date ? 700 : 400);
+        addFont(p.font_family || "Roboto", tw, timeSize, !!p.italic);
+        addFont(p.font_family || "Roboto", dw, dateSize, !!p.italic);
     },
     export: (w, context) => {
         const {
@@ -393,8 +412,10 @@ export default {
         if (colorProp === "black") color = "color_on";  // Text (Dynamic)
         const timeSize = parseInt(p.time_font_size || 28, 10);
         const dateSize = parseInt(p.date_font_size || 16, 10);
-        const timeFontId = addFont(p.font_family || "Roboto", 700, timeSize, !!p.italic);
-        const dateFontId = addFont(p.font_family || "Roboto", 400, dateSize, !!p.italic);
+        const tw = p.font_weight_time !== undefined ? p.font_weight_time : (p.bold_time !== false ? 700 : 400);
+        const dw = p.font_weight_date !== undefined ? p.font_weight_date : (p.bold_date ? 700 : 400);
+        const timeFontId = addFont(p.font_family || "Roboto", tw, timeSize, !!p.italic);
+        const dateFontId = addFont(p.font_family || "Roboto", dw, dateSize, !!p.italic);
         const textAlign = (p.text_align || "CENTER").toUpperCase();
         const format = p.format || "time_date";
 
