@@ -30,7 +30,12 @@ export default [
                 jsyaml: "readonly",
                 qrcode: "readonly",
                 // Test globals
-                vi: "readonly"
+                vi: "readonly",
+                afterEach: "readonly",
+                beforeEach: "readonly",
+                describe: "readonly",
+                expect: "readonly",
+                it: "readonly"
             }
         },
         rules: {
