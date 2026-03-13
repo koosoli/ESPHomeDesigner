@@ -286,11 +286,38 @@ const exportDoc = (w, context) => {
     const thickness = parseInt(p.border_thickness || 0, 10);
     const borderColor = getDynamicColor(ensureHex(p.border_color || "white"));
 
+    // Normalize entity IDs to match the registration in onExportNumericSensors
+    const normalizeEntityId = (entity) => {
+        if (!entity || typeof entity !== 'string') return "";
+        if (!entity.includes(".")) entity = `sensor.${entity}`;
+        return entity.replace(/[^a-zA-Z0-9_]/g, "_");
+    };
+
     // Entity IDs
-    const wifiId = ((p.wifi_is_local ? "wifi_signal_dbm" : p.wifi_entity) || "wifi_signal_dbm").replace(/[^a-zA-Z0-9_]/g, "_");
-    const batId = ((p.bat_is_local ? "battery_level" : p.bat_entity) || (profile.pins?.batteryAdc ? "battery_level" : "")).replace(/[^a-zA-Z0-9_]/g, "_");
-    const humId = ((p.hum_is_local ? (profile.features?.sht4x ? "sht4x_humidity" : ((profile.features?.sht3x || profile.features?.sht3xd) ? "sht3x_humidity" : (profile.features?.shtc3 ? "shtc3_humidity" : ""))) : p.hum_entity) || (profile.features?.sht4x ? "sht4x_humidity" : ((profile.features?.sht3x || profile.features?.sht3xd) ? "sht3x_humidity" : (profile.features?.shtc3 ? "shtc3_humidity" : "")))).replace(/[^a-zA-Z0-9_]/g, "_");
-    const tempId = ((p.temp_is_local ? (profile.features?.sht4x ? "sht4x_temperature" : ((profile.features?.sht3x || profile.features?.sht3xd) ? "sht3x_temperature" : (profile.features?.shtc3 ? "shtc3_temperature" : ""))) : p.temp_entity) || (profile.features?.sht4x ? "sht4x_temperature" : ((profile.features?.sht3x || profile.features?.sht3xd) ? "sht3x_temperature" : (profile.features?.shtc3 ? "shtc3_temperature" : "")))).replace(/[^a-zA-Z0-9_]/g, "_");
+    const wifiEntity = (p.wifi_is_local ? "wifi_signal_dbm" : p.wifi_entity) || "wifi_signal_dbm";
+    const wifiId = wifiEntity.replace(/[^a-zA-Z0-9_]/g, "_"); // wifi doesn't prepend sensor. if no dot
+
+    const resolveLocalBat = () => profile.pins?.batteryAdc ? "battery_level" : "";
+    const rawBatEntity = p.bat_is_local ? (resolveLocalBat() || p.bat_entity) : p.bat_entity;
+    const batId = rawBatEntity ? normalizeEntityId(rawBatEntity) : resolveLocalBat();
+
+    const resolveLocalHum = () => {
+        if (profile.features?.sht4x) return "sht4x_humidity";
+        if (profile.features?.sht3x || profile.features?.sht3xd) return "sht3x_humidity";
+        if (profile.features?.shtc3) return "shtc3_humidity";
+        return "";
+    };
+    const rawHumEntity = p.hum_is_local ? (resolveLocalHum() || p.hum_entity) : p.hum_entity;
+    const humId = rawHumEntity ? normalizeEntityId(rawHumEntity) : resolveLocalHum();
+
+    const resolveLocalTemp = () => {
+        if (profile.features?.sht4x) return "sht4x_temperature";
+        if (profile.features?.sht3x || profile.features?.sht3xd) return "sht3x_temperature";
+        if (profile.features?.shtc3) return "shtc3_temperature";
+        return "";
+    };
+    const rawTempEntity = p.temp_is_local ? (resolveLocalTemp() || p.temp_entity) : p.temp_entity;
+    const tempId = rawTempEntity ? normalizeEntityId(rawTempEntity) : resolveLocalTemp();
 
     const iconFontRef = addFont("Material Design Icons", 400, iconSize);
     const textFontRef = addFont("Roboto", 400, fontSize);
@@ -369,8 +396,14 @@ const exportDoc = (w, context) => {
         let currentX = w.x + spacing / 2;
         const centerY = w.y + w.height / 2;
 
-        const idExists = (id) => (context.seenSensorIds && context.seenSensorIds.has(id)) ||
-            (id === "battery_level" && context.profile?.pins?.batteryAdc);
+        const idExists = (id) => {
+            if (id === "battery_level" && context.profile?.pins?.batteryAdc) return true;
+            if (p.wifi_is_local && id === wifiId) return true;
+            if (p.temp_is_local && id === tempId) return true;
+            if (p.hum_is_local && id === humId) return true;
+            if (p.bat_is_local && id === batId) return true;
+            return context.seenSensorIds && context.seenSensorIds.has(id);
+        };
 
         if (showWifi) {
             lines.push(`          {`);
