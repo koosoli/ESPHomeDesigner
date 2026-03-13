@@ -47,7 +47,7 @@ def _require_storage(hass: HomeAssistant) -> DashboardStorage:
 async def _handle_set_page(hass: HomeAssistant, call: ServiceCall) -> None:
     storage = _require_storage(hass)
     device_id: str = call.data[CONF_DEVICE_ID]
-    page_index: int = call.data["page"]
+    page_index: int = call.data["page_index"]
 
     _LOGGER.debug("%s: set_page called for device=%s page=%s", DOMAIN, device_id, page_index)
 
@@ -105,7 +105,7 @@ def async_register_services(hass: HomeAssistant, storage: DashboardStorage) -> N
         DOMAIN,
         SERVICE_SET_PAGE,
         lambda call: hass.async_create_task(_handle_set_page(hass, call)),
-        schema=base_schema.extend({vol.Required("page"): cv.positive_int}),
+        schema=base_schema.extend({vol.Required("page_index"): cv.positive_int}),
     )
 
     hass.services.async_register(

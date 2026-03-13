@@ -510,9 +510,41 @@ template:
           entries: "{{ output.entries }}"
           closest_end_time: "{{ output.closest_end_time }}"
 `;
-            navigator.clipboard.writeText(yaml.trim());
-            copyBtn.textContent = "✓ Copied";
-            setTimeout(() => { copyBtn.textContent = "YAML"; }, 2000);
+            const textToCopy = yaml.trim();
+            const originalText = "YAML";
+
+            const setSuccessState = () => {
+                copyBtn.textContent = "✓ Copied";
+                setTimeout(() => { copyBtn.textContent = originalText; }, 2000);
+            };
+
+            const setErrorState = () => {
+                copyBtn.textContent = "✗ Error";
+                setTimeout(() => { copyBtn.textContent = originalText; }, 2000);
+            };
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy).then(setSuccessState).catch(setErrorState);
+            } else {
+                const textarea = document.createElement("textarea");
+                textarea.value = textToCopy;
+                textarea.style.position = "fixed";
+                textarea.style.left = "-999999px";
+                textarea.style.top = "-999999px";
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                try {
+                    if (document.execCommand("copy")) {
+                        setSuccessState();
+                    } else {
+                        setErrorState();
+                    }
+                } catch {
+                    setErrorState();
+                }
+                document.body.removeChild(textarea);
+            }
         });
 
         btnGroup.appendChild(dlBtn);
