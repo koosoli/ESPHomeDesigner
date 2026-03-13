@@ -98,7 +98,7 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
         chart.y_max = p.max ?? 100;
     }
 
-    return { lv_chart: chart };
+    return { chart: chart };
 };
 
 export default {

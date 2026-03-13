@@ -12,10 +12,8 @@ describe('helpers', () => {
         vi.useRealTimers();
         if (originalCrypto === undefined) {
             delete globalThis.crypto;
-            delete window.crypto;
         } else {
             Object.defineProperty(globalThis, 'crypto', { configurable: true, value: originalCrypto });
-            Object.defineProperty(window, 'crypto', { configurable: true, value: originalCrypto });
         }
     });
 
@@ -56,7 +54,6 @@ describe('helpers', () => {
             }
         };
         Object.defineProperty(globalThis, 'crypto', { configurable: true, value: fakeCrypto });
-        Object.defineProperty(window, 'crypto', { configurable: true, value: fakeCrypto });
 
         await import('../../js/utils/helpers.js');
 
@@ -64,14 +61,13 @@ describe('helpers', () => {
         expect(crypto.randomUUID()).toMatch(/^[0-9a-f-]{36}$/);
     });
 
-    it('creates a fallback window.crypto when crypto is unavailable', async () => {
+    it('creates a fallback globalThis.crypto when crypto is unavailable', async () => {
         delete globalThis.crypto;
-        delete window.crypto;
 
         await import('../../js/utils/helpers.js');
 
-        expect(typeof window.crypto.randomUUID).toBe('function');
-        expect(window.crypto.randomUUID()).toMatch(/^[0-9a-f-]{36}$/);
-        expect(Array.from(window.crypto.getRandomValues([0, 0, 0]))).toHaveLength(3);
+        expect(typeof globalThis.crypto.randomUUID).toBe('function');
+        expect(globalThis.crypto.randomUUID()).toMatch(/^[0-9a-f-]{36}$/);
+        expect(Array.from(globalThis.crypto.getRandomValues([0, 0, 0]))).toHaveLength(3);
     });
 });

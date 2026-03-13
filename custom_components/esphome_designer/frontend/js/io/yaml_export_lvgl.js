@@ -116,7 +116,7 @@ export function generateLVGLSnippet(pages, deviceModel, profileOverride = null, 
 
         widgets.filter(w => !w.hidden && w.type !== 'group').forEach(w => {
             // Generate widget marker comment for import/parsing
-            lines.push(`        ${serializeWidget(w)}`);
+            lines.push(`        ${serializeWidget(w).replace(/^\/\//, '#')}`);
 
             const lvglWidget = transpileToLVGL(w, profile, isDarkMode);
             if (lvglWidget) {

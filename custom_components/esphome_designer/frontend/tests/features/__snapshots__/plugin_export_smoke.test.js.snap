@@ -982,7 +982,7 @@ exports[`Plugin Export Smoke Tests > Export for lvgl_buttonmatrix > should expor
 
 exports[`Plugin Export Smoke Tests > Export for lvgl_chart > should export LVGL with stable output 1`] = `
 {
-  "lv_chart": {
+  "chart": {
     "bg_opa": "transp",
     "border_color": "Color(blue)",
     "border_width": 1,
