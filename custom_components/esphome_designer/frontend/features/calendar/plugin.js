@@ -140,6 +140,7 @@ const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
     el.style.height = height + "px";
     el.style.backgroundColor = props.background_color || "transparent";
     el.style.borderRadius = `${props.border_radius || 0}px`;
+    el.style.overflow = "hidden";
     el.style.color = colorStyle;
     el.style.padding = "4px";
     el.style.boxSizing = "border-box";
@@ -566,10 +567,10 @@ template:
         panel.addLabeledInput("Day Size (Header)", "number", props.font_size_day || 24, (v) => updateProp("font_size_day", parseInt(v, 10)));
         panel.addLabeledInput("Grid Text Size", "number", props.font_size_grid || 14, (v) => updateProp("font_size_grid", parseInt(v, 10)));
         panel.addLabeledInput("Event Text Size", "number", props.font_size_event || 18, (v) => updateProp("font_size_event", parseInt(v, 10)));
-        
+
         const fontFam = props.font_family || "Roboto";
         const availableWeights = getWeightsForFont(fontFam);
-        
+
         const addWeightSelect = (label, propKey, defaultVal) => {
             let val = props[propKey] !== undefined ? props[propKey] : defaultVal;
             val = clampFontWeight(fontFam, val);
@@ -582,7 +583,7 @@ template:
         addWeightSelect("Grid Header Weight", "font_weight_grid_header", 700);
         addWeightSelect("Dates Weight", "font_weight_dates", 700);
         addWeightSelect("Events Weight", "font_weight_events", 400);
-        
+
         panel.endSection();
 
         panel.createSection("Appearance", false);

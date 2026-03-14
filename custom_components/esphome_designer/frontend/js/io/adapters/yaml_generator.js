@@ -274,7 +274,7 @@ export class YamlGenerator {
                 "binary_sensor:",
                 "  - platform: homeassistant",
                 "    id: stay_awake_switch",
-                `    entity_id: !lambda 'return "${stayAwakeEntityId}";'`,
+                `    entity_id: ${stayAwakeEntityId}`,
                 "    on_state:",
                 "      - if:",
                 "          condition:",
@@ -300,7 +300,7 @@ export class YamlGenerator {
             "binary_sensor:",
             "  - platform: homeassistant",
             "    id: stay_awake_switch",
-            `    entity_id: !lambda 'return "${stayAwakeEntityId}";'`,
+            `    entity_id: ${stayAwakeEntityId}`,
             "    on_state:",
             "      - if:",
             "          condition:",
@@ -456,16 +456,9 @@ export class YamlGenerator {
                 lines.push("            - logger.log: \"Stay-awake active, deep sleep cycle aborted.\"");
                 lines.push("            - return:");
             }
-            lines.push("      - logger.log: \"Waiting for sync before Deep Sleep...\"");
-            lines.push("      - wait_until:");
-            lines.push("          condition:");
-            lines.push("            lambda: 'return id(ha_time).now().is_valid() && api_is_connected();'");
-            lines.push("          timeout: 120s");
-            lines.push("      - delay: 5s");
 
             const sStart = parseInt(payload.noRefreshStartHour ?? payload.sleepStartHour) || 0;
             const sEnd = parseInt(payload.noRefreshEndHour ?? payload.sleepEndHour) || 0;
-
 
             const sEnabled = (
                 payload.sleepEnabled === true || payload.sleepEnabled === "true" || payload.sleepEnabled === 1 || payload.sleepEnabled === "1"
@@ -493,16 +486,12 @@ export class YamlGenerator {
                 appendFirmwareGuardDelay('            ');
                 appendDeepSleepEnter('            ', 'Entering Night-time Deep Sleep...', endStr);
                 lines.push("          else:");
-                lines.push(`            - component.update: ${displayId}`);
-                lines.push("            - delay: 5s # Ensure refresh starts before sleep");
                 appendFirmwareGuardDelay('            ');
                 appendDeepSleepEnter('            ', 'Entering Deep Sleep now...');
 
             } else {
-                // Not sleeping via schedule, just normal deep sleep
-                // Update component THEN enter deep sleep
-                lines.push(`      - component.update: ${displayId}`);
-                lines.push("      - delay: 5s # Ensure refresh starts before sleep");
+                // No sleep schedule, just enter deep sleep directly
+                // (component.update already happened in manage_run_and_sleep)
                 appendFirmwareGuardDelay('      ');
                 appendDeepSleepEnter('      ', 'Entering Deep Sleep now...');
             }
@@ -694,7 +683,19 @@ export class YamlGenerator {
         if (isDeepSleep && sEnabled) {
             lines.push("      - if:");
             lines.push("          condition:");
-            lines.push("            lambda: 'return !is_sleep_time;'");
+            lines.push("            lambda: |-");
+            lines.push("              auto time = id(ha_time).now();");
+            lines.push("              if (time.is_valid()) {");
+            lines.push(`                int hour = time.hour;`);
+            lines.push(`                int start = ${sStart};`);
+            lines.push(`                int end = ${sEnd};`);
+            lines.push("                if (start < end) {");
+            lines.push("                  if (hour >= start && hour < end) return false;");
+            lines.push("                } else if (start > end) {");
+            lines.push("                  if (hour >= start || hour < end) return false;");
+            lines.push("                }");
+            lines.push("              }");
+            lines.push("              return true; // Not sleep time, update display");
             lines.push("          then:");
             lines.push(`            - component.update: ${displayId}`);
             lines.push("          else:");

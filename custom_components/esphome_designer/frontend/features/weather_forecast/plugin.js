@@ -125,7 +125,7 @@ const render = (el, widget, { getColorStyle }) => {
             } else {
                 const future = new Date();
                 future.setDate(future.getDate() + dayIdx);
-                dayLabel.textContent = future.toLocaleDateString(undefined, { weekday: 'short' });
+                dayLabel.textContent = future.toLocaleDateString('en-US', { weekday: 'short' });
             }
         }
         dayDiv.appendChild(dayLabel);
@@ -465,7 +465,7 @@ const onExportTextSensors = (context) => {
         const mode = p.forecast_mode || "daily";
         const weatherEntity = w.entity_id || p.weather_entity || "weather.forecast_home";
         const tempUnit = p.temp_unit || "C";
-        
+
         if (!modeConfigs.has(mode)) {
             modeConfigs.set(mode, {
                 entity: weatherEntity,
@@ -473,10 +473,10 @@ const onExportTextSensors = (context) => {
                 slots: new Set()
             });
         }
-        
+
         const config = modeConfigs.get(mode);
         const startOffset = parseInt(p.start_offset || 0, 10);
-        
+
         if (mode === "hourly") {
             const hourlySlots = (p.hourly_slots || "06,09,12,15,18,21").split(',').map(s => s.trim()).filter(Boolean);
             const actualSlots = hourlySlots.slice(startOffset);
@@ -497,10 +497,10 @@ const onExportTextSensors = (context) => {
         lines.push("# ============================================================================");
         lines.push("#");
         lines.push("# template:");
-        
+
         const sortedSlots = Array.from(config.slots).sort((a, b) => parseInt(a) - parseInt(b));
         const unitSymbol = config.tempUnit === "F" ? "°F" : "°C";
-        
+
         if (mode === "hourly") {
             lines.push("#   - trigger:");
             lines.push("#       - trigger: time_pattern");
@@ -515,7 +515,7 @@ const onExportTextSensors = (context) => {
             lines.push("#           type: hourly");
             lines.push("#         response_variable: hourly");
             lines.push("#     sensor:");
-            
+
             sortedSlots.forEach(slot => {
                 lines.push(`#       - name: 'Weather Forecast Hour ${slot}00'`);
                 lines.push(`#         unique_id: weather_forecast_hour_${slot}00_high`);
@@ -545,7 +545,7 @@ const onExportTextSensors = (context) => {
             lines.push("#           type: daily");
             lines.push("#         response_variable: forecast_data");
             lines.push("#     sensor:");
-            
+
             sortedSlots.forEach(dayIdx => {
                 lines.push(`#       - name: 'Weather Forecast Day ${dayIdx} High'`);
                 lines.push(`#         unique_id: weather_forecast_day_${dayIdx}_high`);

@@ -42,6 +42,7 @@ const render = (el, widget, { getColorStyle }) => {
     body.style.alignItems = "center";
     body.style.width = "100%";
     body.style.height = "100%";
+    applyFlexAlign(textAlign, body);
 
     // Apply Border & Background
     const borderWidth = props.border_width !== undefined ? props.border_width : 0;
@@ -176,13 +177,13 @@ export default {
         const availableWeights = getWeightsForFont(fontFam);
 
         panel.addLabeledInput("Time Font Size", "number", props.time_font_size || 28, (v) => updateProp("time_font_size", parseInt(v, 10)));
-        
+
         let tWeight = props.font_weight_time !== undefined ? props.font_weight_time : (props.bold_time !== false ? 700 : 400);
         tWeight = clampFontWeight(fontFam, tWeight);
         panel.addSelect("Time Weight", tWeight, availableWeights, (v) => updateProp("font_weight_time", parseInt(v, 10)));
 
         panel.addLabeledInput("Date Font Size", "number", props.date_font_size || 16, (v) => updateProp("date_font_size", parseInt(v, 10)));
-        
+
         let dWeight = props.font_weight_date !== undefined ? props.font_weight_date : (props.bold_date ? 700 : 400);
         dWeight = clampFontWeight(fontFam, dWeight);
         panel.addSelect("Date Weight", dWeight, availableWeights, (v) => updateProp("font_weight_date", parseInt(v, 10)));

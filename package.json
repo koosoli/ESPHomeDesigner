@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "vitest run",
+    "test": "vitest run && node scripts/schema_hash.cjs --update",
     "test:watch": "vitest",
     "lint": "eslint .",
     "format": "prettier --write .",

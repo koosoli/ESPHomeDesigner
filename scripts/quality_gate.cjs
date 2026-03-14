@@ -183,10 +183,12 @@ function runVitestWithCoverage() {
     if (vitestSummary) return vitestSummary;
 
     console.log(`${COLORS.CYAN}  Running Vitest with Coverage...${COLORS.RESET}`);
-    const result = run('npx vitest run --coverage --reporter=json --outputFile=vitest-report.json');
+    const reportDir = path.join(ROOT, 'tmp', 'reports');
+    const reportPath = path.join(reportDir, 'vitest-report.json');
+    ensureDir(reportDir);
+    const result = run('npx vitest run --coverage --reporter=json --outputFile=tmp/reports/vitest-report.json');
 
     try {
-        const reportPath = path.join(ROOT, 'vitest-report.json');
         const coveragePath = path.join(ROOT, 'coverage', 'coverage-summary.json');
         const rawCoveragePath = path.join(ROOT, 'coverage', 'coverage-final.json');
         if (!fs.existsSync(reportPath)) {
