@@ -66,35 +66,53 @@ export function getAvailableColors() {
     // @ts-ignore
     const mode = AppState?.settings?.renderingMode || 'direct';
 
+    const colormode_bwr = ["black", "white", "red", "yellow", "gray"];
+    const colormode_monochrome = ["theme_auto", "black", "white", "gray"];
+    const colormode_fullcolor = ["black", "white", "red", "green", "blue", "yellow", "orange", "gray", "purple", "cyan", "magenta"];
+    const colormode_primary = ["theme_auto", "black", "white", "gray", "red", "green", "blue", "yellow"]
+
     if (mode === 'oepl' || mode === 'opendisplay') {
         // @ts-ignore
         const ph = AppState?.project?.protocolHardware || {};
         const colorMode = ph.colorMode || 'bw';
 
         if (colorMode === 'full_color') {
-            return ["black", "white", "red", "green", "blue", "yellow", "orange", "gray", "purple", "cyan", "magenta"];
+            return colormode_fullcolor;
         }
         if (colorMode === 'color_3') {
             // BWR/BWY displays
-            return ["black", "white", "red", "yellow", "gray"];
+            return colormode_bwr;
         }
-        return ["theme_auto", "black", "white", "gray"];
+        return colormode_monochrome;
     }
 
     // 2. ESPHome Mode Logic (Existing)
     if (isRGBDevice()) {
-        return ["black", "white", "red", "green", "blue", "yellow", "orange", "gray", "purple", "cyan", "magenta"];
+        return colormode_fullcolor;
     }
 
     const model = getDeviceModel();
     if (model === "reterminal_e1002") {
-        return ["theme_auto", "black", "white", "gray", "red", "green", "blue", "yellow"];
+        return colormode_primary;
     }
     if (model === "esp32_s3_photopainter") {
-        return ["theme_auto", "black", "white", "gray", "red", "green", "blue", "yellow"];
+        return colormode_primary;
     }
+
+    // Implement a filename-based fallback for determining colormode from a yaml.
+    // This is useful for custom imported hardware
+    if(model.endsWith("bwr_yaml")) {
+        return colormode_bwr;
+    }
+    if(model.endsWith("fullcolor_yaml")) {
+        return colormode_fullcolor;
+    }
+    if(model.endsWith("primarycolor_yaml")) {
+        return colormode_primary;
+    }
+
     // Default E1001 and TRMNL (True Monochrome)
-    return ["theme_auto", "black", "white", "gray"];
+    return colormode_monochrome
 }
 
 /**
