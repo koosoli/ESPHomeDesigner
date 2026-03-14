@@ -1,3 +1,18 @@
+## v1.0.0 RC8.3 - Visibility & Deep Sleep Stability
+**Release Date:** March 14, 2026
+
+### 🐛 Bug Fixes & Stability
+- **Visibility Persistence (Issue #337)**: Fixed several critical issues where visibility windows and device settings were not correctly saved or restored during YAML round-trips.
+- **Deep Sleep Orchestration**: Major refactor of the deep sleep logic to ensure reliable operation on boot and stable state preservation.
+  - **Boot Logic**: Fixed a regression where `manage_run_and_sleep` was skipped on boot for non-deep-sleep devices (Bug #7).
+  - **State Preservation**: Prevented `is_new_flash` from being reset during page transitions (Bug #8).
+  - **Night-time Sleep**: The `is_sleep_time` calculation is now actively used to gate display updates and enter deep sleep correctly (Bug #9).
+- **Generator Integrity**: Resolved structure corruption in `yaml_generator.js` caused by duplicate method blocks from earlier incremental edits.
+
+Special thanks to **newhinton** for flagging the visibility problems and providing detailed feedback in [Issue #337](https://github.com/koosoli/ESPHomeDesigner/issues/337)!
+
+---
+
 ## v1.0.0 RC8.2 - Granular Font Weights
 **Release Date:** March 13, 2026
 

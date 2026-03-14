@@ -1,4 +1,4 @@
-import{A as k,m as O,B}from"./app-shell-B8sx0yrv.js";import"./yaml-engine-weXlWZrQ.js";import"./vendor-Bi4LEBGV.js";const G=`# Dictionary to map calendar keys to their corresponding names
+import{A as k,m as O,B}from"./app-shell-BWnvgtv-.js";import"./yaml-engine-DBIti6QW.js";import"./vendor-Bi4LEBGV.js";const G=`# Dictionary to map calendar keys to their corresponding names
 # One word calandars don't need to be added calendar.jobs would map to Jobs by default without adding it here
 # calendar.hello_world should be added on the other hand
 CALENDAR_NAMES = {"calendar.x": "X", "calendar.Y": "Y"}

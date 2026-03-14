@@ -208,8 +208,6 @@ export class YamlGenerator {
             lines.push("#");
             lines.push("#       # 3. Initial Screen Update");
             lines.push("#       - component.update: epaper_display");
-        } else if (isEpaper && layout.deepSleepEnabled) {
-            lines.push("#       - script.execute: manage_run_and_sleep");
         } else {
             lines.push("#       - script.execute: manage_run_and_sleep");
         }
@@ -501,6 +499,8 @@ export class YamlGenerator {
                 appendDeepSleepEnter('            ', 'Entering Deep Sleep now...');
 
             } else {
+                // Not sleeping via schedule, just normal deep sleep
+                // Update component THEN enter deep sleep
                 lines.push(`      - component.update: ${displayId}`);
                 lines.push("      - delay: 5s # Ensure refresh starts before sleep");
                 appendFirmwareGuardDelay('      ');
@@ -690,7 +690,18 @@ export class YamlGenerator {
 
         lines.push("          id(page_refresh_current_s) = interval;");
 
-        lines.push(`      - component.update: ${displayId}`);
+        // Only update display if not night-time sleep (for e-paper)
+        if (isDeepSleep && sEnabled) {
+            lines.push("      - if:");
+            lines.push("          condition:");
+            lines.push("            lambda: 'return !is_sleep_time;'");
+            lines.push("          then:");
+            lines.push(`            - component.update: ${displayId}`);
+            lines.push("          else:");
+            lines.push("            - logger.log: \"Night-time sleep active, skipping display update.\"");
+        } else {
+            lines.push(`      - component.update: ${displayId}`);
+        }
 
         // Manual Refresh Only: Do NOT loop. Stop after initial update.
         const isManualRefresh = !!payload.manualRefreshOnly;

@@ -20,7 +20,8 @@ export function getCondProps(w) {
     const op = w.condition_operator || "==";
     let s = ` cond_ent:"${ent}" cond_op:"${op}"`;
 
-    if (w.condition_value) s += ` cond_val:"${w.condition_value}"`; // Numeric/String
+    const val = w.condition_state !== undefined && w.condition_state !== "" ? w.condition_state : w.condition_value;
+    if (val !== undefined && val !== "") s += ` cond_val:"${val}"`; // Numeric/String
     if (w.condition_entity_2) s += ` cond_ent_2:"${w.condition_entity_2}"`; // Comparison Entity
 
     // New Feature (Issue #159/#196): Inverting Boolean Conditions
@@ -40,7 +41,7 @@ function getConditionCheck(w) {
     const isCompareOp = ["==", "!=", ">", "<", ">=", "<="].includes(op);
 
     // Provide default value for numeric comparison
-    const targetVal = w.condition_value || "0.0";
+    const targetVal = w.condition_state !== undefined && w.condition_state !== "" ? w.condition_state : (w.condition_value || "0.0");
     let baseLhs = `id(${ent.replace(/\./g, "_")}).state`;
 
     // Handle string matching explicitly
@@ -50,11 +51,14 @@ function getConditionCheck(w) {
     // Check if the condition value itself is non-numeric text (fixes weather/text_sensor checks)
     const isTextCondition = isNaN(parseFloat(targetVal));
 
-    if (isStrMatching && (isNonNumeric || isTextCondition)) {
+    // Check if entity is explicitly a text sensor by domain or suffix
+    const isTextEntity = ent.startsWith("text_sensor.") || ent.endsWith("_txt");
+
+    if (isStrMatching && (isNonNumeric || isTextCondition || isTextEntity)) {
         // Safe C++ string comparison
         baseLhs = `std::string(id(${ent.replace(/\./g, "_")}).state)`;
-        if (op === "==") return `${baseLhs} == "${targetVal}"`;
-        if (op === "!=") return `${baseLhs} != "${targetVal}"`;
+        if (op === "==") return `if (${baseLhs} == "${targetVal}") {`;
+        if (op === "!=") return `if (${baseLhs} != "${targetVal}") {`;
     }
 
     // New Feature (Issue #159/#196): Fast Boolean Inversion
@@ -62,25 +66,25 @@ function getConditionCheck(w) {
 
     // Handle standard Home Assistant binary domains natively
     if (isState) {
-        if (op === "==") return `${baseLhs} == ${checkTargetValue}`;
-        if (op === "!=") return `${baseLhs} != ${checkTargetValue}`;
+        if (op === "==") return `if (${baseLhs} == ${checkTargetValue}) {`;
+        if (op === "!=") return `if (${baseLhs} != ${checkTargetValue}) {`;
     }
 
     // Numeric Comparisons
     if (isCompareOp) {
-        if (op === "==") return `${baseLhs} == ${targetVal}`;
-        if (op === "!=") return `${baseLhs} != ${targetVal}`;
-        if (op === ">") return `${baseLhs} > ${targetVal}`;
-        if (op === "<") return `${baseLhs} < ${targetVal}`;
-        if (op === ">=") return `${baseLhs} >= ${targetVal}`;
-        if (op === "<=") return `${baseLhs} <= ${targetVal}`;
+        if (op === "==") return `if (${baseLhs} == ${targetVal}) {`;
+        if (op === "!=") return `if (${baseLhs} != ${targetVal}) {`;
+        if (op === ">") return `if (${baseLhs} > ${targetVal}) {`;
+        if (op === "<") return `if (${baseLhs} < ${targetVal}) {`;
+        if (op === ">=") return `if (${baseLhs} >= ${targetVal}) {`;
+        if (op === "<=") return `if (${baseLhs} <= ${targetVal}) {`;
     }
 
     // Dual Entity Comparison
     if (op === "compare_entity" && w.condition_entity_2) {
         const lhs = `id(${ent.replace(/\./g, "_")}).state`;
         const rhs = `id(${w.condition_entity_2.replace(/\./g, "_")}).state`;
-        return `${lhs} == ${rhs}`;
+        return `if (${lhs} == ${rhs}) {`;
     }
 
     return null;

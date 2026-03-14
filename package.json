@@ -1,6 +1,6 @@
 {
   "name": "esphome-designer-frontend",
-  "version": "1.0.0-rc.8.2",
+  "version": "1.0.0-rc.8.3",
   "description": "Frontend for ESPHome Designer",
   "type": "module",
   "main": "index.html",
@@ -11,6 +11,10 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "format": "prettier --write .",
+    "verify:ha": "node scripts/verify_ha_integration.cjs",
+    "verify:dist": "node scripts/verify_dist_fresh.cjs",
+    "verify:pre-push": "node scripts/pre_push_check.cjs",
+    "hooks:install": "git config core.hooksPath .githooks",
     "quality": "node scripts/quality_gate.cjs",
     "quality:proof": "node scripts/quality_gate.cjs --json --proof-dir=tmp/proof/local",
     "quality:baseline-governance": "node scripts/check_baseline_governance.cjs",
