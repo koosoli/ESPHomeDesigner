@@ -2546,7 +2546,7 @@ exports[`Plugin Export Smoke Tests > Export for template_sensor_bar > should exp
             },
             {
               "label": {
-                "text": "!lambda "if (id(shtc3_temperature).has_state()) { return str_sprintf('%.1f°C', id(shtc3_temperature).state).c_str(); } return '--°C';"",
+                "text": "!lambda "if (id().has_state()) { return str_sprintf('%.1f°C', id().state).c_str(); } return '--°C';"",
                 "text_color": "Color(white)",
                 "text_font": "font_ptr",
                 "x": 4,
@@ -2578,7 +2578,7 @@ exports[`Plugin Export Smoke Tests > Export for template_sensor_bar > should exp
             },
             {
               "label": {
-                "text": "!lambda "if (id(shtc3_humidity).has_state()) { return str_sprintf('%.0f%%', id(shtc3_humidity).state).c_str(); } return '--%%';"",
+                "text": "!lambda "if (id().has_state()) { return str_sprintf('%.0f%%', id().state).c_str(); } return '--%%';"",
                 "text_color": "Color(white)",
                 "text_font": "font_ptr",
                 "x": 4,

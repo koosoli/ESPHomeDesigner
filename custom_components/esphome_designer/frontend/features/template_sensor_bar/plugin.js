@@ -287,9 +287,9 @@ const exportDoc = (w, context) => {
     const borderColor = getDynamicColor(ensureHex(p.border_color || "white"));
 
     // Normalize entity IDs to match the registration in onExportNumericSensors
-    const normalizeEntityId = (entity) => {
+    const normalizeEntityId = (entity, isLocal = false) => {
         if (!entity || typeof entity !== 'string') return "";
-        if (!entity.includes(".")) entity = `sensor.${entity}`;
+        if (!isLocal && !entity.includes(".")) entity = `sensor.${entity}`;
         return entity.replace(/[^a-zA-Z0-9_]/g, "_");
     };
 
@@ -298,8 +298,8 @@ const exportDoc = (w, context) => {
     const wifiId = wifiEntity.replace(/[^a-zA-Z0-9_]/g, "_"); // wifi doesn't prepend sensor. if no dot
 
     const resolveLocalBat = () => profile.pins?.batteryAdc ? "battery_level" : "";
-    const rawBatEntity = p.bat_is_local ? (resolveLocalBat() || p.bat_entity) : p.bat_entity;
-    const batId = rawBatEntity ? normalizeEntityId(rawBatEntity) : resolveLocalBat();
+    const rawBatEntity = p.bat_is_local ? resolveLocalBat() : p.bat_entity;
+    const batId = rawBatEntity ? normalizeEntityId(rawBatEntity, p.bat_is_local) : "";
 
     const resolveLocalHum = () => {
         if (profile.features?.sht4x) return "sht4x_humidity";
@@ -307,17 +307,17 @@ const exportDoc = (w, context) => {
         if (profile.features?.shtc3) return "shtc3_humidity";
         return "";
     };
-    const rawHumEntity = p.hum_is_local ? (resolveLocalHum() || p.hum_entity) : p.hum_entity;
-    const humId = rawHumEntity ? normalizeEntityId(rawHumEntity) : resolveLocalHum();
+    const rawHumEntity = p.hum_is_local ? resolveLocalHum() : p.hum_entity;
+    const humId = rawHumEntity ? normalizeEntityId(rawHumEntity, p.hum_is_local) : "";
 
     const resolveLocalTemp = () => {
         if (profile.features?.sht4x) return "sht4x_temperature";
         if (profile.features?.sht3x || profile.features?.sht3xd) return "sht3x_temperature";
         if (profile.features?.shtc3) return "shtc3_temperature";
-        return "";
+        return p.temp_entity || "internal_temp";
     };
-    const rawTempEntity = p.temp_is_local ? (resolveLocalTemp() || p.temp_entity) : p.temp_entity;
-    const tempId = rawTempEntity ? normalizeEntityId(rawTempEntity) : resolveLocalTemp();
+    const rawTempEntity = p.temp_is_local ? resolveLocalTemp() : p.temp_entity;
+    const tempId = rawTempEntity ? normalizeEntityId(rawTempEntity, p.temp_is_local) : "";
 
     const iconFontRef = addFont("Material Design Icons", 400, iconSize);
     const textFontRef = addFont("Roboto", 400, fontSize);
@@ -543,6 +543,21 @@ const onExportNumericSensors = (context) => {
             }
         };
 
+        if (p.show_temperature !== false && p.temp_is_local) {
+            const hasSHT = profile.features?.sht4x || profile.features?.sht3x || profile.features?.sht3xd || profile.features?.shtc3;
+            if (!hasSHT) {
+                const customId = p.temp_entity || "internal_temp";
+                const safeId = customId.replace(/[^a-zA-Z0-9_]/g, "_");
+                if (context.seenSensorIds && !context.seenSensorIds.has(safeId)) {
+                    context.seenSensorIds.add(safeId);
+                    lines.push("- platform: internal_temperature");
+                    lines.push(`  name: "Internal Temperature"`);
+                    lines.push(`  id: ${safeId}`);
+                    lines.push(`  entity_category: "diagnostic"`);
+                }
+            }
+        }
+
         if (p.show_temperature !== false && p.temp_entity && !p.temp_is_local) {
             let eid = p.temp_entity;
             if (!eid.includes(".")) eid = `sensor.${eid}`;
@@ -627,16 +642,16 @@ export default {
             section: "Sensor Selection",
             fields: [
                 { key: "show_wifi", label: "WiFi Strength", type: "checkbox", default: true },
-                { key: "wifi_entity", target: "root", label: "WiFi Entity", type: "entity_picker", default: "" },
+                { key: "wifi_entity", label: "WiFi Entity", type: "entity_picker", default: "" },
                 { key: "wifi_is_local", label: "Use Local WiFi", type: "checkbox", default: false },
                 { key: "show_temperature", label: "Temperature", type: "checkbox", default: true },
-                { key: "temp_entity", target: "root", label: "Temp Entity", type: "entity_picker", default: "" },
+                { key: "temp_entity", label: "Temp Entity", type: "entity_picker", default: "" },
                 { key: "temp_is_local", label: "Use Local Temp", type: "checkbox", default: false },
                 { key: "show_humidity", label: "Humidity", type: "checkbox", default: true },
-                { key: "hum_entity", target: "root", label: "Hum Entity", type: "entity_picker", default: "" },
+                { key: "hum_entity", label: "Hum Entity", type: "entity_picker", default: "" },
                 { key: "hum_is_local", label: "Use Local Hum", type: "checkbox", default: false },
                 { key: "show_battery", label: "Battery Level", type: "checkbox", default: true },
-                { key: "bat_entity", target: "root", label: "Battery Entity", type: "entity_picker", default: "" },
+                { key: "bat_entity", label: "Battery Entity", type: "entity_picker", default: "" },
                 { key: "bat_is_local", label: "Use Local Battery", type: "checkbox", default: false }
             ]
         },
@@ -710,7 +725,15 @@ export default {
         }
 
         if (showTemp) {
-            const tempId = (p.temp_entity || (profile.features?.sht4x ? "sht4x_temperature" : ((profile.features?.sht3x || profile.features?.sht3xd) ? "sht3x_temperature" : "shtc3_temperature"))).replace(/[^a-zA-Z0-9_]/g, "_");
+            let baseTempId = p.temp_entity || "";
+            if (p.temp_is_local) {
+                if (profile.features?.sht4x) baseTempId = "sht4x_temperature";
+                else if (profile.features?.sht3x || profile.features?.sht3xd) baseTempId = "sht3x_temperature";
+                else if (profile.features?.shtc3) baseTempId = "shtc3_temperature";
+                else baseTempId = p.temp_entity || "internal_temp";
+            }
+            const tempId = baseTempId ? baseTempId.replace(/[^a-zA-Z0-9_]/g, "_") : "";
+
             const unit = p.temp_unit || "°C";
             let tempExpr = `id(${tempId}).state`;
             if (unit === "°F") tempExpr = `(id(${tempId}).state * 9.0 / 5.0 + 32.0)`;
@@ -728,7 +751,15 @@ export default {
         }
 
         if (showHum) {
-            const humId = (p.hum_entity || (profile.features?.sht4x ? "sht4x_humidity" : ((profile.features?.sht3x || profile.features?.sht3xd) ? "sht3x_humidity" : "shtc3_humidity"))).replace(/[^a-zA-Z0-9_]/g, "_");
+            let baseHumId = p.hum_entity || "";
+            if (p.hum_is_local) {
+                if (profile.features?.sht4x) baseHumId = "sht4x_humidity";
+                else if (profile.features?.sht3x || profile.features?.sht3xd) baseHumId = "sht3x_humidity";
+                else if (profile.features?.shtc3) baseHumId = "shtc3_humidity";
+                else baseHumId = p.hum_entity || "";
+            }
+            const humId = baseHumId ? baseHumId.replace(/[^a-zA-Z0-9_]/g, "_") : "";
+
             widgets.push({
                 obj: {
                     width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0,
