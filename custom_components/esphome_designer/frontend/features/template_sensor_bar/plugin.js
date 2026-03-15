@@ -496,7 +496,7 @@ const exportDoc = (w, context) => {
 };
 
 const onExportNumericSensors = (context) => {
-    const { lines, widgets, isLvgl, pendingTriggers, profile } = context; // eslint-disable-line no-unused-vars
+    const { lines, widgets, isLvgl, pendingTriggers, profile } = context;
     const barWidgets = widgets.filter(w => w.type === "template_sensor_bar");
     if (barWidgets.length === 0) return;
 

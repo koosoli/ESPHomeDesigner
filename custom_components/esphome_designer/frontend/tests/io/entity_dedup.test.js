@@ -103,6 +103,16 @@ describe('Entity Deduplication & Registration', () => {
             const expectedId = longId.replace(/[^a-zA-Z0-9_]/g, "_").substring(0, 63);
             expect(result).toContain(`  id: ${expectedId}`);
         });
+
+        it('generates mqtt_subscribe config when widget has mqtt_topic', () => {
+            const pages = [{ widgets: [{ type: 'sensor_text', entity_id: 'sensor.cpu_temp', props: { mqtt_topic: 'home/cpu/temp' } }] }];
+            const result = collectNumericSensors(pages, context);
+
+            expect(result).toContain('- platform: mqtt_subscribe');
+            expect(result).toContain('  id: sensor_cpu_temp');
+            expect(result).toContain('  topic: "home/cpu/temp"');
+            expect(result).not.toContain('  entity_id: sensor.cpu_temp');
+        });
     });
 
     describe('collectTextSensors', () => {
@@ -166,6 +176,16 @@ describe('Entity Deduplication & Registration', () => {
             expect(result).toContain('  attribute: forecast');
             expect(result).toContain('  id: weather_home_forecast_txt');
         });
+
+        it('generates mqtt_subscribe config when widget has mqtt_topic', () => {
+            const pages = [{ widgets: [{ type: 'text', entity_id: 'weather.home', props: { mqtt_topic: 'home/weather/state' } }] }];
+            const result = collectTextSensors(pages, context);
+
+            expect(result).toContain('- platform: mqtt_subscribe');
+            expect(result).toContain('  id: weather_home_txt');
+            expect(result).toContain('  topic: "home/weather/state"');
+            expect(result).not.toContain('  entity_id: weather.home');
+        });
     });
 
     describe('collectBinarySensors', () => {
@@ -196,6 +216,16 @@ describe('Entity Deduplication & Registration', () => {
             const pages = [{ widgets: [{ type: 'button', entity_id: 'sensor.temperature' }] }];
             const result = collectBinarySensors(pages, context);
             expect(result.length).toBe(0);
+        });
+
+        it('generates mqtt_subscribe config when widget has mqtt_topic', () => {
+            const pages = [{ widgets: [{ type: 'button', entity_id: 'switch.relay', props: { mqtt_topic: 'home/relay/state' } }] }];
+            const result = collectBinarySensors(pages, context);
+
+            expect(result).toContain('- platform: mqtt_subscribe');
+            expect(result).toContain('  id: switch_relay');
+            expect(result).toContain('  topic: "home/relay/state"');
+            expect(result).not.toContain('  entity_id: switch.relay');
         });
     });
 

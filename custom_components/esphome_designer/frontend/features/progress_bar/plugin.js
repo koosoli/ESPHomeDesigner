@@ -306,6 +306,8 @@ export default {
         show_label: true,
         show_percentage: true,
         bar_height: 15,
+        entity_id: "",
+        mqtt_topic: "",
         border_width: 1,
         color: "theme_auto",
         bg_color: "white",
@@ -327,9 +329,17 @@ export default {
         };
 
         panel.createSection("Data Source", true);
-        panel.addLabeledInputWithPicker("Progress Entity ID", "text", widget.entity_id || "", (v) => {
+        panel.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
             AppState.updateWidget(widget.id, { entity_id: v });
+            if (v && !widget.title) panel.autoPopulateTitleFromEntity(widget.id, v);
         }, widget);
+
+        panel.addLabeledInput("MQTT Topic (optional)", "text", props.mqtt_topic || "", (v) => updateProp("mqtt_topic", v.trim()));
+        panel.addHint("If set, uses MQTT instead of HA entity.");
+
+        panel.addLabeledInput("Label", "text", widget.title || "", (v) => {
+            AppState.updateWidget(widget.id, { title: v });
+        });
         panel.addCheckbox("Local / On-Device Sensor", !!props.is_local_sensor, (v) => updateProp("is_local_sensor", v));
         panel.addHint("Use internal battery_level/signal sensor.");
         panel.endSection();

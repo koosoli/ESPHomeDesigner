@@ -5,6 +5,7 @@
 import { AppState } from '@core/state';
 import { drawInternalGrid, generateMockData, drawSmartAxisLabels, generateHistoricalDataPoints, parseDuration } from '../../js/utils/graph_helpers.js'; // eslint-disable-line no-unused-vars
 import { fetchEntityHistory, getEntityAttributes } from '../../js/io/ha_api.js';
+import { getSensorPlatformLines } from '../../js/io/adapters/mqtt_helpers.js';
 import { emit, EVENTS } from '../../js/core/events.js';
 
 const historyCache = new Map(); // cacheKey -> { data, timestamp }
@@ -107,7 +108,7 @@ const render = (el, widget, { getColorStyle }) => {
                             }
                         } else {
                             // Simple CSV: strip brackets/quotes, split by comma
-                                const cleaned = rawData.replace(/[[\]"']/g, '');
+                            const cleaned = rawData.replace(/[[\]"']/g, '');
                             cleaned.split(',').forEach(s => {
                                 const f = parseFloat(s.trim());
                                 if (!isNaN(f)) values.push(f);
@@ -946,11 +947,8 @@ const onExportTextSensors = (context) => {
         const points = p.history_points || 100;
         const attr = p.history_attribute || "history";
 
-        lines.push(`- platform: homeassistant`);
-        lines.push(`  entity_id: ${entityId}`);
-        lines.push(`  id: ${histId}_fetcher`);
-        lines.push(`  attribute: ${attr}`);
-        lines.push(`  internal: true`);
+        const fakeWidget = { props: { mqtt_topic: p.mqtt_topic } };
+        lines.push(...getSensorPlatformLines(fakeWidget, entityId, `${histId}_fetcher`, attr));
         lines.push(`  on_value:`);
         lines.push(`    then:`);
         lines.push(`      - lambda: |-`);
@@ -1088,6 +1086,8 @@ export default {
         width: 205,
         height: 100,
         duration: "1h",
+        entity_id: "",
+        mqtt_topic: "",
         border: true,
         grid: true,
         color: "theme_auto",
@@ -1114,6 +1114,10 @@ export default {
         panel.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
             AppState.updateWidget(widget.id, { entity_id: v });
         }, widget);
+
+        panel.addLabeledInput("MQTT Topic (optional)", "text", props.mqtt_topic || "", (v) => updateProp("mqtt_topic", v.trim()));
+        panel.addHint("If set, uses MQTT instead of HA entity.");
+
         panel.addCheckbox("Is Local Sensor", !!props.is_local_sensor, (v) => updateProp("is_local_sensor", v));
         panel.addLabeledInput("Title", "text", widget.title || "", (v) => {
             AppState.updateWidget(widget.id, { title: v });

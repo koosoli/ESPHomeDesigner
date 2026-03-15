@@ -148,6 +148,15 @@ export class ESPHomeAdapter extends BaseAdapter {
         // 2. Hardware Infrastructure (PSRAM, I2C, SPI, output, time, sensor seeding)
         this._buildInfrastructureLines(profile, layout, lines, packageContent, seenSensorIds);
 
+        const usesMqtt = allWidgets.some(w => w.props && typeof w.props.mqtt_topic === 'string' && w.props.mqtt_topic.trim() !== "");
+        if (usesMqtt && !layout.isSelectionSnippet) {
+            lines.push("mqtt:");
+            lines.push("  broker: !secret mqtt_broker");
+            lines.push("  # username: !secret mqtt_user");
+            lines.push("  # password: !secret mqtt_pass");
+            lines.push("");
+        }
+
         // 3. Sensor Sections (Numeric, Text, Binary, Touch)
         this._buildSensorSections(context, lines);
 

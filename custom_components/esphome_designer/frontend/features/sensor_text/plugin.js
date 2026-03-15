@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { AppState } from '@core/state';
 import { TemplateConverter } from '../../js/utils/template_converter.js';
+import { getSensorPlatformLines } from '../../js/io/adapters/mqtt_helpers.js';
 import { wordWrap, parseColorMarkup, evaluateTemplatePreview } from '../../js/utils/text_utils.js';
 import { getNestedValue } from '../../js/utils/helpers.js';
 import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js';
@@ -347,6 +348,7 @@ export default {
     supportedModes: ['lvgl', 'direct', 'oepl', 'opendisplay'],
     defaults: {
         entity_id: "",
+        mqtt_topic: "",
         title: "",
         value_format: "label_value",
         label_font_size: 14,
@@ -463,9 +465,9 @@ export default {
         }
 
         const attributePath = (p.attribute || "").trim();
-            const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[]/)[0] : attributePath;
+        const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[]/)[0] : attributePath;
         const attributePath2 = (p.attribute2 || "").trim();
-            const rootAttr2 = (attributePath2.includes(".") || attributePath2.includes("[")) ? attributePath2.split(/[.[]/)[0] : attributePath2;
+        const rootAttr2 = (attributePath2.includes(".") || attributePath2.includes("[")) ? attributePath2.split(/[.[]/)[0] : attributePath2;
 
         const makeSafeId = (eid, attr, suffix = "") => {
             const base = attr ? (eid + "_" + attr) : eid;
@@ -819,9 +821,9 @@ export default {
 
         // Helper to create safe ESPHome ID (max 59 chars before suffix for 63 char limit)
         const attributePath1 = (p.attribute || "").trim();
-            const rootAttr1 = (attributePath1.includes(".") || attributePath1.includes("[")) ? attributePath1.split(/[.[]/)[0] : attributePath1;
+        const rootAttr1 = (attributePath1.includes(".") || attributePath1.includes("[")) ? attributePath1.split(/[.[]/)[0] : attributePath1;
         const attributePath2 = (p.attribute2 || "").trim();
-            const rootAttr2 = (attributePath2.includes(".") || attributePath2.includes("[")) ? attributePath2.split(/[.[]/)[0] : attributePath2;
+        const rootAttr2 = (attributePath2.includes(".") || attributePath2.includes("[")) ? attributePath2.split(/[.[]/)[0] : attributePath2;
 
         const makeSafeId = (eid, attr, suffix = "") => {
             const base = attr ? (eid + "_" + attr) : eid;
@@ -1017,21 +1019,28 @@ export default {
 
             const p = w.props || {};
             const entityId = (w.entity_id || "").trim();
+            const mqttTopic = (p.mqtt_topic || "").trim();
 
             // Auto-detect: check if entity has non-numeric state (like "pm25")
             const isAutoText = !p.is_local_sensor && isEntityStateNonNumeric(entityId);
             const attribute = (p.attribute || "").trim();
 
+            // For MQTT overrides, we register them as text sensors directly if there's no entityId,
+            // or we piggypack on the normal HA text sensor flow if there is an entityId.
+            // If they provided an mqtt_topic, treat it as a text sensor to be safe (if not numeric in dedup).
+            // Actually, sensor_text is the default sink for all string-based states.
+
             if (entityId.startsWith("weather.")) {
-                weatherEntities.add(JSON.stringify({ entity_id: entityId, attribute }));
-            } else if (p.is_text_sensor || isAutoText || HA_TEXT_DOMAINS.some(d => entityId.startsWith(d))) {
-                textEntities.add(JSON.stringify({ entity_id: entityId, attribute }));
+                weatherEntities.add(JSON.stringify({ entity_id: entityId, attribute, mqtt_topic: mqttTopic }));
+            } else if (mqttTopic || p.is_text_sensor || isAutoText || HA_TEXT_DOMAINS.some(d => entityId.startsWith(d))) {
+                textEntities.add(JSON.stringify({ entity_id: entityId, attribute, mqtt_topic: mqttTopic }));
             }
 
             const entityId2 = (w.entity_id_2 || p.entity_id_2 || "").trim();
             if (entityId2) {
                 const isAutoText2 = !p.is_local_sensor && isEntityStateNonNumeric(entityId2);
                 const attribute2 = (p.attribute2 || "").trim();
+                // We don't have a secondary MQTT topic field for now, just entity ID. So mqtt_topic is empty.
                 if (entityId2.startsWith("weather.")) {
                     weatherEntities.add(JSON.stringify({ entity_id: entityId2, attribute: attribute2 }));
                 } else if (p.is_text_sensor || isAutoText2 || HA_TEXT_DOMAINS.some(d => entityId2.startsWith(d))) {
@@ -1043,15 +1052,15 @@ export default {
         if (weatherEntities.size > 0) {
             let headerAdded = false;
             for (let json of weatherEntities) {
-                const { entity_id: rawId, attribute } = JSON.parse(json);
-                let entityId = rawId;
+                const { entity_id: rawId, attribute, mqtt_topic } = JSON.parse(json);
+                let entityId = rawId || "mqtt_weather_stub";
 
-                if (entityId && !entityId.includes(".")) entityId = `weather.${entityId}`;
+                if (entityId && !entityId.includes(".") && !mqtt_topic) entityId = `weather.${entityId}`;
 
                 // For nested paths (e.g. entries.days.0), we only want to register the root attribute (entries) in HA.
                 const attributePath = (attribute || "").trim();
                 const isNested = attributePath.includes(".") || attributePath.includes("[");
-                    const rootAttr = isNested ? attributePath.split(/[.[]/)[0] : attributePath;
+                const rootAttr = isNested ? attributePath.split(/[.[]/)[0] : attributePath;
 
                 const safeId = makeSafeId(entityId, rootAttr, "_txt");
 
@@ -1068,25 +1077,20 @@ export default {
                 if (context.seenSensorIds) context.seenSensorIds.add(safeId);
                 if (context.seenTextEntityIds) context.seenTextEntityIds.add(entityKey);
 
-                lines.push("- platform: homeassistant");
-                lines.push(`  id: ${safeId}`);
-                lines.push(`  entity_id: ${entityId}`);
-                if (rootAttr) {
-                    lines.push(`  attribute: ${rootAttr}`);
-                }
-                lines.push(`  internal: true`);
+                const fakeWidget = { props: { mqtt_topic } };
+                lines.push(...getSensorPlatformLines(fakeWidget, entityId, safeId, rootAttr));
             }
         }
 
         if (textEntities.size > 0) {
             let headerAdded = false;
             for (let json of textEntities) {
-                const { entity_id: entityId, attribute } = JSON.parse(json);
+                const { entity_id: entityId, attribute, mqtt_topic } = JSON.parse(json);
 
                 // For nested paths (e.g. entries.days.0), we only want to register the root attribute (entries) in HA.
                 const attributePath = (attribute || "").trim();
                 const isNested = attributePath.includes(".") || attributePath.includes("[");
-                    const rootAttr = isNested ? attributePath.split(/[.[]/)[0] : attributePath;
+                const rootAttr = isNested ? attributePath.split(/[.[]/)[0] : attributePath;
 
                 const safeId = makeSafeId(entityId, rootAttr, "_txt");
 
@@ -1103,13 +1107,8 @@ export default {
                 if (context.seenSensorIds) context.seenSensorIds.add(safeId);
                 if (context.seenTextEntityIds) context.seenTextEntityIds.add(entityKey);
 
-                lines.push("- platform: homeassistant");
-                lines.push(`  id: ${safeId}`);
-                lines.push(`  entity_id: ${entityId}`);
-                if (rootAttr) {
-                    lines.push(`  attribute: ${rootAttr}`);
-                }
-                lines.push(`  internal: true`);
+                const fakeWidget = { props: { mqtt_topic } };
+                lines.push(...getSensorPlatformLines(fakeWidget, entityId, safeId, rootAttr));
             }
         }
     },
@@ -1126,6 +1125,10 @@ export default {
             AppState.updateWidget(widget.id, { entity_id: v });
             if (v && !widget.title) panel.autoPopulateTitleFromEntity(widget.id, v);
         }, widget);
+
+        panel.addLabeledInput("MQTT Topic (optional)", "text", props.mqtt_topic || "", (v) => updateProp("mqtt_topic", v.trim()));
+        panel.addHint("If set, uses MQTT instead of HA entity. Example: home/sensor/state");
+
         panel.addLabeledInput("Attribute (optional)", "text", props.attribute || "", (v) => updateProp("attribute", v.trim()));
         panel.addHint("Read a specific attribute, supports nested paths (e.g. 'entries.days.0.day').");
 

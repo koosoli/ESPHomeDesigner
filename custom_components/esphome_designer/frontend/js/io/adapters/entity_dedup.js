@@ -6,6 +6,7 @@
 export const HA_TEXT_DOMAINS = ["text_sensor.", "weather.", "calendar.", "person.", "device_tracker.", "sun.", "update.", "scene."];
 
 import { isEntityStateNonNumeric, makeSafeId } from '../../utils/export_helpers.js';
+import { getSensorPlatformLines } from './mqtt_helpers.js';
 
 export { isEntityStateNonNumeric };
 
@@ -54,13 +55,7 @@ export const collectNumericSensors = (pages, context) => {
                 if (!seenSensorIds.has(safeId)) {
                     seenEntityIds.add(entityKey);
                     seenSensorIds.add(safeId);
-                    numericSensorLinesExtra.push("- platform: homeassistant");
-                    numericSensorLinesExtra.push(`  id: ${safeId}`);
-                    numericSensorLinesExtra.push(`  entity_id: ${entityId}`);
-                    if (attribute) {
-                        numericSensorLinesExtra.push(`  attribute: ${attribute}`);
-                    }
-                    numericSensorLinesExtra.push(`  internal: true`);
+                    numericSensorLinesExtra.push(...getSensorPlatformLines(w, entityId, safeId, attribute));
                 }
             }
         }
@@ -115,13 +110,7 @@ export const collectTextSensors = (pages, context) => {
                     if (!seenSensorIds.has(safeId)) {
                         seenEntityIds.add(entityKey);
                         seenSensorIds.add(safeId);
-                        textSensorLinesExtra.push("- platform: homeassistant");
-                        textSensorLinesExtra.push(`  id: ${safeId}`);
-                        textSensorLinesExtra.push(`  entity_id: ${ent}`);
-                        if (rootAttr) {
-                            textSensorLinesExtra.push(`  attribute: ${rootAttr}`);
-                        }
-                        textSensorLinesExtra.push(`  internal: true`);
+                        textSensorLinesExtra.push(...getSensorPlatformLines(w, ent, safeId, rootAttr));
                     }
                 }
             }
@@ -152,10 +141,7 @@ export const collectBinarySensors = (pages, context) => {
                 if (!seenSensorIds.has(safeId)) {
                     seenEntityIds.add(ent);
                     seenSensorIds.add(safeId);
-                    binarySensorLinesExtra.push("- platform: homeassistant");
-                    binarySensorLinesExtra.push(`  id: ${safeId}`);
-                    binarySensorLinesExtra.push(`  entity_id: ${ent}`);
-                    binarySensorLinesExtra.push(`  internal: true`);
+                    binarySensorLinesExtra.push(...getSensorPlatformLines(w, ent, safeId, ""));
                 }
             }
         });

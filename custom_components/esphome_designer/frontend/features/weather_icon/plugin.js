@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { AppState } from '@core/state';
+import { getSensorPlatformLines } from '../../js/io/adapters/mqtt_helpers.js';
 import { getNestedValue } from '../../js/utils/helpers.js';
 
 const render = (el, widget, { getColorStyle }) => {
@@ -190,12 +191,13 @@ const onExportTextSensors = (context) => {
         if (w.type !== "weather_icon") continue;
         const entityId = (w.entity_id || w.props?.weather_entity || "weather.forecast_home").trim();
         const attribute = (w.props?.attribute || "").trim();
-        if (entityId) {
-            weatherEntities.add({ id: w.id, entity_id: entityId, attribute });
+        const mqttTopic = (w.props?.mqtt_topic || "").trim();
+        if (entityId || mqttTopic) {
+            weatherEntities.add({ id: w.id, entity_id: entityId, attribute, mqtt_topic: mqttTopic });
         }
     }
 
-    weatherEntities.forEach(({ id, entity_id, attribute }) => {
+    weatherEntities.forEach(({ id, entity_id, attribute, mqtt_topic }) => {
         const attributePath = (attribute || "").trim();
         const rootAttr = (attributePath.includes(".") || attributePath.includes("[")) ? attributePath.split(/[.[]/)[0] : attributePath;
         const makeSafeId = (eid, suffix = "") => {
@@ -220,13 +222,8 @@ const onExportTextSensors = (context) => {
                 lines.push("# Weather Condition Sensors (Detected from Weather Icon)");
             }
             context.seenSensorIds.add(safeId);
-            lines.push("- platform: homeassistant");
-            lines.push(`  id: ${safeId}`);
-            lines.push(`  entity_id: ${entity_id}`);
-            if (rootAttr) {
-                lines.push(`  attribute: ${rootAttr}`);
-            }
-            lines.push(`  internal: true`);
+            const fakeWidget = { props: { mqtt_topic } };
+            lines.push(...getSensorPlatformLines(fakeWidget, entity_id, safeId, rootAttr));
         }
     });
 };
@@ -250,6 +247,7 @@ export default {
         color: "theme_auto",
         background_color: "transparent",
         bg_color: "transparent",
+        mqtt_topic: "",
         weather_entity: "weather.forecast_home",
         entity_id: "weather.forecast_home",
         attribute: "",
@@ -271,6 +269,10 @@ export default {
         panel.addLabeledInputWithPicker("Weather Entity", "text", widget.entity_id || props.weather_entity || "weather.forecast_home", (v) => {
             AppState.updateWidget(widget.id, { entity_id: v });
         }, widget);
+
+        panel.addLabeledInput("MQTT Topic (optional)", "text", props.mqtt_topic || "", (v) => updateProp("mqtt_topic", v.trim()));
+        panel.addHint("If set, uses MQTT instead of HA entity.");
+
         panel.addLabeledInput("Entity Attribute", "text", props.attribute || "", (v) => updateProp("attribute", v.trim()));
         panel.addHint("Optional: Read condition from an attribute (e.g. for forecasts).");
         panel.endSection();
