@@ -2780,13 +2780,13 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
                 "align": "top_mid",
                 "id": "w_test_day0",
                 "text": "!lambda |-
-                  if (0 == 0) return "Today";
+                  if (0 == 0) return std::string("Today");
                   auto t = id(ha_time).now();
-                  if (!t.is_valid()) return "---";
+                  if (!t.is_valid()) return std::string("---");
                   ESPTime future = ESPTime::from_epoch_local(t.timestamp + (0 * 86400));
                   static char buf[16];
                   future.strftime(buf, sizeof(buf), "%a");
-                  return buf;
+                  return std::string(buf);
                 ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
@@ -2844,13 +2844,13 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
                 "align": "top_mid",
                 "id": "w_test_day1",
                 "text": "!lambda |-
-                  if (1 == 0) return "Today";
+                  if (1 == 0) return std::string("Today");
                   auto t = id(ha_time).now();
-                  if (!t.is_valid()) return "---";
+                  if (!t.is_valid()) return std::string("---");
                   ESPTime future = ESPTime::from_epoch_local(t.timestamp + (1 * 86400));
                   static char buf[16];
                   future.strftime(buf, sizeof(buf), "%a");
-                  return buf;
+                  return std::string(buf);
                 ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
@@ -2908,13 +2908,13 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
                 "align": "top_mid",
                 "id": "w_test_day2",
                 "text": "!lambda |-
-                  if (2 == 0) return "Today";
+                  if (2 == 0) return std::string("Today");
                   auto t = id(ha_time).now();
-                  if (!t.is_valid()) return "---";
+                  if (!t.is_valid()) return std::string("---");
                   ESPTime future = ESPTime::from_epoch_local(t.timestamp + (2 * 86400));
                   static char buf[16];
                   future.strftime(buf, sizeof(buf), "%a");
-                  return buf;
+                  return std::string(buf);
                 ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
@@ -2972,13 +2972,13 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
                 "align": "top_mid",
                 "id": "w_test_day3",
                 "text": "!lambda |-
-                  if (3 == 0) return "Today";
+                  if (3 == 0) return std::string("Today");
                   auto t = id(ha_time).now();
-                  if (!t.is_valid()) return "---";
+                  if (!t.is_valid()) return std::string("---");
                   ESPTime future = ESPTime::from_epoch_local(t.timestamp + (3 * 86400));
                   static char buf[16];
                   future.strftime(buf, sizeof(buf), "%a");
-                  return buf;
+                  return std::string(buf);
                 ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
@@ -3036,13 +3036,13 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
                 "align": "top_mid",
                 "id": "w_test_day4",
                 "text": "!lambda |-
-                  if (4 == 0) return "Today";
+                  if (4 == 0) return std::string("Today");
                   auto t = id(ha_time).now();
-                  if (!t.is_valid()) return "---";
+                  if (!t.is_valid()) return std::string("---");
                   ESPTime future = ESPTime::from_epoch_local(t.timestamp + (4 * 86400));
                   static char buf[16];
                   future.strftime(buf, sizeof(buf), "%a");
-                  return buf;
+                  return std::string(buf);
                 ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",

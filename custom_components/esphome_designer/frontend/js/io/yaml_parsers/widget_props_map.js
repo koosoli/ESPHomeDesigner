@@ -287,6 +287,8 @@ export function buildWidgetProps(widgetType, p, widget) {
         return {
             weather_entity: p.weather_entity || "",
             forecast_mode: p.forecast_mode || "daily",
+            hourly_mode: p.hourly_mode || "fixed",
+            relative_count: parseInt(p.relative_count || 5, 10),
             hourly_slots: p.hourly_slots || "06,09,12,15,18,21",
             start_offset: parseInt(p.start_offset || 0, 10),
             layout: p.layout || "horizontal",

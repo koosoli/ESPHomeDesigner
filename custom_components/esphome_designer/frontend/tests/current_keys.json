@@ -931,6 +931,8 @@
     ],
     "props": [
       "forecast_mode",
+      "hourly_mode",
+      "relative_count",
       "hourly_slots",
       "start_offset",
       "days",
