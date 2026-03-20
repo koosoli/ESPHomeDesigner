@@ -53,10 +53,13 @@ Build premium, touch-interactive dashboards for ESP32-based devices, wireless e-
   - **ESPHome**: Native C++ lambda code or LVGL YAML for ESP32 devices with direct display control
   - **OpenEpaperLink (OEPL)**: JSON service calls for wireless e-paper tags via the OEPL Access Point
   - **OpenDisplay (ODP)**: JSON action payloads for HTTP-driven displays
+- **Flexible Data Sources** - Connect widgets to Home Assistant entities or **MQTT topics** directly — no extra configuration needed.
 - **Multi-Page "World View"** - Manage all your project pages on a single unified stage with artboard-style rendering.
 - **Plugin-Based Architecture** - 55+ independent widget modules for everything from sensors and graphs to polygons and complex patterns.
 - **Round-trip editing** - Import existing ESPHome configs, OEPL YAML arrays, or ODP JSON payloads back into the editor.
 - **AI-Powered Dashboard Assistant** - Generate entire layouts or individual widgets from simple text prompts.
+- **Conditional Visibility** - Show or hide any widget based on Home Assistant entity state (binary, numeric, text, and range conditions).
+- **Time-Based Page Scheduling** - Assign visibility windows to pages so your device automatically shows the right content at the right time.
 - **Full device integration** - Exposes buttons, buzzer, temperature, and humidity sensors back to HA for automations.
 - **Smart power management** - Battery monitoring, configurable refresh intervals, and hardware-aware energy saving strategies.
 
@@ -186,11 +189,11 @@ Once flashed, your device will come online.
 - **Shapes & Rounded Rects** - Rectangles, circles, lines, and rounded rects with gray/dither support
 - **Graph** - Advanced sensor history plotting with auto-scaling, grid lines, and X/Y axis labeling
 - **Image & Online Image** - Static photos or dynamic URLs (weather maps, cameras) with auto-dithering
-- **Quote / RSS Feed** - Inspirational quotes or external RSS feeds with auto-scaling and refresh logic
-- **QR Code** - Dynamic QR generation for URLs or text with adjustable error correction
+- **Quote / RSS Feed** - Inspirational quotes or external RSS feeds with auto-scaling, refresh logic, and **multi-item display** (up to 10 items per feed)
+- **QR Code** - Dynamic QR generation for URLs, text, or **WiFi credentials** (auto-formats SSID/password for instant phone scanning)
 - **Touch Area** - Invisible or icon-labeled interactive zones to trigger HA actions (supports dual-state feedback)
   <p align="center"><img src="screenshots/touch_icons.gif" width="700" alt="Touch Interactive Icons"></p>
-- **Weather Forecast** - Multi-day forecast display integrated with HA weather entities
+- **Weather Forecast** - Multi-day or **hourly** forecast display integrated with HA weather entities, with configurable hour slots and start offsets
 
 ---
 
@@ -212,6 +215,8 @@ This tool includes experimental support for **LVGL (Light and Versatile Graphics
 - Buttons, Switches, Checkboxes, Sliders (interactive, can trigger HA actions)
 - Arcs, Bars, Charts (display sensor values)
 - Labels, Images, QR Codes, and more
+- **Service Overrides** for buttons — explicitly choose `cover.open_cover`, `button.press`, etc. instead of default toggle
+- **Grid Layout Mode** — assign widgets to grid cells with automatic row/column span detection
 
 For stable results, stick to **Native Mode** (standard widgets without LVGL prefix).
 
@@ -237,15 +242,20 @@ Most widgets (text, shapes, images, icons, QR codes) work on all platforms. Grap
 - Entity picker with real-time preview of your HA entities
 - AI assistant (Gemini, OpenAI, OpenRouter) for generating layouts from text prompts
 - Round-trip editing - import existing ESPHome/OEPL/ODP code back into the editor
+- Per-page visibility windows for time-based content scheduling
+- Conditional widget visibility based on HA entity states
 
 **Output**
 - Live code generation as you design (no "Generate" button needed)
 - Multi-platform export: ESPHome C++/LVGL, OpenEpaperLink JSON, OpenDisplay JSON
 - Smart YAML generator - clean, additive output that won't conflict with your base config
+- **MQTT data source support** - widgets can subscribe directly to MQTT topics instead of HA entities
+- Optimized LVGL export with automatic stripping of default property values
 
 **Design Tools**
 - RGB color picker, dark mode toggle, zoom controls
 - Smart spacing, alignment guides, and radial context menu
+- **Multi-select editing** - edit common properties across multiple widgets simultaneously
 - Widget grouping with preserved hierarchy
 - 55+ widget plugins (v1.0 modular architecture)
 
