@@ -135,4 +135,10 @@ display:
     invert_colors: false
     update_interval: never
     auto_clear_enabled: false
+    transform:
+      swap_xy: true
+      mirror_x: false
+    dimensions:
+      height: 320
+      width: 240
     # __LAMBDA_PLACEHOLDER__

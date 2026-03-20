@@ -1964,12 +1964,19 @@ exports[`Plugin Export Smoke Tests > Export for quote_rss > should export LVGL w
 {
   "label": {
     "text": "!lambda |-
-      std::string q = id(quote_w_test_text_global);
-      std::string a = id(quote_w_test_author_global);
-      if (q.empty()) return "Loading quote...";
-      if (a.empty()) return ('"' + q + '"').c_str();
-      return ('"' + q + '"
-— ' + a).c_str();
+      std::string result = "";
+      {
+        std::string q = id(quote_w_test_text_global);
+        std::string a = id(quote_w_test_author_global);
+        if (!q.empty()) {
+          if (!result.empty()) result += "\\n\\n";
+          result += "\\"" + q + "\\"";
+          if (!a.empty()) result += "\\n— " + a;
+        } else if (0 == 0 && result.empty()) {
+          result = "Loading quote...";
+        }
+      }
+      return result.c_str();
     ",
     "text_align": "left",
     "text_color": "Color(theme_auto)",
@@ -1981,44 +1988,53 @@ exports[`Plugin Export Smoke Tests > Export for quote_rss > should export LVGL w
 exports[`Plugin Export Smoke Tests > Export for quote_rss > should export standard C++ with stable output 1`] = `
 [
   "        {",
-  "          std::string q_text = id(quote_w_test_text_global);",
-  "          std::string q_author = id(quote_w_test_author_global);",
-  "          int max_w = 84;",
-  "          int q_h = 22;",
-  "          std::string display_text = "\\"" + q_text + "\\"";",
-  "          auto print_q = [&](esphome::font::Font *f, int line_h, bool draw) -> int {",
-  "            int y_curr = 18;",
-  "            std::string text_to_print = display_text;",
-  "            std::string curr_line = "";",
-  "            std::string word;",
-  "            size_t pos = 0;",
-  "            while (pos < text_to_print.length()) {",
-  "                size_t space_pos = text_to_print.find(' ', pos);",
-  "                if (space_pos == std::string::npos) {",
-  "                    word = text_to_print.substr(pos);",
-  "                    pos = text_to_print.length();",
-  "                } else {",
-  "                    word = text_to_print.substr(pos, space_pos - pos);",
-  "                    pos = space_pos + 1;",
+  "          int y_curr = 18;",
+  "          {",
+  "            std::string q_text = id(quote_w_test_text_global);",
+  "            std::string q_author = id(quote_w_test_author_global);",
+  "            if (!q_text.empty()) {",
+  "              int max_w = 84;",
+  "              int q_h = 22;",
+  "              std::string display_text = "\\"" + q_text + "\\"";",
+  "              auto print_q = [&](esphome::font::Font *f, int line_h, bool draw) -> int {",
+  "                int y_local = y_curr;",
+  "                std::string text_to_print = display_text;",
+  "                std::string curr_line = "";",
+  "                std::string word;",
+  "                size_t pos = 0;",
+  "                while (pos < text_to_print.length()) {",
+  "                    size_t space_pos = text_to_print.find(' ', pos);",
+  "                    if (space_pos == std::string::npos) {",
+  "                        word = text_to_print.substr(pos);",
+  "                        pos = text_to_print.length();",
+  "                    } else {",
+  "                        word = text_to_print.substr(pos, space_pos - pos);",
+  "                        pos = space_pos + 1;",
+  "                    }",
+  "                    if (word.empty()) continue;",
+  "                    std::string test_line = curr_line.empty() ? word : curr_line + " " + word;",
+  "                    int w_m, h_m, xoff_m, bl_m;",
+  "                    f->measure(test_line.c_str(), &w_m, &xoff_m, &bl_m, &h_m);",
+  "                    if (w_m > max_w && !curr_line.empty()) {",
+  "                        if (draw) it.printf(10, y_local, f, Color(theme_auto), TextAlign::TOP_LEFT, "%s", curr_line.c_str());",
+  "                        y_local += line_h;",
+  "                        curr_line = word;",
+  "                    } else { curr_line = test_line; }",
   "                }",
-  "                if (word.empty()) continue;",
-  "                std::string test_line = curr_line.empty() ? word : curr_line + " " + word;",
-  "                int w_m, h_m, xoff_m, bl_m;",
-  "                f->measure(test_line.c_str(), &w_m, &xoff_m, &bl_m, &h_m);",
-  "                if (w_m > max_w && !curr_line.empty()) {",
-  "                    if (draw) it.printf(10, y_curr, f, Color(theme_auto), TextAlign::TOP_LEFT, "%s", curr_line.c_str());",
-  "                    y_curr += line_h;",
-  "                    curr_line = word;",
-  "                } else { curr_line = test_line; }",
+  "                if (!curr_line.empty()) {",
+  "                    if (draw) it.printf(10, y_local, f, Color(theme_auto), TextAlign::TOP_LEFT, "%s", curr_line.c_str());",
+  "                    y_local += line_h;",
+  "                }",
+  "                return y_local - y_curr;",
+  "              };",
+  "              int height_used = print_q(id(font_id), q_h, true);",
+  "              y_curr += height_used;",
+  "              if (!q_author.empty()) {",
+  "                it.printf(10, y_curr, id(font_id), Color(theme_auto), TextAlign::TOP_LEFT, "— %s", q_author.c_str());",
+  "                y_curr += 22;",
+  "              } else { y_curr += 4; }",
   "            }",
-  "            if (!curr_line.empty()) {",
-  "                if (draw) it.printf(10, y_curr, f, Color(theme_auto), TextAlign::TOP_LEFT, "%s", curr_line.c_str());",
-  "                y_curr += line_h;",
-  "            }",
-  "            return y_curr - 18;",
-  "          };",
-  "          print_q(id(font_id), q_h, true);",
-  "          if (!q_author.empty()) it.printf(10, 10 + 100 - 18, id(font_id), Color(theme_auto), TextAlign::TOP_LEFT, "— %s", q_author.c_str());",
+  "          }",
   "        }",
 ]
 `;

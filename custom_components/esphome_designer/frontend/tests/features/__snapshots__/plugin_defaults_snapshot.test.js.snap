@@ -198,6 +198,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_
   "opa": 255,
   "opacity": 255,
   "radius": 5,
+  "service": "auto",
   "text": "Button",
 }
 `;
@@ -702,8 +703,12 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of qr_co
   "color": "theme_auto",
   "ecc": "LOW",
   "height": 130,
+  "mode": "manual",
   "opa": 255,
+  "password": "",
   "scale": 2,
+  "security": "WPA",
+  "ssid": "",
   "value": "https://github.com/koosoli/ESPHomeDesigner/",
   "width": 130,
 }
@@ -723,6 +728,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of quote
   "ha_url": "http://homeassistant.local:8123",
   "height": 120,
   "italic_quote": true,
+  "item_count": 1,
   "opa": 255,
   "opacity": 255,
   "quote_font_size": 18,

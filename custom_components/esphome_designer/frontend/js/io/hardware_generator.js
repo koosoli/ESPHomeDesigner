@@ -201,7 +201,7 @@ export function generateCustomHardwareYaml(config) {
         lines.push("    restore_mode: ALWAYS_ON");
         lines.push("    initial_state:");
         lines.push(`      brightness: "${initialBrightness}"`);
-        if (antiburn) {
+        if (antiburn && config.isLvgl) {
             lines.push("    on_turn_off:");
             lines.push("      - script.execute: start_antiburn");
             lines.push("    on_turn_on:");
@@ -210,7 +210,7 @@ export function generateCustomHardwareYaml(config) {
         lines.push("");
 
         // Antiburn scripts and switch (only if enabled)
-        if (antiburn) {
+        if (antiburn && config.isLvgl) {
             lines.push("script:");
             lines.push("  - id: start_antiburn");
             lines.push("    then:");
@@ -222,11 +222,12 @@ export function generateCustomHardwareYaml(config) {
             lines.push("      - script.stop: start_antiburn");
             lines.push("      - switch.turn_off: switch_antiburn");
             lines.push("");
+            // Anti-burn logic
             lines.push("switch:");
             lines.push("  - platform: template");
-            lines.push("    name: Antiburn");
+            lines.push("    name: \"Antiburn (Snow)\"");
             lines.push("    id: switch_antiburn");
-            lines.push("    icon: mdi:television-shimmer");
+            lines.push("    icon: mdi:snowflake");
             lines.push("    optimistic: true");
             lines.push("    entity_category: config");
             lines.push("    turn_on_action:");
@@ -258,13 +259,15 @@ export function generateCustomHardwareYaml(config) {
         if (pins.touch_rst) lines.push(`    reset_pin: ${pins.touch_rst}`);
 
         // Wake up logic for LVGL
-        lines.push("    on_release:");
-        lines.push("      - if:");
-        lines.push("          condition: lvgl.is_paused");
-        lines.push("          then:");
-        lines.push("            - lvgl.resume:");
-        lines.push("            - lvgl.widget.redraw:");
-        lines.push("            - light.turn_on: display_backlight");
+        if (config.isLvgl) {
+            lines.push("    on_release:");
+            lines.push("      - if:");
+            lines.push("          condition: lvgl.is_paused");
+            lines.push("          then:");
+            lines.push("            - lvgl.resume:");
+            lines.push("            - lvgl.widget.redraw:");
+            lines.push("            - light.turn_on: display_backlight");
+        }
         lines.push("");
     }
 

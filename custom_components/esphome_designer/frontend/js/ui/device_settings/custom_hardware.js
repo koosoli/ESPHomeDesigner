@@ -159,7 +159,8 @@ export class CustomHardwarePanel {
                 touch_int: getVal('pin_touch_int'), touch_rst: getVal('pin_touch_rst'),
                 batteryAdc: getVal('pin_battery_adc'), batteryEnable: getVal('pin_battery_enable')
             },
-            orientation: this.parent.orientationInput?.value || 'landscape'
+            orientation: this.parent.orientationInput?.value || 'landscape',
+            isLvgl: (this.parent.renderingModeInput?.value || AppState.settings.renderingMode) === 'lvgl'
         };
     }
 

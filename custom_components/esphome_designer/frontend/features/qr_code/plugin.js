@@ -154,7 +154,11 @@ export default {
     category: "Graphics",
     supportedModes: ['lvgl', 'direct', 'oepl', 'opendisplay'],
     defaults: {
+        mode: "manual",
         value: "https://github.com/koosoli/ESPHomeDesigner/",
+        ssid: "",
+        password: "",
+        security: "WPA",
         ecc: "LOW",
         color: "theme_auto",
         bg_color: "white",
@@ -167,11 +171,40 @@ export default {
         const props = widget.props || {};
         const updateProp = (key, val) => {
             const newProps = { ...widget.props, [key]: val };
+
+            // Auto-generate value for WiFi mode
+            if (key === 'mode' || key === 'ssid' || key === 'password' || key === 'security') {
+                const mode = key === 'mode' ? val : (props.mode || 'manual');
+                if (mode === 'wifi') {
+                    const s = key === 'ssid' ? val : (props.ssid || '');
+                    const p = key === 'password' ? val : (props.password || '');
+                    const t = key === 'security' ? val : (props.security || 'WPA');
+                    // Format: WIFI:S:SSID;T:TYPE;P:PASS;;
+                    newProps.value = `WIFI:S:${s};T:${t};P:${p};;`;
+                }
+            }
+
             AppState.updateWidget(widget.id, { props: newProps });
         };
 
         panel.createSection("Content", true);
-        panel.addLabeledInput("QR Content / URL", "text", props.value || "https://github.com/koosoli/ESPHomeDesigner/", (v) => updateProp("value", v));
+        panel.addSelect("Mode", props.mode || "manual", [
+            { value: "manual", label: "Manual / URL" },
+            { value: "wifi", label: "WiFi Credentials" }
+        ], (v) => updateProp("mode", v));
+
+        if (props.mode === 'wifi') {
+            panel.addLabeledInput("SSID", "text", props.ssid || "", (v) => updateProp("ssid", v));
+            panel.addLabeledInput("Password", "text", props.password || "", (v) => updateProp("password", v));
+            panel.addSelect("Security", props.security || "WPA", [
+                { value: "WPA", label: "WPA/WPA2" },
+                { value: "WEP", label: "WEP" },
+                { value: "nopass", label: "No Password / Open" }
+            ], (v) => updateProp("security", v));
+        } else {
+            panel.addLabeledInput("QR Content / URL", "text", props.value || "https://github.com/koosoli/ESPHomeDesigner/", (v) => updateProp("value", v));
+        }
+
         panel.addSelect("Error Correction", props.ecc || "LOW", [
             { value: "LOW", label: "Low (7% recovery)" },
             { value: "MEDIUM", label: "Medium (15% recovery)" },

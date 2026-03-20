@@ -37,6 +37,9 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    - name: Verify committed dist is current
+      run: node scripts/verify_dist_fresh.cjs
+
     - name: Run canonical quality gate
       run: node scripts/quality_gate.cjs --json --proof-dir=tmp/proof/ci
 

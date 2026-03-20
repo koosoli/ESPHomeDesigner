@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import plugin from '../../features/weather_forecast/plugin.js';
 
 describe('weather_forecast widget relative hourly mode', () => {

@@ -58,19 +58,30 @@ const exportLVGL = (w, { common, convertColor, formatOpacity, _profile, getLVGLF
         }
     };
 
+    const serviceOverride = p.service || "auto";
+
     if (entityId) {
         let action = [];
-        if (entityId.startsWith("switch.") || entityId.startsWith("light.") || entityId.startsWith("fan.") || entityId.startsWith("input_boolean.")) {
-            action = [{ "homeassistant.service": { service: "homeassistant.toggle", data: { entity_id: entityId } } }];
-        } else if (entityId.startsWith("script.")) {
-            action = [{ "script.execute": entityId }];
-        } else if (entityId.startsWith("button.") || entityId.startsWith("input_button.")) {
-            action = [{ "homeassistant.service": { service: "button.press", data: { entity_id: entityId } } }];
-        } else if (entityId.startsWith("scene.")) {
-            action = [{ "scene.turn_on": entityId }];
+
+        if (serviceOverride !== "auto" && serviceOverride !== "") {
+            // Use the exact service specified by the user
+            action = [{ "homeassistant.service": { service: serviceOverride, data: { entity_id: entityId } } }];
         } else {
-            // Default to toggle for unknown domains if it looks like an entity ID
-            action = [{ "homeassistant.service": { service: "homeassistant.toggle", data: { entity_id: entityId } } }];
+            // Auto-detect based on entity prefix
+            if (entityId.startsWith("switch.") || entityId.startsWith("light.") || entityId.startsWith("fan.") || entityId.startsWith("input_boolean.")) {
+                action = [{ "homeassistant.service": { service: "homeassistant.toggle", data: { entity_id: entityId } } }];
+            } else if (entityId.startsWith("script.")) {
+                action = [{ "script.execute": entityId }];
+            } else if (entityId.startsWith("button.") || entityId.startsWith("input_button.")) {
+                action = [{ "homeassistant.service": { service: "button.press", data: { entity_id: entityId } } }];
+            } else if (entityId.startsWith("scene.")) {
+                action = [{ "scene.turn_on": entityId }];
+            } else if (entityId.startsWith("cover.")) {
+                action = [{ "homeassistant.service": { service: "cover.toggle", data: { entity_id: entityId } } }];
+            } else {
+                // Default to toggle for unknown domains if it looks like an entity ID
+                action = [{ "homeassistant.service": { service: "homeassistant.toggle", data: { entity_id: entityId } } }];
+            }
         }
         btnObj.button.on_click = action;
     }
@@ -95,6 +106,7 @@ export default {
         font_weight: 400,
         italic: false,
         entity_id: "",
+        service: "auto",
         opacity: 255
     },
     schema: [
@@ -102,7 +114,21 @@ export default {
             section: "Content",
             fields: [
                 { key: "text", label: "Button Text", type: "text", default: "Button" },
-                { key: "entity_id", target: "root", label: "Action Entity ID", type: "entity_picker", default: "" }
+                { key: "entity_id", target: "root", label: "Action Entity ID", type: "entity_picker", default: "" },
+                {
+                    key: "service", label: "Service Override", type: "select", options: [
+                        { value: "auto", label: "Auto (Detect from Entity)" },
+                        { value: "homeassistant.toggle", label: "Toggle" },
+                        { value: "homeassistant.turn_on", label: "Turn On" },
+                        { value: "homeassistant.turn_off", label: "Turn Off" },
+                        { value: "cover.open_cover", label: "Cover: Open" },
+                        { value: "cover.close_cover", label: "Cover: Close" },
+                        { value: "cover.stop_cover", label: "Cover: Stop" },
+                        { value: "cover.toggle", label: "Cover: Toggle" },
+                        { value: "button.press", label: "Button Press" },
+                        { value: "script.execute", label: "Script Execute" }
+                    ], default: "auto"
+                }
             ]
         },
         {

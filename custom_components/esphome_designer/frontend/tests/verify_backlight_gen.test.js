@@ -55,6 +55,7 @@ describe('Hardware Generator - Backlight & Antiburn', () => {
             backlightMinPower: 0.07,
             backlightInitial: 0.8,
             antiburn: true,
+            isLvgl: true,
             pins: {
                 backlight: "GPIO45"
             }

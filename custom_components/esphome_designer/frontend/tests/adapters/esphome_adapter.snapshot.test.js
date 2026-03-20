@@ -129,5 +129,44 @@ lvgl:
       expect(result).toContain('auto_clear_enabled: false');
       expect(result).not.toContain('auto_clear_enabled: true');
     });
+
+    it('should strip LVGL actions when isLvgl is false (Issue #342)', () => {
+      const yaml = `
+touchscreen:
+  platform: gt911
+  id: my_touchscreen
+  on_release:
+    - if:
+        condition: lvgl.is_paused
+        then:
+          - lvgl.resume:
+          - lvgl.widget.redraw:
+          - light.turn_on: display_backlight
+`;
+      const profile = { name: "Waveshare 7", resolution: { width: 800, height: 480 } };
+      const result = applyPackageOverrides(yaml, profile, 'landscape', false, {});
+
+      expect(result).not.toContain('lvgl.resume');
+      expect(result).not.toContain('lvgl.is_paused');
+      expect(result).not.toContain('on_release:');
+    });
+
+    it('should keep LVGL actions when isLvgl is true', () => {
+      const yaml = `
+touchscreen:
+  platform: gt911
+  id: my_touchscreen
+  on_release:
+    - if:
+        condition: lvgl.is_paused
+        then:
+          - lvgl.resume:
+`;
+      const profile = { name: "Waveshare 7", resolution: { width: 800, height: 480 } };
+      const result = applyPackageOverrides(yaml, profile, 'landscape', true, { lcdEcoStrategy: 'dim_after_timeout' });
+
+      expect(result).toContain('lvgl.resume');
+      expect(result).toContain('lvgl.is_paused');
+    });
   });
 });

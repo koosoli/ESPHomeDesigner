@@ -1,3 +1,25 @@
+## v1.0.0 RC8.4 - Enhanced Button Services & Blind Control
+**Release Date:** March 20, 2026
+
+### 🚀 New Features
+- **WiFi QR Code Helper (Issue #183)**: The QR Code widget now features a dedicated "WiFi Credentials" mode. Enter your SSID, Password, and Security Type, and the designer will automatically generate a standard WiFi QR code format (`WIFI:S:...`) that can be scanned by any smartphone to easily share your network.
+- **LVGL Button Service Selection (Issue #345)**: Added a "Service Override" field to LVGL Buttons. Users can now explicitly choose services like `cover.open_cover`, `cover.close_cover`, or `button.press` instead of being limited to automatic toggling.
+- **MQTT Data Source Support (Issue #332)**: Implemented per-widget MQTT topic overrides. Widgets can now subscribe directly to MQTT topics (using `mqtt_subscribe`) instead of relying solely on Home Assistant entities.
+- **LVGL Export Optimization (Issue #341)**: Significantly reduced YAML verbosity by automatically stripping default property values (colors, opacities, hidden states) from the export.
+- **LVGL Grid Mode Fix (Issue #343)**: Fixed a bug where grid-positioned widgets incorrectly exported absolute coordinates instead of row/column indices.
+- **Multi-Item RSS Widget (Issue #133)**: The Quote/RSS widget now supports displaying up to 10 items from a feed with customizable separators and individual word-wrap settings.
+- **Auto-Detect for Covers**: Blinds and covers are now automatically recognized, defaulting to `cover.toggle` when no override is specified.
+- **Sunton CYD 2.8" Display Fix (Issue #344)**: Corrected an error in the hardware templates where the 2.8" Sunton CYD was using the incorrect `TFT 2.4R` model. It now correctly uses `ILI9341` with framework-aware `invert_colors` settings (True for Arduino, False for ESP-IDF), resolving "white block" artifacts and incorrect display offsets.
+
+### 🔧 Maintenance & Stability
+- **Test Reliability**: Fixed a flaky unit test in `device_settings.test.js` related to `localStorage` timing.
+- **Improved Testing**: Added dedicated integration tests for LVGL button service logic.
+
+### 🐛 Bug Fixes
+- **LVGL Action Stripping (Issue #342)**: Resolved compilation errors in non-LVGL projects by implementing a robust stripping mechanism for `lvgl.*` actions in hardware templates. Extended conditional guards to the Antiburn switch and touchscreen wake-up logic to ensure clean YAML generation when LVGL is disabled.
+
+---
+
 ## v1.0.0 RC8.3 - Visibility & Deep Sleep Stability
 **Release Date:** March 14, 2026
 

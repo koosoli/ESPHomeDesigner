@@ -9,6 +9,21 @@ export function applyPackageOverrides(yaml, profile, orientation, isLvgl = false
     if (isLvgl) {
         // Fix: ESPHome 2025.12.7 compatibility - LVGL cannot have auto_clear_enabled: true
         yaml = yaml.replace(/auto_clear_enabled:\s*true/g, "auto_clear_enabled: false");
+    } else {
+        // Fix #342: Strip LVGL-specific actions from non-LVGL projects.
+        // Some hardware templates hardcode these in on_release: or similar triggers.
+
+        // 1. Remove entire if: blocks that contain lvgl statements (more robust multiline matching)
+        // Matches `- if:` followed by any lines indented more than the `- if:`, containing an lvgl action
+        const lvglIfBlockRegex = /^(\s*)- if:\s*\n(?:\1 {2}.*\n)*?(?:\1 {2}.*lvgl\.(resume|is_paused|pause|widget\.redraw).*\n)(?:\1 {2}.*\n)*/gm;
+        yaml = yaml.replace(lvglIfBlockRegex, "");
+
+        // 2. Remove standalone lvgl statements (one-liners)
+        const lvglStatementRegex = /^(\s*)- lvgl\.(resume|is_paused|pause|widget\.redraw):.*(?:\n\s+.*)*\n/gm;
+        yaml = yaml.replace(lvglStatementRegex, "");
+
+        // 3. Clean up empty on_release: blocks that might remain
+        yaml = yaml.replace(/^\s*on_release:\s*\n(?=\s*(?:[a-z0-9_]+:|- [a-z]|$))/gm, "");
     }
 
     // Generic Rotation Logic for all package-based hardware

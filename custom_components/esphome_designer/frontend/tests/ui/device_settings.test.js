@@ -197,22 +197,20 @@ describe('DeviceSettings', () => {
         mockSaveLayoutToBackend.mockResolvedValueOnce(true);
 
         ds.persistToBackend();
-        await vi.advanceTimersByTimeAsync(1000);
+        await vi.runAllTimersAsync();
 
         expect(mockSaveLayoutToBackend).toHaveBeenCalled();
     });
 
     it('falls back to localStorage persistence when backend unavailable', async () => {
         mockHasHaBackend.mockReturnValue(false);
-        const originalSetItem = window.localStorage.setItem;
-        const setItemMock = vi.fn();
-        window.localStorage.setItem = setItemMock;
+        const setItemSpy = vi.spyOn(window.localStorage, 'setItem').mockImplementation(() => { });
 
         ds.persistToBackend();
-        await vi.advanceTimersByTimeAsync(1000);
+        await vi.runAllTimersAsync();
 
-        expect(setItemMock).toHaveBeenCalled();
-        window.localStorage.setItem = originalSetItem;
+        expect(setItemSpy).toHaveBeenCalled();
+        setItemSpy.mockRestore();
     });
 
     it('wires autosave listeners for core settings changes', async () => {

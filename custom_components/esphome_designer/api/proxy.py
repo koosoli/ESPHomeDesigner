@@ -77,6 +77,10 @@ class ReTerminalRssProxyView(DesignerBaseView):
 
         url = request.query.get("url")
         random_quote = request.query.get("random") == "true"
+        try:
+            count = min(int(request.query.get("count", "1")), 10)
+        except ValueError:
+            count = 1
         
         if not url:
             return self._add_pna_headers(web.Response(status=HTTPStatus.BAD_REQUEST), request)
@@ -100,34 +104,49 @@ class ReTerminalRssProxyView(DesignerBaseView):
                         return None
                     
                     if random_quote:
-                        item = random.choice(items)
-                    else:
-                        item = items[0]
+                        random.shuffle(items)
+                    
+                    selected_items = items[:count]
+
+                    results = []
+                    for item in selected_items:
+                        description = item.find("description")
+                        title = item.find("title")
                         
-                    description = item.find("description")
-                    title = item.find("title")
+                        quote_text = description.text if description is not None else "No quote found"
+                        author_text = title.text if title is not None else "Unknown"
+                        
+                        # Basic cleanup
+                        quote_text = quote_text.strip().strip('"')
+                        
+                        results.append({
+                            "quote": quote_text,
+                            "author": author_text
+                        })
                     
-                    quote_text = description.text if description is not None else "No quote found"
-                    author_text = title.text if title is not None else "Unknown"
-                    
-                    # Basic cleanup (BrainyQuote descriptions are usually clean but just in case)
-                    quote_text = quote_text.strip().strip('"')
-                    
-                    return {
-                        "quote": quote_text,
-                        "author": author_text
-                    }
+                    if not results:
+                        return None
+                        
+                    # Maintain backward compatibility for count=1
+                    if count == 1:
+                        return results[0]
+                    else:
+                        return results
+
                 except Exception as e:
                     _LOGGER.error("XML Parse error: %s", e)
                     return None
 
             result = await self.hass.async_add_executor_job(parse_rss, content)
             
-            if result:
-                return self.json({
-                    "success": True,
-                    "quote": result
-                }, 200, request=request)
+            if result is not None:
+                response_data = {"success": True}
+                if count == 1:
+                    response_data["quote"] = result
+                else:
+                    response_data["quotes"] = result
+                    
+                return self.json(response_data, 200, request=request)
             else:
                  return self.json({"success": False, "error": "Failed to parse RSS feed or no items found"}, 200, request=request)
 
