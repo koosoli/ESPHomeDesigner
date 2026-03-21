@@ -1,3 +1,22 @@
+## v1.0.0 RC8.5 - Performance & Stability on High-Res LCDs
+**Release Date:** March 21, 2026
+
+### 🚀 New Features
+- **Dynamic Colors for Sensor Text (Issue #203)**: Sensor Text widgets now support dynamic color interpolation. By defining a value range (Min/Max) and a color range (Low/High), the widget will smoothly interpolate the text color based on the sensor's current value (e.g., transitioning from blue to red as temperature rises).
+  - This feature is exclusively available on **color displays** (LCD/OLED and multi-color e-paper).
+  - The designer canvas provides a live, real-time preview of the calculated color.
+  - Generates highly optimized C++ `Color()` and LVGL `lv_color_make()` lambda functions for fluid on-device rendering.
+- **Filename-Based Color Modes (Issue #338)**: Custom imported hardware templates (YAML) can now explicitly declare their color capabilities via the filename. Naming a hardware recipe with a `*bwr.yaml`, `*fullcolor.yaml`, or `*primarycolor.yaml` suffix will automatically unlock the corresponding color palette in the designer (e.g., `myboard_fullcolor.yaml`). Huge thanks to **newhinton** for contributing this elegant solution!
+
+### 🐛 Bug Fixes & Stability
+- **LCD Performance & Crashes (Issue #349)**: Fixed a critical race condition that caused `IllegalInstruction` crashes and severe UI lag on the Waveshare 7" ESP32-S3 and other high-resolution LCDs. The script now intelligently detects LCD hardware and suppresses redundant display updates, relying purely on the hardware's native `update_interval`.
+- **Navigation Debounce**: Increased touchscreen debounce timing from 500ms to 2000ms for LCD displays. This prevents double-taps and accidental page reverting caused by the longer ~2-second render cycle typical of 800x480 RGB panels.
+- **Battery Sensor Reporting**: The `battery_icon` widget now detects when a selected hardware profile lacks the necessary battery ADC pins (e.g., Waveshare 7"). Instead of silently reporting 0%, it outputs a helpful C++ warning comment in the YAML and displays a `battery-alert` fallback icon.
+- **LilyGo T-Display-S3 Compilation Fix (Issue #350)**: Fixed a compilation error ("couldn't find remote ref i8080") caused by an obsolete external component reference in the hardware template. The `i80`, `ili9xxx`, and related components are now native in ESPHome core.
+- **TRMNL DIY Battery Pin Fix (Issue #291)**: Corrected the battery ADC pin for the Seeed Studio TRMNL DIY Kit (ESP32-S3) from `GPIO1` to `GPIO3`.
+
+---
+
 ## v1.0.0 RC8.4 - Enhanced Button Services & Blind Control
 **Release Date:** March 20, 2026
 

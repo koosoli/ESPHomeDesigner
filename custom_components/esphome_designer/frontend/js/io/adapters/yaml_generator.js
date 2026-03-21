@@ -355,7 +355,7 @@ export class YamlGenerator {
         const isLcd = !!(profile.features && (profile.features.lcd || profile.features.oled));
         const isEpaper = !!(profile.features && (profile.features.epaper || profile.features.epd));
         const isOled = !!(profile.features && profile.features.oled);
-        const debounceMs = isLcd ? 500 : 3000;
+        const debounceMs = isLcd ? 2000 : 3000;
         const backlightPin = (profile.backlight && profile.backlight.pin) ? profile.backlight.pin : (profile.pins?.backlight || null);
 
         // Determine LCD Power Strategy
@@ -697,11 +697,17 @@ export class YamlGenerator {
             lines.push("              }");
             lines.push("              return true; // Not sleep time, update display");
             lines.push("          then:");
-            lines.push(`            - component.update: ${displayId}`);
+            if (!isLcd) {
+                lines.push(`            - component.update: ${displayId}`);
+            } else {
+                lines.push(`            - logger.log: "Display update managed by hardware timer."`);
+            }
             lines.push("          else:");
             lines.push("            - logger.log: \"Night-time sleep active, skipping display update.\"");
         } else {
-            lines.push(`      - component.update: ${displayId}`);
+            if (!isLcd) {
+                lines.push(`      - component.update: ${displayId}`);
+            }
         }
 
         // Manual Refresh Only: Do NOT loop. Stop after initial update.

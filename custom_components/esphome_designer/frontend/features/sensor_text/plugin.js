@@ -2,20 +2,42 @@
 import { AppState } from '@core/state';
 import { TemplateConverter } from '../../js/utils/template_converter.js';
 import { getSensorPlatformLines } from '../../js/io/adapters/mqtt_helpers.js';
+import { DEVICE_PROFILES } from '../../js/io/devices.js';
 import { wordWrap, parseColorMarkup, evaluateTemplatePreview } from '../../js/utils/text_utils.js';
 import { getNestedValue } from '../../js/utils/helpers.js';
 import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js';
 import { emit } from '../../js/core/events.js';
 
-/** Strict check: returns true only if the entire value is a valid number. */
 const isStrictlyNumeric = (val) => {
     if (val === null || val === undefined) return false;
     const s = String(val).trim();
     return s !== "" && !isNaN(Number(s));
 };
 
+// Helper: Convert hex color to {r, g, b}
+const hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || "");
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : { r: 0, g: 0, b: 0 };
+};
+
+// Helper: Linearly interpolate between two hex colors based on t [0, 1]
+const lerpColor = (hexLow, hexHigh, t) => {
+    const low = hexToRgb(hexLow);
+    const high = hexToRgb(hexHigh);
+    const clamp = Math.max(0, Math.min(1, t));
+    const r = Math.round(low.r + clamp * (high.r - low.r));
+    const g = Math.round(low.g + clamp * (high.g - low.g));
+    const b = Math.round(low.b + clamp * (high.b - low.b));
+    return `rgb(${r}, ${g}, ${b})`;
+};
+
 const HA_TEXT_DOMAINS = ["text_sensor.", "weather.", "calendar.", "person.", "device_tracker.", "sun.", "update.", "scene."];
 
+const isColorDisplay = (profile) => !!(profile?.features?.lcd || (profile?.name && (profile.name.includes("6-Color") || profile.name.includes("Color"))));
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -31,8 +53,36 @@ const render = (el, widget, { getColorStyle }) => {
     const fontFamily = (props.font_family || "Roboto") + ", sans-serif";
     const fontWeight = String(props.font_weight || 400);
     const fontStyle = props.italic ? "italic" : "normal";
-    const color = props.color || "theme_auto";
-    const colorStyle = getColorStyle(color);
+
+    let baseColorStyle = getColorStyle(props.color || "theme_auto");
+    let colorStyle = baseColorStyle;
+
+    // Live Dynamic Color computation for the canvas (color displays only)
+    const canvasProfile = DEVICE_PROFILES?.[AppState?.deviceModel];
+    if (props.dynamic_color_enabled && !props.is_text_sensor && isColorDisplay(canvasProfile)) {
+        colorStyle = props.dynamic_color_low || "#3498db"; // Fallback static low
+        if (AppState && AppState.entityStates && entityId) {
+            const eObj = AppState.entityStates[entityId];
+            if (eObj && eObj.state !== undefined) {
+                // If using attribute
+                let rawVal = eObj.state;
+                if (props.attribute && eObj.attributes) {
+                    const attrVal = getNestedValue(eObj.attributes, props.attribute);
+                    if (attrVal !== undefined) rawVal = attrVal;
+                }
+                const numVal = parseFloat(rawVal);
+                if (!isNaN(numVal)) {
+                    const lowVal = props.dynamic_value_low !== undefined ? props.dynamic_value_low : 0;
+                    const highVal = props.dynamic_value_high !== undefined ? props.dynamic_value_high : 100;
+                    const diff = highVal - lowVal;
+                    if (diff !== 0) {
+                        const t = (numVal - lowVal) / diff;
+                        colorStyle = lerpColor(props.dynamic_color_low || "#3498db", props.dynamic_color_high || "#e74c3c", t);
+                    }
+                }
+            }
+        }
+    }
 
     const entityId2 = widget.entity_id_2 || "";
     const separator = props.separator || " ~ ";
@@ -357,6 +407,11 @@ export default {
         precision: 2,
         text_align: "TOP_LEFT",
         color: "theme_auto",
+        dynamic_color_enabled: false,
+        dynamic_color_low: "#3498db",
+        dynamic_color_high: "#e74c3c",
+        dynamic_value_low: 0,
+        dynamic_value_high: 100,
         font_family: "Roboto",
         parse_colors: false,
         bg_color: "transparent",
@@ -378,7 +433,7 @@ export default {
     },
 
     render,
-    exportLVGL: (w, { common, convertColor, _convertAlign, getLVGLFont, formatOpacity }) => {
+    exportLVGL: (w, { common, convertColor, _convertAlign, getLVGLFont, formatOpacity, profile }) => {
         const p = w.props || {};
         const format = p.value_format || "label_value";
         let entityId = (w.entity_id || "").trim();
@@ -552,12 +607,28 @@ export default {
             textAlign = "CENTER";
         }
 
+        let textColorVal = convertColor(p.color);
+        if (p.dynamic_color_enabled && !isText1 && v1 && isColorDisplay(profile)) {
+            const hexL = hexToRgb(p.dynamic_color_low || "#3498db");
+            const hexH = hexToRgb(p.dynamic_color_high || "#e74c3c");
+            const low = p.dynamic_value_low !== undefined ? p.dynamic_value_low : 0;
+            const high = p.dynamic_value_high !== undefined ? p.dynamic_value_high : 100;
+            const arg = v1.replace(".state", ".state"); // Just checking/using v1
+
+            textColorVal = `!lambda |-
+              float val = ${arg};
+              float t = (val - (${low})) / (float)(${high} - (${low}));
+              if (t < 0.0f) t = 0.0f;
+              if (t > 1.0f) t = 1.0f;
+              return lv_color_make(${hexL.r} + (uint8_t)(t * (${hexH.r} - ${hexL.r})), ${hexL.g} + (uint8_t)(t * (${hexH.g} - ${hexL.g})), ${hexL.b} + (uint8_t)(t * (${hexH.b} - ${hexL.b})));`;
+        }
+
         return {
             label: {
                 ...common,
                 text: textLambda,
                 text_font: getLVGLFont(p.font_family, format === "label_only" ? p.label_font_size : p.value_font_size, p.font_weight, p.italic),
-                text_color: convertColor(p.color),
+                text_color: textColorVal,
                 text_align: textAlign,
                 bg_color: p.bg_color === "transparent" ? undefined : convertColor(p.bg_color),
                 opa: formatOpacity(p.opa)
@@ -580,6 +651,11 @@ export default {
         let color = p.color || "black";
         if (color === "theme_auto") {
             color = layout?.darkMode ? "white" : "black";
+        }
+
+        if (p.dynamic_color_enabled && !p.is_text_sensor) {
+            // ODP: static fallback to dynamic_color_low (runtime interpolation not supported)
+            color = p.dynamic_color_low || color;
         }
 
         // Mapping for alignment to ODP anchor
@@ -660,6 +736,11 @@ export default {
         let color = p.color || "black";
         if (color === "theme_auto") {
             color = layout?.darkMode ? "white" : "black";
+        }
+
+        if (p.dynamic_color_enabled && !p.is_text_sensor) {
+            // OEPL: static fallback to dynamic_color_low (runtime interpolation not supported)
+            color = p.dynamic_color_low || color;
         }
 
         const val1 = TemplateConverter.toHATemplate(entityId, { precision, isNumeric: !p.is_text_sensor });
@@ -915,21 +996,42 @@ export default {
         const arg1 = isText1 ? `${v1}.state.c_str()` : `${v1}.state`;
         const arg2 = v2 ? (isText2 ? `${v2}.state.c_str()` : `${v2}.state`) : null;
         const args = v2 ? `${arg1}, ${arg2}` : arg1;
+        // Determine color variable logic
+        let colorVar = color;
+        let useDynamicColor = p.dynamic_color_enabled && !isText1 && v1 && isColorDisplay(context.profile);
+
+        if (useDynamicColor) {
+            colorVar = "dyn_color";
+            const hexL = hexToRgb(p.dynamic_color_low || "#3498db");
+            const hexH = hexToRgb(p.dynamic_color_high || "#e74c3c");
+            const low = p.dynamic_value_low !== undefined ? p.dynamic_value_low : 0;
+            const high = p.dynamic_value_high !== undefined ? p.dynamic_value_high : 100;
+
+            lines.push(`        {`);
+            lines.push(`          float val = ${arg1};`);
+            lines.push(`          float t = (val - (${low})) / (float)(${high} - (${low}));`);
+            lines.push(`          if (t < 0.0f) t = 0.0f;`);
+            lines.push(`          if (t > 1.0f) t = 1.0f;`);
+            lines.push(`          uint8_t r = ${hexL.r} + (uint8_t)(t * (${hexH.r} - ${hexL.r}));`);
+            lines.push(`          uint8_t g = ${hexL.g} + (uint8_t)(t * (${hexH.g} - ${hexL.g}));`);
+            lines.push(`          uint8_t b = ${hexL.b} + (uint8_t)(t * (${hexH.b} - ${hexL.b}));`);
+            lines.push(`          Color dyn_color(r, g, b);`);
+        }
 
         if (format === "label_only") {
-            lines.push(`        it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${color}, ${labelAlign}, "${title}");`);
+            lines.push(`        it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${colorVar}, ${labelAlign}, "${title}");`);
         } else if (format === "value_only" || format === "value_only_no_unit" || !title) {
             // Use runtime word-wrap if widget has meaningful width
             const useWrapping = w.width && w.width > 50;
             if (useWrapping) {
                 const lineHeight = valueFS + 4;
-                lines.push(`        {`);
+                if (!useDynamicColor) lines.push(`        {`);
                 lines.push(`          char wrap_buf[512];`);
                 lines.push(`          sprintf(wrap_buf, "${finalValFmt}", ${args});`);
-                lines.push(`          print_wrapped_text(${xVal}, ${yVal}, ${w.width}, ${lineHeight}, id(${valueFontId}), ${color}, ${valueAlign}, wrap_buf);`);
-                lines.push(`        }`);
+                lines.push(`          print_wrapped_text(${xVal}, ${yVal}, ${w.width}, ${lineHeight}, id(${valueFontId}), ${colorVar}, ${valueAlign}, wrap_buf);`);
+                if (!useDynamicColor) lines.push(`        }`);
             } else {
-                lines.push(`        it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${color}, ${valueAlign}, "${finalValFmt}", ${args});`);
+                lines.push(`        it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${colorVar}, ${valueAlign}, "${finalValFmt}", ${args});`);
             }
         } else if (format === "label_value" || format === "label_value_no_unit") {
             // Horizontal layout: "Label: Value"
@@ -940,7 +1042,7 @@ export default {
             const useWrapping = w.width && w.width > 50;
             if ((labelFS !== valueFS && textAlign.includes("LEFT")) || useWrapping) {
                 const align = getAlign(textAlign);
-                lines.push(`        {`);
+                if (!useDynamicColor) lines.push(`        {`);
                 lines.push(`          int w1, h1, xoff1, bl1;`);
                 lines.push(`          int w2, h2, xoff2, bl2;`);
                 lines.push(`          char value_buf[512];`);
@@ -952,21 +1054,21 @@ export default {
                     lines.push(`          // Note: we can't easily align baselines perfectly without measuring the value's first line first,`);
                     lines.push(`          // but we can approximate or just use top-aligned reference.`);
                     lines.push(`          // For wrapped text, we print the label, then wrap the rest.`);
-                    lines.push(`          it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${color}, ${align}, "${labelStr}");`);
+                    lines.push(`          it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${colorVar}, ${align}, "${labelStr}");`);
                     lines.push(`          int val_max_w = ${w.width} - w1;`);
                     lines.push(`          // Heuristic: if label is taller than value font, adjust y? mostly fine to align tops or just let baselines float.`);
                     lines.push(`          // Let's assume top alignment is safer for multi-line flow.`);
-                    lines.push(`          print_wrapped_text(${xVal} + w1, ${yVal} + (bl1 - ${Math.round(valueFS * 0.8)}), val_max_w, ${lineHeight}, id(${valueFontId}), ${color}, ${align}, value_buf);`);
+                    lines.push(`          print_wrapped_text(${xVal} + w1, ${yVal} + (bl1 - ${Math.round(valueFS * 0.8)}), val_max_w, ${lineHeight}, id(${valueFontId}), ${colorVar}, ${align}, value_buf);`);
                 } else {
                     lines.push(`          id(${valueFontId})->measure(value_buf, &w2, &xoff2, &bl2, &h2);`);
                     lines.push(`          // Align baselines: yVal + bl1 = yVal2 + bl2 => yVal2 = yVal + bl1 - bl2`);
-                    lines.push(`          it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${color}, ${align}, "${labelStr}");`);
-                    lines.push(`          it.printf(${xVal} + w1, ${yVal} + (bl1 - bl2), id(${valueFontId}), ${color}, ${align}, "%s", value_buf);`);
+                    lines.push(`          it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${colorVar}, ${align}, "${labelStr}");`);
+                    lines.push(`          it.printf(${xVal} + w1, ${yVal} + (bl1 - bl2), id(${valueFontId}), ${colorVar}, ${align}, "%s", value_buf);`);
                 }
-                lines.push(`        }`);
+                if (!useDynamicColor) lines.push(`        }`);
             } else {
                 // Single printf for perfect alignment (same font or non-left align)
-                lines.push(`        it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${color}, ${valueAlign}, "${labelStr}${finalValFmt}", ${args});`);
+                lines.push(`        it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${colorVar}, ${valueAlign}, "${labelStr}${finalValFmt}", ${args});`);
             }
         } else if (format === "label_newline_value" || format === "label_newline_value_no_unit") {
             // Vertical layout: calculate offsets for centering
@@ -976,13 +1078,17 @@ export default {
             if (textAlign.includes("BOTTOM")) yOff = -lineDist;
             else if (!textAlign.includes("TOP")) yOff = -lineDist / 2;
 
-            lines.push(`        it.printf(${xVal}, ${yVal} + ${yOff}, id(${labelFontId}), ${color}, ${labelAlign}, "${title}");`);
-            lines.push(`        it.printf(${xVal}, ${yVal} + ${yOff} + ${lineDist}, id(${valueFontId}), ${color}, ${valueAlign}, "${finalValFmt}", ${args});`);
+            lines.push(`        it.printf(${xVal}, ${yVal} + ${yOff}, id(${labelFontId}), ${colorVar}, ${labelAlign}, "${title}");`);
+            lines.push(`        it.printf(${xVal}, ${yVal} + ${yOff} + ${lineDist}, id(${valueFontId}), ${colorVar}, ${valueAlign}, "${finalValFmt}", ${args});`);
         } else if (format === "value_label") {
-            lines.push(`        it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${color}, ${valueAlign}, "${finalValFmt}", ${args});`);
+            lines.push(`        it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${colorVar}, ${valueAlign}, "${finalValFmt}", ${args});`);
 
             const offset = Math.round(valueFS * 0.6 * 6) + 10; // Guessed value width
-            lines.push(`        it.printf(${xVal} + ${offset}, ${yVal}, id(${labelFontId}), ${color}, ${labelAlign}, "${title}");`);
+            lines.push(`        it.printf(${xVal} + ${offset}, ${yVal}, id(${labelFontId}), ${colorVar}, ${labelAlign}, "${title}");`);
+        }
+
+        if (useDynamicColor) {
+            lines.push(`        }`);
         }
 
         if (cond) lines.push(`        }`);
@@ -1209,6 +1315,20 @@ export default {
         panel.addCheckbox("Parse Color Tags", !!props.parse_colors, (v) => updateProp("parse_colors", v));
         panel.addHint("Enable to use [color]text[/color] markup, also supports HA templates.");
         panel.endSection();
+
+        const uiProfile = DEVICE_PROFILES?.[AppState?.deviceModel];
+        if (!props.is_text_sensor && isColorDisplay(uiProfile)) {
+            panel.createSection("Dynamic Color", false);
+            panel.addCheckbox("Enable Dynamic Color", !!props.dynamic_color_enabled, (v) => updateProp("dynamic_color_enabled", v));
+            if (props.dynamic_color_enabled) {
+                panel.addColorSelector("Color Low", props.dynamic_color_low || "#3498db", null, (v) => updateProp("dynamic_color_low", v));
+                panel.addLabeledInput("Value Low", "number", props.dynamic_value_low !== undefined ? props.dynamic_value_low : 0, (v) => updateProp("dynamic_value_low", parseFloat(v)));
+                panel.addColorSelector("Color High", props.dynamic_color_high || "#e74c3c", null, (v) => updateProp("dynamic_color_high", v));
+                panel.addLabeledInput("Value High", "number", props.dynamic_value_high !== undefined ? props.dynamic_value_high : 100, (v) => updateProp("dynamic_value_high", parseFloat(v)));
+                panel.addHint("Text color interpolates linearly between Color Low and Color High based on the sensor's numeric value.");
+            }
+            panel.endSection();
+        }
 
         panel.createSection("Border Style", false);
         panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));

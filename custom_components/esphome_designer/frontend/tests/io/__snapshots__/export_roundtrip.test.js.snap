@@ -72,6 +72,8 @@ exports[`Export Path Round-Trip Enforcement > Icon Plugins > exports "battery_ic
 "        {
           const char* bat_icon = "\\U000F0082"; // Default: battery-90
           float bat_level = 0;
+          // WARNING: Battery sensor 'sensor_battery_level' not found on this hardware profile.
+          bat_icon = "\\U000F0091"; // battery-alert
           it.printf(10 + 40 / 2, 10 + (40 - 48) / 2, id(font_material_design_icons_32), green, TextAlign::TOP_CENTER, "%s", bat_icon);
           it.printf(10 + 40 / 2, 10 + (40 - 48) / 2 + 32 + 2, id(font_roboto_14), green, TextAlign::TOP_CENTER, "%.0f%%", bat_level);
         }"

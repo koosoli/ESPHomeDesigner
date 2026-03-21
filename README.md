@@ -305,18 +305,6 @@ The workflow is safe and deterministic - same layout always produces the same YA
 
 All exposed as Home Assistant entities for use in automations.
 
-If you use a custom hardware-yaml, and your device is not monochrome, you can specify the used colors via the yaml-filename.
-The available modes are: `Black-White-Red (or Yellow)`, `Full Color` and `Primary Colors only`
-
-To select a mode, use a naming-scheme that ends in one of the following:
-
-`*bwr.yaml` for `Black-White-Red (or Yellow)`   
-`*fullcolor.yaml` for `Full Color`  
-`*primarycolor.yaml` for `Primary Colors only`  
-
-Eg.: `waveshare-esp32-universal-epaper-7.5-90bwr.yaml`
-This will allow the device to use Black, White, Red and Yellow.
-
 ---
 
 ## 📁 Repository Structure

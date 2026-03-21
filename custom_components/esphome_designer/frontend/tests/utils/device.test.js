@@ -105,6 +105,19 @@ describe('device utils', () => {
         expect(deviceUtils.getAvailableColors()).toEqual(['theme_auto', 'black', 'white', 'gray']);
     });
 
+    it('returns correct palettes for filename-based color modes (PR 338)', () => {
+        mockAppState.settings.renderingMode = 'direct';
+
+        mockAppState.deviceModel = 'custom_board_bwr_yaml';
+        expect(deviceUtils.getAvailableColors()).toEqual(["black", "white", "red", "yellow", "gray"]);
+
+        mockAppState.deviceModel = 'my_display_fullcolor_yaml';
+        expect(deviceUtils.getAvailableColors()).toContain('magenta');
+
+        mockAppState.deviceModel = 'some_primarycolor_yaml';
+        expect(deviceUtils.getAvailableColors()).toEqual(['theme_auto', 'black', 'white', 'gray', 'red', 'green', 'blue', 'yellow']);
+    });
+
     it('maps named, hex, and theme colors to CSS values', () => {
         expect(deviceUtils.getColorStyle('#123456')).toBe('#123456');
         expect(deviceUtils.getColorStyle('0xABCDEF')).toBe('#ABCDEF');

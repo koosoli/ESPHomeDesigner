@@ -106,6 +106,8 @@ exports[`Plugin Export Smoke Tests > Export for battery_icon > should export sta
   "        {",
   "          const char* bat_icon = "\\U000F0082"; // Default: battery-90",
   "          float bat_level = 0;",
+  "          // WARNING: Battery sensor 'battery_level' not found on this hardware profile.",
+  "          bat_icon = "\\U000F0091"; // battery-alert",
   "          it.printf(10 + 100 / 2, 10 + (100 - 52) / 2, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%s", bat_icon);",
   "          it.printf(10 + 100 / 2, 10 + (100 - 52) / 2 + 36 + 2, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "%.0f%%", bat_level);",
   "        }",

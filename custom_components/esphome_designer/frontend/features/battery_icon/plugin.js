@@ -165,6 +165,9 @@ const exportDoc = (w, context) => {
         lines.push(`            else if (bat_level >= 5) bat_icon = "\\U000F007A";  // battery-10`);
         lines.push(`            else bat_icon = "\\U000F0083";                      // battery-alert (critical)`);
         lines.push(`          }`);
+    } else {
+        lines.push(`          // WARNING: Battery sensor '${sensorId}' not found on this hardware profile.`);
+        lines.push(`          bat_icon = "\\U000F0091"; // battery-alert`);
     }
 
     // Icon Centered

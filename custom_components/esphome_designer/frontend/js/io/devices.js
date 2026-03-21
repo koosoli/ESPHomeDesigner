@@ -91,7 +91,7 @@ export const DEVICE_PROFILES = {
       i2c: { sda: "GPIO17", scl: "GPIO18" }, // Generic S3 defaults, user didn't specify I2C but it's good to have placeholder
       spi: { clk: "GPIO7", mosi: "GPIO9" },
       batteryEnable: "GPIO6",
-      batteryAdc: "GPIO1",
+      batteryAdc: "GPIO3",
       buzzer: null,
       buttons: { left: "GPIO2", refresh: "GPIO5" } // Key1=Wake/Left, Key3=Refresh
     },

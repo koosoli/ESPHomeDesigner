@@ -69,7 +69,7 @@ export function getAvailableColors() {
     const colormode_bwr = ["black", "white", "red", "yellow", "gray"];
     const colormode_monochrome = ["theme_auto", "black", "white", "gray"];
     const colormode_fullcolor = ["black", "white", "red", "green", "blue", "yellow", "orange", "gray", "purple", "cyan", "magenta"];
-    const colormode_primary = ["theme_auto", "black", "white", "gray", "red", "green", "blue", "yellow"]
+    const colormode_primary = ["theme_auto", "black", "white", "gray", "red", "green", "blue", "yellow"];
 
     if (mode === 'oepl' || mode === 'opendisplay') {
         // @ts-ignore
@@ -99,20 +99,19 @@ export function getAvailableColors() {
         return colormode_primary;
     }
 
-    // Implement a filename-based fallback for determining colormode from a yaml.
-    // This is useful for custom imported hardware
-    if(model.endsWith("bwr_yaml")) {
+    // Filename-based fallback for custom imported hardware
+    if (model.endsWith("bwr_yaml")) {
         return colormode_bwr;
     }
-    if(model.endsWith("fullcolor_yaml")) {
+    if (model.endsWith("fullcolor_yaml")) {
         return colormode_fullcolor;
     }
-    if(model.endsWith("primarycolor_yaml")) {
+    if (model.endsWith("primarycolor_yaml")) {
         return colormode_primary;
     }
 
     // Default E1001 and TRMNL (True Monochrome)
-    return colormode_monochrome
+    return colormode_monochrome;
 }
 
 /**
@@ -148,4 +147,3 @@ export function getColorStyle(colorName) {
         default: return "#000000";
     }
 }
-

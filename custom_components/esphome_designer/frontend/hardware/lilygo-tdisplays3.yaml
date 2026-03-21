@@ -45,9 +45,6 @@ esphome:
       - delay: 2s
       - script.execute: manage_run_and_sleep
 
-external_components:
- - source: github://clydebarrow/esphome@i8080
-   components: [ i80, io_bus, ili9xxx, spi ]
 
 esp32:
   board: esp32-s3-devkitc-1
