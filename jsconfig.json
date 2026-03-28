@@ -21,7 +21,7 @@
     "custom_components/esphome_designer/frontend/js/**/*",
     "custom_components/esphome_designer/frontend/features/**/*",
     "tests_frontend/**/*",
-    "global.d.ts"
+    "custom_components/esphome_designer/frontend/types.d.ts"
   ],
   "exclude": [
     "node_modules",
