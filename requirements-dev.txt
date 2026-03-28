@@ -1,0 +1,8 @@
+# Optional Python test dependencies for the full local test matrix.
+# Install into your virtualenv with:
+#   python -m pip install -r requirements-dev.txt
+aiohttp==3.9.3
+homeassistant==2024.3.3
+pytest==8.0.2
+pytest-aiohttp==1.0.5
+pytest-asyncio==0.23.5
