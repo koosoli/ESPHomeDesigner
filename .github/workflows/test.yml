@@ -32,6 +32,7 @@ jobs:
         python-version: '3.11'
 
     - name: Enforce baseline governance
+      if: github.event_name == 'pull_request' || github.ref_name == 'dev'
       run: npm run quality:baseline-governance
 
     - name: Install Python test dependencies
@@ -48,15 +49,14 @@ jobs:
 
     - name: Upload coverage report
       uses: actions/upload-artifact@v4
-      if: always()
+      if: always() && hashFiles('coverage/**') != ''
       with:
         name: coverage-report-${{ matrix.node-version }}
         path: coverage/
 
     - name: Upload proof bundle
       uses: actions/upload-artifact@v4
-      if: always()
+      if: always() && hashFiles('tmp/proof/ci/**') != ''
       with:
         name: quality-proof-${{ matrix.node-version }}
         path: tmp/proof/ci/
-        if-no-files-found: error

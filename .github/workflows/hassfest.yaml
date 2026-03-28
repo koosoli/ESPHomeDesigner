@@ -18,4 +18,10 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Run hassfest
-        uses: home-assistant/actions/hassfest@master
+        run: >
+          docker run --rm
+          -v "${{ github.workspace }}:/github/workspace"
+          ghcr.io/home-assistant/hassfest
+          --core-path=/usr/src/homeassistant
+          --integration-path
+          /github/workspace/custom_components/esphome_designer

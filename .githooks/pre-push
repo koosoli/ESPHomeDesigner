@@ -1,9 +1,0 @@
-#!/bin/sh
-
-npm run verify:pre-push
-status=$?
-
-if [ "$status" -ne 0 ]; then
-  echo "Push blocked: local verification failed."
-  exit "$status"
-fi

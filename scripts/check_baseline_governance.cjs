@@ -50,9 +50,23 @@ function isInsideGitWorkTree() {
 function getChangedFilesFromGit() {
   const eventName = process.env.GITHUB_EVENT_NAME || '';
   const baseRef = process.env.GITHUB_BASE_REF || '';
+  const beforeSha = process.env.GITHUB_EVENT_BEFORE || '';
+  const headSha = process.env.GITHUB_SHA || '';
 
   if (eventName === 'pull_request' && baseRef) {
     return execFileSync('git', ['diff', '--name-only', `origin/${baseRef}...HEAD`], { encoding: 'utf8' })
+      .split(/\r?\n/)
+      .map(normalizePath)
+      .filter(Boolean);
+  }
+
+  if (
+    eventName === 'push'
+    && beforeSha
+    && headSha
+    && beforeSha !== '0000000000000000000000000000000000000000'
+  ) {
+    return execFileSync('git', ['diff', '--name-only', `${beforeSha}..${headSha}`], { encoding: 'utf8' })
       .split(/\r?\n/)
       .map(normalizePath)
       .filter(Boolean);
