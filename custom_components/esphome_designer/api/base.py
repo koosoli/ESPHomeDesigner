@@ -14,7 +14,7 @@ _LOGGER = logging.getLogger(__name__)
 class DesignerBaseView(HomeAssistantView):
     """Base class for Designer API views."""
 
-    requires_auth = False
+    requires_auth = True
     cors_allowed = True
 
     def _add_pna_headers(self, response: web.Response, request: web.Request) -> web.Response:

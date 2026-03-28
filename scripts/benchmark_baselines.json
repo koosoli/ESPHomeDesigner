@@ -1,0 +1,24 @@
+{
+  "generatedAt": "2026-03-24T16:19:42.809Z",
+  "slackRatio": 2.5,
+  "slackMs": 120,
+  "totalDurationMsMax": 633,
+  "tests": [
+    {
+      "name": " workflow performance smoke regenerates large snippets within the smoke budget",
+      "maxDurationMs": 140
+    },
+    {
+      "name": " workflow performance smoke renders the widget palette within the smoke budget",
+      "maxDurationMs": 298
+    },
+    {
+      "name": " workflow performance smoke round-trips large imports within the smoke budget",
+      "maxDurationMs": 161
+    },
+    {
+      "name": " workflow performance smoke updates canvas selection visuals within the smoke budget",
+      "maxDurationMs": 193
+    }
+  ]
+}

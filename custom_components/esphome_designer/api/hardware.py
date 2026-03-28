@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import yaml
 import re
@@ -15,6 +16,33 @@ from ..const import API_BASE_PATH
 from .base import DesignerBaseView
 
 _LOGGER = logging.getLogger(__name__)
+FRONTEND_HARDWARE_DIR = Path(__file__).parent.parent / "frontend" / "hardware"
+
+
+def _resolve_hardware_package_path(hass: HomeAssistant, package_path: str) -> Path:
+    """Resolve a requested hardware package path safely."""
+    normalized = (package_path or "").strip().replace("\\", "/")
+    if not normalized or ".." in normalized or normalized.startswith("/") or "://" in normalized:
+        raise ValueError("invalid_package_path")
+
+    if normalized.startswith("esphomedesigner_custom_profiles/"):
+        filename = normalized.removeprefix("esphomedesigner_custom_profiles/").strip("/")
+        if not filename or "/" in filename:
+            raise ValueError("invalid_custom_profile_path")
+        custom_profiles_dir = Path(hass.config.path("esphomedesigner_custom_profiles"))
+        resolved = (custom_profiles_dir / filename).resolve()
+        resolved.relative_to(custom_profiles_dir.resolve())
+        return resolved
+
+    if normalized.startswith("hardware/"):
+        relative_name = normalized.removeprefix("hardware/").strip("/")
+        if not relative_name or "/" in relative_name:
+            raise ValueError("invalid_bundled_profile_path")
+        resolved = (FRONTEND_HARDWARE_DIR / relative_name).resolve()
+        resolved.relative_to(FRONTEND_HARDWARE_DIR.resolve())
+        return resolved
+
+    raise ValueError("unsupported_package_path")
 
 class ReTerminalHardwareListView(DesignerBaseView):
     """List available hardware templates from the frontend/hardware directory."""
@@ -193,6 +221,42 @@ class ReTerminalHardwareListView(DesignerBaseView):
             _LOGGER.debug(f"Scanned {scan_dir}: found {len([t for t in templates if (t['isCustomProfile'] == is_custom)])} templates")
 
         return self.json({"templates": templates}, request=request)
+
+
+class ReTerminalHardwarePackageView(DesignerBaseView):
+    """Serve a hardware package through the authenticated API surface."""
+
+    url = f"{API_BASE_PATH}/hardware/package"
+    name = "api:esphome_designer_hardware_package"
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        self.hass = hass
+
+    async def get(self, request) -> Any:
+        package_path = request.query.get("path", "")
+        if not package_path:
+            return self.json({"error": "missing_path"}, status_code=HTTPStatus.BAD_REQUEST, request=request)
+
+        try:
+            file_path = _resolve_hardware_package_path(self.hass, package_path)
+        except ValueError:
+            return self.json({"error": "invalid_path"}, status_code=HTTPStatus.BAD_REQUEST, request=request)
+
+        if not file_path.exists() or not file_path.is_file():
+            return self.json({"error": "not_found"}, status_code=HTTPStatus.NOT_FOUND, request=request)
+
+        try:
+            content = await asyncio.to_thread(file_path.read_text, encoding="utf-8")
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.error("Failed to read hardware package %s: %s", package_path, err)
+            return self.json({"error": "read_failed"}, status_code=HTTPStatus.INTERNAL_SERVER_ERROR, request=request)
+
+        return web.Response(
+            text=content,
+            status=HTTPStatus.OK,
+            content_type="text/plain",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
 
 
 async def _parse_json_body(request):

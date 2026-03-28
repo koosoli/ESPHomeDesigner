@@ -10,6 +10,7 @@ export const EventBus = new EventTarget();
 export const EVENTS = {
     STATE_CHANGED: 'state-changed',       // General state update
     SELECTION_CHANGED: 'selection-changed', // Widget selection changed
+    WIDGET_UPDATED: 'widget:updated',     // Widget-specific refresh/update
     PAGE_CHANGED: 'page-changed',         // Current page changed
     HISTORY_CHANGED: 'history-changed',   // Undo/Redo stack changed
     SETTINGS_CHANGED: 'settings-changed', // Device/Editor settings changed

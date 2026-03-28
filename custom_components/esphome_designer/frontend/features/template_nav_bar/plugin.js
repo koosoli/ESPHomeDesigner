@@ -1,4 +1,5 @@
-// @ts-nocheck
+import { getTouchDebounceMs } from '../../js/io/navigation_debounce.js';
+
 /**
  * Template Navigation Bar Plugin
  */
@@ -168,6 +169,7 @@ const onExportBinarySensors = (context) => {
     if (navBarWidgets.length === 0) return;
 
     const totalPages = widgets.reduce((max, widget) => Math.max(max, (widget._pageIndex ?? 0) + 1), 0) || 1;
+    const touchDebounceMs = getTouchDebounceMs(profile);
 
     navBarWidgets.forEach(w => {
         const p = w.props || {};
@@ -203,8 +205,9 @@ const onExportBinarySensors = (context) => {
                 const pageIdx = w._pageIndex !== undefined ? w._pageIndex : 0;
                 lines.push(`    - if:`);
                 lines.push(`        condition:`);
-                lines.push(`          lambda: 'return id(display_page) == ${pageIdx};'`);
+                lines.push(`          lambda: 'return id(display_page) == ${pageIdx} && (millis() - id(last_touch_time) > ${touchDebounceMs});'`);
                 lines.push(`        then:`);
+                lines.push(`          - lambda: 'id(last_touch_time) = millis();'`);
 
                 let target = "";
                 if (action === "prev") target = p.prev_target || "relative_prev";

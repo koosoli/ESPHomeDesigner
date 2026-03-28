@@ -9,6 +9,40 @@ const JS_DIR = path.join(FRONTEND, 'js');
 const FEATURES_DIR = path.join(FRONTEND, 'features');
 const baselinesPath = path.join(__dirname, 'baselines.json');
 const baselines = JSON.parse(fs.readFileSync(baselinesPath, 'utf8'));
+const ROOT_ARTIFACT_PATTERNS = [
+    /^coverage_full\.json$/i,
+    /^comment\.json$/i,
+    /^comment_body\.txt$/i,
+    /^debug_output\.yaml$/i,
+    /^debug_yaml\.js$/i,
+    /^dynamic_refs\.txt$/i,
+    /^err\.txt$/i,
+    /^eslint_.*\.json$/i,
+    /^esphome_designer_test\.zip$/i,
+    /^fail_line\.txt$/i,
+    /^lint_.*\.txt$/i,
+    /^out.*\.json$/i,
+    /^quality.*\.txt$/i,
+    /^temp_yaml_generator\.js$/i,
+    /^test_.*\.(json|txt)$/i,
+    /^text_cov\.txt$/i,
+    /^vitest_update\.txt$/i
+];
+const FRONTEND_ARTIFACT_PATTERNS = [
+    /^build_(?:error\.log|full\.txt|log\.txt)$/i,
+    /^debug\.js$/i,
+    /^eslint-results\.txt$/i,
+    /^eslint\.log$/i,
+    /^eslint_.*\.(?:txt|json)$/i,
+    /^keyboard_error(?:_utf8)?\.txt$/i,
+    /^lint_final\.json$/i,
+    /^out\.(?:txt|xml)$/i,
+    /^parse_xml\.js$/i,
+    /^strip_output\.txt$/i,
+    /^test(?:_(?:fail|logs|out))?\.(?:txt|log|json)$/i,
+    /^vitest_(?:debug\.js|log\.txt|out\.json)$/i
+];
+const GITIGNORE_ROOT_PATTERNS = loadGitignoreRootPatterns();
 
 const args = new Set(process.argv.slice(2));
 const UPDATE_MODE = args.has('--update-baselines');
@@ -40,6 +74,29 @@ function rel(filePath) {
 
 function ensureDir(dirPath) {
     fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function globToRegex(glob) {
+    const escaped = glob
+        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+        .replace(/\*/g, '[^/]*')
+        .replace(/\?/g, '[^/]');
+    return new RegExp(`^${escaped}$`, 'i');
+}
+
+function loadGitignoreRootPatterns() {
+    const gitignorePath = path.join(ROOT, '.gitignore');
+    if (!fs.existsSync(gitignorePath)) {
+        return [];
+    }
+
+    return fs.readFileSync(gitignorePath, 'utf8')
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line && !line.startsWith('#') && !line.startsWith('!'))
+        .filter((line) => line.startsWith('/') && !line.endsWith('/'))
+        .map((line) => line.slice(1))
+        .map(globToRegex);
 }
 
 function readJson(filePath) {
@@ -297,7 +354,7 @@ function checkFileCoverage() {
 }
 
 function checkTypeScript() {
-    const result = run('npx tsc --noEmit');
+    const result = run('npx tsc --noEmit -p tsconfig.strict.json');
     return makeGate('web', 'TypeScript', result.status === 0, result.status === 0 ? 'No type errors' : 'Type errors detected');
 }
 
@@ -328,43 +385,92 @@ function checkGlobals() {
     return makeGate('web', 'Globals', passed, `${count} window.* refs (max: ${baselines.windowRefsMax})`);
 }
 
-function checkSuppressions() {
-    let noCheckCount = 0;
-    let ignoreCoreIoCount = 0;
+function walkSourceFiles(dir, onFile) {
+    if (!fs.existsSync(dir)) return;
 
-    function walk(dir, onFile) {
-        const files = fs.readdirSync(dir);
-        for (const file of files) {
-            const fullPath = path.join(dir, file);
-            if (fs.statSync(fullPath).isDirectory()) {
-                if (file !== 'node_modules') walk(fullPath, onFile);
-            } else if (file.endsWith('.js')) {
-                onFile(fullPath);
+    const files = fs.readdirSync(dir);
+    for (const file of files) {
+        const fullPath = path.join(dir, file);
+        if (fs.statSync(fullPath).isDirectory()) {
+            if (file !== 'node_modules' && file !== 'dist' && file !== 'lib') {
+                walkSourceFiles(fullPath, onFile);
             }
+            continue;
+        }
+
+        if ((file.endsWith('.js') || file.endsWith('.ts')) && !file.endsWith('.min.js')) {
+            onFile(fullPath);
         }
     }
+}
 
-    walk(JS_DIR, (filePath) => {
-        const content = fs.readFileSync(filePath, 'utf8');
-        const noChecks = content.match(/@ts-nocheck/g);
-        if (noChecks) noCheckCount += noChecks.length;
+function checkSuppressions() {
+    const noCheckFiles = new Set();
+    let ignoreCoreIoCount = 0;
+
+    [JS_DIR, FEATURES_DIR].forEach((dir) => {
+        walkSourceFiles(dir, (filePath) => {
+            const content = fs.readFileSync(filePath, 'utf8');
+            if (/@ts-nocheck/g.test(content)) {
+                noCheckFiles.add(rel(filePath));
+            }
+        });
     });
 
     const coreDir = path.join(JS_DIR, 'core');
     const ioDir = path.join(JS_DIR, 'io');
     [coreDir, ioDir].forEach((dir) => {
         if (!fs.existsSync(dir)) return;
-        walk(dir, (filePath) => {
+        walkSourceFiles(dir, (filePath) => {
             const content = fs.readFileSync(filePath, 'utf8');
             const ignores = content.match(/@ts-ignore/g);
             if (ignores) ignoreCoreIoCount += ignores.length;
         });
     });
 
+    const noCheckCount = noCheckFiles.size;
     const maxNoCheck = typeof baselines.tsNoCheckMax === 'number' ? baselines.tsNoCheckMax : 17;
     const maxIgnoreCoreIo = typeof baselines.tsIgnoreCoreIoMax === 'number' ? baselines.tsIgnoreCoreIoMax : 0;
     const passed = noCheckCount <= maxNoCheck && ignoreCoreIoCount <= maxIgnoreCoreIo;
-    return makeGate('repo', 'Suppressions', passed, `@ts-nocheck ${noCheckCount} (max: ${maxNoCheck}), @ts-ignore(core+io) ${ignoreCoreIoCount} (max: ${maxIgnoreCoreIo})`);
+    return makeGate(
+        'repo',
+        'Suppressions',
+        passed,
+        `@ts-nocheck files ${noCheckCount} (max: ${maxNoCheck}), @ts-ignore(core+io) ${ignoreCoreIoCount} (max: ${maxIgnoreCoreIo})`
+    );
+}
+
+function checkRootArtifacts() {
+    const offenders = fs.readdirSync(ROOT, { withFileTypes: true })
+        .filter((entry) => entry.isFile())
+        .map((entry) => entry.name)
+        .filter((name) => ROOT_ARTIFACT_PATTERNS.some((pattern) => pattern.test(name)))
+        .filter((name) => !GITIGNORE_ROOT_PATTERNS.some((pattern) => pattern.test(name)))
+        .sort();
+
+    if (offenders.length === 0) {
+        return makeGate('repo', 'RootArtifacts', true, 'No root artifact files');
+    }
+
+    const preview = offenders.slice(0, 8).join(', ');
+    const suffix = offenders.length > 8 ? ` (+${offenders.length - 8} more)` : '';
+    return makeGate('repo', 'RootArtifacts', false, `${offenders.length} files: ${preview}${suffix}`);
+}
+
+function checkFrontendArtifacts() {
+    const offenders = fs.readdirSync(FRONTEND, { withFileTypes: true })
+        .filter((entry) => entry.isFile())
+        .map((entry) => entry.name)
+        .filter((name) => FRONTEND_ARTIFACT_PATTERNS.some((pattern) => pattern.test(name)))
+        .sort();
+
+    if (offenders.length === 0) {
+        return makeGate('repo', 'FrontendArtifacts', true, 'No frontend artifact files');
+    }
+
+    const preview = offenders.slice(0, 8).join(', ');
+    const suffix = offenders.length > 8 ? ` (+${offenders.length - 8} more)` : '';
+    return makeGate('repo', 'FrontendArtifacts', false, `${offenders.length} files: ${preview}${suffix}`);
 }
 
 function checkPythonSmoke() {
@@ -375,6 +481,35 @@ function checkPythonSmoke() {
 
     const result = run(`${pythonCmd} -m compileall custom_components/esphome_designer`);
     return makeGate('python', 'PythonSmoke', result.status === 0, result.status === 0 ? `compileall via ${pythonCmd}` : `compileall failed via ${pythonCmd}`);
+}
+
+function checkPythonTests() {
+    const pythonCmd = resolvePythonCommand();
+    if (!pythonCmd) {
+        return makeGate('python', 'PythonTests', false, 'No Python interpreter found');
+    }
+
+    const pythonCode = [
+        'import json, sys, unittest',
+        'suite = unittest.defaultTestLoader.discover("tests_python", pattern="test_*.py")',
+        'count = suite.countTestCases()',
+        'result = unittest.TextTestRunner(verbosity=2).run(suite)',
+        'print("__PYTHON_TESTS__" + json.dumps({"count": count, "ok": result.wasSuccessful()}))',
+        'sys.exit(0 if result.wasSuccessful() else 1)'
+    ].join('; ');
+    const escapedCode = pythonCode.replace(/"/g, '\\"');
+    const result = run(`${pythonCmd} -c "${escapedCode}"`);
+    const marker = result.stdout.split(/\r?\n/).find((line) => line.startsWith('__PYTHON_TESTS__'));
+    const summary = marker ? JSON.parse(marker.replace('__PYTHON_TESTS__', '')) : null;
+    const testCount = summary?.count || 0;
+
+    if (result.status !== 0) {
+        return makeGate('python', 'PythonTests', false, `Failures via ${pythonCmd}`);
+    }
+    if (testCount === 0) {
+        return makeGate('python', 'PythonTests', false, `0 tests discovered via ${pythonCmd}`);
+    }
+    return makeGate('python', 'PythonTests', true, `${testCount} tests via ${pythonCmd}`);
 }
 
 function checkSchemaHash() {
@@ -487,7 +622,7 @@ function updateBaselines(results) {
             measured.fileCoverageMins = next;
         }
         if (result.gate === 'Suppressions') {
-            const noCheck = result.details.match(/@ts-nocheck (\d+)/);
+            const noCheck = result.details.match(/@ts-nocheck(?: files)? (\d+)/);
             const ignore = result.details.match(/@ts-ignore\(core\+io\) (\d+)/);
             measured.tsNoCheckMax = noCheck ? Number.parseInt(noCheck[1], 10) : (baselines.tsNoCheckMax ?? 17);
             measured.tsIgnoreCoreIoMax = ignore ? Number.parseInt(ignore[1], 10) : (baselines.tsIgnoreCoreIoMax ?? 0);
@@ -575,9 +710,12 @@ const results = [
     checkVitest(),
     checkTypeScript(),
     checkBuild(),
+    checkRootArtifacts(),
+    checkFrontendArtifacts(),
     checkGlobals(),
     checkSuppressions(),
     checkPythonSmoke(),
+    checkPythonTests(),
     checkPlugins(),
     checkSourceLines(),
     checkCoverage(),

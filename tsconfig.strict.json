@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "noResolve": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "lib": ["ESNext", "DOM"]
+  },
+  "files": [
+    "strict-shims.d.ts",
+    "custom_components/esphome_designer/frontend/js/core/canvas.js",
+    "custom_components/esphome_designer/frontend/js/core/stores/project_store.js",
+    "custom_components/esphome_designer/frontend/js/io/devices.js",
+    "custom_components/esphome_designer/frontend/js/io/ha_api.js",
+    "custom_components/esphome_designer/frontend/js/utils/dom.js",
+    "custom_components/esphome_designer/frontend/js/utils/env.js",
+    "custom_components/esphome_designer/frontend/js/utils/graph_helpers.js",
+    "custom_components/esphome_designer/frontend/js/utils/helpers.js",
+    "custom_components/esphome_designer/frontend/js/utils/logger.js",
+    "custom_components/esphome_designer/frontend/js/utils/export_helpers.js"
+  ]
+}

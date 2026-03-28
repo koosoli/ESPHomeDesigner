@@ -7,7 +7,7 @@
 
 import { Logger } from '../utils/logger.js';
 import { hasHaBackend, HA_API_BASE } from '../utils/env.js';
-import { getHaHeaders } from './ha_api.js';
+import { getHaHeaders, haFetch } from './ha_api.js';
 import { showToast } from '../utils/dom.js';
 import { emit, EVENTS } from '../core/events.js';
 import { DEVICE_PROFILES, loadExternalProfiles } from './devices.js';
@@ -15,6 +15,10 @@ import { parseHardwareRecipeClientSide, saveOfflineProfileToStorage } from './ha
 
 export { fetchDynamicHardwareProfiles, getOfflineProfilesFromStorage } from './hardware_profile_sources.js';
 
+/**
+ * @param {File & { text?: () => Promise<string> }} file
+ * @returns {Promise<any>}
+ */
 export async function uploadHardwareTemplate(file) {
     if (!hasHaBackend()) {
         Logger.log("[HardwareImport] Offline mode detected. Parsing locally...");
@@ -31,7 +35,7 @@ export async function uploadHardwareTemplate(file) {
 
         Logger.log("[HardwareImport] Uploading via JSON:", file.name);
 
-        const response = await fetch(url, {
+        const response = await haFetch(url, {
             method: "POST",
             headers: getHaHeaders(),
             body: JSON.stringify(payload)
@@ -52,7 +56,7 @@ export async function uploadHardwareTemplate(file) {
 
         return data;
     } catch (err) {
-        const msg = err.message || "";
+        const msg = err instanceof Error ? err.message : String(err || "");
         // "Failed to fetch" often means network hiccup but upload succeeded on server
         if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
             Logger.warn("[HardwareImport] Network error during upload (likely benign):", msg);
@@ -80,6 +84,8 @@ export async function uploadHardwareTemplate(file) {
 /**
  * Handles hardware recipe import in offline mode by parsing in the browser.
  * These profiles are lost on refresh in offline mode.
+ * @param {File & { name: string }} file
+ * @returns {Promise<any>}
  */
 async function handleOfflineHardwareImport(file) {
     return new Promise((resolve, reject) => {
@@ -100,7 +106,7 @@ async function handleOfflineHardwareImport(file) {
 
                 // Add to runtime structure
                 if (DEVICE_PROFILES) {
-                    DEVICE_PROFILES[profile.id] = profile;
+                    /** @type {Record<string, any>} */ (DEVICE_PROFILES)[profile.id] = profile;
                 } showToast(`Imported ${profile.name} (Offline Mode)`, "success");
 
                 // Persist to localStorage for offline resilience
@@ -110,7 +116,8 @@ async function handleOfflineHardwareImport(file) {
 
                 resolve(profile);
             } catch (err) {
-                showToast(err.message, "error");
+                const message = err instanceof Error ? err.message : String(err);
+                showToast(message, "error");
                 reject(err);
             }
         };

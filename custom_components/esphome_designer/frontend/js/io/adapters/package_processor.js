@@ -5,6 +5,10 @@
 
 import { mergeYamlSections, applyPackageOverrides } from '../generators/yaml_merger.js';
 
+/**
+ * @param {string | null | undefined} yaml
+ * @returns {string}
+ */
 export const sanitizePackageContent = (yaml) => {
     if (!yaml) return "";
     // IMPORTANT: These keys are system-level and MUST be commented out in the final snippet.
@@ -30,6 +34,16 @@ export const sanitizePackageContent = (yaml) => {
     return sanitized.join('\n');
 };
 
+/**
+ * @param {string} packageContent
+ * @param {string[]} lambdaContent
+ * @param {string[]} touchSensors
+ * @param {Record<string, any>} profile
+ * @param {Record<string, any>} layout
+ * @param {boolean} isLvgl
+ * @param {string[]} lines
+ * @returns {string}
+ */
 export const processPackageContent = (packageContent, lambdaContent, touchSensors, profile, layout, isLvgl, lines) => {
     // Fix #122: Robust placeholder replacement with indentation preservation
     // Ensure first line doesn't get double indent by matching entire line
@@ -48,7 +62,7 @@ export const processPackageContent = (packageContent, lambdaContent, touchSensor
         if (hasLvgl) {
             packageContent = packageContent.replace(placeholderRegex, "");
         } else {
-            const replacement = (hasHeader ? "" : indent + "lambda: |-\n") + lambdaContent.map(l => l.trim() ? indent + "  " + l : "").join("\n");
+            const replacement = (hasHeader ? "" : indent + "lambda: |-\n") + lambdaContent.map((l) => l.trim() ? indent + "  " + l : "").join("\n");
             packageContent = packageContent.replace(placeholderRegex, replacement);
         }
     }
@@ -61,7 +75,7 @@ export const processPackageContent = (packageContent, lambdaContent, touchSensor
         // Generator outputs lines with "  " prefix already
         // We just need to pass through the lines as-is since they're already indented for binary_sensor
         const touchReplacement = touchSensors
-            .filter(l => l.trim() !== '') // Skip empty lines
+            .filter((l) => l.trim() !== '') // Skip empty lines
             .join('\n');
         packageContent = packageContent.replace(touchPlaceholderRegex, touchReplacement);
     } else if (touchMatch) {

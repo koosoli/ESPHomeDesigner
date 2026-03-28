@@ -105,4 +105,20 @@ describe('JSON Import Verification', () => {
         expect(AppState.currentLayoutId).toBe("ha_storage_id");
         expect(AppState.deviceModel).toBe("reterminal_e1001");
     });
+
+    it('should restore the active page index from imported layouts', () => {
+        const layout = {
+            pages: [
+                { id: "page_0", name: "Page 1", widgets: [] },
+                { id: "page_1", name: "Page 2", widgets: [] }
+            ],
+            current_page: 1,
+            device_id: "page_restore_test"
+        };
+
+        loadLayoutIntoState(layout);
+
+        expect(AppState.currentLayoutId).toBe("page_restore_test");
+        expect(AppState.currentPageIndex).toBe(1);
+    });
 });

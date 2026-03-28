@@ -1,6 +1,8 @@
 /**
  * Hardware Generator for Custom Profiles
  * Generates an ESPHome YAML Recipe based on user inputs.
+ * @param {any} config
+ * @returns {string}
  */
 
 export function generateCustomHardwareYaml(config) {
@@ -276,6 +278,8 @@ export function generateCustomHardwareYaml(config) {
 
 /**
  * Returns a sensible default ESPHome board string based on the chip type.
+ * @param {string} chip
+ * @returns {string}
  */
 function getBoardForChip(chip) {
     switch (chip) {

@@ -1,11 +1,15 @@
 import { AppState } from './state';
+import { getBrowserDevicePixelRatio } from '../utils/browser_runtime.js';
 
 /**
  * Handles rendering of pixel rulers on the canvas viewport.
  */
 export class CanvasRulers {
+    /**
+     * @param {import('./canvas').Canvas} canvasInstance
+     */
     constructor(canvasInstance) {
-        /** @type {any} */
+        /** @type {import('./canvas').Canvas} */
         this.canvasInstance = canvasInstance;
         /** @type {HTMLElement | null} */
         this.topRuler = document.getElementById('rulerTop');
@@ -14,6 +18,10 @@ export class CanvasRulers {
         /** @type {HTMLElement | null} */
         this.container = document.querySelector('.canvas-rulers');
         this.viewport = canvasInstance.viewport;
+        /** @type {CanvasRenderingContext2D | null} */
+        this.topCtx = null;
+        /** @type {CanvasRenderingContext2D | null} */
+        this.leftCtx = null;
         this.indicators = null; // { x, y, w, h }
 
         this.init();
@@ -26,12 +34,19 @@ export class CanvasRulers {
         this.update();
     }
 
+    /**
+     * @param {HTMLElement} container
+     * @returns {CanvasRenderingContext2D | null}
+     */
     createRulerCanvas(container) {
         const canvas = document.createElement('canvas');
         container.appendChild(canvas);
         return canvas.getContext('2d');
     }
 
+    /**
+     * @param {{ x: number, y: number, w?: number, h?: number } | null} rect
+     */
     setIndicators(rect) {
         this.indicators = rect;
         this.update();
@@ -49,6 +64,7 @@ export class CanvasRulers {
 
         const activeArtboard = document.querySelector('.artboard-wrapper.active-page .artboard');
         if (!activeArtboard) return;
+        if (!this.topRuler || !this.leftRuler) return;
 
         // Use bounding boxes for robust relative positioning
         const topRect = this.topRuler.getBoundingClientRect();
@@ -60,10 +76,16 @@ export class CanvasRulers {
         this.drawVertical(leftRect, artboardRect, zoom);
     }
 
+    /**
+     * @param {DOMRect} rulerRect
+     * @param {DOMRect} artboardRect
+     * @param {number} zoom
+     */
     drawHorizontal(rulerRect, artboardRect, zoom) {
         const ctx = this.topCtx;
+        if (!ctx) return;
         const canvas = ctx.canvas;
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = getBrowserDevicePixelRatio();
 
         if (canvas.width !== rulerRect.width * dpr || canvas.height !== rulerRect.height * dpr) {
             canvas.width = rulerRect.width * dpr;
@@ -115,10 +137,16 @@ export class CanvasRulers {
         }
     }
 
+    /**
+     * @param {DOMRect} rulerRect
+     * @param {DOMRect} artboardRect
+     * @param {number} zoom
+     */
     drawVertical(rulerRect, artboardRect, zoom) {
         const ctx = this.leftCtx;
+        if (!ctx) return;
         const canvas = ctx.canvas;
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = getBrowserDevicePixelRatio();
 
         if (canvas.width !== rulerRect.width * dpr || canvas.height !== rulerRect.height * dpr) {
             canvas.width = rulerRect.width * dpr;

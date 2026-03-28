@@ -4,7 +4,7 @@
   "after_dependencies": [
     "http",
     "frontend",
-    "panel_iframe",
+    "panel_custom",
     "recorder"
   ],
   "codeowners": [
@@ -18,8 +18,6 @@
   "loggers": [
     "custom_components.esphome_designer"
   ],
-  "requirements": [
-    "aiofiles==24.1.0"
-  ],
-  "version": "1.0.0-rc.8.5"
+  "requirements": [],
+  "version": "1.0.0-rc.9"
 }

@@ -1,3 +1,56 @@
+## v1.0.0 RC9 - Home Assistant Reliability, Security Hardening & Quality Overhaul
+**Release Date:** March 28, 2026
+
+This unreleased RC9 now also includes the work that had been planned for the unreleased RC8.6. The main goals of this version are simple: make the editor behave more reliably inside Home Assistant, make saved layouts and custom hardware profiles load correctly, harden the backend surface, and continue the broader cleanup of the codebase.
+
+### New Features & Enhancements
+
+- **Universal MQTT Integration (Issue #352)**: You can now use `mqtt:your/topic/path` directly in the main Entity field instead of managing a separate MQTT-only input. This makes MQTT widgets easier to set up, easier to understand, and more consistent across the editor.
+- **Edit Custom Hardware Profiles (Issue #353)**: Imported custom hardware profiles can now be loaded back into the Custom Hardware form, edited, and saved again without starting from scratch.
+
+### Bug Fixes & Stability
+
+- **Home Assistant Embedded Editor Reliability**: The editor now behaves much more reliably when opened inside Home Assistant. Layouts, entities, saved designs, and hardware templates load more consistently, and the panel boot flow was cleaned up after several HA-specific auth and routing failures.
+- **Custom Hardware Profile Loading**: Layouts that reference saved custom hardware profiles now load correctly in Home Assistant. Custom hardware YAML packages are fetched through an authenticated backend route instead of relying on fragile direct static file access.
+- **Graph History Preview Reliability**: Graph previews in the editor now use Home Assistant's native history API in embedded mode. This makes layouts with history widgets much less likely to fail because of a custom proxy path.
+- **LCD Navigation Debounce Follow-Up (Issue #349)**: Navigation timing was aligned more carefully for touch LCD devices, reducing bounce-back and accidental double-navigation on slower panels such as the Waveshare 7" ESP32-S3.
+- **Deep Sleep Stay-Awake YAML Fix (Issue #354)**: Fixed a YAML generation issue that could produce invalid ESPHome output when Deep Sleep and Stay Awake were enabled together on e-paper devices.
+- **Missing `change_page_to` Script (Issue #351)**: Fixed a compilation problem where some single-page designs could still reference the page-change script even though that script was only being generated for multi-page layouts.
+- **Image Plugin Crash**: Fixed an LVGL image handling problem that could break designs using custom images.
+- **Hardware Touch Debounce**: Improved touch debounce handling across interactive widgets to reduce accidental double taps.
+- **Log Spam on Display Restart**: Reduced repeated "Waiting for sync..." logging when a display was restarting but already had an active connection.
+- **Battery Sensor Reliability**: Improved battery widget handling for imported hardware and Home Assistant battery entities.
+- **Image Rendering Optimization**: Color image exports now use a faster rendering path that is more stable on high-resolution RGB displays.
+- **Canvas Opacity Preview**: Opacity changes now update correctly on the live design canvas again.
+- **Icon Theme-Aware Background Export (Issue #357)**: Direct-render icon widgets now keep `bg_color: theme_auto` and related dynamic color combinations readable on inverted e-paper displays instead of exporting the glyph and filled background with the same effective color.
+- **Roboto 600 Weight Support (Issue #358)**: Roboto now accepts and preserves weight `600` across the weight picker, direct export font registry, and browser preview imports.
+- **Calendar Helper Script Improvements (Issue #355)**: The shipped Home Assistant helper now respects the widget's `Max Events` value, avoids mutating original calendar events, treats carry-over multi-day events as all-day on the current date, strips unused location parsing, and prefixes summaries when multiple calendars are merged so the event list stays understandable on-device.
+
+Many thanks to **Richhoef** for the practical helper-script improvements and clear issue write-up in [Issue #355](https://github.com/koosoli/ESPHomeDesigner/issues/355)!
+
+### Follow-Up Tracking
+
+- **Narrowed Follow-Up from Issue #356**: The original bundle has been split down to the remaining real gap: direct-render `datetime` and similar narrow text layouts can still diverge from the canvas preview because on-device output uses fixed `strftime(...)` lines rather than width-aware wrapping. The visibility/device-setting round-trip and hourly weather population portions are already covered by the RC8.x fixes.
+
+### Security & Backend Hardening
+
+- **Authenticated Designer API**: The `/api/esphome_designer/*` backend surface is treated as authenticated again, while the minimum panel shell assets stay accessible so Home Assistant can still boot the panel cleanly.
+- **Image Proxy Restrictions**: The image proxy was tightened so it only serves approved image locations instead of broad file paths under the Home Assistant config area.
+- **RSS Proxy Safeguards**: The RSS proxy now blocks private and internal targets to reduce SSRF risk.
+- **Authenticated Hardware Package Serving**: Custom hardware package loading now goes through a dedicated authenticated backend endpoint.
+
+### Architecture & Verification
+
+- **Zero `@ts-nocheck` Suppressions**: All remaining `@ts-nocheck` suppressions were removed from the source tree, so the JavaScript codebase is now type-checked instead of bypassing errors.
+- **Strict TypeScript Mode**: Strict TypeScript coverage was expanded for key core modules to catch integration and data-flow problems earlier.
+- **Plugin Monolith Splits**: Several oversized plugin files were split into smaller focused modules so rendering, exports, and property handling are easier to maintain.
+- **Targeted Regression Coverage**: Added focused regression tests for theme-aware icon background export, Roboto `600` font preservation, and the updated calendar helper/export wiring so the RC9 fixes stay locked in.
+- **Expanded Test Coverage**: This branch currently verifies cleanly with `216` frontend test files / `1379` tests, `46` Python tests, and a passing production build.
+- **Better Request-Level Coverage**: Backend and panel request paths now have stronger regression coverage, especially around auth boundaries, panel loading, and Home Assistant-specific flows.
+- **CI Guardrails & Repository Hygiene**: Quality checks were tightened further and transient generated clutter was removed so the repository stays cleaner over time.
+
+---
+
 ## v1.0.0 RC8.5 - Performance & Stability on High-Res LCDs
 **Release Date:** March 21, 2026
 
@@ -13,7 +66,7 @@
 - **Navigation Debounce**: Increased touchscreen debounce timing from 500ms to 2000ms for LCD displays. This prevents double-taps and accidental page reverting caused by the longer ~2-second render cycle typical of 800x480 RGB panels.
 - **Battery Sensor Reporting**: The `battery_icon` widget now detects when a selected hardware profile lacks the necessary battery ADC pins (e.g., Waveshare 7"). Instead of silently reporting 0%, it outputs a helpful C++ warning comment in the YAML and displays a `battery-alert` fallback icon.
 - **LilyGo T-Display-S3 Compilation Fix (Issue #350)**: Fixed a compilation error ("couldn't find remote ref i8080") caused by an obsolete external component reference in the hardware template. The `i80`, `ili9xxx`, and related components are now native in ESPHome core.
-- **TRMNL DIY Battery Pin Fix (Issue #291)**: Corrected the battery ADC pin for the Seeed Studio TRMNL DIY Kit (ESP32-S3) from `GPIO1` to `GPIO3`.
+- **TRMNL Battery Pin Fix (Issue #291)**: Corrected the battery ADC pin for the official TRMNL (ESP32-C3) from `GPIO0` to `GPIO3`.
 
 ---
 
@@ -721,6 +774,7 @@ Added standardized **Border Style** controls (Width, Color, Radius, Drop Shadow)
 - **Shared Sensor Deduplication**: Fixed potential duplicate sensor definitions when the same entity is used across multiple widget types (e.g., using the same sensor in both a graph and sensor_text widget). All numeric sensors now share a single tracking set to prevent duplicates
 
 ---
+
 
 ## v0.6.2 - Rendering Fixes
 

@@ -411,6 +411,7 @@ exports[`Plugin Export Smoke Tests > Export for calendar > should handle onExpor
   "#         data:",
   "#           calendar: "{{ calendar_events }}"",
   "#           now: "{{ now().isoformat().split('T')[0] }}"",
+  "#           nr_entries: 8",
   "#         response_variable: output",
   "#     sensor:",
   "#       - name: ESP Calendar Data",
@@ -751,7 +752,7 @@ exports[`Plugin Export Smoke Tests > Export for image > should export LVGL with 
   "image": {
     "angle": 0,
     "image_recolor_opa": "transp",
-    "src": "/config/esphome/images/logo.png",
+    "src": "img_config_esphome_images_logo_png_100x100",
   },
 }
 `;
@@ -1132,7 +1133,7 @@ exports[`Plugin Export Smoke Tests > Export for lvgl_line > should export LVGL w
         "y": 0,
       },
       {
-        "x": undefined,
+        "x": 100,
         "y": 0,
       },
     ],
@@ -2564,7 +2565,7 @@ exports[`Plugin Export Smoke Tests > Export for template_sensor_bar > should exp
             },
             {
               "label": {
-                "text": "!lambda "if (id().has_state()) { return str_sprintf('%.1f°C', id().state).c_str(); } return '--°C';"",
+                "text": ""--°C"",
                 "text_color": "Color(white)",
                 "text_font": "font_ptr",
                 "x": 4,
@@ -2596,7 +2597,7 @@ exports[`Plugin Export Smoke Tests > Export for template_sensor_bar > should exp
             },
             {
               "label": {
-                "text": "!lambda "if (id().has_state()) { return str_sprintf('%.0f%%', id().state).c_str(); } return '--%%';"",
+                "text": ""--%%"",
                 "text_color": "Color(white)",
                 "text_font": "font_ptr",
                 "x": 4,
@@ -2621,29 +2622,14 @@ exports[`Plugin Export Smoke Tests > Export for template_sensor_bar > should exp
           "widgets": [
             {
               "label": {
-                "text": "!lambda |-
-              if (id(battery_level).has_state()) {
-                float lvl = id(battery_level).state;
-                if (lvl >= 95) return "\\U000F0079";
-                else if (lvl >= 85) return "\\U000F0082";
-                else if (lvl >= 75) return "\\U000F0081";
-                else if (lvl >= 65) return "\\U000F0080";
-                else if (lvl >= 55) return "\\U000F007F";
-                else if (lvl >= 45) return "\\U000F007E";
-                else if (lvl >= 35) return "\\U000F007D";
-                else if (lvl >= 25) return "\\U000F007C";
-                else if (lvl >= 15) return "\\U000F007B";
-                else if (lvl >= 5) return "\\U000F007A";
-                else return "\\U000F0083";
-              }
-              return "\\U000F0082";",
+                "text": ""\\U000F0082"",
                 "text_color": "Color(white)",
                 "text_font": "font_ptr",
               },
             },
             {
               "label": {
-                "text": "!lambda "return id(battery_level).has_state() ? str_sprintf('%.0f%%', id(battery_level).state).c_str() : '--%%';"",
+                "text": ""--%%"",
                 "text_color": "Color(white)",
                 "text_font": "font_ptr",
                 "x": 4,

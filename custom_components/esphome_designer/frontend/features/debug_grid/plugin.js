@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ODP Debug Grid Plugin
  * Overlays a grid on the image canvas to help with layout debugging
@@ -25,13 +24,13 @@ const render = (el, widget, { getColorStyle }) => {
     // Vertical lines
     for (let x = 0; x <= widget.width; x += spacing) {
         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        line.setAttribute("x1", x);
-        line.setAttribute("y1", 0);
-        line.setAttribute("x2", x);
-        line.setAttribute("y2", widget.height);
+        line.setAttribute("x1", String(x));
+        line.setAttribute("y1", "0");
+        line.setAttribute("x2", String(x));
+        line.setAttribute("y2", String(widget.height));
         line.setAttribute("stroke", color);
-        line.setAttribute("stroke-width", 0.5);
-        line.setAttribute("opacity", 0.3);
+        line.setAttribute("stroke-width", "0.5");
+        line.setAttribute("opacity", "0.3");
         if (dashed) {
             line.setAttribute("stroke-dasharray", `${props.dash_length || 2}, ${props.space_length || 4}`);
         }
@@ -41,13 +40,13 @@ const render = (el, widget, { getColorStyle }) => {
     // Horizontal lines
     for (let y = 0; y <= widget.height; y += spacing) {
         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        line.setAttribute("x1", 0);
-        line.setAttribute("y1", y);
-        line.setAttribute("x2", widget.width);
-        line.setAttribute("y2", y);
+        line.setAttribute("x1", "0");
+        line.setAttribute("y1", String(y));
+        line.setAttribute("x2", String(widget.width));
+        line.setAttribute("y2", String(y));
         line.setAttribute("stroke", color);
-        line.setAttribute("stroke-width", 0.5);
-        line.setAttribute("opacity", 0.3);
+        line.setAttribute("stroke-width", "0.5");
+        line.setAttribute("opacity", "0.3");
         if (dashed) {
             line.setAttribute("stroke-dasharray", `${props.dash_length || 2}, ${props.space_length || 4}`);
         }

@@ -19,7 +19,7 @@ export class BaseAdapter {
      * Generates output for a single page.
      * @param {Object} page - The page object from the state.
      * @param {Object} context - Shared context and utilities.
-     * @returns {string[]} Array of output lines.
+     * @returns {any} Adapter-specific page payload.
      */
     generatePage(page, context) {
         void page;
@@ -31,7 +31,7 @@ export class BaseAdapter {
      * Generates output for a single widget.
      * @param {Object} widget - The widget object from the state.
      * @param {Object} context - Shared context and utilities.
-     * @returns {string[]} Array of output lines.
+     * @returns {any} Adapter-specific widget payload.
      */
     generateWidget(widget, context) {
         void widget;

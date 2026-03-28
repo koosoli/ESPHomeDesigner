@@ -72,6 +72,58 @@ function getESPHomeSchema(): yaml.Schema | null {
 }
 
 /**
+ * Extract an ODP/OEPL payload block directly from raw YAML when top-level parsing fails.
+ * This handles templated strings that may not survive a full safe_load pass.
+ * @param {string} yamlText
+ * @returns {any[] | null}
+ */
+function extractServicePayloadArray(yamlText: string): any[] | null {
+    const serviceMatch = yamlText.match(/^\s*service:\s*([^\n]+)\s*$/m);
+    if (!serviceMatch) {
+        return null;
+    }
+
+    const serviceName = serviceMatch[1].trim();
+    if (!['opendisplay.drawcustom', 'open_epaper_link.drawcustom'].includes(serviceName)) {
+        return null;
+    }
+
+    const lines = yamlText.split(/\r?\n/);
+    const payloadStart = lines.findIndex((line) => /^\s*payload:\s*\|-/.test(line));
+    if (payloadStart === -1) {
+        return null;
+    }
+
+    const payloadLines: string[] = [];
+    for (let index = payloadStart + 1; index < lines.length; index += 1) {
+        const line = lines[index];
+        if (line.trim() === '') {
+            payloadLines.push('');
+            continue;
+        }
+
+        if (!line.startsWith('    ')) {
+            break;
+        }
+
+        payloadLines.push(line.slice(4));
+    }
+
+    if (payloadLines.length === 0) {
+        return null;
+    }
+
+    try {
+        const schema = getESPHomeSchema();
+        const parsed = yaml.load(payloadLines.join('\n'), schema ? { schema } : {});
+        return Array.isArray(parsed) ? parsed : null;
+    } catch (e) {
+        Logger.warn('[extractServicePayloadArray] Failed to parse payload block', e);
+        return null;
+    }
+}
+
+/**
  * Parses an ESPHome YAML snippet offline to extract the layout.
  * 
  * @param {string} yamlText - The raw YAML/C++ payload containing the display configuration
@@ -82,14 +134,21 @@ export function parseSnippetYamlOffline(yamlText: string): ParsedLayout | null {
     const rawLines = yamlText.split(/\r?\n/);
 
     let doc: any = {};
+    let payloadFallback: any[] | null = null;
     try {
         const schema = getESPHomeSchema();
         doc = yaml.load(yamlText, schema ? { schema } : {}) || {};
     } catch (e) {
         Logger.error("[parseSnippetYamlOffline] YAML parse error:", e);
+        payloadFallback = extractServicePayloadArray(yamlText);
     }
 
     // --- Specialized Format Detection (OEPL / ODP) ---
+    if (payloadFallback && Array.isArray(payloadFallback)) {
+        Logger.log("[parseSnippetYamlOffline] Recovered service payload from raw YAML block");
+        return parseOEPLArrayToLayout(payloadFallback);
+    }
+
     if (isBareOEPLArray(yamlText) && Array.isArray(doc)) {
         Logger.log("[parseSnippetYamlOffline] Detected bare OEPL/ODP array format");
         return parseOEPLArrayToLayout(doc);
@@ -210,6 +269,16 @@ export function loadLayoutIntoState(layout: ParsedLayout | null | undefined): vo
             widgets: (p.widgets || []).map(w => ({ ...w, locked: !!w.locked }))
         }));
         AppState.setPages(processedPages);
+    }
+
+    // 5. Restore the active page after pages exist so the canvas/sidebar
+    // switch to the loaded layout deterministically.
+    const rawCurrentPageIndex = data.currentPageIndex ?? data.current_page ?? 0;
+    const parsedCurrentPageIndex = Number.isFinite(Number(rawCurrentPageIndex))
+        ? Number(rawCurrentPageIndex)
+        : 0;
+    if (AppState.setCurrentPageIndex) {
+        AppState.setCurrentPageIndex(parsedCurrentPageIndex, { forceFocus: true });
     }
 
     Logger.log("[loadLayoutIntoState] Finished loading state.");

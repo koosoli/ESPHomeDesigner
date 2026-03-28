@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Image Plugin
  */
@@ -219,8 +218,10 @@ const exportLVGL = (w, { common, _convertColor }) => {
     const p = w.props || {};
     const path = (p.path || "").replace(/^"|"$/g, '').trim();
     const url = p.url || "";
-    // Favor local path for LVGL as it's more stable for background images
-    const src = path || url || "symbol_image";
+    let src = path || url || "symbol_image";
+    if (path && (path.includes("/") || path.includes("."))) {
+        src = getSafeImageId(w);
+    }
 
     return {
         image: {
@@ -256,7 +257,9 @@ const onExportComponents = (context) => {
             imageLines.push(`    id: ${safeId}`);
             imageLines.push(`    type: ${imgType}`);
             imageLines.push(`    resize: ${w.width}x${w.height}`);
-            if (!isColor) {
+            if (isColor) {
+                imageLines.push(`    use_transparency: false`);
+            } else {
                 imageLines.push(`    dither: FLOYDSTEINBERG`);
             }
         });

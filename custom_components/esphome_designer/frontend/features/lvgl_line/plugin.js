@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * LVGL Line Plugin
  */
@@ -12,7 +11,10 @@ const render = (el, widget, { getColorStyle }) => {
 
     el.innerHTML = "";
 
-    if (props.points && typeof props.points === 'string' && props.points.includes(',')) {
+    if (props.points && (
+        (typeof props.points === 'string' && props.points.includes(',')) ||
+        Array.isArray(props.points)
+    )) {
         let pointsArr = [];
         if (typeof props.points === 'string') {
             pointsArr = props.points.split(" ").map(pt => pt.split(",").map(Number));
@@ -63,14 +65,20 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
     const p = w.props || {};
-    const w_w = common.width;
-    const w_h = common.height;
+    const w_w = common.width ?? w.width;
+    const w_h = common.height ?? w.height;
     let pointsArr;
     const orientation = p.orientation || "horizontal";
 
-    if (p.points && typeof p.points === 'string' && p.points.includes(',')) {
-        pointsArr = p.points.split(" ").map(pt => {
-            const [px, py] = pt.split(",").map(Number);
+    if (p.points && (
+        (typeof p.points === 'string' && p.points.includes(',')) ||
+        Array.isArray(p.points)
+    )) {
+        const rawPoints = typeof p.points === 'string'
+            ? p.points.split(" ")
+            : p.points;
+        pointsArr = rawPoints.map((pt) => {
+            const [px, py] = Array.isArray(pt) ? pt : String(pt).split(",").map(Number);
             return { x: Math.round(px || 0), y: Math.round(py || 0) };
         });
     } else {

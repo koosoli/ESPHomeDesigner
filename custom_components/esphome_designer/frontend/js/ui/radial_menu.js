@@ -1,6 +1,7 @@
-// @ts-nocheck
 import { AppState } from '../core/state';
 import { forceSnapWidget } from '../core/canvas_snap.js';
+import { addBrowserEventListener } from '../utils/browser_runtime.js';
+import { appendToDesignerOverlayRoot } from '../utils/runtime_root.js';
 
 export class RadialMenu {
     constructor() {
@@ -20,24 +21,35 @@ export class RadialMenu {
                 <div class="radial-menu-center"></div>
                 <div class="radial-menu-items"></div>
             `;
-            document.body.appendChild(this.element);
+            appendToDesignerOverlayRoot(this.element);
 
             // Close on click outside
-            window.addEventListener('mousedown', (e) => {
-                if (this.active && !this.element.contains(e.target)) {
+            addBrowserEventListener('mousedown', (e) => {
+                if (this.active && e.target instanceof Node && !this.element.contains(e.target)) {
                     this.hide();
                 }
             }, true);
 
             // Close on touch outside (for mobile/touch devices)
-            window.addEventListener('touchstart', (e) => {
-                if (this.active && !this.element.contains(e.target)) {
+            addBrowserEventListener('touchstart', (e) => {
+                if (this.active && e.target instanceof Node && !this.element.contains(e.target)) {
                     this.hide();
                 }
             }, true);
 
+            // Keep the custom menu scoped to canvas interactions only.
+            document.addEventListener('contextmenu', (e) => {
+                if (!this.active || !(e.target instanceof HTMLElement)) {
+                    return;
+                }
+                if (this.element.contains(e.target) || e.target.closest('#canvas')) {
+                    return;
+                }
+                this.hide();
+            }, true);
+
             // Close on escape
-            window.addEventListener('keydown', (e) => {
+            addBrowserEventListener('keydown', (/** @type {KeyboardEvent} */ e) => {
                 if (e.key === 'Escape' && this.active) {
                     this.hide();
                 }

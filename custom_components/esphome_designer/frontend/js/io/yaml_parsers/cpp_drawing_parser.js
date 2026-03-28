@@ -1,10 +1,24 @@
 /**
+ * @typedef {{
+ *   id: string,
+ *   type: string,
+ *   x: number,
+ *   y: number,
+ *   width: number,
+ *   height: number,
+ *   title: string,
+ *   entity_id: string,
+ *   props: Record<string, any>
+ * }} ParsedDrawingWidget
+ */
+
+/**
  * Parses raw C++ drawing commands found in ESPHome lambdas.
  * This is a fallback for layouts that were generated or modified manually without widget markers.
  * 
  * @param {string} trimmed - The trimmed line of code
  * @param {number} widgetCount - Current number of widgets (used for ID generation)
- * @returns {Object|null} - A widget object if matched, or null
+ * @returns {ParsedDrawingWidget|null} - A widget object if matched, or null
  */
 export function parseCppDrawingCommand(trimmed, widgetCount) {
     let m;

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { registry } from '../core/plugin_registry';
 import { AppState } from '../core/state';
 import { Logger } from '../utils/logger.js';
@@ -303,8 +302,99 @@ export const WIDGET_CATEGORIES = [
     }
 ];
 
+/**
+ * Collect the unique widget types used by the palette.
+ *
+ * @param {typeof WIDGET_CATEGORIES} [categories]
+ * @returns {string[]}
+ */
+export function collectWidgetTypes(categories = WIDGET_CATEGORIES) {
+    /** @type {string[]} */
+    const allTypes = [];
+    categories.forEach((category) => {
+        category.widgets.forEach((widget) => {
+            if (!allTypes.includes(widget.type)) {
+                allTypes.push(widget.type);
+            }
+        });
+    });
+    return allTypes;
+}
+
+/**
+ * Determine whether a category should be expanded for the current mode.
+ *
+ * @param {{ id: string, expanded?: boolean }} category
+ * @param {string} currentMode
+ * @returns {boolean}
+ */
+export function getCategoryExpansion(category, currentMode) {
+    if (currentMode === 'lvgl') {
+        return category.id === 'lvgl';
+    }
+
+    if (currentMode === 'oepl' || currentMode === 'opendisplay') {
+        return category.id === 'opendisplay' || category.id === 'core' || category.id === 'shapes';
+    }
+
+    return !!category.expanded;
+}
+
+/**
+ * Determine palette compatibility for a widget in a render mode.
+ *
+ * @param {{ type: string }} widget
+ * @param {{ id: string }} category
+ * @param {any} plugin
+ * @param {string} currentMode
+ * @returns {{ isCompatible: boolean, explanation: string }}
+ */
+export function getWidgetCompatibility(widget, category, plugin, currentMode) {
+    let isCompatible = true;
+    let explanation = '';
+
+    if (plugin?.supportedModes) {
+        return {
+            isCompatible: plugin.supportedModes.includes(currentMode),
+            explanation: `Not supported in ${currentMode} mode`
+        };
+    }
+
+    if (currentMode === 'oepl' || currentMode === 'opendisplay') {
+        const hasExport = currentMode === 'oepl' ? !!plugin?.exportOEPL : !!plugin?.exportOpenDisplay;
+        const isExcludedCategory = category.id === 'ondevice' || category.id === 'lvgl';
+        const isExcludedWidget = widget.type === 'calendar' || widget.type === 'weather_forecast'
+            || widget.type === 'graph' || widget.type === 'quote_rss';
+
+        isCompatible = hasExport && !isExcludedCategory && !isExcludedWidget;
+        explanation = `Not supported in ${currentMode === 'oepl' ? 'OpenEpaperLink' : 'OpenDisplay'} mode`;
+    } else if (currentMode === 'lvgl') {
+        const isLvglNative = widget.type.startsWith('lvgl_');
+        const isInputCategory = category.id === 'inputs';
+        const hasLVGLExport = typeof plugin?.exportLVGL === 'function';
+
+        isCompatible = isLvglNative || isInputCategory || hasLVGLExport;
+        explanation = 'Widget not compatible with LVGL mode';
+    } else if (currentMode === 'direct') {
+        const isProtocolSpecific = widget.type.startsWith('lvgl_') || widget.type.startsWith('oepl_');
+        if (!plugin) {
+            isCompatible = !isProtocolSpecific;
+        } else {
+            isCompatible = !!plugin.export && !isProtocolSpecific;
+        }
+        explanation = 'Not supported in Direct rendering mode';
+    }
+
+    return { isCompatible, explanation };
+}
+
+export const PALETTE_WIDGET_TYPES = collectWidgetTypes();
+
+/**
+ * @param {string} containerId
+ */
 export async function renderWidgetPalette(containerId) {
-    const container = document.getElementById(containerId);
+    const container = /** @type {HTMLElement | null} */ (document.getElementById(containerId));
     if (!container) return;
 
     const currentMode = AppState?.settings?.renderingMode || 'direct';
@@ -312,20 +402,10 @@ export async function renderWidgetPalette(containerId) {
 
     container.innerHTML = '<div class="palette-loading" style="padding: 20px; color: #999; text-align: center; font-size: 13px;">Loading widgets...</div>';
 
-    // Collect all unique widget types
-    const allTypes = [];
-    WIDGET_CATEGORIES.forEach(category => {
-        category.widgets.forEach(widget => {
-            if (!allTypes.includes(widget.type)) {
-                allTypes.push(widget.type);
-            }
-        });
-    });
-
     // Load all plugins in parallel
-    Logger.log(`[Palette] Pre-loading ${allTypes.length} widget plugins...`);
+    Logger.log(`[Palette] Pre-loading ${PALETTE_WIDGET_TYPES.length} widget plugins...`);
     try {
-        await Promise.all(allTypes.map(type => registry.load(type)));
+        await Promise.all(PALETTE_WIDGET_TYPES.map(type => registry.load(type)));
     } catch (e) {
         Logger.error("[Palette] Failed to load some plugins:", e);
     }
@@ -333,15 +413,7 @@ export async function renderWidgetPalette(containerId) {
     container.innerHTML = '';
 
     WIDGET_CATEGORIES.forEach(category => {
-        // Auto-Expansion Logic
-        let isExpanded = category.expanded;
-        if (currentMode === 'lvgl') {
-            // Force focus on LVGL components, collapse everything else
-            isExpanded = (category.id === 'lvgl');
-        } else if (currentMode === 'oepl' || currentMode === 'opendisplay') {
-            // Force focus on OpenDisplay/OEPL widgets when in protocol mode
-            isExpanded = (category.id === 'opendisplay' || category.id === 'core' || category.id === 'shapes');
-        }
+        const isExpanded = getCategoryExpansion(category, currentMode);
 
         const categoryEl = document.createElement('div');
         categoryEl.className = `widget-category ${isExpanded ? 'expanded' : ''}`;
@@ -372,48 +444,7 @@ export async function renderWidgetPalette(containerId) {
             const itemEl = document.createElement('div');
             const plugin = registry.get(widget.type);
 
-            // STRICT COMPATIBILITY CHECK
-            let isCompatible = true;
-            let explanation = '';
-
-            if (plugin?.supportedModes) {
-                isCompatible = plugin.supportedModes.includes(currentMode);
-                explanation = `Not supported in ${currentMode} mode`;
-            } else {
-                // Fallback to method-based detection
-                if (currentMode === 'oepl' || currentMode === 'opendisplay') {
-                    const hasExport = currentMode === 'oepl' ? !!plugin?.exportOEPL : !!plugin?.exportOpenDisplay;
-                    // CRITICAL ARCHITECTURAL NOTE: Protocol-based rendering (OEPL/OpenDisplay) does not 
-                    // support on-device hardware sensors, high-complexity widgets (calendar/graph),
-                    // or widgets requiring network-side processing (quote_rss).
-                    const isExcludedCategory = (category.id === 'ondevice' || category.id === 'lvgl');
-                    const isExcludedWidget = (widget.type === 'calendar' || widget.type === 'weather_forecast' || widget.type === 'graph' || widget.type === 'quote_rss');
-
-                    isCompatible = hasExport && !isExcludedCategory && !isExcludedWidget;
-                    explanation = `Not supported in ${currentMode === 'oepl' ? 'OpenEpaperLink' : 'OpenDisplay'} mode`;
-                } else if (currentMode === 'lvgl') {
-                    // LVGL mode: Permit native LVGL objects, translatable widgets (with exportLVGL),
-                    // and essential input/navigation controls.
-                    const isLvglNative = widget.type.startsWith('lvgl_');
-                    const isInputCategory = (category.id === 'inputs');
-                    const hasLVGLExport = typeof plugin?.exportLVGL === 'function';
-
-                    isCompatible = isLvglNative || isInputCategory || hasLVGLExport;
-                    explanation = 'Widget not compatible with LVGL mode';
-                } else if (currentMode === 'direct') {
-                    // Direct mode is display.lambda.
-                    // Compatible if it has 'export' method AND is not strictly for another protocol (LVGL/OEPL).
-                    // DEFENSIVE: if plugin is null (failed to pre-load), default to compatible rather than
-                    // incorrectly graying out a widget that may be valid.
-                    const isProtocolSpecific = widget.type.startsWith('lvgl_') || widget.type.startsWith('oepl_');
-                    if (!plugin) {
-                        isCompatible = !isProtocolSpecific; // Unknown plugin = assume compatible in direct mode
-                    } else {
-                        isCompatible = !!plugin.export && !isProtocolSpecific;
-                    }
-                    explanation = 'Not supported in Direct rendering mode';
-                }
-            }
+            const { isCompatible, explanation } = getWidgetCompatibility(widget, category, plugin, currentMode);
 
             itemEl.className = 'item' + (isCompatible ? '' : ' incompatible');
             itemEl.draggable = isCompatible;
@@ -435,6 +466,7 @@ export async function renderWidgetPalette(containerId) {
 
             if (isCompatible) {
                 itemEl.addEventListener('dragstart', (e) => {
+                    if (!e.dataTransfer) return;
                     e.dataTransfer.setData('application/widget-type', widget.type);
                     e.dataTransfer.setData('text/plain', widget.type); // Fallback for better reliability
                     e.dataTransfer.effectAllowed = 'copy';

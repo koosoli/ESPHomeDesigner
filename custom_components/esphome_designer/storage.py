@@ -8,7 +8,7 @@ This is the single source of truth for all devices, pages, and widgets.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
@@ -231,6 +231,10 @@ class DashboardStorage:
         if self._state is None:
             await self.async_load()
 
+        if not isinstance(raw_layout, dict):
+            _LOGGER.error("%s: Invalid layout payload for %s (expected dict)", DOMAIN, device_id)
+            return None
+
         existing = self.get_device(device_id)
         
         # Merge logic
@@ -267,7 +271,7 @@ class DashboardStorage:
         await self.async_save()
         _LOGGER.debug("%s: Set last active layout to: %s", DOMAIN, layout_id)
 
-    async def async_update_layout_default(self, raw_layout: Dict[str, Any]) -> DeviceConfig:
+    async def async_update_layout_default(self, raw_layout: Dict[str, Any]) -> Optional[DeviceConfig]:
         """
         Update the default device layout from raw layout dict (from editor).
 
@@ -278,6 +282,10 @@ class DashboardStorage:
         # Ensure state loaded
         if self._state is None:
             await self.async_load()
+
+        if not isinstance(raw_layout, dict):
+            _LOGGER.error("%s: Invalid default layout payload (expected dict)", DOMAIN)
+            return None
 
         # Existing default device (if any)
         existing = self.get_device("reterminal_e1001")
@@ -299,17 +307,7 @@ class DashboardStorage:
             device = DeviceConfig.from_dict(merged_payload)
         except Exception as exc:  # noqa: BLE001
             _LOGGER.error("%s: Failed to parse default layout: %s", DOMAIN, exc)
-            # Fall back to existing or a minimal but valid default device
-            if existing:
-                return existing
-                
-            device = DeviceConfig(
-                device_id=merged_payload.get("device_id", "reterminal_e1001"),
-                api_token=merged_payload.get("api_token", ""),
-                name=merged_payload.get("name", "Layout 1"),
-                pages=[],
-                current_page=0,
-            )
+            return None
 
         device.ensure_pages()
         self.state.devices[device.device_id] = device

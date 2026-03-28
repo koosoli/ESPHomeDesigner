@@ -3,11 +3,15 @@ import { AppState } from '../state';
 import { Logger } from '../../utils/logger.js';
 import { emit, EVENTS } from '../events.js';
 import { applyZoom } from '../canvas_renderer.js';
+import { addBrowserEventListener, removeBrowserEventListener } from '../../utils/browser_runtime.js';
 
+/**
+ * @param {import('../canvas').Canvas} canvasInstance
+ */
 export function setupPanning(canvasInstance) {
     if (!canvasInstance.viewport) return;
 
-    canvasInstance.viewport.addEventListener("mousedown", (ev) => {
+    canvasInstance.viewport.addEventListener("mousedown", (/** @type {MouseEvent} */ ev) => {
         if (ev.button === 1) { // Middle button
             ev.preventDefault();
             ev.stopPropagation();
@@ -22,6 +26,7 @@ export function setupPanning(canvasInstance) {
             canvasInstance.viewport.style.cursor = "grabbing";
             document.body.classList.add("panning-active");
 
+            /** @param {MouseEvent} moveEv */
             const onPanningMove = (moveEv) => {
                 if (canvasInstance.panState) {
                     const dx = moveEv.clientX - canvasInstance.panState.startX;
@@ -36,16 +41,19 @@ export function setupPanning(canvasInstance) {
                 canvasInstance.panState = null;
                 canvasInstance.viewport.style.cursor = "auto";
                 document.body.classList.remove("panning-active");
-                window.removeEventListener("mousemove", onPanningMove);
-                window.removeEventListener("mouseup", onPanningUp);
+                removeBrowserEventListener("mousemove", /** @type {EventListener} */ (onPanningMove));
+                removeBrowserEventListener("mouseup", /** @type {EventListener} */ (onPanningUp));
             };
 
-            window.addEventListener("mousemove", onPanningMove);
-            window.addEventListener("mouseup", onPanningUp);
+            addBrowserEventListener("mousemove", /** @type {EventListener} */ (onPanningMove));
+            addBrowserEventListener("mouseup", /** @type {EventListener} */ (onPanningUp));
         }
     });
 }
 
+/**
+ * @param {import('../canvas').Canvas} canvasInstance
+ */
 export function setupZoomControls(canvasInstance) {
     // Zoom buttons
     const zoomInBtn = document.getElementById("zoomInBtn");
@@ -111,7 +119,7 @@ export function setupZoomControls(canvasInstance) {
         });
     }
     if (gridOpacityInput) {
-        gridOpacityInput.addEventListener("input", (e) => {
+        gridOpacityInput.addEventListener("input", (/** @type {Event} */ e) => {
             const target = /** @type {HTMLInputElement} */ (e.target);
             AppState.updateSettings({ grid_opacity: parseInt(target.value, 10) });
         });
@@ -119,7 +127,7 @@ export function setupZoomControls(canvasInstance) {
 
     // Mouse wheel zoom on canvas container
     if (canvasInstance.canvasContainer) {
-        canvasInstance.canvasContainer.addEventListener("wheel", (ev) => {
+        canvasInstance.canvasContainer.addEventListener("wheel", (/** @type {WheelEvent} */ ev) => {
             ev.preventDefault();
             handleWheelZoom(ev, canvasInstance);
         }, { passive: false });
@@ -127,14 +135,14 @@ export function setupZoomControls(canvasInstance) {
 
     // Capture wheel events on viewport (dark area)
     if (canvasInstance.viewport) {
-        canvasInstance.viewport.addEventListener("wheel", (ev) => {
+        canvasInstance.viewport.addEventListener("wheel", (/** @type {WheelEvent} */ ev) => {
             ev.preventDefault();
             handleWheelZoom(ev, canvasInstance);
         }, { passive: false });
     }
 
     // Keyboard shortcuts for zoom
-    document.addEventListener("keydown", (ev) => {
+    document.addEventListener("keydown", (/** @type {KeyboardEvent} */ ev) => {
         if (ev.ctrlKey && (ev.key === "+" || ev.key === "=")) {
             ev.preventDefault();
             zoomIn(canvasInstance);
@@ -158,6 +166,10 @@ export function setupZoomControls(canvasInstance) {
     });
 }
 
+/**
+ * @param {WheelEvent} ev
+ * @param {import('../canvas').Canvas} canvasInstance
+ */
 function handleWheelZoom(ev, canvasInstance) {
     const oldZoom = AppState.zoomLevel;
     let delta = 0;
@@ -205,14 +217,24 @@ function handleWheelZoom(ev, canvasInstance) {
     applyZoom(canvasInstance);
 }
 
+/**
+ * @param {import('../canvas').Canvas} canvasInstance
+ */
 export function zoomIn(canvasInstance) {
     performZoom(0.05, canvasInstance);
 }
 
+/**
+ * @param {import('../canvas').Canvas} canvasInstance
+ */
 export function zoomOut(canvasInstance) {
     performZoom(-0.05, canvasInstance);
 }
 
+/**
+ * @param {number} delta
+ * @param {import('../canvas').Canvas} canvasInstance
+ */
 function performZoom(delta, canvasInstance) {
     const oldZoom = AppState.zoomLevel;
     const newZoom = Math.min(Math.max(oldZoom + delta, 0.1), 5.0);
@@ -238,6 +260,9 @@ function performZoom(delta, canvasInstance) {
     }
 }
 
+/**
+ * @param {import('../canvas').Canvas} canvasInstance
+ */
 export function zoomReset(canvasInstance) {
     AppState.setZoomLevel(1.0);
     // Focus the current page to reset the view on what the user is working on

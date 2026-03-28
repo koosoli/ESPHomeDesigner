@@ -1,9 +1,22 @@
-// @ts-nocheck
 /**
  * QR Code Plugin
  */
 import { AppState } from '@core/state';
 
+/**
+ * @typedef {{
+ *   addData: (value: string) => void,
+ *   make: () => void,
+ *   getModuleCount: () => number,
+ *   isDark: (row: number, col: number) => boolean
+ * }} QrCodeInstance
+ */
+
+function getQrCodeFactory() {
+    return /** @type {((typeNumber: number, errorCorrectionLevel: string) => QrCodeInstance) | undefined} */ (
+        (/** @type {Record<string, unknown>} */ (/** @type {unknown} */ (globalThis))).qrcode
+    );
+}
 
 
 const exportLVGL = (w, { common, convertColor }) => {
@@ -36,13 +49,15 @@ const render = (element, widget, helpers) => {
     const eccMap = { "LOW": "L", "MEDIUM": "M", "QUARTILE": "Q", "HIGH": "H" };
     const eccLevel = eccMap[ecc] || "L";
 
-    if (typeof qrcode === "undefined") {
+    const qrCodeFactory = getQrCodeFactory();
+
+    if (!qrCodeFactory) {
         element.innerHTML = '<div style="color:#999;font-size:10px;text-align:center;">QR Library<br>Loading...</div>';
         return;
     }
 
     try {
-        const qr = qrcode(0, eccLevel);
+        const qr = qrCodeFactory(0, eccLevel);
         qr.addData(value);
         qr.make();
 

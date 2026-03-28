@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ODP Multiline Text Plugin
  * Displays multiple lines of text separated by a delimiter

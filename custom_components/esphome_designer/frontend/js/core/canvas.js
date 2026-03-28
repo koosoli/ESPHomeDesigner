@@ -6,10 +6,13 @@ import { render, applyZoom, renderContextToolbar, focusPage, zoomToFitAll } from
 import { CanvasRulers } from './canvas_rulers.js';
 import { setupInteractions, setupPanning, setupZoomControls, setupDragAndDrop, zoomIn, zoomOut, zoomReset, onMouseMove, onMouseUp } from './canvas_interactions.js';
 import { setupTouchInteractions } from './canvas_touch.js';
+import { addBrowserEventListener, removeBrowserEventListener } from '../utils/browser_runtime.js';
 
+/** @type {Canvas | null} */
 export let canvasInstance = null;
 
 export class Canvas {
+    /** @param {any} appInstance */
     constructor(appInstance = null) {
         /** @type {HTMLElement} */
         this.canvas = /** @type {HTMLElement} */ (document.getElementById("canvas"));
@@ -130,7 +133,7 @@ export class Canvas {
                 this.focusPage(AppState.currentPageIndex, false, true);
             }
         };
-        window.addEventListener("resize", this._boundResize);
+        addBrowserEventListener("resize", this._boundResize);
 
         this.setupInteractions();
         this.render();
@@ -144,7 +147,7 @@ export class Canvas {
 
             // Only re-render if there is a datetime widget on the current page to avoid unnecessary overhead
             const page = AppState.getCurrentPage();
-            if (page && page.widgets.some(w => w.type === 'datetime')) {
+            if (page && page.widgets.some((/** @type {Widget} */ w) => w.type === 'datetime')) {
                 this.render();
             }
         }, 1000);
@@ -208,7 +211,7 @@ export class Canvas {
     zoomToFitAll(smooth = true) {
         zoomToFitAll(this, smooth);
     }
-    focusPage(index, smooth = true, fitZoom = false) {
+    focusPage(/** @type {number} */ index, smooth = true, fitZoom = false) {
         focusPage(this, index, smooth, fitZoom);
     }
 
@@ -224,7 +227,7 @@ export class Canvas {
 
         // Remove window listeners
         if (this._boundResize) {
-            window.removeEventListener("resize", this._boundResize);
+            removeBrowserEventListener("resize", this._boundResize);
         }
 
         // Assuming we rely on page refresh for now, but good practice to clear timers.

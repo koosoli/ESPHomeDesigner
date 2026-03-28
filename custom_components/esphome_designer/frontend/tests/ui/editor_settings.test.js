@@ -9,6 +9,14 @@ const mockSetHaToken = vi.fn();
 const mockGetHaManualUrl = vi.fn(() => 'http://ha.local:8123');
 const mockGetHaToken = vi.fn(() => 'token123');
 const mockIsDeployedInHa = vi.fn(() => false);
+const mockAiService = {
+    cache: { models: {} },
+    fetchModels: vi.fn()
+};
+const mockLogger = {
+    error: vi.fn(),
+    log: vi.fn()
+};
 
 const mockAppState = {
     settings: {
@@ -16,7 +24,12 @@ const mockAppState = {
         grid_opacity: 30,
         glyphsets: ['GF_Latin_Kernel'],
         ai_provider: 'gemini',
-        ai_model_filter: ''
+        ai_model_filter: '',
+        ai_api_key_gemini: 'gemini-key',
+        ai_api_key_openai: 'openai-key',
+        ai_api_key_openrouter: 'router-key',
+        ai_model_gemini: 'gemini-pro',
+        ai_model_openai: 'gpt-4o-mini'
     },
     snapEnabled: true,
     showGrid: true,
@@ -47,8 +60,8 @@ vi.mock('../../js/io/ha_api.js', () => ({
     fetchEntityStates: mockFetchEntityStates,
     entityStatesCache: { 'sensor.temp': { state: '22' }, 'sensor.hum': { state: '55' } }
 }));
-vi.mock('../../js/io/ai_service.js', () => ({ aiService: {} }));
-vi.mock('../../js/utils/logger.js', () => ({ Logger: { error: vi.fn(), log: vi.fn() } }));
+vi.mock('../../js/io/ai_service.js', () => ({ aiService: mockAiService }));
+vi.mock('../../js/utils/logger.js', () => ({ Logger: mockLogger }));
 
 describe('EditorSettings', () => {
     let EditorSettings;
@@ -56,7 +69,11 @@ describe('EditorSettings', () => {
 
     function seedDom() {
         document.body.innerHTML = `
-            <div id="editorSettingsModal" class="hidden"></div>
+            <div id="editorSettingsModal" class="hidden">
+                <div class="settings-category">
+                    <div class="settings-category-header">Advanced</div>
+                </div>
+            </div>
             <button id="editorSettingsClose"></button>
             <button id="editorSettingsDone"></button>
 
@@ -76,7 +93,11 @@ describe('EditorSettings', () => {
             <div id="haCorsTip" class="hidden"></div>
             <span id="haOriginPlaceholder"></span>
 
-            <select id="aiProvider"><option value="gemini">Gemini</option></select>
+            <select id="aiProvider">
+                <option value="gemini">Gemini</option>
+                <option value="openai">OpenAI</option>
+                <option value="openrouter">OpenRouter</option>
+            </select>
             <input id="aiApiKeyGemini" />
             <input id="aiApiKeyOpenai" />
             <input id="aiApiKeyOpenrouter" />
@@ -90,12 +111,22 @@ describe('EditorSettings', () => {
             <div id="aiKeyOpenrouterRow"></div>
 
             <input class="glyphset-checkbox" type="checkbox" value="GF_Latin_Kernel" />
+            <input class="glyphset-checkbox" type="checkbox" value="GF_Latin_Extras" />
             <div class="canvas-grid"></div>
         `;
     }
 
     beforeEach(async () => {
         vi.clearAllMocks();
+        mockAiService.cache.models = {};
+        mockAiService.fetchModels.mockReset();
+        mockAppState.settings.ai_provider = 'gemini';
+        mockAppState.settings.ai_model_filter = '';
+        mockAppState.settings.ai_api_key_gemini = 'gemini-key';
+        mockAppState.settings.ai_api_key_openai = 'openai-key';
+        mockAppState.settings.ai_api_key_openrouter = 'router-key';
+        mockAppState.settings.ai_model_gemini = 'gemini-pro';
+        mockAppState.settings.ai_model_openai = 'gpt-4o-mini';
         seedDom();
 
         ({ EditorSettings } = await import('../../js/ui/editor_settings.js'));
@@ -188,5 +219,160 @@ describe('EditorSettings', () => {
         await flushAsync();
         await flushAsync();
         expect(document.getElementById('haTestResult').innerHTML).toContain('Failed');
+    });
+
+    it('handles deployed HA mode and connection errors without leaving stale UI state', async () => {
+        mockIsDeployedInHa.mockReturnValue(true);
+        mockFetchEntityStates.mockRejectedValue(new Error('offline'));
+        editorSettings.init();
+        editorSettings.open();
+
+        expect(document.getElementById('haManualUrl').disabled).toBe(true);
+        expect(document.getElementById('haLlatToken').disabled).toBe(true);
+        expect(document.getElementById('haDeployedWarning').classList.contains('hidden')).toBe(false);
+        expect(document.getElementById('haCorsTip').classList.contains('hidden')).toBe(true);
+        expect(document.getElementById('haOriginPlaceholder').textContent).toBe(window.location.origin);
+
+        const testBtn = document.getElementById('editorTestHaBtn');
+        testBtn.click();
+        await flushAsync();
+        await flushAsync();
+        expect(document.getElementById('haTestResult').innerHTML).toContain('Connection Error');
+        expect(testBtn.disabled).toBe(false);
+    });
+
+    it('wires AI provider, keys, filter, model selection, glyphsets, and extended latin toggles', () => {
+        editorSettings.init();
+
+        const provider = /** @type {HTMLSelectElement} */ (document.getElementById('aiProvider'));
+        provider.value = 'openai';
+        provider.dispatchEvent(new Event('change'));
+        mockAppState.settings.ai_provider = 'openai';
+        expect(mockAppState.updateSettings).toHaveBeenCalledWith({ ai_provider: 'openai' });
+        expect(editorSettings.updateAIKeyVisibility).toHaveBeenCalled();
+        expect(editorSettings.refreshModelSelect).toHaveBeenCalled();
+
+        const geminiKey = /** @type {HTMLInputElement} */ (document.getElementById('aiApiKeyGemini'));
+        geminiKey.value = ' new-gemini ';
+        geminiKey.dispatchEvent(new Event('input'));
+        expect(mockAppState.updateSettings).toHaveBeenCalledWith({ ai_api_key_gemini: 'new-gemini' });
+
+        const filter = /** @type {HTMLInputElement} */ (document.getElementById('aiModelFilter'));
+        filter.value = 'vision';
+        filter.dispatchEvent(new Event('input'));
+        expect(mockAppState.updateSettings).toHaveBeenCalledWith({ ai_model_filter: 'vision' });
+
+        const modelSelect = /** @type {HTMLSelectElement} */ (document.getElementById('aiModelSelect'));
+        modelSelect.innerHTML = '<option value="gpt-4o-mini">gpt-4o-mini</option>';
+        modelSelect.value = 'gpt-4o-mini';
+        modelSelect.dispatchEvent(new Event('change'));
+        expect(mockAppState.updateSettings).toHaveBeenCalledWith({ ai_model_openai: 'gpt-4o-mini' });
+
+        const glyphs = /** @type {NodeListOf<HTMLInputElement>} */ (document.querySelectorAll('.glyphset-checkbox'));
+        glyphs[0].checked = true;
+        glyphs[1].checked = true;
+        glyphs[1].dispatchEvent(new Event('change'));
+        expect(mockAppState.updateSettings).toHaveBeenCalledWith({ glyphsets: ['GF_Latin_Kernel', 'GF_Latin_Extras'] });
+
+        const extended = /** @type {HTMLInputElement} */ (document.getElementById('editorExtendedLatinGlyphs'));
+        extended.checked = true;
+        extended.dispatchEvent(new Event('change'));
+        expect(mockAppState.updateSettings).toHaveBeenCalledWith({ extendedLatinGlyphs: true });
+    });
+
+    it('handles AI model refresh for missing keys, success, and failure', async () => {
+        editorSettings.init();
+
+        const refreshBtn = document.getElementById('aiRefreshModelsBtn');
+        const geminiKey = /** @type {HTMLInputElement} */ (document.getElementById('aiApiKeyGemini'));
+
+        geminiKey.value = '';
+        refreshBtn.click();
+        expect(mockShowToast).toHaveBeenCalledWith('Please enter an API key first', 'error', 3000);
+
+        geminiKey.value = 'live-key';
+        mockAiService.fetchModels.mockResolvedValueOnce([
+            { id: 'gemini-1.5-flash', name: 'Gemini Flash' }
+        ]);
+        refreshBtn.click();
+        await flushAsync();
+        await flushAsync();
+        expect(mockAiService.fetchModels).toHaveBeenCalledWith('gemini', 'live-key');
+        expect(document.getElementById('aiTestResult').textContent).toContain('Success');
+        expect(refreshBtn.textContent).toBe('Test & Load Models');
+
+        mockAiService.fetchModels.mockRejectedValueOnce(new Error('bad key'));
+        refreshBtn.click();
+        await flushAsync();
+        await flushAsync();
+        expect(document.getElementById('aiTestResult').textContent).toContain('Failed');
+    });
+
+    it('executes the real AI visibility/model/theme helpers with provider-specific keys', async () => {
+        mockAppState.settings.ai_provider = 'openai';
+        mockAppState.settings.ai_model_filter = 'mini';
+        mockAiService.cache.models = {
+            openai: [
+                { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
+                { id: 'gpt-4.1', name: 'GPT-4.1' }
+            ]
+        };
+
+        const directEditorSettings = new EditorSettings();
+        directEditorSettings.aiModelSelect.innerHTML = '';
+        directEditorSettings.updateAIKeyVisibility();
+
+        expect(directEditorSettings.aiKeyRows.openai.style.display).toBe('block');
+        expect(directEditorSettings.aiKeyRows.gemini.style.display).toBe('none');
+
+        directEditorSettings.filterModels();
+        expect(Array.from(directEditorSettings.aiModelSelect.options).map((option) => option.value)).toEqual(['gpt-4o-mini']);
+
+        mockAiService.cache.models = {};
+        mockAiService.fetchModels.mockResolvedValueOnce([
+            { id: 'gpt-4o-mini', name: 'GPT-4o Mini' }
+        ]);
+        await directEditorSettings.refreshModelSelect();
+        expect(mockAiService.fetchModels).toHaveBeenCalledWith('openai', 'openai-key');
+
+        directEditorSettings.applyEditorTheme(true);
+        expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+        directEditorSettings.applyEditorTheme(false);
+        expect(document.documentElement.getAttribute('data-theme')).toBeNull();
+        expect(localStorage.getItem('reterminal-editor-theme')).toBe('dark');
+    });
+
+    it('toggles collapsible settings sections and logs localStorage theme failures', async () => {
+        const directEditorSettings = new EditorSettings();
+        directEditorSettings.init();
+
+        const header = /** @type {HTMLElement} */ (document.querySelector('.settings-category-header'));
+        const category = /** @type {HTMLElement} */ (document.querySelector('.settings-category'));
+        header.click();
+        expect(category.classList.contains('expanded')).toBe(true);
+        header.click();
+        expect(category.classList.contains('expanded')).toBe(false);
+
+        const originalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+        Object.defineProperty(globalThis, 'localStorage', {
+            configurable: true,
+            value: {
+                getItem: vi.fn(() => null),
+                setItem: vi.fn(() => {
+                    throw new Error('denied');
+                }),
+                removeItem: vi.fn(),
+                clear: vi.fn(),
+                key: vi.fn(() => null),
+                length: 0
+            }
+        });
+
+        directEditorSettings.applyEditorTheme(true);
+        expect(mockLogger.log).toHaveBeenCalled();
+
+        if (originalStorageDescriptor) {
+            Object.defineProperty(globalThis, 'localStorage', originalStorageDescriptor);
+        }
     });
 });

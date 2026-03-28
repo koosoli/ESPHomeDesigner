@@ -1,4 +1,5 @@
 import { AppState } from '../state';
+import { getViewportScrollPosition } from '../../utils/browser_runtime.js';
 
 /**
  * @param {any} canvasInstance
@@ -18,6 +19,7 @@ export function startInlineEdit(canvasInstance, widgetId) {
 
     const zoom = AppState.zoomLevel;
     const rect = widgetEl.getBoundingClientRect();
+    const scroll = getViewportScrollPosition();
 
     // Create overlay textarea
     const textarea = document.createElement("textarea");
@@ -26,8 +28,8 @@ export function startInlineEdit(canvasInstance, widgetId) {
     // Style it to match the widget
     textarea.style.position = "absolute";
     // Append to body to ensure it's on top of everything
-    textarea.style.left = (rect.left + window.scrollX) + "px";
-    textarea.style.top = (rect.top + window.scrollY) + "px";
+    textarea.style.left = (rect.left + scroll.x) + "px";
+    textarea.style.top = (rect.top + scroll.y) + "px";
     textarea.style.width = Math.max(50, rect.width) + "px";
     textarea.style.height = Math.max(30, rect.height) + "px";
     textarea.style.zIndex = "99999";

@@ -8,7 +8,7 @@
  * If the widget has an mqtt_topic set, it generates an mqtt_subscribe platform.
  * Otherwise, it falls back to the standard homeassistant platform.
  * 
- * @param {Object} widget - The widget object (contains props)
+ * @param {{ props?: Record<string, any> } | null | undefined} widget - The widget object (contains props)
  * @param {string} entityId - The HA entity ID or base name for the sensor
  * @param {string} safeId - The sanitized ESPHome ID for the sensor
  * @param {string} [attribute=''] - The HA attribute (if applicable)
@@ -16,7 +16,12 @@
  */
 export function getSensorPlatformLines(widget, entityId, safeId, attribute = '') {
     const p = widget?.props || {};
-    const mqttTopic = (p.mqtt_topic || '').trim();
+    let mqttTopic = (p.mqtt_topic || '').trim();
+
+    // Issue #352: Universal MQTT support via mqtt: prefix
+    if (entityId && entityId.toLowerCase().startsWith('mqtt:')) {
+        mqttTopic = entityId.substring(5).trim();
+    }
 
     if (mqttTopic) {
         // Generate MQTT Subscribe sensor lines

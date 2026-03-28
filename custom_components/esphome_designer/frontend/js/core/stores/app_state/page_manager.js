@@ -31,28 +31,45 @@ export class PageManager {
         emit(EVENTS.STATE_CHANGED);
     }
 
+    /**
+     * @param {number} fromIndex
+     * @param {number} toIndex
+     */
     reorderPage(fromIndex, toIndex) {
         this.app.project.reorderPage(fromIndex, toIndex);
         this.app.recordHistory();
     }
 
+    /**
+     * @param {number | null | undefined} [atIndex]
+     */
     addPage(atIndex = null) {
         const page = this.app.project.addPage(atIndex);
         this.app.recordHistory();
         return page;
     }
 
+    /**
+     * @param {number} index
+     */
     deletePage(index) {
         this.app.project.deletePage(index);
         this.app.recordHistory();
     }
 
+    /**
+     * @param {number} index
+     */
     duplicatePage(index) {
         const page = this.app.project.duplicatePage(index);
         this.app.recordHistory();
         return page;
     }
 
+    /**
+     * @param {number} index
+     * @param {string} newName
+     */
     renamePage(index, newName) {
         this.app.project.renamePage(index, newName);
         this.app.recordHistory();

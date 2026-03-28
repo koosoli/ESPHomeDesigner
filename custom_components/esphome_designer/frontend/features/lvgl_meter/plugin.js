@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * LVGL Meter Plugin
  */
@@ -44,7 +43,7 @@ const render = (el, widget, { getColorStyle }) => {
     bgPath.setAttribute("d", d);
     bgPath.setAttribute("fill", "none");
     bgPath.setAttribute("stroke", getColorStyle(props.bg_color || "lightgray"));
-    bgPath.setAttribute("stroke-width", scaleWidth);
+    bgPath.setAttribute("stroke-width", String(scaleWidth));
     bgPath.setAttribute("stroke-linecap", "round");
     svg.appendChild(bgPath);
 
@@ -62,10 +61,10 @@ const render = (el, widget, { getColorStyle }) => {
             const ty2 = polarToY(cy, arcR - scaleWidth / 2 - tickLength, angle);
 
             const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            tick.setAttribute("x1", tx1);
-            tick.setAttribute("y1", ty1);
-            tick.setAttribute("x2", tx2);
-            tick.setAttribute("y2", ty2);
+            tick.setAttribute("x1", String(tx1));
+            tick.setAttribute("y1", String(ty1));
+            tick.setAttribute("x2", String(tx2));
+            tick.setAttribute("y2", String(ty2));
             tickGroup.appendChild(tick);
         }
         svg.appendChild(tickGroup);
@@ -81,19 +80,19 @@ const render = (el, widget, { getColorStyle }) => {
     const ny = polarToY(cy, arcR - 10, needleAngle);
 
     const needle = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    needle.setAttribute("x1", cx);
-    needle.setAttribute("y1", cy);
-    needle.setAttribute("x2", nx);
-    needle.setAttribute("y2", ny);
+    needle.setAttribute("x1", String(cx));
+    needle.setAttribute("y1", String(cy));
+    needle.setAttribute("x2", String(nx));
+    needle.setAttribute("y2", String(ny));
     needle.setAttribute("stroke", getColorStyle(props.indicator_color || "red"));
-    needle.setAttribute("stroke-width", indicatorWidth);
+    needle.setAttribute("stroke-width", String(indicatorWidth));
     needle.setAttribute("stroke-linecap", "round");
     svg.appendChild(needle);
 
     const pivot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    pivot.setAttribute("cx", cx);
-    pivot.setAttribute("cy", cy);
-    pivot.setAttribute("r", indicatorWidth);
+    pivot.setAttribute("cx", String(cx));
+    pivot.setAttribute("cy", String(cy));
+    pivot.setAttribute("r", String(indicatorWidth));
     pivot.setAttribute("fill", getColorStyle(props.indicator_color || "red"));
     svg.appendChild(pivot);
 
@@ -163,7 +162,7 @@ const onExportNumericSensors = (context) => {
         if (!entityId) continue;
 
         // Ensure sensor. prefix if missing
-        if (!entityId.includes(".")) {
+        if (!entityId.includes(".") && !entityId.toLowerCase().startsWith("mqtt:")) {
             entityId = `sensor.${entityId}`;
         }
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { AppState } from '../../js/core/state';
 /**
  * LVGL Arc Plugin
@@ -76,7 +75,7 @@ const render = (el, widget, { getColorStyle }) => {
     bgPath.setAttribute("d", startToPath(cx, cy, radius, startAngle, endAngle));
     bgPath.setAttribute("fill", "none");
     bgPath.setAttribute("stroke", "#eee");
-    bgPath.setAttribute("stroke-width", thickness);
+    bgPath.setAttribute("stroke-width", String(thickness));
     bgPath.setAttribute("stroke-linecap", "round");
     svg.appendChild(bgPath);
 
@@ -117,7 +116,7 @@ const render = (el, widget, { getColorStyle }) => {
         valPath.setAttribute("d", startToPath(cx, cy, radius, startAngle, valEndAngle));
         valPath.setAttribute("fill", "none");
         valPath.setAttribute("stroke", color);
-        valPath.setAttribute("stroke-width", thickness);
+        valPath.setAttribute("stroke-width", String(thickness));
         valPath.setAttribute("stroke-linecap", "round");
         svg.appendChild(valPath);
     }

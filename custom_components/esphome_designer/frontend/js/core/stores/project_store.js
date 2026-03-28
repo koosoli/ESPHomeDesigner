@@ -3,6 +3,35 @@ import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, ORIENTATIONS } from '../co
 import { DEVICE_PROFILES } from '../../io/devices.js';
 import { generateId, deepClone } from '../../utils/helpers.js';
 
+/** @typedef {{ widget: Widget, sourcePage: Page }} WidgetMovement */
+
+function createDefaultPage() {
+    return {
+        id: "page_0",
+        name: "Overview",
+        layout: null,
+        widgets: []
+    };
+}
+
+/**
+ * @param {Page[] | null | undefined} pages
+ * @returns {Page[]}
+ */
+function normalizePages(pages) {
+    return Array.isArray(pages) && pages.length > 0 ? pages : [createDefaultPage()];
+}
+
+/**
+ * @param {number} index
+ * @param {number} pageCount
+ * @returns {number}
+ */
+function clampPageIndex(index, pageCount) {
+    if (pageCount <= 0) return 0;
+    return Math.max(0, Math.min(index, pageCount - 1));
+}
+
 export class ProjectStore {
     constructor() {
         /**
@@ -35,12 +64,7 @@ export class ProjectStore {
     }
 
     reset() {
-        this.state.pages = [{
-            id: "page_0",
-            name: "Overview",
-            layout: null,
-            widgets: []
-        }];
+        this.state.pages = [createDefaultPage()];
         this.state.currentPageIndex = 0;
         this.rebuildWidgetsIndex();
     }
@@ -55,12 +79,16 @@ export class ProjectStore {
     get deviceModel() { return this.state.deviceModel; }
     /** @returns {string} */
     get currentLayoutId() { return this.state.currentLayoutId; }
-    /** @returns {Object} */
+    /** @returns {{ width: number, height: number, [key: string]: any }} */
     get protocolHardware() { return this.state.protocolHardware; }
     get customHardware() { return this.state.customHardware; }
 
     /** @returns {Page} */
     getCurrentPage() {
+        if (this.state.pages.length === 0) {
+            this.state.pages = [createDefaultPage()];
+            this.state.currentPageIndex = 0;
+        }
         return this.state.pages[this.state.currentPageIndex] || this.state.pages[0];
     }
 
@@ -83,7 +111,8 @@ export class ProjectStore {
 
     /** @param {Page[]} pages */
     setPages(pages) {
-        this.state.pages = pages;
+        this.state.pages = normalizePages(pages);
+        this.state.currentPageIndex = clampPageIndex(this.state.currentPageIndex, this.state.pages.length);
         this.rebuildWidgetsIndex();
         emit(EVENTS.STATE_CHANGED);
     }
@@ -168,19 +197,19 @@ export class ProjectStore {
      */
     deletePage(index) {
         if (index < 0 || index >= this.state.pages.length) return;
+        if (this.state.pages.length === 1) return;
 
         this.state.pages.splice(index, 1);
 
         // Adjust current index if needed
-        if (this.state.currentPageIndex >= this.state.pages.length) {
-            this.state.currentPageIndex = Math.max(0, this.state.pages.length - 1);
-        }
+        this.state.currentPageIndex = clampPageIndex(this.state.currentPageIndex, this.state.pages.length);
 
         this.rebuildWidgetsIndex();
         emit(EVENTS.STATE_CHANGED);
         emit(EVENTS.PAGE_CHANGED, { index: this.state.currentPageIndex, forceFocus: true });
     }
 
+    /** @param {number} index */
     duplicatePage(index) {
         if (index < 0 || index >= this.state.pages.length) return null;
 
@@ -196,7 +225,7 @@ export class ProjectStore {
         const idMap = new Map();
 
         // First pass: Generate new IDs for all widgets
-        newPage.widgets.forEach(widget => {
+        newPage.widgets.forEach((/** @type {Widget} */ widget) => {
             const oldId = widget.id;
             const newId = generateId();
             widget.id = newId;
@@ -204,7 +233,7 @@ export class ProjectStore {
         });
 
         // Second pass: Update parentId references
-        newPage.widgets.forEach(widget => {
+        newPage.widgets.forEach((/** @type {Widget} */ widget) => {
             if (widget.parentId && idMap.has(widget.parentId)) {
                 widget.parentId = idMap.get(widget.parentId);
             }
@@ -264,7 +293,7 @@ export class ProjectStore {
         const page = this.getCurrentPage();
         let changed = false;
         for (const id of idsToDelete) {
-            const idx = page.widgets.findIndex(w => w.id === id);
+            const idx = page.widgets.findIndex((/** @type {Widget} */ w) => w.id === id);
             if (idx !== -1) {
                 page.widgets.splice(idx, 1);
                 this.state.widgetsById.delete(id);
@@ -288,6 +317,7 @@ export class ProjectStore {
 
         const targetPage = this.state.pages[targetPageIndex];
         const allMovedIds = new Set();
+        /** @type {WidgetMovement[]} */
         const movements = [];
 
         // 0. Resolve to root group if the widget is part of a group
@@ -307,13 +337,16 @@ export class ProjectStore {
         }
 
         // 1. Collect all widgets to move (recursively from root)
+        /** @param {string} id */
         const collect = (id) => {
             if (allMovedIds.has(id)) return;
 
+            /** @type {Widget | null} */
             let found = null;
+            /** @type {Page | null} */
             let sp = null;
             for (const p of this.state.pages) {
-                found = p.widgets.find(w => w.id === id);
+                found = p.widgets.find((/** @type {Widget} */ w) => w.id === id) || null;
                 if (found) { sp = p; break; }
             }
 
@@ -323,8 +356,8 @@ export class ProjectStore {
             movements.push({ widget: found, sourcePage: sp });
 
             // Collect children
-            const children = sp.widgets.filter(w => w.parentId === id);
-            children.forEach(c => collect(c.id));
+            const children = sp.widgets.filter((/** @type {Widget} */ w) => w.parentId === id);
+            children.forEach((/** @type {Widget} */ c) => collect(c.id));
         };
 
         collect(rootWidgetId);
@@ -436,10 +469,12 @@ export class ProjectStore {
         const page = this.getCurrentPage();
         if (!page) return { deleted: 0, preserved: 0 };
 
+        /** @type {Widget[]} */
         const toDelete = [];
+        /** @type {Widget[]} */
         const toPreserve = [];
 
-        page.widgets.forEach(w => {
+        page.widgets.forEach((/** @type {Widget} */ w) => {
             if (preserveLocked && w.locked) {
                 toPreserve.push(w);
             } else {
@@ -478,7 +513,8 @@ export class ProjectStore {
      */
     getCanvasDimensions(orientation) {
         const model = this.state.deviceModel || "reterminal_e1001";
-        const profile = (DEVICE_PROFILES && DEVICE_PROFILES[model]) ? DEVICE_PROFILES[model] : null;
+        const profiles = /** @type {Record<string, any>} */ (DEVICE_PROFILES);
+        const profile = profiles && profiles[model] ? profiles[model] : null;
 
         let width = DEFAULT_CANVAS_WIDTH;
         let height = DEFAULT_CANVAS_HEIGHT;
@@ -517,7 +553,8 @@ export class ProjectStore {
 
     /** @returns {string} */
     getCanvasShape() {
-        const profile = DEVICE_PROFILES[this.state.deviceModel];
+        const profiles = /** @type {Record<string, any>} */ (DEVICE_PROFILES);
+        const profile = profiles[this.state.deviceModel];
         if (profile && profile.shape) return profile.shape;
 
         if (this.state.customHardware && this.state.customHardware.shape) {

@@ -24,7 +24,11 @@ from .api.import_export import (
     ReTerminalLayoutImportView
 )
 from .api.base import DesignerBaseView
-from .api.hardware import ReTerminalHardwareListView, ReTerminalHardwareUploadView
+from .api.hardware import (
+    ReTerminalHardwareListView,
+    ReTerminalHardwarePackageView,
+    ReTerminalHardwareUploadView,
+)
 from .api.history import HistoryProxyView
 
 _LOGGER = logging.getLogger(__name__)
@@ -51,6 +55,7 @@ async def async_register_http_views(hass: HomeAssistant, storage: DashboardStora
         
         # Hardware Profiles
         ReTerminalHardwareListView(hass),
+        ReTerminalHardwarePackageView(hass),
         ReTerminalHardwareUploadView(hass),
     ]
 

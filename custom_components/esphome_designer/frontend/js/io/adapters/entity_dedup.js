@@ -10,12 +10,45 @@ import { getSensorPlatformLines } from './mqtt_helpers.js';
 
 export { isEntityStateNonNumeric };
 
+/**
+ * @typedef {{
+ *   type?: string,
+ *   hidden?: boolean,
+ *   entity_id?: string,
+ *   entity_id_2?: string,
+ *   condition_entity?: string,
+ *   condition_operator?: string,
+ *   condition_state?: string,
+ *   condition_value?: string,
+ *   props?: Record<string, any>
+ * }} DedupWidget
+ */
+
+/**
+ * @typedef {{ widgets?: DedupWidget[] }} DedupPage
+ */
+
+/**
+ * @typedef {{
+ *   seenEntityIds: Set<string>,
+ *   seenSensorIds: Set<string>,
+ *   appState?: any
+ * }} DedupContext
+ */
+
+/**
+ * @param {DedupPage[]} pages
+ * @param {DedupContext} context
+ * @returns {string[]}
+ */
 export const collectNumericSensors = (pages, context) => {
     const { seenEntityIds, seenSensorIds, appState } = context;
-    const allWidgetsForSensors = pages.flatMap(p => (p.widgets || []).filter(w => !w.hidden));
+    /** @type {DedupWidget[]} */
+    const allWidgetsForSensors = pages.flatMap((p) => (p.widgets || []).filter((w) => !w.hidden));
+    /** @type {string[]} */
     const numericSensorLinesExtra = [];
 
-    allWidgetsForSensors.forEach(w => {
+    allWidgetsForSensors.forEach((w) => {
         let entityId = (w.entity_id || "").trim();
         const p = w.props || {};
 
@@ -23,7 +56,7 @@ export const collectNumericSensors = (pages, context) => {
 
         // Numeric sensor types that should be prefixed with sensor. if domain is missing
         const numericSensorTypes = ["progress_bar", "sensor_text", "graph", "battery_icon", "wifi_signal", "ondevice_temperature", "ondevice_humidity"];
-        if (numericSensorTypes.includes(w.type) && !entityId.includes(".")) {
+        if (w.type && numericSensorTypes.includes(w.type) && !entityId.includes(".") && !entityId.toLowerCase().startsWith("mqtt:")) {
             entityId = `sensor.${entityId}`;
         }
 
@@ -37,7 +70,7 @@ export const collectNumericSensors = (pages, context) => {
         // Fix #240: Skip calendar widgets as they are complex text sensors (json) handled by the plugin
         if (w.type === "calendar") return;
 
-        const isHaSensor = entityId.includes(".") &&
+        const isHaSensor = (entityId.includes(".") || entityId.toLowerCase().startsWith("mqtt:")) &&
             !entityId.startsWith("binary_sensor.") &&
             !HA_TEXT_DOMAINS.some(d => entityId.startsWith(d));
         const binaryDomains = ["switch.", "light.", "fan.", "input_boolean.", "cover.", "lock."];
@@ -64,12 +97,19 @@ export const collectNumericSensors = (pages, context) => {
     return numericSensorLinesExtra;
 };
 
+/**
+ * @param {DedupPage[]} pages
+ * @param {DedupContext} context
+ * @returns {string[]}
+ */
 export const collectTextSensors = (pages, context) => {
     const { seenEntityIds, seenSensorIds, appState } = context;
-    const allWidgetsForText = pages.flatMap(p => (p.widgets || []).filter(w => !w.hidden));
+    /** @type {DedupWidget[]} */
+    const allWidgetsForText = pages.flatMap((p) => (p.widgets || []).filter((w) => !w.hidden));
+    /** @type {string[]} */
     const textSensorLinesExtra = [];
 
-    allWidgetsForText.forEach(w => {
+    allWidgetsForText.forEach((w) => {
         const condEnt = (w.condition_entity || "").trim();
         const primaryEnt = (w.entity_id || "").trim();
         const secondaryEnt = (w.entity_id_2 || "").trim();
@@ -82,7 +122,7 @@ export const collectTextSensors = (pages, context) => {
         ].forEach(({ ent, attr }) => {
             if (!ent || p.is_local_sensor) return;
 
-            const isTextHa = HA_TEXT_DOMAINS.some(d => ent.startsWith(d));
+            const isTextHa = HA_TEXT_DOMAINS.some(d => ent.startsWith(d)) || ent.toLowerCase().startsWith("mqtt:");
             let isStringCond = false;
 
             // Check if this entity is used in a string condition
@@ -120,21 +160,28 @@ export const collectTextSensors = (pages, context) => {
     return textSensorLinesExtra;
 };
 
+/**
+ * @param {DedupPage[]} pages
+ * @param {DedupContext} context
+ * @returns {string[]}
+ */
 export const collectBinarySensors = (pages, context) => {
     const { seenEntityIds, seenSensorIds } = context;
-    const allWidgetsForBinary = pages.flatMap(p => (p.widgets || []).filter(w => !w.hidden));
+    /** @type {DedupWidget[]} */
+    const allWidgetsForBinary = pages.flatMap((p) => (p.widgets || []).filter((w) => !w.hidden));
     const binaryDomains = ["binary_sensor.", "switch.", "light.", "input_boolean.", "fan.", "cover.", "vacuum.", "lock."];
+    /** @type {string[]} */
     const binarySensorLinesExtra = [];
 
-    allWidgetsForBinary.forEach(w => {
+    allWidgetsForBinary.forEach((w) => {
         // Check condition entity
         const condEnt = (w.condition_entity || "").trim();
         // Check primary entity (for buttons, switches, etc.)
         const primaryEnt = (w.entity_id || "").trim();
 
-        [condEnt, primaryEnt].forEach(ent => {
+        [condEnt, primaryEnt].forEach((ent) => {
             if (!ent) return;
-            const isBinaryHa = binaryDomains.some(d => ent.startsWith(d));
+            const isBinaryHa = binaryDomains.some(d => ent.startsWith(d)) || ent.toLowerCase().startsWith("mqtt:");
 
             if (isBinaryHa && !seenEntityIds.has(ent)) {
                 const safeId = makeSafeId(ent);

@@ -1,18 +1,31 @@
 import { AppState } from '../state';
 import { getAvailableColors } from '../../utils/device.js';
 import { MIXED_VALUE } from '../../utils/color_utils.js';
+import { Logger } from '../../utils/logger.js';
+
+/**
+ * @typedef {{
+ *   id: string,
+ *   type: string,
+ *   x: number,
+ *   y: number,
+ *   width: number,
+ *   height: number,
+ *   props?: Record<string, any>
+ * }} MultiSelectWidget
+ */
 
 export class MultiSelectRenderer {
     /**
      * Renders properties for multiple selected widgets.
-        * @param {any} panel - The main properties panel instance.
+     * @param {any} panel - The main properties panel instance.
      * @param {Array<string>} ids - The IDs of the selected widgets.
      */
     static render(panel, ids) {
-        const widgets = ids.map(id => AppState.getWidgetById(id)).filter(w => !!w);
+        const widgets = /** @type {MultiSelectWidget[]} */ (ids.map(id => AppState.getWidgetById(id)).filter(w => !!w));
         if (widgets.length === 0) return;
 
-        console.log(`[MultiSelectRenderer] Rendering ${widgets.length} widgets. Display keys detection starting...`);
+        Logger.log(`[MultiSelectRenderer] Rendering ${widgets.length} widgets. Display keys detection starting...`);
 
         panel.panel.innerHTML = "";
         panel.createSection(`${widgets.length} Widgets Selected`, true);
@@ -20,22 +33,35 @@ export class MultiSelectRenderer {
         // --- Transform Section ---
         panel.createSection("Transform", true);
 
+        /** @param {'x' | 'y' | 'width' | 'height'} key */
         const getCommonVal = (key) => {
             const first = widgets[0][key];
             return widgets.every(w => w[key] === first) ? first : MIXED_VALUE;
         };
 
+        /**
+         * @param {'x' | 'y' | 'width' | 'height'} key
+         * @param {number} val
+         */
         const updateWidgets = (key, val) => {
             AppState.updateWidgets(ids, { [key]: val });
         };
 
         panel.addCompactPropertyRow(() => {
-            panel.addLabeledInput("X", "number", getCommonVal("x"), (v) => updateWidgets("x", parseInt(v, 10)));
-            panel.addLabeledInput("Y", "number", getCommonVal("y"), (v) => updateWidgets("y", parseInt(v, 10)));
+            /** @param {string} v */
+            const updateX = (v) => updateWidgets("x", parseInt(v, 10));
+            /** @param {string} v */
+            const updateY = (v) => updateWidgets("y", parseInt(v, 10));
+            panel.addLabeledInput("X", "number", getCommonVal("x"), updateX);
+            panel.addLabeledInput("Y", "number", getCommonVal("y"), updateY);
         });
         panel.addCompactPropertyRow(() => {
-            panel.addLabeledInput("Width", "number", getCommonVal("width"), (v) => updateWidgets("width", parseInt(v, 10)));
-            panel.addLabeledInput("Height", "number", getCommonVal("height"), (v) => updateWidgets("height", parseInt(v, 10)));
+            /** @param {string} v */
+            const updateWidth = (v) => updateWidgets("width", parseInt(v, 10));
+            /** @param {string} v */
+            const updateHeight = (v) => updateWidgets("height", parseInt(v, 10));
+            panel.addLabeledInput("Width", "number", getCommonVal("width"), updateWidth);
+            panel.addLabeledInput("Height", "number", getCommonVal("height"), updateHeight);
         });
         panel.endSection();
 
@@ -82,17 +108,22 @@ export class MultiSelectRenderer {
         if (displayKeys.length > 0) {
             panel.createSection("Shared Appearance", true);
 
+            /** @param {string} key */
             const getCommonProp = (key) => {
                 const first = widgets[0].props ? widgets[0].props[key] : undefined;
                 return widgets.every(w => (w.props ? w.props[key] : undefined) === first) ? first : MIXED_VALUE;
             };
 
+            /**
+             * @param {string} key
+             * @param {string | number | boolean} val
+             */
             const updateWidgetsProps = (key, val) => {
                 AppState.updateWidgetsProps(ids, { [key]: val });
             };
 
             const filteredDisplayKeys = displayKeys.filter(k => {
-                const firstVal = widgets.find(w => w.props && w.props[k] !== undefined)?.props[k];
+                const firstVal = widgets.find(w => w.props && w.props[k] !== undefined)?.props?.[k];
                 const val = firstVal !== undefined ? firstVal : "";
                 return typeof val === 'number' || typeof val === 'string' || typeof val === 'boolean' || val === "";
             });
@@ -111,14 +142,20 @@ export class MultiSelectRenderer {
                 const type = sampleWidget.props && sampleWidget.props[key] !== undefined ? typeof sampleWidget.props[key] : 'string';
 
                 if (key.includes("color") || key === "bg" || key === "fg") {
-                    panel.addColorSelector(label, val, getAvailableColors(), (v) => updateWidgetsProps(key, v));
+                    /** @param {string} v */
+                    const updateColor = (v) => updateWidgetsProps(key, v);
+                    panel.addColorSelector(label, val, getAvailableColors(), updateColor);
                 } else if (type === 'boolean' || ["italic", "locked", "hidden"].includes(key)) {
-                    panel.addCheckbox(label, val === MIXED_VALUE ? false : val, (v) => updateWidgetsProps(key, v));
+                    /** @param {boolean} v */
+                    const updateBoolean = (v) => updateWidgetsProps(key, v);
+                    panel.addCheckbox(label, val === MIXED_VALUE ? false : val, updateBoolean);
                 } else {
                     const inputType = (type === 'number' || key.includes("width") || key.includes("size") || key.includes("radius")) ? 'number' : 'text';
-                    panel.addLabeledInput(label, inputType, val, (v) => {
+                    /** @param {string} v */
+                    const updateInput = (v) => {
                         updateWidgetsProps(key, inputType === 'number' ? parseInt(v, 10) : v);
-                    });
+                    };
+                    panel.addLabeledInput(label, inputType, val, updateInput);
                 }
             });
 

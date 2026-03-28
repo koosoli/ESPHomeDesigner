@@ -7,12 +7,15 @@ const BASELINE_FILES = new Set([
 ]);
 
 const ALLOWED_COMPANION_PATTERNS = [
+  /^\.gitignore$/i,
   /^docs\//i,
   /^tmp\/proof\//i,
   /^coverage\//i,
   /^TASKS\.md$/i,
   /^README(?:\.[^/]+)?$/i,
   /^CHANGELOG(?:\.[^/]+)?$/i,
+  /^scripts\/check_baseline_governance\.cjs$/i,
+  /^scripts\/quality_gate\.cjs$/i,
   /\.md$/i
 ];
 

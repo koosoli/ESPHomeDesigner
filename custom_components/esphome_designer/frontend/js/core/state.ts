@@ -3,5 +3,6 @@ import { AppState } from './stores/index';
 export { AppState };
 
 // Attach to unified namespace
-(window as any).ESPHomeDesigner = (window as any).ESPHomeDesigner || {};
-(window as any).ESPHomeDesigner.state = AppState;
+const rootWindow = globalThis as typeof window;
+rootWindow.ESPHomeDesigner = rootWindow.ESPHomeDesigner || {};
+rootWindow.ESPHomeDesigner.state = AppState;

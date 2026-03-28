@@ -1,12 +1,33 @@
 // Icon Picker UI - ES Module
 import { AppState } from '../core/state';
 import { iconPickerData } from '../core/constants_icons.js';
+import { appendToDesignerOverlayRoot } from '../utils/runtime_root.js';
 
+/**
+ * @typedef {{
+ *   code: string,
+ *   name: string
+ * }} IconPickerIcon
+ */
+
+/**
+ * @typedef {{
+ *   id: string,
+ *   props?: Record<string, any>
+ * }} IconPickerWidget
+ */
+
+/** @type {HTMLDivElement | null} */
 let pickerModal = null;
+/** @type {HTMLInputElement | null} */
 let pickerFilter = null;
+/** @type {HTMLDivElement | null} */
 let pickerList = null;
+/** @type {HTMLButtonElement | null} */
 let pickerClose = null;
+/** @type {IconPickerWidget | null} */
 let currentWidget = null;
+/** @type {HTMLInputElement | null} */
 let currentInput = null;
 
 /**
@@ -16,10 +37,10 @@ function initPicker() {
     if (pickerModal) return;
 
     // Try to find existing elements
-    pickerModal = document.getElementById('iconPickerModal');
-    pickerFilter = document.getElementById('iconPickerFilter');
-    pickerList = document.getElementById('iconPickerList');
-    pickerClose = document.getElementById('iconPickerClose');
+    pickerModal = /** @type {HTMLDivElement | null} */ (document.getElementById('iconPickerModal'));
+    pickerFilter = /** @type {HTMLInputElement | null} */ (document.getElementById('iconPickerFilter'));
+    pickerList = /** @type {HTMLDivElement | null} */ (document.getElementById('iconPickerList'));
+    pickerClose = /** @type {HTMLButtonElement | null} */ (document.getElementById('iconPickerClose'));
 
     if (!pickerModal) {
         // Create dynamic modal if not in HTML
@@ -39,11 +60,11 @@ function initPicker() {
                 </div>
             </div>
         `;
-        document.body.appendChild(pickerModal);
+        appendToDesignerOverlayRoot(pickerModal);
 
-        pickerFilter = document.getElementById('iconPickerFilter');
-        pickerList = document.getElementById('iconPickerList');
-        pickerClose = document.getElementById('iconPickerClose');
+        pickerFilter = /** @type {HTMLInputElement | null} */ (document.getElementById('iconPickerFilter'));
+        pickerList = /** @type {HTMLDivElement | null} */ (document.getElementById('iconPickerList'));
+        pickerClose = /** @type {HTMLButtonElement | null} */ (document.getElementById('iconPickerClose'));
     }
 
     if (pickerClose) {
@@ -58,18 +79,24 @@ function initPicker() {
     }
 
     // Close on click outside
-    pickerModal.onclick = (e) => {
-        if (e.target === pickerModal) closeIconPicker();
+    if (pickerModal) {
+        pickerModal.onclick = (e) => {
+            if (e.target === pickerModal) closeIconPicker();
+        };
     };
 }
 
 /**
  * Opens the icon picker for a specific widget.
+ * @param {IconPickerWidget} widget
+ * @param {HTMLInputElement | null} inputElement
  */
 export function openIconPickerForWidget(widget, inputElement) {
     initPicker();
     currentWidget = widget;
     currentInput = inputElement;
+
+    if (!pickerModal) return;
 
     pickerModal.classList.remove('hidden');
     pickerModal.style.display = 'flex';
@@ -96,6 +123,7 @@ export function closeIconPicker() {
 
 /**
  * Renders the list of icons.
+ * @param {IconPickerIcon[]} icons
  */
 function renderIconList(icons) {
     if (!pickerList) return;
@@ -108,7 +136,7 @@ function renderIconList(icons) {
 
     const fragment = document.createDocumentFragment();
 
-    icons.forEach(icon => {
+    icons.forEach((icon) => {
         const item = document.createElement('div');
         item.className = 'icon-item';
         item.style.padding = '8px';
@@ -158,9 +186,10 @@ function renderIconList(icons) {
 
 /**
  * Filters the displayed icons.
+ * @param {string} query
  */
 function filterIcons(query) {
-    const data = iconPickerData || [];
+    const data = /** @type {IconPickerIcon[]} */ (iconPickerData || []);
     if (!query) {
         renderIconList(data);
         return;
@@ -176,6 +205,7 @@ function filterIcons(query) {
 
 /**
  * Handles icon selection.
+ * @param {IconPickerIcon} icon
  */
 function selectIcon(icon) {
     if (currentWidget) {

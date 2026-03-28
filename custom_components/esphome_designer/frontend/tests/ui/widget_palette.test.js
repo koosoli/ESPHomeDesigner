@@ -46,4 +46,50 @@ describe('widget_palette', () => {
         const incompatible = document.querySelectorAll('.item.incompatible');
         expect(incompatible.length).toBeGreaterThan(0);
     });
+
+    it('collects widget types and derives mode-specific expansion rules', async () => {
+        const {
+            WIDGET_CATEGORIES,
+            collectWidgetTypes,
+            getCategoryExpansion
+        } = await import('../../js/ui/widget_palette.js');
+
+        const types = collectWidgetTypes();
+
+        expect(types).toContain('label');
+        expect(types).toContain('lvgl_button');
+        expect(types.length).toBe(new Set(types).size);
+        expect(getCategoryExpansion(WIDGET_CATEGORIES.find((category) => category.id === 'lvgl'), 'lvgl')).toBe(true);
+        expect(getCategoryExpansion(WIDGET_CATEGORIES.find((category) => category.id === 'advanced'), 'lvgl')).toBe(false);
+        expect(getCategoryExpansion(WIDGET_CATEGORIES.find((category) => category.id === 'opendisplay'), 'oepl')).toBe(true);
+    });
+
+    it('calculates compatibility by rendering mode', async () => {
+        const { getWidgetCompatibility } = await import('../../js/ui/widget_palette.js');
+
+        expect(
+            getWidgetCompatibility({ type: 'lvgl_button' }, { id: 'lvgl' }, {}, 'direct')
+        ).toEqual({
+            isCompatible: false,
+            explanation: 'Not supported in Direct rendering mode'
+        });
+
+        expect(
+            getWidgetCompatibility(
+                { type: 'calendar' },
+                { id: 'advanced' },
+                { exportOpenDisplay: vi.fn() },
+                'opendisplay'
+            ).isCompatible
+        ).toBe(false);
+
+        expect(
+            getWidgetCompatibility(
+                { type: 'sensor_text' },
+                { id: 'core' },
+                { exportLVGL: vi.fn() },
+                'lvgl'
+            ).isCompatible
+        ).toBe(true);
+    });
 });

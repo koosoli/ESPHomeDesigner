@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { makeSafeId, escapeFmt, isEntityStateNonNumeric } from '../../js/utils/export_helpers.js';
+import { escapeFmt, getVarName, isEntityStateNonNumeric, makeSafeId } from '../../js/utils/export_helpers.js';
 
 describe('Export Helpers', () => {
     describe('makeSafeId', () => {
@@ -120,6 +120,29 @@ describe('Export Helpers', () => {
                 }
             };
             expect(isEntityStateNonNumeric('sensor.empty', mockAppState)).toBe(false);
+        });
+
+        it('returns false for missing attributes and whitespace-only attribute values', () => {
+            const mockAppState = {
+                entityStates: {
+                    'weather.home': {
+                        state: 'sunny',
+                        attributes: {
+                            note: '   '
+                        }
+                    }
+                }
+            };
+
+            expect(isEntityStateNonNumeric('weather.home', mockAppState, 'missing')).toBe(false);
+            expect(isEntityStateNonNumeric('weather.home', mockAppState, 'note')).toBe(false);
+        });
+    });
+
+    describe('getVarName', () => {
+        it('derives numeric and text variable names from safe ids', () => {
+            expect(getVarName('sensor.temperature')).toBe('sensor_temperature_val');
+            expect(getVarName('sensor.temperature', 'battery', true)).toBe('sensor_temperature_battery_txt');
         });
     });
 });

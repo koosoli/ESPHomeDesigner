@@ -1,5 +1,10 @@
+/**
+ * @param {string[]} lines
+ * @param {Record<string, any> | null | undefined} doc
+ * @returns {Record<string, any>}
+ */
 export function parseSettings(lines, doc) {
-    const deviceSettings = {
+    const deviceSettings = /** @type {Record<string, any>} */ ({
         orientation: "landscape",
         dark_mode: false,
         sleep_enabled: false,
@@ -14,7 +19,7 @@ export function parseSettings(lines, doc) {
         daily_refresh_enabled: false,
         daily_refresh_time: "08:00",
         refresh_interval: 600
-    };
+    });
 
     for (const rawLine of lines) {
         const line = rawLine.trim();

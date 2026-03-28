@@ -1,9 +1,25 @@
-// @ts-nocheck
 import { AppState } from '@core/state';
 import { iconPickerData } from '../../js/core/constants_icons.js';
 import { evaluateTemplatePreview } from '../../js/utils/text_utils.js';
 
-const render = (el, widget, { getColorStyle }) => { // eslint-disable-line no-unused-vars
+const resolveIconForegroundColor = (colorProp, getColorConst) => {
+    if (colorProp === "theme_auto") return "color_on";
+    if (colorProp === "theme_auto_inverse") return "color_off";
+    if (colorProp === "white") return "color_off";
+    if (colorProp === "black") return "color_on";
+    return getColorConst(colorProp || "black");
+};
+
+const resolveIconBackgroundColor = (colorProp, getColorConst) => {
+    if (!colorProp || colorProp === "transparent") return null;
+    if (colorProp === "theme_auto") return "color_off";
+    if (colorProp === "theme_auto_inverse") return "color_on";
+    if (colorProp === "white") return "color_off";
+    if (colorProp === "black") return "color_on";
+    return getColorConst(colorProp);
+};
+
+const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
 
     let iconCode = "F0595"; // Default
@@ -125,21 +141,7 @@ export default {
         // Register Font for LVGL and Direct
         context.addFont("Material Design Icons", 400, size);
     },
-    render: (el, w, { _getColorStyle, layout }) => {
-        const p = w.props || {};
-        const iconCode = p.code || "F0079";
-        const cp = 0xf0000 + parseInt(iconCode.slice(1), 16);
-        const ch = String.fromCodePoint(cp);
-
-        el.innerText = ch;
-        el.style.fontSize = (p.size || 48) + "px";
-        el.style.color = (p.color === "theme_auto") ? (layout?.darkMode ? "white" : "black") : (p.color || "black");
-        el.style.fontFamily = "MDI, system-ui, -apple-system, BlinkMacSystemFont, -sans-serif";
-        el.style.lineHeight = "1";
-        el.style.display = "flex";
-        el.style.alignItems = "center";
-        el.style.justifyContent = "center";
-    },
+    render,
     exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const code = (p.code || "F0595").toUpperCase().replace(/^0X/, "");
@@ -197,11 +199,7 @@ export default {
         const size = parseInt(p.size || 48, 10);
         const colorProp = p.color || "theme_auto";
 
-        // Dynamic Color Logic
-        let color = getColorConst(colorProp);
-        if (colorProp === "theme_auto") color = "color_on";
-        if (colorProp === "white") color = "color_off"; // Background (Dynamic)
-        if (colorProp === "black") color = "color_on";  // Text (Dynamic)
+        const color = resolveIconForegroundColor(colorProp, getColorConst);
 
         // Register Icon Font
         const fontRef = addFont("Material Design Icons", 400, size);
@@ -209,15 +207,15 @@ export default {
 
         // Background fill
         const bgColorProp = p.bg_color || p.background_color || "transparent";
-        if (bgColorProp && bgColorProp !== "transparent") {
-            const bgColorConst = getColorConst(bgColorProp);
+        const bgColorConst = resolveIconBackgroundColor(bgColorProp, getColorConst);
+        if (bgColorConst) {
             lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
         }
 
         // Draw Border if defined
         const borderWidth = p.border_width || 0;
         if (borderWidth > 0) {
-            const borderColor = getColorConst(p.border_color || "theme_auto");
+            const borderColor = resolveIconForegroundColor(p.border_color || "theme_auto", getColorConst);
             for (let i = 0; i < borderWidth; i++) {
                 lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColor});`);
             }

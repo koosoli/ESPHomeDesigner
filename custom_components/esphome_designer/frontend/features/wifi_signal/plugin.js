@@ -1,76 +1,10 @@
-// @ts-nocheck
-import { AppState } from '@core/state';
+import { renderWifiSignal } from './render.js';
+import { renderWifiSignalProperties } from './properties.js';
 /**
  * WiFi Signal Plugin
  */
 
-const render = (el, widget, { getColorStyle }) => {
-    const props = widget.props || {};
-    let iconCode = "F0928"; // Default: wifi-strength-4 (excellent)
-    let size = props.size || 24;
-    const color = props.color || "theme_auto";
-    const showDbm = props.show_dbm !== false;
-
-    let signalLevel = -45; // Default preview (excellent signal)
-
-    if (!props.is_local_sensor && widget.entity_id) {
-        if (AppState && AppState.entityStates) {
-            const stateObj = AppState.entityStates[widget.entity_id];
-            if (stateObj && stateObj.state !== undefined) {
-                const val = parseFloat(stateObj.state);
-                if (!isNaN(val)) {
-                    signalLevel = val;
-                }
-            }
-        }
-    }
-
-    if (props.fit_icon_to_frame) {
-        const padding = 4;
-        const maxDim = Math.max(8, Math.min((widget.width || 0) - padding * 2, (widget.height || 0) - padding * 2));
-        size = Math.round(maxDim);
-    }
-
-    if (signalLevel >= -50) iconCode = "F0928";      // wifi-strength-4
-    else if (signalLevel >= -60) iconCode = "F0925"; // wifi-strength-3
-    else if (signalLevel >= -75) iconCode = "F0922"; // wifi-strength-2
-    else if (signalLevel >= -100) iconCode = "F091F"; // wifi-strength-1
-    else iconCode = "F092B";                          // wifi-strength-alert-outline
-
-    const cp = 0xf0000 + parseInt(iconCode.slice(1), 16);
-    const ch = String.fromCodePoint(cp);
-
-    el.innerText = ch;
-    el.style.fontSize = `${size}px`;
-    el.style.color = getColorStyle(color);
-    el.style.fontFamily = "MDI, system-ui, -apple-system, BlinkMacSystemFont, -sans-serif";
-    el.style.lineHeight = "1";
-    el.style.display = "flex";
-    el.style.alignItems = "center";
-    el.style.justifyContent = "center";
-    el.style.flexDirection = "column";
-
-    if (showDbm) {
-        const dbmLabel = document.createElement("div");
-        dbmLabel.style.fontSize = (props.font_size || 12) + "px";
-        dbmLabel.style.marginTop = "2px";
-        dbmLabel.textContent = Math.round(signalLevel) + "dB";
-        el.appendChild(dbmLabel);
-    }
-
-    // Apply Border & Background (Restored)
-    if (props.border_width) {
-        const borderColor = getColorStyle(props.border_color || color);
-        el.style.border = `${props.border_width}px solid ${borderColor}`;
-        el.style.borderRadius = `${props.border_radius || 0}px`;
-        el.style.boxSizing = "border-box";
-    } else {
-        el.style.border = "none";
-    }
-    if (props.bg_color) {
-        el.style.backgroundColor = getColorStyle(props.bg_color);
-    }
-};
+const render = renderWifiSignal;
 
 const exportDoc = (w, context) => {
     const {
@@ -182,42 +116,7 @@ export default {
         is_local_sensor: true,
         opa: 255
     },
-    renderProperties: (panel, widget) => {
-        const props = widget.props || {};
-        const updateProp = (key, val) => {
-            const newProps = { ...widget.props, [key]: val };
-            AppState.updateWidget(widget.id, { props: newProps });
-        };
-
-        panel.createSection("Data Source", true);
-        panel.addLabeledInputWithPicker("WiFi Signal Entity ID", "text", widget.entity_id || "", (v) => {
-            AppState.updateWidget(widget.id, { entity_id: v });
-        }, widget);
-        panel.addCheckbox("Local / On-Device Sensor", props.is_local_sensor !== false, (v) => updateProp("is_local_sensor", v));
-        panel.addHint("Use internal battery_level/signal sensor.");
-        panel.endSection();
-
-        panel.createSection("Appearance", true);
-        panel.addCheckbox("Show dBm value", props.show_dbm !== false, (v) => updateProp("show_dbm", v));
-        panel.addCheckbox("Fit icon to frame", !!props.fit_icon_to_frame, (v) => updateProp("fit_icon_to_frame", v));
-        panel.addLabeledInput("Icon Size (px)", "number", props.size || 24, (v) => {
-            let n = parseInt(v || "24", 10);
-            updateProp("size", isNaN(n) ? 24 : n);
-        });
-        panel.addLabeledInput("dBm Font Size (px)", "number", props.font_size || 12, (v) => {
-            let n = parseInt(v || "12", 10);
-            updateProp("font_size", isNaN(n) ? 12 : n);
-        });
-        panel.addColorSelector("Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
-        panel.endSection();
-
-        panel.createSection("Border Style", false);
-        panel.addLabeledInput("Border Width", "number", props.border_width || 0, (v) => updateProp("border_width", parseInt(v, 10)));
-        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
-        panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
-        panel.addDropShadowButton(panel.getContainer(), widget.id);
-        panel.endSection();
-    },
+    renderProperties: renderWifiSignalProperties,
     render,
     exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
@@ -236,6 +135,7 @@ export default {
             `{% if s >= -50 %}wifi-strength-4{% elif s >= -60 %}wifi-strength-3` +
             `{% elif s >= -75 %}wifi-strength-2{% elif s >= -100 %}wifi-strength-1{% else %}wifi-strength-alert-outline{% endif %}`;
 
+        /** @type {any[]} */
         const actions = [
             {
                 type: "icon",
@@ -274,6 +174,7 @@ export default {
             `{% if s >= -50 %}wifi-strength-4{% elif s >= -60 %}wifi-strength-3` +
             `{% elif s >= -75 %}wifi-strength-2{% elif s >= -100 %}wifi-strength-1{% else %}wifi-strength-alert-outline{% endif %}`;
 
+        /** @type {any[]} */
         const elements = [
             {
                 type: "icon",
@@ -322,6 +223,7 @@ export default {
         iconLambda += '          }\n';
         iconLambda += '          return "\\U000F092B";';
 
+        /** @type {any[]} */
         const widgets = [
             {
                 label: {
@@ -434,4 +336,7 @@ export default {
         }
     }
 };
+
+
+
 

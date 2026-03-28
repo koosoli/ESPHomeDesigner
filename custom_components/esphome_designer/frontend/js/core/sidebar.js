@@ -2,9 +2,9 @@
 import { AppState } from './state';
 import { on, EVENTS } from './events.js';
 import { WidgetFactory } from './widget_factory';
-import { showToast } from '../utils/dom.js';
 import { Logger } from '../utils/logger.js';
 import { quickSearchInstance } from '../ui/quick_search.js';
+import { showDeletePageModal, showClearPageModal, setupSidebarMobileToggles } from './sidebar_helpers.js';
 
 export class Sidebar {
     /** @param {any} appInstance */
@@ -40,10 +40,12 @@ export class Sidebar {
         on(EVENTS.PAGE_CHANGED, () => this.render());
 
         // Pages section toggle
-        if (this.pagesHeader && this.pagesContent) {
-            this.pagesHeader.addEventListener("click", () => {
-                const isHidden = this.pagesContent.classList.toggle("hidden");
-                const chevron = /** @type {HTMLElement|null} */(this.pagesHeader.querySelector(".chevron"));
+        const pagesHeader = this.pagesHeader;
+        const pagesContent = this.pagesContent;
+        if (pagesHeader && pagesContent) {
+            pagesHeader.addEventListener("click", () => {
+                const isHidden = pagesContent.classList.toggle("hidden");
+                const chevron = /** @type {HTMLElement|null} */(pagesHeader.querySelector(".chevron"));
                 if (chevron) {
                     chevron.style.transform = isHidden ? "rotate(-90deg)" : "rotate(0deg)";
                 }
@@ -103,14 +105,15 @@ export class Sidebar {
     }
 
     render() {
-        if (!this.pageListEl) return;
+        const pageListEl = this.pageListEl;
+        if (!pageListEl) return;
 
         const fragment = document.createDocumentFragment();
-        this.pageListEl.innerHTML = "";
-        const pages = AppState.pages;
+        pageListEl.innerHTML = "";
+        const pages = /** @type {Page[]} */ (AppState.pages);
         const currentIndex = AppState.currentPageIndex;
 
-        pages.forEach((page, index) => {
+        pages.forEach((/** @type {Page} */ page, /** @type {number} */ index) => {
             const item = document.createElement("div");
             item.className = "item" + (index === currentIndex ? " active" : "");
             item.draggable = true;
@@ -127,7 +130,7 @@ export class Sidebar {
 
             item.ondragend = () => {
                 item.style.opacity = "1";
-                Array.from(this.pageListEl.children).forEach((/** @type {any} */ el) => {
+                Array.from(pageListEl.children).forEach((/** @type {any} */ el) => {
                     el.style.borderTop = "";
                     el.style.borderBottom = "";
                 });
@@ -302,7 +305,7 @@ export class Sidebar {
             fragment.appendChild(item);
         });
 
-        this.pageListEl.appendChild(fragment);
+        pageListEl.appendChild(fragment);
 
         if (this.currentPageNameEl) {
             const page = AppState.getCurrentPage();
@@ -395,191 +398,14 @@ export class Sidebar {
      * @param {any} page 
      */
     handlePageDelete(index, page) {
-        // Use custom modal instead of native confirm
-        const modal = document.createElement('div');
-        modal.className = 'modal-backdrop';
-        modal.style.display = 'flex';
-        modal.innerHTML = `
-            <div class="modal" style="width: 320px; height: auto; min-height: 150px; padding: var(--space-4);">
-                <div class="modal-header" style="font-size: var(--fs-md); padding-bottom: var(--space-2);">
-                    <div>Delete Page</div>
-                </div>
-                <div class="modal-body" style="padding: var(--space-2) 0;">
-                    <p style="margin-bottom: var(--space-3); font-size: var(--fs-sm);">
-                        Are you sure you want to delete the page <b>"${page.name}"</b>?
-                        <br><br>
-                        This action cannot be undone.
-                    </p>
-                </div>
-                <div class="modal-actions" style="padding-top: var(--space-3); border-top: 1px solid var(--border-subtle);">
-                    <button class="btn btn-secondary close-btn btn-xs">Cancel</button>
-                    <button class="btn btn-primary confirm-btn btn-xs" style="background: var(--danger); color: white; border: none;">Delete</button>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(modal);
-
-        const closeModal = () => modal.remove();
-
-        const confirmAction = () => {
-            closeModal();
-            try {
-                if (typeof AppState.deletePage === 'function') {
-                    AppState.deletePage(index);
-                } else {
-                    console.error('AppState.deletePage is missing');
-                    if (typeof showToast === 'function') showToast('Error: AppState.deletePage not found', 'error');
-                }
-            } catch (e) {
-                console.error('[Sidebar] Error deleting page:', e);
-                if (typeof showToast === 'function') showToast('Error deleting page: ' + e.message, 'error');
-            }
-        };
-
-        /** @type {NodeListOf<HTMLElement>} */
-        const closeBtns = modal.querySelectorAll('.close-btn');
-        closeBtns.forEach(btn => btn.onclick = closeModal);
-        const confirmBtnEl = /** @type {HTMLElement|null} */(modal.querySelector('.confirm-btn'));
-        if (confirmBtnEl) confirmBtnEl.onclick = confirmAction;
-        modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+        showDeletePageModal(index, page);
     }
 
     handleClearPage() {
-        // Defensive check for AppState as fallback
-        const State = AppState;
-        if (!State) {
-            console.error('[Sidebar] AppState is not defined!');
-            if (typeof showToast === 'function') showToast('Error: Application State is not ready.', 'error');
-            return;
-        }
-
-        // Use custom modal instead of native confirm to avoid brower/environment issues
-        const modal = document.createElement('div');
-        modal.className = 'modal-backdrop';
-        modal.style.display = 'flex'; // Force display
-        modal.innerHTML = `
-            <div class="modal" style="width: 320px; height: auto; min-height: 180px; padding: var(--space-4);">
-                <div class="modal-header" style="font-size: var(--fs-md); padding-bottom: var(--space-2);">
-                    <div>Clear Page</div>
-                </div>
-                <div class="modal-body" style="padding: var(--space-2) 0;">
-                    <p style="margin-bottom: var(--space-3); font-size: var(--fs-sm);">Are you sure you want to clear all widgets? <b>Locked</b> widgets will stay.</p>
-                </div>
-                <div class="modal-actions" style="padding-top: var(--space-3); border-top: 1px solid var(--border-subtle);">
-                    <button class="btn btn-secondary close-btn btn-xs">Cancel</button>
-                    <button class="btn btn-primary confirm-btn btn-xs" style="background: var(--danger); color: white; border: none;">Clear All</button>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(modal);
-
-        const closeModal = () => {
-            modal.remove();
-        };
-
-        const confirmAction = () => {
-            closeModal();
-            try {
-                console.log('[Sidebar] Executing clearCurrentPage...');
-                const result = AppState.clearCurrentPage(true); // true = preserve locked
-
-                if (result.preserved > 0 && typeof showToast === 'function') {
-                    showToast(`Cleared ${result.deleted} widgets. ${result.preserved} locked widget(s) were preserved.`, "info");
-                } else if (result.deleted > 0) {
-                    showToast(`Cleared all ${result.deleted} widgets.`, "success");
-                } else {
-                    if (result.preserved > 0) {
-                        showToast(`No widgets cleared. ${result.preserved} locked widget(s) preserved.`, "info");
-                    } else {
-                        showToast("Page is already empty.", "info");
-                    }
-                }
-                Logger.log('Cleared widgets from current page via AppState');
-            } catch (e) {
-                console.error('[Sidebar] Error clearing page:', e);
-                if (typeof showToast === 'function') showToast('Error clearing page: ' + (/** @type {Error} */(e)).message, 'error');
-            }
-        };
-
-        // Bind events
-        const closeBtns2 = modal.querySelectorAll('.close-btn');
-        /** @type {NodeListOf<HTMLElement>} */(closeBtns2).forEach(btn => btn.onclick = closeModal);
-
-        const confirmBtn = /** @type {HTMLElement|null} */(modal.querySelector('.confirm-btn'));
-        if (confirmBtn) confirmBtn.onclick = confirmAction;
-
-        // Click outside to close
-        modal.onclick = (e) => {
-            if (e.target === modal) closeModal();
-        };
+        showClearPageModal();
     }
 
     setupMobileToggles() {
-        const mobileWidgetsBtn = document.getElementById('mobileWidgetsBtn');
-        const mobilePropsBtn = document.getElementById('mobilePropsBtn');
-        const mobileDeviceBtn = document.getElementById('mobileDeviceBtn');
-        const backdrop = document.getElementById('mobileBackdrop');
-
-        const sidebar = document.querySelector('.sidebar');
-        const rightPanel = document.querySelector('.right-panel');
-
-        const closeAll = () => {
-            sidebar?.classList.remove('mobile-active');
-            rightPanel?.classList.remove('mobile-active');
-            backdrop?.classList.remove('active');
-        };
-
-        mobileWidgetsBtn?.addEventListener('click', () => {
-            const isActive = sidebar?.classList.contains('mobile-active');
-            closeAll();
-            if (!isActive) {
-                sidebar?.classList.add('mobile-active');
-                backdrop?.classList.add('active');
-            }
-        });
-
-        mobilePropsBtn?.addEventListener('click', () => {
-            const isActive = rightPanel?.classList.contains('mobile-active');
-            closeAll();
-            if (!isActive) {
-                rightPanel?.classList.add('mobile-active');
-                backdrop?.classList.add('active');
-            }
-        });
-
-        mobileDeviceBtn?.addEventListener('click', () => {
-            closeAll();
-            this.app?.deviceSettings?.open();
-        });
-
-        const mobileEditorSettingsBtn = document.getElementById('mobileEditorSettingsBtn');
-        mobileEditorSettingsBtn?.addEventListener('click', () => {
-            closeAll();
-            this.app?.editorSettings?.open();
-        });
-
-        backdrop?.addEventListener('click', closeAll);
-
-        // Auto-close on widget selection (mobile only)
-        on(EVENTS.SELECTION_CHANGED, () => {
-            if (window.innerWidth <= 768) {
-                // Keep properties open if we just selected something, but close widget drawer
-                sidebar?.classList.remove('mobile-active');
-                if (!rightPanel?.classList.contains('mobile-active') && !sidebar?.classList.contains('mobile-active')) {
-                    backdrop?.classList.remove('active');
-                }
-            }
-        });
-
-        // Close sidebar when adding a widget from palette
-        const originalHandlePaletteClick = this.handlePaletteClick.bind(this);
-        this.handlePaletteClick = (e) => {
-            originalHandlePaletteClick(e);
-            if (window.innerWidth <= 768) {
-                closeAll();
-            }
-        };
+        setupSidebarMobileToggles(this);
     }
 }

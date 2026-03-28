@@ -30,6 +30,7 @@ export class OpenDisplayAdapter extends BaseAdapter {
             return "";
         }
 
+        /** @type {Array<Record<string, any>>} */
         const payloadItems = [];
 
         // Color Mode & Theme considerations
@@ -37,7 +38,7 @@ export class OpenDisplayAdapter extends BaseAdapter {
         const isDark = page.dark_mode === 'dark' || (page.dark_mode === 'inherit' && layout.darkMode);
         const background = isDark ? "black" : "white";
 
-        page.widgets.forEach(widget => {
+        /** @type {Widget[]} */ (page.widgets).forEach((widget) => {
             if (widget.hidden || widget.type === 'group') return;
 
             const element = this.generateWidget(widget, { layout, page });
@@ -79,8 +80,8 @@ export class OpenDisplayAdapter extends BaseAdapter {
 
                 let valStr = value;
                 if (typeof value === 'string') {
-                    if (value.includes('\n') || value.includes(':')) {
-                        valStr = `"${value.replace(/"/g, '\\"')}"`;
+                    if (value.includes('\n') || value.includes(':') || value.includes('"')) {
+                        valStr = JSON.stringify(value);
                     }
                 } else if (Array.isArray(value)) {
                     valStr = JSON.stringify(value);

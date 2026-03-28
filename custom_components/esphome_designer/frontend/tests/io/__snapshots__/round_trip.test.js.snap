@@ -89,6 +89,10 @@ globals:
     type: int
     restore_value: false
     initial_value: '60'
+  - id: last_touch_time
+    type: uint32_t
+    restore_value: false
+    initial_value: '0'
 psram:
   mode: octal
   speed: 80MHz
@@ -179,9 +183,6 @@ binary_sensor:
     id: button_home
     on_press:
       then:
-        - script.execute:
-            id: change_page_to
-            target_page: 0
         - script.execute: manage_run_and_sleep
 
 button:
@@ -225,16 +226,45 @@ font:
     size: 20
     glyphs: ["\\U00000020", "\\U00000021", "\\U00000022", "\\U00000023", "\\U00000024", "\\U00000025", "\\U00000026", "\\U00000027", "\\U00000028", "\\U00000029", "\\U0000002A", "\\U0000002B", "\\U0000002C", "\\U0000002D", "\\U0000002E", "\\U0000002F", "\\U00000030", "\\U00000031", "\\U00000032", "\\U00000033", "\\U00000034", "\\U00000035", "\\U00000036", "\\U00000037", "\\U00000038", "\\U00000039", "\\U0000003A", "\\U0000003B", "\\U0000003C", "\\U0000003D", "\\U0000003E", "\\U0000003F", "\\U00000040", "\\U00000041", "\\U00000042", "\\U00000043", "\\U00000044", "\\U00000045", "\\U00000046", "\\U00000047", "\\U00000048", "\\U00000049", "\\U0000004A", "\\U0000004B", "\\U0000004C", "\\U0000004D", "\\U0000004E", "\\U0000004F", "\\U00000050", "\\U00000051", "\\U00000052", "\\U00000053", "\\U00000054", "\\U00000055", "\\U00000056", "\\U00000057", "\\U00000058", "\\U00000059", "\\U0000005A", "\\U0000005B", "\\U0000005C", "\\U0000005D", "\\U0000005E", "\\U0000005F", "\\U00000060", "\\U00000061", "\\U00000062", "\\U00000063", "\\U00000064", "\\U00000065", "\\U00000066", "\\U00000067", "\\U00000068", "\\U00000069", "\\U0000006A", "\\U0000006B", "\\U0000006C", "\\U0000006D", "\\U0000006E", "\\U0000006F", "\\U00000070", "\\U00000071", "\\U00000072", "\\U00000073", "\\U00000074", "\\U00000075", "\\U00000076", "\\U00000077", "\\U00000078", "\\U00000079", "\\U0000007A", "\\U0000007B", "\\U0000007C", "\\U0000007D", "\\U0000007E", "\\U000000A0", "\\U000000A1", "\\U000000A2", "\\U000000A3", "\\U000000A4", "\\U000000A5", "\\U000000A6", "\\U000000A7", "\\U000000A8", "\\U000000A9", "\\U000000AA", "\\U000000AB", "\\U000000AC", "\\U000000AD", "\\U000000AE", "\\U000000AF", "\\U000000B0", "\\U000000B1", "\\U000000B2", "\\U000000B3", "\\U000000B4", "\\U000000B5", "\\U000000B6", "\\U000000B7", "\\U000000B8", "\\U000000B9", "\\U000000BA", "\\U000000BB", "\\U000000BC", "\\U000000BD", "\\U000000BE", "\\U000000BF", "\\U000000C0", "\\U000000C1", "\\U000000C2", "\\U000000C3", "\\U000000C4", "\\U000000C5", "\\U000000C6", "\\U000000C7", "\\U000000C8", "\\U000000C9", "\\U000000CA", "\\U000000CB", "\\U000000CC", "\\U000000CD", "\\U000000CE", "\\U000000CF", "\\U000000D0", "\\U000000D1", "\\U000000D2", "\\U000000D3", "\\U000000D4", "\\U000000D5", "\\U000000D6", "\\U000000D7", "\\U000000D8", "\\U000000D9", "\\U000000DA", "\\U000000DB", "\\U000000DC", "\\U000000DD", "\\U000000DE", "\\U000000DF", "\\U000000E0", "\\U000000E1", "\\U000000E2", "\\U000000E3", "\\U000000E4", "\\U000000E5", "\\U000000E6", "\\U000000E7", "\\U000000E8", "\\U000000E9", "\\U000000EA", "\\U000000EB", "\\U000000EC", "\\U000000ED", "\\U000000EE", "\\U000000EF", "\\U000000F0", "\\U000000F1", "\\U000000F2", "\\U000000F3", "\\U000000F4", "\\U000000F5", "\\U000000F6", "\\U000000F7", "\\U000000F8", "\\U000000F9", "\\U000000FA", "\\U000000FB", "\\U000000FC", "\\U000000FD", "\\U000000FE", "\\U000000FF", "\\U000003BC", "\\U000003A9", "\\U000020AC", "\\U00002122"]
 script:
+  - id: change_page_to
+    parameters:
+      target_page: int
+    then:
+      - lambda: |-
+          int pages_count = 1;
+          int target = target_page;
+          while (target < 0) target += pages_count;
+          target %= pages_count;
+
+          // Debounce: Ignore page changes within 3000ms of last change
+          // (adjusted for e-paper display update time)
+          uint32_t now = millis();
+          if (now - id(last_page_switch_time) < 3000) {
+            ESP_LOGD("display", "Page change ignored (debounce), last switch was %d ms ago", now - id(last_page_switch_time));
+            return;
+          }
+
+          if (id(display_page) != target) {
+            // Set debounce time BEFORE display update (update takes ~1.6s)
+            id(last_page_switch_time) = now;
+            id(display_page) = target;
+            id(epaper_display).update();
+            ESP_LOGI("display", "Switched to page %d", target);
+          }
 
   - id: manage_run_and_sleep
     mode: restart
     then:
-      - logger.log: "Waiting for sync..."
-      - wait_until:
+      - if:
           condition:
-            lambda: 'return id(ha_time).now().is_valid() && api_is_connected();'
-          timeout: 120s
-      - delay: 5s
+            lambda: 'return !(id(ha_time).now().is_valid() && api_is_connected());'
+          then:
+            - logger.log: "Waiting for sync..."
+            - wait_until:
+                condition:
+                  lambda: 'return id(ha_time).now().is_valid() && api_is_connected();'
+                timeout: 120s
+            - delay: 5s
       - lambda: |-
           int interval = id(page_refresh_default_s);
           id(page_refresh_current_s) = interval;

@@ -4,6 +4,18 @@ import { AppState } from './state';
 import { Logger } from '../utils/logger.js';
 import { getColorStyle } from '../utils/device.js';
 import { registry } from './plugin_registry';
+import {
+    addResizeHandles,
+    confirmAction,
+    createMdiIconButton,
+    renderContextToolbar,
+    renderDebugGridOverlay,
+    renderLvglGridOverlayToElement
+} from './canvas_renderer_ui.js';
+import { getPageEffectiveDarkMode, getEffectiveDarkMode } from './canvas_renderer_navigation.js';
+
+export { renderContextToolbar } from './canvas_renderer_ui.js';
+export { applyZoom, focusPage, zoomToFitAll, calculateZoomToFit, updateWidgetDOM } from './canvas_renderer_navigation.js';
 
 /**
  * @param {import('./canvas').Canvas} canvasInstance
@@ -200,6 +212,7 @@ export function render(canvasInstance) {
                 el.innerHTML = ''; // Groups are mostly invisible containers
             } else if (feature && feature.render) {
                 try {
+                    /** @param {string | null | undefined} colorName */
                     const wrappedGetColorStyle = (colorName) => {
                         if (colorName === 'theme_auto') return isDark ? '#ffffff' : '#000000';
                         if (colorName === 'theme_auto_inverse') return isDark ? '#000000' : '#ffffff';
@@ -210,7 +223,9 @@ export function render(canvasInstance) {
 
                     const isSelected = AppState.selectedWidgetIds.includes(widget.id);
                     const deviceModel = AppState.settings.device_model || 'reterminal_e1001';
-                    const profile = DEVICE_PROFILES ? DEVICE_PROFILES[deviceModel] : null;
+                    const profile = DEVICE_PROFILES && deviceModel in DEVICE_PROFILES
+                        ? DEVICE_PROFILES[/** @type {keyof typeof DEVICE_PROFILES} */ (deviceModel)]
+                        : null;
 
                     feature.render(el, widget, {
                         getColorStyle: wrappedGetColorStyle,
@@ -218,6 +233,12 @@ export function render(canvasInstance) {
                         profile: profile,
                         isDark: isDark
                     });
+
+                    // Central opacity application — drives the canvas preview for all plugins
+                    const opa = widget.props?.opacity;
+                    if (opa !== undefined && opa < 100) {
+                        el.style.opacity = String(opa / 100);
+                    }
                 } catch {
                     el.textContent = `Error: ${type}`;
                     el.style.border = "2px solid red";
@@ -262,6 +283,7 @@ export function render(canvasInstance) {
         addPlaceholder.classList.add("round-display");
     }
 
+    /** @param {MouseEvent} e */
     const handleClick = (e) => {
         Logger.log("[Canvas] Add Page placeholder clicked");
         e.stopPropagation();
@@ -281,12 +303,11 @@ export function render(canvasInstance) {
     };
 
     // Dual binding was causing double execution. Sticking to addEventListener only.
-    addPlaceholder.addEventListener('mousedown', (e) => e.stopPropagation()); // Prevent canvas drag start
+    addPlaceholder.addEventListener('mousedown', (/** @type {MouseEvent} */ e) => e.stopPropagation()); // Prevent canvas drag start
     addPlaceholder.addEventListener('click', handleClick);
 
     // Append to the end of the canvas (after the last page)
     fragment.appendChild(addPlaceholder);
-
 
     if (existingLasso) fragment.appendChild(existingLasso);
 
@@ -295,469 +316,3 @@ export function render(canvasInstance) {
     // Render contextual toolbar for selection
     renderContextToolbar(canvasInstance);
 }
-
-function scheduleLayoutMeasurement(canvasInstance, key, measureFn) {
-    if (!canvasInstance || typeof measureFn !== 'function') return;
-
-    const existingHandle = canvasInstance[key];
-    if (existingHandle) {
-        cancelAnimationFrame(existingHandle);
-    }
-
-    canvasInstance[key] = requestAnimationFrame(() => {
-        canvasInstance[key] = 0;
-        measureFn();
-    });
-}
-
-function _createIconButton(text, title, onClick) {
-    const btn = document.createElement("button");
-    btn.className = "artboard-btn";
-    btn.innerHTML = text;
-    btn.title = title;
-    btn.onmousedown = (e) => e.stopPropagation();
-    btn.onclick = (e) => {
-        e.stopPropagation();
-        onClick();
-    };
-    return btn;
-}
-
-function getPageEffectiveDarkMode(page) {
-    const pageDarkMode = page?.dark_mode;
-    if (pageDarkMode === "dark") return true;
-    if (pageDarkMode === "light") return false;
-    return !!AppState.settings.darkMode;
-}
-
-/**
- * Determines the effective dark mode status for the current context.
- * This considers the current page's dark_mode setting, falling back to global settings.
- * @returns {boolean} True if dark mode is effective, false otherwise.
- */
-export function getEffectiveDarkMode() {
-    const activePage = AppState.getCurrentPage();
-    if (activePage) return getPageEffectiveDarkMode(activePage);
-    return false;
-}
-
-function renderLvglGridOverlayToElement(element, layout, dims, isDark) {
-    const match = layout.match(/^(\d+)x(\d+)$/);
-    if (!match) return;
-
-    const rows = parseInt(match[1], 10);
-    const cols = parseInt(match[2], 10);
-
-    const gridOverlay = document.createElement("div");
-    gridOverlay.className = "lvgl-grid-overlay";
-    gridOverlay.style.cssText = `
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    display: grid;
-    grid-template-rows: repeat(${rows}, 1fr);
-    grid-template-columns: repeat(${cols}, 1fr);
-    pointer-events: none;
-    z-index: 1;
-    `;
-
-    const lineColor = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
-    const labelColor = isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.25)";
-
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            const cell = document.createElement("div");
-            cell.style.cssText = `border: 1px dashed ${lineColor}; position: relative; box-sizing: border-box;`;
-            const label = document.createElement("span");
-            label.textContent = `${r},${c}`;
-            label.style.cssText = `position: absolute; top: 2px; left: 4px; font-size: 8px; color: ${labelColor}; pointer-events: none;`;
-            cell.appendChild(label);
-            gridOverlay.appendChild(cell);
-        }
-    }
-    element.appendChild(gridOverlay);
-}
-
-export function applyZoom(canvasInstance) {
-    const zoom = AppState.zoomLevel;
-    const settings = AppState.settings;
-
-    if (canvasInstance.canvasContainer) {
-        // Use a single transform for both pan and zoom for predictable focal point math
-        canvasInstance.canvasContainer.style.transform =
-            `translate(${canvasInstance.panX}px, ${canvasInstance.panY}px) scale(${zoom})`;
-        canvasInstance.canvasContainer.style.transformOrigin = "0 0";
-    }
-
-    // Apply grid opacity
-    const opacity = (settings.grid_opacity !== undefined ? Number(settings.grid_opacity) : 8) / 100;
-    document.documentElement.style.setProperty('--grid-opacity', opacity.toString());
-
-    // Update zoom level display
-    const zoomLevelEl = document.getElementById("zoomLevel");
-    if (zoomLevelEl) {
-        zoomLevelEl.textContent = Math.round(zoom * 100) + "%";
-    }
-}
-
-/**
- * Centrally focuses an artboard in the viewport by adjusting panX/panY.
- * @param {import('./canvas').Canvas} canvasInstance
- * @param {number} index
- * @param {boolean} [smooth=true]
- * @param {boolean} [fitZoom=false]
- */
-export function focusPage(canvasInstance, index, smooth = true, fitZoom = false) {
-    scheduleLayoutMeasurement(canvasInstance, '_focusPageRaf', () => {
-        const wrappers = canvasInstance.canvas.querySelectorAll('.artboard-wrapper');
-        const target = wrappers[index];
-        if (!target) return;
-
-        const viewportRect = canvasInstance.viewport.getBoundingClientRect();
-        const vw = viewportRect.width;
-        const vh = viewportRect.height;
-
-        // If viewport has no size yet, defer again to avoid off-screen jumps.
-        if (vw === 0 || vh === 0) {
-            focusPage(canvasInstance, index, smooth, fitZoom);
-            return;
-        }
-
-        if (fitZoom) {
-            const fitScale = calculateZoomToFit(canvasInstance, index);
-            AppState.setZoomLevel(fitScale);
-        }
-
-        const zoom = AppState.zoomLevel;
-        const hTarget = /** @type {HTMLElement} */(target);
-        const targetX = hTarget.offsetLeft + (hTarget.offsetWidth / 2);
-        const targetY = hTarget.offsetTop + (hTarget.offsetHeight / 2);
-
-        canvasInstance.panX = (vw / 2) - (targetX * zoom);
-        canvasInstance.panY = (vh / 2) - (targetY * zoom);
-
-        applyZoom(canvasInstance);
-    });
-}
-
-/**
- * Zooms and pans to show all artboards in the viewport.
- * @param {import('./canvas').Canvas} canvasInstance
- * @param {boolean} [_smooth=true]
- */
-export function zoomToFitAll(canvasInstance, _smooth = true) {
-    scheduleLayoutMeasurement(canvasInstance, '_zoomToFitAllRaf', () => {
-        const wrappers = canvasInstance.canvas.querySelectorAll('.artboard-wrapper');
-        if (wrappers.length === 0) return;
-
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
-        wrappers.forEach(wrapper => {
-            const hWrapper = /** @type {HTMLElement} */(wrapper);
-            const x = hWrapper.offsetLeft;
-            const y = hWrapper.offsetTop;
-            const w = hWrapper.offsetWidth;
-            const h = hWrapper.offsetHeight;
-
-            minX = Math.min(minX, x);
-            minY = Math.min(minY, y);
-            maxX = Math.max(maxX, x + w);
-            maxY = Math.max(maxY, y + h);
-        });
-
-        const viewportRect = canvasInstance.viewport.getBoundingClientRect();
-        const vw = viewportRect.width;
-        const vh = viewportRect.height;
-        if (vw === 0 || vh === 0) return;
-
-        const padding = 80;
-        const boxW = (maxX - minX) + padding;
-        const boxH = (maxY - minY) + padding;
-        const scaleX = vw / boxW;
-        const scaleY = vh / boxH;
-        let fitScale = Math.min(scaleX, scaleY);
-
-        fitScale = Math.max(0.05, Math.min(2.0, fitScale));
-        AppState.setZoomLevel(fitScale);
-
-        const centerX = minX + (maxX - minX) / 2;
-        const centerY = minY + (maxY - minY) / 2;
-
-        canvasInstance.panX = (vw / 2) - (centerX * fitScale);
-        canvasInstance.panY = (vh / 2) - (centerY * fitScale);
-
-        applyZoom(canvasInstance);
-    });
-}
-
-/**
- * Calculates the zoom level required to fit the current artboard fully within the viewport.
- * Uses a device-aware minimum floor to prevent excessive zoom-out on small screens.
- * @param {import('./canvas').Canvas} canvasInstance
- * @param {number} [index=AppState.currentPageIndex]
- * @returns {number}
- */
-export function calculateZoomToFit(canvasInstance, index = AppState.currentPageIndex) {
-    const wrappers = canvasInstance.canvas.querySelectorAll('.artboard-wrapper');
-    const target = wrappers[index];
-    if (!target) return 1.0;
-
-    const viewportRect = canvasInstance.viewport.getBoundingClientRect();
-    const padding = 64; // Visual safety padding around the artboard
-
-    const hTarget = /** @type {HTMLElement} */(target);
-    const targetW = hTarget.offsetWidth + padding;
-    const targetH = hTarget.offsetHeight + padding;
-
-    const scaleX = viewportRect.width / targetW;
-    const scaleY = viewportRect.height / targetH;
-
-    // We want to fit both dimensions, so take the minimum scale
-    const fitScale = Math.min(scaleX, scaleY);
-
-    // Calculate a device-aware minimum zoom floor
-    // For small viewports, we allow zooming out much further to ensure full visibility
-    const viewportSmallestDim = Math.min(viewportRect.width, viewportRect.height);
-    const minZoomFloor = Math.max(0.15, Math.min(1.0, viewportSmallestDim / 800));
-
-    // Smart Magnification: for very small devices (e.g. 100x100), allow zooming in up to 4x
-    // to ensure the artboard is actually usable in the preview.
-    const maxZoomCeiling = 4.0;
-
-    // Clamp between the device-aware floor and the magnification ceiling
-    return Math.max(minZoomFloor, Math.min(maxZoomCeiling, fitScale));
-}
-
-/**
- * @param {import('./canvas').Canvas} canvasInstance
- * @param {Widget} widget
- * @param {boolean} [skipPluginRender=false]
- */
-export function updateWidgetDOM(canvasInstance, widget, skipPluginRender = false) {
-    if (!widget || !widget.id) return;
-    const el = /** @type {HTMLElement} */ (canvasInstance.canvas.querySelector(`.widget[data-id="${widget.id}"]`));
-    if (el) {
-        const hEl = /** @type {HTMLElement} */(el);
-        hEl.style.left = widget.x + "px";
-        hEl.style.top = widget.y + "px";
-        hEl.style.width = widget.width + "px";
-        hEl.style.height = widget.height + "px";
-
-        // Re-render plugin logic for real-time updates (e.g. font-size in icons)
-        const type = (widget.type || "").toLowerCase();
-        const feature = registry ? registry.get(type) : null;
-
-        if (type === 'group') {
-            el.classList.add('widget-group');
-        } else if (!skipPluginRender && feature && feature.render) {
-            try {
-                const wrappedGetColorStyle = (colorName) => {
-                    if (colorName === 'theme_auto') return getEffectiveDarkMode() ? '#ffffff' : '#000000';
-                    if (colorName === 'theme_auto_inverse') return getEffectiveDarkMode() ? '#000000' : '#ffffff';
-
-                    if (!colorName) return getEffectiveDarkMode() ? '#ffffff' : '#000000';
-                    return getColorStyle(colorName);
-                };
-
-                const isSelected = AppState.selectedWidgetIds.includes(widget.id);
-                const deviceModel = AppState.settings.device_model || 'reterminal_e1001';
-                const profile = DEVICE_PROFILES ? DEVICE_PROFILES[deviceModel] : null;
-
-                feature.render(el, widget, {
-                    getColorStyle: wrappedGetColorStyle,
-                    selected: isSelected,
-                    profile: profile,
-                    isDark: getEffectiveDarkMode()
-                });
-            } catch {
-                // Silent fail for minor real-time updates to keep performance high
-            }
-        }
-    }
-}
-
-function addResizeHandles(el) {
-    const handles = ['tl', 'tc', 'tr', 'rc', 'br', 'bc', 'bl', 'lc'];
-    handles.forEach(type => {
-        const handle = document.createElement("div");
-        handle.className = `widget-resize-handle handle-${type}`;
-        handle.dataset.handle = type;
-        el.appendChild(handle);
-    });
-}
-
-/**
- * @param {import('./canvas').Canvas} canvasInstance
- */
-export function renderContextToolbar(canvasInstance) {
-    const selectedIds = AppState.selectedWidgetIds;
-    const wrapper = canvasInstance.canvas.querySelector(`.artboard-wrapper[data-index="${AppState.currentPageIndex}"]`);
-    const artboard = wrapper ? wrapper.querySelector(".artboard") : null;
-    /** @type {HTMLElement|null} */
-    let toolbar = canvasInstance.canvas.querySelector(".context-toolbar");
-
-    // Hide if nothing selected or during active drag/lasso
-    if (selectedIds.length === 0 || canvasInstance.dragState || canvasInstance.lassoState || !artboard) {
-        if (toolbar) toolbar.remove();
-        return;
-    }
-
-    const widgets = AppState.getSelectedWidgets();
-    if (widgets.length === 0 || !wrapper || !artboard) {
-        if (toolbar) toolbar.remove();
-        return;
-    }
-
-    // Calculate bounding box in canvas space
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    widgets.forEach(w => {
-        minX = Math.min(minX, w.x);
-        minY = Math.min(minY, w.y);
-        maxX = Math.max(maxX, w.x + (w.width || 0));
-        maxY = Math.max(maxY, w.y + (w.height || 0));
-    });
-
-    const targetLeft = minX;
-    const hArtboard = /** @type {HTMLElement} */(artboard);
-    // Position relative to artboard content, but we'll apply it to the wrapper scale
-    // We add artboard.offsetTop to account for the header + gap
-    const targetTop = hArtboard.offsetTop + minY - 45;
-
-    // Create or move toolbar
-    if (!toolbar) {
-        toolbar = document.createElement("div");
-        toolbar.className = "context-toolbar";
-        wrapper.appendChild(toolbar);
-    } else if (toolbar.parentElement !== wrapper) {
-        wrapper.appendChild(toolbar);
-    }
-
-    // Update position
-    toolbar.style.left = targetLeft + "px";
-    toolbar.style.top = targetTop + "px";
-
-    // Always rebuild content to ensure correctness
-    toolbar.innerHTML = "";
-
-    // 1. Alignment Tools (Multi-select only)
-    if (selectedIds.length > 1) {
-        const alignTools = [
-            { icon: 'mdi-align-horizontal-left', title: 'Align Left', action: 'left' },
-            { icon: 'mdi-align-horizontal-center', title: 'Align Center', action: 'center' },
-            { icon: 'mdi-align-horizontal-right', title: 'Align Right', action: 'right' },
-            { separator: true },
-            { icon: 'mdi-align-vertical-top', title: 'Align Top', action: 'top' },
-            { icon: 'mdi-align-vertical-center', title: 'Align Middle', action: 'middle' },
-            { icon: 'mdi-align-vertical-bottom', title: 'Align Bottom', action: 'bottom' }
-        ];
-
-        alignTools.forEach(tool => {
-            if (tool.separator) {
-                addSeparator(toolbar);
-                return;
-            }
-            addButton(toolbar, tool.icon || '', tool.title || '', () => AppState.alignSelectedWidgets(tool.action || ''));
-        });
-
-        // 2. Distribution Tools (3+ widgets)
-        if (selectedIds.length >= 3) {
-            addSeparator(toolbar);
-            addButton(toolbar, 'mdi-distribute-horizontal-center', 'Distribute Horizontally', () => AppState.distributeSelectedWidgets('horizontal'));
-            addButton(toolbar, 'mdi-distribute-vertical-center', 'Distribute Vertically', () => AppState.distributeSelectedWidgets('vertical'));
-        }
-    }
-
-    // 3. Grouping Logic
-    // We can only group if NONE of the selected items are already groups or inside groups
-    // We can ungroup if ANY of the selected items are groups or inside groups
-    const hasUngroupable = widgets.some(w => w.type === 'group' || w.parentId);
-
-    if (hasUngroupable) {
-        // Show Ungroup
-        if (toolbar.children.length > 0) addSeparator(toolbar);
-        addButton(toolbar, 'mdi-ungroup', 'Ungroup (Ctrl+Shift+G)', () => AppState.ungroupSelection());
-    } else if (selectedIds.length > 1) {
-        // Show Group (only if multiple items and clean hierarchy)
-        if (toolbar.children.length > 0) addSeparator(toolbar);
-        addButton(toolbar, 'mdi-group', 'Group Selection (Ctrl+G)', () => AppState.groupSelection());
-    }
-
-    if (toolbar.children.length === 0) {
-        toolbar.remove();
-        return;
-    }
-}
-
-function addButton(container, icon, title, onClick) {
-    const btn = document.createElement("button");
-    btn.className = "btn-icon";
-    btn.title = title;
-    btn.innerHTML = `<i class="mdi ${icon}"></i>`;
-    btn.onclick = (e) => {
-        e.stopPropagation();
-        onClick();
-    };
-    container.appendChild(btn);
-}
-
-function addSeparator(container) {
-    // Avoid double separators or leading separators
-    if (!container.lastElementChild || container.lastElementChild.classList.contains('separator')) return;
-
-    const sep = document.createElement("div");
-    sep.className = "separator";
-    container.appendChild(sep);
-}
-
-function createMdiIconButton(iconClass, title, onClick) {
-    const btn = document.createElement("button");
-    btn.className = "artboard-btn";
-    btn.title = title;
-    btn.innerHTML = `<i class="mdi ${iconClass}"></i>`;
-    btn.onclick = (e) => {
-        e.stopPropagation();
-        onClick();
-    };
-    return btn;
-}
-
-function confirmAction({ title, message, confirmLabel, confirmClass, onConfirm }) {
-    const modal = document.createElement('div');
-    modal.className = 'modal-backdrop';
-    modal.style.display = 'flex';
-    modal.innerHTML = `
-    <div class="modal" style="width: 340px; height: auto; padding: var(--space-4); border-radius: 12px; border: 1px solid var(--glass-border);">
-        <div class="modal-header" style="font-size: var(--fs-md); font-weight: 600; padding-bottom: var(--space-3); border-bottom: 1px solid var(--border-subtle);">
-            <div>${title}</div>
-        </div>
-        <div class="modal-body" style="padding: var(--space-4) 0;">
-            <p style="font-size: var(--fs-sm); line-height: 1.5; color: var(--text-dim);">
-                ${message}
-            </p>
-        </div>
-        <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end; padding-top: var(--space-3);">
-            <button class="btn btn-secondary close-btn btn-xs" style="border-radius: 6px;">Cancel</button>
-            <button class="btn ${confirmClass || 'btn-primary'} confirm-btn btn-xs" style="border-radius: 6px;">${confirmLabel || 'Confirm'}</button>
-        </div>
-    </div>
-    `;
-    document.body.appendChild(modal);
-
-    const closeBtn = modal.querySelector('.close-btn');
-    const confirmBtn = modal.querySelector('.confirm-btn');
-    const hClose = /** @type {HTMLElement} */(closeBtn);
-    const hConfirm = /** @type {HTMLElement} */(confirmBtn);
-
-    hClose.onclick = () => modal.remove();
-    hConfirm.onclick = () => {
-        onConfirm();
-        modal.remove();
-    };
-
-}
-
-function renderDebugGridOverlay(element, _dims, _isDark) {
-    const overlay = document.createElement("div");
-    overlay.className = "debug-grid-overlay";
-    element.appendChild(overlay);
-}
-

@@ -206,10 +206,8 @@ export function drawSmartAxisLabels(container, x, y, width, height, min, max, du
     const steps = 4; // Min, 25%, 50%, 75%, Max
 
     // Use artboard dimensions for logical clamping
-    // @ts-ignore
-    const canvasWidth = parseInt(container.style.width) || 800;
-    // @ts-ignore
-    const canvasHeight = parseInt(container.style.height) || 480;
+    const canvasWidth = parseInt(container.style.width, 10) || 800;
+    const canvasHeight = parseInt(container.style.height, 10) || 480;
 
     // Determine if labels should be inside or outside
     const yLabelsInside = x < 40;
@@ -219,40 +217,30 @@ export function drawSmartAxisLabels(container, x, y, width, height, min, max, du
         const val = min + (range * (i / steps));
         const labelY = y + height - ((i / steps) * height);
 
+        /** @type {HTMLDivElement} */
         const div = document.createElement("div");
         div.className = "graph-axis-label";
         div.dataset.widgetId = widgetId;
-        // @ts-ignore
-        div.style.position = "absolute";
+        const style = div.style;
+        style.position = "absolute";
 
         if (yLabelsInside) {
-            // @ts-ignore
-            div.style.left = `${x + 4}px`;
-            // @ts-ignore
-            div.style.textAlign = "left";
+            style.left = `${x + 4}px`;
+            style.textAlign = "left";
         } else {
             // Positon to left of graph.
             // We use left-based positioning to be relative to artboard origin.
-            // @ts-ignore
-            div.style.left = `${x - 4}px`;
-            // @ts-ignore
-            div.style.transform = "translateX(-100%)";
-            // @ts-ignore
-            div.style.textAlign = "right";
+            style.left = `${x - 4}px`;
+            style.transform = "translateX(-100%)";
+            style.textAlign = "right";
         }
 
-        // @ts-ignore
-        div.style.top = `${labelY - 6}px`; // Center vertically
-        // @ts-ignore
-        div.style.fontSize = "10px";
-        // @ts-ignore
-        div.style.color = color;
-        // @ts-ignore
-        div.style.opacity = yLabelsInside ? "0.7" : "1.0";
-        // @ts-ignore
-        div.style.pointerEvents = "none";
-        // @ts-ignore
-        div.style.zIndex = "10";
+        style.top = `${labelY - 6}px`; // Center vertically
+        style.fontSize = "10px";
+        style.color = color;
+        style.opacity = yLabelsInside ? "0.7" : "1.0";
+        style.pointerEvents = "none";
+        style.zIndex = "10";
         div.textContent = val.toFixed(1);
         container.appendChild(div);
     }
@@ -274,49 +262,36 @@ export function drawSmartAxisLabels(container, x, y, width, height, min, max, du
             else labelText = `-${timeAgo.toFixed(0)}s`;
         }
 
+        /** @type {HTMLDivElement} */
         const div = document.createElement("div");
         div.className = "graph-axis-label";
         div.dataset.widgetId = widgetId;
-        // @ts-ignore
-        div.style.position = "absolute";
-        // @ts-ignore
-        div.style.left = `${labelX}px`;
+        const style = div.style;
+        style.position = "absolute";
+        style.left = `${labelX}px`;
 
         if (xLabelsInside) {
-            // @ts-ignore
-            div.style.top = `${y + height - 14}px`; // Inside, above bottom
+            style.top = `${y + height - 14}px`; // Inside, above bottom
         } else {
-            // @ts-ignore
-            div.style.top = `${y + height + 4}px`; // Below graph
+            style.top = `${y + height + 4}px`; // Below graph
         }
 
-        // @ts-ignore
-        div.style.fontSize = "10px";
-        // @ts-ignore
-        div.style.color = color;
-        // @ts-ignore
-        div.style.opacity = xLabelsInside ? "0.7" : "1.0";
-        // @ts-ignore
-        div.style.pointerEvents = "none";
-        // @ts-ignore
-        div.style.zIndex = "10";
+        style.fontSize = "10px";
+        style.color = color;
+        style.opacity = xLabelsInside ? "0.7" : "1.0";
+        style.pointerEvents = "none";
+        style.zIndex = "10";
 
         // Horizontal clamping for X labels relative to artboard
         if (labelX < 20) {
-            // @ts-ignore
-            div.style.transform = "none";
-            // @ts-ignore
-            div.style.textAlign = "left";
+            style.transform = "none";
+            style.textAlign = "left";
         } else if (labelX > canvasWidth - 20) {
-            // @ts-ignore
-            div.style.transform = "translateX(-100%)";
-            // @ts-ignore
-            div.style.textAlign = "right";
+            style.transform = "translateX(-100%)";
+            style.textAlign = "right";
         } else {
-            // @ts-ignore
-            div.style.transform = "translateX(-50%)";
-            // @ts-ignore
-            div.style.textAlign = "center";
+            style.transform = "translateX(-50%)";
+            style.textAlign = "center";
         }
 
         div.textContent = labelText;

@@ -25,15 +25,15 @@ export class PreferencesStore {
     /** @returns {boolean} */
     get showGrid() { return this.state.showGrid; }
     /** @returns {boolean} */
-    get showDebugGrid() { return this.state.showDebugGrid; }
+    get showDebugGrid() { return !!this.state.showDebugGrid; }
     /** @returns {boolean} */
-    get showRulers() { return this.state.showRulers; }
+    get showRulers() { return !!this.state.showRulers; }
     /** @returns {number} */
     get gridOpacity() { return this.state.gridOpacity; }
     /** @returns {boolean} */
     get editor_light_mode() { return this.state.editor_light_mode; }
 
-    /** @param {Partial<Object>} updates */
+    /** @param {Partial<PreferencesState>} updates */
     update(updates) {
         this.state = { ...this.state, ...updates };
         emit(EVENTS.SETTINGS_CHANGED, this.state);

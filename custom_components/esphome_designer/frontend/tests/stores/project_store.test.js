@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ProjectStore } from '../../js/core/stores/project_store.js';
 import * as events from '../../js/core/events.js';
+import { ORIENTATIONS } from '../../js/core/constants.ts';
+import { DEVICE_PROFILES } from '../../js/io/devices.js';
 
 // Mock events
 vi.mock('../../js/core/events.js', () => ({
@@ -80,6 +82,21 @@ describe('ProjectStore', () => {
             expect(store.currentPageIndex).toBe(1);
         });
 
+        it('should keep a default page when setPages receives an empty array', () => {
+            store.setPages([]);
+
+            expect(store.pages.length).toBe(1);
+            expect(store.pages[0].name).toBe('Overview');
+            expect(store.currentPageIndex).toBe(0);
+        });
+
+        it('should not delete the last remaining page', () => {
+            store.deletePage(0);
+
+            expect(store.pages.length).toBe(1);
+            expect(store.pages[0].name).toBe('Overview');
+        });
+
         it('should rename a page', () => {
             store.renamePage(0, ' Dashboard ');
             expect(store.pages[0].name).toBe('Dashboard');
@@ -93,6 +110,20 @@ describe('ProjectStore', () => {
             expect(newPage.name).toBe('Overview (Copy)');
             expect(newPage.widgets[0].id).not.toBe('w1');
             expect(newPage.widgets[0].type).toBe('text');
+        });
+
+        it('should preserve parent-child relationships when duplicating a page', () => {
+            store.addWidget({ id: 'group-1', type: 'group', x: 0, y: 0, props: {} });
+            store.addWidget({ id: 'child-1', type: 'text', x: 5, y: 5, parentId: 'group-1', props: {} });
+
+            const newPage = store.duplicatePage(0);
+            const duplicatedGroup = newPage.widgets.find((widget) => widget.type === 'group');
+            const duplicatedChild = newPage.widgets.find((widget) => widget.type === 'text');
+
+            expect(duplicatedGroup?.id).toBeDefined();
+            expect(duplicatedChild?.id).toBeDefined();
+            expect(duplicatedChild?.parentId).toBe(duplicatedGroup?.id);
+            expect(duplicatedChild?.parentId).not.toBe('group-1');
         });
     });
 
@@ -142,6 +173,13 @@ describe('ProjectStore', () => {
             expect(store.pages[0].widgets[0].id).toBe('w2');
             expect(store.pages[0].widgets[1].id).toBe('w1');
         });
+
+        it('should ignore invalid current page changes', () => {
+            store.setCurrentPageIndex(99);
+
+            expect(store.currentPageIndex).toBe(0);
+            expect(events.emit).not.toHaveBeenCalled();
+        });
     });
 
     describe('Move Widget to Page', () => {
@@ -167,6 +205,23 @@ describe('ProjectStore', () => {
             expect(w.x).toBe(100);
             expect(w.y).toBe(100);
         });
+
+        it('should resolve a child move to its root group and clamp to canvas bounds', () => {
+            store.addWidget({ id: 'parent', type: 'group', x: 380, y: 280, width: 40, height: 40, props: {} });
+            store.addWidget({ id: 'child', type: 'text', parentId: 'parent', x: 390, y: 290, width: 10, height: 10, props: {} });
+            store.addPage();
+
+            const moved = store.moveWidgetToPage('child', 1, 390, 290);
+            const parent = store.pages[1].widgets.find((widget) => widget.id === 'parent');
+            const child = store.pages[1].widgets.find((widget) => widget.id === 'child');
+
+            expect(moved).toBe(true);
+            expect(store.pages[0].widgets).toHaveLength(0);
+            expect(parent?.x).toBe(360);
+            expect(parent?.y).toBe(260);
+            expect(child?.x).toBe(370);
+            expect(child?.y).toBe(270);
+        });
     });
 
     describe('Clear Page', () => {
@@ -186,6 +241,15 @@ describe('ProjectStore', () => {
             expect(store.pages[0].widgets.length).toBe(1);
             expect(store.pages[0].widgets[0].id).toBe('w1');
         });
+
+        it('should return deleted and preserved counts when clearing a page', () => {
+            store.addWidget({ id: 'w1', locked: true });
+            store.addWidget({ id: 'w2', locked: false });
+
+            const result = store.clearCurrentPage(true);
+
+            expect(result).toEqual({ deleted: 1, preserved: 1 });
+        });
     });
 
     describe('Payload Round-trip', () => {
@@ -204,6 +268,21 @@ describe('ProjectStore', () => {
             store2.setPages(payload.pages);
             expect(store2.pages.length).toBe(2);
             expect(store2.getWidgetById('w-trip')).toBeDefined();
+        });
+
+        it('should derive canvas dimensions and shape from custom hardware when profile metadata is unavailable', () => {
+            const originalCustomProfile = DEVICE_PROFILES.custom;
+            delete DEVICE_PROFILES.custom;
+
+            try {
+                store.state.customHardware = { resWidth: 600, resHeight: 448, shape: 'round' };
+                store.setDeviceSettings('My-Device', 'custom');
+
+                expect(store.getCanvasDimensions(ORIENTATIONS.PORTRAIT)).toEqual({ width: 448, height: 600 });
+                expect(store.getCanvasShape()).toBe('round');
+            } finally {
+                DEVICE_PROFILES.custom = originalCustomProfile;
+            }
         });
     });
 });

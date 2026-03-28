@@ -65,27 +65,26 @@ export function highlightWidgetInSnippet(widgetIds) {
         let targetStr = `id:${id}`;
         let index = yaml.indexOf(targetStr);
 
-        // Fallback 1: Check for spaced ID (common in YAML body)
+        // Fallback 1: Check for ODP YAML list format comment first to avoid
+        // generic `id: ...` matches inside the comment body.
+        if (index === -1) {
+            targetStr = `# id: ${id}`;
+            index = yaml.indexOf(targetStr);
+        }
+
+        // Fallback 2: Check for spaced ID (common in YAML body)
         if (index === -1) {
             targetStr = `id: ${id}`;
             index = yaml.indexOf(targetStr);
         }
 
-        // Fallback 2: Check for JSON format (common in OEPL/ODP)
+        // Fallback 3: Check for JSON format (common in OEPL/ODP)
         if (index === -1) {
             targetStr = `"id":"${id}"`;
             index = yaml.indexOf(targetStr);
         }
         if (index === -1) {
             targetStr = `"id": "${id}"`;
-            index = yaml.indexOf(targetStr);
-        }
-
-        // Fallback 3: Check for ODP YAML list format.
-        // The adapter now outputs ids as comments: "    # id: widget_id"
-        // Followed by "    - type: ..."
-        if (index === -1) {
-            targetStr = `# id: ${id}`;
             index = yaml.indexOf(targetStr);
         }
 
@@ -186,7 +185,9 @@ export function highlightWidgetInSnippet(widgetIds) {
                 // For YAML (standard or ODP), look for the next "- type:" at the same indentation level
                 // OR any of the stop markers.
                 const nextTypeMarker = "\n    - type:"; // Assuming standard 4-space align in ODP payload
-                const nextTypeIndex = yaml.indexOf(nextTypeMarker, index + targetStr.length);
+                const nextTypeIndex = targetStr.startsWith("# id:")
+                    ? -1
+                    : yaml.indexOf(nextTypeMarker, index + targetStr.length);
 
                 let nextMarkerIndex = -1;
 
@@ -254,16 +255,14 @@ export function highlightWidgetInSnippet(widgetIds) {
         // Scroll to selection
         setTimeout(() => {
             const boxElement = /** @type {HTMLTextAreaElement} */ (box);
-            if (boxElement.scrollTo) {
-                const lines = yaml.substring(0, minStart).split('\n');
-                const totalLines = yaml.split('\n').length;
-                const lineNum = lines.length;
-                const lineHeight = boxElement.scrollHeight / totalLines;
+            const lines = yaml.substring(0, minStart).split('\n');
+            const totalLines = yaml.split('\n').length;
+            const lineNum = lines.length;
+            const lineHeight = boxElement.scrollHeight / totalLines;
 
-                // Align to top third
-                boxElement.scrollTop = (lineNum * lineHeight) - 50;
-                boxElement.scrollLeft = 0;
-            }
+            // Align to top third
+            boxElement.scrollTop = (lineNum * lineHeight) - 50;
+            boxElement.scrollLeft = 0;
         }, 10);
     }
 }

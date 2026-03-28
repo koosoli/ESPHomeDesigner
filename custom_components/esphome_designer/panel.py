@@ -1,30 +1,27 @@
 """
-Panel view for the ESPHome Designer Designer.
+Panel and static asset views for ESPHome Designer.
 
-This exposes the editor UI as a full-screen, authenticated panel inside Home Assistant,
-so users do not need to copy anything into /config/www manually.
-
-Routes:
-- GET /esphome-designer
-    Serves the embedded editor HTML/JS, which talks to:
-    - /api/esphome_designer/layout
-    - /api/esphome_designer/entities
-    - /api/esphome_designer/snippet
-    - /api/esphome_designer/import_snippet
-
-Notes:
-- This view runs under the Home Assistant frontend origin and shares auth/session.
-- All API calls are relative paths, no hard-coded host.
+The Home Assistant sidebar entry loads a small custom panel module, which in
+turn renders the editor inside a same-origin iframe. The iframe shell and the
+bundled frontend assets must remain publicly readable so Home Assistant can
+bootstrap the panel, while the real backend API stays authenticated.
 """
 
 from __future__ import annotations
 
+import asyncio
+import html
+import json
 import logging
+import mimetypes
+import re
+from pathlib import Path
 from typing import Any
 
 from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.http import KEY_AUTHENTICATED
 
 from .const import API_BASE_PATH
 
@@ -32,1129 +29,355 @@ _LOGGER = logging.getLogger(__name__)
 
 
 PANEL_URL_PATH = "/esphome-designer/editor/index.html"
+FRONTEND_DIR = Path(__file__).parent / "frontend"
+DIST_DIR = FRONTEND_DIR / "dist"
+DIST_MANIFEST_PATH = DIST_DIR / ".vite" / "manifest.json"
+PANEL_ENTRY_KEY = "panel/esphome-designer-panel.js"
+FONT_CANDIDATES = (
+    FRONTEND_DIR / "materialdesignicons-webfont.ttf",
+    Path(__file__).parent.parent.parent / "www" / "esphome_designer_panel" / "materialdesignicons-webfont.ttf",
+    Path(__file__).parent.parent.parent / "esphome" / "fonts" / "materialdesignicons-webfont.ttf",
+)
+
+
+def _load_dist_manifest() -> dict[str, Any]:
+    if not DIST_MANIFEST_PATH.exists():
+        return {}
+
+    try:
+        return json.loads(DIST_MANIFEST_PATH.read_text(encoding="utf-8"))
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Failed to read Vite manifest %s: %s", DIST_MANIFEST_PATH, err)
+        return {}
+
+
+def get_frontend_cache_token() -> str:
+    manifest_path = DIST_MANIFEST_PATH if DIST_MANIFEST_PATH.exists() else FRONTEND_DIR / "index.html"
+    try:
+        return str(manifest_path.stat().st_mtime_ns)
+    except FileNotFoundError:
+        return "0"
+
+
+def _append_cache_token(url: str) -> str:
+    separator = "&" if "?" in url else "?"
+    return f"{url}{separator}v={get_frontend_cache_token()}"
+
+
+def get_dist_entry_url(entry_key: str) -> str | None:
+    manifest = _load_dist_manifest()
+    entry = manifest.get(entry_key)
+    if not entry:
+        return None
+
+    asset_path = entry.get("file")
+    if not asset_path:
+        return None
+
+    return _append_cache_token(f"/esphome-designer/editor/static/dist/{asset_path}")
+
+
+def get_panel_module_url() -> str:
+    return get_dist_entry_url(PANEL_ENTRY_KEY) or _append_cache_token(
+        "/esphome-designer/editor/static/panel/esphome-designer-panel.js"
+    )
+
+
+def _rewrite_editor_asset_path(prefix: str, path: str) -> str:
+    if path.startswith(("http://", "https://", "data:", "/")):
+        return path
+
+    while path.startswith("./"):
+        path = path[2:]
+
+    if prefix == "dist":
+        return _append_cache_token(f"/esphome-designer/editor/static/dist/{path}")
+
+    return _append_cache_token(f"/esphome-designer/editor/static/{path}")
+
+
+def _rewrite_editor_html(prefix: str, html_text: str) -> str:
+    def rewrite_attr(match: re.Match[str]) -> str:
+        attr = match.group(1)
+        path = match.group(2)
+        return f'{attr}="{_rewrite_editor_asset_path(prefix, path)}"'
+
+    return re.sub(r'(src|href)="([^"]+)"', rewrite_attr, html_text)
+
+
+def _static_cache_headers(path: str, is_binary: bool) -> dict[str, str]:
+    normalized = path.replace("\\", "/")
+    immutable_dist_asset = normalized.startswith("dist/assets/") and bool(re.search(r"-[A-Za-z0-9_-]{6,}\.", normalized))
+
+    headers = {
+        "Access-Control-Allow-Private-Network": "true",
+    }
+
+    if immutable_dist_asset or is_binary:
+        headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return headers
+
+    headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    headers["Pragma"] = "no-cache"
+    headers["Expires"] = "0"
+    return headers
+
+
+def _no_cache_headers() -> dict[str, str]:
+    return {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+    }
+
+
+def _resolve_frontend_html_candidates() -> tuple[tuple[str, Path], ...]:
+    component_dir = Path(__file__).parent
+    config_dir = component_dir.parent.parent
+    return (
+        ("dist", DIST_DIR / "index.html"),
+        ("raw", FRONTEND_DIR / "index.html"),
+        ("www", config_dir / "www" / "esphome_designer_panel" / "index.html"),
+    )
+
+
+def _resolve_static_asset_path(path: str) -> Path:
+    if path.startswith("dist/"):
+        candidate = (DIST_DIR / path[5:]).resolve()
+        candidate.relative_to(DIST_DIR.resolve())
+        return candidate
+
+    dist_candidate = (DIST_DIR / path).resolve()
+    raw_candidate = (FRONTEND_DIR / path).resolve()
+
+    if dist_candidate.exists():
+        dist_candidate.relative_to(DIST_DIR.resolve())
+        return dist_candidate
+
+    raw_candidate.relative_to(FRONTEND_DIR.resolve())
+    return raw_candidate
+
+
+def _resolve_custom_profile_path(hass: HomeAssistant, path: str) -> Path:
+    profile_filename = path.removeprefix("esphomedesigner_custom_profiles/").strip("/")
+    if ".." in profile_filename or "/" in profile_filename or "\\" in profile_filename:
+        raise ValueError("profile_path_escape")
+
+    custom_profiles_dir = Path(hass.config.path("esphomedesigner_custom_profiles"))
+    file_path = (custom_profiles_dir / profile_filename).resolve()
+    file_path.relative_to(custom_profiles_dir.resolve())
+    return file_path
+
+
+def _guess_content_type(path: str, file_path: Path) -> str:
+    if path.endswith(".js"):
+        return "application/javascript"
+    if path.endswith(".css"):
+        return "text/css"
+    if path.endswith(".json"):
+        return "application/json"
+
+    guessed, _ = mimetypes.guess_type(str(file_path))
+    if guessed:
+        return guessed
+
+    if path.endswith(".ttf"):
+        return "font/ttf"
+    if path.endswith(".woff"):
+        return "font/woff"
+    if path.endswith(".woff2"):
+        return "font/woff2"
+    return "application/octet-stream"
+
+
+def _render_unavailable_editor_html(searched_paths: tuple[Path, ...]) -> str:
+    escaped_paths = "\n".join(
+        f"<li><code>{html.escape(str(path))}</code></li>"
+        for path in searched_paths
+    )
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESPHome Designer Unavailable</title>
+  <style>
+    :root {{
+      color-scheme: dark;
+      --bg: #0b0e13;
+      --panel: #121722;
+      --border: rgba(255,255,255,0.08);
+      --text: #f5f7fb;
+      --muted: rgba(245,247,251,0.7);
+      --accent: #6ee7b7;
+      --danger: #fb7185;
+    }}
+    body {{
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at top, #182033 0%, var(--bg) 60%);
+      color: var(--text);
+      font-family: system-ui, sans-serif;
+    }}
+    main {{
+      width: min(780px, calc(100vw - 32px));
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 24px;
+      box-sizing: border-box;
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
+    }}
+    h1 {{
+      margin: 0 0 10px;
+      font-size: 28px;
+    }}
+    p {{
+      margin: 0 0 14px;
+      color: var(--muted);
+      line-height: 1.55;
+    }}
+    .status {{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 18px;
+      color: var(--danger);
+      font-weight: 600;
+    }}
+    ul {{
+      margin: 16px 0 0;
+      padding-left: 22px;
+    }}
+    li {{
+      margin: 8px 0;
+      color: var(--muted);
+    }}
+    code {{
+      color: var(--text);
+      background: rgba(255,255,255,0.06);
+      padding: 2px 6px;
+      border-radius: 6px;
+    }}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="status">Frontend assets are missing</div>
+    <h1>ESPHome Designer could not find its editor bundle</h1>
+    <p>
+      The Home Assistant panel route is working, but the built frontend files are not present
+      in any of the expected locations. That usually means the integration was copied without
+      its compiled frontend assets.
+    </p>
+    <p>
+      Rebuild the frontend or reinstall the integration package, then reload Home Assistant.
+    </p>
+    <ul>
+      {escaped_paths}
+    </ul>
+  </main>
+</body>
+</html>"""
 
 
 class ESPHomeDesignerPanelView(HomeAssistantView):
-    """Serve the ESPHome Designer Designer editor as a panel."""
+    """Serve the editor HTML shell for the panel iframe."""
 
     url = PANEL_URL_PATH
     name = "esphome_designer:panel"
     requires_auth = False
-    # WARNING: Do NOT add custom `options()` handlers to this view!
-    cors_allowed = True
+    cors_allowed = False
 
     def __init__(self, hass: HomeAssistant) -> None:
-        """Store hass if needed later."""
         self.hass = hass
 
     async def get(self, request) -> Any:  # type: ignore[override]
-        """Return the full featured editor HTML."""
-        from pathlib import Path
-        import aiofiles
-        
-        # Priority 1: Look in Vite-built dist/ directory (production bundle)
-        dist_dir = Path(__file__).parent / "frontend" / "dist"
-        editor_path_dist = dist_dir / "index.html"
-        
-        # Priority 2: Look in integration's own frontend/ directory (dev/unbundled)
-        integration_dir = Path(__file__).parent / "frontend"
-        editor_path_integration = integration_dir / "index.html"
-        
-        # Priority 2: Look in /config/www/ (manual deployment or HACS plugin)
-        component_dir = Path(__file__).parent
-        config_dir = component_dir.parent.parent
-        editor_path_www = config_dir / "www" / "esphome_designer_panel" / "index.html"
-        
-        # Try dist/ directory first (Vite production bundle - preferred)
-        if editor_path_dist.exists():
-            try:
-                async with aiofiles.open(editor_path_dist, mode='r', encoding='utf-8') as f:
-                    html = await f.read()
-                
-                import re
-                
-                def rewrite_attr(match):
-                    attr = match.group(1)
-                    path = match.group(2)
-                    if path.startswith(('http://', 'https://', 'data:', '/')):
-                        return match.group(0)
-                    return f'{attr}="/esphome-designer/editor/static/dist/{path}"'
-                
-                html = re.sub(r'(src|href)="([^"]+)"', rewrite_attr, html)
+        searched_paths: list[Path] = []
+        for prefix, candidate in _resolve_frontend_html_candidates():
+            searched_paths.append(candidate)
+            if not candidate.exists():
+                continue
 
-                _LOGGER.info("✓ Serving editor from dist/: %s (%d bytes)", editor_path_dist, len(html))
-                return web.Response(
-                    body=html,
-                    status=200,
-                    content_type="text/html",
-                    headers={
-                        "Cache-Control": "no-cache, no-store, must-revalidate",
-                        "Pragma": "no-cache",
-                        "Expires": "0"
-                    }
-                )
-            except Exception as e:
-                _LOGGER.error("Failed to read editor from dist/: %s", e)
-        
-        # Fallback: Try raw frontend/ directory (dev mode / unbundled)
-        if editor_path_integration.exists():
             try:
-                async with aiofiles.open(editor_path_integration, mode='r', encoding='utf-8') as f:
-                    html = await f.read()
-                
-                import re
-                
-                def rewrite_attr(match):
-                    attr = match.group(1)
-                    path = match.group(2)
-                    if path.startswith(('http://', 'https://', 'data:', '/')):
-                        return match.group(0)
-                    return f'{attr}="/esphome-designer/editor/static/{path}"'
-                
-                html = re.sub(r'(src|href)="([^"]+)"', rewrite_attr, html)
+                html_text = await asyncio.to_thread(candidate.read_text, encoding="utf-8")
+                if prefix != "www":
+                    html_text = _rewrite_editor_html(prefix, html_text)
 
-                _LOGGER.info("✓ Serving editor from integration: %s (%d bytes)", editor_path_integration, len(html))
+                _LOGGER.info("Serving editor HTML from %s: %s", prefix, candidate)
                 return web.Response(
-                    body=html,
+                    body=html_text,
                     status=200,
                     content_type="text/html",
-                    headers={
-                        "Cache-Control": "no-cache, no-store, must-revalidate",
-                        "Pragma": "no-cache",
-                        "Expires": "0"
-                    }
+                    headers=_no_cache_headers(),
                 )
-            except Exception as e:
-                _LOGGER.error("Failed to read editor from integration: %s", e)
-        
-        # Try www directory (fallback for manual deployment)
-        if editor_path_www.exists():
-            try:
-                async with aiofiles.open(editor_path_www, mode='r', encoding='utf-8') as f:
-                    html = await f.read()
-                _LOGGER.info("✓ Serving editor from www: %s (%d bytes)", editor_path_www, len(html))
-                return web.Response(
-                    body=html,
-                    status=200,
-                    content_type="text/html",
-                    headers={
-                        "Cache-Control": "no-cache, no-store, must-revalidate",
-                        "Pragma": "no-cache",
-                        "Expires": "0"
-                    }
-                )
-            except Exception as e:
-                _LOGGER.error("Failed to read editor from www: %s", e)
-        
-        # Log where we looked
-        _LOGGER.error("❌ index.html NOT FOUND at:")
-        _LOGGER.error("  1. %s", editor_path_integration)
-        _LOGGER.error("  2. %s", editor_path_www)
-        
-        # Fallback: This should NOT happen if files are deployed correctly
-        _LOGGER.error("FALLBACK: Using incomplete embedded HTML - features will be missing!")
-        html = self._generate_full_editor_html()
-        
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.error("Failed to read editor HTML from %s: %s", candidate, err)
+
+        _LOGGER.error("ESPHome Designer frontend bundle not found; serving diagnostic fallback")
         return web.Response(
-            body=html,
+            body=_render_unavailable_editor_html(tuple(searched_paths)),
             status=200,
             content_type="text/html",
+            headers=_no_cache_headers(),
         )
 
 
 class ESPHomeDesignerStaticView(HomeAssistantView):
-    """Serve static frontend assets (CSS/JS) from the frontend directory."""
+    """Serve static frontend assets for the panel iframe."""
 
     url = "/esphome-designer/editor/static/{path:.*}"
     name = "esphome_designer:static"
     requires_auth = False
-    # This breaks component setup and causes 404 errors for all static assets.
-    # We enable it for static assets because some browsers (like Chrome) might 
-    # require CORS headers for .local addresses on non-secure contexts (PNA).
-    cors_allowed = True
+    cors_allowed = False
 
     def __init__(self, hass: HomeAssistant) -> None:
         self.hass = hass
 
     async def get(self, request, path: str) -> Any:
-        """Serve a static file from the frontend directory tree."""
-        from pathlib import Path
-        import aiofiles
-        import mimetypes
-
-        # Security: Block directory traversal
         if ".." in path or path.startswith("/"):
             _LOGGER.warning("Blocked path traversal attempt: %s", path)
             return web.Response(status=403, text="Forbidden")
 
-        # Special handling for persistent hardware profiles
-        # URL path: /esphome-designer/editor/static/esphomedesigner_custom_profiles/{filename}
-        if path.startswith("esphomedesigner_custom_profiles/"):
-             profile_filename = path.replace("esphomedesigner_custom_profiles/", "").strip("/")
-             
-             # Security: Block traversal
-             if ".." in profile_filename or "/" in profile_filename or "\\" in profile_filename:
-                 _LOGGER.warning("Blocked profile path traversal: %s", profile_filename)
-                 return web.Response(status=403, text="Forbidden")
-             
-             custom_profiles_dir = Path(self.hass.config.path("esphomedesigner_custom_profiles"))
-             file_path = (custom_profiles_dir / profile_filename).resolve()
-             
-             # Security: Ensure still in correct dir
-             try:
-                 file_path.relative_to(custom_profiles_dir.resolve())
-             except ValueError:
-                  return web.Response(status=403, text="Forbidden")
-        else:
-             # Resolve bundled assets from dist/ or raw frontend/ directory
-             integration_dir = Path(__file__).parent / "frontend"
-             dist_dir = integration_dir / "dist"
-             
-             # If the URL path starts with "dist/", strip the prefix and serve from dist/
-             if path.startswith("dist/"):
-                 actual_path = path[5:]  # Remove "dist/" prefix
-                 file_path = (dist_dir / actual_path).resolve()
-                 # Security: Ensure resolved path is still under dist_dir
-                 try:
-                     file_path.relative_to(dist_dir.resolve())
-                 except ValueError:
-                     _LOGGER.warning("Blocked path escape attempt: %s -> %s", path, file_path)
-                     return web.Response(status=403, text="Forbidden")
-             else:
-                 # Try dist/ first, then fall back to raw frontend/
-                 dist_candidate = (dist_dir / path).resolve()
-                 raw_candidate = (integration_dir / path).resolve()
-                 
-                 if dist_candidate.exists():
-                     file_path = dist_candidate
-                     # Security check against dist_dir
-                     try:
-                         file_path.relative_to(dist_dir.resolve())
-                     except ValueError:
-                         file_path = raw_candidate
-                 else:
-                     file_path = raw_candidate
-                 
-                 # Security: Ensure resolved path is under integration_dir (covers both dist/ and raw)
-                 try:
-                     file_path.relative_to(integration_dir.resolve())
-                 except ValueError:
-                     _LOGGER.warning("Blocked path escape attempt: %s -> %s", path, file_path)
-                     return web.Response(status=403, text="Forbidden")
+        try:
+            if path.startswith("esphomedesigner_custom_profiles/"):
+                if not request.get(KEY_AUTHENTICATED):
+                    return web.Response(status=401, text="Unauthorized")
+                file_path = _resolve_custom_profile_path(self.hass, path)
+            else:
+                file_path = _resolve_static_asset_path(path)
+        except ValueError:
+            _LOGGER.warning("Blocked static path escape attempt: %s", path)
+            return web.Response(status=403, text="Forbidden")
 
         if not file_path.exists() or not file_path.is_file():
             _LOGGER.debug("Static file not found: %s", file_path)
             return web.Response(status=404, text="File not found")
 
+        content_type = _guess_content_type(path, file_path)
+        is_binary = content_type.startswith(("font/", "image/", "application/octet"))
+
         try:
-            # Determine content type
-            # Determine content type manually first for critical types to avoid system registry issues
-            content_type = None
-            if path.endswith(".js"):
-                content_type = "application/javascript"
-            elif path.endswith(".css"):
-                content_type = "text/css"
-            elif path.endswith(".json"):
-                 content_type = "application/json"
-
-            if not content_type:
-                content_type, _ = mimetypes.guess_type(str(file_path))
-            
-            if not content_type:
-                if path.endswith(".ttf"):
-                    content_type = "font/ttf"
-                elif path.endswith(".woff"):
-                    content_type = "font/woff"
-                elif path.endswith(".woff2"):
-                    content_type = "font/woff2"
-                else:
-                    content_type = "application/octet-stream"
-
-            # Binary files (fonts, images, etc.) need binary mode
-            is_binary = content_type.startswith(('font/', 'image/', 'application/octet'))
-            
             if is_binary:
-                async with aiofiles.open(file_path, mode='rb') as f:
-                    content = await f.read()
+                content = await asyncio.to_thread(file_path.read_bytes)
             else:
-                async with aiofiles.open(file_path, mode='r', encoding='utf-8') as f:
-                    content = await f.read()
+                content = await asyncio.to_thread(file_path.read_text, encoding="utf-8")
 
-            _LOGGER.debug("Serving static file: %s (%d bytes)", path, len(content))
             return web.Response(
                 body=content,
                 status=200,
                 content_type=content_type,
-                headers={
-                    "Cache-Control": "no-cache, no-store, must-revalidate" if not is_binary else "public, max-age=31536000",
-                    "Pragma": "no-cache" if not is_binary else "",
-                    "Expires": "0" if not is_binary else "",
-                    "Access-Control-Allow-Private-Network": "true"
-                }
+                headers=_static_cache_headers(path, is_binary),
             )
-        except Exception as e:
-            _LOGGER.error("Failed to serve static file %s: %s", path, e)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.error("Failed to serve static file %s: %s", path, err)
             return web.Response(status=500, text="Internal Server Error")
-
-    def _generate_full_editor_html(self) -> str:
-        """Generate the complete editor HTML with all features."""
-        return f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>ESPHome Designer</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-{self._load_base_styles()}
-  </style>
-</head>
-<body>
-  <aside class="sidebar">
-    <div>
-      <h1><span class="logo-dot"></span> ESPHome Designer</h1>
-      <div class="pill">
-        <span></span>
-        <div>Connected to Home Assistant</div>
-      </div>
-    </div>
-
-    <div class="sidebar-group">
-      <div class="sidebar-section-label">Pages</div>
-      <div id="pageList" class="page-list"></div>
-      <button id="addPageBtn" class="btn btn-secondary btn-full">+ Add page</button>
-    </div>
-
-    <div class="sidebar-group">
-      <div class="sidebar-section-label">Widgets</div>
-      <div id="widgetPalette" class="widget-list">
-        <div class="item" data-widget-type="label">
-          <span class="label">Floating text</span>
-          <span class="tag">Text</span>
-        </div>
-        <div class="item" data-widget-type="sensor_text">
-          <span class="label">Sensor text</span>
-          <span class="tag">Entity</span>
-        </div>
-        <div class="item" data-widget-type="icon">
-          <span class="label">MDI icon</span>
-          <span class="tag">Icon</span>
-        </div>
-        <div class="item" data-widget-type="shape_rect">
-          <span class="label">Rectangle / box</span>
-          <span class="tag">Shape</span>
-        </div>
-        <div class="item" data-widget-type="shape_circle">
-          <span class="label">Circle</span>
-          <span class="tag">Shape</span>
-        </div>
-        <div class="item" data-widget-type="line">
-          <span class="label">Line</span>
-          <span class="tag">Shape</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="sidebar-group">
-      <button id="saveLayoutBtn" class="btn btn-full">Save layout</button>
-      <button id="generateSnippetBtn" class="btn btn-secondary btn-full">Generate ESPHome snippet</button>
-      <div class="status-bar" id="sidebarStatus">
-        <span>Layout status will appear here.</span>
-      </div>
-    </div>
-  </aside>
-
-  <main class="main">
-    <div class="main-header">
-      <div class="main-header-title">
-        <h2>Visual layout editor</h2>
-        <span>Each widget on the canvas becomes part of your ESPHome display lambda.</span>
-      </div>
-      <div class="main-header-actions">
-        <div class="main-header-pill">
-          Canvas: <span id="canvasSizeLabel">800 x 480</span> px
-        </div>
-        <select id="orientationSelect" class="select" style="width:auto;padding:3px 6px;font-size:9px;">
-          <option value="landscape">Landscape 800x480</option>
-          <option value="portrait">Portrait 480x800</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="canvas-wrap">
-      <section class="canvas-area">
-        <div class="canvas-toolbar">
-          <span>Page: <strong id="currentPageName">Loading...</strong></span>
-          <span>Place widgets to define what the reTerminal shows.</span>
-        </div>
-        <div id="canvas" class="canvas">
-          <div class="canvas-grid"></div>
-        </div>
-      </section>
-
-      <aside class="right-panel">
-        <h3>Widget properties</h3>
-        <div class="field" style="margin-bottom:2px;">
-          <div class="prop-label">Editor options</div>
-          <label style="display:flex;align-items:center;gap:6px;font-size:9px;color:var(--muted);">
-            <input id="snapToggle" type="checkbox" checked style="width:auto;height:auto;margin:0;" />
-            <span>Snap to guides</span>
-          </label>
-        </div>
-        <div id="propertiesPanel">
-          <div class="field">
-            <div class="prop-label">Entity ID</div>
-            <input id="prop-entity" class="prop-input" type="text" placeholder="sensor.example" list="entity-list" />
-            <datalist id="entity-list"></datalist>
-          </div>
-        </div>
-      </aside>
-    </div>
-
-    <section class="snippet-area">
-      <div class="snippet-header">
-        <span>Generated configuration</span>
-        <div class="snippet-actions">
-          <button id="copySnippetBtn" class="btn btn-secondary">Copy</button>
-          <button id="importSnippetBtn" class="btn btn-secondary">Import</button>
-        </div>
-      </div>
-      <div id="snippetBox" class="snippet-box">
-# Click "Generate ESPHome snippet" to see output here.
-      </div>
-    </section>
-  </main>
-
-  <script>
-    // Environment detection
-    const API_BASE = "{API_BASE_PATH}";
-    
-    // State
-    let pages = [{{
-      id: "page_0",
-      name: "Overview", 
-      widgets: []
-    }}];
-    let settings = {{
-      orientation: "landscape",
-      dark_mode: false
-    }};
-    let currentPageIndex = 0;
-    let widgetsById = new Map();
-    let selectedWidgetId = null;
-    let entityIndex = [];
-
-    const CANVAS_WIDTH = 800;
-    const CANVAS_HEIGHT = 480;
-    const SNAP_ENABLED = true;
-    const SNAP_DISTANCE = 10;
-    let snapEnabled = true;
-
-    // Initialize
-    function initDefaultLayout() {{
-      rebuildWidgetsIndex();
-      renderPagesSidebar();
-      renderCanvas();
-      renderPropertiesPanel();
-    }}
-
-    function rebuildWidgetsIndex() {{
-      widgetsById = new Map();
-      for (const page of pages) {{
-        for (const w of page.widgets) {{
-          widgetsById.set(w.id, w);
-        }}
-      }}
-    }}
-
-    function getCurrentPage() {{
-      return pages[currentPageIndex] || pages[0];
-    }}
-
-    // Rendering functions
-    function renderPagesSidebar() {{
-      const pageListEl = document.getElementById("pageList");
-      const currentPageNameEl = document.getElementById("currentPageName");
-      
-      pageListEl.innerHTML = "";
-      pages.forEach((page, index) => {{
-        const item = document.createElement("div");
-        item.className = "item" + (index === currentPageIndex ? " active" : "");
-        item.onclick = () => {{
-          currentPageIndex = index;
-          selectedWidgetId = null;
-          renderPagesSidebar();
-          renderCanvas();
-          renderPropertiesPanel();
-        }};
-        const label = document.createElement("span");
-        label.className = "label";
-        label.textContent = page.name;
-        const tag = document.createElement("span");
-        tag.className = "tag";
-        tag.textContent = page.id;
-        item.appendChild(label);
-        item.appendChild(tag);
-        pageListEl.appendChild(item);
-      }});
-      
-      const page = getCurrentPage();
-      currentPageNameEl.textContent = page ? page.name : "None";
-    }}
-
-    function renderCanvas() {{
-      const canvas = document.getElementById("canvas");
-      canvas.innerHTML = '<div class="canvas-grid"></div>';
-      
-      const page = getCurrentPage();
-      if (!page) return;
-
-      for (const widget of page.widgets) {{
-        const el = document.createElement("div");
-        el.className = "widget";
-        el.style.left = widget.x + "px";
-        el.style.top = widget.y + "px";
-        el.style.width = widget.width + "px";
-        el.style.height = widget.height + "px";
-        el.dataset.id = widget.id;
-
-        if (widget.id === selectedWidgetId) {{
-          el.classList.add("active");
-        }}
-
-        // Render content based on type
-        const type = (widget.type || "").toLowerCase();
-        const props = widget.props || {{}};
-
-        if (type === "icon") {{
-          const code = props.code || "F0595";
-          const hex = code.match(/^F[0-9A-F]{{3}}$/i) ? code : "F0595";
-          const cp = 0xf0000 + parseInt(hex.slice(1), 16);
-          el.textContent = String.fromCodePoint(cp);
-          el.style.fontFamily = "MDI";
-          el.style.fontSize = (props.size || 40) + "px";
-          el.style.display = "flex";
-          el.style.alignItems = "center";
-          el.style.justifyContent = "center";
-        }} else if (type === "shape_rect") {{
-          const color = props.color === "white" ? "#ffffff" : "#000000";
-          const fill = props.fill;
-          el.style.border = (props.border_width || 1) + "px solid " + color;
-          el.style.backgroundColor = fill ? color : "transparent";
-        }} else if (type === "shape_circle") {{
-          const color = props.color === "white" ? "#ffffff" : "#000000";
-          const fill = props.fill;
-          el.style.border = (props.border_width || 1) + "px solid " + color;
-          el.style.backgroundColor = fill ? color : "transparent";
-          el.style.borderRadius = "50%";
-        }} else if (type === "line") {{
-          const color = props.color === "white" ? "#ffffff" : "#000000";
-          el.style.backgroundColor = color;
-          el.style.height = (props.stroke_width || 1) + "px";
-        }} else {{
-          // Text types
-          const fontSize = props.font_size || 16;
-          const color = props.color === "white" ? "#ffffff" : "#000000";
-          el.style.fontSize = fontSize + "px";
-          el.style.color = color;
-          
-          let text = "";
-          if (type === "sensor_text") {{
-            text = widget.title || widget.entity_id || "sensor";
-          }} else {{
-            text = props.text || widget.title || "Text";
-          }}
-          el.textContent = text;
-        }}
-
-        // Event handlers
-        el.addEventListener("mousedown", (ev) => onWidgetMouseDown(ev, widget.id));
-        
-        // Resize handle
-        const handle = document.createElement("div");
-        handle.className = "widget-resize-handle";
-        el.appendChild(handle);
-        
-        canvas.appendChild(el);
-      }}
-    }}
-
-    function renderPropertiesPanel() {{
-      const panel = document.getElementById("propertiesPanel");
-      const widget = selectedWidgetId ? widgetsById.get(selectedWidgetId) : null;
-      
-      if (!widget) {{
-        panel.innerHTML = '<div class="field"><span style="font-size:9px;color:var(--muted);">Select a widget to edit properties.</span></div>';
-        return;
-      }}
-
-      const entityInput = document.getElementById("prop-entity");
-      if (entityInput) {{
-        entityInput.value = widget.entity_id || "";
-        entityInput.oninput = (ev) => {{
-          widget.entity_id = ev.target.value;
-          renderCanvas();
-        }};
-      }}
-    }}
-
-    // Widget creation
-    function createWidget(type) {{
-      const page = getCurrentPage();
-      if (!page) return;
-      const id = "w_" + Date.now() + "_" + Math.floor(Math.random() * 9999);
-      const widget = {{
-        id,
-        type,
-        x: 40,
-        y: 40,
-        width: 120,
-        height: 40,
-        title: "",
-        entity_id: "",
-        props: {{}}
-      }};
-
-      if (type === "sensor_text") {{
-        widget.props.font_size = 18;
-        widget.props.color = "black";
-        widget.entity_id = "sensor.example";
-      }} else if (type === "icon") {{
-        widget.props.code = "F0595";
-        widget.props.size = 40;
-        widget.width = 60;
-        widget.height = 60;
-      }} else if (type === "shape_rect") {{
-        widget.props.fill = false;
-        widget.props.border_width = 1;
-        widget.props.color = "black";
-      }} else if (type === "shape_circle") {{
-        widget.props.fill = false;
-        widget.props.border_width = 1;
-        widget.props.color = "black";
-        widget.width = 40;
-        widget.height = 40;
-      }} else if (type === "line") {{
-        widget.props.stroke_width = 1;
-        widget.props.color = "black";
-        widget.width = 80;
-        widget.height = 0;
-      }} else {{
-        widget.props.text = "Text";
-        widget.props.font_size = 20;
-        widget.props.color = "black";
-      }}
-
-      page.widgets.push(widget);
-      widgetsById.set(widget.id, widget);
-      selectedWidgetId = widget.id;
-      renderCanvas();
-      renderPropertiesPanel();
-    }}
-
-    // Event handlers
-    let dragState = null;
-
-    function onWidgetMouseDown(ev, widgetId) {{
-      selectedWidgetId = widgetId;
-      renderCanvas();
-      renderPropertiesPanel();
-      
-      // Basic drag implementation
-      const widget = widgetsById.get(widgetId);
-      if (!widget) return;
-      
-      dragState = {{ id: widgetId, offsetX: ev.offsetX, offsetY: ev.offsetY }};
-      
-      function onMouseMove(moveEv) {{
-        if (!dragState) return;
-        const canvas = document.getElementById("canvas");
-        const rect = canvas.getBoundingClientRect();
-        widget.x = Math.max(0, Math.min(CANVAS_WIDTH - widget.width, moveEv.clientX - rect.left - dragState.offsetX));
-        widget.y = Math.max(0, Math.min(CANVAS_HEIGHT - widget.height, moveEv.clientY - rect.top - dragState.offsetY));
-        renderCanvas();
-      }}
-      
-      function onMouseUp() {{
-        dragState = null;
-        window.removeEventListener("mousemove", onMouseMove);
-        window.removeEventListener("mouseup", onMouseUp);
-      }}
-      
-      window.addEventListener("mousemove", onMouseMove);
-      window.addEventListener("mouseup", onMouseUp);
-      ev.preventDefault();
-    }}
-
-    // API functions
-    async function loadEntities() {{
-      try {{
-        const resp = await fetch(API_BASE + "/entities");
-        const data = await resp.json();
-        entityIndex = Array.isArray(data) ? data : [];
-        
-        const datalist = document.getElementById("entity-list");
-        if (datalist) {{
-          datalist.innerHTML = "";
-          entityIndex.forEach(e => {{
-            const opt = document.createElement("option");
-            opt.value = e.entity_id;
-            opt.label = e.name || e.entity_id;
-            datalist.appendChild(opt);
-          }});
-        }}
-        
-        const status = document.getElementById("sidebarStatus");
-        if (status) {{
-          status.innerHTML = `<span>Loaded ${{entityIndex.length}} entities from HA.</span>`;
-        }}
-      }} catch (err) {{
-        console.error("Failed to load entities:", err);
-      }}
-    }}
-
-    async function saveLayout() {{
-      try {{
-        const resp = await fetch(API_BASE + "/layout", {{
-          method: "POST",
-          headers: {{ "Content-Type": "application/json" }},
-          body: JSON.stringify({{ pages, settings }})
-        }});
-        const data = await resp.json();
-        
-        const status = document.getElementById("sidebarStatus");
-        if (status) {{
-          status.innerHTML = '<span style="color: var(--accent);">Layout saved to Home Assistant!</span>';
-        }}
-      }} catch (err) {{
-        console.error("Failed to save layout:", err);
-        alert("Failed to save layout. Check console.");
-      }}
-    }}
-
-    async function generateSnippet() {{
-      try {{
-        const resp = await fetch(API_BASE + "/snippet");
-        const text = await resp.text();
-        
-        const snippetBox = document.getElementById("snippetBox");
-        if (snippetBox) {{
-          snippetBox.textContent = text;
-        }}
-      }} catch (err) {{
-        console.error("Failed to generate snippet:", err);
-      }}
-    }}
-
-    // Initialize event listeners
-    function initEvents() {{
-      const addPageBtn = document.getElementById("addPageBtn");
-      const saveLayoutBtn = document.getElementById("saveLayoutBtn");
-      const generateSnippetBtn = document.getElementById("generateSnippetBtn");
-      const widgetPalette = document.getElementById("widgetPalette");
-
-      if (addPageBtn) {{
-        addPageBtn.onclick = () => {{
-          const id = "page_" + Date.now();
-          const name = "Page " + (pages.length + 1);
-          pages.push({{ id, name, widgets: [] }});
-          currentPageIndex = pages.length - 1;
-          renderPagesSidebar();
-          renderCanvas();
-        }};
-      }}
-
-      if (saveLayoutBtn) {{
-        saveLayoutBtn.onclick = saveLayout;
-      }}
-
-      if (generateSnippetBtn) {{
-        generateSnippetBtn.onclick = generateSnippet;
-      }}
-
-      if (widgetPalette) {{
-        widgetPalette.addEventListener("click", (ev) => {{
-          const item = ev.target.closest(".item[data-widget-type]");
-          if (item) {{
-            const type = item.getAttribute("data-widget-type");
-            createWidget(type);
-          }}
-        }});
-      }}
-
-      const canvas = document.getElementById("canvas");
-      if (canvas) {{
-        canvas.addEventListener("click", (ev) => {{
-          if (ev.target === canvas || ev.target.classList.contains("canvas-grid")) {{
-            selectedWidgetId = null;
-            renderCanvas();
-            renderPropertiesPanel();
-          }}
-        }});
-      }}
-    }}
-
-    // Main initialization
-    async function init() {{
-      initDefaultLayout();
-      initEvents();
-      await loadEntities();
-    }}
-
-    // Start the app
-    init();
-  </script>
-</body>
-</html>'''
-
-    def _load_base_styles(self) -> str:
-        """Return the CSS subset from the standalone editor for the inline panel.
-
-        Extracted from the original editor.html to avoid external files.
-        Keep this in sync with your design but avoid remote dependencies.
-        """
-        # NOTE: For brevity and maintainability, we include only layout-critical parts.
-        # You can further compress or refactor as needed.
-        return """
-:root {
-  --bg: #0f1115;
-  --bg-elevated: #181b22;
-  --accent: #52c7ea;
-  --accent-soft: rgba(82, 199, 234, 0.16);
-  --border-subtle: #2a2f3a;
-  --text: #e5e9f0;
-  --muted: #7b8190;
-  --danger: #ff6b81;
-  --font: system-ui, -apple-system, BlinkMacSystemFont, -sans-serif;
-}
-* { box-sizing: border-box; }
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-body {
-  font-family: var(--font);
-  background: radial-gradient(circle at top left, #1c1f26 0, #050609 40%, #020308 100%);
-  color: var(--text);
-  display: flex;
-}
-.sidebar {
-  width: 260px;
-  background: linear-gradient(to bottom, #151821, #0c0f15);
-  border-right: 1px solid var(--border-subtle);
-  padding: 16px 14px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  overflow-y: auto;
-}
-.sidebar h1 {
-  font-size: 16px;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.logo-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 12px var(--accent);
-}
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--border-subtle);
-  font-size: 10px;
-  color: var(--muted);
-  margin-top: 6px;
-}
-.pill span {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
-}
-.sidebar-section-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--muted);
-  margin-bottom: 6px;
-}
-.select, .input {
-  width: 100%;
-  padding: 7px 9px;
-  font-size: 12px;
-  border-radius: 6px;
-  border: 1px solid var(--border-subtle);
-  background: #0f1118;
-  color: var(--text);
-  outline: none;
-}
-.select:focus, .input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent-soft);
-}
-.sidebar-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.btn {
-  border: 1px solid var(--accent);
-  background: transparent;
-  color: var(--accent);
-  padding: 6px 9px;
-  border-radius: 6px;
-  font-size: 11px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.16s ease;
-}
-.btn:hover {
-  background: var(--accent-soft);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
-}
-.btn-secondary {
-  border-color: var(--border-subtle);
-  color: var(--muted);
-}
-.btn-secondary:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.btn-full {
-  width: 100%;
-  justify-content: center;
-  margin-top: 4px;
-}
-.page-list, .widget-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.item {
-  padding: 5px 7px;
-  border-radius: 5px;
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  cursor: pointer;
-  border: 1px solid transparent;
-  color: var(--muted);
-}
-.item span.label {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.item small {
-  font-size: 9px;
-  opacity: 0.7;
-}
-.item.active {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.item:hover {
-  background: #151822;
-  border-color: var(--border-subtle);
-}
-.item .tag {
-  padding: 1px 5px;
-  border-radius: 999px;
-  font-size: 8px;
-  border: 1px solid var(--border-subtle);
-  color: var(--muted);
-}
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 10px 14px 8px;
-  gap: 8px;
-  overflow: hidden;
-  min-width: 0;
-}
-.main-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.main-header-title {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.main-header-title h2 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.main-header-title span {
-  font-size: 11px;
-  color: var(--muted);
-}
-.main-header-actions {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.main-header-pill {
-  padding: 3px 7px;
-  border-radius: 999px;
-  border: 1px solid var(--border-subtle);
-  font-size: 9px;
-  color: var(--muted);
-}
-.canvas-wrap {
-  flex: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 260px;
-  gap: 8px;
-  align-items: flex-start;
-  justify-content: flex-start;
-  min-width: 0;
-  overflow: hidden;
-}
-.canvas-area {
-  background: radial-gradient(circle at top, #171b22, #05070b);
-  border-radius: 12px;
-  border: 1px solid var(--border-subtle);
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-  overflow: hidden;
-}
-.canvas-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 10px;
-  color: var(--muted);
-  flex-shrink: 0;
-}
-.canvas-toolbar span strong {
-  color: var(--accent);
-  font-weight: 500;
-}
-.canvas {
-  width: 800px;
-  height: 480px;
-  margin-top: 4px;
-  background: #000000;
-  border-radius: 10px;
-  border: 1px solid #222222;
-  position: relative;
-  box-shadow: inset 0 0 0 1px #222222, 0 18px 40px rgba(0, 0, 0, 0.7);
-  overflow: hidden;
-  transition: all 0.16s ease;
-  flex-shrink: 0;
-}
-.canvas-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 20px 20px;
-  pointer-events: none;
-}
-.widget {
-  position: absolute;
-  font-size: 12px;
-  color: #ffffff;
-  cursor: move;
-  display: block;
-  user-select: none;
-  border: none;
-  background: transparent;
-  padding: 0;
-}
-.widget.active {
-  outline: 1px solid var(--accent);
-  box-shadow: 0 0 0 1px rgba(82, 199, 234, 0.4);
-}
-.widget-resize-handle {
-  position: absolute;
-  width: 11px;
-  height: 11px;
-  border-radius: 3px;
-  background: var(--accent);
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.7);
-  cursor: nwse-resize;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.widget-resize-handle::after {
-  content: "";
-  width: 6px;
-  height: 2px;
-  border-radius: 2px;
-  background: #0b0e13;
-  transform: rotate(40deg);
-  opacity: 0.9;
-}
-.right-panel {
-  width: 260px;
-  background: #0d1016;
-  border-radius: 12px;
-  border: 1px solid var(--border-subtle);
-  padding: 8px 9px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  box-sizing: border-box;
-  max-height: 480px;
-}
-.right-panel-header {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--muted);
-}
-.right-panel-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.hint {
-  font-size: 9px;
-  color: var(--muted);
-}
-"""
 
 
 class ESPHomeDesignerFontView(HomeAssistantView):
-    """Serve the MDI font file for the editor."""
+    """Serve the fallback MDI font file used by the legacy shell."""
 
     url = f"{PANEL_URL_PATH}/materialdesignicons-webfont.ttf"
     name = "esphome_designer:panel:font"
@@ -1162,71 +385,25 @@ class ESPHomeDesignerFontView(HomeAssistantView):
     cors_allowed = False
 
     def __init__(self, hass: HomeAssistant) -> None:
-        """Store hass if needed later."""
         self.hass = hass
 
     async def get(self, request) -> Any:  # type: ignore[override]
-        """Serve the MDI font file."""
-        from pathlib import Path
-        
-        # Priority 1: Integration's frontend directory (bundled)
-        integration_dir = Path(__file__).parent / "frontend"
-        font_path_integration = integration_dir / "materialdesignicons-webfont.ttf"
-        
-        # Priority 2: /config/www/ (manual deployment)
-        component_dir = Path(__file__).parent
-        config_dir = component_dir.parent.parent
-        font_path_www = config_dir / "www" / "esphome_designer_panel" / "materialdesignicons-webfont.ttf"
+        for candidate in FONT_CANDIDATES:
+            if not candidate.exists():
+                continue
 
-        # Priority 3: /config/esphome/fonts/ (user custom location)
-        font_path_esphome = config_dir / "esphome" / "fonts" / "materialdesignicons-webfont.ttf"
-        
-        # Try integration directory first
-        if font_path_integration.exists():
             try:
-                font_data = font_path_integration.read_bytes()
-                _LOGGER.debug("Serving font from integration: %s (%d bytes)", font_path_integration, len(font_data))
+                font_data = await asyncio.to_thread(candidate.read_bytes)
                 return web.Response(
                     body=font_data,
                     status=200,
                     content_type="font/ttf",
-                    headers={"Cache-Control": "public, max-age=31536000"}
+                    headers={"Cache-Control": "public, max-age=31536000"},
                 )
-            except Exception as e:
-                _LOGGER.error("Failed to read font from integration: %s", e)
-        
-        # Try www directory
-        if font_path_www.exists():
-            try:
-                font_data = font_path_www.read_bytes()
-                _LOGGER.debug("Serving font from www: %s (%d bytes)", font_path_www, len(font_data))
-                return web.Response(
-                    body=font_data,
-                    status=200,
-                    content_type="font/ttf",
-                    headers={"Cache-Control": "public, max-age=31536000"}
-                )
-            except Exception as e:
-                _LOGGER.error("Failed to read font from www: %s", e)
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.error("Failed to read font from %s: %s", candidate, err)
 
-        # Try esphome directory
-        if font_path_esphome.exists():
-            try:
-                font_data = font_path_esphome.read_bytes()
-                _LOGGER.debug("Serving font from esphome: %s (%d bytes)", font_path_esphome, len(font_data))
-                return web.Response(
-                    body=font_data,
-                    status=200,
-                    content_type="font/ttf",
-                    headers={"Cache-Control": "public, max-age=31536000"}
-                )
-            except Exception as e:
-                _LOGGER.error("Failed to read font from esphome: %s", e)
-        
-        _LOGGER.error("Font file not found at:")
-        _LOGGER.error("  1. %s", font_path_integration)
-        _LOGGER.error("  2. %s", font_path_www)
-        _LOGGER.error("  3. %s", font_path_esphome)
+        _LOGGER.error("Font file not found for ESPHome Designer panel fallback")
         return web.Response(
             body=b"Font file not found",
             status=404,

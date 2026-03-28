@@ -50,6 +50,9 @@ export class PageSettings {
         this.fieldGridSize.style.display = (mode === 'grid') ? 'block' : 'none';
     }
 
+    /**
+     * @param {number} index
+     */
     open(index) {
         if (!this.modal) return;
         this.pageIndex = index;

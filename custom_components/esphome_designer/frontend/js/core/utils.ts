@@ -22,6 +22,7 @@ export const Utils = {
         if (!c) return "COLOR_BLACK";
         const cl = c.toLowerCase();
         if (cl === 'theme_auto') return "color_on";
+        if (cl === 'theme_auto_inverse') return "color_off";
         if (cl === 'transparent') return "color_off";
 
         // Handle Hex Colors (#RRGGBB)
@@ -150,11 +151,12 @@ export const Utils = {
      */
     getIconCode: (name: string): string | null => {
         if (!name || !iconPickerData) return null;
-        const icon = iconPickerData.find(i => i.name === name);
+        const icon = iconPickerData.find((i) => i.name === name);
         return icon ? icon.code : null;
     }
 };
 
 // Attach to unified namespace
-window.ESPHomeDesigner = (window as any).ESPHomeDesigner || {};
-(window as any).ESPHomeDesigner.utils = Utils;
+const rootWindow = globalThis as typeof window;
+rootWindow.ESPHomeDesigner = rootWindow.ESPHomeDesigner || {};
+rootWindow.ESPHomeDesigner.utils = Utils;

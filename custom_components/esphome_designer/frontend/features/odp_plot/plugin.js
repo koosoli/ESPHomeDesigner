@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ODP Plot Plugin
  * Displays a sensor data graph/plot
@@ -23,12 +22,12 @@ const render = (el, widget, { getColorStyle }) => {
     const gridColor = "#e0e0e0";
     for (let y = 0; y <= widget.height; y += widget.height / 4) {
         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        line.setAttribute("x1", 0);
-        line.setAttribute("y1", y);
-        line.setAttribute("x2", widget.width);
-        line.setAttribute("y2", y);
+        line.setAttribute("x1", "0");
+        line.setAttribute("y1", String(y));
+        line.setAttribute("x2", String(widget.width));
+        line.setAttribute("y2", String(y));
         line.setAttribute("stroke", gridColor);
-        line.setAttribute("stroke-width", 0.5);
+        line.setAttribute("stroke-width", "0.5");
         svg.appendChild(line);
     }
 

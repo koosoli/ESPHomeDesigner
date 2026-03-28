@@ -6,6 +6,8 @@ const OEPL_WIDGET_TYPES = [
     'rectangle_pattern', 'polygon', 'ellipse', 'arc', 'icon_sequence'
 ];
 
+/** @typedef {{ prefix?: string, entity_id?: string, postfix?: string }} TemplateInfo */
+
 /**
  * Checks if the YAML text represents a bare OEPL/ODP widget array.
  * @param {string} yamlText - The raw YAML text to check
@@ -29,7 +31,7 @@ export function isBareOEPLArray(yamlText) {
 /**
  * Extracts entity and surrounding text from a Home Assistant template.
  * @param {string} template - The template string (e.g. "Temp: {{ states('sensor.temp') }} °C")
- * @returns {Object|null} Object with prefix, entity_id, and postfix, or null
+ * @returns {TemplateInfo | null} Object with prefix, entity_id, and postfix, or null
  */
 export function extractInfoFromTemplate(template) {
     if (!template || typeof template !== 'string' || !template.includes('{{')) return null;
@@ -57,9 +59,9 @@ export function parseOEPLArrayToLayout(oeplArray) {
         settings: { orientation: "landscape", dark_mode: false },
         pages: [{ id: "page_0", name: "Main", widgets: [] }]
     };
-    const widgets = layout.pages[0].widgets;
+    const widgets = /** @type {Array<Record<string, any>>} */ (layout.pages[0].widgets);
 
-    oeplArray.forEach((item, idx) => {
+    oeplArray.forEach((/** @type {Record<string, any>} */ item, idx) => {
         if (!item || !item.type) return;
 
         const rawType = item.type.toLowerCase();
@@ -82,7 +84,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
 
                 if (templateInfo) {
                     widget.type = 'sensor_text';
-                    widget.entity_id = templateInfo.entity_id;
+                    widget.entity_id = templateInfo.entity_id || '';
                     widget.width = size * 8;
                     widget.height = size * 1.5;
                     widget.props = {
@@ -288,8 +290,8 @@ export function parseOEPLArrayToLayout(oeplArray) {
             case 'polygon':
                 widget.type = 'odp_polygon';
                 if (Array.isArray(item.points) && item.points.length > 0) {
-                    const xs = item.points.map(p => p[0]);
-                    const ys = item.points.map(p => p[1]);
+                    const xs = item.points.map((/** @type {[number, number]} */ p) => p[0]);
+                    const ys = item.points.map((/** @type {[number, number]} */ p) => p[1]);
                     const minX = Math.min(...xs);
                     const minY = Math.min(...ys);
                     widget.x = minX;
@@ -297,7 +299,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
                     widget.width = Math.max(...xs) - minX || 100;
                     widget.height = Math.max(...ys) - minY || 100;
                     widget.props = {
-                        points: item.points.map(([px, py]) => [px - minX, py - minY]),
+                        points: item.points.map((/** @type {[number, number]} */ [px, py]) => [px - minX, py - minY]),
                         fill: item.fill || 'red',
                         outline: item.outline || 'black',
                         border_width: parseInt(item.width || 1, 10)

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Layout Manager UI
  * Handles listing, creating, switching, deleting, importing, and exporting layouts
@@ -8,19 +7,79 @@
 import { Logger } from '../utils/logger.js';
 import { DEVICE_PROFILES, SUPPORTED_DEVICE_IDS } from '../io/devices.js';
 import { AppState } from '../core/state';
-
-import { getHaHeaders } from '../io/ha_api.js';
-import { hasHaBackend, HA_API_BASE, } from '../utils/env.js';
+import { getHaHeaders, haFetch } from '../io/ha_api.js';
+import { hasHaBackend, HA_API_BASE } from '../utils/env.js';
+import { appendToDesignerOverlayRoot } from '../utils/runtime_root.js';
 import { loadLayoutIntoState } from '../io/yaml_import';
 import { emit, EVENTS } from '../core/events.js';
+import {
+    createLayoutManagerModalMarkup,
+    createNewLayoutModalMarkup,
+    escapeHtml as escapeLayoutHtml,
+    generateDeviceOptions as buildDeviceOptions,
+    getDeviceDisplayName as resolveDeviceDisplayName,
+    renderLayoutRows
+} from './layout_manager_dom.js';
+import {
+    createLayoutRequest,
+    deleteLayoutRequest,
+    fetchLayout,
+    fetchLayouts,
+    importLayoutRequest,
+    sleep
+} from './layout_manager_api.js';
 
+/**
+ * @param {string} id
+ * @returns {HTMLInputElement | null}
+ */
+function getInput(id) {
+    return /** @type {HTMLInputElement | null} */ (document.getElementById(id));
+}
+
+/**
+ * @param {string} id
+ * @returns {HTMLSelectElement | null}
+ */
+function getSelect(id) {
+    return /** @type {HTMLSelectElement | null} */ (document.getElementById(id));
+}
+
+/**
+ * @param {string} id
+ * @returns {HTMLElement}
+ */
+function getRequiredElement(id) {
+    const element = document.getElementById(id);
+    if (!element) {
+        throw new Error(`Missing element: ${id}`);
+    }
+    return /** @type {HTMLElement} */ (element);
+}
+
+/** @returns {string} */
+function getHaApiBase() {
+    return HA_API_BASE || "";
+}
+
+/**
+ * @param {unknown} err
+ * @returns {string}
+ */
+function getErrorMessage(err) {
+    return err instanceof Error ? err.message : String(err);
+}
+
+/** @type {LayoutManager | null} */
 export let layoutManagerInstance = null;
 
 export class LayoutManager {
     constructor() {
         layoutManagerInstance = this;
+        /** @type {HTMLElement | null} */
         this.modal = null;
-        this.currentLayoutId = "reterminal_e1001"; // Default
+        this.currentLayoutId = "reterminal_e1001";
+        /** @type {any[]} */
         this.layouts = [];
     }
 
@@ -38,92 +97,56 @@ export class LayoutManager {
     }
 
     createModal() {
-        // Check if modal already exists
-        if (document.getElementById("layoutManagerModal")) {
-            this.modal = document.getElementById("layoutManagerModal");
+        const existing = /** @type {HTMLElement | null} */ (document.getElementById("layoutManagerModal"));
+        if (existing) {
+            this.modal = existing;
             return;
         }
 
         const modal = document.createElement("div");
         modal.id = "layoutManagerModal";
         modal.className = "modal-backdrop hidden";
-        modal.innerHTML = `
-            <div class="modal" style="max-width: 600px;">
-                <div class="modal-header">
-                    <div>📁 Manage Layouts</div>
-                    <button id="layoutManagerClose" class="btn btn-secondary">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="layout-manager-current" style="margin-bottom: 12px; padding: 8px; background: var(--bg-subtle); border-radius: 4px;">
-                        <span class="prop-label" style="font-size: 11px; color: var(--muted);">Current Layout:</span>
-                        <span id="layoutManagerCurrentName" style="font-weight: 500; margin-left: 8px;">Loading...</span>
-                    </div>
-                    
-                    <div class="layout-manager-list-container" style="max-height: 300px; overflow-y: auto; margin-bottom: 12px;">
-                        <table class="layout-manager-table" style="width: 100%; border-collapse: collapse;">
-                            <thead>
-                                <tr style="border-bottom: 1px solid var(--border);">
-                                    <th style="text-align: left; padding: 8px 4px; font-size: 11px;">Name</th>
-                                    <th style="text-align: left; padding: 8px 4px; font-size: 11px;">Device</th>
-                                    <th style="text-align: left; padding: 8px 4px; font-size: 11px;">Pages</th>
-                                    <th style="text-align: right; padding: 8px 4px; font-size: 11px;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="layoutManagerTableBody">
-                                <tr><td colspan="4" style="text-align: center; color: var(--muted); padding: 16px;">Loading...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <div class="layout-manager-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button id="layoutManagerNew" class="btn btn-primary" style="flex: 1;">+ New Layout</button>
-                        <button id="layoutManagerImport" class="btn btn-secondary" style="flex: 1;">📥 Import from File</button>
-                        <input type="file" id="layoutManagerFileInput" accept=".json" style="display: none;">
-                    </div>
-                    
-                    <div id="layoutManagerStatus" class="layout-manager-status" style="margin-top: 8px; font-size: 11px; min-height: 20px;"></div>
-                </div>
-            </div>
-        `;
+        modal.innerHTML = createLayoutManagerModalMarkup();
 
-        document.body.appendChild(modal);
+        appendToDesignerOverlayRoot(modal);
         this.modal = modal;
 
-        // Bind modal events
-        document.getElementById("layoutManagerClose").addEventListener("click", () => this.close());
-        document.getElementById("layoutManagerNew").addEventListener("click", () => this.showNewLayoutDialog());
-        document.getElementById("layoutManagerImport").addEventListener("click", () => {
-            document.getElementById("layoutManagerFileInput").click();
-        });
-        document.getElementById("layoutManagerFileInput").addEventListener("change", (e) => this.handleFileImport(e));
+        const closeBtn = /** @type {HTMLButtonElement} */ (getRequiredElement("layoutManagerClose"));
+        const newBtn = /** @type {HTMLButtonElement} */ (getRequiredElement("layoutManagerNew"));
+        const importBtn = /** @type {HTMLButtonElement} */ (getRequiredElement("layoutManagerImport"));
+        const fileInput = /** @type {HTMLInputElement} */ (getRequiredElement("layoutManagerFileInput"));
 
-        // Close on backdrop click
+        closeBtn.addEventListener("click", () => this.close());
+        newBtn.addEventListener("click", () => this.showNewLayoutDialog());
+        importBtn.addEventListener("click", () => {
+            fileInput.click();
+        });
+        fileInput.addEventListener("change", (/** @type {Event} */ e) => this.handleFileImport(e));
+
         modal.addEventListener("click", (e) => {
             if (e.target === modal) this.close();
         });
 
-        // Event delegation for table actions
         const tbody = document.getElementById("layoutManagerTableBody");
         if (tbody) {
             tbody.addEventListener('click', (e) => {
-                const target = e.target.closest('button');
+                const target = e.target instanceof HTMLElement ? e.target.closest('button') : null;
                 if (!target) return;
 
-                const action = target.dataset.action;
-                const id = target.dataset.id;
-                const name = target.dataset.name;
-
-                if (action === 'load') this.loadLayout(id);
-                if (action === 'export') this.exportLayout(id);
-                if (action === 'delete') this.deleteLayout(id, name);
+                const { action, id, name } = target.dataset;
+                if (action === 'load' && id) this.loadLayout(id);
+                if (action === 'export' && id) this.exportLayout(id);
+                if (action === 'delete' && id && name) this.deleteLayout(id, name);
             });
         }
     }
 
-    async open() {
+    open() {
         if (!this.modal) this.createModal();
-        this.modal.classList.remove("hidden");
-        await this.loadLayouts();
+        const modal = this.modal;
+        if (!modal) return;
+        modal.classList.remove("hidden");
+        return this.loadLayouts();
     }
 
     close() {
@@ -132,43 +155,42 @@ export class LayoutManager {
         }
     }
 
+    /**
+     * @param {string} message
+     * @param {'success' | 'error' | 'info'} [type='info']
+     */
     setStatus(message, type = "info") {
         const status = document.getElementById("layoutManagerStatus");
-        if (status) {
-            const colors = {
-                success: "var(--success, #22c55e)",
-                error: "var(--danger, #ef4444)",
-                info: "var(--muted, #888)"
-            };
-            status.textContent = message;
-            status.style.color = colors[type] || colors.info;
-            if (message) {
-                setTimeout(() => {
-                    status.textContent = "";
-                }, 5000);
-            }
+        if (!status) return;
+
+        /** @type {Record<'success' | 'error' | 'info', string>} */
+        const colors = {
+            success: "var(--success, #22c55e)",
+            error: "var(--danger, #ef4444)",
+            info: "var(--muted, #888)"
+        };
+        status.textContent = message;
+        status.style.color = colors[type] || colors.info;
+        if (message) {
+            setTimeout(() => {
+                status.textContent = "";
+            }, 5000);
         }
     }
 
     async loadLayouts() {
-        if (typeof hasHaBackend !== "function" || !hasHaBackend()) {
+        if (!hasHaBackend()) {
             this.setStatus("Not connected to Home Assistant", "error");
             return;
         }
 
         try {
-            // Use no custom headers to avoid CORS preflight
-            const resp = await fetch(`${HA_API_BASE}/layouts`);
-            if (!resp.ok) throw new Error(`Failed to load layouts: ${resp.status}`);
-
-            const data = await resp.json();
+            const data = await fetchLayouts(getHaApiBase());
             this.layouts = data.layouts || [];
 
-            // If backend has a last_active_layout_id and we don't have a current layout, sync it
-            if (data.last_active_layout_id && this.layouts.some(l => l.id === data.last_active_layout_id)) {
-                // Only update if we don't already have a current layout set
+            if (data.last_active_layout_id && this.layouts.some((layout) => layout.id === data.last_active_layout_id)) {
                 if (!AppState?.currentLayoutId || AppState.currentLayoutId === "reterminal_e1001") {
-                    const lastActiveExists = this.layouts.find(l => l.id === data.last_active_layout_id);
+                    const lastActiveExists = this.layouts.find((layout) => layout.id === data.last_active_layout_id);
                     if (lastActiveExists && data.last_active_layout_id !== AppState?.currentLayoutId) {
                         Logger.log(`[LayoutManager] Syncing to last active layout: ${data.last_active_layout_id}`);
                         this.currentLayoutId = data.last_active_layout_id;
@@ -189,16 +211,13 @@ export class LayoutManager {
     renderLayoutList() {
         const tbody = document.getElementById("layoutManagerTableBody");
         const currentNameEl = document.getElementById("layoutManagerCurrentName");
-
         if (!tbody) return;
 
-        // Determine current layout from AppState
         if (AppState && AppState.currentLayoutId) {
             this.currentLayoutId = AppState.currentLayoutId;
         }
 
-        // Update current layout display
-        const currentLayout = this.layouts.find(l => l.id === this.currentLayoutId);
+        const currentLayout = this.layouts.find((layout) => layout.id === this.currentLayoutId);
         if (currentNameEl) {
             currentNameEl.textContent = currentLayout ? currentLayout.name : this.currentLayoutId;
         }
@@ -208,166 +227,130 @@ export class LayoutManager {
             return;
         }
 
-        tbody.innerHTML = this.layouts.map(layout => {
-            const isCurrent = layout.id === this.currentLayoutId;
-            // Check if there are duplicate names
-            const duplicateNames = this.layouts.filter(l => l.name === layout.name).length > 1;
-            return `
-                <tr style="border-bottom: 1px solid var(--border-subtle); ${isCurrent ? 'background: var(--accent-soft);' : ''}">
-                    <td style="padding: 8px 4px;">
-                        <span style="font-weight: 500;">${this.escapeHtml(layout.name)}</span>
-                        ${isCurrent ? '<span style="background: var(--accent); color: white; font-size: 9px; padding: 2px 4px; border-radius: 2px; margin-left: 4px;">current</span>' : ''}
-                        ${duplicateNames ? '<br><span style="font-size: 9px; color: var(--muted);">' + this.escapeHtml(layout.id) + '</span>' : ''}
-                    </td>
-                    <td style="padding: 8px 4px; font-size: 11px; color: var(--muted);">${this.getDeviceDisplayName(layout.device_model || layout.device_type)}</td>
-                    <td style="padding: 8px 4px; font-size: 11px; color: var(--muted);">${layout.page_count} pages</td>
-                    <td style="padding: 8px 4px; text-align: right;">
-                        <div style="display: flex; gap: 4px; justify-content: flex-end;">
-                            ${!isCurrent ? `<button class="btn btn-sm btn-primary" style="font-size: 10px; padding: 4px 8px;" data-action="load" data-id="${layout.id}">Load</button>` : ''}
-                            <button class="btn btn-sm btn-secondary" style="font-size: 10px; padding: 4px 8px;" data-action="export" data-id="${layout.id}">📤</button>
-                            ${!isCurrent && this.layouts.length > 1 ? `<button class="btn btn-sm btn-secondary" style="font-size: 10px; padding: 4px 8px; color: var(--danger);" data-action="delete" data-id="${layout.id}" data-name="${this.escapeHtml(layout.name)}">🗑</button>` : ''}
-                        </div>
-                    </td>
-                </tr>
-            `;
-        }).join("");
+        tbody.innerHTML = renderLayoutRows(this.layouts, this.currentLayoutId, DEVICE_PROFILES, SUPPORTED_DEVICE_IDS || []);
     }
 
+    /**
+     * @param {string} text
+     * @returns {string}
+     */
     escapeHtml(text) {
-        const div = document.createElement("div");
-        div.textContent = text || "";
-        return div.innerHTML;
+        return escapeLayoutHtml(text);
     }
 
+    /**
+     * @param {string} model
+     * @returns {string}
+     */
     getDeviceDisplayName(model) {
-        if (DEVICE_PROFILES && DEVICE_PROFILES[model]) {
-            let name = DEVICE_PROFILES[model].name;
-            const supportedIds = SUPPORTED_DEVICE_IDS || [];
-            if (!supportedIds.includes(model)) {
-                name += " (untested)";
-            }
-            return name;
-        }
-        const names = {
-            "reterminal_e1001": "E1001 (Mono)",
-            "reterminal_e1002": "E1002 (Color)",
-            "trmnl": "TRMNL",
-            "esp32_s3_photopainter": "PhotoPainter (7-Color)"
-        };
-        // Also handle short codes (E1001, E1002, TRMNL)
-        let name = names[model] || model || "Unknown";
-
-        // If it's a known non-supported model or shortcode, we don't necessarily know if it's supported here
-        // but the main check is the DEVICE_PROFILES one above.
-
-        return name;
+        return resolveDeviceDisplayName(model, DEVICE_PROFILES, SUPPORTED_DEVICE_IDS || []);
     }
 
+    /**
+     * @param {string} layoutId
+     */
     async loadLayout(layoutId) {
-        if (typeof hasHaBackend !== "function" || !hasHaBackend()) return;
+        if (!hasHaBackend()) return;
 
         try {
             this.setStatus("Loading layout...", "info");
+            const layout = await fetchLayout(getHaApiBase(), layoutId);
 
-            // Use no custom headers to avoid CORS preflight
-            const resp = await fetch(`${HA_API_BASE}/layouts/${layoutId}`);
-            if (!resp.ok) throw new Error(`Failed to load layout: ${resp.status}`);
-
-            const layout = await resp.json();
-
-            // IMPORTANT: Ensure device_id is set in the layout before loading into state
-            // This is critical for saving to the correct layout ID
             if (!layout.device_id) {
                 layout.device_id = layoutId;
             }
 
-            // Update current layout ID FIRST, before loading state
-            // This ensures any subsequent saves go to the correct layout
             this.currentLayoutId = layoutId;
             if (AppState && typeof AppState.setCurrentLayoutId === "function") {
                 AppState.setCurrentLayoutId(layoutId);
                 Logger.log(`[LayoutManager] Set currentLayoutId to: ${layoutId}`);
             }
 
-            // Clear the canvas before loading new layout to prevent remnants from appearing
             const canvas = document.getElementById("canvas");
             if (canvas) {
-                // Remove all widget elements but keep the grid
                 const grid = canvas.querySelector(".canvas-grid");
                 canvas.innerHTML = "";
                 if (grid) canvas.appendChild(grid);
                 Logger.log("[LayoutManager] Cleared canvas before loading layout");
             }
 
-            // Also clear any graph axis labels that may have been added by setTimeout callbacks
-            // These labels are appended to canvas but may arrive after canvas.innerHTML was cleared
-            document.querySelectorAll('.graph-axis-label').forEach(el => el.remove());
+            document.querySelectorAll('.graph-axis-label').forEach((el) => el.remove());
 
-            // Update AppState with the new layout (this sets currentLayoutId, deviceName, etc.)
             if (typeof loadLayoutIntoState === "function") {
                 loadLayoutIntoState(layout);
             }
 
-            // Double-check: Ensure currentLayoutId is still correct after loadLayoutIntoState
-            // (loadLayoutIntoState might reset it if layout.device_id was missing)
             if (AppState && AppState.currentLayoutId !== layoutId) {
                 AppState.setCurrentLayoutId(layoutId);
                 Logger.log(`[LayoutManager] Re-set currentLayoutId to: ${layoutId} (was changed by loadLayoutIntoState)`);
             }
 
-            // Emit event for other components
             if (typeof emit === "function" && typeof EVENTS !== "undefined") {
                 emit(EVENTS.LAYOUT_IMPORTED, layout);
             }
 
             this.setStatus(`Loaded: ${layout.name || layoutId}`, "success");
             this.renderLayoutList();
-
-            // Close the modal after loading
             setTimeout(() => this.close(), 500);
-
         } catch (err) {
             Logger.error("[LayoutManager] Error loading layout:", err);
             this.setStatus("Failed to load layout", "error");
         }
     }
 
+    /**
+     * @param {string} layoutId
+     */
     async exportLayout(layoutId) {
-        if (typeof hasHaBackend !== "function" || !hasHaBackend()) return;
+        if (!hasHaBackend()) return;
 
+        /** @type {string | null} */
+        let objectUrl = null;
         try {
-            // Trigger download via the export endpoint
             const url = `${HA_API_BASE}/export?id=${layoutId}`;
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${layoutId}_layout.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            const response = await haFetch(url, {
+                headers: getHaHeaders()
+            });
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.error || `Export failed: ${response.status}`);
+            }
 
+            const layout = await response.json();
+            const blob = new Blob([JSON.stringify(layout, null, 2)], {
+                type: 'application/json'
+            });
+            objectUrl = URL.createObjectURL(blob);
+
+            const anchor = document.createElement("a");
+            anchor.href = objectUrl;
+            anchor.download = `${layoutId}_layout.json`;
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
             this.setStatus("Export started...", "success");
         } catch (err) {
             Logger.error("[LayoutManager] Error exporting layout:", err);
             this.setStatus("Failed to export layout", "error");
+        } finally {
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+            }
         }
     }
 
+    /**
+     * @param {string} layoutId
+     * @param {string} layoutName
+     */
     async deleteLayout(layoutId, layoutName) {
-        if (typeof hasHaBackend !== "function" || !hasHaBackend()) return;
-
-        const confirmed = confirm(`Are you sure you want to delete "${layoutName}"?\n\nThis cannot be undone.`);
-        if (!confirmed) return;
+        if (!hasHaBackend()) return;
+        if (!confirm(`Are you sure you want to delete "${layoutName}"?\n\nThis cannot be undone.`)) return;
 
         this.setStatus("Deleting layout...", "info");
 
         try {
-            // Use text/plain to avoid CORS preflight
-            const resp = await fetch(`${HA_API_BASE}/layouts/${layoutId}`, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain" },
-                body: JSON.stringify({ action: "delete" })
-            });
-
+            const resp = await deleteLayoutRequest(getHaApiBase(), layoutId);
             if (!resp.ok) {
                 const data = await resp.json().catch(() => ({}));
                 if (data.error === "cannot_delete_last_layout") {
@@ -379,287 +362,208 @@ export class LayoutManager {
 
             this.setStatus(`Deleted: ${layoutName}`, "success");
             await this.loadLayouts();
-
         } catch (err) {
             Logger.warn("[LayoutManager] Network error during delete, verifying if operation completed...");
-
-            // Wait a moment for the backend to complete the operation
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            // Reload the layout list to check if deletion actually succeeded
+            await sleep(1500);
             await this.loadLayouts();
 
-            // Check if the layout is still in the list
-            const stillExists = this.layouts.some(l => l.id === layoutId);
-
+            const stillExists = this.layouts.some((layout) => layout.id === layoutId);
             if (!stillExists) {
-                // The deletion actually succeeded despite the network error
                 Logger.log("[LayoutManager] Layout was successfully deleted (verified after refresh)");
                 this.setStatus(`Deleted: ${layoutName}`, "success");
             } else {
-                // The deletion truly failed
                 Logger.error("[LayoutManager] Error deleting layout:", err);
                 this.setStatus("Failed to delete layout", "error");
             }
         }
     }
 
-    showNewLayoutDialog() {
-        // Create modal if not exists
-        if (!document.getElementById("newLayoutModal")) {
-            const modal = document.createElement("div");
-            modal.id = "newLayoutModal";
-            modal.className = "modal-backdrop hidden";
-            modal.innerHTML = `
-                <div class="modal" style="max-width: 400px;">
-                    <div class="modal-header">
-                        <div>Create New Layout</div>
-                        <button id="newLayoutClose" class="btn btn-secondary">×</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="field" style="margin-bottom: 12px;">
-                            <div class="prop-label">Layout Name</div>
-                            <input id="newLayoutName" class="prop-input" type="text" placeholder="e.g. Living Room Display" />
-                        </div>
-                        <div class="field">
-                            <div class="prop-label">Device Type</div>
-                            <select id="newLayoutDeviceType" class="prop-input">
-                                ${this.generateDeviceOptions()}
-                            </select>
-                            <p class="hint" style="color: var(--muted); font-size: 11px; margin-top: 4px;">Select the device that will display this layout.</p>
-                        </div>
-                    </div>
-                    <div class="modal-actions">
-                        <button id="newLayoutCancel" class="btn btn-secondary">Cancel</button>
-                        <button id="newLayoutConfirm" class="btn btn-primary">Create Layout</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
+    /** @returns {HTMLElement} */
+    ensureNewLayoutModal() {
+        const existing = /** @type {HTMLElement | null} */ (document.getElementById("newLayoutModal"));
+        if (existing) return existing;
 
-            // Bind events
-            document.getElementById("newLayoutClose").addEventListener("click", () => {
-                modal.classList.add("hidden");
-            });
-            document.getElementById("newLayoutCancel").addEventListener("click", () => {
-                modal.classList.add("hidden");
-            });
-            document.getElementById("newLayoutConfirm").addEventListener("click", () => {
+        const modal = document.createElement("div");
+        modal.id = "newLayoutModal";
+        modal.className = "modal-backdrop hidden";
+        modal.innerHTML = createNewLayoutModalMarkup(this.generateDeviceOptions());
+        appendToDesignerOverlayRoot(modal);
+
+        /** @type {HTMLButtonElement} */ (getRequiredElement("newLayoutClose")).addEventListener("click", () => {
+            modal.classList.add("hidden");
+        });
+        /** @type {HTMLButtonElement} */ (getRequiredElement("newLayoutCancel")).addEventListener("click", () => {
+            modal.classList.add("hidden");
+        });
+        /** @type {HTMLButtonElement} */ (getRequiredElement("newLayoutConfirm")).addEventListener("click", () => {
+            this.handleCreateLayoutConfirm();
+        });
+
+        /** @type {HTMLInputElement} */ (getRequiredElement("newLayoutName")).addEventListener("keydown", (/** @type {KeyboardEvent} */ e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
                 this.handleCreateLayoutConfirm();
-            });
+            } else if (e.key === "Escape") {
+                modal.classList.add("hidden");
+            }
+            e.stopPropagation();
+        });
 
-            // Keyboard support
-            document.getElementById("newLayoutName").addEventListener("keydown", (e) => {
-                if (e.key === "Enter") {
-                    e.preventDefault();
-                    this.handleCreateLayoutConfirm();
-                } else if (e.key === "Escape") {
+        modal.addEventListener("click", (e) => {
+            if (e.target === modal) {
+                const nameInput = getInput("newLayoutName");
+                if (document.activeElement !== nameInput) {
                     modal.classList.add("hidden");
                 }
-                // Prevent bubbling to avoid triggering global keyboard shortcuts
-                e.stopPropagation();
-            });
+            }
+        });
 
-            modal.addEventListener("click", (e) => {
-                // Only close on backdrop click if not clicking the modal itself
-                // and not while actively typing
-                if (e.target === modal) {
-                    const nameInput = document.getElementById("newLayoutName");
-                    if (document.activeElement !== nameInput) {
-                        modal.classList.add("hidden");
-                    }
-                }
-            });
+        return modal;
+    }
+
+    showNewLayoutDialog() {
+        const modal = this.ensureNewLayoutModal();
+        const nameInput = getInput("newLayoutName");
+        if (!nameInput) return;
+        const existingCount = this.layouts.length;
+        nameInput.value = `Layout ${existingCount + 1}`;
+
+        const defaultDevice = DEVICE_PROFILES ? Object.keys(DEVICE_PROFILES)[0] : "reterminal_e1001";
+        const deviceTypeSelect = getSelect("newLayoutDeviceType");
+        if (deviceTypeSelect) {
+            deviceTypeSelect.value = defaultDevice;
         }
 
-        // Reset and show
-        const nameInput = document.getElementById("newLayoutName");
-        const existingCount = this.layouts.length;
-        const defaultName = `Layout ${existingCount + 1}`;
-        nameInput.value = defaultName;
-
-        // Default to first available device or fallback
-        const _model = AppState.deviceModel || (AppState.settings ? AppState.settings.device_model : null) || "reterminal_e1001";
-        const defaultDevice = DEVICE_PROFILES ? Object.keys(DEVICE_PROFILES)[0] : "reterminal_e1001";
-        document.getElementById("newLayoutDeviceType").value = defaultDevice;
-
-        document.getElementById("newLayoutModal").classList.remove("hidden");
-
-        // Focus name input with a slight delay
+        modal.classList.remove("hidden");
         setTimeout(() => nameInput.focus(), 100);
     }
 
     handleCreateLayoutConfirm() {
-        const name = document.getElementById("newLayoutName").value.trim();
-        const deviceType = document.getElementById("newLayoutDeviceType").value;
+        const nameInput = getInput("newLayoutName");
+        const deviceTypeSelect = getSelect("newLayoutDeviceType");
+        const name = nameInput?.value.trim() || "";
+        const deviceType = deviceTypeSelect?.value || "reterminal_e1001";
         if (!name) {
             alert("Please enter a layout name.");
             return;
         }
-        document.getElementById("newLayoutModal").classList.add("hidden");
+        const modal = /** @type {HTMLElement | null} */ (document.getElementById("newLayoutModal"));
+        if (modal) modal.classList.add("hidden");
         this.createLayout(name, deviceType);
     }
 
     generateDeviceOptions() {
-        if (DEVICE_PROFILES) {
-            const supportedIds = SUPPORTED_DEVICE_IDS || [];
-            return Object.entries(DEVICE_PROFILES).map(([key, profile]) => {
-                let displayName = profile.name;
-                if (!supportedIds.includes(key)) {
-                    displayName += " (untested)";
-                }
-                return `<option value="${key}">${displayName}</option>`;
-            }).join("");
-        }
-        return `<option value="reterminal_e1001">reTerminal E1001</option>`;
+        return buildDeviceOptions(DEVICE_PROFILES, SUPPORTED_DEVICE_IDS || []);
     }
 
+    /**
+     * @param {string} name
+     * @param {string} [deviceModel="reterminal_e1001"]
+     */
     async createLayout(name, deviceModel = "reterminal_e1001") {
-        if (typeof hasHaBackend !== "function" || !hasHaBackend()) return;
+        if (!hasHaBackend()) return;
 
-        // Generate ID from name - ALWAYS add timestamp to ensure uniqueness
         let baseId = name.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
-
-        // If baseId would be empty, use a default
-        if (!baseId) {
-            baseId = "layout";
-        }
-
-        // Always append timestamp for uniqueness
+        if (!baseId) baseId = "layout";
         const id = baseId + "_" + Date.now();
 
         this.setStatus("Creating layout...", "info");
-
         let createSucceeded = false;
 
         try {
-            // Use text/plain to avoid CORS preflight
-            const resp = await fetch(`${HA_API_BASE}/layouts`, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain" },
-                body: JSON.stringify({ id, name, device_type: deviceModel, device_model: deviceModel })
-            });
-
+            const resp = await createLayoutRequest(getHaApiBase(), { id, name, device_type: deviceModel, device_model: deviceModel });
             if (!resp.ok) {
                 const data = await resp.json().catch(() => ({}));
                 throw new Error(data.error || `Create failed: ${resp.status}`);
             }
-
             createSucceeded = true;
-
         } catch (err) {
             Logger.warn("[LayoutManager] Network error during create, verifying if operation completed...");
-
-            // Wait a moment for the backend to complete the operation
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            // Reload the layout list to check if creation actually succeeded
+            await sleep(1500);
             await this.loadLayouts();
 
-            // Check if the new layout appears in the list
-            const nowExists = this.layouts.some(l => l.id === id);
-
+            const nowExists = this.layouts.some((layout) => layout.id === id);
             if (nowExists) {
-                // The creation actually succeeded despite the network error
                 Logger.log("[LayoutManager] Layout was successfully created (verified after refresh)");
                 createSucceeded = true;
             } else {
-                // The creation truly failed
                 Logger.error("[LayoutManager] Error creating layout:", err);
                 this.setStatus("Failed to create layout", "error");
                 return;
             }
         }
 
-        if (createSucceeded) {
-            this.setStatus(`Created: ${name}`, "success");
-            await this.loadLayouts();
+        if (!createSucceeded) return;
 
-            // Detect if this is an e-ink device to set appropriate rendering mode default
-            const profile = DEVICE_PROFILES[deviceModel];
-            const isEpaper = profile && profile.features && profile.features.epaper;
-            const hasLvgl = profile && profile.features && profile.features.lvgl;
+        this.setStatus(`Created: ${name}`, "success");
+        await this.loadLayouts();
 
-            // Default to direct mode for e-ink unless it explicitly supports LVGL
-            const initialRenderingMode = (isEpaper && !hasLvgl) ? "direct" : "lvgl";
+        const profiles = /** @type {Record<string, any>} */ (DEVICE_PROFILES);
+        const profile = profiles[deviceModel];
+        const isEpaper = profile && profile.features && profile.features.epaper;
+        const hasLvgl = profile && profile.features && profile.features.lvgl;
+        const initialRenderingMode = (isEpaper && !hasLvgl) ? "direct" : "lvgl";
 
-            Logger.log(`[LayoutManager] New layout ${id} detected device type. isEpaper=${isEpaper}, hasLvgl=${hasLvgl}. Setting initial renderingMode to: ${initialRenderingMode}`);
+        Logger.log(`[LayoutManager] New layout ${id} detected device type. isEpaper=${isEpaper}, hasLvgl=${hasLvgl}. Setting initial renderingMode to: ${initialRenderingMode}`);
 
-            // CRITICAL: Clear the current state BEFORE loading the new layout
-            // This prevents any widgets from the previous layout from appearing
-            if (AppState) {
-                // Reset to empty state
-                AppState.setPages([{
-                    id: "page_0",
-                    name: "Page 1",
-                    widgets: []
-                }]);
-                AppState.setCurrentPageIndex(0);
+        if (AppState) {
+            AppState.setPages([{ id: "page_0", name: "Page 1", widgets: [] }]);
+            AppState.setCurrentPageIndex(0);
+            AppState.updateSettings({
+                renderingMode: initialRenderingMode,
+                device_model: deviceModel
+            });
+            Logger.log("[LayoutManager] Cleared state and set initial settings before loading new layout");
+        }
 
-                // Update settings with the detected rendering mode
-                AppState.updateSettings({
-                    renderingMode: initialRenderingMode,
-                    device_model: deviceModel
-                });
+        await this.loadLayout(id);
 
-                Logger.log("[LayoutManager] Cleared state and set initial settings before loading new layout");
+        if (AppState) {
+            AppState.setDeviceModel(deviceModel);
+            if (typeof emit === "function" && typeof EVENTS !== "undefined") {
+                emit(EVENTS.STATE_CHANGED);
             }
-
-            // Auto-load the new layout so user can start working on it
-            await this.loadLayout(id);
-
-            // After loading, update the device model in AppState
-            if (AppState) {
-                AppState.setDeviceModel(deviceModel);
-
-
-                // Force a state change event to trigger re-render
-                // This ensures the canvas is cleared and redrawn with the new (empty) layout
-                if (typeof emit === "function" && typeof EVENTS !== "undefined") {
-                    emit(EVENTS.STATE_CHANGED);
-                }
-
-                Logger.log(`[LayoutManager] Created layout '${id}' with device_model: ${deviceModel}, pages: ${AppState.pages?.length}, widgets: ${AppState.getCurrentPage()?.widgets?.length || 0}`);
-            }
+            Logger.log(`[LayoutManager] Created layout '${id}' with device_model: ${deviceModel}, pages: ${AppState.pages?.length}, widgets: ${AppState.getCurrentPage()?.widgets?.length || 0}`);
         }
     }
 
+    /**
+     * @param {Event} event
+     */
     async handleFileImport(event) {
-        const file = event.target.files[0];
+        const input = event.target instanceof HTMLInputElement ? event.target : null;
+        const file = input?.files?.[0];
         if (!file) return;
 
         try {
             const text = await file.text();
             const data = JSON.parse(text);
 
-            // Validate it looks like a layout
             if (!data.pages && !data.device_id) {
                 this.setStatus("Invalid layout file", "error");
                 return;
             }
 
             await this.importLayout(data);
-
         } catch (err) {
             Logger.error("[LayoutManager] Error importing file:", err);
-            this.setStatus("Failed to import file: " + err.message, "error");
+            this.setStatus("Failed to import file: " + getErrorMessage(err), "error");
         }
 
-        // Reset file input
-        event.target.value = "";
+        if (input) {
+            input.value = "";
+        }
     }
 
+    /**
+     * @param {any} data
+     * @param {boolean} [overwrite=false]
+     */
     async importLayout(data, overwrite = false) {
-        if (typeof hasHaBackend !== "function" || !hasHaBackend()) return;
+        if (!hasHaBackend()) return;
 
         try {
-            const url = `${HA_API_BASE}/import${overwrite ? "?overwrite=true" : ""}`;
-            const resp = await fetch(url, {
-                method: "POST",
-                headers: getHaHeaders(),
-                body: JSON.stringify(data)
-            });
-
+            const resp = await importLayoutRequest(getHaApiBase(), data, overwrite, getHaHeaders);
             const result = await resp.json();
 
             if (!resp.ok) {
@@ -669,7 +573,6 @@ export class LayoutManager {
                     );
                     if (doOverwrite) {
                         await this.importLayout(data, true);
-                        return;
                     }
                     return;
                 }
@@ -678,12 +581,9 @@ export class LayoutManager {
 
             this.setStatus(`Imported: ${result.name || result.id}`, "success");
             await this.loadLayouts();
-
         } catch (err) {
             Logger.error("[LayoutManager] Error importing layout:", err);
             this.setStatus("Failed to import layout", "error");
         }
     }
 }
-
-

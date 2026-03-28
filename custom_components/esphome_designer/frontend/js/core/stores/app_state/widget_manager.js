@@ -6,12 +6,24 @@ import { registry } from '../../plugin_registry';
 
 export class WidgetManager {
     /**
-     * @param {import('../index.js').AppStateFacade} app 
+     * @param {any} app
      */
     constructor(app) {
         this.app = app;
     }
 
+    /**
+     * @param {string[] | Set<string> | null | undefined} ids
+     * @returns {string[]}
+     */
+    normalizeWidgetIds(ids) {
+        if (!ids) return [];
+        return Array.isArray(ids) ? ids : [...ids];
+    }
+
+    /**
+     * @param {any} config
+     */
     setCustomHardware(config) {
         this.app.project.state.customHardware = config;
         emit(EVENTS.STATE_CHANGED);
@@ -54,8 +66,8 @@ export class WidgetManager {
             if (Object.keys(childUpdates).length > 0) {
                 const page = appAny.pages[appAny.currentPageIndex];
                 if (page && page.widgets) {
-                    const children = page.widgets.filter(w => w.parentId === id);
-                    children.forEach(c => this.updateWidget(c.id, childUpdates));
+                    const children = page.widgets.filter((/** @type {Widget} */ w) => w.parentId === id);
+                    children.forEach((/** @type {Widget} */ c) => this.updateWidget(c.id, childUpdates));
                 }
             }
         }
@@ -67,13 +79,22 @@ export class WidgetManager {
         emit(EVENTS.STATE_CHANGED);
     }
 
+    /**
+     * @param {string[]} ids
+     * @param {Partial<Widget>} u
+     */
     updateWidgets(ids, u) {
         ids.forEach(id => this.app.project.updateWidget(id, u));
         emit(EVENTS.STATE_CHANGED);
     }
 
+    /**
+     * @param {string[]} ids
+     * @param {Record<string, any>} propUpdates
+     */
     updateWidgetsProps(ids, propUpdates) {
         // Keep track of secondary updates
+        /** @type {{ id: string, props: Record<string, any> }[]} */
         const additionalUpdates = [];
 
         ids.forEach(id => {
@@ -87,8 +108,8 @@ export class WidgetManager {
                     const group = this.app.getWidgetById(widget.parentId);
                     if (group && group.type === 'group' && group.title && group.title.endsWith('Group')) {
                         // Find the sibling widget that represents the shadow
-                        const siblings = this.app.getCurrentPage()?.widgets.filter(w => w.parentId === group.id) || [];
-                        const shadowWidget = siblings.find(w => w.id !== widget.id && w.props?.name && w.props.name.endsWith('Shadow'));
+                        const siblings = this.app.getCurrentPage()?.widgets.filter((/** @type {Widget} */ w) => w.parentId === group.id) || [];
+                        const shadowWidget = siblings.find((/** @type {Widget} */ w) => w.id !== widget.id && w.props?.name && w.props.name.endsWith('Shadow'));
                         if (shadowWidget) {
                             additionalUpdates.push({
                                 id: shadowWidget.id,
@@ -108,16 +129,19 @@ export class WidgetManager {
         emit(EVENTS.STATE_CHANGED);
     }
 
+    /**
+     * @param {string | null | undefined} id
+     */
     deleteWidget(id) {
-        const ids = id ? [id] : [...this.app.editor.selectedWidgetIds];
+        const ids = id ? [id] : this.normalizeWidgetIds(this.app.editor.selectedWidgetIds);
 
         // If any selected ID is a group, we should potentially handle children
         const allIdsToDelete = [...ids];
         ids.forEach(targetId => {
             const widget = this.app.getWidgetById(targetId);
             if (widget && widget.type === 'group') {
-                const children = this.app.pages[this.app.currentPageIndex].widgets.filter(w => w.parentId === targetId);
-                children.forEach(c => allIdsToDelete.push(c.id));
+                const children = this.app.pages[this.app.currentPageIndex].widgets.filter((/** @type {Widget} */ w) => w.parentId === targetId);
+                children.forEach((/** @type {Widget} */ c) => allIdsToDelete.push(c.id));
             }
         });
 
@@ -127,6 +151,13 @@ export class WidgetManager {
         emit(EVENTS.STATE_CHANGED);
     }
 
+    /**
+     * @param {string} widgetId
+     * @param {number} targetPageIndex
+     * @param {number | null} [x]
+     * @param {number | null} [y]
+     * @returns {boolean}
+     */
     moveWidgetToPage(widgetId, targetPageIndex, x = null, y = null) {
         const widget = this.app.getWidgetById(widgetId);
         if (!widget) return false;
@@ -138,7 +169,7 @@ export class WidgetManager {
         // Collect all widgets to move (widget + group children when moving a group)
         const widgetsToMove = [widget];
         if (widget.type === 'group') {
-            const children = sourcePage.widgets.filter(w => w.parentId === widgetId);
+            const children = sourcePage.widgets.filter((/** @type {Widget} */ w) => w.parentId === widgetId);
             widgetsToMove.push(...children);
         }
 
@@ -147,11 +178,11 @@ export class WidgetManager {
         const dy = (y !== null) ? y - widget.y : 0;
 
         // Remove all moved widgets from source
-        const idsToMove = new Set(widgetsToMove.map(w => w.id));
-        sourcePage.widgets = sourcePage.widgets.filter(w => !idsToMove.has(w.id));
+        const idsToMove = new Set(widgetsToMove.map((/** @type {Widget} */ w) => w.id));
+        sourcePage.widgets = sourcePage.widgets.filter((/** @type {Widget} */ w) => !idsToMove.has(w.id));
 
         // Add cloned widgets to target
-        widgetsToMove.forEach(w => {
+        widgetsToMove.forEach((/** @type {Widget} */ w) => {
             const cloned = JSON.parse(JSON.stringify(w));
             if (w.id === widgetId) {
                 if (x !== null) cloned.x = x;
@@ -169,9 +200,14 @@ export class WidgetManager {
         return true;
     }
 
+    /**
+     * @param {string | null | undefined} id
+     */
     copyWidget(id) {
-        const targetIds = id ? [id] : this.app.editor.selectedWidgetIds;
-        const widgets = targetIds.map(id => this.app.getWidgetById(id)).filter(w => !!w);
+        const targetIds = id ? [id] : this.normalizeWidgetIds(this.app.editor.selectedWidgetIds);
+        const widgets = targetIds
+            .map((widgetId) => this.app.getWidgetById(widgetId))
+            .filter((/** @type {Widget | null | undefined} */ w) => !!w);
         if (widgets.length > 0) {
             this.app.editor.copyWidgets(widgets);
         }
@@ -179,10 +215,10 @@ export class WidgetManager {
 
     pasteWidget() {
         const editorAny = /** @type {any} */ (this.app.editor);
-        const clipboard = editorAny.clipboardWidgets;
+        const clipboard = /** @type {Widget[] | null | undefined} */ (editorAny.clipboardWidgets);
         if (!clipboard || clipboard.length === 0) return;
 
-        const newWidgets = clipboard.map(w => {
+        const newWidgets = clipboard.map((/** @type {Widget} */ w) => {
             const pasted = JSON.parse(JSON.stringify(w)); // Deep clone
             pasted.id = generateId();
             pasted.x += 10;
@@ -190,7 +226,7 @@ export class WidgetManager {
             return pasted;
         });
 
-        newWidgets.forEach(w => {
+        newWidgets.forEach((/** @type {Widget} */ w) => {
             this.checkRenderingModeForWidget(w);
             this.app.project.addWidget(w);
         });
@@ -199,12 +235,16 @@ export class WidgetManager {
         emit(EVENTS.STATE_CHANGED);
     }
 
+    /**
+     * @param {string | string[]} widgetIdOrIds
+     */
     createDropShadow(widgetIdOrIds) {
         const ids = Array.isArray(widgetIdOrIds) ? widgetIdOrIds : [widgetIdOrIds];
         if (ids.length === 0) return;
 
         // Determine effective dark mode once for the batch
         const page = this.app.project.getCurrentPage();
+        if (!page || !page.widgets) return;
         const pageDarkMode = page ? page.dark_mode : undefined;
         let isDark = false;
         if (pageDarkMode === "dark") isDark = true;
@@ -216,6 +256,7 @@ export class WidgetManager {
         const fillColor = isDark ? "black" : "white";
         const defaultForeground = isDark ? "white" : "black";
 
+        /** @type {string[]} */
         const newGroupIds = [];
 
         ids.forEach(id => {
@@ -233,7 +274,7 @@ export class WidgetManager {
             }
 
             // 2. Create Shadow Widget
-            const shadow = {
+            const shadow = /** @type {any} */ ({
                 id: generateId(),
                 type: shadowType,
                 x: (widget.x || 0) + 5,
@@ -247,7 +288,7 @@ export class WidgetManager {
                     bg_color: shadowColor,
                     fill: true,
                 }
-            };
+            });
 
             // Add radius for rounded rects
             if (shadowType === "rounded_rect") {
@@ -284,8 +325,8 @@ export class WidgetManager {
             this.app.project.updateWidget(id, { props: { ...widget.props } });
 
             // 4. Reorder Logic (Shadow behind Widget)
-            const currentOriginalIndex = page.widgets.findIndex(w => w.id === id);
-            const currentShadowIndex = page.widgets.findIndex(w => w.id === shadow.id);
+            const currentOriginalIndex = page.widgets.findIndex((/** @type {Widget} */ w) => w.id === id);
+            const currentShadowIndex = page.widgets.findIndex((/** @type {Widget} */ w) => w.id === shadow.id);
 
             if (currentOriginalIndex !== -1 && currentShadowIndex !== -1) {
                 this.app.project.reorderWidget(this.app.project.currentPageIndex, currentShadowIndex, currentOriginalIndex);
@@ -339,21 +380,25 @@ export class WidgetManager {
         const widgets = [...page.widgets];
 
         // Find top level widgets (those with no parentId)
-        const topLevel = widgets.filter(w => !w.parentId);
+        const topLevel = widgets.filter((/** @type {Widget} */ w) => !w.parentId);
 
         // Build children map
+        /** @type {Map<string, Widget[]>} */
         const childrenMap = new Map();
-        widgets.forEach(w => {
+        widgets.forEach((/** @type {Widget} */ w) => {
             if (w.parentId) {
                 if (!childrenMap.has(w.parentId)) childrenMap.set(w.parentId, []);
-                childrenMap.get(w.parentId).push(w);
+                const children = childrenMap.get(w.parentId);
+                if (children) children.push(w);
             }
         });
 
+        /** @type {Widget[]} */
         const sorted = [];
+        /** @param {Widget} widget */
         const processRecursive = (widget) => {
             sorted.push(widget);
-            const children = childrenMap.get(widget.id);
+            const children = /** @type {Widget[] | undefined} */ (childrenMap.get(widget.id));
             if (children) {
                 // Keep relative order of siblings as they were in the original array
                 children.sort((a, b) => widgets.indexOf(a) - widgets.indexOf(b));
@@ -376,8 +421,8 @@ export class WidgetManager {
         Logger.log(`[AppState] Syncing widget visibility for mode: ${mode}`);
 
         let changeCount = 0;
-        this.app.project.pages.forEach(page => {
-            page.widgets.forEach(w => {
+        this.app.project.pages.forEach((/** @type {any} */ page) => {
+            page.widgets.forEach((/** @type {Widget} */ w) => {
                 const isCompatible = this.isWidgetCompatibleWithMode(w, mode);
 
                 if (!isCompatible && !w.hidden) {
@@ -399,6 +444,9 @@ export class WidgetManager {
 
     /**
      * Internal check for widget compatibility.
+     * @param {Widget} w
+     * @param {string} mode
+     * @returns {boolean}
      */
     isWidgetCompatibleWithMode(w, mode) {
         const plugin = registry.get(w.type);
@@ -421,6 +469,7 @@ export class WidgetManager {
 
     /**
      * Internal check to switch rendering mode if a specific widget is added.
+     * @param {Widget | null | undefined} w
      */
     checkRenderingModeForWidget(w) {
         if (!w || !w.type) return;

@@ -99,20 +99,20 @@ export class AppStateFacade {
     }
 
     getSelectedProfile(): any | null {
-        return (DEVICE_PROFILES as Record<string, any>)[this.project.deviceModel] || null;
+        return this.project.deviceModel ? (DEVICE_PROFILES as Record<string, any>)[this.project.deviceModel] || null : null;
     }
 
     getCanvasDimensions(): { width: number; height: number } {
         const mode = this.preferences.state.renderingMode || 'direct';
         if (mode === 'oepl' || mode === 'opendisplay') {
-            const ph = this.project.protocolHardware;
+            const ph = this.project.protocolHardware as { width: number; height: number };
             const orientation = this.preferences.state.orientation;
             if (orientation === 'portrait') {
                 return { width: Math.min(ph.width, ph.height), height: Math.max(ph.width, ph.height) };
             }
             return { width: Math.max(ph.width, ph.height), height: Math.min(ph.width, ph.height) };
         }
-        return this.project.getCanvasDimensions(this.preferences.state.orientation);
+        return this.project.getCanvasDimensions(this.preferences.state.orientation || 'landscape');
     }
 
     getCanvasShape(): string {
@@ -120,7 +120,7 @@ export class AppStateFacade {
     }
 
     getPagesPayload(): any {
-        const payload = {
+        const payload: Record<string, any> = {
             ...this.project.getPagesPayload(),
             currentPageIndex: this.currentPageIndex,
             ...this.settings
@@ -186,7 +186,7 @@ export class AppStateFacade {
         this.pageManager.reorderPage(fromIndex, toIndex);
     }
 
-    addPage(atIndex: number | null = null): any {
+    addPage(atIndex: number | null | undefined = null): any {
         return this.pageManager.addPage(atIndex);
     }
 
@@ -202,7 +202,7 @@ export class AppStateFacade {
         this.pageManager.renamePage(index, newName);
     }
 
-    selectWidget(id: string, multi: boolean = false): void {
+    selectWidget(id: string | null | undefined, multi: boolean = false): void {
         this.selectionManager.selectWidget(id, multi);
     }
 
@@ -230,7 +230,7 @@ export class AppStateFacade {
         this.selectionManager.groupSelection();
     }
 
-    ungroupSelection(idOrIds: string | string[] | null = null): void {
+    ungroupSelection(idOrIds: string | string[] | null | undefined = null): void {
         this.selectionManager.ungroupSelection(idOrIds);
     }
 

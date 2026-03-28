@@ -4,12 +4,37 @@ import { buildWidgetProps } from './widget_props_map.js';
 import { parseCppDrawingCommand } from './cpp_drawing_parser.js';
 
 /**
+ * @typedef {{ load: (text: string, options?: Record<string, any>) => any }} YamlModuleLike
+ * @typedef {Record<string, any> & { device_name?: string }} DeviceSettingsLike
+ * @typedef {Record<string, any> & {
+ *   _inline?: string;
+ *   id?: string;
+ *   type?: string;
+ *   x?: string | number;
+ *   y?: string | number;
+ *   width?: string | number;
+ *   height?: string | number;
+ *   w?: string | number;
+ *   h?: string | number;
+ *   title?: string;
+ *   name?: string;
+ *   entity_id?: string;
+ *   entity?: string;
+ *   ent?: string;
+ *   sensor?: string;
+ *   widgets?: Array<Record<string, Record<string, any>>>;
+ * }} NativeWidgetProps
+ * @typedef {{ widgetType: string, props: Record<string, string> }} WidgetMarker
+ */
+
+/**
  * Parses ESPHome YAML (or LVGL/OpenDisplay C++) blocks into a structured layout object.
  * 
  * @param {string[]} lambdaLines - Array of lines from the lambda/script block containing widgets
  * @param {string[]} rawLines - Array of all lines in the document for YAML sub-block extraction
- * @param {Object} deviceSettings - Base settings for the device layout
- * @param {Object} yaml - The loaded js-yaml module reference
+ * @param {DeviceSettingsLike} deviceSettings - Base settings for the device layout
+ * @param {() => (Record<string, any> | null)} getESPHomeSchema
+ * @param {YamlModuleLike} yaml - The loaded js-yaml module reference
  * @returns {ProjectPayload} The complete LayoutObject containing pages and widgets
  */
 export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESPHomeSchema, yaml) {
@@ -24,8 +49,8 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
     const pagePropsMap = new Map();
     const layoutMap = new Map();
 
-    const parseYamlSubBlock = (linesList, startIdx, baseIndent) => {
-        const blockLines = [];
+    const parseYamlSubBlock = (/** @type {string[]} */ linesList, /** @type {number} */ startIdx, /** @type {number} */ baseIndent) => {
+        const blockLines = /** @type {string[]} */ ([]);
         let j = startIdx;
         while (j < linesList.length) {
             const line = linesList[j];
@@ -44,7 +69,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
         }
         try {
             const yamlStr = blockLines.join("\n");
-            return { value: yaml.load(yamlStr, { schema: getESPHomeSchema() }), nextJ: j };
+            return { value: /** @type {Record<string, any> | null} */ (yaml.load(yamlStr, { schema: getESPHomeSchema() })), nextJ: j };
         } catch (e) {
             Logger.error("Error parsing YAML sub-block:", e);
             return { value: null, nextJ: j };
@@ -52,6 +77,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
     };
 
     const _lines = rawLines;
+    /** @type {number | null} */
     let currentPageIndex = null;
     let inWidgetsBlockLookahead = false;
 
@@ -62,7 +88,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
         "tileview", "checkbox", "keyboard", "buttonmatrix", "list", "icon"
     ];
 
-    const TAG_MAP = {
+    const TAG_MAP = /** @type {Record<string, string>} */ ({
         "label": "lvgl_label", "button": "lvgl_button", "arc": "lvgl_arc", "bar": "lvgl_bar",
         "slider": "lvgl_slider", "chart": "lvgl_chart", "dropdown": "lvgl_dropdown",
         "roller": "lvgl_roller", "spinbox": "lvgl_spinbox", "switch": "lvgl_switch",
@@ -71,7 +97,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
         "line": "lvgl_line", "meter": "lvgl_meter", "tabview": "lvgl_tabview",
         "tileview": "lvgl_tileview", "checkbox": "lvgl_checkbox", "keyboard": "lvgl_keyboard",
         "buttonmatrix": "lvgl_buttonmatrix", "icon": "icon"
-    };
+    });
 
     // First pass: Page Metadata
     for (let i = 0; i < lambdaLines.length; i++) {
@@ -150,7 +176,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
 
     if (pageMap.size === 0) pageMap.set(0, []);
 
-    const layout = {
+    const layout = /** @type {ProjectPayload} */ ({
         name: deviceSettings?.device_name || "Imported Layout",
         settings: deviceSettings,
         pages: Array.from(pageMap.entries()).sort((a, b) => a[0] - b[0]).map(([idx, _]) => ({
@@ -167,20 +193,20 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
             bg_opa: pagePropsMap.has(idx) ? pagePropsMap.get(idx).bg_opa : null,
             widgets: []
         }))
-    };
+    });
 
     currentPageIndex = 0;
     const getCurrentPageWidgets = () => {
-        const page = layout.pages.find((p, idx) => idx === currentPageIndex);
+        const page = layout.pages.find((/** @type {Record<string, any>} */ p, /** @type {number} */ idx) => idx === (currentPageIndex ?? 0));
         return page ? page.widgets : layout.pages[0].widgets;
     };
 
-    const parseWidgetMarker = (comment) => {
+    const parseWidgetMarker = (/** @type {string} */ comment) => {
         const match = comment.match(/^(?:#\s*|\/\/\s*)widget:(\w+)\s+(.+)$/);
         if (!match) return null;
         const widgetType = match[1];
         const propsStr = match[2];
-        const props = {};
+        const props = /** @type {Record<string, string>} */ ({});
         const regex = /(\w+):(?:"([^"]*)"|([^:]*?)(?=\s+\w+:|$))/g;
         let m;
         while ((m = regex.exec(propsStr)) !== null) {
@@ -209,7 +235,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
             continue;
         }
 
-        const widgets = getCurrentPageWidgets();
+        const widgets = /** @type {Array<Record<string, any>>} */ (getCurrentPageWidgets());
         if (skipRendering) {
             if (trimmed.match(/^(?:#\s*|\/\/\s*)widget:/) || trimmed.match(/^\s*-\s*id:/) || !cmd.match(/^\s/)) skipRendering = false;
             else continue;
@@ -224,8 +250,8 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
 
                 const widget = {
                     id: p.id, type: widgetType,
-                    x: parseInt(p.x || 0, 10), y: parseInt(p.y || 0, 10),
-                    width: parseInt(p.w || 100, 10), height: parseInt(p.h || 30, 10),
+                    x: parseInt(String(p.x || 0), 10), y: parseInt(String(p.y || 0), 10),
+                    width: parseInt(String(p.w || 100), 10), height: parseInt(String(p.h || 30), 10),
                     title: p.title || "", entity_id: p.entity || p.ent || "",
                     props: {}
                 };
@@ -255,18 +281,18 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
             const nativeTag = mNative[2];
             const inlineValue = mNative[3].trim();
             const widgetType = TAG_MAP[nativeTag] || `lvgl_${nativeTag}`;
-            const nativeProps = {};
+            const nativeProps = /** @type {NativeWidgetProps} */ ({});
             if (inlineValue) nativeProps._inline = inlineValue.replace(/^["']|["']$/g, "");
             const res = parseYamlSubBlock(lambdaLines, i + 1, indent + 2);
-            Object.assign(nativeProps, res.value);
+            Object.assign(nativeProps, res.value || {});
             i = res.nextJ - 1;
 
             const widget = {
                 id: nativeProps.id || `lv_${nativeTag}_${widgets.length}`,
                 type: widgetType,
-                x: parseInt(nativeProps.x || 0, 10), y: parseInt(nativeProps.y || 0, 10),
-                width: parseInt(nativeProps.width || nativeProps.w || 100, 10),
-                height: parseInt(nativeProps.height || nativeProps.h || 30, 10),
+                x: parseInt(String(nativeProps.x || 0), 10), y: parseInt(String(nativeProps.y || 0), 10),
+                width: parseInt(String(nativeProps.width || nativeProps.w || 100), 10),
+                height: parseInt(String(nativeProps.height || nativeProps.h || 30), 10),
                 title: nativeProps.title || nativeProps.name || "",
                 entity_id: nativeProps.entity_id || nativeProps.entity || nativeProps.sensor || "",
                 props: {}
@@ -278,18 +304,18 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
 
             // Handle nested widgets (flattening into the page for now as per backup)
             if (Array.isArray(nativeProps.widgets)) {
-                nativeProps.widgets.forEach(nw => {
+                nativeProps.widgets.forEach((/** @type {Record<string, Record<string, any>>} */ nw) => {
                     const tag = Object.keys(nw)[0];
-                    const nwProps = nw[tag];
-                    if (tag && nwProps) {
+                    const nwProps = tag ? nw[tag] : null;
+                    if (tag && nwProps && typeof nwProps === 'object') {
                         const nwType = TAG_MAP[tag] || `lvgl_${tag}`;
                         const nestedWidget = {
                             id: nwProps.id || `lv_${tag}_${widgets.length}`,
                             type: nwType,
-                            x: widget.x + (parseInt(nwProps.x || 0, 10)), // Relative to parent
-                            y: widget.y + (parseInt(nwProps.y || 0, 10)),
-                            width: parseInt(nwProps.width || nwProps.w || 50, 10),
-                            height: parseInt(nwProps.height || nwProps.h || 20, 10),
+                            x: widget.x + (parseInt(String(nwProps.x || 0), 10)), // Relative to parent
+                            y: widget.y + (parseInt(String(nwProps.y || 0), 10)),
+                            width: parseInt(String(nwProps.width || nwProps.w || 50), 10),
+                            height: parseInt(String(nwProps.height || nwProps.h || 20), 10),
                             props: {}
                         };
                         nestedWidget.props = buildWidgetProps(nwType, nwProps, nestedWidget);

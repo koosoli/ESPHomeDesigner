@@ -113,6 +113,15 @@ describe('Entity Deduplication & Registration', () => {
             expect(result).toContain('  topic: "home/cpu/temp"');
             expect(result).not.toContain('  entity_id: sensor.cpu_temp');
         });
+
+        it('generates mqtt_subscribe config when entity_id has mqtt: prefix', () => {
+            const pages = [{ widgets: [{ type: 'sensor_text', entity_id: 'mqtt:home/cpu/temp' }] }];
+            const result = collectNumericSensors(pages, context);
+
+            expect(result).toContain('- platform: mqtt_subscribe');
+            expect(result).toContain('  id: mqtt_home_cpu_temp');
+            expect(result).toContain('  topic: "home/cpu/temp"');
+        });
     });
 
     describe('collectTextSensors', () => {
@@ -186,6 +195,15 @@ describe('Entity Deduplication & Registration', () => {
             expect(result).toContain('  topic: "home/weather/state"');
             expect(result).not.toContain('  entity_id: weather.home');
         });
+
+        it('generates mqtt_subscribe config when entity_id has mqtt: prefix', () => {
+            const pages = [{ widgets: [{ type: 'text', entity_id: 'mqtt:home/weather/state' }] }];
+            const result = collectTextSensors(pages, context);
+
+            expect(result).toContain('- platform: mqtt_subscribe');
+            expect(result).toContain('  id: mqtt_home_weather_state_txt');
+            expect(result).toContain('  topic: "home/weather/state"');
+        });
     });
 
     describe('collectBinarySensors', () => {
@@ -226,6 +244,15 @@ describe('Entity Deduplication & Registration', () => {
             expect(result).toContain('  id: switch_relay');
             expect(result).toContain('  topic: "home/relay/state"');
             expect(result).not.toContain('  entity_id: switch.relay');
+        });
+
+        it('generates mqtt_subscribe config when entity_id has mqtt: prefix', () => {
+            const pages = [{ widgets: [{ type: 'button', entity_id: 'mqtt:home/relay/state' }] }];
+            const result = collectBinarySensors(pages, context);
+
+            expect(result).toContain('- platform: mqtt_subscribe');
+            expect(result).toContain('  id: mqtt_home_relay_state');
+            expect(result).toContain('  topic: "home/relay/state"');
         });
     });
 

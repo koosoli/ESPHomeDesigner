@@ -7,6 +7,7 @@ const mockGridRender = vi.fn();
 const mockLegacyRender = vi.fn();
 const mockProtocolRender = vi.fn();
 const mockRegistryGet = vi.fn(() => null);
+const mockCanvasInstance = { lassoState: null };
 
 const controlsMethods = {
     addLabeledInput: vi.fn(),
@@ -76,7 +77,7 @@ vi.mock('../../js/core/events.js', () => ({
 }));
 
 vi.mock('../../js/core/canvas.js', () => ({
-    canvasInstance: null
+    canvasInstance: mockCanvasInstance
 }));
 
 vi.mock('../../js/core/properties/schema_renderer.js', () => ({
@@ -109,6 +110,7 @@ describe('PropertiesPanel', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        mockCanvasInstance.lassoState = null;
         mockAppState.snapEnabled = true;
         mockAppState.selectedWidgetId = null;
         mockAppState.selectedWidgetIds = [];
@@ -227,6 +229,125 @@ describe('PropertiesPanel', () => {
 
         expect(controlsMethods.addCommonLVGLProperties).toHaveBeenCalledWith(widget, widget.props);
         expect(mockSchemaRender).toHaveBeenCalled();
+    });
+
+    it('skips rerendering while lasso selection is active', async () => {
+        const { PropertiesPanel } = await import('../../js/core/properties.js');
+        const panel = new PropertiesPanel(mockApp);
+        panel.panel.innerHTML = '<div id="existing-content">keep me</div>';
+        mockCanvasInstance.lassoState = { startX: 0, startY: 0 };
+
+        panel.render();
+
+        expect(panel.panel.querySelector('#existing-content')).toBeTruthy();
+        expect(mockLegacyRender).not.toHaveBeenCalled();
+        expect(mockSchemaRender).not.toHaveBeenCalled();
+    });
+
+    it('uses registry renderProperties hooks when schema is not provided', async () => {
+        const renderProperties = vi.fn();
+        const widget = {
+            id: 'w-renderer',
+            type: 'custom_widget',
+            x: 1,
+            y: 2,
+            width: 30,
+            height: 40,
+            props: {}
+        };
+
+        mockRegistryGet.mockReturnValue({ renderProperties });
+        mockAppState.selectedWidgetId = 'w-renderer';
+        mockAppState.selectedWidgetIds = ['w-renderer'];
+        mockAppState.getSelectedWidgetIds.mockReturnValue(['w-renderer']);
+        mockAppState.getSelectedWidget.mockReturnValue(widget);
+        mockAppState.getSelectedWidgets.mockReturnValue([widget]);
+
+        const { PropertiesPanel } = await import('../../js/core/properties.js');
+        const panel = new PropertiesPanel(mockApp);
+
+        panel.render();
+
+        expect(renderProperties).toHaveBeenCalledWith(panel, widget);
+        expect(mockLegacyRender).not.toHaveBeenCalled();
+        expect(mockSchemaRender).not.toHaveBeenCalled();
+    });
+
+    it('routes oepl and opendisplay widgets through protocol property rendering', async () => {
+        const widget = {
+            id: 'w-proto',
+            type: 'sensor_text',
+            x: 4,
+            y: 5,
+            width: 60,
+            height: 20,
+            props: {}
+        };
+
+        mockAppState.settings.renderingMode = 'oepl';
+        mockAppState.selectedWidgetId = 'w-proto';
+        mockAppState.selectedWidgetIds = ['w-proto'];
+        mockAppState.getSelectedWidgetIds.mockReturnValue(['w-proto']);
+        mockAppState.getSelectedWidget.mockReturnValue(widget);
+        mockAppState.getSelectedWidgets.mockReturnValue([widget]);
+
+        const { PropertiesPanel } = await import('../../js/core/properties.js');
+        const panel = new PropertiesPanel(mockApp);
+
+        panel.render();
+
+        expect(mockProtocolRender).toHaveBeenCalledWith(panel, widget, 'sensor_text');
+        expect(mockLegacyRender).not.toHaveBeenCalled();
+    });
+
+    it('preserves focused text inputs inside the panel on no-op rerenders', async () => {
+        const widget = {
+            id: 'w-focus',
+            type: 'sensor_text',
+            x: 10,
+            y: 20,
+            width: 100,
+            height: 40,
+            props: {}
+        };
+
+        mockAppState.selectedWidgetId = 'w-focus';
+        mockAppState.selectedWidgetIds = ['w-focus'];
+        mockAppState.getSelectedWidgetIds.mockReturnValue(['w-focus']);
+        mockAppState.getSelectedWidget.mockReturnValue(widget);
+        mockAppState.getSelectedWidgets.mockReturnValue([widget]);
+
+        const { PropertiesPanel } = await import('../../js/core/properties.js');
+        const panel = new PropertiesPanel(mockApp);
+        panel.render();
+
+        const editor = document.createElement('input');
+        editor.className = 'prop-input';
+        panel.panel.appendChild(editor);
+        editor.focus();
+
+        panel.render();
+
+        expect(mockLegacyRender).toHaveBeenCalledTimes(1);
+        expect(panel.panel.contains(editor)).toBe(true);
+    });
+
+    it('updates lock toggle state and applies lock changes to the current selection', async () => {
+        const selectedWidget = { id: 'w-locked', locked: false };
+        mockAppState.selectedWidgetIds = ['w-locked'];
+        mockAppState.getSelectedWidgets.mockReturnValue([selectedWidget]);
+
+        const { PropertiesPanel } = await import('../../js/core/properties.js');
+        const panel = new PropertiesPanel(mockApp);
+        panel.init();
+
+        const lockToggle = /** @type {HTMLInputElement} */ (document.getElementById('lockPositionToggle'));
+        panel.render();
+        lockToggle.checked = true;
+        lockToggle.dispatchEvent(new Event('change', { bubbles: true }));
+
+        expect(lockToggle.disabled).toBe(false);
+        expect(mockAppState.updateWidgets).toHaveBeenCalledWith(['w-locked'], { locked: true });
     });
 
     it('invokes drop-shadow helper action for selected widgets', async () => {

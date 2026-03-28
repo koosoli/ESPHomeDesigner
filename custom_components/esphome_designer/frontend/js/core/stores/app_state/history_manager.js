@@ -2,7 +2,7 @@ import { emit, EVENTS } from '../../events.js';
 
 export class HistoryManager {
     /**
-     * @param {import('../index.js').AppStateFacade} app 
+     * @param {any} app
      */
     constructor(app) {
         this.app = app;

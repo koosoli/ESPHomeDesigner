@@ -33,6 +33,16 @@ describe('splitters', () => {
 
         await loadSplittersModule();
 
+        expect(mockLogger.warn).not.toHaveBeenCalled();
+        expect(timeoutSpy).toHaveBeenCalledWith(expect.any(Function), 100);
+    });
+
+    it('warns and retries when the app shell exists but splitter elements are still missing', async () => {
+        document.body.innerHTML = `<div class="app-content"></div>`;
+        const timeoutSpy = vi.spyOn(global, 'setTimeout');
+
+        await loadSplittersModule();
+
         expect(mockLogger.warn).toHaveBeenCalledWith('[Splitters] Layout elements not found, retrying...');
         expect(timeoutSpy).toHaveBeenCalledWith(expect.any(Function), 500);
     });
@@ -81,5 +91,22 @@ describe('splitters', () => {
 
         expect(mockLogger.log).toHaveBeenCalledWith('[Splitters] Initializing draggable panels...');
         expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'resize' }));
+    });
+
+    it('waits for DOMContentLoaded when the document is still loading', async () => {
+        document.body.innerHTML = `
+            <div class="app-content">
+              <div class="sidebar" style="min-width:100px; max-width:800px;"></div>
+              <div id="resizer-left"></div>
+              <div class="right-panel" style="min-width:120px; max-width:700px;"></div>
+              <div id="resizer-right"></div>
+            </div>
+        `;
+        setReadyState('loading');
+
+        await loadSplittersModule();
+
+        document.dispatchEvent(new Event('DOMContentLoaded'));
+        expect(mockLogger.log).toHaveBeenCalledWith('[Splitters] Initializing draggable panels...');
     });
 });

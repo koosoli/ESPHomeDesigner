@@ -9,11 +9,19 @@ import { COLORS, ALIGNMENT } from '../../core/constants';
 import { isEntityStateNonNumeric } from '../../utils/export_helpers.js';
 import { serializeWidget } from '../yaml_export_lvgl.js';
 
+/**
+ * @param {string | null | undefined} serialized
+ * @returns {string | null | undefined}
+ */
 function toCppRoundTripComment(serialized) {
     if (!serialized) return serialized;
     return serialized.replace(/^\s*#\s*widget:/, '// widget:');
 }
 
+/**
+ * @param {Record<string, any>} w
+ * @returns {string}
+ */
 export function getCondProps(w) {
     const ent = (w.condition_entity || "").trim();
     if (!ent) return "";
@@ -30,6 +38,10 @@ export function getCondProps(w) {
     return s;
 }
 
+/**
+ * @param {Record<string, any>} w
+ * @returns {string | null}
+ */
 function getConditionCheck(w) {
     const ent = (w.condition_entity || "").trim();
     if (!ent) return null;
@@ -90,6 +102,10 @@ function getConditionCheck(w) {
     return null;
 }
 
+/**
+ * @param {string | null | undefined} str
+ * @returns {string}
+ */
 function sanitize(str) {
     if (!str) return "";
     return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
@@ -97,8 +113,8 @@ function sanitize(str) {
 
 /**
  * Orchestrates the export of a single widget by delegating to its plugin.
- * @param {any} widget 
- * @param {any} context 
+ * @param {Record<string, any>} widget 
+ * @param {Record<string, any>} context 
  * @returns {string[]}
  */
 function generateWidget(widget, context) {
@@ -109,23 +125,32 @@ function generateWidget(widget, context) {
 
     if (plugin && typeof plugin.export === 'function') {
         // Automatically prepend the round-trip marker comment
-        const serialized = toCppRoundTripComment(serializeWidget(widget));
+        const serialized = toCppRoundTripComment(serializeWidget(/** @type {Widget} */ (widget)));
         if (serialized) widgetLines.push(serialized);
 
-        const exportContext = {
-            ...context,
-            lines: widgetLines,
-            addFont: (f, w, s, i) => context.adapter.fonts.addFont(f, w, s, i),
-            getColorConst: (c) => Utils ? Utils.getColorConst(c) : `"${c}"`,
-            getAlignX: (a, x, w) => Utils ? Utils.getAlignX(a, x, w) : x,
-            getAlignY: (a, y, h) => Utils ? Utils.getAlignY(a, y, h) : y,
-            addDitherMask: (l, c, e, x, y, w, h, r) => Utils ? Utils.addDitherMask(l, c, e, x, y, w, h, r || 0) : null,
-            sanitize: (s) => sanitize(s),
-            getCondProps: (w) => getCondProps(w),
-            getConditionCheck: (w) => getConditionCheck(w),
-            Utils: Utils,
-            COLORS: COLORS,
-            ALIGNMENT: ALIGNMENT,
+            const exportContext = {
+                ...context,
+                lines: widgetLines,
+                addFont: (/** @type {string} */ f, /** @type {number} */ w, /** @type {number} */ s, /** @type {boolean} */ i) => context.adapter.fonts.addFont(f, w, s, i),
+                getColorConst: (/** @type {string} */ c) => Utils ? Utils.getColorConst(c) : `"${c}"`,
+                getAlignX: (/** @type {string} */ a, /** @type {number} */ x, /** @type {number} */ width) => Utils ? Utils.getAlignX(a, x, width) : x,
+                getAlignY: (/** @type {string} */ a, /** @type {number} */ y, /** @type {number} */ height) => Utils ? Utils.getAlignY(a, y, height) : y,
+                addDitherMask: (
+                    /** @type {string[]} */ lines,
+                    /** @type {string} */ color,
+                    /** @type {boolean} */ enabled,
+                    /** @type {number} */ x,
+                    /** @type {number} */ y,
+                    /** @type {number} */ width,
+                    /** @type {number} */ height,
+                    /** @type {number | undefined} */ radius
+                ) => Utils ? Utils.addDitherMask(lines, color, enabled, x, y, width, height, radius || 0) : null,
+                sanitize: (/** @type {string | null | undefined} */ text) => sanitize(text),
+                getCondProps: (/** @type {Record<string, any>} */ widgetValue) => getCondProps(widgetValue),
+                getConditionCheck: (/** @type {Record<string, any>} */ widgetValue) => getConditionCheck(widgetValue),
+                Utils: Utils,
+                COLORS: COLORS,
+                ALIGNMENT: ALIGNMENT,
             TEXT_Y_OFFSET: 0,
             RECT_Y_OFFSET: 0
         };
@@ -140,7 +165,7 @@ function generateWidget(widget, context) {
         // If it's an LVGL widget but we aren't using the direct LVGL generator 
         // (e.g. on an e-paper device or if isLvgl=false), we MUST still export 
         // the marker comment so it doesn't get lost on Update.
-        const serialized = toCppRoundTripComment(serializeWidget(widget));
+        const serialized = toCppRoundTripComment(serializeWidget(/** @type {Widget} */ (widget)));
         widgetLines.push(serialized ? serialized.replace(/[\r\n]+/g, " ") : "");
     } else {
         widgetLines.push(`// widget:${widget.type} id:${widget.id} status:unsupported`);
@@ -154,11 +179,11 @@ function generateWidget(widget, context) {
  * Core orchestrator for the native C++ display lambda.
  * Generates the `lambda: |-` block for ST7789, ILI9341, Waveshare e-Paper, etc.
  * 
- * @param {Array<any>} pages - Array of screen layout pages.
- * @param {any} layout - The root project containing global settings.
- * @param {any} profile - The targeted hardware profile definition.
- * @param {any} context - Orchestration context (registered plugins, etc).
- * @param {any} adapter - Reference to the core adapter instance.
+ * @param {Array<Record<string, any>>} pages - Array of screen layout pages.
+ * @param {Record<string, any>} layout - The root project containing global settings.
+ * @param {Record<string, any>} profile - The targeted hardware profile definition.
+ * @param {Record<string, any>} context - Orchestration context (registered plugins, etc).
+ * @param {Record<string, any>} adapter - Reference to the core adapter instance.
  * @returns {string[]} Array of C++ code lines for the display lambda.
  */
 export function generateDisplayLambda(pages, layout, profile, context, adapter) {
@@ -269,7 +294,7 @@ export function generateDisplayLambda(pages, layout, profile, context, adapter) 
 
     // Helper hooks
     if (registry) {
-        registry.onExportHelpers({ lines, widgets: pages.flatMap(p => p.widgets || []) });
+        registry.onExportHelpers({ lines, widgets: pages.flatMap((p) => p.widgets || []) });
     }
 
     lines.push(`int currentPage = id(display_page);`);
@@ -319,8 +344,8 @@ export function generateDisplayLambda(pages, layout, profile, context, adapter) 
         lines.push(`  color_on = ${isDarkMode ? 'COLOR_WHITE' : 'COLOR_BLACK'};`);
 
         if (page.widgets) {
-            const visibleWidgets = page.widgets.filter(w => !w.hidden && w.type !== 'group');
-            visibleWidgets.forEach((w, widgetIndex) => {
+            const visibleWidgets = page.widgets.filter((/** @type {Record<string, any>} */ w) => !w.hidden && w.type !== 'group');
+            visibleWidgets.forEach((/** @type {Record<string, any>} */ w, /** @type {number} */ widgetIndex) => {
                 const widgetLines = generateWidget(w, {
                     ...context,
                     layout,

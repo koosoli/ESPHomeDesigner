@@ -149,7 +149,10 @@ export function applySnapToPosition(canvasInstance, widget, x, y, altKey, dims, 
     }
 
     const page = AppState.getCurrentPage();
-    const otherWidgets = (page?.widgets || []).filter(w => w.id !== widget.id && !w.hidden);
+    /** @type {any[]} */
+    const pageWidgets = page?.widgets || [];
+    /** @type {any[]} */
+    const otherWidgets = pageWidgets.filter((w) => w.id !== widget.id && !w.hidden);
     const snapLines = getSnapLines(widget.id, dims);
     const w = widget.width || 0;
     const h = widget.height || 0;
@@ -160,6 +163,7 @@ export function applySnapToPosition(canvasInstance, widget, x, y, altKey, dims, 
     let snappedH = null;
 
     // 1. Standard Edge/Center Snapping
+    /** @type {{ val: number, apply: (line: number) => void }[]} */
     const vCandidates = [
         { val: x, apply: (line) => (snappedX = line) },
         { val: x + w / 2, apply: (line) => (snappedX = line - w / 2) },
@@ -178,6 +182,7 @@ export function applySnapToPosition(canvasInstance, widget, x, y, altKey, dims, 
         }
     }
 
+    /** @type {{ val: number, apply: (line: number) => void }[]} */
     const hCandidates = [
         { val: y, apply: (line) => (snappedY = line) },
         { val: y + h / 2, apply: (line) => (snappedY = line - h / 2) },
@@ -206,7 +211,7 @@ export function applySnapToPosition(canvasInstance, widget, x, y, altKey, dims, 
 
     // Show distances to neighbors if they are roughly aligned - ONLY IF CTRL IS PRESSED
     if (ctrlKey) {
-        otherWidgets.forEach(other => {
+        otherWidgets.forEach((other) => {
             const otherRect = { x: other.x, y: other.y, w: other.width, h: other.height };
 
             // Horizontal distance
@@ -335,7 +340,14 @@ export function forceSnapWidget(widgetId) {
         if (typeof AppState.setSnapEnabled === 'function') {
             AppState.setSnapEnabled(true);
         }
-        snapped = applySnapToPosition({ canvas: { querySelectorAll: () => [] }, canvasContainer: document.createElement('div'), rulers: null, viewport: null }, widget, widget.x, widget.y, false, dims);
+        snapped = applySnapToPosition(
+            /** @type {any} */ ({ canvas: { querySelectorAll: () => [] }, canvasContainer: document.createElement('div'), rulers: null, viewport: null }),
+            widget,
+            widget.x,
+            widget.y,
+            false,
+            dims
+        );
         if (typeof AppState.setSnapEnabled === 'function') {
             AppState.setSnapEnabled(oldSnap);
         }

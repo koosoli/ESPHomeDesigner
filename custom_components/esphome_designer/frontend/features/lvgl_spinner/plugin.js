@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * LVGL Spinner Plugin
  */
@@ -19,8 +18,8 @@ const render = (el, widget, { getColorStyle }) => {
 
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     const size = Math.min(width, height);
-    svg.setAttribute("width", size);
-    svg.setAttribute("height", size);
+    svg.setAttribute("width", String(size));
+    svg.setAttribute("height", String(size));
     svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
 
     const cx = size / 2;
@@ -28,12 +27,12 @@ const render = (el, widget, { getColorStyle }) => {
     const radius = (size / 2) - thickness;
 
     const track = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    track.setAttribute("cx", cx);
-    track.setAttribute("cy", cy);
-    track.setAttribute("r", radius);
+    track.setAttribute("cx", String(cx));
+    track.setAttribute("cy", String(cy));
+    track.setAttribute("r", String(radius));
     track.setAttribute("fill", "none");
     track.setAttribute("stroke", trackColor);
-    track.setAttribute("stroke-width", thickness);
+    track.setAttribute("stroke-width", String(thickness));
     svg.appendChild(track);
 
     const rawArcLen = props.arc_length !== undefined ? parseFloat(props.arc_length) : 60;
@@ -51,7 +50,7 @@ const render = (el, widget, { getColorStyle }) => {
     arc.setAttribute("d", `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`);
     arc.setAttribute("fill", "none");
     arc.setAttribute("stroke", arcColor);
-    arc.setAttribute("stroke-width", thickness);
+    arc.setAttribute("stroke-width", String(thickness));
     arc.setAttribute("stroke-linecap", "round");
     svg.appendChild(arc);
 

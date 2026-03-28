@@ -29,38 +29,43 @@ class HistoryProxyView(DesignerBaseView):
 
     async def get(self, request: web.Request) -> Any:
         """Fetch history for an entity."""
-        entity_id = request.match_info.get("entity_id", "")
-        if not entity_id:
-            return self.json({"error": "entity_id required"}, status_code=400, request=request)
-
-        # Parse duration from query params (default 24h)
-        duration_str = request.query.get("duration", "24h")
-        duration_seconds = self._parse_duration(duration_str)
-        
-        start_time = datetime.now(timezone.utc) - timedelta(seconds=duration_seconds)
-        end_time = datetime.now(timezone.utc)
-
-        _LOGGER.debug("Fetching history for %s (duration=%s, start=%s)", entity_id, duration_str, start_time)
-
         try:
-            # Try the new async history API first (HA 2023.5+)
+            entity_id = request.match_info.get("entity_id", "")
+            if not entity_id:
+                return self.json({"error": "entity_id required"}, status_code=400, request=request)
+
+            duration_str = request.query.get("duration", "24h")
+            duration_seconds = self._parse_duration(duration_str)
+
+            start_time = datetime.now(timezone.utc) - timedelta(seconds=duration_seconds)
+            end_time = datetime.now(timezone.utc)
+
+            _LOGGER.debug("Fetching history for %s (duration=%s, start=%s)", entity_id, duration_str, start_time)
+
             states = await self._get_history_async(entity_id, start_time, end_time)
-            
-            # Check for CSV format request (used by ESPHome devices)
+
             if request.query.get("format") == "csv":
                 points_str = request.query.get("points")
                 try:
                     target_points = int(points_str) if points_str else 0
                 except (ValueError, TypeError):
                     target_points = 0
-                
+
                 return self._render_csv(states, target_points)
 
             return self.json(states, request=request)
 
         except Exception as err:
-            _LOGGER.error("Fatal error in HistoryProxyView for %s: %s", entity_id, err, exc_info=True)
-            return self.json({"error": str(err)}, status_code=500, request=request)
+            entity_id = request.match_info.get("entity_id", "<unknown>")
+            _LOGGER.error(
+                "Fatal error in HistoryProxyView for %s; returning empty history instead: %s",
+                entity_id,
+                err,
+                exc_info=True,
+            )
+            if request.query.get("format") == "csv":
+                return self._render_csv([], 0)
+            return self.json([], request=request)
 
     async def _get_history_async(self, entity_id: str, start_time: datetime, end_time: datetime) -> list:
         """Get history using HA's async history API."""
@@ -88,9 +93,10 @@ class HistoryProxyView(DesignerBaseView):
                 True,   # no_attributes
             )
             
-            return self._format_history(history_data, entity_id)
+            formatted = self._format_history(history_data, entity_id)
+            return formatted if formatted else self._current_state_fallback(entity_id)
             
-        except (ImportError, TypeError, AttributeError) as err:
+        except Exception as err:
             _LOGGER.debug("get_significant_states unavailable or failed (%s), trying alternate method for %s", err, entity_id)
             
             # Fallback: Try state_changes_during_period with newer signature
@@ -114,29 +120,17 @@ class HistoryProxyView(DesignerBaseView):
                     True,   # include_start_time_state
                 )
                 
-                return self._format_history(history_data, entity_id)
+                formatted = self._format_history(history_data, entity_id)
+                return formatted if formatted else self._current_state_fallback(entity_id)
                 
             except Exception as inner_err:
                 _LOGGER.debug("state_changes_during_period also failed (%s) for %s, using current state fallback", inner_err, entity_id)
-                
-                # Final fallback: just return current state as single-item history
-                try:
-                    state = self.hass.states.get(entity_id)
-                    if state:
-                        return [{
-                            "state": state.state,
-                            "last_changed": state.last_changed.isoformat() if state.last_changed else None,
-                            "last_updated": state.last_updated.isoformat() if state.last_updated else None,
-                        }]
-                except Exception as final_err:
-                    _LOGGER.error("Failed to even get current state for %s: %s", entity_id, final_err)
-                
-                return []
+                return self._current_state_fallback(entity_id)
 
     def _format_history(self, history_data: dict, entity_id: str) -> list:
         """Format history data to a simple list of state objects."""
         states = []
-        if entity_id in history_data:
+        if isinstance(history_data, dict) and entity_id in history_data:
             for state in history_data[entity_id]:
                 states.append({
                     "state": state.state,
@@ -144,6 +138,20 @@ class HistoryProxyView(DesignerBaseView):
                     "last_updated": state.last_updated.isoformat() if state.last_updated else None,
                 })
         return states
+
+    def _current_state_fallback(self, entity_id: str) -> list:
+        """Return the current state as a single history entry when recorder data is unavailable."""
+        try:
+            state = self.hass.states.get(entity_id)
+            if state:
+                return [{
+                    "state": state.state,
+                    "last_changed": state.last_changed.isoformat() if state.last_changed else None,
+                    "last_updated": state.last_updated.isoformat() if state.last_updated else None,
+                }]
+        except Exception as final_err:  # noqa: BLE001
+            _LOGGER.error("Failed to get current state fallback for %s: %s", entity_id, final_err)
+        return []
 
     def _render_csv(self, states: list, target_points: int = 0) -> web.Response:
         """Render states as a simple comma-separated string of values."""
@@ -158,9 +166,12 @@ class HistoryProxyView(DesignerBaseView):
 
         # Downsample if requested
         if target_points > 0 and len(values) > target_points:
+            if target_points == 1:
+                values = [values[-1]]
+            else:
             # Simple downsampling: take evenly spaced indices
-            indices = [int(i * (len(values) - 1) / (target_points - 1)) for i in range(target_points)]
-            values = [values[i] for i in indices]
+                indices = [int(i * (len(values) - 1) / (target_points - 1)) for i in range(target_points)]
+                values = [values[i] for i in indices]
 
         csv_content = ",".join(f"{v:.2f}" if v % 1 != 0 else f"{int(v)}" for v in values)
         

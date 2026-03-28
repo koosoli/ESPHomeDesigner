@@ -5,15 +5,53 @@
 
 import { Logger } from '../utils/logger.js';
 import { hasHaBackend, HA_API_BASE } from '../utils/env.js';
-import { getHaHeaders } from './ha_api.js';
+import { getHaHeaders, haFetch } from './ha_api.js';
 
+export const hardwareProfileRuntime = {
+    /** @returns {any} */
+    getGlob() {
+        return /** @type {any} */ (import.meta).glob;
+    },
+    /** @returns {Storage | null} */
+    getStorage() {
+        try {
+            return globalThis.localStorage ?? null;
+        } catch {
+            return null;
+        }
+    }
+};
+
+/**
+ * @typedef {{
+ *   id: string;
+ *   name: string;
+ *   resolution: { width: number; height: number };
+ *   shape: string;
+ *   chip: string;
+ *   board?: string;
+ *   displayPlatform?: string;
+ *   displayModel?: string;
+ *   colorPalette?: string;
+ *   colorOrder?: string;
+ *   updateInterval?: string;
+ *   invertColors?: boolean;
+ *   isPackageBased?: boolean;
+ *   hardwarePackage?: string;
+ *   isOfflineImport?: boolean;
+ *   content?: string;
+ *   features: Record<string, any>;
+ * }} HardwareProfileLike
+ */
+
+/** @returns {Promise<HardwareProfileLike[]>} */
 export async function fetchDynamicHardwareProfiles() {
     // If we have an HA backend, try that first
     if (hasHaBackend()) {
         try {
             const url = `${HA_API_BASE}/hardware/templates`;
             Logger.log("[HardwareDiscovery] Fetching from:", url);
-            const response = await fetch(url, {
+            const response = await haFetch(url, {
                 headers: getHaHeaders(),
                 cache: 'no-store'
             });
@@ -27,10 +65,10 @@ export async function fetchDynamicHardwareProfiles() {
     }
 
     Logger.log('[HardwareDiscovery] Attempting to load bundled profiles via glob...');
-    const bundledTemplates = [];
+    const bundledTemplates = /** @type {HardwareProfileLike[]} */ ([]);
 
     // In Home Assistant runtime this API may not exist, so feature-detect first.
-    const globFn = /** @type {any} */ (import.meta).glob;
+    const globFn = hardwareProfileRuntime.getGlob();
     if (typeof globFn !== 'function') {
         Logger.log('[HardwareDiscovery] Bundled profile glob is unavailable in this runtime; relying on backend/localStorage profiles only.');
         return [];
@@ -43,7 +81,7 @@ export async function fetchDynamicHardwareProfiles() {
     for (const path in hardwareFiles) {
         try {
             const content = hardwareFiles[path];
-            const filename = path.split('/').pop();
+            const filename = path.split('/').pop() || 'hardware.yaml';
             const profile = parseHardwareRecipeClientSide(content, filename);
 
             profile.id = filename.replace(/\.yaml$/i, '').replace(/[^a-z0-9]/gi, '_').toLowerCase();
@@ -60,6 +98,11 @@ export async function fetchDynamicHardwareProfiles() {
     return bundledTemplates;
 }
 
+/**
+ * @param {string} yaml
+ * @param {string} filename
+ * @returns {HardwareProfileLike}
+ */
 export function parseHardwareRecipeClientSide(yaml, filename) {
     const id = 'dynamic_offline_' + filename.replace(/[^a-z0-9]/gi, '_').toLowerCase();
 
@@ -160,20 +203,34 @@ export function parseHardwareRecipeClientSide(yaml, filename) {
     };
 }
 
+/**
+ * @param {HardwareProfileLike} profile
+ * @returns {void}
+ */
 export function saveOfflineProfileToStorage(profile) {
+    const storage = hardwareProfileRuntime.getStorage();
+    if (!storage) {
+        Logger.warn('No localStorage available for offline profiles.');
+        return;
+    }
+
     try {
-        const saved = JSON.parse(localStorage.getItem('esphome-offline-profiles') || '{}');
+        const saved = JSON.parse(storage.getItem('esphome-offline-profiles') || '{}');
         saved[profile.id] = profile;
-        localStorage.setItem('esphome-offline-profiles', JSON.stringify(saved));
+        storage.setItem('esphome-offline-profiles', JSON.stringify(saved));
         Logger.log('[HardwarePersistence] Saved offline profile to localStorage:', profile.id);
     } catch (e) {
         Logger.error('Failed to save profile to localStorage:', e);
     }
 }
 
+/** @returns {Record<string, HardwareProfileLike>} */
 export function getOfflineProfilesFromStorage() {
+    const storage = hardwareProfileRuntime.getStorage();
+    if (!storage) return {};
+
     try {
-        return JSON.parse(localStorage.getItem('esphome-offline-profiles') || '{}');
+        return JSON.parse(storage.getItem('esphome-offline-profiles') || '{}');
     } catch (e) {
         Logger.warn('Could not load offline profiles from storage:', e);
         return {};

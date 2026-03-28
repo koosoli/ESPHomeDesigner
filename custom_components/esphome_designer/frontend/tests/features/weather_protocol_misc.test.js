@@ -1,0 +1,190 @@
+/**
+ * @vitest-environment jsdom
+ */
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { mockAppState } = vi.hoisted(() => ({
+    mockAppState: {
+        entityStates: {}
+    }
+}));
+
+vi.mock('@core/state', () => ({
+    AppState: mockAppState
+}));
+
+import weatherIconPlugin from '../../features/weather_icon/plugin.js';
+import { renderWifiSignal } from '../../features/wifi_signal/render.js';
+import {
+    exportLVGL as exportForecastLVGL,
+    exportOEPL as exportForecastOEPL,
+    exportOpenDisplay as exportForecastOpenDisplay
+} from '../../features/weather_forecast/export_protocols.js';
+
+describe('weather protocol misc coverage', () => {
+    beforeEach(() => {
+        mockAppState.entityStates = {};
+        document.body.innerHTML = '';
+    });
+
+    it('exports weather icon fallback output and de-duplicates generated condition sensors', () => {
+        const lines = [];
+        weatherIconPlugin.export({
+            id: 'weather_icon_direct',
+            x: 0,
+            y: 0,
+            width: 40,
+            height: 40,
+            entity_id: '   ',
+            props: {
+                weather_entity: '',
+                size: 28,
+                bg_color: 'white',
+                border_width: 1,
+                border_color: 'black'
+            }
+        }, {
+            lines,
+            addFont: vi.fn(() => 'mdi_28'),
+            getColorConst: (value) => `Color(${value})`,
+            getConditionCheck: () => ''
+        });
+
+        const directOutput = lines.join('\n');
+        expect(directOutput).toContain('it.filled_rectangle(0, 0, 40, 40, Color(white));');
+        expect(directOutput).toContain('it.rectangle(0 + 0, 0 + 0, 40 - 2 * 0, 40 - 2 * 0, Color(black));');
+        expect(directOutput).toContain('\\U000F0595');
+
+        const context = {
+            lines: [],
+            widgets: [
+                {
+                    id: 'weather_widget',
+                    type: 'weather_icon',
+                    entity_id: 'weather.home',
+                    props: {
+                        attribute: 'forecast.condition'
+                    }
+                },
+                {
+                    id: 'mqtt_weather',
+                    type: 'weather_icon',
+                    entity_id: 'mqtt:weather/cond',
+                    props: {
+                        mqtt_topic: 'weather/cond'
+                    }
+                }
+            ],
+            isLvgl: true,
+            pendingTriggers: new Map(),
+            seenSensorIds: new Set()
+        };
+
+        weatherIconPlugin.onExportTextSensors(context);
+
+        const sensorOutput = context.lines.join('\n');
+        expect(sensorOutput).toContain('- platform: homeassistant');
+        expect(sensorOutput).toContain('attribute: forecast');
+        expect(sensorOutput).toContain('- platform: mqtt_subscribe');
+        expect(sensorOutput).toContain('topic: "weather/cond"');
+        expect(Array.from(context.pendingTriggers.get('weather_home_forecast_txt') || [])).toEqual([
+            '- lvgl.widget.refresh: weather_widget'
+        ]);
+        expect(Array.from(context.pendingTriggers.get('mqtt_weather_cond_txt') || [])).toEqual([
+            '- lvgl.widget.refresh: mqtt_weather'
+        ]);
+    });
+
+    it('renders weak wifi previews without a dBm label and with cleared borders', () => {
+        mockAppState.entityStates = {
+            'sensor.wifi_bad': { state: '-120' }
+        };
+
+        const el = document.createElement('div');
+        renderWifiSignal(el, {
+            width: 40,
+            height: 30,
+            entity_id: 'sensor.wifi_bad',
+            props: {
+                is_local_sensor: false,
+                show_dbm: false,
+                fit_icon_to_frame: true,
+                border_width: 0
+            }
+        }, {
+            getColorStyle: (value) => value === 'theme_auto' ? '#000000' : value
+        });
+
+        expect(el.textContent).not.toContain('dB');
+        expect(el.innerText.codePointAt(0)).toBe(0xf092b);
+        expect(el.style.border).not.toContain('solid');
+        expect(el.style.fontSize).toBe('22px');
+    });
+
+    it('exports forecast protocols with hourly slot handling and theme-aware colors', () => {
+        const lvgl = exportForecastLVGL({
+            id: 'forecast_hourly',
+            x: 0,
+            y: 0,
+            width: 180,
+            height: 80,
+            props: {
+                forecast_mode: 'hourly',
+                hourly_mode: 'relative',
+                relative_count: 3,
+                start_offset: 2,
+                layout: 'vertical',
+                color: 'theme_auto',
+                day_font_size: 11,
+                icon_size: 20,
+                temp_font_size: 15
+            }
+        }, {
+            common: { id: 'forecast_root' },
+            convertColor: (value) => `COLOR_${String(value).toUpperCase()}`,
+            getLVGLFont: (...args) => args.join('_')
+        });
+
+        expect(lvgl.obj.widgets).toHaveLength(3);
+        expect(lvgl.obj.layout.flex_flow).toBe('column');
+        expect(JSON.stringify(lvgl)).toContain('weather_cond_hplus1');
+
+        const openDisplay = exportForecastOpenDisplay({
+            x: 4,
+            y: 6,
+            width: 40,
+            height: 50,
+            entity_id: 'weather.home',
+            props: {
+                color: 'theme_auto',
+                icon_size: 18,
+                temp_font_size: 12
+            }
+        }, {
+            layout: { darkMode: true },
+            _page: {}
+        });
+
+        expect(openDisplay[0].color).toBe('white');
+        expect(openDisplay[1].value).toContain("state_attr('weather.home', 'temperature')");
+
+        const oepl = exportForecastOEPL({
+            x: 1,
+            y: 2,
+            entity_id: 'weather.home',
+            props: {
+                temp_font_size: 12,
+                color: 'theme_auto'
+            }
+        }, {
+            _layout: {},
+            _page: {}
+        });
+
+        expect(oepl).toMatchObject({
+            type: 'text',
+            color: 'theme_auto',
+            anchor: 'lt'
+        });
+    });
+});

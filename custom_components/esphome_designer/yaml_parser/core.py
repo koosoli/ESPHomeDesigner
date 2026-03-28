@@ -35,7 +35,7 @@ def yaml_to_layout(snippet: str) -> DeviceConfig:
     lambda_lines = [line.rstrip("\n") for line in lambda_src.split("\n")]
     pages = _parse_pages_from_lambda(lambda_lines)
 
-    if pages is None:
+    if not pages:
         raise ValueError("no_pages_found")
 
     # Metadata extraction

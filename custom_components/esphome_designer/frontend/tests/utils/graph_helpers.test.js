@@ -70,4 +70,31 @@ describe('graph_helpers', () => {
         drawSmartAxisLabels(container, 20, 20, 180, 80, 0, 100, '1h', 'w1');
         expect(container.querySelectorAll('.graph-axis-label[data-widget-id="w1"]').length).toBe(labels.length);
     });
+
+    it('auto-scales out-of-range history and clamps labels inside cramped artboards', () => {
+        const now = Date.now();
+        vi.spyOn(Date, 'now').mockReturnValue(now);
+
+        const points = generateHistoricalDataPoints(100, 40, 0, 100, [
+            { last_changed: new Date(now - 1700_000).toISOString(), state: '150' },
+            { last_changed: new Date(now - 900_000).toISOString(), state: '180' },
+            { last_changed: new Date(now - 100_000).toISOString(), state: '210' }
+        ], '30m');
+
+        expect(points.length).toBeGreaterThanOrEqual(3);
+        expect(points.every(point => point.y >= -4 && point.y <= 44)).toBe(true);
+
+        const container = document.createElement('div');
+        container.style.width = '80px';
+        container.style.height = '60px';
+        document.body.appendChild(container);
+
+        drawSmartAxisLabels(container, 10, 45, 60, 20, 0, 10, '30m', 'w2');
+
+        const labels = [...container.querySelectorAll('.graph-axis-label[data-widget-id="w2"]')];
+        expect(labels[0].style.left).toBe('14px');
+        expect(labels[0].style.textAlign).toBe('left');
+        expect(labels.at(-1).style.transform).toBe('translateX(-100%)');
+        expect(labels.at(-1).textContent).toBe('Now');
+    });
 });

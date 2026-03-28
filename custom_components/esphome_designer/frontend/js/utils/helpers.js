@@ -6,27 +6,43 @@ export function generateId() {
     return 'w_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
 }
 
+/**
+ * @typedef {{
+ *   randomUUID?: () => string,
+ *   getRandomValues: (values: Uint8Array) => Uint8Array
+ * }} CryptoLike
+ */
+
+/** @type {{ crypto?: CryptoLike }} */
+const globalScope = /** @type {any} */ (globalThis);
+
 // Polyfill/Fallback for crypto.randomUUID which is only available in secure contexts
-if (typeof crypto !== 'undefined' && !crypto.randomUUID) {
-    Object.defineProperty(crypto, 'randomUUID', {
+if (typeof globalScope.crypto !== 'undefined' && !globalScope.crypto.randomUUID) {
+    Object.defineProperty(globalScope.crypto, 'randomUUID', {
         value: function () {
-            // @ts-ignore
-            return /** @type {any} */ (([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
-                (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> (c / 4)).toString(16)
-            ));
+            const template = '10000000-1000-4000-8000-100000000000';
+            return template.replace(/[018]/g, (char) => {
+                const nibble = Number(char);
+                const randomByte = globalScope.crypto?.getRandomValues(new Uint8Array(1))[0] ?? 0;
+                return (nibble ^ ((randomByte & 15) >> (nibble / 4))).toString(16);
+            });
         }
     });
-} else if (typeof crypto === 'undefined') {
+} else if (typeof globalScope.crypto === 'undefined') {
     // Very basic fallback if crypto itself is missing (unlikely in modern browsers)
-    // @ts-ignore
-    window.crypto = {
-        randomUUID: () => /** @type {any} */('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    globalScope.crypto = {
+        randomUUID: () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
             const r = Math.random() * 16 | 0;
             const v = c === 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
-        })),
-        // @ts-ignore
-        getRandomValues: (arr) => arr.map(() => Math.floor(Math.random() * 256))
+        }),
+        /** @param {Uint8Array} values */
+        getRandomValues: (values) => {
+            for (let index = 0; index < values.length; index += 1) {
+                values[index] = Math.floor(Math.random() * 256);
+            }
+            return values;
+        }
     };
 }
 
@@ -73,8 +89,8 @@ export const getNestedValue = (obj, path) => {
     let current = obj;
     for (const part of parts) {
         if (current === null || current === undefined) return undefined;
-        // @ts-ignore
-        current = current[part];
+        const candidate = /** @type {any} */ (current);
+        current = candidate[part];
     }
     return current;
 };

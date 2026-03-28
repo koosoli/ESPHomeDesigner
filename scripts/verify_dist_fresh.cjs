@@ -7,6 +7,8 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const DIST_DIR = path.join(ROOT, 'custom_components', 'esphome_designer', 'frontend', 'dist');
+const NODE = process.execPath;
+const VITE_BIN = path.join(ROOT, 'node_modules', 'vite', 'bin', 'vite.js');
 
 function hashBuffer(content) {
     return crypto.createHash('sha256').update(content).digest('hex');
@@ -63,10 +65,10 @@ function diffSnapshots(before, after) {
 }
 
 function runBuild() {
-    return spawnSync('npx', ['vite', 'build'], {
+    return spawnSync(NODE, [VITE_BIN, 'build'], {
         cwd: ROOT,
         stdio: 'inherit',
-        shell: process.platform === 'win32'
+        shell: false
     });
 }
 

@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WidgetManager } from '../../js/core/stores/app_state/widget_manager.js';
 import { emit } from '../../js/core/events.js';
 
+const { mockShowToast, mockRegistryGet } = vi.hoisted(() => ({
+    mockShowToast: vi.fn(),
+    mockRegistryGet: vi.fn()
+}));
+
 // Deep-Mocking infrastructure for ULTRATHINK compliance
 vi.mock('../../js/core/events.js', () => ({
     emit: vi.fn(),
@@ -11,7 +16,7 @@ vi.mock('../../js/core/events.js', () => ({
     }
 }));
 
-vi.mock('../../../utils/logger.js', () => ({
+vi.mock('../../js/utils/logger.js', () => ({
     Logger: {
         log: vi.fn(),
         warn: vi.fn(),
@@ -19,13 +24,13 @@ vi.mock('../../../utils/logger.js', () => ({
     }
 }));
 
-vi.mock('../../../utils/dom.js', () => ({
-    showToast: vi.fn()
+vi.mock('../../js/utils/dom.js', () => ({
+    showToast: mockShowToast
 }));
 
 vi.mock('../../js/core/plugin_registry', () => ({
     registry: {
-        get: vi.fn()
+        get: mockRegistryGet
     }
 }));
 
@@ -46,8 +51,10 @@ describe('WidgetManager', () => {
             },
             recordHistory: vi.fn(),
             selectWidget: vi.fn(),
+            selectWidgets: vi.fn(),
             updateSettings: vi.fn(),
             getWidgetById: vi.fn(),
+            getCurrentPage: vi.fn(() => mockApp.pages[mockApp.currentPageIndex]),
             currentPageIndex: 0,
             pages: [{ widgets: [] }],
             preferences: {
@@ -56,9 +63,13 @@ describe('WidgetManager', () => {
             setInternalFlag: vi.fn(),
             editor: {
                 selectedWidgetIds: new Set(),
+                copyWidgets: vi.fn(),
                 setSelectedWidgetIds: vi.fn()
             }
         };
+        mockApp.project.getCurrentPage = vi.fn(() => mockApp.pages[mockApp.currentPageIndex]);
+        mockApp.project.currentPageIndex = 0;
+        mockApp.project.reorderWidget = vi.fn();
         wm = new WidgetManager(mockApp);
         vi.clearAllMocks();
     });
@@ -155,6 +166,35 @@ describe('WidgetManager', () => {
         expect(emit).toHaveBeenCalledWith('state-changed');
     });
 
+    it('should update multiple widgets and sync radius to sibling shadow widgets', () => {
+        const ids = ['w1'];
+        const widgets = [
+            { id: 'w1', parentId: 'group_1', props: { radius: 2 } },
+            { id: 'shadow_1', parentId: 'group_1', props: { name: 'Card Shadow', radius: 2 } }
+        ];
+        mockApp.pages[0].widgets = widgets;
+        mockApp.getCurrentPage.mockReturnValue(mockApp.pages[0]);
+        mockApp.getWidgetById.mockImplementation((id) => {
+            if (id === 'w1') return widgets[0];
+            if (id === 'group_1') return { id: 'group_1', type: 'group', title: 'Card Group' };
+            return null;
+        });
+
+        wm.updateWidgets(['w1', 'w2'], { hidden: true });
+        expect(mockApp.project.updateWidget).toHaveBeenNthCalledWith(1, 'w1', { hidden: true });
+        expect(mockApp.project.updateWidget).toHaveBeenNthCalledWith(2, 'w2', { hidden: true });
+
+        mockApp.project.updateWidget.mockClear();
+        wm.updateWidgetsProps(ids, { radius: 8 });
+
+        expect(mockApp.project.updateWidget).toHaveBeenCalledWith('w1', {
+            props: { radius: 8 }
+        });
+        expect(mockApp.project.updateWidget).toHaveBeenCalledWith('shadow_1', {
+            props: { name: 'Card Shadow', radius: 8 }
+        });
+    });
+
     it('should paste widget from editor state properly', () => {
         mockApp.editor.clipboardWidgets = [{ type: 'text', x: 10, y: 10, props: {} }];
 
@@ -165,6 +205,32 @@ describe('WidgetManager', () => {
             x: 20, // Offset applied: 10 + 10
             y: 20
         }));
+    });
+
+    it('should copy widgets from both selected sets and explicit ids', () => {
+        mockApp.editor.selectedWidgetIds = new Set(['w1', 'w2']);
+        mockApp.getWidgetById.mockImplementation((id) => ({ id, type: 'text' }));
+
+        wm.copyWidget();
+        expect(mockApp.editor.copyWidgets).toHaveBeenCalledWith([
+            { id: 'w1', type: 'text' },
+            { id: 'w2', type: 'text' }
+        ]);
+
+        mockApp.editor.copyWidgets.mockClear();
+        wm.copyWidget('w3');
+        expect(mockApp.editor.copyWidgets).toHaveBeenCalledWith([
+            { id: 'w3', type: 'text' }
+        ]);
+    });
+
+    it('should ignore paste when the clipboard is empty', () => {
+        mockApp.editor.clipboardWidgets = [];
+
+        wm.pasteWidget();
+
+        expect(mockApp.project.addWidget).not.toHaveBeenCalled();
+        expect(mockApp.recordHistory).not.toHaveBeenCalled();
     });
 
     it('should normalize theme_auto border_color to a concrete color when creating drop shadow', () => {
@@ -217,6 +283,53 @@ describe('WidgetManager', () => {
         expect(widget.props.border_color).not.toBe('theme_auto');
     });
 
+    it('should build circle shadows in dark mode and preserve radius for rounded rect shadows', () => {
+        const circle = {
+            id: 'circle_1',
+            type: 'shape_circle',
+            x: 0,
+            y: 0,
+            width: 30,
+            height: 30,
+            props: {}
+        };
+        const rounded = {
+            id: 'rounded_1',
+            type: 'shape_rect',
+            x: 50,
+            y: 50,
+            width: 60,
+            height: 40,
+            props: { radius: 12 }
+        };
+        const page = { dark_mode: 'auto', widgets: [circle, rounded] };
+        const added = [];
+        const app = {
+            settings: { dark_mode: true },
+            getCurrentPage: vi.fn(() => page),
+            getWidgetById: vi.fn((id) => page.widgets.find((w) => w.id === id) || added.find((w) => w.id === id)),
+            selectWidgets: vi.fn(),
+            recordHistory: vi.fn(),
+            project: {
+                currentPageIndex: 0,
+                getCurrentPage: vi.fn(() => page),
+                addWidget: vi.fn((widget) => added.push(widget)),
+                updateWidget: vi.fn(),
+                reorderWidget: vi.fn(),
+                rebuildWidgetsIndex: vi.fn()
+            }
+        };
+
+        const localManager = new WidgetManager(app);
+        localManager.createDropShadow([circle.id, rounded.id]);
+
+        expect(added.find((widget) => widget.type === 'shape_circle')).toBeTruthy();
+        const roundedShadow = added.find((widget) => widget.props?.name === 'shape_rect Shadow');
+        expect(roundedShadow?.type).toBe('rounded_rect');
+        expect(roundedShadow?.props.radius).toBe(12);
+        expect(app.selectWidgets).toHaveBeenCalled();
+    });
+
     it('should move group and direct child to target page with preserved relative offset', () => {
         const group = { id: 'group_1', type: 'group', x: 100, y: 100, width: 80, height: 80, props: {} };
         const child = { id: 'child_1', type: 'shape_rect', parentId: 'group_1', x: 130, y: 125, width: 20, height: 20, props: {} };
@@ -243,5 +356,57 @@ describe('WidgetManager', () => {
         expect(movedGroup.y).toBe(220);
         expect(movedChild.x).toBe(230);
         expect(movedChild.y).toBe(245);
+    });
+
+    it('should synchronize hierarchy order and widget visibility for protocol modes', () => {
+        const page = {
+            widgets: [
+                { id: 'parent', type: 'text' },
+                { id: 'child', type: 'text', parentId: 'parent' },
+                { id: 'lvgl', type: 'lvgl_button', hidden: false },
+                { id: 'direct', type: 'text', hidden: true },
+                { id: 'oepl', type: 'oepl_qr', hidden: false }
+            ]
+        };
+        mockApp.pages = [page];
+        mockApp.project.pages = [page];
+        mockApp.getCurrentPage.mockReturnValue(page);
+        mockApp.preferences.state.renderingMode = 'direct';
+
+        wm.syncWidgetOrderWithHierarchy();
+        expect(page.widgets.map((widget) => widget.id).slice(0, 2)).toEqual(['parent', 'child']);
+        expect(mockApp.project.rebuildWidgetsIndex).toHaveBeenCalled();
+
+        mockRegistryGet.mockImplementation((type) => {
+            if (type === 'lvgl_button') return { exportLVGL: vi.fn() };
+            if (type === 'oepl_qr') return { exportOEPL: vi.fn() };
+            return { export: vi.fn() };
+        });
+
+        mockApp.project.rebuildWidgetsIndex.mockClear();
+        wm.syncWidgetVisibilityWithMode();
+        expect(page.widgets.find((widget) => widget.id === 'lvgl')?.hidden).toBe(true);
+        expect(page.widgets.find((widget) => widget.id === 'direct')?.hidden).toBe(false);
+        expect(mockApp.project.rebuildWidgetsIndex).toHaveBeenCalled();
+        expect(emit).toHaveBeenCalledWith('state-changed');
+
+        expect(wm.isWidgetCompatibleWithMode({ type: 'oepl_qr' }, 'oepl')).toBe(true);
+        expect(wm.isWidgetCompatibleWithMode({ type: 'odp_card' }, 'opendisplay')).toBe(false);
+        expect(wm.isWidgetCompatibleWithMode({ type: 'lvgl_label' }, 'lvgl')).toBe(true);
+        expect(wm.isWidgetCompatibleWithMode({ type: 'lvgl_label' }, 'direct')).toBe(false);
+    });
+
+    it('should auto-switch rendering modes for oepl and odp widgets but ignore empty types', () => {
+        wm.checkRenderingModeForWidget(null);
+        wm.checkRenderingModeForWidget({ type: '' });
+
+        wm.checkRenderingModeForWidget({ type: 'oepl_badge' });
+        expect(mockApp.updateSettings).toHaveBeenCalledWith({ renderingMode: 'oepl' });
+        expect(mockShowToast).toHaveBeenCalledWith('Auto-switched to OEPL mode', 'info');
+
+        mockApp.preferences.state.renderingMode = 'direct';
+        wm.checkRenderingModeForWidget({ type: 'odp_canvas' });
+        expect(mockApp.updateSettings).toHaveBeenCalledWith({ renderingMode: 'opendisplay' });
+        expect(mockShowToast).toHaveBeenCalledWith('Auto-switched to ODP mode', 'info');
     });
 });

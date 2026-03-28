@@ -37,7 +37,11 @@ describe('Deep Sleep Enhancements (Issue #310)', () => {
             const lines = gen.generateScriptSection(payload, pages, epaperProfile);
             const scriptYaml = lines.join('\n');
             
-            // Check that deep_sleep.enter is now wrapped in an if condition
+            // The stay-awake branch must stop the script with a valid ESPHome action.
+            expect(scriptYaml).toContain('script.stop: deep_sleep_cycle');
+            expect(scriptYaml).not.toContain('- return:');
+
+            // Check that deep_sleep.enter is wrapped in an if condition
             expect(scriptYaml).toContain('condition:');
             expect(scriptYaml).toContain('binary_sensor.is_off: stay_awake_switch');
             // The else block must delay and re-execute

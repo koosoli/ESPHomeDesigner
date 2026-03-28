@@ -6,12 +6,15 @@ import { DEVICE_PROFILES } from '../io/devices.js';
 import { AppState } from '../core/state';
 import { WidgetFactory } from '../core/widget_factory';
 
+/** @type {Record<string, any>} */
+const deviceProfiles = DEVICE_PROFILES;
+/** @type {import('../core/stores/index').AppStateFacade & Record<string, any>} */
+const appState = /** @type {any} */ (AppState);
+
 export function getDeviceModel() {
     // Check AppState first (Source of Truth)
-    // @ts-ignore
-    if (AppState && AppState.deviceModel) {
-        // @ts-ignore
-        return AppState.deviceModel;
+    if (appState && appState.deviceModel) {
+        return appState.deviceModel;
     }
     // Fallback to default
     return "reterminal_e1001";
@@ -23,10 +26,8 @@ export function getDeviceModel() {
  * @returns {string}
  */
 export function getDeviceDisplayName(model) {
-    // @ts-ignore
-    if (DEVICE_PROFILES && DEVICE_PROFILES[model]) {
-        // @ts-ignore
-        return DEVICE_PROFILES[model].name;
+    if (deviceProfiles && deviceProfiles[model]) {
+        return deviceProfiles[model].name;
     }
     switch (model) {
         case "reterminal_e1002": return "reTerminal E1002 (6-Color)";
@@ -43,13 +44,10 @@ export function getDeviceDisplayName(model) {
  */
 export function isRGBDevice() {
     const model = getDeviceModel();
-    // @ts-ignore
-    if (DEVICE_PROFILES && DEVICE_PROFILES[model]) {
+    if (deviceProfiles && deviceProfiles[model]) {
         // Legacy: check both top-level and features object
-        // @ts-ignore
-        if (DEVICE_PROFILES[model].features?.lcd) return true;
-        // @ts-ignore
-        if (DEVICE_PROFILES[model].features?.oled) return true;
+        if (deviceProfiles[model].features?.lcd) return true;
+        if (deviceProfiles[model].features?.oled) return true;
 
         // If it's not explicitly e-paper and not the default monochrome
         // (though default falls through to false usually)
@@ -63,8 +61,7 @@ export function isRGBDevice() {
  */
 export function getAvailableColors() {
     // 1. Protocol Mode Logic
-    // @ts-ignore
-    const mode = AppState?.settings?.renderingMode || 'direct';
+    const mode = appState?.settings?.renderingMode || 'direct';
 
     const colormode_bwr = ["black", "white", "red", "yellow", "gray"];
     const colormode_monochrome = ["theme_auto", "black", "white", "gray"];
@@ -72,8 +69,8 @@ export function getAvailableColors() {
     const colormode_primary = ["theme_auto", "black", "white", "gray", "red", "green", "blue", "yellow"];
 
     if (mode === 'oepl' || mode === 'opendisplay') {
-        // @ts-ignore
-        const ph = AppState?.project?.protocolHardware || {};
+        /** @type {{ colorMode?: string }} */
+        const ph = /** @type {any} */ (appState?.project?.protocolHardware || {});
         const colorMode = ph.colorMode || 'bw';
 
         if (colorMode === 'full_color') {

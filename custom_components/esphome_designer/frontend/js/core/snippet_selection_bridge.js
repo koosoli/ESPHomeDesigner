@@ -1,5 +1,7 @@
 // @ts-check
 
+import { dispatchBrowserEvent } from '../utils/browser_runtime.js';
+
 /**
  * Shared snippet-selection state used by YAML highlighting and keyboard shortcuts.
  * Keeping this state in one explicit module removes the need for `window.*` handoffs.
@@ -16,9 +18,7 @@ let lastHighlightRange = null;
 let isAutoHighlight = false;
 
 function notifySnippetSelectionStateChanged() {
-    if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent(SNIPPET_SELECTION_STATE_EVENT));
-    }
+    dispatchBrowserEvent(new CustomEvent(SNIPPET_SELECTION_STATE_EVENT));
 }
 
 /**

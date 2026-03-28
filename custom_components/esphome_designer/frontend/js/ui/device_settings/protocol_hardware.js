@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { AppState } from '../../core/state';
 import { DEVICE_PROFILES } from '../../io/devices.js';
 import { Logger } from '../../utils/logger.js';
@@ -8,22 +7,29 @@ import { Logger } from '../../utils/logger.js';
  */
 export class ProtocolHardwarePanel {
     constructor(parent) {
+        /** @type {any} */
         this.parent = parent;
 
-        // Protocol-specific DOM elements
-        this.protocolResPreset = document.getElementById('protocolResPreset');
-        this.protocolWidth = document.getElementById('protocolWidth');
-        this.protocolHeight = document.getElementById('protocolHeight');
-        this.protocolColorMode = document.getElementById('protocolColorMode');
+        /** @type {HTMLSelectElement | null} */
+        this.protocolResPreset = /** @type {HTMLSelectElement | null} */ (document.getElementById('protocolResPreset'));
+        /** @type {HTMLInputElement | null} */
+        this.protocolWidth = /** @type {HTMLInputElement | null} */ (document.getElementById('protocolWidth'));
+        /** @type {HTMLInputElement | null} */
+        this.protocolHeight = /** @type {HTMLInputElement | null} */ (document.getElementById('protocolHeight'));
+        /** @type {HTMLSelectElement | null} */
+        this.protocolColorMode = /** @type {HTMLSelectElement | null} */ (document.getElementById('protocolColorMode'));
 
-        // OEPL settings
-        this.oeplEntityIdInput = document.getElementById('oeplEntityId');
-        this.oeplDitherInput = document.getElementById('oeplDither');
+        /** @type {HTMLInputElement | null} */
+        this.oeplEntityIdInput = /** @type {HTMLInputElement | null} */ (document.getElementById('oeplEntityId'));
+        /** @type {HTMLInputElement | HTMLSelectElement | null} */
+        this.oeplDitherInput = /** @type {HTMLInputElement | HTMLSelectElement | null} */ (document.getElementById('oeplDither'));
 
-        // ODP settings
-        this.odpEntityIdInput = document.getElementById('odpEntityId');
-        this.odpDitherInput = document.getElementById('odpDither');
-        this.odpTtlInput = document.getElementById('odpTtl');
+        /** @type {HTMLInputElement | null} */
+        this.odpEntityIdInput = /** @type {HTMLInputElement | null} */ (document.getElementById('odpEntityId'));
+        /** @type {HTMLInputElement | HTMLSelectElement | null} */
+        this.odpDitherInput = /** @type {HTMLInputElement | HTMLSelectElement | null} */ (document.getElementById('odpDither'));
+        /** @type {HTMLInputElement | null} */
+        this.odpTtlInput = /** @type {HTMLInputElement | null} */ (document.getElementById('odpTtl'));
     }
 
     init() {
@@ -31,6 +37,10 @@ export class ProtocolHardwarePanel {
     }
 
     setupListeners() {
+        /**
+         * @param {string} key
+         * @param {string | number} value
+         */
         const updateSetting = (key, value) => {
             AppState.updateSettings({ [key]: value });
             Logger.log(`[ProtocolHardwarePanel] Auto-saved ${key}:`, value);
@@ -38,8 +48,8 @@ export class ProtocolHardwarePanel {
         };
 
         const syncProtocol = () => {
-            const width = parseInt(this.protocolWidth?.value) || 400;
-            const height = parseInt(this.protocolHeight?.value) || 300;
+            const width = parseInt(this.protocolWidth?.value || '400', 10) || 400;
+            const height = parseInt(this.protocolHeight?.value || '300', 10) || 300;
             const colorMode = this.protocolColorMode?.value || 'bw';
 
             AppState.updateProtocolHardware({ width, height, colorMode });
@@ -47,11 +57,11 @@ export class ProtocolHardwarePanel {
 
         if (this.protocolResPreset) {
             this.protocolResPreset.addEventListener('change', () => {
-                const val = this.protocolResPreset.value;
+                const val = this.protocolResPreset?.value || 'custom';
                 if (val !== 'custom') {
                     const [w, h] = val.split('x').map(Number);
-                    if (this.protocolWidth) this.protocolWidth.value = w;
-                    if (this.protocolHeight) this.protocolHeight.value = h;
+                    if (this.protocolWidth) this.protocolWidth.value = String(w);
+                    if (this.protocolHeight) this.protocolHeight.value = String(h);
                     syncProtocol();
                 }
             });
@@ -61,32 +71,30 @@ export class ProtocolHardwarePanel {
         if (this.protocolHeight) this.protocolHeight.addEventListener('input', syncProtocol);
         if (this.protocolColorMode) this.protocolColorMode.addEventListener('change', syncProtocol);
 
-        // OEPL Settings
         if (this.oeplEntityIdInput) {
             this.oeplEntityIdInput.addEventListener('input', () => {
-                updateSetting('oeplEntityId', this.oeplEntityIdInput.value.trim());
+                updateSetting('oeplEntityId', this.oeplEntityIdInput?.value.trim() || '');
             });
         }
         if (this.oeplDitherInput) {
             this.oeplDitherInput.addEventListener('change', () => {
-                updateSetting('oeplDither', parseInt(this.oeplDitherInput.value));
+                updateSetting('oeplDither', parseInt(this.oeplDitherInput?.value || '2', 10));
             });
         }
 
-        // ODP Settings
         if (this.odpEntityIdInput) {
             this.odpEntityIdInput.addEventListener('input', () => {
-                updateSetting('opendisplayEntityId', this.odpEntityIdInput.value.trim());
+                updateSetting('opendisplayEntityId', this.odpEntityIdInput?.value.trim() || '');
             });
         }
         if (this.odpDitherInput) {
             this.odpDitherInput.addEventListener('change', () => {
-                updateSetting('opendisplayDither', parseInt(this.odpDitherInput.value));
+                updateSetting('opendisplayDither', parseInt(this.odpDitherInput?.value || '2', 10));
             });
         }
         if (this.odpTtlInput) {
             this.odpTtlInput.addEventListener('input', () => {
-                updateSetting('opendisplayTtl', parseInt(this.odpTtlInput.value) || 0);
+                updateSetting('opendisplayTtl', parseInt(this.odpTtlInput?.value || '0', 10) || 0);
             });
         }
     }
@@ -94,36 +102,29 @@ export class ProtocolHardwarePanel {
     populateFields() {
         const ph = (AppState.project && AppState.project.protocolHardware) || { width: 400, height: 300, colorMode: 'bw' };
 
-        if (this.protocolWidth) this.protocolWidth.value = ph.width;
-        if (this.protocolHeight) this.protocolHeight.value = ph.height;
+        if (this.protocolWidth) this.protocolWidth.value = String(ph.width);
+        if (this.protocolHeight) this.protocolHeight.value = String(ph.height);
         if (this.protocolColorMode) this.protocolColorMode.value = ph.colorMode;
 
-        // Try to match preset
         if (this.protocolResPreset) {
             const res = `${ph.width}x${ph.height}`;
-            const options = Array.from(this.protocolResPreset.options).map(o => o.value);
-            if (options.includes(res)) {
-                this.protocolResPreset.value = res;
-            } else {
-                this.protocolResPreset.value = 'custom';
-            }
+            const options = Array.from(this.protocolResPreset.options).map((option) => option.value);
+            this.protocolResPreset.value = options.includes(res) ? res : 'custom';
         }
 
-        // OEPL settings
-        if (this.oeplEntityIdInput) this.oeplEntityIdInput.value = AppState.settings.oeplEntityId || "";
-        if (this.oeplDitherInput) this.oeplDitherInput.value = AppState.settings.oeplDither ?? 2;
+        if (this.oeplEntityIdInput) this.oeplEntityIdInput.value = AppState.settings.oeplEntityId || '';
+        if (this.oeplDitherInput) this.oeplDitherInput.value = String(AppState.settings.oeplDither ?? 2);
 
-        // ODP settings
-        if (this.odpEntityIdInput) this.odpEntityIdInput.value = AppState.settings.opendisplayEntityId || "";
-        if (this.odpDitherInput) this.odpDitherInput.value = AppState.settings.opendisplayDither ?? 2;
-        if (this.odpTtlInput) this.odpTtlInput.value = AppState.settings.opendisplayTtl ?? 60;
+        if (this.odpEntityIdInput) this.odpEntityIdInput.value = AppState.settings.opendisplayEntityId || '';
+        if (this.odpDitherInput) this.odpDitherInput.value = String(AppState.settings.opendisplayDither ?? 2);
+        if (this.odpTtlInput) this.odpTtlInput.value = String(AppState.settings.opendisplayTtl ?? 60);
     }
 
     /**
      * Updates visibility of strategy groups based on display technology.
      */
     updateStrategyDisplay() {
-        const modelId = this.parent.modelInput ? this.parent.modelInput.value : "reterminal_e1001";
+        const modelId = this.parent.modelInput ? this.parent.modelInput.value : 'reterminal_e1001';
         let isLcd = false;
 
         if (modelId === 'custom') {
@@ -141,34 +142,31 @@ export class ProtocolHardwarePanel {
             this.parent.strategyLcdGroup.style.display = isLcd ? 'flex' : 'none';
             if (isLcd) {
                 const currentStrategy = AppState.settings.lcdEcoStrategy || 'backlight_off';
-                const radioToSelect = document.querySelector(`input[name="lcdEcoStrategy"][value="${currentStrategy}"]`);
+                const radioToSelect = /** @type {HTMLInputElement | null} */ (document.querySelector(`input[name="lcdEcoStrategy"][value="${currentStrategy}"]`));
                 if (radioToSelect) radioToSelect.checked = true;
             }
 
-            // Hide "Dim after timeout" if not in LVGL mode
             const currentMode = this.parent.renderingModeInput ? this.parent.renderingModeInput.value : (AppState.settings.renderingMode || 'direct');
-            const dimRow = document.getElementById('lcd-strategy-dim-row');
+            const dimRow = /** @type {HTMLElement | null} */ (document.getElementById('lcd-strategy-dim-row'));
             if (dimRow) {
-                dimRow.style.display = (currentMode === 'lvgl') ? 'block' : 'none';
+                dimRow.style.display = currentMode === 'lvgl' ? 'block' : 'none';
                 if (currentMode !== 'lvgl' && AppState.settings.lcdEcoStrategy === 'dim_after_timeout') {
                     AppState.updateSettings({ lcdEcoStrategy: 'backlight_off' });
-                    const fallbackRadio = document.querySelector('input[name="lcdEcoStrategy"][value="backlight_off"]');
+                    const fallbackRadio = /** @type {HTMLInputElement | null} */ (document.querySelector('input[name="lcdEcoStrategy"][value="backlight_off"]'));
                     if (fallbackRadio) fallbackRadio.checked = true;
                     this.parent.updateVisibility();
                 }
             }
         }
 
-        // Section visibility based on rendering mode
         const mode = this.parent.renderingModeInput?.value || AppState.settings.renderingMode || 'direct';
         if (this.parent.oeplSettingsSection) {
-            this.parent.oeplSettingsSection.style.display = (mode === 'oepl') ? 'block' : 'none';
+            this.parent.oeplSettingsSection.style.display = mode === 'oepl' ? 'block' : 'none';
         }
         if (this.parent.odpSettingsSection) {
-            this.parent.odpSettingsSection.style.display = (mode === 'opendisplay') ? 'block' : 'none';
+            this.parent.odpSettingsSection.style.display = mode === 'opendisplay' ? 'block' : 'none';
         }
 
-        // Inverted colors visibility (E-Paper only)
         if (this.parent.deviceInvertedColorsField) {
             const isESPHome = mode === 'lvgl' || mode === 'direct';
             const profile = modelId ? DEVICE_PROFILES[modelId] : null;
@@ -177,5 +175,3 @@ export class ProtocolHardwarePanel {
         }
     }
 }
-
-

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Lightweight YAML syntax highlighter for ESPHome Designer.
  * Uses regex patterns to tokenize YAML and returns HTML with span classes.

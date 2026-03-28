@@ -3,6 +3,53 @@ import { resolve } from 'path';
 import fs from 'fs';
 
 const frontendRoot = resolve(__dirname, 'custom_components/esphome_designer/frontend');
+const panelScopeSelector = '[data-esphome-designer-panel-root]';
+
+function scopePanelSelector(selector) {
+    let scoped = selector.trim();
+    if (!scoped) {
+        return scoped;
+    }
+
+    scoped = scoped
+        .replace(/\bhtml\b/g, panelScopeSelector)
+        .replace(/\bbody\b/g, panelScopeSelector)
+        .replace(/:root/g, panelScopeSelector);
+
+    if (scoped === panelScopeSelector || scoped.startsWith(`${panelScopeSelector} `) || scoped.startsWith(`${panelScopeSelector}.`)) {
+        return scoped;
+    }
+
+    return `${panelScopeSelector} ${scoped}`;
+}
+
+function createScopedPanelCssPlugin() {
+    return {
+        postcssPlugin: 'esphome-designer-panel-scope',
+        Once(root, { result }) {
+            const from = (result.opts.from || '').replace(/\\/g, '/');
+            if (!from.endsWith('/frontend/panel/panel.css')) {
+                return;
+            }
+
+            root.walkRules((rule) => {
+                if (!rule.selectors || rule.parent?.type === 'atrule' && rule.parent.name?.includes('keyframes')) {
+                    return;
+                }
+
+                rule.selectors = rule.selectors.map(scopePanelSelector);
+            });
+
+            root.walkAtRules('font-face', (rule) => {
+                rule.walkDecls('src', (decl) => {
+                    decl.value = decl.value.replaceAll('../materialdesignicons-webfont.ttf', '/esphome-designer/editor/materialdesignicons-webfont.ttf');
+                });
+            });
+        },
+    };
+}
+
+createScopedPanelCssPlugin.postcss = true;
 
 function getManualChunk(id) {
     const normalizedId = id.replace(/\\/g, '/');
@@ -58,14 +105,30 @@ export default defineConfig({
         environment: 'jsdom',
         setupFiles: ['./tests/setup.js'],
         include: ['tests/**/*.test.js'],
+        coverage: {
+            exclude: [
+                'js/data/icons.js',
+                '**/js/data/icons.js',
+                'custom_components/esphome_designer/frontend/js/data/icons.js',
+                '**/custom_components/esphome_designer/frontend/js/data/icons.js',
+                'js/lib/**/*.min.js'
+            ]
+        }
+    },
+    css: {
+        postcss: {
+            plugins: [createScopedPanelCssPlugin()]
+        }
     },
     build: {
         target: 'esnext',
         outDir: resolve(frontendRoot, 'dist'),
         emptyOutDir: true,
+        manifest: true,
         rollupOptions: {
             input: {
                 main: resolve(frontendRoot, 'index.html'),
+                panel: resolve(frontendRoot, 'panel/esphome-designer-panel.js'),
             },
             output: {
                 manualChunks: getManualChunk,

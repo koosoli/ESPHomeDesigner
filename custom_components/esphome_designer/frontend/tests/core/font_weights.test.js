@@ -2,6 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js';
 
 describe('font_weights', () => {
+    it('includes Roboto 600 and preserves it during clamping', () => {
+        expect(getWeightsForFont('Roboto')).toContain(600);
+        expect(clampFontWeight('Roboto', 600)).toBe(600);
+        expect(clampFontWeight('Roboto', 650)).toBe(600);
+    });
+
     it('returns only valid weights for Roboto Mono', () => {
         expect(getWeightsForFont('Roboto Mono')).toEqual([100, 200, 300, 400, 500, 600, 700]);
         expect(getWeightsForFont('Roboto Mono')).not.toContain(800);

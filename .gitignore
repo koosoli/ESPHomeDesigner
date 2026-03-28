@@ -44,6 +44,27 @@ diff.txt
 parse_fails.js
 test_esp8266.js
 
+# Local root audit/debug artifacts
+/coverage_full.json
+/comment.json
+/comment_body.txt
+/debug_output.yaml
+/debug_yaml.js
+/dynamic_refs.txt
+/err.txt
+/eslint_*.json
+/esphome_designer_test.zip
+/fail_line.txt
+/lint_*.txt
+/out*.json
+/quality*.txt
+/temp_yaml_generator.js
+/test_*.json
+/test_*.txt
+/text_cov.txt
+/vitest_update.txt
+/0.9/
+
 # Legacy and reference backups
 oldversions/
 references/

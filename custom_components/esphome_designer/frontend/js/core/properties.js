@@ -9,6 +9,21 @@ import { SchemaRenderer } from './properties/schema_renderer.js';
 import { MultiSelectRenderer } from './properties/multi_select_renderer.js';
 import { GridRenderer } from './properties/grid_renderer.js';
 import { LegacyRenderer } from './properties/legacy_renderer.js';
+import { Logger } from '../utils/logger.js';
+
+/**
+ * @typedef {{
+ *   id: string,
+ *   type: string,
+ *   x: number,
+ *   y: number,
+ *   width: number,
+ *   height: number,
+ *   locked?: boolean,
+ *   title?: string,
+ *   props?: Record<string, any>
+ * }} PropertiesWidget
+ */
 
 /**
  * PropertiesPanel is the main orchestrator for the right-hand sidebar.
@@ -19,12 +34,18 @@ export class PropertiesPanel {
     constructor(appInstance = null) {
         /** @type {any} */
         this.app = appInstance;
+        /** @type {HTMLElement | null} */
         this.panel = document.getElementById("propertiesPanel");
         this.controls = new PropertyControls(this);
+        /** @type {string | null} */
         this.lastRenderedWidgetId = null;
+        /** @type {string} */
         this.lastRenderedSelectionKey = "";
+        /** @type {PropertiesWidget | null} */
         this.activeWidget = null;
+        /** @type {HTMLElement[]} */
         this.containerStack = [];
+        /** @type {Record<string, boolean>} */
         this.sectionStates = {};
     }
 
@@ -32,10 +53,6 @@ export class PropertiesPanel {
         // Subscribe to events
         on(EVENTS.SELECTION_CHANGED, () => this.render());
         on(EVENTS.STATE_CHANGED, () => this.render());
-        on(EVENTS.WIDGET_SELECTED, () => this.render());
-        on(EVENTS.WIDGETS_SELECTED, () => this.render());
-        on(EVENTS.PAGE_SELECTED, () => this.render());
-        on(EVENTS.PAGE_UPDATED, () => this.render());
 
         // Bind Snap Toggle (Static in sidebar)
         const snapToggle = /** @type {HTMLInputElement | null} */ (document.getElementById("snapToggle"));
@@ -80,7 +97,7 @@ export class PropertiesPanel {
         const selectionChanged = this.lastRenderedSelectionKey !== selectionKey;
 
         if (selectedIds.length > 1) {
-            console.log(`[PropertiesPanel] Multi-select detected: ${selectedIds.length} widgets. Selection key: ${selectionKey}`);
+            Logger.log(`[PropertiesPanel] Multi-select detected: ${selectedIds.length} widgets. Selection key: ${selectionKey}`);
         }
 
         // Prevent re-rendering if user is typing in the panel AND same widget
@@ -105,7 +122,7 @@ export class PropertiesPanel {
         // Update Lock Toggle state
         const lockToggle = document.getElementById("lockPositionToggle");
         if (lockToggle) {
-            const selectedWidgets = AppState.getSelectedWidgets();
+            const selectedWidgets = /** @type {Array<{ locked?: boolean }>} */ (AppState.getSelectedWidgets());
             const allLocked = selectedWidgets.length > 0 && selectedWidgets.every(w => w.locked);
             const someLocked = selectedWidgets.some(w => w.locked);
 
@@ -125,7 +142,7 @@ export class PropertiesPanel {
             return;
         }
 
-        const widget = AppState.getSelectedWidget();
+        const widget = /** @type {PropertiesWidget | null} */ (AppState.getSelectedWidget());
         if (!widget) return;
 
         const type = widget.type;
@@ -151,21 +168,29 @@ export class PropertiesPanel {
 
         if (layout === "absolute") {
             this.createSection("Transform", false);
+            /** @param {string} v */
+            const updateX = (v) => {
+                AppState.updateWidget(widget.id, { x: parseInt(v, 10) || 0 });
+            };
+            /** @param {string} v */
+            const updateY = (v) => {
+                AppState.updateWidget(widget.id, { y: parseInt(v, 10) || 0 });
+            };
+            /** @param {string} v */
+            const updateWidth = (v) => {
+                AppState.updateWidget(widget.id, { width: parseInt(v, 10) || 10 });
+            };
+            /** @param {string} v */
+            const updateHeight = (v) => {
+                AppState.updateWidget(widget.id, { height: parseInt(v, 10) || 10 });
+            };
             this.addCompactPropertyRow(() => {
-                this.addLabeledInput("Pos X", "number", widget.x, (v) => {
-                    AppState.updateWidget(widget.id, { x: parseInt(v, 10) || 0 });
-                });
-                this.addLabeledInput("Pos Y", "number", widget.y, (v) => {
-                    AppState.updateWidget(widget.id, { y: parseInt(v, 10) || 0 });
-                });
+                this.addLabeledInput("Pos X", "number", widget.x, updateX);
+                this.addLabeledInput("Pos Y", "number", widget.y, updateY);
             });
             this.addCompactPropertyRow(() => {
-                this.addLabeledInput("Width", "number", widget.width, (v) => {
-                    AppState.updateWidget(widget.id, { width: parseInt(v, 10) || 10 });
-                });
-                this.addLabeledInput("Height", "number", widget.height, (v) => {
-                    AppState.updateWidget(widget.id, { height: parseInt(v, 10) || 10 });
-                });
+                this.addLabeledInput("Width", "number", widget.width, updateWidth);
+                this.addLabeledInput("Height", "number", widget.height, updateHeight);
             });
             this.endSection();
         }
@@ -197,6 +222,11 @@ export class PropertiesPanel {
 
     // --- Section Management ---
 
+    /**
+     * @param {string} title
+     * @param {boolean} [defaultExpanded]
+     * @returns {HTMLDivElement}
+     */
     createSection(title, defaultExpanded = true) {
         const isCollapsed = this.sectionStates[title] !== undefined ?
             this.sectionStates[title] === false :
@@ -224,7 +254,11 @@ export class PropertiesPanel {
             this.sectionStates[title] = !isCollapsed;
         }
 
-        this.getContainer().appendChild(section);
+        const container = this.getContainer();
+        if (!container) {
+            return content;
+        }
+        container.appendChild(section);
         this.containerStack.push(content);
         return content;
     }
@@ -235,12 +269,19 @@ export class PropertiesPanel {
         }
     }
 
+    /**
+     * @returns {HTMLElement | null}
+     */
     getContainer() {
         return this.containerStack.length > 0 ?
             this.containerStack[this.containerStack.length - 1] :
             this.panel;
     }
 
+    /**
+     * @param {string} widgetId
+     * @param {string} entityId
+     */
     autoPopulateTitleFromEntity(widgetId, entityId) {
         if (!entityId || !AppState || !AppState.entityStates) return;
         const entity = AppState.entityStates[entityId];
@@ -284,6 +325,10 @@ export class PropertiesPanel {
     addLabeledInputWithIconPicker(...args) { return this.controls.addLabeledInputWithIconPicker ? this.controls.addLabeledInputWithIconPicker.apply(this.controls, args) : null; }
 
     // Polyfill for methods lost in refactoring to prevent crashes
+    /**
+     * @param {HTMLElement} container
+     * @param {string} widgetId
+     */
     addDropShadowButton(container, widgetId) {
         const wrap = document.createElement("div");
         wrap.className = "field";
@@ -304,6 +349,8 @@ export class PropertiesPanel {
         wrap.appendChild(btn);
         container.appendChild(wrap);
     }
+    /** @param {...any} args */
     addLabeledInputWithDataList(...args) { return this.controls.addLabeledInputWithDataList(...args); }
+    /** @param {...any} args */
     addSectionLabel(...args) { return this.controls.addSectionLabel(...args); }
 }

@@ -25,4 +25,12 @@ describe('PreferencesStore', () => {
         store.setShowGrid(false);
         expect(store.showGrid).toBe(false);
     });
+
+    it('should toggle debug grid and rulers individually', () => {
+        store.setShowDebugGrid(true);
+        expect(store.showDebugGrid).toBe(true);
+
+        store.setShowRulers(true);
+        expect(store.showRulers).toBe(true);
+    });
 });

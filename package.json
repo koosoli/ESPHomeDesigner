@@ -1,14 +1,18 @@
 {
   "name": "esphome-designer-frontend",
-  "version": "1.0.0-rc.8.5",
+  "version": "1.0.0-rc.9",
   "description": "Frontend for ESPHome Designer",
   "type": "module",
   "main": "index.html",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "vitest run && node scripts/schema_hash.cjs --update",
+    "test": "vitest run && node scripts/schema_hash.cjs --check",
     "test:watch": "vitest",
+    "schema:check": "node scripts/schema_hash.cjs --check",
+    "schema:update": "node scripts/schema_hash.cjs --update",
+    "python:deps": "node scripts/run_python.cjs -m pip install -r requirements-dev.txt",
+    "python:test": "node scripts/run_python.cjs -m unittest discover -s tests_python -p \"test_*.py\"",
     "lint": "eslint .",
     "format": "prettier --write .",
     "verify:ha": "node scripts/verify_ha_integration.cjs",
@@ -18,7 +22,10 @@
     "quality": "node scripts/quality_gate.cjs",
     "quality:proof": "node scripts/quality_gate.cjs --json --proof-dir=tmp/proof/local",
     "quality:baseline-governance": "node scripts/check_baseline_governance.cjs",
-    "quality:update": "node scripts/quality_gate.cjs --update-baselines"
+    "quality:update": "node scripts/quality_gate.cjs --update-baselines",
+    "bench:workflow": "node scripts/benchmark_workflow.cjs",
+    "bench:workflow:update": "node scripts/benchmark_workflow.cjs --update-baseline",
+    "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json"
   },
   "keywords": [],
   "author": "",

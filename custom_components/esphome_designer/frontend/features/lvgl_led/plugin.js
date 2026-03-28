@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * LVGL LED Plugin
  */
@@ -22,7 +21,7 @@ const render = (el, widget, { getColorStyle }) => {
     led.style.height = `${size}px`;
     led.style.borderRadius = "50%";
     led.style.backgroundColor = color;
-    led.style.opacity = brightness / 255;
+    led.style.opacity = String(brightness / 255);
     led.style.border = "2px solid #333";
     led.style.boxShadow = `0 0 ${size / 4}px ${color}`;
 
@@ -43,6 +42,7 @@ const render = (el, widget, { getColorStyle }) => {
 
 const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
     const p = w.props || {};
+    /** @type {number | string} */
     let brightnessValue = (p.brightness !== undefined ? p.brightness : 255) / 255.0;
 
     if (w.entity_id) {

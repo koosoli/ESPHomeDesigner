@@ -10,6 +10,10 @@ export class SelectionManager {
         this.app = app;
     }
 
+    /**
+     * @param {string | null | undefined} id
+     * @param {boolean} [multi]
+     */
     selectWidget(id, multi = false) {
         if (!id) {
             this.app.editor.selectWidget(null, multi);
@@ -24,8 +28,10 @@ export class SelectionManager {
         // OR selecting all members if we want to treat it as a collection.
         if (widget.type === 'group') {
             const page = this.app.getCurrentPage();
-            const groupMembers = page.widgets.filter(w => w.parentId === id);
-            const memberIds = groupMembers.map(w => w.id);
+            /** @type {any[]} */
+            const pageWidgets = page.widgets || [];
+            const groupMembers = pageWidgets.filter((w) => w.parentId === id);
+            const memberIds = groupMembers.map((w) => w.id);
             // Include the group itself + all children so drag code can find the group as primaryWidget
             const allIds = [id, ...memberIds];
 
@@ -33,7 +39,7 @@ export class SelectionManager {
                 const anySelected = allIds.some(mid => this.app.editor.selectedWidgetIds.includes(mid));
                 if (anySelected) {
                     const removeSet = new Set(allIds);
-                    const remainingIds = this.app.editor.selectedWidgetIds.filter(mid => !removeSet.has(mid));
+                    const remainingIds = this.app.editor.selectedWidgetIds.filter((mid) => !removeSet.has(mid));
                     this.app.editor.setSelectedWidgetIds(remainingIds);
                 } else {
                     this.app.editor.setSelectedWidgetIds([...new Set([...this.app.editor.selectedWidgetIds, ...allIds])]);
@@ -46,6 +52,9 @@ export class SelectionManager {
         }
     }
 
+    /**
+     * @param {string[]} ids
+     */
     selectWidgets(ids) {
         this.app.editor.setSelectedWidgetIds(ids);
     }
@@ -53,7 +62,9 @@ export class SelectionManager {
     selectAllWidgets() {
         const page = this.app.getCurrentPage();
         if (!page || !page.widgets) return;
-        const ids = page.widgets.map((w) => w.id);
+        /** @type {any[]} */
+        const pageWidgets = page.widgets;
+        const ids = pageWidgets.map((w) => w.id);
         this.selectWidgets(ids);
     }
 
@@ -61,24 +72,31 @@ export class SelectionManager {
         this.app.editor.setSelectedWidgetIds([]);
     }
 
+    /**
+     * @param {string} id
+     */
     toggleSelection(id) {
         this.selectWidget(id, true);
     }
 
+    /**
+     * @param {string} id
+     */
     isWidgetSelected(id) {
         return this.app.editor.selectedWidgetIds.includes(id);
     }
 
     groupSelection() {
         const selectedIds = this.app.editor.selectedWidgetIds;
+        /** @type {any[]} */
         const widgets = this.app.getSelectedWidgets();
 
-        const hasExistingGroup = widgets.some(w => w.type === 'group' || w.parentId);
+        const hasExistingGroup = widgets.some((w) => w.type === 'group' || w.parentId);
         if (selectedIds.length < 2 || hasExistingGroup) return;
 
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
-        widgets.forEach(w => {
+        widgets.forEach((w) => {
             minX = Math.min(minX, w.x);
             minY = Math.min(minY, w.y);
             maxX = Math.max(maxX, w.x + (w.width || 0));
@@ -100,7 +118,7 @@ export class SelectionManager {
 
         this.app.project.addWidget(groupWidget);
 
-        widgets.forEach(w => {
+        widgets.forEach((w) => {
             this.app.project.updateWidget(w.id, { parentId: groupId });
         });
 
@@ -110,15 +128,21 @@ export class SelectionManager {
         emit(EVENTS.STATE_CHANGED);
     }
 
+    /**
+     * @param {string | string[] | null | undefined} [idOrIds]
+     */
     ungroupSelection(idOrIds = null) {
         const appAny = /** @type {any} */ (this.app);
+        /** @type {string[]} */
         let targets = [];
         if (idOrIds) {
             targets = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
         } else {
+            /** @type {any[]} */
             const selected = appAny.getSelectedWidgets();
+            /** @type {Set<string>} */
             const foundIds = new Set();
-            selected.forEach(w => {
+            selected.forEach((w) => {
                 if (w.type === 'group') foundIds.add(w.id);
                 else if (w.parentId) foundIds.add(w.parentId);
             });
@@ -126,7 +150,7 @@ export class SelectionManager {
         }
 
         const groupIds = new Set();
-        targets.forEach(id => {
+        targets.forEach((id) => {
             const w = appAny.getWidgetById(id);
             if (!w) return;
             if (w.type === 'group') groupIds.add(w.id);
@@ -136,15 +160,18 @@ export class SelectionManager {
         const idsToProcess = [...groupIds];
         if (idsToProcess.length === 0) return;
 
+        /** @type {string[]} */
         const allChildren = [];
-        idsToProcess.forEach(groupId => {
+        idsToProcess.forEach((groupId) => {
             const group = appAny.getWidgetById(groupId);
             if (!group || group.type !== 'group') return;
 
             const page = appAny.getCurrentPage();
-            const children = page.widgets.filter(w => w.parentId === groupId);
+            /** @type {any[]} */
+            const pageWidgets = page.widgets || [];
+            const children = pageWidgets.filter((w) => w.parentId === groupId);
 
-            children.forEach(c => {
+            children.forEach((c) => {
                 this.app.project.updateWidget(c.id, { parentId: null });
                 allChildren.push(c.id);
             });
@@ -154,7 +181,9 @@ export class SelectionManager {
 
         const currentPage = appAny.getCurrentPage();
         if (currentPage && currentPage.widgets) {
-            currentPage.widgets = currentPage.widgets.filter(w => !idsToProcess.includes(w.id));
+            /** @type {any[]} */
+            const currentWidgets = currentPage.widgets;
+            currentPage.widgets = currentWidgets.filter((w) => !idsToProcess.includes(w.id));
         }
 
         if (allChildren.length > 0) {
@@ -173,6 +202,7 @@ export class SelectionManager {
         const widgets = /** @type {any[]} */ (this.app.getSelectedWidgets());
         if (widgets.length < 2) return;
 
+        /** @type {number} */
         let targetVal;
         switch (direction) {
             case 'left':

@@ -80,6 +80,6 @@ class ReTerminalLayoutImportView(DesignerBaseView):
             # Convert dict to model and back to validate
             layout = DeviceConfig.from_dict(body)
             await self.storage.async_save_layout(layout)
-            return self.json({"status": "ok", "id": layout.id}, request=request)
+            return self.json({"status": "ok", "id": layout.device_id}, request=request)
         except Exception as exc:
             return self.json({"error": str(exc)}, HTTPStatus.BAD_REQUEST, request=request)

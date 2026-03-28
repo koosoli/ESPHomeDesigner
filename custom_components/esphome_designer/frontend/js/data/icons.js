@@ -1,3 +1,6 @@
+/* istanbul ignore file */
+/* c8 ignore start */
+
 // Curated list of common MDI icons
 export const ReTerminalIcons = [
     { name: "mdi:account", code: "F0004" },
@@ -86,3 +89,5 @@ export const ReTerminalIcons = [
     { name: "mdi:wifi", code: "F05A9" },
     { name: "mdi:window-close", code: "F05AD" }
 ];
+
+/* c8 ignore stop */

@@ -3,17 +3,21 @@ import { describe, expect, it, vi } from 'vitest';
 import { YamlGenerator } from '../../js/io/adapters/yaml_generator.js';
 import { generateBinarySensorSection, generatePSRAMSection } from '../../js/io/hardware_generators.js';
 
+const fetchDynamicHardwareProfilesMock = vi.fn(async () => []);
+const getOfflineProfilesFromStorageMock = vi.fn(() => ({}));
+const emitMock = vi.fn();
+
 vi.mock('../../js/utils/logger.js', () => ({
     Logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn() }
 }));
 
 vi.mock('../../js/io/hardware_profile_sources.js', () => ({
-    fetchDynamicHardwareProfiles: vi.fn(async () => []),
-    getOfflineProfilesFromStorage: vi.fn(() => ({}))
+    fetchDynamicHardwareProfiles: fetchDynamicHardwareProfilesMock,
+    getOfflineProfilesFromStorage: getOfflineProfilesFromStorageMock
 }));
 
 vi.mock('../../js/core/events.js', () => ({
-    emit: vi.fn(),
+    emit: emitMock,
     EVENTS: { DEVICE_PROFILES_UPDATED: 'device-profiles-updated' }
 }));
 
@@ -35,6 +39,47 @@ describe('built-in device profiles', async () => {
     it('excludes untested built-ins from the tested profile id list', () => {
         expect(devices.SUPPORTED_DEVICE_IDS).not.toContain('lilygo_t5_47');
         expect(devices.SUPPORTED_DEVICE_IDS).toContain('reterminal_e1001');
+    });
+
+    it('recomputes supported ids after loading external profiles', async () => {
+        fetchDynamicHardwareProfilesMock.mockResolvedValueOnce([
+            {
+                id: 'custom_dynamic_board',
+                name: 'Custom Dynamic Board',
+                resolution: { width: 320, height: 240 },
+                features: { lcd: true }
+            },
+            {
+                id: 'custom_untested_board',
+                name: 'Custom Untested Board',
+                resolution: { width: 320, height: 240 },
+                isUntestedProfile: true
+            }
+        ]);
+        getOfflineProfilesFromStorageMock.mockReturnValueOnce({
+            custom_offline_board: {
+                id: 'custom_offline_board',
+                name: 'Custom Offline Board',
+                resolution: { width: 400, height: 300 }
+            }
+        });
+
+        await devices.loadExternalProfiles();
+
+        expect(devices.SUPPORTED_DEVICE_IDS).toContain('custom_dynamic_board');
+        expect(devices.SUPPORTED_DEVICE_IDS).toContain('custom_offline_board');
+        expect(devices.SUPPORTED_DEVICE_IDS).not.toContain('custom_untested_board');
+        expect(emitMock).toHaveBeenCalledWith('device-profiles-updated');
+    });
+
+    it('merges dynamic features without dropping built-in feature flags', () => {
+        const merged = devices.mergeDeviceProfile(
+            { features: { psram: true, epaper: true }, chip: 'esp32-s3' },
+            { features: { touch: true }, chip: 'esp32' }
+        );
+
+        expect(merged.features).toEqual({ psram: true, epaper: true, touch: true });
+        expect(merged.chip).toBe('esp32');
     });
 
     it('applies Lilygo-specific commented system overrides and psram speed', () => {

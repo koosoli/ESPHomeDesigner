@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Rounded Rectangle Shape Plugin
  */

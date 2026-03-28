@@ -4,6 +4,7 @@
  */
 
 import { Logger } from '../../utils/logger.js';
+import { getHaHeaders, haFetch } from '../ha_api.js';
 import { BaseAdapter } from './base_adapter.js';
 import { AppState } from '../../core/state';
 import { registry } from '../../core/plugin_registry';
@@ -20,8 +21,8 @@ import { collectNumericSensors, collectTextSensors, collectBinarySensors, isEnti
 import { processPackageContent } from './package_processor.js';
 
 export class ESPHomeAdapter extends BaseAdapter {
-    fonts: FontRegistry;
-    yaml: YamlGenerator;
+    fonts!: FontRegistry;
+    yaml!: YamlGenerator;
     usedPlugins: Set<any> = new Set();
     preProcessWidgetsPromise?: Promise<void>;
     _pendingTouchSensors: string[] = [];
@@ -118,6 +119,7 @@ export class ESPHomeAdapter extends BaseAdapter {
         const defaultRefresh = layout.refreshInterval || (isLcd ? 60 : (layout.deepSleepInterval || 600));
         globalLines.push("- id: page_refresh_default_s", "  type: int", "  restore_value: true", `  initial_value: '${defaultRefresh}'`);
         globalLines.push("- id: page_refresh_current_s", "  type: int", "  restore_value: false", "  initial_value: '60'");
+        globalLines.push("- id: last_touch_time", "  type: uint32_t", "  restore_value: false", "  initial_value: '0'");
         if (pages.length > 1) {
             globalLines.push("- id: last_page_switch_time", "  type: uint32_t", "  restore_value: false", "  initial_value: '0'");
         }
@@ -133,7 +135,7 @@ export class ESPHomeAdapter extends BaseAdapter {
             layout.plugin_includes = includeLines;
         }
 
-        const requiresMaterialIcons = this.fonts.iconCodesBySize.size > 0;
+        const requiresMaterialIcons = (this.fonts?.iconCodesBySize?.size || 0) > 0;
         if (!layout.isSelectionSnippet) {
             lines.push(...this.yaml.generateInstructionHeader(profile, layout, requiresMaterialIcons));
             lines.push(...this.yaml.generateSystemSections(profile, layout));
@@ -148,7 +150,13 @@ export class ESPHomeAdapter extends BaseAdapter {
         // 2. Hardware Infrastructure (PSRAM, I2C, SPI, output, time, sensor seeding)
         this._buildInfrastructureLines(profile, layout, lines, packageContent, seenSensorIds);
 
-        const usesMqtt = allWidgets.some(w => w.props && typeof w.props.mqtt_topic === 'string' && w.props.mqtt_topic.trim() !== "");
+        const usesMqtt = allWidgets.some(w => {
+            if (w.props && typeof w.props.mqtt_topic === 'string' && w.props.mqtt_topic.trim() !== "") return true;
+            if (w.entity_id && w.entity_id.toLowerCase().startsWith('mqtt:')) return true;
+            if (w.entity_id_2 && w.entity_id_2.toLowerCase().startsWith('mqtt:')) return true;
+            if (w.condition_entity && w.condition_entity.toLowerCase().startsWith('mqtt:')) return true;
+            return false;
+        });
         if (usesMqtt && !layout.isSelectionSnippet) {
             lines.push("mqtt:");
             lines.push("  broker: !secret mqtt_broker");
@@ -331,14 +339,23 @@ export class ESPHomeAdapter extends BaseAdapter {
 
     async fetchHardwarePackage(url: string): Promise<string> {
         let fetchUrl = url;
-        if (window.location.pathname.includes("/esphome-designer/editor")) {
+        const currentPathname = typeof globalThis.location?.pathname === 'string'
+            ? globalThis.location.pathname
+            : '';
+        if (currentPathname.includes("/esphome-designer/editor")) {
             if (!url.startsWith("http") && !url.startsWith("/")) {
-                fetchUrl = "/esphome-designer/editor/static/" + url;
+                fetchUrl = `/api/esphome_designer/hardware/package?path=${encodeURIComponent(url)}`;
             }
         }
 
         try {
-            const response = await fetch(fetchUrl, { cache: "no-store" });
+            const requestOptions: RequestInit = { cache: "no-store" };
+            const response = fetchUrl.startsWith('/api/esphome_designer/')
+                ? await haFetch(fetchUrl, {
+                    ...requestOptions,
+                    headers: getHaHeaders(),
+                })
+                : await fetch(fetchUrl, requestOptions);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             return await response.text();
         } catch (e: any) {
@@ -348,7 +365,8 @@ export class ESPHomeAdapter extends BaseAdapter {
     }
 
     _resolveProfile(model: string, layout: any): any {
-        let profile = DEVICE_PROFILES[model] || {};
+        const deviceProfiles = DEVICE_PROFILES as Record<string, any>;
+        let profile = deviceProfiles[model] || {};
 
         if (model === 'custom' && layout.customHardware) {
             const ch = layout.customHardware;

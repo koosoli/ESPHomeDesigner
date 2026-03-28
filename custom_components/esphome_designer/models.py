@@ -17,6 +17,27 @@ from typing import Any, Dict, List, Optional
 from .const import DEFAULT_PAGES, IMAGE_WIDTH, IMAGE_HEIGHT
 
 
+def _coerce_bool(value: Any, default: bool = False) -> bool:
+    """Coerce persisted/frontend values into booleans safely."""
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return value != 0
+
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on", "enabled", "enable"}:
+            return True
+        if normalized in {"0", "false", "no", "off", "disabled", "disable", ""}:
+            return False
+        return default
+
+    return default
+
+
 @dataclass
 class WidgetConfig:
     """
@@ -415,29 +436,29 @@ class DeviceConfig:
             orientation=orientation,
             device_model=str(get_v("device_model", "deviceModel", "reterminal_e1001")),
             model=str(data.get("model", "7.50inv2")),
-            dark_mode=bool(get_v("dark_mode", "darkMode", False)),
-            sleep_enabled=bool(get_v("sleep_enabled", "sleepEnabled", False)),
+            dark_mode=_coerce_bool(get_v("dark_mode", "darkMode", False)),
+            sleep_enabled=_coerce_bool(get_v("sleep_enabled", "sleepEnabled", False)),
             sleep_start_hour=get_i("sleep_start_hour", "sleepStartHour", 0),
             sleep_end_hour=get_i("sleep_end_hour", "sleepEndHour", 5),
-            deep_sleep_enabled=bool(get_v("deep_sleep_enabled", "deepSleepEnabled", False)),
+            deep_sleep_enabled=_coerce_bool(get_v("deep_sleep_enabled", "deepSleepEnabled", False)),
             deep_sleep_interval=get_i("deep_sleep_interval", "deepSleepInterval", 600),
-            deep_sleep_stay_awake_switch=bool(get_v("deep_sleep_stay_awake_switch", "deepSleepStayAwakeSwitch", False)),
+            deep_sleep_stay_awake_switch=_coerce_bool(get_v("deep_sleep_stay_awake_switch", "deepSleepStayAwakeSwitch", False)),
             deep_sleep_stay_awake_entity_id=str(get_v("deep_sleep_stay_awake_entity_id", "deepSleepStayAwakeEntityId", "input_boolean.esphome_stay_awake")),
-            deep_sleep_firmware_guard=bool(get_v("deep_sleep_firmware_guard", "deepSleepFirmwareGuard", False)),
-            manual_refresh_only=bool(get_v("manual_refresh_only", "manualRefreshOnly", False)),
+            deep_sleep_firmware_guard=_coerce_bool(get_v("deep_sleep_firmware_guard", "deepSleepFirmwareGuard", False)),
+            manual_refresh_only=_coerce_bool(get_v("manual_refresh_only", "manualRefreshOnly", False)),
             no_refresh_start_hour=get_i("no_refresh_start_hour", "noRefreshStartHour", None),
             no_refresh_end_hour=get_i("no_refresh_end_hour", "noRefreshEndHour", None),
-            daily_refresh_enabled=bool(get_v("daily_refresh_enabled", "dailyRefreshEnabled", False)),
+            daily_refresh_enabled=_coerce_bool(get_v("daily_refresh_enabled", "dailyRefreshEnabled", False)),
             daily_refresh_time=str(get_v("daily_refresh_time", "dailyRefreshTime", "08:00")),
             rendering_mode=str(get_v("rendering_mode", "renderingMode", "direct")),
-            extended_latin_glyphs=bool(get_v("extended_latin_glyphs", "extendedLatinGlyphs", False)),
+            extended_latin_glyphs=_coerce_bool(get_v("extended_latin_glyphs", "extendedLatinGlyphs", False)),
             lcd_eco_strategy=str(get_v("lcd_eco_strategy", "lcdEcoStrategy", "backlight_off")),
             oepl_entity_id=str(get_v("oepl_entity_id", "oeplEntityId", "")),
             oepl_dither=get_i("oepl_dither", "oeplDither", 2),
-            auto_cycle_enabled=bool(get_v("auto_cycle_enabled", "autoCycleEnabled", False)),
+            auto_cycle_enabled=_coerce_bool(get_v("auto_cycle_enabled", "autoCycleEnabled", False)),
             auto_cycle_interval_s=get_i("auto_cycle_interval_s", "autoCycleIntervalS", 30),
             refresh_interval=get_i("refresh_interval", "refreshInterval", 600),
-            inverted_colors=bool(get_v("inverted_colors", "invertedColors", False)),
+            inverted_colors=_coerce_bool(get_v("inverted_colors", "invertedColors", False)),
             width=get_i("width", "resWidth", 800),
             height=get_i("height", "resHeight", 480),
             shape=str(get_v("shape", "shape", "rect")),

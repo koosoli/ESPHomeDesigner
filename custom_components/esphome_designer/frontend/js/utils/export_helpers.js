@@ -44,8 +44,8 @@ export function escapeFmt(str) {
  * @returns {boolean}
  */
 export function isEntityStateNonNumeric(eid, appState = null, attr = null) {
-    // @ts-ignore
-    const state = appState || AppState;
+    /** @type {Record<string, any>} */
+    const state = /** @type {any} */ (appState || AppState);
     if (!eid || !state?.entityStates) return false;
     const entityObj = state.entityStates[eid];
     if (!entityObj) return false;

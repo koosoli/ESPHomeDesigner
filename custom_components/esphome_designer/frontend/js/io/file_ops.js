@@ -53,7 +53,9 @@ export function loadLayoutFromFile(file) {
 export function handleFileSelect(event) {
     const target = /** @type {HTMLInputElement|null} */ (event.target);
     const file = target?.files ? target.files[0] : null;
-    loadLayoutFromFile(file);
+    if (file) {
+        loadLayoutFromFile(file);
+    }
     // Reset input so the same file can be selected again if needed
     if (target) target.value = '';
 }

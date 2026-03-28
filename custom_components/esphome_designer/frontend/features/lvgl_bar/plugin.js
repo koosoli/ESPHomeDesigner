@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * LVGL Bar Plugin
  */

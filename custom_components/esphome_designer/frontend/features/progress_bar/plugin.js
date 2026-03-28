@@ -1,122 +1,8 @@
-// @ts-nocheck
-import { AppState } from '@core/state';
 import { TemplateConverter } from '../../js/utils/template_converter.js';
+import { renderProgressBar } from './render.js';
+import { renderProgressBarProperties } from './properties.js';
 
-const render = (el, widget, tools) => {
-    const props = widget.props || {};
-    const { getColorStyle } = tools;
-    const entityId = widget.entity_id || "";
-    const label = widget.title || "";
-    const showLabel = props.show_label !== false && props.show_label !== "false";
-    const showPercentage = props.show_percentage !== false && props.show_percentage !== "false";
-    const barHeight = props.bar_height || 15;
-    const borderWidth = props.border_width || 1;
-    const color = props.color || "theme_auto";
-
-    const orientation = props.orientation || "horizontal";
-    const isVertical = orientation === "vertical";
-    const fontSize = props.font_size || 12;
-    const textAlign = props.text_align || "CENTER";
-    const min = parseFloat(props.min !== undefined ? props.min : 0);
-    const max = parseFloat(props.max !== undefined ? props.max : 100);
-    const range = max - min;
-
-    let percentValue = 50;
-
-    if (AppState && AppState.entityStates && entityId) {
-        const stateSet = AppState.entityStates[entityId];
-        const state = (stateSet && stateSet.state !== undefined) ? stateSet.state : null;
-        if (state !== undefined && state !== null) {
-            const numVal = parseFloat(String(state).replace(/[^0-9.-]/g, ''));
-            if (!isNaN(numVal)) {
-                percentValue = range === 0 ? 0 : Math.max(0, Math.min(100, (numVal - min) / range * 100));
-            }
-        }
-    }
-
-    const isDark = tools.isDark;
-
-    const getRenderColor = (c) => {
-        if (c === "theme_auto") return isDark ? "#ffffff" : "#000000";
-        if (c === "white" || c === "#ffffff") return isDark ? "#000000" : "#ffffff";
-        if (c === "black" || c === "#000000") return isDark ? "#ffffff" : "#000000";
-        return getColorStyle(c);
-    };
-
-    let renderColor = getRenderColor(color);
-
-    el.innerHTML = "";
-    el.style.display = "flex";
-    el.style.flexDirection = isVertical ? "row" : "column";
-    el.style.justifyContent = "center";
-    el.style.alignItems = "center";
-    el.style.gap = "4px";
-    el.style.color = renderColor;
-
-    const labelRow = document.createElement("div");
-    labelRow.style.display = "flex";
-    labelRow.style.flexDirection = isVertical ? "column" : "row";
-    const bothLabelsShown = (showLabel && label) && showPercentage;
-    labelRow.style.justifyContent = isVertical ? "space-between" : (bothLabelsShown ? "space-between" : (textAlign === "CENTER" ? "center" : (textAlign === "LEFT" ? "flex-start" : "flex-end")));
-    labelRow.style.alignItems = "center";
-    labelRow.style.fontSize = `${fontSize}px`;
-    labelRow.style.paddingBottom = isVertical ? "0" : "2px";
-    labelRow.style.paddingRight = isVertical ? "2px" : "0";
-    if (isVertical) {
-        labelRow.style.height = "100%";
-    } else {
-        labelRow.style.width = "100%";
-    }
-
-    if (showLabel && label) {
-        const labelSpan = document.createElement("span");
-        labelSpan.textContent = label;
-        labelRow.appendChild(labelSpan);
-    }
-
-    if (showPercentage) {
-        const pctSpan = document.createElement("span");
-        pctSpan.textContent = Math.round(percentValue) + "%";
-        labelRow.appendChild(pctSpan);
-    }
-
-    if (labelRow.childNodes.length > 0) {
-        el.appendChild(labelRow);
-    }
-
-    const barContainer = document.createElement("div");
-    if (isVertical) {
-        barContainer.style.width = `${barHeight}px`;
-        barContainer.style.height = "100%";
-    } else {
-        barContainer.style.width = "100%";
-        barContainer.style.height = `${barHeight}px`;
-    }
-    barContainer.style.border = `${borderWidth}px solid ${renderColor}`;
-    barContainer.style.borderRadius = "2px";
-    barContainer.style.position = "relative";
-    barContainer.style.overflow = "hidden";
-
-    const isRenderColorLight = (c) => c === "#ffffff" || c === "white" || c === "#fff";
-    barContainer.style.backgroundColor = isRenderColorLight(renderColor) ? "#000000" : "#ffffff";
-
-    const barFill = document.createElement("div");
-    if (isVertical) {
-        barFill.style.width = "100%";
-        barFill.style.height = `${percentValue}%`;
-        barFill.style.position = "absolute";
-        barFill.style.bottom = "0";
-        barFill.style.transition = "height 0.3s ease";
-    } else {
-        barFill.style.width = `${percentValue}%`;
-        barFill.style.height = "100%";
-        barFill.style.transition = "width 0.3s ease";
-    }
-    barFill.style.backgroundColor = renderColor;
-
-    barContainer.appendChild(barFill);
-    el.appendChild(barContainer);
-};
+const render = renderProgressBar;
 
 const exportLVGL = (w, { common, convertColor }) => {
     const p = w.props || {};
@@ -167,8 +53,8 @@ const exportDoc = (w, context) => {
     const color = getDynamicColor(colorProp);
     const fontId = addFont("Roboto", 400, fontSize);
 
-    // Ensure sensor. prefix if missing and it's not a local sensor
-    if (entityId && !p.is_local_sensor && !entityId.includes(".")) {
+    // Ensure sensor. prefix if missing and it's not a local sensor or mqtt entity
+    if (entityId && !p.is_local_sensor && !entityId.includes(".") && !entityId.toLowerCase().startsWith("mqtt:")) {
         entityId = `sensor.${entityId}`;
     }
 
@@ -284,7 +170,7 @@ const onExportNumericSensors = (context) => {
         if (!entityId || p.is_local_sensor) continue;
 
         // Ensure sensor. prefix if missing
-        if (!entityId.includes(".")) {
+        if (!entityId.includes(".") && !entityId.toLowerCase().startsWith("mqtt:")) {
             entityId = `sensor.${entityId}`;
         }
 
@@ -307,7 +193,6 @@ export default {
         show_percentage: true,
         bar_height: 15,
         entity_id: "",
-        mqtt_topic: "",
         border_width: 1,
         color: "theme_auto",
         bg_color: "white",
@@ -321,64 +206,7 @@ export default {
         opa: 255,
         opacity: 255
     },
-    renderProperties: (panel, widget) => {
-        const props = widget.props || {};
-        const updateProp = (key, val) => {
-            const newProps = { ...widget.props, [key]: val };
-            AppState.updateWidget(widget.id, { props: newProps });
-        };
-
-        panel.createSection("Data Source", true);
-        panel.addLabeledInputWithPicker("Entity ID", "text", widget.entity_id || "", (v) => {
-            AppState.updateWidget(widget.id, { entity_id: v });
-            if (v && !widget.title) panel.autoPopulateTitleFromEntity(widget.id, v);
-        }, widget);
-
-        panel.addLabeledInput("MQTT Topic (optional)", "text", props.mqtt_topic || "", (v) => updateProp("mqtt_topic", v.trim()));
-        panel.addHint("If set, uses MQTT instead of HA entity.");
-
-        panel.addLabeledInput("Label", "text", widget.title || "", (v) => {
-            AppState.updateWidget(widget.id, { title: v });
-        });
-        panel.addCheckbox("Local / On-Device Sensor", !!props.is_local_sensor, (v) => updateProp("is_local_sensor", v));
-        panel.addHint("Use internal battery_level/signal sensor.");
-        panel.endSection();
-
-        panel.createSection("Range Settings", true);
-        panel.addCompactPropertyRow(() => {
-            panel.addLabeledInput("Min Value", "number", props.min !== undefined ? props.min : 0, (v) => updateProp("min", parseFloat(v)));
-            panel.addLabeledInput("Max Value", "number", props.max !== undefined ? props.max : 100, (v) => updateProp("max", parseFloat(v)));
-        });
-        panel.addSelect("Bar Mode", props.mode || "normal", ["normal", "symmetrical", "range"], (v) => updateProp("mode", v));
-        panel.endSection();
-
-        panel.createSection("Appearance", true);
-        panel.addSelect("Orientation", props.orientation || "horizontal", ["horizontal", "vertical"], (v) => updateProp("orientation", v));
-        panel.addNumberWithSlider("Bar Thickness", props.bar_height || 15, 4, 100, (v) => updateProp("bar_height", v));
-        panel.addColorSelector("Fill Color", props.color || "theme_auto", null, (v) => updateProp("color", v));
-        panel.addColorSelector("Background", props.bg_color || "white", null, (v) => updateProp("bg_color", v));
-        panel.addNumberWithSlider("Opacity (%)", props.opacity !== undefined ? props.opacity : (props.opa !== undefined ? Math.round(props.opa / 2.55) : 100), 0, 100, (v) => {
-            updateProp("opacity", v);
-            updateProp("opa", Math.round(v * 2.55));
-        });
-        panel.endSection();
-
-        panel.createSection("Labels", false);
-        panel.addCheckbox("Display Title", props.show_label !== false, (v) => updateProp("show_label", v));
-        panel.addLabeledInput("Title", "text", widget.title || "", (v) => {
-            AppState.updateWidget(widget.id, { title: v });
-        });
-        panel.addCheckbox("Display Percentage", props.show_percentage !== false, (v) => updateProp("show_percentage", v));
-        panel.addLabeledInput("Font Size", "number", props.font_size || 12, (v) => updateProp("font_size", parseInt(v, 10)));
-        panel.addSelect("Text Align", props.text_align || "CENTER", ["LEFT", "CENTER", "RIGHT"], (v) => updateProp("text_align", v));
-        panel.endSection();
-
-        panel.createSection("Border Style", false);
-        panel.addLabeledInput("Border Width", "number", props.border_width || 1, (v) => updateProp("border_width", parseInt(v, 10)));
-        panel.addColorSelector("Border Color", props.border_color || "theme_auto", null, (v) => updateProp("border_color", v));
-        panel.addDropShadowButton(panel.getContainer(), widget.id);
-        panel.endSection();
-    },
+    renderProperties: renderProgressBarProperties,
     render,
     exportOpenDisplay: (w, { _layout, _page }) => {
         const p = w.props || {};
@@ -508,4 +336,7 @@ export default {
     export: exportDoc,
     onExportNumericSensors
 };
+
+
+
 

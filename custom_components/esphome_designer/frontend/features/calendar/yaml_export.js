@@ -1,9 +1,27 @@
+/**
+ * @typedef {{
+ *   id: string,
+ *   x: number,
+ *   y: number,
+ *   w: number,
+ *   h: number,
+ *   properties?: Record<string, any>
+ * }} CalendarSnippetWidget
+ */
+
+/**
+ * @param {CalendarSnippetWidget} widget
+ * @param {unknown} _pages
+ * @param {unknown} _deviceModel
+ */
 export function generateSnippet(widget, _pages, _deviceModel) {
     const id = widget.id;
     const x = widget.x;
     const y = widget.y;
     const w = widget.w;
     const h = widget.h;
+    const props = widget.properties || {};
+    const maxEntries = props.max_events || 8;
 
     // We need to fetch data from HA, so we assume the user has set up the python script.
     // The reference project uses a text_sensor to pull the JSON string.
@@ -17,7 +35,7 @@ export function generateSnippet(widget, _pages, _deviceModel) {
 
     // Note: The reference implementation relies on `id(calendar_json).state`.
 
-    const calendarDataEntity = widget.properties.entity_id || "sensor.esp_calendar_data";
+    const calendarDataEntity = props.entity_id || "sensor.esp_calendar_data";
 
     // Instructions for the user
     const userInstructions = `
@@ -43,6 +61,7 @@ export function generateSnippet(widget, _pages, _deviceModel) {
 #         data:
 #           calendar: "{{ calendar_response }}"
 #           now: "{{ now().date() }}"
+#           nr_entries: ${maxEntries}
 #         response_variable: calendar_converted
 #     sensor:
 #       - name: ESP Calendar Data
@@ -161,7 +180,7 @@ text_sensor:
           int calendar_y_pos = ${y} + 115;
           
           // Date
-          if (${widget.properties.show_header !== false}) {
+          if (${props.show_header !== false}) {
               it.printf(cx, ${y} + 0, id(font_roboto_70), color_content, TextAlign::TOP_CENTER, "%d", time.day_of_month);
               it.printf(cx, ${y} + 50, id(font_roboto_24), color_content, TextAlign::TOP_CENTER, "%s", id(todays_day_name_${id}).state.c_str());
               it.printf(cx, ${y} + 72, id(font_roboto_14), color_content, TextAlign::TOP_CENTER, "%s", id(todays_date_month_year_${id}).state.c_str());
@@ -173,7 +192,7 @@ text_sensor:
           
           // 2. Mock-ish Calendar Rendering for ESPHome (simplified from reference)
           int cell_height = 17;
-          if (${widget.properties.show_grid !== false}) {
+          if (${props.show_grid !== false}) {
               char cal[7][7][3];
               get_calendar_matrix(time.year, time.month, cal);
               
@@ -207,7 +226,7 @@ text_sensor:
           // Requires built-in JSON support in ESPHome (json component)
           // Data source: id(calendar_json_${id}).state
           
-          if (${widget.properties.show_events !== false}) {
+          if (${props.show_events !== false}) {
                // Robust Manual Parsing for Mixed Types (Array/Object)
                ESP_LOGD("calendar", "Raw JSON: %s", id(calendar_json_${id}).state.c_str());
                if (id(calendar_json_${id}).state.length() > 5 && id(calendar_json_${id}).state != "unknown") {
@@ -234,7 +253,7 @@ text_sensor:
                       ESP_LOGD("calendar", "Processing %d days", days.size());
     
                       int y_cursor = calendar_y_pos + (7 * cell_height) + 10;
-                      if (${widget.properties.show_grid === false}) {
+                      if (${props.show_grid === false}) {
                           y_cursor = calendar_y_pos + 10; // Reset if grid hidden
                       }
                       

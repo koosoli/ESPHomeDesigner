@@ -91,7 +91,7 @@ export const DEVICE_PROFILES = {
       i2c: { sda: "GPIO17", scl: "GPIO18" }, // Generic S3 defaults, user didn't specify I2C but it's good to have placeholder
       spi: { clk: "GPIO7", mosi: "GPIO9" },
       batteryEnable: "GPIO6",
-      batteryAdc: "GPIO3",
+      batteryAdc: "GPIO1",
       buzzer: null,
       buttons: { left: "GPIO2", refresh: "GPIO5" } // Key1=Wake/Left, Key3=Refresh
     },
@@ -135,7 +135,7 @@ export const DEVICE_PROFILES = {
       i2c: { sda: "GPIO1", scl: "GPIO2" },
       spi: { clk: "GPIO7", mosi: "GPIO8" },
       batteryEnable: null,
-      batteryAdc: "GPIO0",
+      batteryAdc: "GPIO3",
       buzzer: null,
       buttons: null
     },
@@ -402,11 +402,69 @@ export const DEVICE_PROFILES = {
   }
 };
 
+/**
+ * Returns the currently supported, non-untested device profile IDs.
+ * Dynamic profile loads reuse this to keep the exported list in sync.
+ *
+ * @param {Record<string, any>} profiles
+ * @returns {string[]}
+ */
+export function buildSupportedDeviceIds(profiles = DEVICE_PROFILES) {
+  return Object.entries(profiles)
+    .filter(([, profile]) => !profile.isUntestedProfile)
+    .map(([id]) => id);
+}
+
+/**
+ * Merges a dynamic profile into an existing static profile while preserving
+ * static metadata that the YAML source may not carry.
+ *
+ * @param {Record<string, any> | undefined} existing
+ * @param {Record<string, any>} incoming
+ * @returns {Record<string, any>}
+ */
+export function mergeDeviceProfile(existing, incoming) {
+  if (!existing) {
+    return incoming;
+  }
+
+  return {
+    ...existing,
+    ...incoming,
+    features: {
+      ...(existing.features || {}),
+      ...(incoming.features || {})
+    }
+  };
+}
+
+/**
+ * Applies dynamic hardware templates into the device profile registry.
+ *
+ * @param {Record<string, any>} profiles
+ * @param {Array<Record<string, any>>} dynamicTemplates
+ */
+export function applyDynamicProfiles(profiles, dynamicTemplates) {
+  dynamicTemplates.forEach((template) => {
+    profiles[template.id] = mergeDeviceProfile(profiles[template.id], template);
+  });
+}
+
+/**
+ * Restores offline-persisted profiles into the registry.
+ *
+ * @param {Record<string, any>} profiles
+ * @param {Record<string, any>} offlineProfiles
+ */
+export function applyOfflineProfiles(profiles, offlineProfiles) {
+  Object.entries(offlineProfiles).forEach(([id, profile]) => {
+    profiles[id] = profile;
+  });
+}
+
 // Expose generically for other modules (Adapter, etc.)
 // window.DEVICE_PROFILES = DEVICE_PROFILES; // REFACTOR: Removed in favor of strict imports
-export const SUPPORTED_DEVICE_IDS = Object.entries(DEVICE_PROFILES)
-  .filter(([, profile]) => !profile.isUntestedProfile)
-  .map(([id]) => id);
+export let SUPPORTED_DEVICE_IDS = buildSupportedDeviceIds(DEVICE_PROFILES);
 
 /**
  * Dynamically loads external hardware profiles from the backend
@@ -416,34 +474,17 @@ export async function loadExternalProfiles() {
   try {
     const dynamicTemplates = await fetchDynamicHardwareProfiles();
     Logger.log(`[Devices] Loaded ${dynamicTemplates.length} hardware profiles from backend/bundle.`);
-
-    dynamicTemplates.forEach(template => {
-      // Backend templates are the source of truth for YAML-based devices,
-      // but we merge instead of overwrite to preserve static metadata (like features.lvgl)
-      if (DEVICE_PROFILES[template.id]) {
-        const existing = DEVICE_PROFILES[template.id];
-        DEVICE_PROFILES[template.id] = {
-          ...existing,
-          ...template,
-          features: {
-            ...(existing.features || {}),
-            ...(template.features || {})
-          }
-        };
-      } else {
-        DEVICE_PROFILES[template.id] = template;
-      }
-    });
+    applyDynamicProfiles(DEVICE_PROFILES, dynamicTemplates);
 
     // Handle offline persistence
     const offlineProfiles = getOfflineProfilesFromStorage();
     const offlineIds = Object.keys(offlineProfiles);
     if (offlineIds.length > 0) {
       Logger.log(`[Devices] Restoring ${offlineIds.length} offline profiles from localStorage.`);
-      Object.entries(offlineProfiles).forEach(([id, profile]) => {
-        DEVICE_PROFILES[id] = profile;
-      });
+      applyOfflineProfiles(DEVICE_PROFILES, offlineProfiles);
     }
+
+    SUPPORTED_DEVICE_IDS = buildSupportedDeviceIds(DEVICE_PROFILES);
 
     emit(EVENTS.DEVICE_PROFILES_UPDATED);
   } catch (e) {

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { MIXED_VALUE } from '../../js/utils/color_utils.js';
 
 const mockUpdateWidget = vi.fn();
 const mockCreateDropShadow = vi.fn();
@@ -84,6 +85,24 @@ describe('PropertyControls', () => {
 
         expect(onChange).toHaveBeenCalledWith('world');
         expect(container.textContent).toContain('Title');
+    });
+
+    it('supports mixed textarea and mixed select states', () => {
+        const onTextareaChange = vi.fn();
+        controls.addLabeledInput('Body', 'textarea', MIXED_VALUE, onTextareaChange);
+
+        const textarea = container.querySelector('textarea.prop-input');
+        expect(textarea.placeholder).toBe('Mixed Values');
+        textarea.value = 'updated';
+        textarea.dispatchEvent(new Event('input'));
+        expect(onTextareaChange).toHaveBeenCalledWith('updated');
+
+        const onSelect = vi.fn();
+        controls.addSelect('Mode', MIXED_VALUE, [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }], onSelect);
+        const selects = container.querySelectorAll('select.prop-input');
+        const select = selects[selects.length - 1];
+        expect(select.options[0].textContent).toBe('(Mixed)');
+        expect(select.options[0].disabled).toBe(true);
     });
 
     it('creates select and checkbox controls', () => {
@@ -189,6 +208,12 @@ describe('PropertyControls', () => {
 
         expect(container.querySelector('.prop-grid-2')).toBeTruthy();
         expect(container.textContent).toContain('Row Header');
+    });
+
+    it('renders inline hints', () => {
+        controls.addHint('Helpful text');
+
+        expect(container.textContent).toContain('Helpful text');
     });
 
     it('creates LVGL common properties and updates AppState on interaction', () => {

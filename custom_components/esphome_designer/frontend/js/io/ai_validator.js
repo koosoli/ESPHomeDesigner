@@ -94,15 +94,16 @@ export class AIValidator {
      */
     static sandbox(currentWidgets, aiPayload) {
         // Deep clone to prevent mutation
+        /** @type {any[]} */
         const cloned = JSON.parse(JSON.stringify(currentWidgets));
-        const currentIds = new Set(cloned.map(w => w.id));
-        const aiIds = new Set(aiPayload.map(w => w.id));
+        const currentIds = new Set(cloned.map((w) => w.id));
+        const aiIds = new Set(aiPayload.map((w) => w.id));
 
-        const added = aiPayload.filter(w => !currentIds.has(w.id));
-        const removed = cloned.filter(w => !aiIds.has(w.id)).map(w => w.id);
-        const modified = aiPayload.filter(w => {
+        const added = aiPayload.filter((w) => !currentIds.has(w.id));
+        const removed = cloned.filter((w) => !aiIds.has(w.id)).map((w) => w.id);
+        const modified = aiPayload.filter((w) => {
             if (!currentIds.has(w.id)) return false;
-            const original = cloned.find(o => o.id === w.id);
+            const original = cloned.find((o) => o.id === w.id);
             return JSON.stringify(original) !== JSON.stringify(w);
         });
 

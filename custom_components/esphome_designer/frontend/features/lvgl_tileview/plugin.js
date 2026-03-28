@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * LVGL Tileview Plugin
  */
@@ -32,16 +31,19 @@ const render = (el, widget, { getColorStyle }) => {
 };
 
 const exportLVGL = (w, { common }) => {
+    const p = w.props || {};
     return {
         tileview: {
             ...common,
-            tiles: [
-                {
-                    row: 0,
-                    column: 0,
-                    widgets: []
-                }
-            ]
+            tiles: Array.isArray(p.tiles) && p.tiles.length > 0
+                ? p.tiles
+                : [
+                    {
+                        row: 0,
+                        column: 0,
+                        widgets: []
+                    }
+                ]
         }
     };
 };

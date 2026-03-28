@@ -12,6 +12,7 @@ const mockCustomPanel = {
     init: vi.fn(),
     populateFields: vi.fn(),
     updateVisibility: vi.fn(),
+    loadFromProfile: vi.fn(),
     handleSaveCustomProfile: vi.fn().mockResolvedValue(undefined)
 };
 
@@ -192,6 +193,14 @@ describe('DeviceSettings', () => {
         expect(mockShowToast).toHaveBeenCalledWith('Hardware profiles reloaded', 'success');
     });
 
+    it('shows an error toast when hardware profile reload fails', async () => {
+        mockLoadExternalProfiles.mockRejectedValueOnce(new Error('reload failed'));
+
+        await ds.reloadHardwareProfiles();
+
+        expect(mockShowToast).toHaveBeenCalledWith('Failed to reload profiles', 'error');
+    });
+
     it('persists to backend when HA is available', async () => {
         mockHasHaBackend.mockReturnValue(true);
         mockSaveLayoutToBackend.mockResolvedValueOnce(true);
@@ -203,7 +212,8 @@ describe('DeviceSettings', () => {
     });
 
     it('falls back to localStorage persistence when backend unavailable', async () => {
-        mockHasHaBackend.mockReturnValue(false);
+        vi.clearAllTimers();
+        mockHasHaBackend.mockImplementation(() => false);
         const setItemSpy = vi.spyOn(window.localStorage, 'setItem').mockImplementation(() => { });
 
         ds.persistToBackend();
@@ -211,6 +221,16 @@ describe('DeviceSettings', () => {
 
         expect(setItemSpy).toHaveBeenCalled();
         setItemSpy.mockRestore();
+    });
+
+    it('swallows backend save errors during autosave persistence', async () => {
+        mockHasHaBackend.mockReturnValue(true);
+        mockSaveLayoutToBackend.mockRejectedValueOnce(new Error('save failed'));
+
+        ds.persistToBackend();
+        await vi.runAllTimersAsync();
+
+        expect(mockSaveLayoutToBackend).toHaveBeenCalled();
     });
 
     it('wires autosave listeners for core settings changes', async () => {
@@ -232,6 +252,80 @@ describe('DeviceSettings', () => {
         ds.autoCycleEnabled.checked = true;
         ds.autoCycleEnabled.dispatchEvent(new Event('change'));
         expect(mockAppState.updateSettings).toHaveBeenCalledWith({ autoCycleEnabled: true });
+    });
+
+    it('handles delegated button clicks and interval synchronization flows', async () => {
+        ds.init();
+
+        const reloadBtn = /** @type {HTMLButtonElement} */ (document.getElementById('reloadHardwareBtn'));
+        reloadBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await Promise.resolve();
+        expect(mockLoadExternalProfiles).toHaveBeenCalledWith(true);
+
+        const importBtn = /** @type {HTMLButtonElement} */ (document.getElementById('importHardwareBtn'));
+        const fileInput = /** @type {HTMLInputElement} */ (document.getElementById('hardwareFileInput'));
+        const clickSpy = vi.spyOn(fileInput, 'click').mockImplementation(() => { });
+        importBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        expect(clickSpy).toHaveBeenCalled();
+        clickSpy.mockRestore();
+
+        ds.nameInput.value = 'Office Panel';
+        ds.nameInput.dispatchEvent(new Event('input'));
+        await vi.advanceTimersByTimeAsync(500);
+        expect(mockSaveLayoutToBackend).toHaveBeenCalled();
+
+        ds.modeDeepSleep.checked = true;
+        ds.modeDeepSleep.dispatchEvent(new Event('change'));
+        expect(mockAppState.updateSettings).toHaveBeenCalledWith({ deepSleepEnabled: true });
+
+        ds.deepSleepInterval.value = '900';
+        ds.deepSleepInterval.dispatchEvent(new Event('input'));
+        expect(ds.refreshIntervalInput.value).toBe('900');
+        expect(mockAppState.updateSettings).toHaveBeenCalledWith({ refreshInterval: 900 });
+
+        ds.refreshIntervalInput.value = '1200';
+        ds.refreshIntervalInput.dispatchEvent(new Event('input'));
+        expect(ds.deepSleepInterval.value).toBe('1200');
+        expect(mockAppState.updateSettings).toHaveBeenCalledWith({ deepSleepInterval: 1200 });
+    });
+
+    it('loads custom profiles on model change and toggles lcd eco visibility', () => {
+        ds.init();
+
+        ds.modelInput.value = 'custom_user';
+        ds.modelInput.dispatchEvent(new Event('change'));
+        expect(mockCustomPanel.loadFromProfile).toHaveBeenCalledWith('custom_user');
+
+        const lcdStrategy = /** @type {NodeListOf<HTMLInputElement>} */ (document.querySelectorAll('input[name="lcdEcoStrategy"]'));
+        lcdStrategy[1].checked = true;
+        lcdStrategy[1].dispatchEvent(new Event('change'));
+
+        expect(mockAppState.updateSettings).toHaveBeenCalledWith({ lcdEcoStrategy: 'dim_after_timeout' });
+        expect(ds.dimTimeoutRow.style.display).toBe('flex');
+        expect(ds.sleepRow.style.display).toBe('none');
+    });
+
+    it('clears mapped pin inputs and resets file input after import errors', async () => {
+        ds.init();
+        mockUploadHardwareTemplate.mockRejectedValueOnce(new Error('bad yaml'));
+
+        const sleepStart = /** @type {HTMLInputElement} */ (document.getElementById('setting-sleep-start'));
+        sleepStart.value = '7';
+        document.querySelector('.clear-pin-btn')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        expect(sleepStart.value).toBe('');
+
+        const fileInput = /** @type {HTMLInputElement} */ (document.getElementById('hardwareFileInput'));
+        const testFile = new File(['test'], 'hardware.yaml', { type: 'text/yaml' });
+        Object.defineProperty(fileInput, 'files', {
+            configurable: true,
+            value: [testFile]
+        });
+
+        fileInput.dispatchEvent(new Event('change'));
+        await Promise.resolve();
+
+        expect(mockUploadHardwareTemplate).toHaveBeenCalledWith(testFile);
+        expect(fileInput.value).toBe('');
     });
 
     it('delegates custom profile save handler', async () => {

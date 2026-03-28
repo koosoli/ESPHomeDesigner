@@ -3,7 +3,7 @@ import { ESPHomeAdapter } from '../../js/io/adapters/esphome_adapter';
 import { getCondProps } from '../../js/io/generators/native_generator.js';
 import { mergeYamlSections } from '../../js/io/generators/yaml_merger.js';
 
-const { mockRegistry, mockDeviceProfiles } = vi.hoisted(() => ({
+const { mockRegistry, mockDeviceProfiles, mockHaFetch, mockGetHaHeaders } = vi.hoisted(() => ({
     mockRegistry: {
         get: vi.fn(),
         getAll: vi.fn(() => []),
@@ -16,7 +16,9 @@ const { mockRegistry, mockDeviceProfiles } = vi.hoisted(() => ({
         onExportHelpers: vi.fn(),
         onExportEsphome: vi.fn()
     },
-    mockDeviceProfiles: {}
+    mockDeviceProfiles: {},
+    mockHaFetch: vi.fn(),
+    mockGetHaHeaders: vi.fn(() => ({ Authorization: 'Bearer test-token' }))
 }));
 
 // Top-level mocks for dependencies
@@ -70,6 +72,11 @@ vi.mock('../../js/io/hardware_generators.js', () => ({
     generateAudioSection: vi.fn(() => [])
 }));
 
+vi.mock('../../js/io/ha_api.js', () => ({
+    haFetch: mockHaFetch,
+    getHaHeaders: mockGetHaHeaders
+}));
+
 vi.mock('../../js/io/adapters/base_adapter.js', () => ({
     BaseAdapter: class {
         constructor() { }
@@ -102,6 +109,8 @@ describe('ESPHomeAdapter', () => {
 
     beforeEach(() => {
         adapter = new ESPHomeAdapter();
+        mockHaFetch.mockReset();
+        mockGetHaHeaders.mockClear();
         // Use real plugins for rendering in tests
         mockRegistry.get.mockImplementation((type) => {
             if (type === 'text') return textPlugin;
@@ -132,6 +141,40 @@ describe('ESPHomeAdapter', () => {
 
     it('should be instantiable', () => {
         expect(adapter).toBeDefined();
+    });
+
+    it('resolves bundled hardware packages through the authenticated HA package endpoint', async () => {
+        mockHaFetch.mockResolvedValue({
+            ok: true,
+            text: vi.fn().mockResolvedValue('package: test')
+        });
+        Object.defineProperty(globalThis, 'location', {
+            configurable: true,
+            value: { pathname: '/esphome-designer/editor' }
+        });
+
+        const result = await adapter.fetchHardwarePackage('hardware/demo.yaml');
+
+        expect(result).toBe('package: test');
+        expect(mockHaFetch).toHaveBeenCalledWith(
+            '/api/esphome_designer/hardware/package?path=hardware%2Fdemo.yaml',
+            {
+                cache: 'no-store',
+                headers: { Authorization: 'Bearer test-token' }
+            }
+        );
+    });
+
+    it('returns an inline error snippet when hardware package fetch fails', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('boom')));
+        Object.defineProperty(globalThis, 'location', {
+            configurable: true,
+            value: { pathname: '/' }
+        });
+
+        const result = await adapter.fetchHardwarePackage('https://example.com/pkg.yaml');
+
+        expect(result).toContain('# ERROR LOADING PROFILE: boom');
     });
 
     // Fix #218: Test that mergeYamlSections correctly merges duplicate sections
@@ -416,6 +459,26 @@ font:
 
             const binarySensorMatches = yaml.match(/^binary_sensor:$/gm);
             expect(binarySensorMatches).toHaveLength(1);
+        });
+
+        it('generates global mqtt block if any entity uses mqtt: prefix', async () => {
+            const projectState = {
+                deviceName: "MQTT Device",
+                deviceModel: "reterminal_e1001",
+                pages: [
+                    {
+                        name: "Home",
+                        widgets: [
+                            { id: "txt1", type: "text", entity_id: "mqtt:home/test", x: 0, y: 0, width: 200, height: 40 }
+                        ]
+                    }
+                ]
+            };
+            const yaml = await adapter.generate(projectState);
+            expect(yaml).toContain('mqtt:');
+            expect(yaml).toContain('broker: !secret mqtt_broker');
+            expect(yaml).toContain('mqtt_home_test');
+            expect(yaml).toContain('topic: "home/test"');
         });
     });
 });

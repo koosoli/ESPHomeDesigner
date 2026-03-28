@@ -10,6 +10,23 @@ import propertiesPanelHtml from './properties_panel.html?raw';
 import modalsHtml from './modals.html?raw';
 // @ts-ignore - Vite asset import
 import logoUrl from '../../../assets/logo_header.png';
+import { Logger } from '../../utils/logger.js';
+
+const PLACEHOLDER_IDS = [
+    'header-placeholder',
+    'sidebar-placeholder',
+    'code-panel-placeholder',
+    'properties-panel-placeholder',
+    'modals-placeholder',
+];
+
+const SHELL_SELECTORS = [
+    '.header-shell',
+    '.sidebar-shell',
+    '.code-shell',
+    '.properties-shell',
+    '.modal-shell',
+];
 
 function injectComponent(id, htmlString) {
     const el = document.getElementById(id);
@@ -21,9 +38,22 @@ function injectComponent(id, htmlString) {
     }
 }
 
+function hasPlaceholders() {
+    return PLACEHOLDER_IDS.some((id) => document.getElementById(id));
+}
+
+function hasInjectedShell() {
+    return SHELL_SELECTORS.some((selector) => document.querySelector(selector));
+}
+
 // Ensure execution is synchronous before other modules boot up
 export function initUI() {
-    console.log('[UI Injection] Loading modular UI components...');
+    Logger.log('[UI Injection] Loading modular UI components...');
+
+    if (!hasPlaceholders() && hasInjectedShell()) {
+        Logger.log('[UI Injection] Construction complete.');
+        return;
+    }
 
     // Replace hardcoded relative asset path with Vite-resolved URL
     let finalHeaderHtml = headerHtml.replace('assets/logo_header.png', logoUrl);
@@ -33,8 +63,9 @@ export function initUI() {
     injectComponent('code-panel-placeholder', codePanelHtml);
     injectComponent('properties-panel-placeholder', propertiesPanelHtml);
     injectComponent('modals-placeholder', modalsHtml);
-    console.log('[UI Injection] Construction complete.');
+    Logger.log('[UI Injection] Construction complete.');
 }
 
-// Auto-execute when imported
-initUI();
+if (hasPlaceholders()) {
+    initUI();
+}

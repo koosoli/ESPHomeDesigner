@@ -2,81 +2,24 @@
 // HARDWARE SECTION GENERATORS
 // ============================================================================
 
-function generateTouchscreenSection(profile, displayId = "my_display", _displayRotation = 0, layout = {}, isLvgl = false) {
-    if (!profile || !profile.touch) return []; // E-paper usually has no touch or handled differently
+import {
+    generateTouchscreenSection as generateTouchscreenSectionHelper,
+    generateSensorSection as generateSensorSectionHelper,
+    generateBinarySensorSection as generateBinarySensorSectionHelper,
+    generateButtonSection as generateButtonSectionHelper
+} from './hardware_generators_sections.js';
 
-    const t = profile.touch;
-    const lines = ["touchscreen:"];
-    lines.push(`  - platform: ${t.platform}`);
-    lines.push(`    id: my_touchscreen`);
-    lines.push(`    display: ${displayId}`);
+/** @typedef {Record<string, any>} ProfileLike */
+/** @typedef {{ orientation?: string, refreshInterval?: number, lcdEcoStrategy?: string }} LayoutLike */
+/** @typedef {Record<string, any>} WidgetLike */
+/** @typedef {string | number | boolean | Record<string, any>} PinValue */
 
-    if (t.i2c_id) lines.push(`    i2c_id: ${t.i2c_id}`);
-    if (t.spi_id) lines.push(`    spi_id: ${t.spi_id}`);
-
-    // Explicit addresses or update intervals
-    if (t.address) lines.push(`    address: ${t.address}`);
-    if (t.update_interval) lines.push(`    update_interval: ${t.update_interval}`);
-
-    // Pin mappings (some might be objects for IO extenders)
-    const addPin = (key, val) => {
-        if (!val) return;
-        if (typeof val === 'string' || typeof val === 'number') {
-            lines.push(`    ${key}: ${val}`);
-        } else {
-            lines.push(`    ${key}:`);
-            Object.entries(val).forEach(([k, v]) => lines.push(`      ${k}: ${v}`));
-        }
-    };
-
-    addPin("interrupt_pin", t.interrupt_pin);
-    addPin("reset_pin", t.reset_pin);
-    addPin("cs_pin", t.cs_pin);
-
-    // Calc/Transform
-    // Support both nested t.transform.* and flat t.* properties (Backwards compatibility)
-    const tx = t.transform || {};
-
-    // New transform logic: prioritize t.transform object, then fallback to flat properties
-    const hasTransform = t.transform || t.mirror_x || t.mirror_y || t.swap_xy;
-    if (hasTransform) {
-        lines.push("    transform:");
-        if (t.transform) {
-            if (t.transform.swap_xy) lines.push("      swap_xy: true");
-            if (t.transform.mirror_x) lines.push("      mirror_x: true");
-            if (t.transform.mirror_y) lines.push("      mirror_y: true");
-        } else {
-            // Backwards compatibility for flat properties
-            if (t.mirror_x || tx.mirror_x) lines.push("      mirror_x: true");
-            if (t.mirror_y || tx.mirror_y) lines.push("      mirror_y: true");
-            if (t.swap_xy || tx.swap_xy) lines.push("      swap_xy: true");
-        }
-    }
-
-    if (isLvgl && layout.lcdEcoStrategy === 'dim_after_timeout') {
-        lines.push("    on_release:");
-        lines.push("      - if:");
-        lines.push("          condition: lvgl.is_paused");
-        lines.push("          then:");
-        lines.push("            - lvgl.resume:");
-        lines.push("            - lvgl.widget.redraw:");
-        lines.push("            - light.turn_on: display_backlight");
-    }
-
-    if (t.calibration) {
-        lines.push("    calibration:");
-        // Calibration must reflect the raw hardware sensor range.
-        // The transform block (swap_xy, mirror_x, mirror_y) handles coordinate mapping.
-        const cal = t.calibration;
-        Object.entries(cal).forEach(([k, v]) => lines.push(`      ${k}: ${v}`));
-    }
-
-    lines.push("");
-    return lines;
-}
-
+/**
+ * @param {ProfileLike | null | undefined} profile
+ * @returns {string[]}
+ */
 export function generateBacklightSection(profile) {
-    const lines = [];
+    const lines = /** @type {string[]} */ ([]);
     if (!profile || !profile.backlight) return lines;
 
     const bl = profile.backlight;
@@ -145,8 +88,12 @@ export function generateBacklightSection(profile) {
     return lines;
 }
 
+/**
+ * @param {ProfileLike} profile
+ * @returns {string[]}
+ */
 export function generateExtraComponents(profile) {
-    const lines = [];
+    const lines = /** @type {string[]} */ ([]);
 
     // 1. External Components (structured from profile)
     if (profile.external_components && Array.isArray(profile.external_components) && profile.external_components.length > 0) {
@@ -167,8 +114,12 @@ export function generateExtraComponents(profile) {
     return lines;
 }
 
+/**
+ * @param {ProfileLike | null | undefined} profile
+ * @returns {string[]}
+ */
 export function generateI2CSection(profile) {
-    const lines = [];
+    const lines = /** @type {string[]} */ ([]);
     if (profile && profile.pins && profile.pins.i2c) {
         lines.push("i2c:");
         lines.push("  - sda: " + profile.pins.i2c.sda);
@@ -183,8 +134,12 @@ export function generateI2CSection(profile) {
     return lines;
 }
 
+/**
+ * @param {ProfileLike | null | undefined} profile
+ * @returns {string[]}
+ */
 export function generateSPISection(profile) {
-    const lines = [];
+    const lines = /** @type {string[]} */ ([]);
     if (profile && profile.pins && profile.pins.spi) {
         lines.push("spi:");
         const spi = profile.pins.spi;
@@ -212,8 +167,14 @@ export function generateSPISection(profile) {
     return lines;
 }
 
+/**
+ * @param {ProfileLike | null | undefined} profile
+ * @param {LayoutLike} [layout]
+ * @param {boolean} [isLvgl]
+ * @returns {string[]}
+ */
 export function generateDisplaySection(profile, layout = {}, isLvgl = false) {
-    const lines = [];
+    const lines = /** @type {string[]} */ ([]);
     if (!profile) return lines;
 
     const orientation = layout.orientation || 'landscape';
@@ -237,7 +198,7 @@ export function generateDisplaySection(profile, layout = {}, isLvgl = false) {
     if (profile.display_config) {
         lines.push("display:");
         // Fix: Filter out existing rotation from profile config to strictly enforce Designer's orientation setting
-        const configLines = profile.display_config.filter(l => !l.trim().startsWith("rotation:"));
+        const configLines = /** @type {string[]} */ (profile.display_config.filter((/** @type {string} */ l) => !l.trim().startsWith("rotation:")));
         lines.push(...configLines);
 
         // Fix #330: Ensure display ID is always present in display_config profiles
@@ -269,12 +230,12 @@ export function generateDisplaySection(profile, layout = {}, isLvgl = false) {
 
         const p = (profile.pins && profile.pins.display) ? profile.pins.display : null;
         if (p) {
-            const addPin = (key, val) => {
+            const addPin = (/** @type {string} */ key, /** @type {PinValue | null | undefined} */ val) => {
                 if (!val) return;
                 if (typeof val === 'object') {
                     lines.push(`    ${key}:`);
-                    lines.push(`      number: ${val.number}`);
-                    if (val.inverted !== undefined) lines.push(`      inverted: ${val.inverted}`);
+                    lines.push(`      number: ${/** @type {Record<string, any>} */ (val).number}`);
+                    if (/** @type {Record<string, any>} */ (val).inverted !== undefined) lines.push(`      inverted: ${/** @type {Record<string, any>} */ (val).inverted}`);
                 } else {
                     lines.push(`    ${key}: ${val}`);
                 }
@@ -320,432 +281,50 @@ export function generateDisplaySection(profile, layout = {}, isLvgl = false) {
         lines.push("");
     }
 
-    const linkedDisplayId = profile.display_config ? "my_display" : "epaper_display";
-    lines.push(...generateTouchscreenSection(profile, linkedDisplayId, displayRotation, layout, isLvgl));
+    const linkedDisplayId = (profile.display_config || (profile.features && (profile.features.lcd || profile.features.oled)))
+        ? "my_display"
+        : "epaper_display";
+    lines.push(...generateTouchscreenSectionHelper(profile, linkedDisplayId, displayRotation, layout, isLvgl));
 
     return lines;
 }
 
-export function generateSensorSection(profile, widgetSensorLines = [], _displayId = "my_display", _allWidgets = []) {
-    const lines = [];
-    if (!profile) return lines;
-
-
-    // Check if we need a sensor: block
-    const pins = profile.pins || {};
-    const hasBattery = pins.batteryAdc;
-    const hasSht4x = profile.features && profile.features.sht4x;
-    const hasShtc3 = profile.features && profile.features.shtc3;
-    const hasWidgets = widgetSensorLines.length > 0;
-
-    if (!hasBattery && !hasSht4x && !hasShtc3 && !hasWidgets) return lines;
-
-    lines.push("sensor:");
-
-    // 1. Battery Voltage
-    if (hasBattery) {
-        lines.push("  - platform: adc");
-        lines.push(`    pin: ${pins.batteryAdc}`);
-        lines.push("    name: \"Battery Voltage\"");
-        lines.push("    unit_of_measurement: \"V\"");
-        lines.push("    device_class: voltage");
-        lines.push("    state_class: measurement");
-        lines.push("    id: battery_voltage");
-        lines.push("    update_interval: 60s");
-        lines.push("    attenuation: " + profile.battery.attenuation);
-        lines.push("    filters:");
-        lines.push("      - multiply: " + profile.battery.multiplier);
-    }
-
-    // 2. SHT4x (Temperature/Humidity)
-    if (hasSht4x) {
-        lines.push("  - platform: sht4x");
-        lines.push("    id: sht4x_sensor");
-        lines.push("    temperature:");
-        lines.push("      name: \"Temperature\"");
-        lines.push("      id: sht4x_temperature");
-        lines.push("    humidity:");
-        lines.push("      name: \"Humidity\"");
-        lines.push("      id: sht4x_humidity");
-        lines.push("    address: 0x44");
-        lines.push("    update_interval: 60s");
-    }
-
-    // 2b. SHT3x (Temperature/Humidity) - M5Paper
-    // Fallback: Check model name in case feature flag sht3xd is missing/cached out
-    if (profile.features.sht3xd || profile.displayModel === "M5Paper" || (profile.name && profile.name.includes("M5Paper"))) {
-        lines.push("  - platform: sht3xd");
-        lines.push("    address: 0x44");
-        lines.push("    temperature:");
-        lines.push("      name: \"Temperature\"");
-        lines.push("      id: sht3x_temperature");
-        lines.push("    humidity:");
-        lines.push("      name: \"Humidity\"");
-        lines.push("      id: sht3x_humidity");
-        lines.push("    update_interval: 60s");
-    }
-
-    // 3. SHTC3 (Temperature/Humidity) - Uses shtcx platform in ESPHome
-    if (hasShtc3) {
-        lines.push("  - platform: shtcx");
-        lines.push("    id: shtc3_sensor");
-        lines.push("    i2c_id: bus_a");
-        lines.push("    address: 0x70");
-        lines.push("    temperature:");
-        lines.push("      name: \"Temperature\"");
-        lines.push("      id: shtc3_temperature");
-        lines.push("    humidity:");
-        lines.push("      name: \"Humidity\"");
-        lines.push("      id: shtc3_humidity");
-        lines.push("    update_interval: 60s");
-    }
-
-    // 4. Widget Sensors
-    if (widgetSensorLines.length > 0) {
-        lines.push(...widgetSensorLines);
-    }
-
-    // 5. Battery Percentage Template
-    if (hasBattery) {
-        lines.push("");
-        lines.push("  - platform: template");
-        lines.push("    name: \"Battery Level\"");
-        lines.push("    id: battery_level");
-        lines.push("    unit_of_measurement: \"%\"");
-        lines.push("    icon: \"mdi:battery\"");
-        lines.push("    device_class: battery");
-        lines.push("    state_class: measurement");
-
-        if (profile.battery.curve) {
-            lines.push("    lambda: 'return id(battery_voltage).state;'");
-            lines.push("    update_interval: 60s");
-            lines.push("    filters:");
-            lines.push("      - calibrate_linear:");
-            profile.battery.curve.forEach(pt => {
-                lines.push(`          - ${pt.from} -> ${pt.to}`);
-            });
-            lines.push("      - clamp:");
-            lines.push("          min_value: 0");
-            lines.push("          max_value: 100");
-        } else {
-            const minV = profile.battery.calibration ? profile.battery.calibration.min : 3.27;
-            const maxV = profile.battery.calibration ? profile.battery.calibration.max : 4.15;
-            lines.push("    lambda: |-");
-            lines.push(`      if (id(battery_voltage).state > ${maxV}) return 100;`);
-            lines.push(`      if (id(battery_voltage).state < ${minV}) return 0;`);
-            lines.push(`      return (id(battery_voltage).state - ${minV}) / (${maxV} - ${minV}) * 100.0;`);
-        }
-    }
-
-    lines.push("");
-    return lines;
+/**
+ * @param {ProfileLike} profile
+ * @param {string[]} [widgetSensorLines]
+ * @param {string} [displayId]
+ * @param {WidgetLike[]} [allWidgets]
+ * @returns {string[]}
+ */
+export function generateSensorSection(profile, widgetSensorLines = [], displayId = "my_display", allWidgets = []) {
+    return generateSensorSectionHelper(profile, widgetSensorLines, displayId, allWidgets);
 }
 
+/**
+ * @param {ProfileLike} profile
+ * @param {number} numPages
+ * @param {string} [displayId]
+ * @param {WidgetLike[]} [touchAreaWidgets]
+ * @returns {string[]}
+ */
 export function generateBinarySensorSection(profile, numPages, displayId = "my_display", touchAreaWidgets = []) {
-    const lines = [];
-    const hasButtons = profile && profile.features && profile.features.buttons;
-    const hasTouchAreas = touchAreaWidgets.length > 0;
-
-    if (!hasButtons && !hasTouchAreas) return lines;
-
-    lines.push("binary_sensor:");
-
-    // 1. Physical Buttons
-    if (hasButtons) {
-        const isCoreInk = profile.name && profile.name.includes("CoreInk");
-        const b = profile.pins.buttons || {};
-
-        if (b.left && numPages > 1) {
-            lines.push("  - platform: gpio"); // Left Button
-            lines.push(`    pin:`);
-            if (typeof b.left === 'object') {
-                lines.push(`      number: ${b.left.number}`);
-                lines.push(`      mode: ${b.left.mode || 'INPUT_PULLUP'}`);
-                lines.push(`      inverted: ${b.left.inverted !== undefined ? b.left.inverted : true}`);
-            } else {
-                lines.push(`      number: ${b.left}`);
-                lines.push(`      mode: INPUT_PULLUP`);
-                lines.push(`      inverted: true`);
-            }
-            lines.push("    name: \"Left Button\"");
-            lines.push("    id: button_left");
-            lines.push("    on_press:");
-            lines.push("      then:");
-            if (isCoreInk) {
-                lines.push("        - script.execute:");
-                lines.push("            id: change_page_to");
-                lines.push(`            target_page: !lambda 'return id(display_page) > 0 ? id(display_page) - 1 : ${numPages - 1};'`);
-            } else {
-                lines.push("        - script.execute:");
-                lines.push("            id: change_page_to");
-                lines.push(`            target_page: !lambda 'return id(display_page) > 0 ? id(display_page) - 1 : ${numPages - 1};'`);
-            }
-        }
-
-        if (b.right && numPages > 1) {
-            lines.push("  - platform: gpio"); // Right Button
-            lines.push(`    pin:`);
-            if (typeof b.right === 'object') {
-                lines.push(`      number: ${b.right.number}`);
-                lines.push(`      mode: ${b.right.mode || 'INPUT_PULLUP'}`);
-                lines.push(`      inverted: ${b.right.inverted !== undefined ? b.right.inverted : true}`);
-            } else {
-                lines.push(`      number: ${b.right}`);
-                lines.push(`      mode: INPUT_PULLUP`);
-                lines.push(`      inverted: true`);
-            }
-            lines.push("    name: \"Right Button\"");
-            lines.push("    id: button_right");
-            lines.push("    on_press:");
-            lines.push("      then:");
-            if (isCoreInk) {
-                lines.push("        - script.execute:");
-                lines.push("            id: change_page_to");
-                lines.push(`            target_page: !lambda 'return id(display_page) < ${numPages - 1} ? id(display_page) + 1 : 0;'`);
-            } else {
-                lines.push("        - script.execute:");
-                lines.push("            id: change_page_to");
-                lines.push(`            target_page: !lambda 'return id(display_page) < ${numPages - 1} ? id(display_page) + 1 : 0;'`);
-            }
-        }
-
-        if (b.refresh) {
-            lines.push("  - platform: gpio"); // Refresh Button
-            lines.push(`    pin:`);
-            if (typeof b.refresh === 'object') {
-                lines.push(`      number: ${b.refresh.number}`);
-                lines.push(`      mode: ${b.refresh.mode || 'INPUT_PULLUP'}`);
-                lines.push(`      inverted: ${b.refresh.inverted !== undefined ? b.refresh.inverted : true}`);
-            } else {
-                lines.push(`      number: ${b.refresh}`);
-                lines.push(`      mode: INPUT_PULLUP`);
-                lines.push(`      inverted: true`);
-            }
-            const buttonName = isCoreInk ? "Enter Button" : "Refresh Button";
-            const buttonId = isCoreInk ? "button_enter" : "button_refresh";
-            lines.push(`    name: "${buttonName}"`);
-            lines.push(`    id: ${buttonId}`);
-            lines.push("    on_press:");
-            lines.push("      then:");
-            lines.push(`        - component.update: ${displayId}`);
-
-        }
-        if (b.home) {
-            lines.push("  - platform: gpio"); // Home / Reload Button
-            lines.push(`    pin:`);
-            if (typeof b.home === 'object') {
-                lines.push(`      number: ${b.home.number}`);
-                lines.push(`      mode: ${b.home.mode || 'INPUT_PULLUP'}`);
-                lines.push(`      inverted: ${b.home.inverted !== undefined ? b.home.inverted : true}`);
-            } else {
-                lines.push(`      number: ${b.home}`);
-                lines.push(`      mode: INPUT_PULLUP`);
-                lines.push(`      inverted: true`);
-            }
-            lines.push("    name: \"Home Button\"");
-            lines.push("    id: button_home");
-            lines.push("    on_press:");
-            lines.push("      then:");
-            lines.push("        - script.execute:");
-            lines.push("            id: change_page_to");
-            lines.push("            target_page: 0");
-            lines.push("        - script.execute: manage_run_and_sleep");
-
-        }
-    }
-
-    // 2. Touch Area Buttons
-    if (hasTouchAreas && profile?.touch) {
-        lines.push(`  # Touch Area Binary Sensors`);
-        const totalPages = touchAreaWidgets.reduce((max, widget) => Math.max(max, (widget._pageIndex ?? 0) + 1), 0) || 1;
-        touchAreaWidgets.forEach(w => {
-            const t = (w.type || "").toLowerCase();
-            const p = w.props || {};
-
-            if (t === "template_nav_bar") {
-                const allowPaging = totalPages > 1;
-                const showPrev = allowPaging && p.show_prev !== false;
-                const showHome = p.show_home !== false;
-                const showNext = allowPaging && p.show_next !== false;
-
-                let activeCount = 0;
-                if (showPrev) activeCount++;
-                if (showHome) activeCount++;
-                if (showNext) activeCount++;
-
-                if (activeCount > 0) {
-                    const widthPerButton = Math.floor(w.width / activeCount);
-                    let currentIdx = 0;
-
-                    const addNavTouch = (action, _label) => {
-                        const xMin = w.x + (currentIdx * widthPerButton);
-                        const xMax = xMin + widthPerButton;
-                        const yMin = w.y;
-                        const yMax = w.y + w.height;
-
-                        lines.push(`  - platform: touchscreen`);
-                        lines.push(`    id: nav_${action}_${w.id}`);
-                        lines.push(`    touchscreen_id: my_touchscreen`);
-                        lines.push(`    x_min: ${xMin}`);
-                        lines.push(`    x_max: ${xMax}`);
-                        lines.push(`    y_min: ${yMin}`);
-                        lines.push(`    y_max: ${yMax}`);
-                        lines.push(`    on_press:`);
-
-                        const pageIdx = w._pageIndex !== undefined ? w._pageIndex : 0;
-                        lines.push(`      - if:`);
-                        lines.push(`          condition:`);
-                        lines.push(`            lambda: 'return id(display_page) == ${pageIdx};'`);
-                        lines.push(`          then:`);
-
-                        if (action === "prev") {
-                            lines.push(`            - script.execute:`);
-                            lines.push(`                id: change_page_to`);
-                            lines.push(`                target_page: !lambda 'return id(display_page) - 1;'`);
-                        } else if (action === "home") {
-                            lines.push(`            - script.execute: manage_run_and_sleep`);
-                        } else if (action === "next") {
-                            lines.push(`            - script.execute:`);
-                            lines.push(`                id: change_page_to`);
-                            lines.push(`                target_page: !lambda 'return id(display_page) + 1;'`);
-                        }
-                        currentIdx++;
-                    };
-
-                    if (showPrev) addNavTouch("prev", "Previous");
-                    if (showHome) addNavTouch("home", "Home/Reload");
-                    if (showNext) addNavTouch("next", "Next");
-                }
-            } else {
-                const safeId = (w.entity_id || `touch_area_${w.id}`).replace(/[^a-zA-Z0-9_]/g, "_");
-                const iconSize = parseInt(String(p.icon_size || 40), 10);
-                const minWidth = Math.max(w.width, iconSize);
-                const minHeight = Math.max(w.height, iconSize);
-
-                let xMin = w.x - Math.floor((minWidth - w.width) / 2);
-                let xMax = xMin + minWidth;
-                let yMin = w.y - Math.floor((minHeight - w.height) / 2);
-                let yMax = yMin + minHeight;
-
-                xMin = Math.max(0, xMin);
-                yMin = Math.max(0, yMin);
-
-                const requestedNavAction = p.nav_action || "none";
-                const navAction = totalPages > 1
-                    ? requestedNavAction
-                    : (requestedNavAction === "reload_page" ? "reload_page" : "none");
-                const pageIdx = w._pageIndex !== undefined ? w._pageIndex : 0;
-
-                lines.push(`  - platform: touchscreen`);
-                lines.push(`    id: ${safeId}`);
-                lines.push(`    touchscreen_id: my_touchscreen`);
-                lines.push(`    x_min: ${xMin}`);
-                lines.push(`    x_max: ${xMax}`);
-                lines.push(`    y_min: ${yMin}`);
-                lines.push(`    y_max: ${yMax}`);
-
-                if (navAction !== "none" || w.entity_id) {
-                    lines.push(`    on_press:`);
-                    lines.push(`      - if:`);
-                    lines.push(`          condition:`);
-                    lines.push(`            lambda: 'return id(display_page) == ${pageIdx};'`);
-                    lines.push(`          then:`);
-
-                    if (navAction === "next_page") {
-                        lines.push(`            - script.execute:`);
-                        lines.push(`                id: change_page_to`);
-                        lines.push(`                target_page: !lambda 'return id(display_page) + 1;'`);
-                    } else if (navAction === "previous_page") {
-                        lines.push(`            - script.execute:`);
-                        lines.push(`                id: change_page_to`);
-                        lines.push(`                target_page: !lambda 'return id(display_page) - 1;'`);
-                    } else if (navAction === "reload_page") {
-                        lines.push(`            - script.execute: manage_run_and_sleep`);
-                    } else if (w.entity_id) {
-                        lines.push(`            - homeassistant.service:`);
-                        lines.push(`                service: homeassistant.toggle`);
-                        lines.push(`                data:`);
-                        lines.push(`                  entity_id: ${w.entity_id}`);
-                    }
-                }
-            }
-        });
-    }
-
-    lines.push("");
-    return lines;
+    return generateBinarySensorSectionHelper(profile, numPages, displayId, touchAreaWidgets);
 }
 
+/**
+ * @param {ProfileLike} profile
+ * @param {number} numPages
+ * @param {string} [displayId]
+ * @returns {string[]}
+ */
 export function generateButtonSection(profile, numPages, displayId = "my_display") {
-    const lines = [];
-    lines.push("button:");
-
-    if (numPages > 1) {
-        lines.push("  - platform: template");
-        lines.push("    name: \"Next Page\"");
-        lines.push("    on_press:");
-        lines.push("      then:");
-        lines.push("        - script.execute:");
-        lines.push("            id: change_page_to");
-        lines.push("            target_page: !lambda 'return id(display_page) + 1;'");
-
-        lines.push("  - platform: template");
-        lines.push("    name: \"Previous Page\"");
-        lines.push("    on_press:");
-        lines.push("      then:");
-        lines.push("        - script.execute:");
-        lines.push("            id: change_page_to");
-        lines.push("            target_page: !lambda 'return id(display_page) - 1;'");
-    }
-
-    lines.push("  - platform: template");
-    lines.push("    name: \"Refresh Display\"");
-    lines.push("    on_press:");
-    lines.push("      then:");
-    lines.push(`        - component.update: ${displayId}`);
-
-    for (let i = 0; i < numPages; i++) {
-        if (numPages <= 1) break;
-        lines.push("  - platform: template");
-        lines.push(`    name: "Go to Page ${i + 1}"`);
-        lines.push("    on_press:");
-        lines.push("      then:");
-        lines.push("        - script.execute:");
-        lines.push("            id: change_page_to");
-        lines.push(`            target_page: ${i}`);
-    }
-
-    if (profile.features && profile.features.buzzer) {
-        lines.push("  # Buzzer Sounds");
-        lines.push("  - platform: template");
-        lines.push("    name: \"Play Beep Short\"");
-        lines.push("    icon: \"mdi:bell-ring\"");
-        lines.push("    on_press:");
-        lines.push("      - rtttl.play: \"beep:d=32,o=5,b=200:16e6\"");
-        lines.push("");
-        lines.push("  - platform: template");
-        lines.push("    name: \"Play Beep OK\"");
-        lines.push("    icon: \"mdi:check-circle-outline\"");
-        lines.push("    on_press:");
-        lines.push("      - rtttl.play: \"ok:d=16,o=5,b=200:e6\"");
-        lines.push("");
-        lines.push("  - platform: template");
-        lines.push("    name: \"Play Beep Error\"");
-        lines.push("    icon: \"mdi:alert-circle-outline\"");
-        lines.push("    on_press:");
-        lines.push("      - rtttl.play: \"error:d=16,o=5,b=200:c6\"");
-        lines.push("");
-        lines.push("  - platform: template");
-        lines.push("    name: \"Play Star Wars\"");
-        lines.push("    icon: \"mdi:music-note\"");
-        lines.push("    on_press:");
-        lines.push("      - rtttl.play: \"StarWars:d=4,o=5,b=45:32p,32f,32f,32f,8a#.,8f.6,32d#,32d,32c,8a#.6,4f.6,32d#,32d,32c,8a#.6,4f.6,32d#,32d,32d#,8c6\"");
-    }
-
-    lines.push("");
-    return lines;
+    return generateButtonSectionHelper(profile, numPages, displayId);
 }
 
+/**
+ * @param {ProfileLike} profile
+ * @returns {string[]}
+ */
 export function generatePSRAMSection(profile) {
     const hasPsram = (profile.features && profile.features.psram) || (profile.features && profile.features.features && profile.features.features.psram);
     if (!hasPsram) return [];
@@ -768,6 +347,10 @@ export function generatePSRAMSection(profile) {
     return lines;
 }
 
+/**
+ * @param {ProfileLike} profile
+ * @returns {string[]}
+ */
 export function generateAXP2101Section(profile) {
     if (!profile.features || !profile.features.axp2101 || profile.features.manual_pmic) return [];
 
@@ -799,9 +382,13 @@ export function generateAXP2101Section(profile) {
     ];
 }
 
+/**
+ * @param {ProfileLike | null | undefined} profile
+ * @returns {string[]}
+ */
 export function generateOutputSection(profile) {
-    const lines = [];
-    const hasM5Power = (profile.m5paper?.main_power_pin || profile.pins?.main_power_pin || profile.m5paper?.battery_power_pin || profile.pins?.battery_power_pin);
+    const lines = /** @type {string[]} */ ([]);
+    const hasM5Power = !!(profile?.m5paper?.main_power_pin || profile?.pins?.main_power_pin || profile?.m5paper?.battery_power_pin || profile?.pins?.battery_power_pin);
     if (!profile || !profile.pins || (!profile.pins.batteryEnable && !profile.pins.buzzer && !hasM5Power)) return lines;
 
     lines.push("output:");
@@ -847,6 +434,10 @@ export function generateOutputSection(profile) {
     return lines;
 }
 
+/**
+ * @param {ProfileLike} profile
+ * @returns {string[]}
+ */
 export function generateRTTTLSection(profile) {
     if (!profile.features || !profile.features.buzzer) return [];
     return [
@@ -857,9 +448,13 @@ export function generateRTTTLSection(profile) {
     ];
 }
 
+/**
+ * @param {ProfileLike | null | undefined} profile
+ * @returns {string[]}
+ */
 export function generateAudioSection(profile) {
     if (!profile || !profile.audio) return [];
-    const lines = [];
+    const lines = /** @type {string[]} */ ([]);
     if (profile.audio.i2s_audio) {
         lines.push("i2s_audio:");
         lines.push(`  i2s_lrclk_pin: ${profile.audio.i2s_audio.i2s_lrclk_pin}`);

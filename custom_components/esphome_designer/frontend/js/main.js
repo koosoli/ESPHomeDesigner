@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Sidebar } from './core/sidebar.js';
 import { Canvas } from './core/canvas.js';
 import { PropertiesPanel } from './core/properties.js';
@@ -12,6 +11,16 @@ import { AppState } from './core/state';
 import { on, EVENTS } from './core/events.js';
 import { hasHaBackend } from './utils/env.js';
 import { Logger } from './utils/logger.js';
+import { installIgnorableRejectionHandler } from './utils/ignorable_rejections.js';
+import { initUI } from './ui/components/init_ui.js';
+import {
+    attachAppNamespace,
+    clearBootPromise,
+    getBootPromise,
+    hasBootstrapSurface,
+    hasUiPlaceholders,
+    setBootPromise
+} from './core/app_bootstrap_runtime.js';
 
 // Legacy Global Scripts (Now ES Modules)
 import './utils/helpers.js';
@@ -43,8 +52,55 @@ import { renderWidgetPalette } from './ui/widget_palette.js';
 import { QuickSearch } from './ui/quick_search.js';
 import { HierarchyView } from './ui/hierarchy_view.js';
 
+installIgnorableRejectionHandler();
+
+/** @typedef {ReturnType<typeof setTimeout>} TimerHandle */
+
 export class App {
     constructor() {
+        /** @type {import('./core/sidebar.js').Sidebar | null} */
+        this.sidebar = null;
+        /** @type {import('./core/canvas.js').Canvas | null} */
+        this.canvas = null;
+        /** @type {import('./core/properties.js').PropertiesPanel | null} */
+        this.propertiesPanel = null;
+        /** @type {import('./ui/hierarchy_view.js').HierarchyView | null} */
+        this.hierarchyView = null;
+        /** @type {import('./ui/editor_settings.js').EditorSettings | null} */
+        this.editorSettings = null;
+        /** @type {import('./core/keyboard.js').KeyboardHandler | null} */
+        this.keyboardHandler = null;
+        /** @type {import('./ui/quick_search.js').QuickSearch | null} */
+        this.quickSearch = null;
+        /** @type {any} */
+        this.adapter = null;
+        /** @type {import('./ui/snippet_manager.js').SnippetManager | null} */
+        this.snippetManager = null;
+        /** @type {{ open: () => void } | null} */
+        this.deviceSettings = null;
+        /** @type {{ open: (index: number) => void } | null} */
+        this.pageSettings = null;
+        /** @type {{ open: () => void } | null} */
+        this.llmPrompt = null;
+        /** @type {import('./ui/device_settings.js').DeviceSettings | null} */
+        this._deviceSettingsInstance = null;
+        /** @type {Promise<import('./ui/device_settings.js').DeviceSettings> | null} */
+        this._deviceSettingsPromise = null;
+        /** @type {import('./ui/page_settings.js').PageSettings | null} */
+        this._pageSettingsInstance = null;
+        /** @type {Promise<import('./ui/page_settings.js').PageSettings> | null} */
+        this._pageSettingsPromise = null;
+        /** @type {any | null} */
+        this._llmPromptInstance = null;
+        /** @type {Promise<any> | null} */
+        this._llmPromptPromise = null;
+        /** @type {import('./ui/layout_manager.js').LayoutManager | null} */
+        this._layoutManagerInstance = null;
+        /** @type {Promise<import('./ui/layout_manager.js').LayoutManager> | null} */
+        this._layoutManagerPromise = null;
+        /** @type {boolean} */
+        this.isInitializing = false;
+
         try {
             Logger.log("[App] Constructor started");
             this.sidebar = new Sidebar(this);
@@ -67,7 +123,7 @@ export class App {
                 open: () => void this.openDeviceSettings(),
             };
             this.pageSettings = {
-                open: (index) => void this.openPageSettings(index),
+                open: (/** @type {number} */ index) => void this.openPageSettings(index),
             };
             this.llmPrompt = {
                 open: () => void this.openAiPrompt(),
@@ -86,20 +142,29 @@ export class App {
         }
     }
 
+    getCoreUi() {
+        const { sidebar, canvas, propertiesPanel, hierarchyView, editorSettings, quickSearch } = this;
+        if (!sidebar || !canvas || !propertiesPanel || !hierarchyView || !editorSettings || !quickSearch) {
+            throw new Error("[App] Core UI failed to initialize");
+        }
+        return { sidebar, canvas, propertiesPanel, hierarchyView, editorSettings, quickSearch };
+    }
+
     async init() {
         Logger.log("[App] Initializing ESPHome Designer Designer...");
         Logger.log("[App] AppState:", AppState);
+        const { sidebar, canvas, propertiesPanel, hierarchyView, editorSettings, quickSearch } = this.getCoreUi();
 
         // Guard to prevent auto-save during initial load
         this.isInitializing = true;
 
         // Initialize UI components
         await renderWidgetPalette('widgetPalette');
-        this.sidebar.init();
-        this.propertiesPanel.init();
-        this.hierarchyView.init();
-        this.editorSettings.init();
-        this.quickSearch.discoverWidgets();
+        sidebar.init();
+        propertiesPanel.init();
+        hierarchyView.init();
+        editorSettings.init();
+        quickSearch.discoverWidgets();
 
         // Load external hardware profiles (Hardware folder)
         await loadExternalProfiles();
@@ -109,9 +174,9 @@ export class App {
             const savedTheme = localStorage.getItem('reterminal-editor-theme');
             if (savedTheme === 'light') {
                 AppState.updateSettings({ editor_light_mode: true });
-                this.editorSettings.applyEditorTheme(true);
+                editorSettings.applyEditorTheme(true);
             } else {
-                this.editorSettings.applyEditorTheme(false);
+                editorSettings.applyEditorTheme(false);
             }
         } catch (e) {
             Logger.log('Could not load theme preference:', e);
@@ -155,9 +220,9 @@ export class App {
         // Explicitly center the view on the current page after everything is loaded
         // We use a small timeout to ensure the DOM has fully updated from the state changes above
         setTimeout(() => {
-            if (this.canvas) {
+            if (canvas) {
                 Logger.log("[App] Forcing initial canvas centering...");
-                this.canvas.focusPage(AppState.currentPageIndex, false);
+                canvas.focusPage(AppState.currentPageIndex, false);
             }
         }, 100);
 
@@ -208,9 +273,10 @@ export class App {
 
         // Editor Settings
         const editorSettingsBtn = document.getElementById('editorSettingsBtn');
-        if (editorSettingsBtn) {
+        const editorSettings = this.editorSettings;
+        if (editorSettingsBtn && editorSettings) {
             editorSettingsBtn.addEventListener('click', () => {
-                this.editorSettings.open();
+                editorSettings.open();
             });
         }
 
@@ -265,7 +331,7 @@ export class App {
         if (!this._llmPromptPromise) {
             this._llmPromptPromise = import('./ui/llm_prompt.js').then(({ LLMPrompt }) => {
                 const instance = new LLMPrompt();
-                instance.onOpenEditorSettings = (section) => this.editorSettings?.open(section);
+                instance.onOpenEditorSettings = () => this.editorSettings?.open();
                 instance.init();
                 this._llmPromptInstance = instance;
                 Logger.log('[App] LLMPrompt lazy-loaded');
@@ -295,7 +361,7 @@ export class App {
         deviceSettings.open();
     }
 
-    async openPageSettings(index) {
+    async openPageSettings(/** @type {number} */ index) {
         const pageSettings = await this.ensurePageSettings();
         pageSettings.open(index);
     }
@@ -325,6 +391,7 @@ export class App {
     }
 
     setupAutoSave() {
+        /** @type {TimerHandle | null} */
         let autoSaveTimer = null;
         const SAVE_DEBOUNCE_MS = 2000;
         on(EVENTS.STATE_CHANGED, () => {
@@ -338,10 +405,7 @@ export class App {
                 if (hasHaBackend()) {
                     Logger.log("[AutoSave] Triggering background save to HA...");
                     saveLayoutToBackend()
-                        .catch(() => {
-                            // Silently ignore - network errors are expected when backend is unreachable
-                            // The ha_api.js already handles logging for unexpected errors
-                        });
+                        .catch(() => undefined);
                 } else {
                     Logger.log("[AutoSave] Saving to local storage...");
                     AppState.saveToLocalStorage();
@@ -360,15 +424,16 @@ export class App {
         } else {
             adapter = new ESPHomeAdapter();
         }
-        adapter.mode = mode; // Tag it for change detection
+        /** @type {any} */ (adapter).mode = mode; // Tag it for change detection
         return adapter;
     }
 
     refreshAdapter() {
         const mode = AppState.settings.renderingMode || 'direct';
-        if (this.adapter && this.adapter.mode === mode) return;
+        const currentMode = /** @type {any} */ (this.adapter)?.mode;
+        if (this.adapter && currentMode === mode) return;
 
-        Logger.log(`[App] Refreshing adapter: ${this.adapter?.mode} -> ${mode}`);
+        Logger.log(`[App] Refreshing adapter: ${currentMode} -> ${mode}`);
         this.adapter = this.createAdapter();
         if (this.snippetManager) {
             this.snippetManager.adapter = this.adapter;
@@ -377,22 +442,51 @@ export class App {
     }
 }
 
-// Start the app
-document.addEventListener('DOMContentLoaded', async () => {
-    const app = new App();
-
-    // Attach to unified namespace
-    window.ESPHomeDesigner = window.ESPHomeDesigner || {};
-    window.ESPHomeDesigner.app = app;
-    window.ESPHomeDesigner.ui = {
-        sidebar: app.sidebar,
-        canvas: app.canvas,
-        properties: app.propertiesPanel
-    };
-
-    try {
-        await app.init();
-    } catch (err) {
-        Logger.error("[App] Failed to initialize:", err);
+export async function bootstrapApp() {
+    const existingBootPromise = getBootPromise();
+    if (existingBootPromise) {
+        const existingApp = await existingBootPromise;
+        if (existingApp) {
+            attachAppNamespace(existingApp);
+        }
+        return existingApp;
     }
-});
+
+    if (!hasBootstrapSurface()) {
+        return null;
+    }
+
+    const bootPromise = (async () => {
+        if (hasUiPlaceholders()) {
+            initUI();
+        }
+
+        const app = new App();
+        attachAppNamespace(app);
+
+        try {
+            await app.init();
+            return app;
+        } catch (err) {
+            clearBootPromise();
+            Logger.error("[App] Failed to initialize:", err);
+            throw err;
+        }
+    })();
+
+    return setBootPromise(bootPromise);
+}
+
+function autoBootstrapApp() {
+    if (!hasBootstrapSurface()) {
+        return;
+    }
+
+    void bootstrapApp();
+}
+
+document.addEventListener('DOMContentLoaded', autoBootstrapApp, { once: true });
+
+if (document.readyState !== 'loading') {
+    queueMicrotask(autoBootstrapApp);
+}

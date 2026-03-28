@@ -29,6 +29,9 @@ async def _parse_json_body(request):
             return {}
         body_text = body_bytes.decode('utf-8')
         result = json.loads(body_text)
+        if not isinstance(result, dict):
+            _LOGGER.warning("Expected JSON object body, got %s", type(result).__name__)
+            return {}
         _LOGGER.debug("Parsed JSON body: %s", result)
         return result
     except Exception as e:
@@ -64,13 +67,27 @@ class ReTerminalLayoutView(DesignerBaseView):
                 request=request,
             )
 
-        _LOGGER.info("Received layout update with %d pages, %d total widgets", 
-                     len(body.get("pages", [])),
-                     sum(len(p.get("widgets", [])) for p in body.get("pages", [])))
+        pages = body.get("pages", [])
+        page_count = len(pages) if isinstance(pages, list) else 0
+        widget_count = sum(
+            len(page.get("widgets", []))
+            for page in pages
+            if isinstance(page, dict)
+        ) if isinstance(pages, list) else 0
+
+        _LOGGER.info("Received layout update with %d pages, %d total widgets", page_count, widget_count)
 
         updated = await self.storage.async_update_layout_default(body)
+        if updated is None:
+            _LOGGER.warning("Rejected invalid layout payload for default layout")
+            return self.json(
+                {"error": "invalid_layout"},
+                status_code=HTTPStatus.BAD_REQUEST,
+                request=request,
+            )
+
         if not isinstance(updated, DeviceConfig):
-            _LOGGER.error("Failed to update layout: storage returned invalid result")
+            _LOGGER.error("Failed to update layout: storage returned invalid result type")
             return self.json(
                 {"error": "update_failed"},
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -165,6 +182,14 @@ class ReTerminalLayoutDetailView(DesignerBaseView):
         try:
             body = await _parse_json_body(request)
             _LOGGER.info("Parsed body: %s", body)
+
+            if not body:
+                _LOGGER.warning("Invalid JSON in layout detail update for %s", layout_id)
+                return self.json(
+                    {"error": "invalid_json"},
+                    HTTPStatus.BAD_REQUEST,
+                    request=request,
+                )
             
             # Special case: allow deletion via POST to avoid simple-request preflight issues
             if body.get("action") == "delete":

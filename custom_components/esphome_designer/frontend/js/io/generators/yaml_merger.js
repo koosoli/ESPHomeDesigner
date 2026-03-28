@@ -5,6 +5,14 @@
 
 import { Logger } from '../../utils/logger.js';
 
+/**
+ * @param {string} yaml
+ * @param {Record<string, any>} profile
+ * @param {string} orientation
+ * @param {boolean} [isLvgl=false]
+ * @param {Record<string, any>} [layout={}]
+ * @returns {string}
+ */
 export function applyPackageOverrides(yaml, profile, orientation, isLvgl = false, layout = {}) {
     if (isLvgl) {
         // Fix: ESPHome 2025.12.7 compatibility - LVGL cannot have auto_clear_enabled: true
@@ -105,7 +113,8 @@ export function applyPackageOverrides(yaml, profile, orientation, isLvgl = false
                         const nextKeyMatch = afterTsBlock.slice(12).match(/^\w/m);
 
                         if (nextKeyMatch) {
-                            const insertIdx = tsBlockStart + 12 + nextKeyMatch.index;
+                            const nextKeyIndex = typeof nextKeyMatch.index === 'number' ? nextKeyMatch.index : 0;
+                            const insertIdx = tsBlockStart + 12 + nextKeyIndex;
                             yaml = yaml.slice(0, insertIdx) + wakeupTrigger + "\n\n" + yaml.slice(insertIdx);
                         } else {
                             yaml = yaml.trimEnd() + wakeupTrigger + "\n";
@@ -141,11 +150,19 @@ export function mergeYamlSections(baseYaml, extraYaml) {
     ];
 
     // Parse YAML into sections
+    /**
+     * @param {string} yaml
+     * @returns {{ sections: Map<string, string[]>, nonSectionLines: string[] }}
+     */
     const parseYamlSections = (yaml) => {
+        /** @type {Map<string, string[]>} */
         const sections = new Map();
         const lines = yaml.split('\n');
+        /** @type {string | null} */
         let currentSection = null;
+        /** @type {string[]} */
         let currentContent = [];
+        /** @type {string[]} */
         let nonSectionLines = [];
 
         for (const line of lines) {
@@ -198,7 +215,7 @@ export function mergeYamlSections(baseYaml, extraYaml) {
     for (const [sectionKey, extraContent] of extraParsed.sections) {
         if (mergedSections.has(sectionKey)) {
             // Merge: append extra content to existing section
-            const existingContent = mergedSections.get(sectionKey);
+            const existingContent = mergedSections.get(sectionKey) || [];
             mergedSections.set(sectionKey, [...existingContent, ...extraContent]);
         } else {
             // New section from extra

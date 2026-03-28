@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * LVGL Image Plugin
  */
@@ -97,6 +96,11 @@ const onExportComponents = (context) => {
 const exportLVGL = (w, { common, convertColor }) => {
     const p = w.props || {};
     let src = (p.src || p.path || p.url || "symbol_image");
+
+    if (src !== "symbol_image" && (src.includes("/") || src.includes("."))) {
+        src = getSafeImageId(w);
+    }
+
     return {
         image: {
             ...common,

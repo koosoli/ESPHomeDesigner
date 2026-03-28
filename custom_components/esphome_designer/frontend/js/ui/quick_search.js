@@ -6,6 +6,7 @@ import { Logger } from '../utils/logger.js';
 import { AppState } from '../core/state';
 import { WidgetFactory } from '../core/widget_factory';
 import { showToast } from '../utils/dom.js';
+import { appendToDesignerOverlayRoot } from '../utils/runtime_root.js';
 
 export let quickSearchInstance = null;
 
@@ -83,7 +84,7 @@ export class QuickSearch {
                 </div>
             </div>
         `;
-        document.body.appendChild(this.modal);
+        appendToDesignerOverlayRoot(this.modal);
 
         this.input = /** @type {HTMLInputElement} */ (this.modal.querySelector(".quick-search-input"));
         this.resultsContainer = /** @type {HTMLElement} */ (this.modal.querySelector(".quick-search-results"));

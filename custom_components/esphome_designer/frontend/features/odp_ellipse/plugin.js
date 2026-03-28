@@ -1,10 +1,38 @@
-// @ts-nocheck
 /**
  * ODP Ellipse Plugin
  * Draws an ellipse shape
  * Only available for OpenEPaperLink and OpenDisplay rendering modes
  */
 
+/**
+ * @typedef {{
+ *   x: number,
+ *   y: number,
+ *   width: number,
+ *   height: number,
+ *   props?: Record<string, any>
+ * }} EllipseWidget
+ *
+ * @typedef {{
+ *   getColorStyle: (value: string) => string
+ * }} EllipseRenderTools
+ *
+ * @typedef {{
+ *   layout?: { darkMode?: boolean },
+ *   _page?: unknown
+ * }} OpenDisplayExportContext
+ *
+ * @typedef {{
+ *   _layout?: unknown,
+ *   _page?: unknown
+ * }} OeplExportContext
+ */
+
+/**
+ * @param {HTMLElement} el
+ * @param {EllipseWidget} widget
+ * @param {EllipseRenderTools} tools
+ */
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     el.style.backgroundColor = props.fill ? getColorStyle(props.fill) : "transparent";
@@ -36,6 +64,10 @@ export default {
         }
     ],
     render,
+    /**
+     * @param {EllipseWidget} w
+     * @param {OpenDisplayExportContext} context
+     */
     exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         let fill = (p.fill === "theme_auto") ? (layout?.darkMode ? "white" : "black") : (p.fill || null);
@@ -56,6 +88,10 @@ export default {
             width: p.border_width || 1
         };
     },
+    /**
+     * @param {EllipseWidget} w
+     * @param {OeplExportContext} context
+     */
     exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
         let fill = p.fill || null;

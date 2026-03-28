@@ -22,7 +22,8 @@ vi.mock('../../js/utils/env.js', () => ({
 }));
 
 vi.mock('../../js/io/ha_api.js', () => ({
-    getHaHeaders: vi.fn(() => ({ Authorization: 'Bearer token', 'Content-Type': 'application/json' }))
+    getHaHeaders: vi.fn(() => ({ Authorization: 'Bearer token', 'Content-Type': 'application/json' })),
+    haFetch: vi.fn((url, options) => fetch(url, options))
 }));
 
 vi.mock('../../js/utils/dom.js', () => ({

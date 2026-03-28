@@ -1,0 +1,65 @@
+<div id="header-placeholder"></div>
+
+<div id="mobileBackdrop" class="mobile-backdrop"></div>
+
+<div class="app-content">
+  <div id="sidebar-placeholder"></div>
+
+  <div class="resizer" id="resizer-left"></div>
+
+  <main class="main" role="main">
+    <div id="canvasViewport" class="canvas-viewport">
+      <div class="canvas-rulers">
+        <div id="rulerTop" class="ruler ruler-h"></div>
+        <div id="rulerLeft" class="ruler ruler-v"></div>
+        <div class="ruler-corner"></div>
+      </div>
+      <div class="canvas-controls">
+        <div class="canvas-info">
+          <span id="currentPageName">Loading...</span>
+          <span class="separator">/</span>
+          <span id="zoomLevel">100%</span>
+        </div>
+        <div class="zoom-actions">
+          <button id="gridToggleBtn" class="btn-icon" title="Toggle Grid (G)">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"></path>
+            </svg>
+          </button>
+          <button id="debugGridToggleBtn" class="btn-icon" title="Toggle Debug Mode (D)">
+            <span class="mdi mdi-bug-outline" style="font-size: 16px;"></span>
+          </button>
+          <button id="rulersToggleBtn" class="btn-icon" title="Toggle Rulers (R)" style="margin-right: 8px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M5 7h14c1.1 0 2 .9 2 2v6c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2zm2 8v-3m4 3V9m4 6v-3">
+              </path>
+            </svg>
+          </button>
+          <button id="zoomOutBtn" class="btn-icon" title="Zoom Out">-</button>
+          <button id="zoomResetBtn" class="btn-icon" title="Reset View (Ctrl+0)">0</button>
+          <button id="zoomToFitAllBtn" class="btn-icon" title="Zoom to Fit All Pages">
+            <span class="mdi mdi-view-grid-outline" style="font-size: 16px;"></span>
+          </button>
+          <button id="zoomInBtn" class="btn-icon" title="Zoom In">+</button>
+        </div>
+      </div>
+
+      <div id="canvasContainer" class="canvas-container">
+        <div id="canvas" class="canvas-stage">
+          <div class="canvas-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="resizer-h" id="resizer-bottom"></div>
+    <div id="code-panel-placeholder"></div>
+  </main>
+
+  <div class="resizer" id="resizer-right"></div>
+
+  <div id="properties-panel-placeholder"></div>
+</div>
+
+<div id="modals-placeholder"></div>
+<div data-esphome-designer-overlay-root></div>

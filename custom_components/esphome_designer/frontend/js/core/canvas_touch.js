@@ -5,6 +5,7 @@ import { snapToGridCell, applySnapToPosition, clearSnapGuides } from './canvas_s
 import { render, applyZoom, focusPage } from './canvas_renderer.js';
 import { Logger } from '../utils/logger.js';
 import { radialMenu } from '../ui/radial_menu.js';
+import { addBrowserEventListener, removeBrowserEventListener } from '../utils/browser_runtime.js';
 
 /**
  * @param {import('./canvas').Canvas} canvasInstance
@@ -13,10 +14,10 @@ export function setupTouchInteractions(canvasInstance) {
     if (!canvasInstance.canvas || !canvasInstance.canvasContainer) return;
 
     // Bound functions for clean listener removal
-    canvasInstance._boundTouchMove = (ev) => onTouchMove(ev, canvasInstance);
-    canvasInstance._boundTouchEnd = (ev) => onTouchEnd(ev, canvasInstance);
+    canvasInstance._boundTouchMove = (/** @type {TouchEvent} */ ev) => onTouchMove(ev, canvasInstance);
+    canvasInstance._boundTouchEnd = (/** @type {TouchEvent} */ ev) => onTouchEnd(ev, canvasInstance);
 
-    canvasInstance.canvas.addEventListener("touchstart", (ev) => {
+    canvasInstance.canvas.addEventListener("touchstart", (/** @type {TouchEvent} */ ev) => {
         const touches = ev.touches;
         const rect = canvasInstance.viewport.getBoundingClientRect();
 
@@ -40,9 +41,9 @@ export function setupTouchInteractions(canvasInstance) {
             };
             canvasInstance.touchState = null;
 
-            window.addEventListener("touchmove", canvasInstance._boundTouchMove, { passive: false });
-            window.addEventListener("touchend", canvasInstance._boundTouchEnd);
-            window.addEventListener("touchcancel", canvasInstance._boundTouchEnd);
+            addBrowserEventListener("touchmove", canvasInstance._boundTouchMove, { passive: false });
+            addBrowserEventListener("touchend", canvasInstance._boundTouchEnd);
+            addBrowserEventListener("touchcancel", canvasInstance._boundTouchEnd);
             return;
         }
 
@@ -116,9 +117,9 @@ export function setupTouchInteractions(canvasInstance) {
                 };
             }
 
-            window.addEventListener("touchmove", canvasInstance._boundTouchMove, { passive: false });
-            window.addEventListener("touchend", canvasInstance._boundTouchEnd);
-            window.addEventListener("touchcancel", canvasInstance._boundTouchEnd);
+            addBrowserEventListener("touchmove", canvasInstance._boundTouchMove, { passive: false });
+            addBrowserEventListener("touchend", canvasInstance._boundTouchEnd);
+            addBrowserEventListener("touchcancel", canvasInstance._boundTouchEnd);
         }
     }, { passive: false });
 }
@@ -256,9 +257,9 @@ function onTouchEnd(ev, canvasInstance) {
                 }
                 canvasInstance.lastWidgetTapTime = 0;
             } else {
-                canvasInstance.lastWidgetTapId = widgetId;
+                canvasInstance.lastWidgetTapId = widgetId ?? null;
                 canvasInstance.lastWidgetTapTime = now;
-                AppState.selectWidget(widgetId);
+                AppState.selectWidget(widgetId ?? null);
             }
         } else {
             if (now - canvasInstance.lastCanvasTapTime < 350) {
@@ -272,7 +273,7 @@ function onTouchEnd(ev, canvasInstance) {
         }
     }
 
-    if (state.id && state.hasMoved) {
+    if (state?.id && state.hasMoved) {
         const widget = AppState.getWidgetById(state.id);
         if (widget) {
             if (state.mode === "move") {
@@ -301,9 +302,9 @@ function onTouchEnd(ev, canvasInstance) {
         canvasInstance.longPressTimer = null;
     }
 
-    window.removeEventListener("touchmove", canvasInstance._boundTouchMove);
-    window.removeEventListener("touchend", canvasInstance._boundTouchEnd);
-    window.removeEventListener("touchcancel", canvasInstance._boundTouchEnd);
+    removeBrowserEventListener("touchmove", canvasInstance._boundTouchMove);
+    removeBrowserEventListener("touchend", canvasInstance._boundTouchEnd);
+    removeBrowserEventListener("touchcancel", canvasInstance._boundTouchEnd);
 
     document.body.classList.remove("interaction-active");
 

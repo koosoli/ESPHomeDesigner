@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * LVGL Button Matrix Plugin
  */
@@ -64,15 +63,24 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
     ];
 
     // Schema fix: each button must be a dictionary with a 'text' property in newest ESPHome
-    const processedRows = matrix.map(row => ({
-        ...row,
-        buttons: (row.buttons || []).map(btn => {
-            if (typeof btn === 'string' || typeof btn === 'number') {
-                return { text: String(btn) };
-            }
-            return btn;
-        })
-    }));
+    const processedRows = matrix.map((row) => {
+        let buttons = [];
+        if (row && typeof row === 'object' && !Array.isArray(row)) {
+            buttons = row.buttons || [];
+        } else if (typeof row === 'string' || typeof row === 'number') {
+            buttons = [row];
+        }
+
+        return {
+            ...(row && typeof row === 'object' && !Array.isArray(row) ? row : {}),
+            buttons: buttons.map((btn) => {
+                if (typeof btn === 'string' || typeof btn === 'number') {
+                    return { text: String(btn) };
+                }
+                return btn;
+            })
+        };
+    });
 
     return {
         buttonmatrix: {

@@ -1,4 +1,20 @@
 import { AppState } from '../state';
+import { getBrowserComputedStyle } from '../../utils/browser_runtime.js';
+import { appendToDesignerOverlayRoot } from '../../utils/runtime_root.js';
+
+/**
+ * @typedef {{
+ *   widget: any,
+ *   className: string,
+ *   attrs: Array<{ name: string, value: string }>,
+ *   styleCssText: string,
+ *   innerHTML: string,
+ *   background: string,
+ *   backgroundColor: string,
+ *   border: string,
+ *   borderRadius: string
+ * }} GhostSpec
+ */
 
 /**
  * Creates a floating drag ghost that follows the cursor during widget drags.
@@ -45,19 +61,21 @@ export function createDragGhost(canvasInstance, widgets, clientX, clientY, zoom,
         allWidgetsToGhost.push(w);
         if (w.type === 'group') {
             /** @type {any[]} */
-            const pageWidgets = currentPage.widgets || [];
+            const pageWidgets = currentPage?.widgets || [];
             const children = pageWidgets.filter(child => child.parentId === w.id);
             allWidgetsToGhost.push(...children);
         }
     });
 
     // 2. Read all widget styles first so cloning can write in one batch.
-    const ghostSpecs = allWidgetsToGhost.map(widget => {
+    /** @type {GhostSpec[]} */
+    const ghostSpecs = allWidgetsToGhost.map((widget) => {
         const widgetEl = /** @type {HTMLElement} */ (document.querySelector(`.widget[data-id="${widget.id}"]`));
         if (!widgetEl) return null;
 
         const sourceArtboard = /** @type {HTMLElement} */ (widgetEl.closest('.artboard'));
-        const computed = window.getComputedStyle(widgetEl);
+        const computed = getBrowserComputedStyle(widgetEl);
+        if (!computed) return null;
 
         return {
             widget,
@@ -70,7 +88,7 @@ export function createDragGhost(canvasInstance, widgets, clientX, clientY, zoom,
             border: computed.border,
             borderRadius: computed.borderRadius
         };
-    }).filter(Boolean);
+    }).filter((spec) => spec !== null);
 
     // 3. Clone each widget with full visual context in a write-only pass.
     ghostSpecs.forEach(spec => {
@@ -123,7 +141,7 @@ export function createDragGhost(canvasInstance, widgets, clientX, clientY, zoom,
         };
     }
 
-    document.body.appendChild(ghostContainer);
+    appendToDesignerOverlayRoot(ghostContainer);
     canvasInstance.dragGhostEl = ghostContainer;
 
     // Initial position
@@ -138,6 +156,9 @@ export function createDragGhost(canvasInstance, widgets, clientX, clientY, zoom,
 
 /**
  * Updates the drag ghost position to follow the cursor.
+ * @param {any} canvasInstance
+ * @param {number} clientX
+ * @param {number} clientY
  */
 export function updateDragGhost(canvasInstance, clientX, clientY) {
     if (!canvasInstance.dragGhostEl || !canvasInstance.dragGhostOffset) return;
@@ -153,6 +174,9 @@ export function updateDragGhost(canvasInstance, clientX, clientY) {
 /**
  * Updates the drag ghost position to an absolute screen position (for snapped positions).
  * The screenX/screenY should be the top-left corner of where the primary widget should appear.
+ * @param {any} canvasInstance
+ * @param {number} screenX
+ * @param {number} screenY
  */
 export function updateDragGhostPosition(canvasInstance, screenX, screenY) {
     if (!canvasInstance.dragGhostEl) return;
@@ -216,7 +240,7 @@ export function createPageDragGhost(canvasInstance, pageIndex, clientX, clientY)
         transition: none;
     `;
 
-    document.body.appendChild(ghost);
+    appendToDesignerOverlayRoot(ghost);
     canvasInstance.pageDragGhost = ghost;
     canvasInstance.pageDragOffset = { x: clickOffsetX, y: clickOffsetY };
 

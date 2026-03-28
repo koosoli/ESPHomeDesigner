@@ -1,14 +1,83 @@
-// @ts-nocheck
 import { AppState } from '../core/state';
 import { on, EVENTS } from '../core/events.js';
 import { Logger } from '../utils/logger.js';
 import { registry } from '../core/plugin_registry';
 
+/**
+ * Build the hierarchy traversal structures for the current widget list.
+ *
+ * @param {any[]} widgets
+ * @returns {{ topLevel: any[], childrenMap: Map<string, any[]> }}
+ */
+export function buildWidgetHierarchy(widgets) {
+    const topLevel = widgets.filter((widget) => !widget.parentId).reverse();
+    const childrenMap = new Map();
+
+    widgets.forEach((widget) => {
+        if (!widget.parentId) return;
+        if (!childrenMap.has(widget.parentId)) {
+            childrenMap.set(widget.parentId, []);
+        }
+        childrenMap.get(widget.parentId).push(widget);
+    });
+
+    return { topLevel, childrenMap };
+}
+
+/**
+ * Apply a layer-order move to the page widget array.
+ *
+ * @param {any[]} widgets
+ * @param {string} widgetId
+ * @param {'front' | 'back' | 'up' | 'down'} direction
+ * @returns {boolean}
+ */
+export function moveWidgetInLayerOrder(widgets, widgetId, direction) {
+    const index = widgets.findIndex((widget) => widget.id === widgetId);
+    if (index === -1) {
+        return false;
+    }
+
+    if (direction === 'front') {
+        if (index >= widgets.length - 1) return false;
+        const [widget] = widgets.splice(index, 1);
+        widgets.push(widget);
+        return true;
+    }
+
+    if (direction === 'back') {
+        if (index === 0) return false;
+        const [widget] = widgets.splice(index, 1);
+        widgets.unshift(widget);
+        return true;
+    }
+
+    if (direction === 'up') {
+        if (index >= widgets.length - 1) return false;
+        [widgets[index], widgets[index + 1]] = [widgets[index + 1], widgets[index]];
+        return true;
+    }
+
+    if (direction === 'down') {
+        if (index === 0) return false;
+        [widgets[index], widgets[index - 1]] = [widgets[index - 1], widgets[index]];
+        return true;
+    }
+
+    return false;
+}
+
 export class HierarchyView {
     constructor() {
+        /** @type {HTMLElement | null} */
         this.listContainer = null;
+        /** @type {HTMLElement | null} */
         this.header = null;
+        /** @type {HTMLElement | null} */
         this.panel = null;
+        /** @type {HTMLElement | null} */
+        this.controlsContainer = null;
+        /** @type {number | null} */
         this.draggedIndex = null;
 
         // Bind methods to this
@@ -17,9 +86,9 @@ export class HierarchyView {
     }
 
     init() {
-        this.listContainer = document.getElementById('hierarchyList');
-        this.header = document.getElementById('hierarchyHeader');
-        this.panel = document.getElementById('hierarchyPanel');
+        this.listContainer = /** @type {HTMLElement | null} */ (document.getElementById('hierarchyList'));
+        this.header = /** @type {HTMLElement | null} */ (document.getElementById('hierarchyHeader'));
+        this.panel = /** @type {HTMLElement | null} */ (document.getElementById('hierarchyPanel'));
 
         if (!this.listContainer || !this.header || !this.panel) {
             Logger.error("[HierarchyView] Required DOM elements not found");
@@ -43,13 +112,13 @@ export class HierarchyView {
     renderHeaderActions() {
         if (!this.header) return;
 
-        let toggles = this.header.querySelector('.hierarchy-header-toggles');
+        let toggles = /** @type {HTMLElement | null} */ (this.header.querySelector('.hierarchy-header-toggles'));
         if (!toggles) {
             toggles = document.createElement('div');
             toggles.className = 'hierarchy-header-toggles';
             // Insert before the chevron
             const chevron = this.header.querySelector('.chevron');
-            this.header.insertBefore(toggles, chevron);
+            this.header.insertBefore(toggles, chevron || null);
 
             const lockAll = this.createHeaderToggle('mdi-lock-outline', 'Toggle All Locks', () => {
                 const widgets = AppState.getCurrentPage()?.widgets || [];
@@ -89,16 +158,18 @@ export class HierarchyView {
     }
 
     toggleCollapse() {
+        if (!this.panel || !this.header) return;
         const isCollapsed = this.panel.classList.toggle('hidden');
-        const chevron = this.header.querySelector('.chevron');
+        const chevron = /** @type {HTMLElement | null} */ (this.header.querySelector('.chevron'));
         if (chevron) {
             chevron.style.transform = isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
         }
     }
 
     highlightSelected() {
+        if (!this.listContainer) return;
         const selectedIds = AppState.selectedWidgetIds || [];
-        const items = this.listContainer.querySelectorAll('.hierarchy-item');
+        const items = /** @type {NodeListOf<HTMLElement>} */ (this.listContainer.querySelectorAll('.hierarchy-item'));
         items.forEach(item => {
             if (selectedIds.includes(item.dataset.id)) {
                 item.classList.add('selected');
@@ -110,6 +181,7 @@ export class HierarchyView {
     }
 
     render() {
+        if (!this.listContainer || !this.controlsContainer) return;
         const page = AppState.getCurrentPage();
         if (!page) return;
 
@@ -121,15 +193,7 @@ export class HierarchyView {
             return;
         }
 
-        // Separate widgets into top-level and children
-        const topLevel = page.widgets.filter(w => !w.parentId).reverse();
-        const childrenMap = new Map();
-        page.widgets.forEach(w => {
-            if (w.parentId) {
-                if (!childrenMap.has(w.parentId)) childrenMap.set(w.parentId, []);
-                childrenMap.get(w.parentId).push(w);
-            }
-        });
+        const { topLevel, childrenMap } = buildWidgetHierarchy(page.widgets);
 
         // Alphabetical sort for children within groups if needed? 
         // No, keep same order as in main array (z-order)
@@ -200,25 +264,30 @@ export class HierarchyView {
 
         // Group toggle
         if (isGroup) {
-            div.querySelector('.hierarchy-group-toggle').addEventListener('click', (e) => {
-                AppState.updateWidget(widget.id, { expanded: widget.expanded === false });
-                e.stopPropagation();
-            });
+            const groupToggle = /** @type {HTMLElement | null} */ (div.querySelector('.hierarchy-group-toggle'));
+            if (groupToggle) {
+                groupToggle.addEventListener('click', (e) => {
+                    AppState.updateWidget(widget.id, { expanded: widget.expanded === false });
+                    e.stopPropagation();
+                });
+            }
         }
 
         // Label rename and selection
-        const labelEl = div.querySelector('.hierarchy-item-label');
-        labelEl.addEventListener('click', (e) => {
-            // If already selected, allow rename
-            if (AppState.selectedWidgetIds.includes(widget.id)) {
-                const newName = prompt('Rename:', label);
-                if (newName !== null && newName !== "" && newName !== label) {
-                    AppState.updateWidget(widget.id, { title: newName });
+        const labelEl = /** @type {HTMLElement | null} */ (div.querySelector('.hierarchy-item-label'));
+        if (labelEl) {
+            labelEl.addEventListener('click', (e) => {
+                // If already selected, allow rename
+                if (AppState.selectedWidgetIds.includes(widget.id)) {
+                    const newName = prompt('Rename:', label);
+                    if (newName !== null && newName !== "" && newName !== label) {
+                        AppState.updateWidget(widget.id, { title: newName });
+                    }
+                    e.stopPropagation();
+                    return;
                 }
-                e.stopPropagation();
-                return;
-            }
-        });
+            });
+        }
 
         // Selection
         div.addEventListener('click', (e) => {
@@ -228,27 +297,38 @@ export class HierarchyView {
         });
 
         // Lock toggle
-        div.querySelector('.toggle-lock').addEventListener('click', (e) => {
-            AppState.updateWidget(widget.id, { locked: !widget.locked });
-            e.stopPropagation();
-        });
+        const lockToggle = /** @type {HTMLElement | null} */ (div.querySelector('.toggle-lock'));
+        if (lockToggle) {
+            lockToggle.addEventListener('click', (e) => {
+                AppState.updateWidget(widget.id, { locked: !widget.locked });
+                e.stopPropagation();
+            });
+        }
 
         // Visibility toggle
-        div.querySelector('.toggle-visibility').addEventListener('click', (e) => {
-            AppState.updateWidget(widget.id, { hidden: !widget.hidden });
-            e.stopPropagation();
-        });
+        const visibilityToggle = /** @type {HTMLElement | null} */ (div.querySelector('.toggle-visibility'));
+        if (visibilityToggle) {
+            visibilityToggle.addEventListener('click', (e) => {
+                AppState.updateWidget(widget.id, { hidden: !widget.hidden });
+                e.stopPropagation();
+            });
+        }
 
         // Delete
-        div.querySelector('.delete-widget').addEventListener('click', (e) => {
-            if (confirm(`Delete widget "${label}"?`)) {
-                AppState.deleteWidget(widget.id);
-            }
-            e.stopPropagation();
-        });
+        const deleteButton = /** @type {HTMLElement | null} */ (div.querySelector('.delete-widget'));
+        if (deleteButton) {
+            deleteButton.addEventListener('click', (e) => {
+                if (confirm(`Delete widget "${label}"?`)) {
+                    AppState.deleteWidget(widget.id);
+                }
+                e.stopPropagation();
+            });
+        }
 
         // Drag and Drop
+        /** @param {DragEvent} e */
         div.addEventListener('dragstart', (e) => {
+            if (!e.dataTransfer) return;
             this.draggedIndex = actualIndex;
             div.classList.add('dragging');
             e.dataTransfer.setData("application/widget-id", widget.id);
@@ -258,11 +338,14 @@ export class HierarchyView {
         div.addEventListener('dragend', () => {
             div.classList.remove('dragging');
             this.draggedIndex = null;
-            const items = this.listContainer.querySelectorAll('.hierarchy-item');
+            if (!this.listContainer) return;
+            const items = /** @type {NodeListOf<HTMLElement>} */ (this.listContainer.querySelectorAll('.hierarchy-item'));
             items.forEach(i => i.classList.remove('drag-over'));
         });
 
+        /** @param {DragEvent} e */
         div.addEventListener('dragover', (e) => {
+            if (!e.dataTransfer) return;
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
             div.classList.add('drag-over');
@@ -272,7 +355,9 @@ export class HierarchyView {
             div.classList.remove('drag-over');
         });
 
+        /** @param {DragEvent} e */
         div.addEventListener('drop', (e) => {
+            if (!e.dataTransfer) return;
             e.preventDefault();
             const draggedId = e.dataTransfer.getData("application/widget-id");
             const targetId = div.dataset.id;
@@ -288,7 +373,7 @@ export class HierarchyView {
                 AppState.updateWidget(draggedId, { parentId: targetWidget.parentId || null });
             }
 
-            const targetIndex = parseInt(div.dataset.index);
+            const targetIndex = parseInt(div.dataset.index || '-1', 10);
             if (this.draggedIndex !== null) {
                 AppState.reorderWidget(AppState.currentPageIndex, this.draggedIndex, targetIndex);
             }
@@ -298,6 +383,7 @@ export class HierarchyView {
     }
 
     renderControls() {
+        if (!this.controlsContainer) return;
         const selectedWidgets = AppState.getSelectedWidgets();
         if (selectedWidgets.length === 0) {
             this.controlsContainer.style.display = 'none';
@@ -378,38 +464,32 @@ export class HierarchyView {
 
     moveToFront(widget) {
         const page = AppState.getCurrentPage();
-        const idx = page.widgets.findIndex(w => w.id === widget.id);
-        if (idx > -1 && idx < page.widgets.length - 1) {
-            page.widgets.splice(idx, 1);
-            page.widgets.push(widget);
+        if (!page) return;
+        if (moveWidgetInLayerOrder(page.widgets, widget.id, 'front')) {
             AppState.setPages(AppState.pages); // Trigger update
         }
     }
 
     moveToBack(widget) {
         const page = AppState.getCurrentPage();
-        const idx = page.widgets.findIndex(w => w.id === widget.id);
-        if (idx > 0) {
-            page.widgets.splice(idx, 1);
-            page.widgets.unshift(widget);
+        if (!page) return;
+        if (moveWidgetInLayerOrder(page.widgets, widget.id, 'back')) {
             AppState.setPages(AppState.pages);
         }
     }
 
     moveUp(widget) {
         const page = AppState.getCurrentPage();
-        const idx = page.widgets.findIndex(w => w.id === widget.id);
-        if (idx > -1 && idx < page.widgets.length - 1) {
-            [page.widgets[idx], page.widgets[idx + 1]] = [page.widgets[idx + 1], page.widgets[idx]];
+        if (!page) return;
+        if (moveWidgetInLayerOrder(page.widgets, widget.id, 'up')) {
             AppState.setPages(AppState.pages);
         }
     }
 
     moveDown(widget) {
         const page = AppState.getCurrentPage();
-        const idx = page.widgets.findIndex(w => w.id === widget.id);
-        if (idx > 0) {
-            [page.widgets[idx], page.widgets[idx - 1]] = [page.widgets[idx - 1], page.widgets[idx]];
+        if (!page) return;
+        if (moveWidgetInLayerOrder(page.widgets, widget.id, 'down')) {
             AppState.setPages(AppState.pages);
         }
     }

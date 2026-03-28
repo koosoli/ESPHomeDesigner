@@ -17,7 +17,7 @@ export class OEPLAdapter extends BaseAdapter {
      */
     async generate(layout) {
         if (!layout) {
-            console.error("OEPLAdapter: Missing layout");
+            Logger.error("OEPLAdapter: Missing layout");
             return "[]";
         }
 
@@ -29,9 +29,10 @@ export class OEPLAdapter extends BaseAdapter {
             return "[]";
         }
 
+        /** @type {any[]} */
         const payloadItems = [];
 
-        page.widgets.forEach(widget => {
+        page.widgets.forEach((/** @type {Widget} */ widget) => {
             if (widget.hidden || widget.type === 'group') return;
 
             const element = this.generateWidget(widget, { layout, page });

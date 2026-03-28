@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * LVGL QR Code Plugin
  */
@@ -17,10 +16,11 @@ const render = (el, widget, { getColorStyle }) => {
     const text = props.text || "https://github.com/koosoli/ESPHomeDesigner/";
 
     try {
-        if (window.qrcode) {
+        const qrcodeFactory = /** @type {any} */ (window).qrcode;
+        if (qrcodeFactory) {
             const typeNumber = 0;
             const errorCorrectionLevel = 'L';
-            const qr = qrcode(typeNumber, errorCorrectionLevel);
+            const qr = qrcodeFactory(typeNumber, errorCorrectionLevel);
             qr.addData(text);
             qr.make();
 

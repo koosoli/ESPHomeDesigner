@@ -1,4 +1,5 @@
-// @ts-nocheck
+import { getTouchDebounceMs } from '../../js/io/navigation_debounce.js';
+
 /**
  * Touch Area Plugin
  */
@@ -114,12 +115,13 @@ const exportDoc = (w, context) => {
 };
 
 const onExportBinarySensors = (context) => {
-    const { lines, widgets } = context;
+    const { lines, widgets, profile } = context;
 
     const targets = widgets.filter(w => w.type === 'touch_area' || w.type === 'nav_next_page' || w.type === 'nav_previous_page' || w.type === 'nav_reload_page');
     if (targets.length === 0) return;
 
     const totalPages = widgets.reduce((max, widget) => Math.max(max, (widget._pageIndex ?? 0) + 1), 0) || 1;
+    const touchDebounceMs = getTouchDebounceMs(profile);
 
     lines.push("# Touch Area Binary Sensors");
     targets.forEach(w => {
@@ -144,8 +146,9 @@ const onExportBinarySensors = (context) => {
             lines.push(`  on_press:`);
             lines.push(`    - if:`);
             lines.push(`        condition:`);
-            lines.push(`          lambda: 'return id(display_page) == ${pageIdx};'`);
+            lines.push(`          lambda: 'return id(display_page) == ${pageIdx} && (millis() - id(last_touch_time) > ${touchDebounceMs});'`);
             lines.push(`        then:`);
+            lines.push(`          - lambda: 'id(last_touch_time) = millis();'`);
 
             if (navAction === "next_page") {
                 lines.push(`          - script.execute:`);

@@ -12,7 +12,8 @@ export function extractLambdaLines(rawLines, _yamlText) {
     const lambdaLines = [];
     let inBlock = false;
     let blockIndent = 0;
-    let blockType = null; // 'lambda', 'lvgl', 'oepl', 'odp_service', or 'odp'
+    /** @type {'lambda' | 'lvgl' | 'oepl' | 'odp_service' | 'odp' | null} */
+    let blockType = null;
 
     for (const rawLine of rawLines) {
         const line = rawLine.replace(/\t/g, "    ");

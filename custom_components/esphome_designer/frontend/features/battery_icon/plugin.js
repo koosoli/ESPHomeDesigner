@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Battery Icon Plugin
  */
@@ -146,7 +145,8 @@ const exportDoc = (w, context) => {
     lines.push(`          float bat_level = 0;`);
 
     // Fix: Robust check also verifies if the device natively supports battery
-    const idExists = (id) => (context.seenSensorIds && context.seenSensorIds.has(id)) ||
+    // If it's not a local sensor, we trust that entity_dedup/onExportNumericSensors generated the entity.
+    const idExists = (id) => (!p.is_local_sensor) || (context.seenSensorIds && context.seenSensorIds.has(id)) ||
         (id === "battery_level" && context.profile?.pins?.batteryAdc);
 
     if (sensorId && idExists(sensorId)) {
@@ -197,7 +197,6 @@ export default {
         color: "theme_auto",
         is_local_sensor: true,
         entity_id: "",
-        mqtt_topic: "",
         fit_icon_to_frame: true,
         opa: 255
     },
@@ -213,9 +212,6 @@ export default {
         panel.addLabeledInputWithPicker("Entity ID (If not local)", "text", widget.entity_id || "", (v) => {
             AppState.updateWidget(widget.id, { entity_id: v });
         }, widget);
-
-        panel.addLabeledInput("MQTT Topic (optional)", "text", props.mqtt_topic || "", (v) => updateProp("mqtt_topic", v.trim()));
-        panel.addHint("If set, uses MQTT instead of HA entity.");
 
         panel.addLabeledInput("Title/Label", "text", widget.title || "", (v) => {
             AppState.updateWidget(widget.id, { title: v });
@@ -320,7 +316,7 @@ export default {
         const p = w.props || {};
         let entityId = (w.entity_id || "").trim();
         // Ensure sensor. prefix if missing (matching onExportNumericSensors logic)
-        if (entityId && !entityId.includes(".")) {
+        if (entityId && !entityId.includes(".") && !entityId.toLowerCase().startsWith("mqtt:")) {
             entityId = `sensor.${entityId}`;
         }
 
