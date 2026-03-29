@@ -2,7 +2,7 @@
 import { DEVICE_PROFILES } from '../io/devices.js';
 import { AppState } from './state';
 import { getColorStyle } from '../utils/device.js';
-import { registry } from './plugin_registry';
+import { registry } from './plugin_registry.js';
 
 /**
  * @param {any} canvasInstance

@@ -33,7 +33,6 @@ jobs:
           node-version: '20'
 
       - name: Build Frontend
-        working-directory: custom_components/esphome_designer/frontend
         run: |
           npm ci
           npm run build

@@ -3,7 +3,7 @@ import { DEVICE_PROFILES } from '../io/devices.js';
 import { AppState } from './state';
 import { Logger } from '../utils/logger.js';
 import { getColorStyle } from '../utils/device.js';
-import { registry } from './plugin_registry';
+import { registry } from './plugin_registry.js';
 import {
     addResizeHandles,
     confirmAction,

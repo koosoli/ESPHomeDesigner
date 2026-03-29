@@ -1,6 +1,6 @@
 import { generateId } from '../utils/helpers.js';
 import { AppState } from './state';
-import { registry } from './plugin_registry';
+import { registry } from './plugin_registry.js';
 
 /**
  * Shared widget factory for ESPHome Designer.

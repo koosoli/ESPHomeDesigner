@@ -1,7 +1,20 @@
+## v1.0.0 RC9.1 - Release Metadata & Deployment Follow-Up
+**Release Date:** March 29, 2026
+
+This follow-up release finishes the RC9 packaging and deployment work so Home Assistant, GitHub Releases, and the GitHub Pages editor all point at the same current build.
+
+
+### Maintenance
+
+- Removed stale debug-overlay test residue from the sidebar suite and kept coverage aligned with the quality gate.
+- Rebuilt the committed frontend bundle so the packaged Home Assistant panel assets and GitHub Pages deployment stay on the same RC9.1 output.
+
+---
+
 ## v1.0.0 RC9 - Home Assistant Reliability, Security Hardening & Quality Overhaul
 **Release Date:** March 28, 2026
 
-This unreleased RC9 now also includes the work that had been planned for the unreleased RC8.6. The main goals of this version are simple: make the editor behave more reliably inside Home Assistant, make saved layouts and custom hardware profiles load correctly, harden the backend surface, and continue the broader cleanup of the codebase.
+The main goals of this version are simple: make the editor behave more reliably inside Home Assistant, make saved layouts and custom hardware profiles load correctly, harden the backend surface, and continue the broader cleanup of the codebase.
 
 ### New Features & Enhancements
 

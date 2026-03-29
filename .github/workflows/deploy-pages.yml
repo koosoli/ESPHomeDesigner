@@ -41,8 +41,9 @@ jobs:
 
       - name: Build Frontend
         run: |
+          # package.json and vite.config.js live at the repository root
           npm ci
-          npx vite build --base=/ESPHomeDesigner/
+          npm run build -- --base=/ESPHomeDesigner/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

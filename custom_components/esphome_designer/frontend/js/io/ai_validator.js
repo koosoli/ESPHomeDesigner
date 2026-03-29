@@ -1,4 +1,4 @@
-import { registry } from '../core/plugin_registry';
+import { registry } from '../core/plugin_registry.js';
 
 export class AIValidator {
     /**

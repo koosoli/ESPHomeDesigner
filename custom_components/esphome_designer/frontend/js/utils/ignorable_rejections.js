@@ -8,6 +8,18 @@ let handlerInstalled = false;
 
 /**
  * @param {unknown} reason
+ * @returns {string}
+ */
+function getRejectionMessage(reason) {
+    if (reason && typeof reason === 'object' && 'message' in reason && typeof reason.message === 'string') {
+        return reason.message;
+    }
+
+    return String(reason);
+}
+
+/**
+ * @param {unknown} reason
  * @returns {boolean}
  */
 export function isIgnorableWindowRejection(reason) {
@@ -15,7 +27,7 @@ export function isIgnorableWindowRejection(reason) {
         return false;
     }
 
-    const message = typeof reason.message === 'string' ? reason.message : String(reason);
+    const message = getRejectionMessage(reason);
     return IGNORABLE_REJECTION_MESSAGES.some((candidate) => message.includes(candidate));
 }
 

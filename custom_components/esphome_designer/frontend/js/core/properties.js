@@ -1,6 +1,6 @@
 import { PropertyControls } from '../ui/components/property_controls.js';
 import { AppState } from './state';
-import { registry } from './plugin_registry';
+import { registry } from './plugin_registry.js';
 import { on, EVENTS } from './events.js';
 import { canvasInstance } from './canvas.js';
 

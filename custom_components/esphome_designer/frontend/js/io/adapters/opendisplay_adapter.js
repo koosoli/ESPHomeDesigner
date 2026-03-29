@@ -1,6 +1,6 @@
 import { BaseAdapter } from './base_adapter.js';
 import { Logger } from '../../utils/logger.js';
-import { registry } from '../../core/plugin_registry';
+import { registry } from '../../core/plugin_registry.js';
 
 /**
  * OpenDisplay-specific adapter for generating ODP v1 JSON payloads.

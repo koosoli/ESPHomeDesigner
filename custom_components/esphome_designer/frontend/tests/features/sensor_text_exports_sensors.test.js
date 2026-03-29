@@ -164,4 +164,36 @@ describe('sensor_text exports_sensors', () => {
         expect(pendingTriggers.has('sensor.explicit_text')).toBe(false);
         expect(pendingTriggers.has('sensor.local')).toBe(false);
     });
+
+    it('deduplicates repeated nested text attributes across widgets', () => {
+        mockAppState.entityStates = {
+            'sensor.status': { state: 'online' }
+        };
+
+        const lines = [];
+        const seenSensorIds = new Set();
+        const seenTextEntityIds = new Set();
+
+        onExportTextSensors({
+            lines,
+            seenSensorIds,
+            seenTextEntityIds,
+            widgets: [
+                {
+                    type: 'sensor_text',
+                    entity_id: 'sensor.status',
+                    props: { attribute: 'friendly_name' }
+                },
+                {
+                    type: 'sensor_text',
+                    entity_id: 'sensor.status',
+                    props: { attribute: 'friendly_name' }
+                }
+            ]
+        });
+
+        expect(mockGetSensorPlatformLines).toHaveBeenCalledTimes(1);
+        expect(seenTextEntityIds).toEqual(new Set(['sensor.status__attr__friendly_name']));
+        expect(lines.filter((line) => line === '# Text Sensors (Detected from Sensor Text)')).toHaveLength(1);
+    });
 });

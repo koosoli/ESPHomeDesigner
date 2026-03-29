@@ -1,8 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PluginRegistry } from '../../js/core/plugin_registry';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock Logger
-vi.mock('../utils/logger.js', () => ({
+vi.mock('../../js/utils/logger.js', () => ({
     Logger: {
         log: vi.fn(),
         warn: vi.fn(),
@@ -10,11 +9,20 @@ vi.mock('../utils/logger.js', () => ({
     }
 }));
 
+import {
+    __resetPluginModulesForTests,
+    __setPluginModulesForTests,
+    PluginRegistry
+} from '../../js/core/plugin_registry';
+import { Logger } from '../../js/utils/logger.js';
+
 describe('PluginRegistry', () => {
     let registry;
 
     beforeEach(() => {
         registry = new PluginRegistry();
+        __resetPluginModulesForTests();
+        vi.clearAllMocks();
     });
 
     it('should register and retrieve a plugin', () => {
@@ -59,5 +67,89 @@ describe('PluginRegistry', () => {
         registry.register({ id: 'a' });
         registry.register({ id: 'b' });
         expect(registry.getAll().length).toBe(2);
+    });
+
+    it('warns and ignores invalid registrations', () => {
+        registry.register(null);
+        registry.register({});
+
+        expect(Logger.warn).toHaveBeenCalledTimes(2);
+        expect(registry.getAll()).toHaveLength(0);
+    });
+
+    it('returns null for group pseudo-widgets and short-circuits already loaded plugins', async () => {
+        expect(await registry.load('group')).toBeNull();
+
+        const mockPlugin = { id: 'weather_forecast', name: 'Weather' };
+        registry.register(mockPlugin);
+        expect(await registry.load('weather_forcast')).toEqual(mockPlugin);
+    });
+
+    it('reuses an in-flight load promise for duplicate requests', async () => {
+        const pending = Promise.resolve({ id: 'shared' });
+        registry.loading.set('shared', pending);
+
+        expect(await registry.load('shared')).toEqual({ id: 'shared' });
+    });
+
+    it('loads plugins from injected module loaders and clears pending state', async () => {
+        __setPluginModulesForTests({
+            '../../features/quote_rss/plugin.js': vi.fn(async () => ({
+                default: { id: 'quote_rss', name: 'Quote RSS' }
+            })),
+            '../../features/debug_grid/plugin.js': vi.fn(async () => ({
+                name: 'Debug Grid',
+                onExportGlobals: vi.fn()
+            }))
+        });
+
+        const defaultPlugin = await registry.load('quote_rss');
+        const namedPlugin = await registry.load('odp_debug_grid');
+
+        expect(defaultPlugin).toEqual({ id: 'quote_rss', name: 'Quote RSS' });
+        expect(namedPlugin).toMatchObject({ id: 'debug_grid', name: 'Debug Grid' });
+        expect(registry.loading.size).toBe(0);
+        expect(Logger.error).not.toHaveBeenCalled();
+    });
+
+    it('falls back to direct dynamic imports when no prebuilt loader map is available', async () => {
+        __resetPluginModulesForTests();
+
+        const plugin = await registry.load('shape_rect');
+
+        expect(plugin).toMatchObject({ id: 'shape_rect' });
+        expect(Logger.error).not.toHaveBeenCalled();
+    });
+
+    it('logs loader failures and clears the pending entry', async () => {
+        __setPluginModulesForTests({
+            '../../features/broken/plugin.js': vi.fn(async () => {
+                throw new Error('broken loader');
+            })
+        });
+
+        await expect(registry.load('broken')).resolves.toBeNull();
+        expect(Logger.error).toHaveBeenCalledTimes(1);
+        expect(registry.loading.size).toBe(0);
+    });
+
+    it('routes collectRequirements through the shared hook helper', () => {
+        const collectRequirements = vi.fn();
+        registry.register({ id: 'collector', collectRequirements });
+
+        const context = { widget: { id: 'w1' } };
+        registry.onCollectRequirements(context);
+
+        expect(collectRequirements).toHaveBeenCalledWith(context);
+    });
+
+    it('routes export component hooks through the shared hook helper', () => {
+        const onExportComponents = vi.fn();
+        registry.register({ id: 'components', onExportComponents });
+
+        const context = { components: [] };
+        registry.onExportComponents(context);
+
+        expect(onExportComponents).toHaveBeenCalledWith(context);
     });
 });

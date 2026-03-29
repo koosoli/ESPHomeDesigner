@@ -130,6 +130,7 @@ export async function saveLayoutToBackend() {
 
     const payload = AppState.getPagesPayload();
 
+    /** @type {ProjectPayload & { device_id: string, device_model: string, deviceName: string }} */
     const layoutData = {
         ...payload,
         device_id: layoutId,

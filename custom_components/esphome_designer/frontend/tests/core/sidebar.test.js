@@ -92,7 +92,6 @@ describe('Sidebar', () => {
             <button id="mobileEditorSettingsBtn"></button>
             <div class="sidebar"></div>
             <div class="right-panel"></div>
-            <div id="debug-overlay"></div>
         `;
 
         mockApp = {
@@ -125,16 +124,6 @@ describe('Sidebar', () => {
 
         document.getElementById('quickSearchBtn')?.click();
         expect(mockQuickSearchOpen).toHaveBeenCalled();
-    });
-
-    it('logs global debug clicks while the sidebar is initialized', async () => {
-        const { Sidebar } = await import('../../js/core/sidebar.js');
-        const sidebar = new Sidebar(mockApp);
-        sidebar.init();
-
-        document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-
-        expect(document.getElementById('debug-overlay')?.innerHTML).toContain('Global click: BODY');
     });
 
     it('toggles the pages section chevron when the header is clicked', async () => {
@@ -193,7 +182,6 @@ describe('Sidebar', () => {
         const paletteInner = document.querySelector('#widgetPalette .inner');
         paletteInner?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
         expect(mockLogger.error).toHaveBeenCalledWith('Sidebar: Error creating/adding widget', expect.any(Error));
-        expect(document.getElementById('debug-overlay')?.innerHTML).toContain('Error: bad widget');
     });
 
     it('switches pages on widget drag-over and handles widget-id drops', async () => {
@@ -265,6 +253,42 @@ describe('Sidebar', () => {
         });
 
         sidebar.handlePageReorder(0, 1, 130, target);
+        expect(mockAppState.reorderPage).toHaveBeenCalled();
+    });
+
+    it('renders reorder indicators and handles plain page reorder drops', async () => {
+        const { Sidebar } = await import('../../js/core/sidebar.js');
+        const sidebar = new Sidebar(mockApp);
+        sidebar.init();
+
+        const targetItem = /** @type {any} */ (document.querySelectorAll('#pageList .item')[1]);
+        vi.spyOn(targetItem, 'getBoundingClientRect').mockReturnValue({ top: 100, height: 40 });
+
+        const dragOverEvent = {
+            preventDefault: vi.fn(),
+            dataTransfer: {
+                types: ['text/plain'],
+                dropEffect: ''
+            },
+            clientY: 110
+        };
+        targetItem.ondragover(dragOverEvent);
+
+        expect(targetItem.style.borderTop).toBe('2px solid var(--primary)');
+        expect(targetItem.style.borderBottom).toBe('');
+
+        sidebar.hoverTimeout = setTimeout(() => {}, 1000);
+        const dropEvent = {
+            preventDefault: vi.fn(),
+            dataTransfer: {
+                getData: vi.fn((type) => type === 'text/plain' ? '0' : ''),
+                types: ['text/plain']
+            },
+            clientY: 130
+        };
+        targetItem.ondrop(dropEvent);
+
+        expect(sidebar.hoverTimeout).toBeNull();
         expect(mockAppState.reorderPage).toHaveBeenCalled();
     });
 

@@ -1,4 +1,4 @@
-import { registry } from '../core/plugin_registry';
+import { registry } from '../core/plugin_registry.js';
 import { AppState } from '../core/state';
 import { Logger } from '../utils/logger.js';
 import { showToast } from '../utils/dom.js';

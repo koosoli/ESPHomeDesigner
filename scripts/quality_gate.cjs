@@ -353,6 +353,11 @@ function checkFileCoverage() {
     return makeGate('web', 'FileCoverage', failures.length === 0, details.join(', '), { fileCoverageMins: measured });
 }
 
+function checkTypeScriptBase() {
+    const result = run('npx tsc --noEmit -p tsconfig.json');
+    return makeGate('web', 'TypeScriptBase', result.status === 0, result.status === 0 ? 'Frontend config passes' : 'Base config type errors detected');
+}
+
 function checkTypeScript() {
     const result = run('npx tsc --noEmit -p tsconfig.strict.json');
     return makeGate('web', 'TypeScript', result.status === 0, result.status === 0 ? 'No type errors' : 'Type errors detected');
@@ -708,6 +713,7 @@ function writeProofBundle(bundle) {
 const results = [
     checkEslint(),
     checkVitest(),
+    checkTypeScriptBase(),
     checkTypeScript(),
     checkBuild(),
     checkRootArtifacts(),

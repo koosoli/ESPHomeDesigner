@@ -89,15 +89,15 @@ declare global {
      * Represents the precise configuration of the physical target display.
      */
     interface HardwareSettings {
-        chip: 'esp32' | 'esp32s2' | 'esp32s3' | 'esp32c3';
-        tech: 'lcd' | 'epaper';
+        chip: string;
+        tech: string;
         resWidth: number;
         resHeight: number;
         displayDriver?: string;
         displayModel?: string;
         memory?: 'psram' | 'none';
-        touchTech?: 'none' | 'cst816' | 'gt911' | 'ft6336' | 'xpt2046' | 'tt21100' | 'ns2009' | 'stmpe610';
-        shape?: 'rect' | 'circle' | 'round_rect';
+        touchTech?: string;
+        shape?: string;
         pins?: Record<string, number | string>;
     }
 
@@ -105,7 +105,7 @@ declare global {
      * Represents a device profile definition.
      */
     interface DeviceProfile {
-        id: string;
+        id?: string;
         name: string;
         isUntestedProfile?: boolean;
         model?: string;
@@ -211,26 +211,27 @@ declare global {
      */
     interface Plugin {
         id: string;
-        name: string;
+        name?: string;
         category?: string;
         supportedModes?: string[];
         defaults?: Record<string, any>;
         schema?: Array<{ section: string; fields: Array<{ key: string; type: string;[k: string]: any }> }>;
         width?: number;
         height?: number;
-        render?: (el: HTMLElement, widget: Widget, helpers: any) => void;
-        renderProperties?: (panel: HTMLElement, widget: Widget) => void;
-        export?: (widget: Widget, context: GenerationContext) => string[] | void;
-        exportLVGL?: (widget: Widget, helpers: any) => any;
-        exportOEPL?: (widget: Widget, context: any) => any;
-        exportOpenDisplay?: (widget: Widget, context: any) => any;
+        render?: (el: HTMLElement, widget: any, helpers: any) => void;
+        renderProperties?: (panel: any, widget: any) => void;
+        export?: (widget: any, context: any) => string[] | void;
+        exportLVGL?: (widget: any, helpers: any) => any;
+        exportOEPL?: (widget: any, context: any) => any;
+        exportOpenDisplay?: (widget: any, context: any) => any;
         collectRequirements?: (widget: Widget, helpers: any) => void;
-        onExportComponents?: (context: GenerationContext & { displayId: string }) => void;
-        onExportGlobals?: (context: GenerationContext) => void;
-        onExportNumericSensors?: (context: GenerationContext) => void;
-        onExportTextSensors?: (context: GenerationContext) => void;
-        onExportBinarySensors?: (context: GenerationContext) => void;
-        onExportHelpers?: (context: { lines: string[], widgets: Widget[] }) => void;
+        onExportComponents?: (context: any) => void;
+        onExportEsphome?: (context: any) => void;
+        onExportGlobals?: (context: any) => void;
+        onExportNumericSensors?: (context: any) => void;
+        onExportTextSensors?: (context: any) => void;
+        onExportBinarySensors?: (context: any) => void;
+        onExportHelpers?: (context: { lines: string[], widgets: Widget[], [key: string]: any }) => void;
     }
 
     interface AppState {
@@ -246,6 +247,7 @@ declare global {
         showDebugGrid: boolean;
         showRulers: boolean;
         zoomLevel: number;
+        settings: Record<string, any>;
 
         // Methods
         reset: () => void;
@@ -283,8 +285,8 @@ declare global {
         updateWidgets: (ids: string[], updates: Partial<Widget>) => void;
         updateWidgetsProps: (ids: string[], propUpdates: any) => void;
         moveWidgetToPage: (widgetId: string, targetPageIndex: number, x?: number | null, y?: number | null) => boolean;
-        deleteWidget: (id: string | null) => void;
-        copyWidget: (id?: string) => void;
+        deleteWidget: (id?: string | null) => void;
+        copyWidget: (id?: string | null) => void;
         pasteWidget: () => void;
         createDropShadow: (widgetIdOrIds: string | string[]) => void;
 
@@ -317,6 +319,7 @@ declare global {
         entityStates: Record<string, any>;
         isUndoRedoInProgress: boolean;
         pages: Page[];
+        updateLayoutIndicator?: () => void;
     }
 
     interface PluginRegistry {
@@ -324,12 +327,14 @@ declare global {
         get: (id: string) => Plugin | undefined;
         getAll: () => Plugin[];
         loadAll: () => Promise<void>;
+        onExportEsphome: (context: any) => void;
         onExportGlobals: (context: GenerationContext) => void;
         onExportNumericSensors: (context: GenerationContext) => void;
         onExportTextSensors: (context: GenerationContext) => void;
         onExportBinarySensors: (context: GenerationContext) => void;
         onExportComponents: (context: GenerationContext & { displayId: string }) => void;
         onExportHelpers: (context: { lines: string[], widgets: Widget[] }) => void;
+        onCollectRequirements?: (context: any) => void;
     }
 
     interface Window {

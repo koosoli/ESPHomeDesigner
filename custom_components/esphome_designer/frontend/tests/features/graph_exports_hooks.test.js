@@ -302,4 +302,29 @@ describe('graph exports_hooks', () => {
         expect(pendingTriggers.get('sensor.power')).toEqual(new Set(['- lambda: |- \n    refresh_graph();']));
         expect(pendingTriggers.has('sensor.local_only')).toBe(false);
     });
+
+    it('deduplicates shared LVGL refresh hooks for multiple graphs on the same entity', () => {
+        const pendingTriggers = new Map();
+
+        onExportNumericSensors({
+            isLvgl: true,
+            pendingTriggers,
+            widgets: [
+                {
+                    id: 'graph-1',
+                    type: 'graph',
+                    entity_id: 'sensor.power',
+                    props: {}
+                },
+                {
+                    id: 'graph-2',
+                    type: 'graph',
+                    entity_id: 'power',
+                    props: {}
+                }
+            ]
+        });
+
+        expect(pendingTriggers.get('sensor.power')).toEqual(new Set(['- lambda: |- \n    refresh_graph();']));
+    });
 });

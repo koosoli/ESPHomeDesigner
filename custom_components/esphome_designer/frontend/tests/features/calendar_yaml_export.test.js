@@ -41,4 +41,20 @@ describe('calendar yaml export', () => {
         expect(result.sensors).toContain('entity_id: sensor.esp_calendar_data');
         expect(result.lambda).toContain('// --- Calendar Widget (calendar_b) ---');
     });
+
+    it('keeps the default entry count and disables the event block when events are hidden', () => {
+        const result = generateSnippet({
+            id: 'calendar_c',
+            x: 0,
+            y: 0,
+            w: 240,
+            h: 180,
+            properties: {
+                show_events: false
+            }
+        });
+
+        expect(result.instructions).toContain('nr_entries: 8');
+        expect(result.lambda).toContain('if (false) {');
+    });
 });

@@ -5,6 +5,13 @@ type PropertyPanel = Record<string, any>;
 type RenderHelpers = Record<string, any>;
 type LooseContext = Record<string, any>;
 
+interface ImportMeta {
+  glob?: {
+    (pattern: string): Record<string, () => Promise<any>>;
+    <T = any>(pattern: string, options: Record<string, any>): Record<string, T>;
+  };
+}
+
 interface Window {
   ESPHomeDesigner: any;
   __ESPHOME_DESIGNER_HASS__?: {
@@ -14,6 +21,23 @@ interface Window {
 
 declare module '*state' {
   export const AppState: any;
+}
+
+declare module '*logger.js' {
+  export const Logger: {
+    log: (...args: any[]) => void;
+    warn: (...args: any[]) => void;
+    error: (...args: any[]) => void;
+  };
+}
+
+declare module '*helpers.js' {
+  export function generateId(): string;
+  export function deepClone<T>(value: T): T;
+}
+
+declare module '*devices.js' {
+  export const DEVICE_PROFILES: Record<string, any>;
 }
 
 declare module '*events.js' {
@@ -167,6 +191,12 @@ declare module '*protocol_hardware.js' {
 
 declare module '*plugin_registry' {
   export const registry: any;
+}
+
+declare module '@core/properties/calendar_python_template.js' {
+  export const CALENDAR_HELPER_SCRIPT: string;
+  export const buildCalendarPythonTemplate: any;
+  export default any;
 }
 
 declare module '*constants_icons.js' {

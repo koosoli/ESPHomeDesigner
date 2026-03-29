@@ -7,7 +7,7 @@ import { Logger } from '../../utils/logger.js';
 import { getHaHeaders, haFetch } from '../ha_api.js';
 import { BaseAdapter } from './base_adapter.js';
 import { AppState } from '../../core/state';
-import { registry } from '../../core/plugin_registry';
+import { registry } from '../../core/plugin_registry.js';
 import { Utils } from '../../core/utils';
 import { DEVICE_PROFILES } from '../devices.js';
 import * as Generators from '../hardware_generators.js';
@@ -41,7 +41,7 @@ export class ESPHomeAdapter extends BaseAdapter {
 
     async generate(layout: any): Promise<string> {
         if (!layout) {
-            console.error("ESPHomeAdapter: Missing layout");
+            Logger.error("ESPHomeAdapter: Missing layout");
             return "";
         }
         this.reset();

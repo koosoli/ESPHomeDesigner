@@ -108,4 +108,36 @@ describe('weather_forecast export_sensors', () => {
         expect(addFont).toHaveBeenCalledWith('Material Design Icons', 400, 48);
         expect(trackIcon).toHaveBeenCalledTimes(15);
     });
+
+    it('deduplicates repeated daily condition sensors across matching widgets', () => {
+        const lines = [];
+        const seenSensorIds = new Set();
+
+        onExportTextSensors({
+            lines,
+            seenSensorIds,
+            widgets: [
+                {
+                    id: 'weather-primary',
+                    type: 'weather_forecast',
+                    props: {
+                        days: 2,
+                        start_offset: 0
+                    }
+                },
+                {
+                    id: 'weather-secondary',
+                    type: 'weather_forecast',
+                    props: {
+                        days: 2,
+                        start_offset: 0
+                    }
+                }
+            ]
+        });
+
+        expect(lines.filter((line) => line === '  id: weather_cond_day0')).toHaveLength(1);
+        expect(lines.filter((line) => line === '  id: weather_cond_day1')).toHaveLength(1);
+        expect(lines.filter((line) => line === '# Weather Forecast Condition Sensors')).toHaveLength(1);
+    });
 });

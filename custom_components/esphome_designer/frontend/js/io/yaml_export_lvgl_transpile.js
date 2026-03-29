@@ -1,5 +1,5 @@
 import { Logger } from '../utils/logger.js';
-import { registry } from '../core/plugin_registry';
+import { registry } from '../core/plugin_registry.js';
 import { convertAlign, convertColor, formatOpacity, getLVGLFont } from './yaml_export_lvgl_core.js';
 
 const NEVER_STRIP = new Set([

@@ -1,5 +1,5 @@
 import { Logger } from '../utils/logger.js';
-import { registry } from '../core/plugin_registry';
+import { registry } from '../core/plugin_registry.js';
 
 /**
  * @param {any} val

@@ -1,7 +1,7 @@
 import { AppState } from '../core/state';
 import { on, EVENTS } from '../core/events.js';
 import { Logger } from '../utils/logger.js';
-import { registry } from '../core/plugin_registry';
+import { registry } from '../core/plugin_registry.js';
 
 /**
  * Build the hierarchy traversal structures for the current widget list.

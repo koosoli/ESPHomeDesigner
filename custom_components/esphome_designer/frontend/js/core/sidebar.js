@@ -33,8 +33,6 @@ export class Sidebar {
 
     init() {
         Logger.log("Sidebar: init called");
-        const debugDiv = document.getElementById('debug-overlay');
-        if (debugDiv) debugDiv.innerHTML += 'Sidebar.init called<br>';
         // Subscribe to state changes
         on(EVENTS.STATE_CHANGED, () => this.render());
         on(EVENTS.PAGE_CHANGED, () => this.render());
@@ -75,11 +73,6 @@ export class Sidebar {
             });
         }
 
-        // Global click debug
-        document.addEventListener('click', (e) => {
-            const debugDiv = document.getElementById('debug-overlay');
-            if (debugDiv && e.target instanceof HTMLElement) debugDiv.innerHTML += 'Global click: ' + e.target.tagName + '<br>';
-        });
 
         // Clear Page Button
         const clearAllBtn = document.getElementById('clearAllBtn');
@@ -344,24 +337,18 @@ export class Sidebar {
 
     /** @param {any} e */
     handlePaletteClick(e) {
-        const debugDiv = document.getElementById('debug-overlay');
-        if (debugDiv) debugDiv.innerHTML += 'handlePaletteClick triggered<br>';
-
         Logger.log("Sidebar: handlePaletteClick", e.target);
         const item = e.target.closest(".item[data-widget-type]");
         if (!item) {
             Logger.log("Sidebar: No item found");
-            if (debugDiv) debugDiv.innerHTML += 'No item found<br>';
             return;
         }
         const type = item.getAttribute("data-widget-type");
         Logger.log("Sidebar: Creating widget of type", type);
-        if (debugDiv) debugDiv.innerHTML += 'Creating widget: ' + type + '<br>';
 
         try {
             const widget = WidgetFactory.createWidget(type);
             Logger.log("Sidebar: Widget created", widget);
-            if (debugDiv) debugDiv.innerHTML += 'Widget created<br>';
 
             AppState.addWidget(widget);
             Logger.log("Sidebar: Widget added to state");
@@ -370,11 +357,8 @@ export class Sidebar {
             if (this.app && this.app.canvas) {
                 this.app.canvas.suppressNextFocus = true;
             }
-
-            if (debugDiv) debugDiv.innerHTML += 'Widget added to state<br>';
         } catch (err) {
             Logger.error("Sidebar: Error creating/adding widget", err);
-            if (debugDiv) debugDiv.innerHTML += 'Error: ' + (/** @type {Error} */(err)).message + '<br>';
         }
     }
 

@@ -13,6 +13,32 @@ import { Logger } from '../../utils/logger.js';
 import { hasHaBackend } from '../../utils/env.js';
 import { DEVICE_PROFILES } from '../../io/devices.js';
 
+type UnknownRecord = Record<string, any>;
+type WidgetUpdate = Partial<Widget> & { props?: Record<string, any> };
+type AppSettingsSnapshot = UnknownRecord & {
+    device_name?: string | null;
+    deviceName?: string | null;
+    device_model?: string | null;
+    deviceModel?: string | null;
+    customHardware?: HardwareSettings | null;
+    custom_hardware?: HardwareSettings | null;
+    protocolHardware?: Record<string, any> | null;
+    protocol_hardware?: Record<string, any> | null;
+    renderingMode?: string | null;
+    orientation?: string | null;
+    oeplEntityId?: string;
+    oeplDither?: number;
+};
+type PageChangeOptions = {
+    forceFocus?: boolean;
+    [key: string]: unknown;
+};
+type PageClearResult = {
+    deleted: number;
+    preserved: number;
+};
+type DeviceProfilesMap = Record<string, Partial<DeviceProfile> & Record<string, any>>;
+
 export class AppStateFacade {
     project: ProjectStore;
     editor: EditorStore;
@@ -26,7 +52,8 @@ export class AppStateFacade {
 
     _isRestoringHistory: boolean;
     isUndoRedoInProgress: boolean;
-    $raw?: AppStateFacade; // For proxy bypass
+    entityStates: Record<string, any>;
+    $raw?: AppStateFacade;
 
     constructor() {
         this.project = new ProjectStore();
@@ -34,20 +61,18 @@ export class AppStateFacade {
         this.preferences = new PreferencesStore();
         this.secrets = new SecretsStore();
 
-        // Sub-managers (Composition)
         this.selectionManager = new SelectionManager(this);
         this.historyManager = new HistoryManager(this);
         this.widgetManager = new WidgetManager(this);
         this.pageManager = new PageManager(this);
 
-        // Guard flag to prevent history recording during undo/redo
         this._isRestoringHistory = false;
         this.isUndoRedoInProgress = false;
+        this.entityStates = {};
 
         this.recordHistory();
 
-        // Mode Compatibility Sync
-        on(EVENTS.SETTINGS_CHANGED, (settings: any) => {
+        on(EVENTS.SETTINGS_CHANGED, (settings: AppSettingsSnapshot | undefined) => {
             if (settings && settings.renderingMode !== undefined) {
                 this.syncWidgetVisibilityWithMode();
             }
@@ -60,58 +85,113 @@ export class AppStateFacade {
         this.recordHistory();
     }
 
-    // --- Getters ---
-    get pages(): any[] { return this.project.pages; }
-    get currentPageIndex(): number { return this.project.currentPageIndex; }
-    get selectedWidgetId(): string | null { return this.editor.selectedWidgetIds[0] || null; }
-    get selectedWidgetIds(): string[] { return this.editor.selectedWidgetIds; }
-    get settings(): Record<string, any> {
+    get pages(): Page[] {
+        return this.project.pages as Page[];
+    }
+
+    get state() {
+        return this.project.state;
+    }
+
+    get currentPageIndex(): number {
+        return this.project.currentPageIndex;
+    }
+
+    get selectedWidgetId(): string | null {
+        return this.editor.selectedWidgetIds[0] || null;
+    }
+
+    get selectedWidgetIds(): string[] {
+        return this.editor.selectedWidgetIds;
+    }
+
+    get settings(): AppSettingsSnapshot {
         return {
             ...this.preferences.state,
             device_name: this.project.deviceName,
             deviceName: this.project.deviceName,
             device_model: this.project.deviceModel,
             deviceModel: this.project.deviceModel,
-            customHardware: this.project.customHardware,
-            custom_hardware: this.project.customHardware,
-            protocolHardware: this.project.protocolHardware,
-            protocol_hardware: this.project.protocolHardware,
+            customHardware: this.project.customHardware as HardwareSettings | null,
+            custom_hardware: this.project.customHardware as HardwareSettings | null,
+            protocolHardware: this.project.protocolHardware as Record<string, any> | null,
+            protocol_hardware: this.project.protocolHardware as Record<string, any> | null,
             ...this.secrets.keys
         };
     }
-    get deviceName(): string | null { return this.project.deviceName; }
-    get deviceModel(): string | null { return this.project.deviceModel; }
-    get currentLayoutId(): string | null { return this.project.currentLayoutId; }
-    get snapEnabled(): boolean { return this.preferences.snapEnabled; }
-    get showGrid(): boolean { return this.preferences.showGrid; }
-    get showDebugGrid(): boolean { return this.preferences.showDebugGrid; }
-    get showRulers(): boolean { return this.preferences.showRulers; }
-    get zoomLevel(): number { return this.editor.zoomLevel; }
 
-    getCurrentPage(): any | null { return this.project.getCurrentPage(); }
-
-    getWidgetById(id: string): any | undefined { return this.project.getWidgetById(id); }
-
-    getSelectedWidget(): any | undefined { return this.project.getWidgetById(this.editor.selectedWidgetIds[0]); }
-
-    getSelectedWidgets(): any[] {
-        return this.editor.selectedWidgetIds.map((id: string) => this.getWidgetById(id)).filter((w: any) => !!w);
+    get deviceName(): string | null {
+        return this.project.deviceName;
     }
 
-    getSelectedProfile(): any | null {
-        return this.project.deviceModel ? (DEVICE_PROFILES as Record<string, any>)[this.project.deviceModel] || null : null;
+    get deviceModel(): string | null {
+        return this.project.deviceModel;
+    }
+
+    get currentLayoutId(): string | null {
+        return this.project.currentLayoutId;
+    }
+
+    get snapEnabled(): boolean {
+        return this.preferences.snapEnabled;
+    }
+
+    get showGrid(): boolean {
+        return this.preferences.showGrid;
+    }
+
+    get showDebugGrid(): boolean {
+        return this.preferences.showDebugGrid;
+    }
+
+    get showRulers(): boolean {
+        return this.preferences.showRulers;
+    }
+
+    get zoomLevel(): number {
+        return this.editor.zoomLevel;
+    }
+
+    getCurrentPage(): Page | null {
+        return this.project.getCurrentPage() as Page | null;
+    }
+
+    getWidgetById(id: string): Widget | undefined {
+        return this.project.getWidgetById(id) as Widget | undefined;
+    }
+
+    getSelectedWidget(): Widget | undefined {
+        return this.project.getWidgetById(this.editor.selectedWidgetIds[0]) as Widget | undefined;
+    }
+
+    getSelectedWidgets(): Widget[] {
+        return this.editor.selectedWidgetIds
+            .map((id) => this.getWidgetById(id))
+            .filter((widget): widget is Widget => !!widget);
+    }
+
+    getSelectedProfile(): DeviceProfile | null {
+        const profiles = DEVICE_PROFILES as unknown as DeviceProfilesMap;
+        return this.project.deviceModel ? (profiles[this.project.deviceModel] as DeviceProfile | undefined) || null : null;
     }
 
     getCanvasDimensions(): { width: number; height: number } {
         const mode = this.preferences.state.renderingMode || 'direct';
         if (mode === 'oepl' || mode === 'opendisplay') {
-            const ph = this.project.protocolHardware as { width: number; height: number };
+            const protocolHardware = this.project.protocolHardware as { width: number; height: number };
             const orientation = this.preferences.state.orientation;
             if (orientation === 'portrait') {
-                return { width: Math.min(ph.width, ph.height), height: Math.max(ph.width, ph.height) };
+                return {
+                    width: Math.min(protocolHardware.width, protocolHardware.height),
+                    height: Math.max(protocolHardware.width, protocolHardware.height)
+                };
             }
-            return { width: Math.max(ph.width, ph.height), height: Math.min(ph.width, ph.height) };
+            return {
+                width: Math.max(protocolHardware.width, protocolHardware.height),
+                height: Math.min(protocolHardware.width, protocolHardware.height)
+            };
         }
+
         return this.project.getCanvasDimensions(this.preferences.state.orientation || 'landscape');
     }
 
@@ -119,37 +199,37 @@ export class AppStateFacade {
         return this.project.getCanvasShape();
     }
 
-    getPagesPayload(): any {
-        const payload: Record<string, any> = {
-            ...this.project.getPagesPayload(),
+    getPagesPayload(): ProjectPayload {
+        const payload = {
+            ...(this.project.getPagesPayload() as ProjectPayload),
             currentPageIndex: this.currentPageIndex,
             ...this.settings
-        };
+        } as ProjectPayload;
 
-        // Settings should not override core project state
-        // Re-apply canonical project values to override any stale/null settings
-        payload.deviceModel = this.project.deviceModel;
-        payload.customHardware = this.project.customHardware;
-        payload.protocolHardware = this.project.protocolHardware;
+        payload.deviceModel = this.project.deviceModel || undefined;
+        payload.customHardware = this.project.customHardware as HardwareSettings | undefined;
+        payload.protocolHardware = this.project.protocolHardware as Record<string, any> | undefined;
 
-        // Ensure snake_case for HA compatibility
-        payload.device_model = this.project.deviceModel;
-        payload.custom_hardware = this.project.customHardware;
-        payload.protocol_hardware = this.project.protocolHardware;
+        payload.device_model = this.project.deviceModel || undefined;
+        payload.custom_hardware = this.project.customHardware as HardwareSettings | undefined;
+        payload.protocol_hardware = this.project.protocolHardware as Record<string, any> | undefined;
         return payload;
     }
 
-    getSettings(): Record<string, any> { return this.settings; }
-    setSettings(s: any): void { this.updateSettings(s); }
+    getSettings(): AppSettingsSnapshot {
+        return this.settings;
+    }
 
-    updateProtocolHardware(updates: any): void {
+    setSettings(settings: AppSettingsSnapshot): void {
+        this.updateSettings(settings);
+    }
+
+    updateProtocolHardware(updates: Record<string, any>): void {
         Object.assign(this.project.state.protocolHardware, updates);
         emit(EVENTS.SETTINGS_CHANGED);
-        // Force canvas refocus when protocol dimensions change
         emit(EVENTS.PAGE_CHANGED, { index: this.currentPageIndex, forceFocus: true });
     }
 
-    // --- Persistence ---
     saveToLocalStorage(): void {
         if (!hasHaBackend()) {
             const payload = this.getPagesPayload();
@@ -157,19 +237,17 @@ export class AppStateFacade {
         }
     }
 
-    loadFromLocalStorage(): any | null {
+    loadFromLocalStorage(): ProjectPayload | null {
         try {
             const data = localStorage.getItem('esphome-designer-layout');
-            const parsed = data ? JSON.parse(data) : null;
-            return parsed;
-        } catch (e) {
-            console.error('[loadFromLocalStorage] Parse error:', e);
+            return data ? JSON.parse(data) as ProjectPayload : null;
+        } catch (error) {
+            Logger.error('[loadFromLocalStorage] Parse error:', error);
             return null;
         }
     }
 
-    // --- Actions ---
-    setPages(pages: any[]): void {
+    setPages(pages: Page[]): void {
         this.project.setPages(pages);
         emit(EVENTS.STATE_CHANGED);
     }
@@ -178,7 +256,7 @@ export class AppStateFacade {
         this.pageManager.reorderWidget(pageIndex, fromIndex, toIndex);
     }
 
-    setCurrentPageIndex(index: number, options: any = {}): void {
+    setCurrentPageIndex(index: number, options: PageChangeOptions = {}): void {
         this.pageManager.setCurrentPageIndex(index, options);
     }
 
@@ -186,23 +264,23 @@ export class AppStateFacade {
         this.pageManager.reorderPage(fromIndex, toIndex);
     }
 
-    addPage(atIndex: number | null | undefined = null): any {
-        return this.pageManager.addPage(atIndex);
+    addPage(atIndex: number | null | undefined = null): Page | null {
+        return this.pageManager.addPage(atIndex) as Page | null;
     }
 
     deletePage(index: number): void {
         this.pageManager.deletePage(index);
     }
 
-    duplicatePage(index: number): any {
-        return this.pageManager.duplicatePage(index);
+    duplicatePage(index: number): Page | null {
+        return this.pageManager.duplicatePage(index) as Page | null;
     }
 
     renamePage(index: number, newName: string): void {
         this.pageManager.renamePage(index, newName);
     }
 
-    selectWidget(id: string | null | undefined, multi: boolean = false): void {
+    selectWidget(id: string | null | undefined, multi = false): void {
         this.selectionManager.selectWidget(id, multi);
     }
 
@@ -242,27 +320,33 @@ export class AppStateFacade {
         this.selectionManager.distributeSelectedWidgets(axis);
     }
 
-    updateSettings(newSettings: any): void {
+    updateSettings(newSettings: AppSettingsSnapshot): void {
         const secretUpdates: Record<string, any> = {};
         const prefUpdates: Record<string, any> = {};
 
-        Object.keys(newSettings).forEach(key => {
-            if (key.startsWith('ai_api_key_')) secretUpdates[key] = newSettings[key];
-            else prefUpdates[key] = newSettings[key];
+        Object.keys(newSettings).forEach((key) => {
+            if (key.startsWith('ai_api_key_')) {
+                secretUpdates[key] = newSettings[key];
+            } else {
+                prefUpdates[key] = newSettings[key];
+            }
         });
 
         if (Object.keys(secretUpdates).length) {
-            Object.entries(secretUpdates).forEach(([k, v]) => this.secrets.set(k, v));
+            Object.entries(secretUpdates).forEach(([key, value]) => this.secrets.set(key, String(value ?? '')));
         }
 
         this.preferences.update(prefUpdates);
 
-        if (newSettings.device_name) this.project.state.deviceName = newSettings.device_name;
-        if (newSettings.device_model) this.project.state.deviceModel = newSettings.device_model;
+        if (newSettings.device_name) {
+            this.project.state.deviceName = newSettings.device_name;
+        }
+        if (newSettings.device_model) {
+            this.project.state.deviceModel = newSettings.device_model;
+        }
 
         emit(EVENTS.STATE_CHANGED);
 
-        // If settings that affect canvas layout changed, trigger a refocus
         if (newSettings.device_model || newSettings.orientation || newSettings.custom_hardware) {
             emit(EVENTS.PAGE_CHANGED, { index: this.currentPageIndex, forceFocus: true });
         }
@@ -273,13 +357,14 @@ export class AppStateFacade {
         this.updateLayoutIndicator();
         emit(EVENTS.STATE_CHANGED);
     }
+
     setDeviceModel(model: string): void {
         this.project.state.deviceModel = model;
         this.updateLayoutIndicator();
         emit(EVENTS.STATE_CHANGED);
-        // Also trigger canvas refocus on model change
         emit(EVENTS.PAGE_CHANGED, { index: this.currentPageIndex, forceFocus: true });
     }
+
     setCurrentLayoutId(id: string): void {
         this.project.state.currentLayoutId = id;
         this.updateLayoutIndicator();
@@ -287,38 +372,53 @@ export class AppStateFacade {
     }
 
     updateLayoutIndicator(): void {
-        const nameEl = document.getElementById('currentLayoutName');
-        if (nameEl) nameEl.textContent = this.project.deviceName || this.project.currentLayoutId || "Unknown";
+        const nameElement = document.getElementById('currentLayoutName');
+        if (nameElement) {
+            nameElement.textContent = this.project.deviceName || this.project.currentLayoutId || 'Unknown';
+        }
     }
 
-    setSnapEnabled(e: boolean): void { this.preferences.setSnapEnabled(e); }
-    setShowGrid(e: boolean): void { this.preferences.setShowGrid(e); }
-    setShowDebugGrid(e: boolean): void { this.preferences.setShowDebugGrid(e); }
-    setShowRulers(e: boolean): void { this.preferences.setShowRulers(e); }
-    setZoomLevel(l: number): void { this.editor.setZoomLevel(l); }
+    setSnapEnabled(enabled: boolean): void {
+        this.preferences.setSnapEnabled(enabled);
+    }
 
-    // --- Widget Ops ---
-    setCustomHardware(config: any): void {
+    setShowGrid(enabled: boolean): void {
+        this.preferences.setShowGrid(enabled);
+    }
+
+    setShowDebugGrid(enabled: boolean): void {
+        this.preferences.setShowDebugGrid(enabled);
+    }
+
+    setShowRulers(enabled: boolean): void {
+        this.preferences.setShowRulers(enabled);
+    }
+
+    setZoomLevel(level: number): void {
+        this.editor.setZoomLevel(level);
+    }
+
+    setCustomHardware(config: Record<string, any>): void {
         this.widgetManager.setCustomHardware(config);
     }
 
-    addWidget(w: any, pageIndex: number | null = null): void {
-        this.widgetManager.addWidget(w, pageIndex);
+    addWidget(widget: Widget, pageIndex: number | null = null): void {
+        this.widgetManager.addWidget(widget, pageIndex);
     }
 
-    updateWidget(id: string, u: any): void {
-        this.widgetManager.updateWidget(id, u);
+    updateWidget(id: string, updates: WidgetUpdate): void {
+        this.widgetManager.updateWidget(id, updates);
     }
 
-    updateWidgets(ids: string[], u: any): void {
-        this.widgetManager.updateWidgets(ids, u);
+    updateWidgets(ids: string[], updates: WidgetUpdate): void {
+        this.widgetManager.updateWidgets(ids, updates);
     }
 
-    updateWidgetsProps(ids: string[], propUpdates: any): void {
+    updateWidgetsProps(ids: string[], propUpdates: Record<string, any>): void {
         this.widgetManager.updateWidgetsProps(ids, propUpdates);
     }
 
-    deleteWidget(id: string): void {
+    deleteWidget(id: string | null = null): void {
         this.widgetManager.deleteWidget(id);
     }
 
@@ -326,7 +426,7 @@ export class AppStateFacade {
         return this.widgetManager.moveWidgetToPage(widgetId, targetPageIndex, x, y);
     }
 
-    copyWidget(id: string): void {
+    copyWidget(id: string | null = null): void {
         this.widgetManager.copyWidget(id);
     }
 
@@ -338,11 +438,10 @@ export class AppStateFacade {
         this.widgetManager.createDropShadow(widgetIdOrIds);
     }
 
-    clearCurrentPage(preserveLocked: boolean = false): any {
-        return this.pageManager.clearCurrentPage(preserveLocked);
+    clearCurrentPage(preserveLocked = false): PageClearResult {
+        return this.pageManager.clearCurrentPage(preserveLocked) as PageClearResult;
     }
 
-    // --- History ---
     recordHistory(): void {
         this.historyManager.recordHistory();
     }
@@ -355,18 +454,22 @@ export class AppStateFacade {
         this.historyManager.redo();
     }
 
-    setInternalFlag(key: string, value: any): void {
-        // Direct assignment bypassing standard route, useful when 'this' might be a Proxy
+    setInternalFlag(key: keyof AppStateFacade | string, value: unknown): void {
         const target = this.$raw || this;
-        (target as any)[key] = value;
+        (target as AppStateFacade & Record<string, unknown>)[String(key)] = value;
     }
 
-    restoreSnapshot(s: any): void {
-        this.historyManager.restoreSnapshot(s);
+    restoreSnapshot(snapshot: ProjectPayload | UnknownRecord): void {
+        this.historyManager.restoreSnapshot(snapshot);
     }
 
-    canUndo(): boolean { return this.historyManager.canUndo(); }
-    canRedo(): boolean { return this.historyManager.canRedo(); }
+    canUndo(): boolean {
+        return this.historyManager.canUndo();
+    }
+
+    canRedo(): boolean {
+        return this.historyManager.canRedo();
+    }
 
     syncWidgetOrderWithHierarchy(): void {
         this.widgetManager.syncWidgetOrderWithHierarchy();
@@ -376,32 +479,31 @@ export class AppStateFacade {
         this.widgetManager.syncWidgetVisibilityWithMode();
     }
 
-    _isWidgetCompatibleWithMode(w: any, mode: string): boolean {
-        return this.widgetManager.isWidgetCompatibleWithMode(w, mode);
+    _isWidgetCompatibleWithMode(widget: Widget, mode: string): boolean {
+        return this.widgetManager.isWidgetCompatibleWithMode(widget, mode);
     }
 
-    _checkRenderingModeForWidget(w: any): void {
-        this.widgetManager.checkRenderingModeForWidget(w);
+    _checkRenderingModeForWidget(widget: Widget): void {
+        this.widgetManager.checkRenderingModeForWidget(widget);
     }
 }
 
 const AppStateInstance = new AppStateFacade();
 
-const handler = {
-    set(target: any, prop: string | symbol, value: any, receiver: any) {
+const handler: ProxyHandler<AppStateFacade> = {
+    set(target, prop, value, receiver) {
         if (prop === 'snapEnabled') {
             Logger.warn(`[StateProxy] Intercepted illegal write to '${String(prop)}'. Automatically rerouting to setSnapEnabled().`);
             if (typeof target.setSnapEnabled === 'function') {
-                target.setSnapEnabled(value);
+                target.setSnapEnabled(Boolean(value));
             }
             return true;
         }
 
         const allowedInternalProps = ['entityStates', '_isRestoringHistory', 'isUndoRedoInProgress'];
 
-        // Log illegal direct mutations (exceptions: functions and whitelisted internal trackers)
-        if (typeof prop === 'string' && !allowedInternalProps.includes(prop) && typeof target[prop] !== 'function') {
-            Logger.warn(`[StateProxy] 🚨 ILLEGAL STATE MUTATION DETECTED: AppState.${prop} = ${value}`);
+        if (typeof prop === 'string' && !allowedInternalProps.includes(prop) && typeof target[prop as keyof AppStateFacade] !== 'function') {
+            Logger.warn(`[StateProxy] Illegal state mutation detected: AppState.${prop} = ${String(value)}`);
             console.trace(`[StateProxy] Trace for illegal mutation of AppState.${prop}`);
         }
 
@@ -411,6 +513,8 @@ const handler = {
 
 export const AppState = new Proxy(AppStateInstance, handler);
 
-// Support Legacy Unified Object Reference
-(window as any).ESPHomeDesigner = (window as any).ESPHomeDesigner || {};
-(window as any).ESPHomeDesigner.state = AppState;
+const rootWindow = window as Window & {
+    ESPHomeDesigner?: Window['ESPHomeDesigner'];
+};
+rootWindow.ESPHomeDesigner = rootWindow.ESPHomeDesigner || {};
+rootWindow.ESPHomeDesigner.state = AppState;

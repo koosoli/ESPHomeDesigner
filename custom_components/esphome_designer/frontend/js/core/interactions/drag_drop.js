@@ -2,7 +2,7 @@
 import { AppState } from '../state';
 import { Logger } from '../../utils/logger.js';
 import { WidgetFactory } from '../widget_factory';
-import { registry } from '../plugin_registry';
+import { registry } from '../plugin_registry.js';
 
 /**
  * @param {any} canvasInstance

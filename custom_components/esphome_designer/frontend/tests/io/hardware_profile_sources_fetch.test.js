@@ -36,6 +36,9 @@ import {
     saveOfflineProfileToStorage
 } from '../../js/io/hardware_profile_sources.js';
 
+const defaultGetGlob = hardwareProfileRuntime.getGlob;
+const defaultGetStorage = hardwareProfileRuntime.getStorage;
+
 describe('hardware_profile_sources fetch and storage helpers', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -73,6 +76,16 @@ describe('hardware_profile_sources fetch and storage helpers', () => {
         const profiles = await fetchDynamicHardwareProfiles();
 
         expect(profiles).toEqual([]);
+    });
+
+    it('exposes bundled hardware files through the default runtime glob helper', () => {
+        hardwareProfileRuntime.getGlob = defaultGetGlob;
+
+        const globFn = hardwareProfileRuntime.getGlob();
+        expect(typeof globFn).toBe('function');
+
+        const files = globFn();
+        expect(Object.keys(files).length).toBeGreaterThan(0);
     });
 
     it('falls back to bundled profiles when the backend request fails and skips invalid recipes', async () => {
@@ -199,5 +212,27 @@ display:
         expect(mockLogger.warn).toHaveBeenCalledWith('No localStorage available for offline profiles.');
         expect(mockLogger.error).toHaveBeenCalledWith('Failed to save profile to localStorage:', expect.any(Error));
         expect(mockLogger.warn).toHaveBeenCalledWith('Could not load offline profiles from storage:', expect.any(Error));
+    });
+
+    it('returns null from the default storage helper when localStorage access throws', () => {
+        hardwareProfileRuntime.getStorage = defaultGetStorage;
+
+        const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+        Object.defineProperty(globalThis, 'localStorage', {
+            configurable: true,
+            get() {
+                throw new Error('storage blocked');
+            }
+        });
+
+        try {
+            expect(hardwareProfileRuntime.getStorage()).toBeNull();
+        } finally {
+            if (descriptor) {
+                Object.defineProperty(globalThis, 'localStorage', descriptor);
+            } else {
+                delete globalThis.localStorage;
+            }
+        }
     });
 });

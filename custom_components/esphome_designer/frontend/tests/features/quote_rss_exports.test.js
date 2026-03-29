@@ -110,4 +110,36 @@ describe('quote_rss exports', () => {
         expect(textSensorOutput).toContain('name: "Quote Text 2"');
         expect(textSensorOutput).toContain('id: quote_quote_feed_author_sensor_1');
     });
+
+    it('deduplicates shared HTTP request plumbing and skips author globals when hidden', () => {
+        const widgets = [
+            {
+                id: 'quote-a',
+                type: 'quote_rss',
+                props: {
+                    item_count: 2,
+                    show_author: false,
+                    feed_url: 'https://quotes.example/a'
+                }
+            },
+            {
+                id: 'quote-b',
+                type: 'quote_rss',
+                props: {
+                    show_author: false,
+                    feed_url: 'https://quotes.example/b'
+                }
+            }
+        ];
+
+        const globalsLines = [];
+        onExportGlobals({ lines: globalsLines, widgets });
+        expect(globalsLines.join('\n')).not.toContain('_author_global');
+
+        const componentLines = [];
+        onExportComponents({ lines: componentLines, widgets, displayId: 'display_main' });
+        expect(componentLines.filter((line) => line.trim() === 'http_request:')).toHaveLength(1);
+        expect(componentLines.join('\n')).toContain('quotes.example%2Fa');
+        expect(componentLines.join('\n')).toContain('quotes.example%2Fb');
+    });
 });

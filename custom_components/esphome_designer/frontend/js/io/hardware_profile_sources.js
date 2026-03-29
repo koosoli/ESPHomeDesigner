@@ -7,10 +7,24 @@ import { Logger } from '../utils/logger.js';
 import { hasHaBackend, HA_API_BASE } from '../utils/env.js';
 import { getHaHeaders, haFetch } from './ha_api.js';
 
+let bundledHardwareGlob = undefined;
+/* v8 ignore start */
+try {
+    bundledHardwareGlob = import.meta.glob('../../hardware/*.yaml', {
+        query: '?raw',
+        import: 'default',
+        eager: true
+    });
+} catch {
+    // Non-Vite environments do not expose import.meta.glob.
+}
+/* v8 ignore stop */
+
 export const hardwareProfileRuntime = {
     /** @returns {any} */
     getGlob() {
-        return /** @type {any} */ (import.meta).glob;
+        const files = bundledHardwareGlob;
+        return files ? () => files : undefined;
     },
     /** @returns {Storage | null} */
     getStorage() {
