@@ -6,7 +6,7 @@
   "main": "index.html",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/build_frontend.cjs",
     "test": "vitest run && node scripts/schema_hash.cjs --check",
     "test:watch": "vitest",
     "schema:check": "node scripts/schema_hash.cjs --check",

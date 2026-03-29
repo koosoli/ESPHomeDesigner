@@ -23,8 +23,8 @@ const HEADER_PATH = path.join(
 const RELEASE_NOTES_PATH = path.join(ROOT, 'release_notes.md');
 const UPLOAD_MANIFEST_PATH = path.join(ROOT, 'tmp', 'release-upload-manifest.txt');
 const NODE = process.execPath;
-const VITE_BIN = path.join(ROOT, 'node_modules', 'vite', 'bin', 'vite.js');
 const SKIP_HASSFEST = process.argv.includes('--skip-hassfest');
+const { DIST_META_PATH, verifyBuildMeta } = require('./dist_build_meta.cjs');
 
 function readJson(filePath) {
     return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -180,6 +180,7 @@ function writeUploadManifest(version, displayVersion, distChanges) {
         '',
         'Important:',
         '- Upload the whole custom_components/esphome_designer/frontend/dist directory, not just one or two hashed assets.',
+        '- Make sure custom_components/esphome_designer/frontend/dist/build-meta.json is included; CI uses it to verify the shipped frontend bundle.',
         '- GitHub Pages builds from source, but the Home Assistant package and CI dist-freshness check depend on dist staying in sync.',
         '',
         'Upload these too if you changed them locally:',
@@ -231,7 +232,7 @@ function main() {
     );
 
     const before = snapshotDir(DIST_DIR);
-    runStep('Build frontend bundle', NODE, [VITE_BIN, 'build']);
+    runStep('Build frontend bundle', NODE, [path.join('scripts', 'build_frontend.cjs')]);
     const after = snapshotDir(DIST_DIR);
     const distChanges = diffSnapshots(before, after);
 
@@ -246,6 +247,11 @@ function main() {
     }
 
     assertCondition(distContainsText(displayVersion), `built dist does not contain ${displayVersion}`);
+    const distMeta = verifyBuildMeta();
+    assertCondition(
+        distMeta.ok,
+        `${rel(DIST_META_PATH)} must match the rebuilt dist${distMeta.errors.length ? ` (${distMeta.errors.join('; ')})` : ''}`
+    );
 
     runStep('Baseline governance', NODE, [path.join('scripts', 'check_baseline_governance.cjs')]);
     runStep('Home Assistant integration verification', NODE, [path.join('scripts', 'verify_ha_integration.cjs')]);

@@ -81,7 +81,7 @@ If you changed frontend source, Vite config, or anything that affects the shippe
 npm run verify:dist
 ```
 
-That command rebuilds the frontend and fails if `custom_components/esphome_designer/frontend/dist` was stale.
+That command verifies `custom_components/esphome_designer/frontend/dist/build-meta.json` against the current frontend sources and the active manifest-backed dist files. It still catches stale frontend bundles, but it will not fail just because a browser upload left behind an old unreferenced hashed asset.
 
 For manual GitHub uploads and release/version bumps, use:
 
@@ -134,6 +134,8 @@ To build the frontend for production/HACS:
 npm run build
 ```
 This outputs assets to `custom_components/esphome_designer/frontend/dist`.
+
+That build also refreshes `custom_components/esphome_designer/frontend/dist/build-meta.json`, which is what CI uses for the committed-dist freshness check.
 
 ## Frontend Test Focus
 

@@ -364,7 +364,7 @@ function checkTypeScript() {
 }
 
 function checkBuild() {
-    const result = run('npx vite build');
+    const result = run('node scripts/build_frontend.cjs');
     const distPath = path.join(FRONTEND, 'dist');
     attachArtifacts(result.commandIndex, [distPath]);
     return makeGate('web', 'Build', result.status === 0, result.status === 0 ? 'Success' : 'Build failed');
