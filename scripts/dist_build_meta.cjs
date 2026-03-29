@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const { execFileSync } = require('child_process');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -14,6 +15,7 @@ const PACKAGE_JSON_PATH = path.join(ROOT, 'package.json');
 const PACKAGE_LOCK_PATH = path.join(ROOT, 'package-lock.json');
 
 const TEXT_EXTENSIONS = new Set([
+    '.cjs',
     '.css',
     '.csv',
     '.d.ts',
@@ -21,6 +23,7 @@ const TEXT_EXTENSIONS = new Set([
     '.js',
     '.json',
     '.md',
+    '.mjs',
     '.svg',
     '.ts',
     '.txt',
@@ -45,9 +48,7 @@ function isTextFile(filePath) {
     return TEXT_EXTENSIONS.has(path.extname(filePath).toLowerCase());
 }
 
-function normalizedFileBuffer(filePath) {
-    const buffer = fs.readFileSync(filePath);
-
+function normalizeBufferForPath(filePath, buffer) {
     if (!isTextFile(filePath)) {
         return buffer;
     }
@@ -59,6 +60,10 @@ function normalizedFileBuffer(filePath) {
             .replace(/\r\n/g, '\n'),
         'utf8'
     );
+}
+
+function normalizedFileBuffer(filePath) {
+    return normalizeBufferForPath(filePath, fs.readFileSync(filePath));
 }
 
 function createHash() {
@@ -131,6 +136,77 @@ function computeSourceSignature() {
     };
 }
 
+function git(relativeArgs, options = {}) {
+    return execFileSync('git', relativeArgs, {
+        cwd: ROOT,
+        encoding: Object.prototype.hasOwnProperty.call(options, 'encoding') ? options.encoding : 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        maxBuffer: options.maxBuffer ?? 32 * 1024 * 1024
+    });
+}
+
+function gitPath(relativePath) {
+    return relativePath.replace(/\\/g, '/');
+}
+
+function hasGitRef(ref = 'HEAD') {
+    try {
+        git(['rev-parse', '--verify', `${ref}^{commit}`]);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function readGitBlob(relativePath, ref = 'HEAD') {
+    return git(['cat-file', 'blob', `${ref}:${gitPath(relativePath)}`], {
+        encoding: null,
+        maxBuffer: 64 * 1024 * 1024
+    });
+}
+
+function getGitBuildInputFiles(ref = 'HEAD') {
+    const paths = [
+        'vite.config.js',
+        'package.json',
+        'package-lock.json',
+        ...SOURCE_DIRS.map((dir) => `custom_components/esphome_designer/frontend/${dir}`),
+        ...SOURCE_FILES.map((file) => `custom_components/esphome_designer/frontend/${file}`)
+    ];
+    const output = git(['ls-tree', '-r', '--name-only', ref, '--', ...paths]);
+
+    return output
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .sort(compareStrings);
+}
+
+function computeSignatureFromFiles(files, readBuffer) {
+    const hash = createHash();
+
+    for (const relativePath of files) {
+        hash.update(relativePath);
+        hash.update('\0');
+        hash.update(readBuffer(relativePath));
+        hash.update('\0');
+    }
+
+    return hash.digest('hex');
+}
+
+function computeSourceSignatureFromGitRef(ref = 'HEAD') {
+    const files = getGitBuildInputFiles(ref);
+
+    return {
+        signature: computeSignatureFromFiles(
+            files,
+            (relativePath) => normalizeBufferForPath(relativePath, readGitBlob(relativePath, ref))
+        ),
+        files
+    };
+}
+
 function readDistManifest() {
     if (!fs.existsSync(DIST_MANIFEST_PATH)) {
         return null;
@@ -139,12 +215,7 @@ function readDistManifest() {
     return JSON.parse(fs.readFileSync(DIST_MANIFEST_PATH, 'utf8'));
 }
 
-function collectActiveDistFiles() {
-    const manifest = readDistManifest();
-    if (!manifest) {
-        return [];
-    }
-
+function collectActiveDistFilesFromManifest(manifest) {
     const files = new Set(['.vite/manifest.json', 'index.html']);
 
     for (const entry of Object.values(manifest)) {
@@ -167,6 +238,23 @@ function collectActiveDistFiles() {
     }
 
     return [...files].sort(compareStrings);
+}
+
+function collectActiveDistFiles() {
+    const manifest = readDistManifest();
+    if (!manifest) {
+        return [];
+    }
+
+    return collectActiveDistFilesFromManifest(manifest);
+}
+
+function readDistManifestFromGitRef(ref = 'HEAD') {
+    try {
+        return JSON.parse(readGitBlob('custom_components/esphome_designer/frontend/dist/.vite/manifest.json', ref).toString('utf8'));
+    } catch {
+        return null;
+    }
 }
 
 function computeActiveDistSignature() {
@@ -196,12 +284,61 @@ function computeActiveDistSignature() {
     };
 }
 
+function computeActiveDistSignatureFromGitRef(ref = 'HEAD') {
+    const manifest = readDistManifestFromGitRef(ref);
+    if (!manifest) {
+        return {
+            signature: null,
+            files: [],
+            missing: '.vite/manifest.json'
+        };
+    }
+
+    const activeFiles = collectActiveDistFilesFromManifest(manifest);
+    const hash = createHash();
+
+    for (const relativePath of activeFiles) {
+        const gitRelativePath = `custom_components/esphome_designer/frontend/dist/${relativePath}`;
+        let buffer;
+        try {
+            buffer = readGitBlob(gitRelativePath, ref);
+        } catch {
+            return {
+                signature: null,
+                files: activeFiles,
+                missing: relativePath
+            };
+        }
+
+        hash.update(relativePath);
+        hash.update('\0');
+        hash.update(normalizeBufferForPath(relativePath, buffer));
+        hash.update('\0');
+    }
+
+    return {
+        signature: hash.digest('hex'),
+        files: activeFiles,
+        missing: null
+    };
+}
+
 function readBuildMeta() {
     if (!fs.existsSync(DIST_META_PATH)) {
         return null;
     }
 
     return JSON.parse(fs.readFileSync(DIST_META_PATH, 'utf8'));
+}
+
+function readBuildMetaFromGitRef(ref = 'HEAD') {
+    try {
+        return JSON.parse(
+            readGitBlob('custom_components/esphome_designer/frontend/dist/build-meta.json', ref).toString('utf8')
+        );
+    } catch {
+        return null;
+    }
 }
 
 function writeBuildMeta() {
@@ -279,6 +416,52 @@ function verifyBuildMeta() {
     };
 }
 
+function verifyBuildMetaFromGitRef(ref = 'HEAD') {
+    const errors = [];
+
+    if (!hasGitRef(ref)) {
+        errors.push(`git ref ${ref} is not available`);
+        return { ok: false, errors, meta: null };
+    }
+
+    const meta = readBuildMetaFromGitRef(ref);
+
+    if (!meta) {
+        errors.push(`missing ${rel(DIST_META_PATH)} in ${ref}`);
+        return { ok: false, errors, meta: null };
+    }
+
+    if (meta.schemaVersion !== 1) {
+        errors.push(`${rel(DIST_META_PATH)} schemaVersion must be 1`);
+    }
+
+    const source = computeSourceSignatureFromGitRef(ref);
+    if (meta.sourceSignature !== source.signature) {
+        errors.push(`build metadata source signature does not match ${ref} build inputs`);
+    }
+
+    const dist = computeActiveDistSignatureFromGitRef(ref);
+    if (dist.missing) {
+        errors.push(`dist is missing active manifest file ${dist.missing} in ${ref}`);
+    } else if (meta.activeDistSignature !== dist.signature) {
+        errors.push(`build metadata dist signature does not match ${ref} active dist files`);
+    }
+
+    if (
+        !Array.isArray(meta.activeDistFiles)
+        || meta.activeDistFiles.length !== dist.files.length
+        || meta.activeDistFiles.some((file, index) => file !== dist.files[index])
+    ) {
+        errors.push(`build metadata active dist file list does not match the ${ref} manifest-backed dist files`);
+    }
+
+    return {
+        ok: errors.length === 0,
+        errors,
+        meta
+    };
+}
+
 if (require.main === module) {
     const mode = process.argv[2];
 
@@ -298,7 +481,17 @@ if (require.main === module) {
         process.exit(0);
     }
 
-    console.error('Usage: node scripts/dist_build_meta.cjs --write|--check');
+    if (mode === '--check-head') {
+        const result = verifyBuildMetaFromGitRef('HEAD');
+        if (!result.ok) {
+            result.errors.forEach((error) => console.error(`- ${error}`));
+            process.exit(1);
+        }
+        console.log(`${rel(DIST_META_PATH)} matches committed HEAD build inputs and active dist files.`);
+        process.exit(0);
+    }
+
+    console.error('Usage: node scripts/dist_build_meta.cjs --write|--check|--check-head');
     process.exit(1);
 }
 
@@ -307,9 +500,16 @@ module.exports = {
     DIST_MANIFEST_PATH,
     DIST_META_PATH,
     collectActiveDistFiles,
+    collectActiveDistFilesFromManifest,
     computeActiveDistSignature,
+    computeActiveDistSignatureFromGitRef,
     computeSourceSignature,
+    computeSourceSignatureFromGitRef,
+    hasGitRef,
+    normalizeBufferForPath,
+    readBuildMetaFromGitRef,
     readBuildMeta,
     verifyBuildMeta,
+    verifyBuildMetaFromGitRef,
     writeBuildMeta
 };
