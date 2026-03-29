@@ -185,7 +185,7 @@ function computeActiveDistSignature() {
 
         hash.update(relativePath);
         hash.update('\0');
-        hash.update(fs.readFileSync(fullPath));
+        hash.update(normalizedFileBuffer(fullPath));
         hash.update('\0');
     }
 
