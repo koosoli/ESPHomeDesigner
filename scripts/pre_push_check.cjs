@@ -53,7 +53,10 @@ function main() {
         '--rm',
         '--mount',
         `type=bind,source=${ROOT},target=/github/workspace`,
-        'ghcr.io/home-assistant/hassfest'
+        'ghcr.io/home-assistant/hassfest',
+        '--core-path=/usr/src/homeassistant',
+        '--integration-path',
+        '/github/workspace/custom_components/esphome_designer'
     ]);
 
     console.log('\nLocal pre-push verification passed.');

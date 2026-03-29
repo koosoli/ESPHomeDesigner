@@ -8,6 +8,9 @@ on:
       - 'custom_components/esphome_designer/manifest.json'
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   release:
     runs-on: ubuntu-latest

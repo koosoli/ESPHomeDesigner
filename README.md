@@ -155,6 +155,14 @@ The Python helper scripts automatically prefer the repository `.venv` when it ex
 
 CI runs `npm run quality` on every pull request, and the protected-branch guidance in [docs/branch_protection.md](docs/branch_protection.md) should require those `test (...)` checks before merge.
 
+For manual GitHub uploads, especially version bumps or frontend changes, run:
+
+```bash
+npm run release:prepare:skip-hassfest
+```
+
+This rebuilds the shipped frontend bundle, checks the release/version surfaces, runs the local CI-style checks, and writes `tmp/release-upload-manifest.txt` so you do not forget the full `custom_components/esphome_designer/frontend/dist` directory. If Docker is available and you want Hassfest too, use `npm run release:prepare`.
+
 ### Setup (ESPHome devices)
 
 #### 5. Prepare Your Device

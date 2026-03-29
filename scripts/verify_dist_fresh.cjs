@@ -84,7 +84,7 @@ function main() {
     const changes = diffSnapshots(before, after);
 
     if (changes.length > 0) {
-        console.error('dist output is stale. Run npm run build and commit the updated dist files.');
+        console.error('dist output is stale. Run npm run build and upload/commit the updated custom_components/esphome_designer/frontend/dist files.');
         changes.slice(0, 20).forEach((change) => console.error(`- ${change}`));
         if (changes.length > 20) {
             console.error(`- ... and ${changes.length - 20} more`);
