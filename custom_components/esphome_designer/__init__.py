@@ -216,7 +216,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 require_admin=False,
             )
             _LOGGER.info("%s: Sidebar panel registered", DOMAIN)
-        except Exception as e:
+        except (AttributeError, ImportError, RuntimeError, ValueError) as e:
             _LOGGER.warning("%s: Failed to register sidebar panel: %s", DOMAIN, e)
     else:
         _LOGGER.info("%s: Sidebar panel disabled by config", DOMAIN)
@@ -243,7 +243,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         from homeassistant.components import frontend
         frontend.async_remove_panel(hass, "esphome-designer")
-    except Exception:
+    except (AttributeError, ImportError, RuntimeError, ValueError):
         pass
 
     # Keep storage in memory; if you want to fully unload, you could:

@@ -236,18 +236,47 @@ function checkEslint() {
 }
 
 let vitestSummary = null;
+function prepareVitestCoverageRun() {
+    const runId = `quality-gate-${process.pid}-${Date.now()}`;
+    const coverageDir = path.join(ROOT, 'tmp', 'coverage', runId);
+    const reportDir = path.join(ROOT, 'tmp', 'reports', 'quality-gate');
+    const reportPath = path.join(reportDir, 'vitest-report.json');
+
+    fs.rmSync(coverageDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+    fs.rmSync(reportPath, { force: true, maxRetries: 5, retryDelay: 50 });
+
+    ensureDir(coverageDir);
+    ensureDir(reportDir);
+    return { coverageDir, reportPath };
+}
+
+function runVitestCoverageCommand(attempt = 1) {
+    const { coverageDir, reportPath } = prepareVitestCoverageRun();
+    const reporters = [
+        '--coverage.reporter=json-summary',
+        '--coverage.reporter=json',
+        '--coverage.reporter=html'
+    ].join(' ');
+    const result = run(
+        `npx vitest run --coverage ${reporters} --coverage.reportsDirectory=${rel(coverageDir)} --reporter=json --outputFile=${rel(reportPath)}`
+    );
+
+    if (result.status !== 0 && attempt === 1) {
+        return runVitestCoverageCommand(2);
+    }
+
+    return { result, coverageDir, reportPath };
+}
+
 function runVitestWithCoverage() {
     if (vitestSummary) return vitestSummary;
 
     console.log(`${COLORS.CYAN}  Running Vitest with Coverage...${COLORS.RESET}`);
-    const reportDir = path.join(ROOT, 'tmp', 'reports');
-    const reportPath = path.join(reportDir, 'vitest-report.json');
-    ensureDir(reportDir);
-    const result = run('npx vitest run --coverage --reporter=json --outputFile=tmp/reports/vitest-report.json');
+    const { result, coverageDir, reportPath } = runVitestCoverageCommand();
 
     try {
-        const coveragePath = path.join(ROOT, 'coverage', 'coverage-summary.json');
-        const rawCoveragePath = path.join(ROOT, 'coverage', 'coverage-final.json');
+        const coveragePath = path.join(coverageDir, 'coverage-summary.json');
+        const rawCoveragePath = path.join(coverageDir, 'coverage-final.json');
         if (!fs.existsSync(reportPath)) {
             throw new Error('vitest-report.json was not produced');
         }

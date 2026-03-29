@@ -109,8 +109,8 @@ describe('shape_rect plugin render', () => {
             RECT_Y_OFFSET: 2
         });
         const output = lines.join('\n');
-        expect(output).toContain('it.filled_rectangle(4, 8, 80, 40, Color(red));');
-        expect(output).toContain('it.rectangle(4 + i, 8 + i, 80 - 2 * i, 40 - 2 * i, Color(blue));');
+        expect(output).toContain('draw_filled_rrect(4, 8, 80, 40, 6, Color(blue));');
+        expect(output).toContain('draw_filled_rrect(6, 10, 76, 36, 4, Color(red));');
         expect(output).toContain('// dither:red');
     });
 });

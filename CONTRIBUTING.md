@@ -81,7 +81,24 @@ If you changed frontend source, Vite config, or anything that affects the shippe
 npm run verify:dist
 ```
 
-That command verifies `custom_components/esphome_designer/frontend/dist/build-meta.json` against the current frontend sources and the active manifest-backed dist files. It still catches stale frontend bundles, but it will not fail just because a browser upload left behind an old unreferenced hashed asset.
+That command verifies `custom_components/esphome_designer/frontend/dist/build-meta.json` against the current frontend sources and the active manifest-backed dist files. It still catches stale frontend bundles, but it will not fail just because a browser upload left behind an old unreferenced hashed asset or because GitHub Actions checked out an equivalent text file with different workspace line endings.
+
+If the GitHub Actions step `Verify committed dist is current` ever fails again, check in this order:
+
+```bash
+npm run verify:dist
+npm run verify:pre-push:skip-hassfest
+npm run release:prepare:skip-hassfest
+```
+
+Then confirm that these files were uploaded together:
+
+- `custom_components/esphome_designer/frontend/dist/`
+- `custom_components/esphome_designer/frontend/dist/build-meta.json`
+- `scripts/dist_build_meta.cjs`
+- `scripts/verify_dist_fresh.cjs`
+
+Important: a real failure usually means the shipped dist is stale or incomplete. A false-positive used to happen when CI checked out text files with different line endings than the local upload. The verifier now cross-checks committed `HEAD` in CI to avoid that, so if the step still fails after the commands above, treat it as a real dist-sync problem first.
 
 For manual GitHub uploads and release/version bumps, use:
 

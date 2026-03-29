@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+    getHierarchyWidgetIcon,
+    getHierarchyWidgetLabel
+} from '../../js/ui/hierarchy_view_items.js';
 
 const { mockAppState, mockRegistry } = vi.hoisted(() => {
     const state = {
@@ -130,7 +134,13 @@ describe('hierarchy_view helpers', () => {
         expect(moveWidgetInLayerOrder(widgets, 'a', 'back')).toBe(false);
         expect(moveWidgetInLayerOrder(widgets, 'b', 'front')).toBe(false);
         expect(moveWidgetInLayerOrder(widgets, 'missing', 'up')).toBe(false);
+        expect(moveWidgetInLayerOrder(widgets, 'a', /** @type {any} */ ('sideways'))).toBe(false);
         expect(widgets.map((widget) => widget.id)).toEqual(['a', 'b']);
+    });
+
+    it('exposes label and icon helpers through the item module', () => {
+        expect(getHierarchyWidgetLabel({ id: 'custom_card_9', type: 'custom_card', props: {} })).toContain('Custom Card');
+        expect(getHierarchyWidgetIcon('text')).toContain('mdi-format-text');
     });
 
     it('fails gracefully when required DOM nodes are missing', () => {

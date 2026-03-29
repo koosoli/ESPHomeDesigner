@@ -12,9 +12,9 @@ All IDs and references are generic and safe for open-source usage.
 from __future__ import annotations
 
 from dataclasses import dataclass, field, asdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
-from .const import DEFAULT_PAGES, IMAGE_WIDTH, IMAGE_HEIGHT
+from .const import DEFAULT_PAGES
 
 
 def _coerce_bool(value: Any, default: bool = False) -> bool:
@@ -36,6 +36,196 @@ def _coerce_bool(value: Any, default: bool = False) -> bool:
         return default
 
     return default
+
+
+def _coerce_optional_float(value: Any) -> Optional[float]:
+    """Parse optional numeric bounds from persisted/frontend values."""
+    try:
+        return float(value) if value is not None and value != "" else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _coerce_optional_int(value: Any) -> Optional[int]:
+    """Parse optional integer fields while treating blank values as missing."""
+    try:
+        return int(value) if value is not None and value != "" else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _coerce_optional_positive_int(value: Any) -> Optional[int]:
+    """Parse optional positive integers while treating zero/negative as missing."""
+    parsed = _coerce_optional_int(value)
+    if parsed is None or parsed <= 0:
+        return None
+    return parsed
+
+
+def _coerce_int(value: Any, default: Optional[int]) -> Optional[int]:
+    """Parse integers with a fallback default for invalid values."""
+    parsed = _coerce_optional_int(value)
+    return default if parsed is None else parsed
+
+
+def _get_compat_value(
+    data: Dict[str, Any], snake_key: str, camel_key: str, default: Any
+) -> Any:
+    """Prefer frontend camelCase keys over stored snake_case keys."""
+    return data.get(camel_key, data.get(snake_key, default))
+
+
+def _get_compat_int(
+    data: Dict[str, Any], snake_key: str, camel_key: str, default: Optional[int]
+) -> Optional[int]:
+    """Read a compat integer field from mixed frontend/storage payloads."""
+    return _coerce_int(_get_compat_value(data, snake_key, camel_key, default), default)
+
+
+def _get_compat_dict(
+    data: Dict[str, Any],
+    snake_key: str,
+    camel_key: str,
+    default_factory: Callable[[], Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Read a compat mapping field and fall back when the payload is not a dict."""
+    value = _get_compat_value(data, snake_key, camel_key, None)
+    if value is None or not isinstance(value, dict):
+        return default_factory()
+    return value
+
+
+def _normalize_orientation(value: Any) -> str:
+    """Normalize orientation values to the supported set."""
+    orientation = str(value or "landscape").lower()
+    return orientation if orientation in ("landscape", "portrait") else "landscape"
+
+
+def _normalize_page_dark_mode(value: Any) -> Optional[str]:
+    """Normalize per-page dark mode values to known options."""
+    return str(value) if value in ("inherit", "light", "dark") else None
+
+
+_DEVICE_SERIALIZED_FIELDS = (
+    "name",
+    "current_page",
+    "orientation",
+    "device_model",
+    "model",
+    "dark_mode",
+    "sleep_enabled",
+    "sleep_start_hour",
+    "sleep_end_hour",
+    "deep_sleep_enabled",
+    "deep_sleep_interval",
+    "deep_sleep_stay_awake_switch",
+    "deep_sleep_stay_awake_entity_id",
+    "deep_sleep_firmware_guard",
+    "manual_refresh_only",
+    "no_refresh_start_hour",
+    "no_refresh_end_hour",
+    "daily_refresh_enabled",
+    "daily_refresh_time",
+    "rendering_mode",
+    "extended_latin_glyphs",
+    "lcd_eco_strategy",
+    "oepl_entity_id",
+    "oepl_dither",
+    "auto_cycle_enabled",
+    "auto_cycle_interval_s",
+    "refresh_interval",
+    "inverted_colors",
+    "width",
+    "height",
+    "shape",
+    "custom_hardware",
+    "protocol_hardware",
+    "glyphsets",
+)
+
+_DEVICE_STRING_FIELD_SPECS = (
+    ("name", "deviceName", "reTerminal"),
+    ("device_model", "deviceModel", "reterminal_e1001"),
+    ("model", "model", "7.50inv2"),
+    (
+        "deep_sleep_stay_awake_entity_id",
+        "deepSleepStayAwakeEntityId",
+        "input_boolean.esphome_stay_awake",
+    ),
+    ("daily_refresh_time", "dailyRefreshTime", "08:00"),
+    ("rendering_mode", "renderingMode", "direct"),
+    ("lcd_eco_strategy", "lcdEcoStrategy", "backlight_off"),
+    ("oepl_entity_id", "oeplEntityId", ""),
+    ("shape", "shape", "rect"),
+)
+
+_DEVICE_BOOL_FIELD_SPECS = (
+    ("dark_mode", "darkMode", False),
+    ("sleep_enabled", "sleepEnabled", False),
+    ("deep_sleep_enabled", "deepSleepEnabled", False),
+    ("deep_sleep_stay_awake_switch", "deepSleepStayAwakeSwitch", False),
+    ("deep_sleep_firmware_guard", "deepSleepFirmwareGuard", False),
+    ("manual_refresh_only", "manualRefreshOnly", False),
+    ("daily_refresh_enabled", "dailyRefreshEnabled", False),
+    ("extended_latin_glyphs", "extendedLatinGlyphs", False),
+    ("auto_cycle_enabled", "autoCycleEnabled", False),
+    ("inverted_colors", "invertedColors", False),
+)
+
+_DEVICE_INT_FIELD_SPECS = (
+    ("sleep_start_hour", "sleepStartHour", 0),
+    ("sleep_end_hour", "sleepEndHour", 5),
+    ("deep_sleep_interval", "deepSleepInterval", 600),
+    ("no_refresh_start_hour", "noRefreshStartHour", None),
+    ("no_refresh_end_hour", "noRefreshEndHour", None),
+    ("oepl_dither", "oeplDither", 2),
+    ("auto_cycle_interval_s", "autoCycleIntervalS", 30),
+    ("refresh_interval", "refreshInterval", 600),
+    ("width", "resWidth", 800),
+    ("height", "resHeight", 480),
+)
+
+_DEVICE_DICT_FIELD_SPECS = (
+    ("custom_hardware", "customHardware", dict),
+    ("protocol_hardware", "protocolHardware", dict),
+)
+
+
+def _serialize_device_settings(device: "DeviceConfig") -> Dict[str, Any]:
+    """Serialize the stable device setting subset used by storage and API responses."""
+    return {field_name: getattr(device, field_name) for field_name in _DEVICE_SERIALIZED_FIELDS}
+
+
+def _deserialize_device_settings(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Deserialize device settings using the shared compat field specs."""
+    settings = {
+        snake_key: str(_get_compat_value(data, snake_key, camel_key, default))
+        for snake_key, camel_key, default in _DEVICE_STRING_FIELD_SPECS
+    }
+    settings.update(
+        {
+            snake_key: _coerce_bool(
+                _get_compat_value(data, snake_key, camel_key, default), default
+            )
+            for snake_key, camel_key, default in _DEVICE_BOOL_FIELD_SPECS
+        }
+    )
+    settings.update(
+        {
+            snake_key: _get_compat_int(data, snake_key, camel_key, default)
+            for snake_key, camel_key, default in _DEVICE_INT_FIELD_SPECS
+        }
+    )
+    settings.update(
+        {
+            snake_key: _get_compat_dict(data, snake_key, camel_key, default_factory)
+            for snake_key, camel_key, default_factory in _DEVICE_DICT_FIELD_SPECS
+        }
+    )
+    settings["glyphsets"] = _get_compat_value(
+        data, "glyphsets", "glyphsets", ["GF_Latin_Kernel"]
+    )
+    return settings
 
 
 @dataclass
@@ -118,6 +308,34 @@ class WidgetConfig:
     # Arbitrary widget-specific properties; see type doc above.
     props: Dict[str, Any] = field(default_factory=dict)
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize widget configuration for storage and API responses."""
+        return asdict(self)
+
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> "WidgetConfig":
+        """Create a widget config from mixed frontend/storage payload data."""
+        widget = WidgetConfig(
+            id=str(data.get("id", "")),
+            type=str(data.get("type", "label")),
+            x=int(data.get("x", 0)),
+            y=int(data.get("y", 0)),
+            width=int(data.get("width", 100)),
+            height=int(data.get("height", 40)),
+            entity_id=data.get("entity_id"),
+            title=data.get("title"),
+            icon=data.get("icon"),
+            condition_entity=data.get("condition_entity"),
+            condition_state=data.get("condition_state"),
+            condition_operator=data.get("condition_operator"),
+            condition_min=_coerce_optional_float(data.get("condition_min")),
+            condition_max=_coerce_optional_float(data.get("condition_max")),
+            condition_logic=data.get("condition_logic"),
+            props=data.get("props") or {},
+        )
+        widget.clamp_to_canvas()
+        return widget
+
     def clamp_to_canvas(self) -> None:
         """Ensure widget has valid positive dimensions.
 
@@ -163,7 +381,7 @@ class PageConfig:
         data: Dict[str, Any] = {
             "id": self.id,
             "name": self.name,
-            "widgets": [asdict(w) for w in self.widgets],
+            "widgets": [widget.to_dict() for widget in self.widgets],
         }
         if self.refresh_s is not None:
             data["refresh_s"] = self.refresh_s
@@ -174,55 +392,11 @@ class PageConfig:
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> "PageConfig":
         widgets_data = data.get("widgets", []) or []
-        widgets: List[WidgetConfig] = []
-        for w in widgets_data:
-            # Parse min/max safely
-            c_min = w.get("condition_min")
-            c_max = w.get("condition_max")
-            try:
-                c_min = float(c_min) if c_min is not None and c_min != "" else None
-            except (ValueError, TypeError):
-                c_min = None
-            try:
-                c_max = float(c_max) if c_max is not None and c_max != "" else None
-            except (ValueError, TypeError):
-                c_max = None
+        widgets = [WidgetConfig.from_dict(widget_data) for widget_data in widgets_data]
 
-            widget = WidgetConfig(
-                id=str(w.get("id", "")),
-                type=str(w.get("type", "label")),
-                x=int(w.get("x", 0)),
-                y=int(w.get("y", 0)),
-                width=int(w.get("width", 100)),
-                height=int(w.get("height", 40)),
-                entity_id=w.get("entity_id"),
-                title=w.get("title"),
-                icon=w.get("icon"),
-                condition_entity=w.get("condition_entity"),
-                condition_state=w.get("condition_state"),
-                condition_operator=w.get("condition_operator"),
-                condition_min=c_min,
-                condition_max=c_max,
-                condition_logic=w.get("condition_logic"),
-                props=w.get("props") or {},
-            )
-            widget.clamp_to_canvas()
-            widgets.append(widget)
+        refresh_s = _coerce_optional_positive_int(data.get("refresh_s"))
 
-        refresh_raw = data.get("refresh_s")
-        refresh_s: Optional[int]
-        try:
-            refresh_s = int(refresh_raw) if refresh_raw is not None else None
-            if refresh_s is not None and refresh_s <= 0:
-                refresh_s = None
-        except (TypeError, ValueError):
-            refresh_s = None
-
-        # Parse per-page dark mode setting
-        dark_mode_raw = data.get("dark_mode")
-        dark_mode: Optional[str] = None
-        if dark_mode_raw is not None and dark_mode_raw in ("inherit", "light", "dark"):
-            dark_mode = str(dark_mode_raw)
+        dark_mode = _normalize_page_dark_mode(data.get("dark_mode"))
 
         return PageConfig(
             id=str(data.get("id", "page_0")),
@@ -352,45 +526,13 @@ class DeviceConfig:
     def to_dict(self) -> Dict[str, Any]:
         """Serialize device configuration for the HTTP API and storage."""
         self.ensure_pages()
-        return {
+        data = {
             "device_id": self.device_id,
             "api_token": self.api_token,
-            "name": self.name,
-            "current_page": self.current_page,
-            "orientation": self.orientation,
-            "device_model": self.device_model,
-            "model": self.model,
-            "dark_mode": self.dark_mode,
-            "sleep_enabled": self.sleep_enabled,
-            "sleep_start_hour": self.sleep_start_hour,
-            "sleep_end_hour": self.sleep_end_hour,
-            "deep_sleep_enabled": self.deep_sleep_enabled,
-            "deep_sleep_interval": self.deep_sleep_interval,
-            "deep_sleep_stay_awake_switch": self.deep_sleep_stay_awake_switch,
-            "deep_sleep_stay_awake_entity_id": self.deep_sleep_stay_awake_entity_id,
-            "deep_sleep_firmware_guard": self.deep_sleep_firmware_guard,
-            "manual_refresh_only": self.manual_refresh_only,
-            "no_refresh_start_hour": self.no_refresh_start_hour,
-            "no_refresh_end_hour": self.no_refresh_end_hour,
-            "daily_refresh_enabled": self.daily_refresh_enabled,
-            "daily_refresh_time": self.daily_refresh_time,
-            "rendering_mode": self.rendering_mode,
-            "extended_latin_glyphs": self.extended_latin_glyphs,
-            "lcd_eco_strategy": self.lcd_eco_strategy,
-            "oepl_entity_id": self.oepl_entity_id,
-            "oepl_dither": self.oepl_dither,
-            "auto_cycle_enabled": self.auto_cycle_enabled,
-            "auto_cycle_interval_s": self.auto_cycle_interval_s,
-            "refresh_interval": self.refresh_interval,
-            "inverted_colors": self.inverted_colors,
-            "width": self.width,
-            "height": self.height,
-            "shape": self.shape,
-            "custom_hardware": self.custom_hardware,
-            "protocol_hardware": self.protocol_hardware,
-            "glyphsets": self.glyphsets,
             "pages": [p.to_dict() for p in self.pages],
         }
+        data.update(_serialize_device_settings(self))
+        return data
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> "DeviceConfig":
@@ -398,73 +540,17 @@ class DeviceConfig:
         pages_data = data.get("pages", []) or []
         pages = [PageConfig.from_dict(p) for p in pages_data]
 
-        # Helper to prioritize camelCase (frontend) over snake_case (storage)
-        def get_v(snake, camel, default):
-            return data.get(camel, data.get(snake, default))
-
-        def get_i(snake, camel, default):
-            val = get_v(snake, camel, default)
-            try:
-                if val is None or val == "":
-                    return default
-                return int(val)
-            except (TypeError, ValueError):
-                return default
-
-        def get_d(snake, camel, default_factory):
-            val = get_v(snake, camel, None)
-            if val is None or not isinstance(val, dict):
-                return default_factory()
-            return val
-
-        # Legacy configs may not have orientation/dark_mode; default them.
-        orientation = str(data.get("orientation", "landscape")).lower()
-        if orientation not in ("landscape", "portrait"):
-            orientation = "landscape"
-
-        try:
-            current_page = int(data.get("current_page", 0))
-        except (TypeError, ValueError):
-            current_page = 0
+        orientation = _normalize_orientation(data.get("orientation"))
+        current_page = _coerce_int(data.get("current_page", 0), 0) or 0
+        settings = _deserialize_device_settings(data)
 
         cfg = DeviceConfig(
             device_id=str(data.get("device_id", data.get("currentLayoutId", ""))),
             api_token=str(data.get("api_token", "")),
-            name=str(get_v("name", "deviceName", "reTerminal")),
             pages=pages,
             current_page=current_page,
             orientation=orientation,
-            device_model=str(get_v("device_model", "deviceModel", "reterminal_e1001")),
-            model=str(data.get("model", "7.50inv2")),
-            dark_mode=_coerce_bool(get_v("dark_mode", "darkMode", False)),
-            sleep_enabled=_coerce_bool(get_v("sleep_enabled", "sleepEnabled", False)),
-            sleep_start_hour=get_i("sleep_start_hour", "sleepStartHour", 0),
-            sleep_end_hour=get_i("sleep_end_hour", "sleepEndHour", 5),
-            deep_sleep_enabled=_coerce_bool(get_v("deep_sleep_enabled", "deepSleepEnabled", False)),
-            deep_sleep_interval=get_i("deep_sleep_interval", "deepSleepInterval", 600),
-            deep_sleep_stay_awake_switch=_coerce_bool(get_v("deep_sleep_stay_awake_switch", "deepSleepStayAwakeSwitch", False)),
-            deep_sleep_stay_awake_entity_id=str(get_v("deep_sleep_stay_awake_entity_id", "deepSleepStayAwakeEntityId", "input_boolean.esphome_stay_awake")),
-            deep_sleep_firmware_guard=_coerce_bool(get_v("deep_sleep_firmware_guard", "deepSleepFirmwareGuard", False)),
-            manual_refresh_only=_coerce_bool(get_v("manual_refresh_only", "manualRefreshOnly", False)),
-            no_refresh_start_hour=get_i("no_refresh_start_hour", "noRefreshStartHour", None),
-            no_refresh_end_hour=get_i("no_refresh_end_hour", "noRefreshEndHour", None),
-            daily_refresh_enabled=_coerce_bool(get_v("daily_refresh_enabled", "dailyRefreshEnabled", False)),
-            daily_refresh_time=str(get_v("daily_refresh_time", "dailyRefreshTime", "08:00")),
-            rendering_mode=str(get_v("rendering_mode", "renderingMode", "direct")),
-            extended_latin_glyphs=_coerce_bool(get_v("extended_latin_glyphs", "extendedLatinGlyphs", False)),
-            lcd_eco_strategy=str(get_v("lcd_eco_strategy", "lcdEcoStrategy", "backlight_off")),
-            oepl_entity_id=str(get_v("oepl_entity_id", "oeplEntityId", "")),
-            oepl_dither=get_i("oepl_dither", "oeplDither", 2),
-            auto_cycle_enabled=_coerce_bool(get_v("auto_cycle_enabled", "autoCycleEnabled", False)),
-            auto_cycle_interval_s=get_i("auto_cycle_interval_s", "autoCycleIntervalS", 30),
-            refresh_interval=get_i("refresh_interval", "refreshInterval", 600),
-            inverted_colors=_coerce_bool(get_v("inverted_colors", "invertedColors", False)),
-            width=get_i("width", "resWidth", 800),
-            height=get_i("height", "resHeight", 480),
-            shape=str(get_v("shape", "shape", "rect")),
-            custom_hardware=get_d("custom_hardware", "customHardware", dict),
-            protocol_hardware=get_d("protocol_hardware", "protocolHardware", dict),
-            glyphsets=get_v("glyphsets", "glyphsets", ["GF_Latin_Kernel"]),
+            **settings,
         )
         cfg.ensure_pages()
         return cfg

@@ -1,3 +1,14 @@
+## v1.0.0 RC9.2 - Follow-Up Bug Fixes (Issue #356)
+**Release Date:** March 29, 2026
+
+This release includes attempted fixes for the remaining bugs reported in GitHub [Issue #356](https://github.com/koosoli/ESPHomeDesigner/issues/356). These adjustments still need to be verified by users in real-world hardware deployments.
+
+### Tentative Bug Fixes
+- **Datetime Wrapping Consistency**: Added `overflow: hidden` to the `datetime` preview in an attempt to make text clipping in the designer more closely match the physical hardware. We are looking for feedback on whether this fully resolves the visual discrepancy.
+- **Visibility Auto-Switch Log Spam**: Tweaked the auto-page-switching logic to suppress the infinite "Auto-switching to scheduled page" log spam that could occur on boot. While a regression test passes locally, physical device verification is still needed to confirm the spam is completely eliminated.
+
+---
+
 ## v1.0.0 RC9.1 - Release Metadata & Deployment Follow-Up
 **Release Date:** March 29, 2026
 

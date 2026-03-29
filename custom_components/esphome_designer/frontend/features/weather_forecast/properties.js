@@ -126,7 +126,7 @@ template:
 
                 slots.forEach((/** @type {string} */ slot) => {
                     yaml += `
-      - name: 'Weather Forecast Hour ${slot}00'
+      - name: 'Weather Forecast Hour ${slot}00 High'
         unique_id: weather_forecast_hour_${slot}00_high
         unit_of_measurement: '${unitSymbol}'
         state: >

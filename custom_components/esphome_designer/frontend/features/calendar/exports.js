@@ -196,7 +196,11 @@ export const exportDirect = (w, context) => {
         const bgColor = getColorConst(bgColorProp);
 
         const borderWidth = parseInt(p.border_width || 0, 10);
-        const radius = p.border_radius || 0;
+        const radius = Math.max(0, Math.min(
+            parseInt(p.border_radius || 0, 10) || 0,
+            Math.floor(w.width / 2),
+            Math.floor(w.height / 2)
+        ));
 
         const dateFontSize = Math.round(Math.min(parseInt(p.font_size_date || 100, 10) * 0.7, 80));
         const dayFontSize = parseInt(p.font_size_day || 24, 10);
@@ -385,10 +389,26 @@ export const exportDirect = (w, context) => {
 
         if (borderWidth > 0) {
             if (radius > 0) {
-                // Use concrete widget coordinates to avoid minification variable shadowing (Issue #323)
-                for (let i = 0; i < borderWidth; i++) {
-                    lines.push(`            it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - ${2 * i}, ${w.height} - ${2 * i}, ${borderColor});`);
-                }
+                lines.push("          auto draw_rrect_border = [&](int x, int y, int w, int h, int r, int t, auto c) {");
+                lines.push("            int inner_r = r - t;");
+                lines.push("            if (inner_r < 0) inner_r = 0;");
+                lines.push("            it.filled_rectangle(x + r, y, w - 2 * r, t, c);");
+                lines.push("            it.filled_rectangle(x + r, y + h - t, w - 2 * r, t, c);");
+                lines.push("            it.filled_rectangle(x, y + r, t, h - 2 * r, c);");
+                lines.push("            it.filled_rectangle(x + w - t, y + r, t, h - 2 * r, c);");
+                lines.push("            for (int dx = 0; dx <= r; dx++) {");
+                lines.push("              for (int dy = 0; dy <= r; dy++) {");
+                lines.push("                int ds = dx*dx + dy*dy;");
+                lines.push("                if (ds <= r*r && ds > inner_r*inner_r) {");
+                lines.push("                  it.draw_pixel_at(x + r - dx, y + r - dy, c);");
+                lines.push("                  it.draw_pixel_at(x + w - r + dx - 1, y + r - dy, c);");
+                lines.push("                  it.draw_pixel_at(x + r - dx, y + h - r + dy - 1, c);");
+                lines.push("                  it.draw_pixel_at(x + w - r + dx - 1, y + h - r + dy - 1, c);");
+                lines.push("                }");
+                lines.push("              }");
+                lines.push("            }");
+                lines.push("          };");
+                lines.push(`          draw_rrect_border(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${radius}, ${borderWidth}, ${borderColor});`);
             } else {
                 for (let i = 0; i < borderWidth; i++) {
                     lines.push(`            it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - ${2 * i}, ${w.height} - ${2 * i}, ${borderColor});`);

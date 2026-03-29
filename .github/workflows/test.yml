@@ -44,6 +44,18 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    # If this step ever fails again, first reproduce it locally with:
+    # npm run verify:dist
+    # npm run verify:pre-push:skip-hassfest
+    # npm run release:prepare:skip-hassfest
+    #
+    # The verifier is strict for real stale dist output, but in CI it also
+    # cross-checks committed HEAD so harmless checkout-only text normalization
+    # does not false-fail the job. If it still fails, inspect:
+    # - custom_components/esphome_designer/frontend/dist/build-meta.json
+    # - scripts/dist_build_meta.cjs
+    # - scripts/verify_dist_fresh.cjs
+    # - the full custom_components/esphome_designer/frontend/dist/ upload
     - name: Verify committed dist is current
       run: node scripts/verify_dist_fresh.cjs
 

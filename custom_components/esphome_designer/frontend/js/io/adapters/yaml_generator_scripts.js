@@ -63,6 +63,7 @@ export function generateScriptSection(payload, pages, profile) {
             }
             lines.push(`${baseIndent}    else:`);
             lines.push(`${baseIndent}      - logger.log: "Deep Sleep prevented, retrying in 60s"`);
+            lines.push(`${baseIndent}      - deep_sleep.prevent: deep_sleep_control`);
             lines.push(`${baseIndent}      - delay: 60s`);
             lines.push(`${baseIndent}      - script.execute: deep_sleep_cycle`);
             return;
@@ -133,6 +134,7 @@ export function generateScriptSection(payload, pages, profile) {
             lines.push("            binary_sensor.is_on: stay_awake_switch");
             lines.push("          then:");
             lines.push('            - logger.log: "Stay-awake active, deep sleep cycle aborted."');
+            lines.push("            - deep_sleep.prevent: deep_sleep_control");
             lines.push("            - script.stop: deep_sleep_cycle");
         }
 
@@ -249,6 +251,7 @@ export function generateScriptSection(payload, pages, profile) {
             lines.push("");
             lines.push("             // If current page is invisible OR another should be shown, switch");
             lines.push("             if (best_page != -1 && (best_page != p || id(last_page_switch_time) == 0)) {");
+            lines.push("                 id(last_page_switch_time) = millis();");
             lines.push('                 ESP_LOGI("display", "Auto-switching to scheduled page %d", best_page);');
             lines.push("                 id(change_page_to).execute(best_page);");
             lines.push("                 return;");

@@ -512,9 +512,3 @@ const handler: ProxyHandler<AppStateFacade> = {
 };
 
 export const AppState = new Proxy(AppStateInstance, handler);
-
-const rootWindow = window as Window & {
-    ESPHomeDesigner?: Window['ESPHomeDesigner'];
-};
-rootWindow.ESPHomeDesigner = rootWindow.ESPHomeDesigner || {};
-rootWindow.ESPHomeDesigner.state = AppState;

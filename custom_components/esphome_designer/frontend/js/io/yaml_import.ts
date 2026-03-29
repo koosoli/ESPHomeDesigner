@@ -35,11 +35,64 @@ export interface ParsedLayout {
     currentLayoutId?: string;
     settings?: Record<string, any>;
     customHardware?: Record<string, any>;
+    custom_hardware?: Record<string, any>;
+    protocolHardware?: Record<string, any>;
+    protocol_hardware?: Record<string, any>;
     pages?: ParsedPage[];
     data?: {
         devices?: Record<string, any>;
     };
     [key: string]: any;
+}
+
+const SNAKE_CASE_SETTING_MAP: Record<string, string> = {
+    dark_mode: 'darkMode',
+    inverted_colors: 'invertedColors',
+    refresh_interval: 'refreshInterval',
+    manual_refresh_only: 'manualRefreshOnly',
+    auto_cycle_enabled: 'autoCycleEnabled',
+    auto_cycle_interval_s: 'autoCycleIntervalS',
+    lcd_eco_strategy: 'lcdEcoStrategy',
+    sleep_enabled: 'sleepEnabled',
+    sleep_start_hour: 'sleepStartHour',
+    sleep_end_hour: 'sleepEndHour',
+    deep_sleep_enabled: 'deepSleepEnabled',
+    deep_sleep_interval: 'deepSleepInterval',
+    deep_sleep_stay_awake_switch: 'deepSleepStayAwakeSwitch',
+    deep_sleep_stay_awake_entity_id: 'deepSleepStayAwakeEntityId',
+    deep_sleep_firmware_guard: 'deepSleepFirmwareGuard',
+    daily_refresh_enabled: 'dailyRefreshEnabled',
+    daily_refresh_time: 'dailyRefreshTime',
+    no_refresh_start_hour: 'noRefreshStartHour',
+    no_refresh_end_hour: 'noRefreshEndHour',
+    rendering_mode: 'renderingMode',
+    extended_latin_glyphs: 'extendedLatinGlyphs',
+    oepl_entity_id: 'oeplEntityId',
+    oepl_dither: 'oeplDither',
+    opendisplay_entity_id: 'opendisplayEntityId',
+    opendisplay_dither: 'opendisplayDither',
+    opendisplay_ttl: 'opendisplayTtl'
+};
+
+/**
+ * Normalize mixed camelCase/snake_case layout settings into the frontend's camelCase shape.
+ * @param {Record<string, any>} settings
+ * @returns {Record<string, any>}
+ */
+function normalizeImportedSettings(settings: Record<string, any>): Record<string, any> {
+    const normalized: Record<string, any> = {};
+
+    Object.entries(settings).forEach(([key, value]) => {
+        if (value === undefined) return;
+        normalized[key] = value;
+
+        const mappedKey = SNAKE_CASE_SETTING_MAP[key];
+        if (mappedKey && normalized[mappedKey] === undefined) {
+            normalized[mappedKey] = value;
+        }
+    });
+
+    return normalized;
 }
 
 /**
@@ -241,25 +294,33 @@ export function loadLayoutIntoState(layout: ParsedLayout | null | undefined): vo
         if (data[key] !== undefined) topLevelSettings[key] = data[key];
     });
 
-    if (data.rendering_mode !== undefined && topLevelSettings.renderingMode === undefined) {
-        topLevelSettings.renderingMode = data.rendering_mode;
-    }
+    Object.entries(SNAKE_CASE_SETTING_MAP).forEach(([snakeKey, camelKey]) => {
+        if (data[snakeKey] !== undefined && topLevelSettings[camelKey] === undefined) {
+            topLevelSettings[camelKey] = data[snakeKey];
+        }
+    });
 
-    if (data.dark_mode !== undefined && topLevelSettings.darkMode === undefined) {
-        topLevelSettings.darkMode = data.dark_mode;
-    }
-
-    const mergedSettings = {
+    const mergedSettings = normalizeImportedSettings({
         ...topLevelSettings,
         ...(data.settings || {})
-    };
+    });
 
     if (Object.keys(mergedSettings).length > 0 && AppState.updateSettings) {
         AppState.updateSettings(mergedSettings);
     }
 
-    if (data.customHardware && AppState.setCustomHardware) {
-        AppState.setCustomHardware(data.customHardware);
+    const customHardware = data.customHardware || data.custom_hardware;
+    if (customHardware && AppState.setCustomHardware) {
+        AppState.setCustomHardware(customHardware);
+    }
+
+    const protocolHardware = data.protocolHardware || data.protocol_hardware;
+    if (protocolHardware) {
+        if (AppState.updateProtocolHardware) {
+            AppState.updateProtocolHardware(protocolHardware);
+        } else if (AppState.project?.state) {
+            AppState.project.state.protocolHardware = protocolHardware;
+        }
     }
 
     // 4. Load Pages

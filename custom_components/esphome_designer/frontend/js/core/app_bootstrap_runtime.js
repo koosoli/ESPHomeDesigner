@@ -1,6 +1,17 @@
 export const APP_BOOT_KEY = '__ESPHOME_DESIGNER_BOOT_PROMISE__';
 
 /**
+ * @param {any} [runtimeGlobal]
+ * @returns {any}
+ */
+export function getDesignerNamespace(
+    runtimeGlobal = /** @type {any} */ (globalThis)
+) {
+    runtimeGlobal.ESPHomeDesigner = runtimeGlobal.ESPHomeDesigner || {};
+    return runtimeGlobal.ESPHomeDesigner;
+}
+
+/**
  * @param {Document} [root]
  * @returns {boolean}
  */
@@ -30,19 +41,31 @@ export function hasUiPlaceholders(root = document) {
 
 /**
  * @param {any} app
- * @param {Window & typeof globalThis} [runtimeGlobal]
+ * @param {any} [runtimeGlobal]
  */
 export function attachAppNamespace(
     app,
-    runtimeGlobal = /** @type {Window & typeof globalThis} */ (globalThis)
+    runtimeGlobal = /** @type {any} */ (globalThis)
 ) {
-    runtimeGlobal.ESPHomeDesigner = runtimeGlobal.ESPHomeDesigner || {};
-    runtimeGlobal.ESPHomeDesigner.app = app;
-    runtimeGlobal.ESPHomeDesigner.ui = {
+    const namespace = getDesignerNamespace(runtimeGlobal);
+    namespace.app = app;
+    namespace.ui = {
         sidebar: app.sidebar,
         canvas: app.canvas,
         properties: app.propertiesPanel
     };
+}
+
+/**
+ * @param {any} appState
+ * @param {any} [runtimeGlobal]
+ */
+export function attachStateNamespace(
+    appState,
+    runtimeGlobal = /** @type {any} */ (globalThis)
+) {
+    const namespace = getDesignerNamespace(runtimeGlobal);
+    namespace.state = appState;
 }
 
 /**

@@ -163,7 +163,7 @@ npm run release:prepare:skip-hassfest
 
 This rebuilds the shipped frontend bundle, checks the release/version surfaces, runs the local CI-style checks, and writes `tmp/release-upload-manifest.txt` so you do not forget the full `custom_components/esphome_designer/frontend/dist` directory. If Docker is available and you want Hassfest too, use `npm run release:prepare`.
 
-The shipped dist bundle now includes `custom_components/esphome_designer/frontend/dist/build-meta.json`. CI uses that file to verify that the current frontend sources and the active manifest-backed dist files stay in sync without false-failing on Windows-vs-Linux bundle byte differences or leftover unreferenced hashed assets from manual browser uploads.
+The shipped dist bundle now includes `custom_components/esphome_designer/frontend/dist/build-meta.json`. CI uses that file to verify that the current frontend sources and the active manifest-backed dist files stay in sync without false-failing on Windows-vs-Linux text normalization, checkout-only workspace drift, or leftover unreferenced hashed assets from manual browser uploads.
 
 ### Setup (ESPHome devices)
 

@@ -275,7 +275,7 @@ export const onExportTextSensors = (context) => {
                     lines.push(`#           {% set hit = fc | selectattr('datetime','search',target) | list | first %}`);
                     lines.push(`#           {{ hit.condition if hit else 'cloudy' }}`);
                 } else {
-                    lines.push(`#       - name: 'Weather Forecast Hour ${slot}00'`);
+                    lines.push(`#       - name: 'Weather Forecast Hour ${slot}00 High'`);
                     lines.push(`#         unique_id: weather_forecast_hour_${slot}00_high`);
                     lines.push(`#         unit_of_measurement: '${unitSymbol}'`);
                     lines.push(`#         state: >`);

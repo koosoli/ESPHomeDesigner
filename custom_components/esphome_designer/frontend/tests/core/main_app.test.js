@@ -183,9 +183,13 @@ vi.mock('../../js/utils/dom.js', () => ({
     showToast: mockShowToast
 }));
 
-vi.mock('../../js/ui/widget_palette.js', () => ({
-    renderWidgetPalette: mockRenderWidgetPalette
-}));
+vi.mock('../../js/ui/widget_palette.js', async () => {
+    const actual = await vi.importActual('../../js/ui/widget_palette.js');
+    return {
+        ...actual,
+        renderWidgetPalette: mockRenderWidgetPalette
+    };
+});
 
 vi.mock('../../js/ui/quick_search.js', () => ({
     QuickSearch: class {
@@ -241,6 +245,7 @@ vi.mock('../../js/core/constants_icons.js', () => ({}));
 vi.mock('../../js/core/plugin_registry', () => ({}));
 vi.mock('../../js/core/widget_factory', () => ({}));
 vi.mock('../../js/core/layout_constants.js', () => ({}));
+vi.mock('../../js/core/legacy_runtime_modules.js', () => ({}));
 vi.mock('../../js/ui/splitters.js', () => ({}));
 vi.mock('../../js/ui/icon_picker.js', () => ({}));
 vi.mock('../../js/ui/radial_menu.js', () => ({}));
@@ -455,6 +460,7 @@ describe('App bootstrap', () => {
         await Promise.resolve();
 
         expect(window.ESPHomeDesigner?.app).toBeTruthy();
+        expect(window.ESPHomeDesigner?.state).toBeTruthy();
         expect(window.ESPHomeDesigner?.ui?.sidebar).toBeTruthy();
         expect(window.ESPHomeDesigner?.ui?.canvas).toBeTruthy();
         expect(window.ESPHomeDesigner?.ui?.properties).toBeTruthy();
@@ -482,6 +488,7 @@ describe('App bootstrap', () => {
         await bootstrapApp();
 
         expect(window.ESPHomeDesigner?.app).toBeTruthy();
+        expect(window.ESPHomeDesigner?.state).toBeTruthy();
         expect(window.ESPHomeDesigner?.ui?.sidebar).toBeTruthy();
         expect(window.ESPHomeDesigner?.ui?.canvas).toBeTruthy();
     });

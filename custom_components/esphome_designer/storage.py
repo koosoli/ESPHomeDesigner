@@ -38,25 +38,25 @@ class DashboardStorage:
     async def async_load(self) -> None:
         """Load state from disk into memory."""
         data = await self._store.async_load()
-        
+
         # MIGRATION: If new storage is empty, check for legacy 0.8.6.2 storage
         if not data:
             _LOGGER.debug("%s: No new state found, checking for legacy 'reterminal_dashboard' storage", DOMAIN)
             # Legacy store uses exact same format but different key
             legacy_store = Store(self._hass, 1, "reterminal_dashboard")
             legacy_data = await legacy_store.async_load()
-            
+
             if legacy_data:
                 _LOGGER.info("%s: Found legacy 0.8.6.2 layouts, migrating to %s...", DOMAIN, DOMAIN)
                 data = legacy_data
                 # We will save this to the new store automatically on next save, 
                 # or we can force it immediately below. For safety, let's just use it as 'data'.
 
-        if data:
+        if isinstance(data, dict):
             try:
                 self._state = DashboardState.from_dict(data)
                 _LOGGER.debug("%s: Loaded dashboard state from storage", DOMAIN)
-                
+
                 # If we just loaded legacy data (and thus self._state is dirty relative to new store),
                 # we should probably persist it to the new store soon.
                 # However, to avoid side effects during load, we'll let the user's first action 
@@ -66,9 +66,12 @@ class DashboardStorage:
                 # No, async_load is often called at startup. Calling async_save here might be risky 
                 # if the loop isn't ready or if it causes a loop. 
                 # Safe approach: Just load it into memory. It will be saved when they make a change.
-            except Exception as exc:  # noqa: BLE001
+            except (AttributeError, KeyError, TypeError, ValueError) as exc:
                 _LOGGER.error("%s: Failed to parse stored state, starting fresh: %s", DOMAIN, exc)
                 self._state = DashboardState()
+        elif data:
+            _LOGGER.error("%s: Stored state had unexpected type %s, starting fresh", DOMAIN, type(data).__name__)
+            self._state = DashboardState()
         else:
             _LOGGER.debug("%s: No storage found (new or legacy), starting fresh", DOMAIN)
             self._state = DashboardState()
@@ -183,7 +186,7 @@ class DashboardStorage:
 
         try:
             updater(device)
-        except Exception as exc:  # noqa: BLE001
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
             _LOGGER.error("%s: Error while updating device %s: %s", DOMAIN, device_id, exc)
             return None
 
@@ -236,12 +239,12 @@ class DashboardStorage:
             return None
 
         existing = self.get_device(device_id)
-        
+
         # Merge logic
         merged: Dict[str, Any] = {}
         if existing:
             merged = existing.to_dict()
-        
+
         if raw_layout:
             merged.update(raw_layout)
 
@@ -252,7 +255,7 @@ class DashboardStorage:
 
         try:
             device = DeviceConfig.from_dict(merged)
-        except Exception as exc:  # noqa: BLE001
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
             _LOGGER.error("%s: Failed to parse layout for %s: %s", DOMAIN, device_id, exc)
             return None
 
@@ -289,12 +292,12 @@ class DashboardStorage:
 
         # Existing default device (if any)
         existing = self.get_device("reterminal_e1001")
-        
+
         # Start with current state to ensure no fields are lost when frontend omissions occur
         merged_payload: Dict[str, Any] = {}
         if existing:
             merged_payload = existing.to_dict()
-        
+
         # Override with all data from frontend (handles camelCase and snake_case via from_dict)
         if raw_layout:
             merged_payload.update(raw_layout)
@@ -305,7 +308,7 @@ class DashboardStorage:
 
         try:
             device = DeviceConfig.from_dict(merged_payload)
-        except Exception as exc:  # noqa: BLE001
+        except (AttributeError, TypeError, ValueError) as exc:
             _LOGGER.error("%s: Failed to parse default layout: %s", DOMAIN, exc)
             return None
 

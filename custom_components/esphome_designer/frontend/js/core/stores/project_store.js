@@ -1,36 +1,8 @@
 import { emit, EVENTS } from '../events.js';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, ORIENTATIONS } from '../constants';
 import { DEVICE_PROFILES } from '../../io/devices.js';
-import { generateId, deepClone } from '../../utils/helpers.js';
-
-/** @typedef {{ widget: Widget, sourcePage: Page }} WidgetMovement */
-
-function createDefaultPage() {
-    return {
-        id: "page_0",
-        name: "Overview",
-        layout: null,
-        widgets: []
-    };
-}
-
-/**
- * @param {Page[] | null | undefined} pages
- * @returns {Page[]}
- */
-function normalizePages(pages) {
-    return Array.isArray(pages) && pages.length > 0 ? pages : [createDefaultPage()];
-}
-
-/**
- * @param {number} index
- * @param {number} pageCount
- * @returns {number}
- */
-function clampPageIndex(index, pageCount) {
-    if (pageCount <= 0) return 0;
-    return Math.max(0, Math.min(index, pageCount - 1));
-}
+import { createDefaultPage, normalizePages, clampPageIndex, createPage, duplicatePage } from './project_store_page_helpers.js';
+import { moveWidgetToPageState } from './project_store_move_helpers.js';
 
 export class ProjectStore {
     constructor() {
@@ -156,25 +128,7 @@ export class ProjectStore {
      * @param {number|null} atIndex 
      */
     addPage(atIndex = null) {
-        const newIdNum = this.state.pages.length;
-
-        // Find next available Page number to avoid duplicates (e.g. Page 1, Page 3 -> Page 4)
-        let maxPageNum = 0;
-        this.state.pages.forEach(p => {
-            const match = p.name.match(/^Page (\d+)$/);
-            if (match) {
-                const num = parseInt(match[1], 10);
-                if (num > maxPageNum) maxPageNum = num;
-            }
-        });
-        const newPageNum = maxPageNum + 1;
-
-        // Generate a truly unique ID if possible, but keeping consistency with current pattern
-        const newPage = {
-            id: `page_${Date.now()}_${newIdNum}`,
-            name: `Page ${newPageNum}`,
-            widgets: []
-        };
+        const newPage = createPage(this.state.pages);
 
         const targetIndex = (atIndex !== null) ? atIndex : this.state.pages.length;
         this.state.pages.splice(targetIndex, 0, newPage);
@@ -214,30 +168,7 @@ export class ProjectStore {
         if (index < 0 || index >= this.state.pages.length) return null;
 
         const sourcePage = this.state.pages[index];
-        // Deep clone the page
-        const newPage = deepClone(sourcePage);
-
-        // Update page metadata
-        newPage.id = `page_${Date.now()}_${this.state.pages.length}`;
-        newPage.name = `${sourcePage.name} (Copy)`;
-
-        // Map old widget IDs to new ones to preserve parent/child relationships
-        const idMap = new Map();
-
-        // First pass: Generate new IDs for all widgets
-        newPage.widgets.forEach((/** @type {Widget} */ widget) => {
-            const oldId = widget.id;
-            const newId = generateId();
-            widget.id = newId;
-            idMap.set(oldId, newId);
-        });
-
-        // Second pass: Update parentId references
-        newPage.widgets.forEach((/** @type {Widget} */ widget) => {
-            if (widget.parentId && idMap.has(widget.parentId)) {
-                widget.parentId = idMap.get(widget.parentId);
-            }
-        });
+        const newPage = duplicatePage(sourcePage, this.state.pages.length);
 
         // Insert after the source page
         const targetIndex = index + 1;
@@ -313,128 +244,16 @@ export class ProjectStore {
      * @param {number|null} y Optional target Y coordinate
      */
     moveWidgetToPage(widgetId, targetPageIndex, x = null, y = null) {
-        if (targetPageIndex < 0 || targetPageIndex >= this.state.pages.length) return false;
+        const moved = moveWidgetToPageState(
+            this.state,
+            widgetId,
+            targetPageIndex,
+            x,
+            y,
+            (orientation) => this.getCanvasDimensions(orientation)
+        );
 
-        const targetPage = this.state.pages[targetPageIndex];
-        const allMovedIds = new Set();
-        /** @type {WidgetMovement[]} */
-        const movements = [];
-
-        // 0. Resolve to root group if the widget is part of a group
-        let rootWidgetId = widgetId;
-        let initialWidget = this.state.widgetsById.get(widgetId);
-        if (initialWidget && initialWidget.parentId) {
-            let current = initialWidget;
-            while (current.parentId) {
-                const parent = this.state.widgetsById.get(current.parentId);
-                if (parent) {
-                    current = parent;
-                } else {
-                    break;
-                }
-            }
-            rootWidgetId = current.id;
-        }
-
-        // 1. Collect all widgets to move (recursively from root)
-        /** @param {string} id */
-        const collect = (id) => {
-            if (allMovedIds.has(id)) return;
-
-            /** @type {Widget | null} */
-            let found = null;
-            /** @type {Page | null} */
-            let sp = null;
-            for (const p of this.state.pages) {
-                found = p.widgets.find((/** @type {Widget} */ w) => w.id === id) || null;
-                if (found) { sp = p; break; }
-            }
-
-            if (!found || !sp || sp === targetPage) return;
-
-            allMovedIds.add(id);
-            movements.push({ widget: found, sourcePage: sp });
-
-            // Collect children
-            const children = sp.widgets.filter((/** @type {Widget} */ w) => w.parentId === id);
-            children.forEach((/** @type {Widget} */ c) => collect(c.id));
-        };
-
-        collect(rootWidgetId);
-
-        if (movements.length === 0) return false;
-
-        // 2. Perform movement
-        movements.forEach((m, idx) => {
-            const { widget, sourcePage } = m;
-
-            // Remove from source
-            const sIdx = sourcePage.widgets.indexOf(widget);
-            if (sIdx !== -1) sourcePage.widgets.splice(sIdx, 1);
-
-            // Cleanup parentId for the root item if parent isn't moved
-            if (idx === 0 && widget.parentId && !allMovedIds.has(widget.parentId)) {
-                widget.parentId = null;
-            }
-
-            // Update position for root only
-            if (idx === 0) {
-                // Calculate delta if we have target coordinates
-                let dx = 0;
-                let dy = 0;
-
-                if (x !== null && y !== null) {
-                    dx = x - widget.x;
-                    dy = y - widget.y;
-
-                    widget.x = x;
-                    widget.y = y;
-                }
-
-                // If this is the root and we have a delta, apply it to all OTHER moved widgets (children)
-                // Note: 'movements' includes the root at index 0, and children at indices 1..n
-                if (dx !== 0 || dy !== 0) {
-                    for (let i = 1; i < movements.length; i++) {
-                        const child = movements[i].widget;
-                        child.x += dx;
-                        child.y += dy;
-                    }
-                }
-            }
-
-            // Add to target
-            targetPage.widgets.push(widget);
-        });
-
-        // 3. Bounds clamping for ROOT widgets only
-        // Only clamp roots to preserve relative positioning within groups
-        const dims = this.getCanvasDimensions(this.state.protocolHardware?.orientation);
-        for (const id of allMovedIds) {
-            const widget = this.state.widgetsById.get(id);
-            if (!widget) continue;
-
-            // Skip children - they maintain relative position to their parent
-            if (widget.parentId && allMovedIds.has(widget.parentId)) continue;
-
-            // Clamp the root widget
-            const oldX = widget.x;
-            const oldY = widget.y;
-            widget.x = Math.max(0, Math.min(dims.width - (widget.width || 50), widget.x));
-            widget.y = Math.max(0, Math.min(dims.height - (widget.height || 50), widget.y));
-
-            // If root was clamped, propagate the adjustment to its children
-            const clampDx = widget.x - oldX;
-            const clampDy = widget.y - oldY;
-            if (clampDx !== 0 || clampDy !== 0) {
-                for (const childId of allMovedIds) {
-                    const child = this.state.widgetsById.get(childId);
-                    if (child && child.parentId === widget.id) {
-                        child.x += clampDx;
-                        child.y += clampDy;
-                    }
-                }
-            }
-        }
+        if (!moved) return false;
 
         this.rebuildWidgetsIndex();
         emit(EVENTS.STATE_CHANGED);
@@ -511,7 +330,7 @@ export class ProjectStore {
      * @param {string} orientation 
      * @returns {{width: number, height: number}}
      */
-    getCanvasDimensions(orientation) {
+    getCanvasDimensions(orientation = ORIENTATIONS.LANDSCAPE) {
         const model = this.state.deviceModel || "reterminal_e1001";
         const profiles = /** @type {Record<string, any>} */ (DEVICE_PROFILES);
         const profile = profiles && profiles[model] ? profiles[model] : null;

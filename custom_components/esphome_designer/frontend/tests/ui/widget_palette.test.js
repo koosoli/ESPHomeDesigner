@@ -1,5 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
+const { mockOn, mockLogger } = vi.hoisted(() => ({
+    mockOn: vi.fn(),
+    mockLogger: {
+        log: vi.fn(),
+        error: vi.fn()
+    }
+}));
+
 const mockRegistry = {
     load: vi.fn(() => Promise.resolve()),
     get: vi.fn((type) => {
@@ -14,16 +22,21 @@ vi.mock('../../js/core/state', () => ({
         settings: { renderingMode: 'direct' }
     }
 }));
-vi.mock('../../js/utils/logger.js', () => ({ Logger: { log: vi.fn(), error: vi.fn() } }));
+vi.mock('../../js/utils/logger.js', () => ({ Logger: mockLogger }));
 vi.mock('../../js/core/events.js', () => ({
     EVENTS: { SETTINGS_CHANGED: 'SETTINGS_CHANGED' },
-    on: vi.fn()
+    on: mockOn
 }));
 
 describe('widget_palette', () => {
     beforeEach(() => {
+        vi.resetModules();
         document.body.innerHTML = '<div id="widgetPalette"></div>';
         mockRegistry.load.mockClear();
+        mockRegistry.load.mockImplementation(() => Promise.resolve());
+        mockOn.mockClear();
+        mockLogger.log.mockClear();
+        mockLogger.error.mockClear();
     });
 
     it('renders categories and widgets for direct mode', async () => {
@@ -91,5 +104,28 @@ describe('widget_palette', () => {
                 'lvgl'
             ).isCompatible
         ).toBe(true);
+    });
+
+    it('refreshes the palette when settings mode changes and skips missing containers', async () => {
+        const { renderWidgetPalette } = await import('../../js/ui/widget_palette.js');
+
+        await renderWidgetPalette('missing-widget-palette');
+        expect(mockRegistry.load).not.toHaveBeenCalled();
+
+        const settingsCallback = mockOn.mock.calls[0]?.[1];
+        expect(typeof settingsCallback).toBe('function');
+
+        await settingsCallback?.({ renderingMode: 'lvgl' });
+        expect(mockRegistry.load).toHaveBeenCalled();
+    });
+
+    it('logs and continues rendering when plugin preloading fails', async () => {
+        mockRegistry.load.mockImplementation(() => Promise.reject(new Error('load failed')));
+        const { renderWidgetPalette } = await import('../../js/ui/widget_palette.js');
+
+        await renderWidgetPalette('widgetPalette');
+
+        expect(mockLogger.error).toHaveBeenCalled();
+        expect(document.querySelectorAll('.widget-category').length).toBeGreaterThan(0);
     });
 });

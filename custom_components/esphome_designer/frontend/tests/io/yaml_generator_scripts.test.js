@@ -21,6 +21,7 @@ describe('yaml_generator_scripts', () => {
         expect(lines).toContain('Page change ignored (debounce)');
         expect(lines).toContain('id(my_display).update();');
         expect(lines).toContain('id(backlight_pwm).set_level(0.8);');
+        expect(lines).toContain('id(last_page_switch_time) = millis();');
         expect(lines).toContain('Auto-switching to scheduled page %d');
         expect(lines).toContain('interval = diff * 60;');
         expect(lines).toContain('id: auto_cycle_timer');
@@ -50,6 +51,7 @@ describe('yaml_generator_scripts', () => {
         expect(lines).toContain('until: "06:00:00"');
         expect(lines).toContain('std::string version_str = __DATE__ " " __TIME__;');
         expect(lines).toContain('id(firmware_fingerprint) != current_hash');
+        expect((lines.match(/deep_sleep\.prevent: deep_sleep_control/g) || []).length).toBeGreaterThan(1);
     });
 
     it('stops the automatic refresh loop in manual refresh mode', () => {

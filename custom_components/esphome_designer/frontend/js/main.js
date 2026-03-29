@@ -12,6 +12,7 @@ import { installIgnorableRejectionHandler } from './utils/ignorable_rejections.j
 import { initUI } from './ui/components/init_ui.js';
 import {
     attachAppNamespace,
+    attachStateNamespace,
     clearBootPromise,
     getBootPromise,
     hasBootstrapSurface,
@@ -27,24 +28,7 @@ import {
     scheduleInitialCanvasFocus
 } from './ui/app_runtime_helpers.js';
 
-// Legacy Global Scripts (Now ES Modules)
-import './utils/helpers.js';
-import './utils/env.js';
-import './utils/dom.js';
-import './utils/device.js';
-import './utils/graph_helpers.js';
-import './core/constants';
-import './core/utils';
-import './core/constants_icons.js';
-import './core/plugin_registry.js';
-import './core/widget_factory';
-import './core/layout_constants.js';
-import './ui/splitters.js';
-import './ui/icon_picker.js';
-import './ui/radial_menu.js';
-import './ui/entity_picker.js';
-
-import './io/hardware_import.js';
+import './core/legacy_runtime_modules.js';
 
 import { saveLayoutToBackend } from './io/ha_api.js';
 import { loadExternalProfiles } from './io/devices.js';
@@ -310,6 +294,7 @@ export async function bootstrapApp() {
     if (existingBootPromise) {
         const existingApp = await existingBootPromise;
         if (existingApp) {
+            attachStateNamespace(AppState);
             attachAppNamespace(existingApp);
         }
         return existingApp;
@@ -325,6 +310,7 @@ export async function bootstrapApp() {
         }
 
         const app = new App();
+        attachStateNamespace(AppState);
         attachAppNamespace(app);
 
         try {

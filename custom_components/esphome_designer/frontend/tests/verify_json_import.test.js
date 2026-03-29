@@ -70,6 +70,66 @@ describe('JSON Import Verification', () => {
         expect(AppState.settings.renderingMode).toBe("lvgl");
     });
 
+    it('should restore snake_case HA settings and hardware payloads from backend layouts', () => {
+        const layout = {
+            pages: [],
+            device_model: "custom",
+            sleep_enabled: true,
+            sleep_start_hour: 23,
+            sleep_end_hour: 6,
+            deep_sleep_enabled: true,
+            deep_sleep_interval: 900,
+            deep_sleep_stay_awake_switch: true,
+            deep_sleep_stay_awake_entity_id: "input_boolean.office_panel_awake",
+            deep_sleep_firmware_guard: true,
+            manual_refresh_only: false,
+            refresh_interval: 1200,
+            auto_cycle_enabled: true,
+            auto_cycle_interval_s: 45,
+            lcd_eco_strategy: "dim_after_timeout",
+            oepl_entity_id: "open_epaper_link.office",
+            oepl_dither: 4,
+            custom_hardware: {
+                resWidth: 800,
+                resHeight: 480,
+                shape: "round"
+            },
+            protocol_hardware: {
+                width: 400,
+                height: 300,
+                colorMode: "tri"
+            }
+        };
+
+        loadLayoutIntoState(layout);
+
+        expect(AppState.settings.sleepEnabled).toBe(true);
+        expect(AppState.settings.sleepStartHour).toBe(23);
+        expect(AppState.settings.sleepEndHour).toBe(6);
+        expect(AppState.settings.deepSleepEnabled).toBe(true);
+        expect(AppState.settings.deepSleepInterval).toBe(900);
+        expect(AppState.settings.deepSleepStayAwakeSwitch).toBe(true);
+        expect(AppState.settings.deepSleepStayAwakeEntityId).toBe("input_boolean.office_panel_awake");
+        expect(AppState.settings.deepSleepFirmwareGuard).toBe(true);
+        expect(AppState.settings.refreshInterval).toBe(1200);
+        expect(AppState.settings.autoCycleEnabled).toBe(true);
+        expect(AppState.settings.autoCycleIntervalS).toBe(45);
+        expect(AppState.settings.lcdEcoStrategy).toBe("dim_after_timeout");
+        expect(AppState.settings.oeplEntityId).toBe("open_epaper_link.office");
+        expect(AppState.settings.oeplDither).toBe(4);
+
+        expect(AppState.project.state.customHardware).toMatchObject({
+            resWidth: 800,
+            resHeight: 480,
+            shape: "round"
+        });
+        expect(AppState.project.state.protocolHardware).toMatchObject({
+            width: 400,
+            height: 300,
+            colorMode: "tri"
+        });
+    });
+
     it('should prioritize device_id from layout over current state', () => {
         AppState.setCurrentLayoutId("original_id");
 

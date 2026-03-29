@@ -64,8 +64,8 @@ describe('weather_forecast export_sensors', () => {
         expect(output).toContain('id: weather_cond_h1200');
         expect(output).toContain('# HOME ASSISTANT TEMPLATE SENSORS (HOURLY)');
         expect(output).toContain('entity_id: weather.garden');
-        expect(output).toContain("name: 'Weather Forecast Hour 0900'");
-        expect(output).toContain("name: 'Weather Forecast Hour 1200'");
+        expect(output).toContain("name: 'Weather Forecast Hour 0900 High'");
+        expect(output).toContain("name: 'Weather Forecast Hour 1200 High'");
     });
 
     it('exports relative hourly template sensors and tracks required fonts/icons', () => {

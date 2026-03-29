@@ -40,6 +40,7 @@ describe('Deep Sleep Enhancements (Issue #310)', () => {
             // The stay-awake branch must stop the script with a valid ESPHome action.
             expect(scriptYaml).toContain('script.stop: deep_sleep_cycle');
             expect(scriptYaml).not.toContain('- return:');
+            expect((scriptYaml.match(/deep_sleep\.prevent: deep_sleep_control/g) || []).length).toBeGreaterThanOrEqual(2);
 
             // Check that deep_sleep.enter is wrapped in an if condition
             expect(scriptYaml).toContain('condition:');

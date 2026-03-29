@@ -122,4 +122,38 @@ describe('calendar exports', () => {
         expect(addFont).toHaveBeenCalledWith('Roboto', 700, 12);
         expect(addFont).toHaveBeenCalledWith('Material Design Icons', 400, 24);
     });
+
+    it('exports rounded direct calendar borders when border_radius is set', () => {
+        const lines = [];
+
+        exportDirect({
+            x: 1,
+            y: 2,
+            width: 100,
+            height: 80,
+            props: {
+                show_header: false,
+                show_grid: false,
+                show_events: false,
+                border_width: 2,
+                border_radius: 8,
+                border_color: 'red',
+                text_color: 'black',
+                background_color: 'white'
+            }
+        }, {
+            lines,
+            addFont: vi.fn(() => 'font_ref'),
+            getColorConst: (value) => `Color(${value})`,
+            addDitherMask: vi.fn(),
+            getCondProps: () => ({}),
+            getConditionCheck: () => '',
+            isEpaper: false
+        });
+
+        const output = lines.join('\n');
+        expect(output).toContain('it.filled_rounded_rectangle(x, y, w, h, 8, Color(white));');
+        expect(output).toContain('draw_rrect_border(1, 2, 100, 80, 8, 2, Color(red));');
+        expect(output).not.toContain('it.rectangle(1 + 0, 2 + 0, 100 - 0, 80 - 0, Color(red));');
+    });
 });

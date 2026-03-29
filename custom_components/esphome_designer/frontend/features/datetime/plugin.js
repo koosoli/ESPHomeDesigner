@@ -11,6 +11,7 @@ const render = (el, widget, { getColorStyle }) => {
     el.style.flexDirection = "column";
     el.style.justifyContent = "center";
     el.style.alignItems = "center";
+    el.style.overflow = "hidden"; // Match device behavior: clip text at widget boundary
 
     const color = getColorStyle(props.color);
     const fontFamily = (props.font_family || "Roboto") + ", sans-serif";
@@ -71,6 +72,7 @@ const render = (el, widget, { getColorStyle }) => {
     timeDiv.style.color = color;
     timeDiv.style.fontFamily = fontFamily;
     timeDiv.style.fontWeight = props.font_weight_time !== undefined ? props.font_weight_time : (props.bold_time !== false ? 700 : 400);
+    timeDiv.style.whiteSpace = "nowrap";
 
     const dateDiv = document.createElement("div");
     dateDiv.style.fontSize = `${props.date_font_size || 16}px`;
@@ -78,6 +80,7 @@ const render = (el, widget, { getColorStyle }) => {
     dateDiv.style.fontFamily = fontFamily;
     dateDiv.style.opacity = "0.8";
     dateDiv.style.fontWeight = props.font_weight_date !== undefined ? props.font_weight_date : (props.bold_date ? 700 : 400);
+    dateDiv.style.whiteSpace = "nowrap";
 
     const now = new Date();
     const dayNamesShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
