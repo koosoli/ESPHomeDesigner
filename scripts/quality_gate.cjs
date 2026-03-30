@@ -223,6 +223,54 @@ function makeGate(section, gate, passed, details, extras = {}) {
     return { section, gate, passed, details, ...extras };
 }
 
+function collectDiagnosticLines(output, matchers = [], maxLines = 3) {
+    const lines = `${output || ''}`
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+    if (lines.length === 0) return [];
+
+    const matched = matchers.length === 0
+        ? lines
+        : lines.filter((line) => matchers.some((matcher) => matcher.test(line)));
+
+    const source = matched.length > 0 ? matched : lines.slice(-maxLines);
+    return source.slice(0, maxLines);
+}
+
+function formatDiagnosticSummary(prefix, lines) {
+    if (!lines || lines.length === 0) return prefix;
+    return `${prefix}: ${lines.join(' | ')}`;
+}
+
+function emitFailureContext(gate, result, maxLines = 40) {
+    const stdoutLines = `${result.stdout || ''}`
+        .split(/\r?\n/)
+        .filter((line) => line.trim());
+    const stderrLines = `${result.stderr || ''}`
+        .split(/\r?\n/)
+        .filter((line) => line.trim());
+
+    console.error(`\n${COLORS.RED}[${gate}] command failed${COLORS.RESET}`);
+
+    if (stdoutLines.length > 0) {
+        console.error(`${COLORS.BOLD}[${gate}] stdout${COLORS.RESET}`);
+        stdoutLines.slice(0, maxLines).forEach((line) => console.error(line));
+        if (stdoutLines.length > maxLines) {
+            console.error(`... (${stdoutLines.length - maxLines} more stdout lines)`);
+        }
+    }
+
+    if (stderrLines.length > 0) {
+        console.error(`${COLORS.BOLD}[${gate}] stderr${COLORS.RESET}`);
+        stderrLines.slice(0, maxLines).forEach((line) => console.error(line));
+        if (stderrLines.length > maxLines) {
+            console.error(`... (${stderrLines.length - maxLines} more stderr lines)`);
+        }
+    }
+}
+
 function checkEslint() {
     const result = run('npx eslint . --format json');
     try {
@@ -384,12 +432,24 @@ function checkFileCoverage() {
 
 function checkTypeScriptBase() {
     const result = run('npx tsc --noEmit -p tsconfig.json');
-    return makeGate('web', 'TypeScriptBase', result.status === 0, result.status === 0 ? 'Frontend config passes' : 'Base config type errors detected');
+    if (result.status === 0) {
+        return makeGate('web', 'TypeScriptBase', true, 'Frontend config passes');
+    }
+
+    emitFailureContext('TypeScriptBase', result);
+    const details = collectDiagnosticLines(`${result.stdout}\n${result.stderr}`, [/error TS\d+:/i], 2);
+    return makeGate('web', 'TypeScriptBase', false, formatDiagnosticSummary('Base config type errors detected', details));
 }
 
 function checkTypeScript() {
     const result = run('npx tsc --noEmit -p tsconfig.strict.json');
-    return makeGate('web', 'TypeScript', result.status === 0, result.status === 0 ? 'No type errors' : 'Type errors detected');
+    if (result.status === 0) {
+        return makeGate('web', 'TypeScript', true, 'No type errors');
+    }
+
+    emitFailureContext('TypeScript', result);
+    const details = collectDiagnosticLines(`${result.stdout}\n${result.stderr}`, [/error TS\d+:/i], 2);
+    return makeGate('web', 'TypeScript', false, formatDiagnosticSummary('Type errors detected', details));
 }
 
 function checkBuild() {
@@ -514,7 +574,13 @@ function checkPythonSmoke() {
     }
 
     const result = run(`${pythonCmd} -m compileall custom_components/esphome_designer`);
-    return makeGate('python', 'PythonSmoke', result.status === 0, result.status === 0 ? `compileall via ${pythonCmd}` : `compileall failed via ${pythonCmd}`);
+    if (result.status === 0) {
+        return makeGate('python', 'PythonSmoke', true, `compileall via ${pythonCmd}`);
+    }
+
+    emitFailureContext('PythonSmoke', result);
+    const details = collectDiagnosticLines(`${result.stdout}\n${result.stderr}`, [/error/i, /Traceback/i], 2);
+    return makeGate('python', 'PythonSmoke', false, formatDiagnosticSummary(`compileall failed via ${pythonCmd}`, details));
 }
 
 function checkPythonTests() {
@@ -538,7 +604,13 @@ function checkPythonTests() {
     const testCount = summary?.count || 0;
 
     if (result.status !== 0) {
-        return makeGate('python', 'PythonTests', false, `Failures via ${pythonCmd}`);
+        emitFailureContext('PythonTests', result);
+        const details = collectDiagnosticLines(
+            `${result.stdout}\n${result.stderr}`,
+            [/^FAIL:/, /^ERROR:/, /^FAILED\b/, /^Traceback/i, /AssertionError/i],
+            3
+        );
+        return makeGate('python', 'PythonTests', false, formatDiagnosticSummary(`Failures via ${pythonCmd}`, details));
     }
     if (testCount === 0) {
         return makeGate('python', 'PythonTests', false, `0 tests discovered via ${pythonCmd}`);
