@@ -19,18 +19,18 @@ jobs:
         node-version: [20.x, 22.x]
         
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
     
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
 
     - name: Setup Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.11'
 
@@ -63,14 +63,14 @@ jobs:
       run: npm run quality -- --json --proof-dir=tmp/proof/ci
 
     - name: Upload coverage report
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       if: always() && hashFiles('coverage/**') != ''
       with:
         name: coverage-report-${{ matrix.node-version }}
         path: coverage/
 
     - name: Upload proof bundle
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       if: always() && hashFiles('tmp/proof/ci/**') != ''
       with:
         name: quality-proof-${{ matrix.node-version }}
