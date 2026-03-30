@@ -357,6 +357,21 @@ describe('SnippetManager', () => {
         expect(updateSpy).toHaveBeenCalledTimes(2);
     });
 
+    it('preserves pending manual YAML edits instead of overwriting them on state changes', async () => {
+        const snippetBox = /** @type {HTMLTextAreaElement} */ (document.getElementById('snippetBox'));
+        snippetBox.value = 'manual override';
+        snippetBox.dispatchEvent(new Event('input'));
+
+        const initialGenerateCalls = adapter.generate.mock.calls.length;
+        const stateChanged = mockOn.mock.calls.find(([event]) => event === 'STATE_CHANGED')?.[1];
+        stateChanged?.();
+        await vi.runAllTimersAsync();
+
+        expect(manager.hasPendingManualSnippetChanges).toBe(true);
+        expect(snippetBox.value).toBe('manual override');
+        expect(adapter.generate).toHaveBeenCalledTimes(initialGenerateCalls);
+    });
+
     it('handles adapter rejection and synchronous snippet generation failures', async () => {
         const snippetBox = /** @type {HTMLTextAreaElement} */ (document.getElementById('snippetBox'));
         manager.adapter.generate = vi.fn().mockRejectedValue(new Error('bad adapter'));

@@ -3,7 +3,6 @@ import { AppState } from './state';
 import { Logger } from '../utils/logger.js';
 import { quickSearchInstance } from '../ui/quick_search.js';
 import { emit, EVENTS } from './events.js';
-import { getLastSnippetHighlightRange, isSnippetAutoHighlightActive } from './snippet_selection_bridge.js';
 
 export class KeyboardHandler {
     constructor() {
@@ -30,9 +29,9 @@ export class KeyboardHandler {
         }
 
         const hasSelection = state.selectedWidgetIds.length > 0;
-        const isAutoHighlight = isSnippetAutoHighlightActive();
         const htmlTarget = ev.target instanceof HTMLElement ? ev.target : null;
         const isEditableTarget = KeyboardHandler.isInput(htmlTarget);
+        const hasNativeSelection = KeyboardHandler.hasNativeTextSelection(htmlTarget);
 
         // Quick Search: Shift+Space
         // Quick Search: Shift+Space
@@ -51,35 +50,17 @@ export class KeyboardHandler {
         }
 
         if ((ev.key === "Delete" || ev.key === "Backspace") && hasSelection) {
-            // Special case: If snippet box is focused but selection matches the auto-highlight,
-            // treat it as a widget delete.
-            const lastHighlightRange = getLastSnippetHighlightRange();
-            if (ev.target instanceof HTMLElement && ev.target.id === "snippetBox" && lastHighlightRange) {
-                const inputTarget = /** @type {HTMLInputElement} */(ev.target);
-                if (inputTarget.selectionStart === lastHighlightRange.start &&
-                    inputTarget.selectionEnd === lastHighlightRange.end) {
-                    ev.preventDefault();
-                    this.deleteWidget(null); // Fix: Delete current selection (multi), not just the single ID
-                    return;
-                }
-            }
-
             if (isEditableTarget) {
                 return;
             }
             ev.preventDefault();
-            this.deleteWidget(null); // Passing null to delete current selection
+            this.deleteWidget(null);
             return;
         }
 
         // Copy: Ctrl+C
         if ((ev.ctrlKey || ev.metaKey) && ev.key && ev.key.toLowerCase() === "c") {
-            if (isEditableTarget) {
-                if (htmlTarget?.id === "snippetBox" && isAutoHighlight) {
-                    ev.preventDefault();
-                    this.copyWidget();
-                    return;
-                }
+            if (isEditableTarget || hasNativeSelection) {
                 return;
             }
             ev.preventDefault();
@@ -90,11 +71,6 @@ export class KeyboardHandler {
         // Paste: Ctrl+V
         if ((ev.ctrlKey || ev.metaKey) && ev.key && ev.key.toLowerCase() === "v") {
             if (isEditableTarget) {
-                if (htmlTarget?.id === "snippetBox" && isAutoHighlight) {
-                    ev.preventDefault();
-                    this.pasteWidget();
-                    return;
-                }
                 return;
             }
             ev.preventDefault();
@@ -105,15 +81,6 @@ export class KeyboardHandler {
         // Undo: Ctrl+Z
         if ((ev.ctrlKey || ev.metaKey) && ev.key && ev.key.toLowerCase() === "z" && !ev.shiftKey) {
             if (isEditableTarget) {
-                // Allow global undo when snippetBox has auto-highlighted text
-                if (htmlTarget?.id === "snippetBox" && isAutoHighlight) {
-                    ev.preventDefault();
-                    // Prevent focus stealing during undo state restoration
-                    state.isUndoRedoInProgress = true;
-                    state.undo();
-                    setTimeout(() => { state.isUndoRedoInProgress = false; }, 100);
-                    return;
-                }
                 return;
             }
             ev.preventDefault();
@@ -127,15 +94,6 @@ export class KeyboardHandler {
         // Redo: Ctrl+Y or Ctrl+Shift+Z
         if ((ev.ctrlKey || ev.metaKey) && ev.key && (ev.key.toLowerCase() === "y" || (ev.key.toLowerCase() === "z" && ev.shiftKey))) {
             if (isEditableTarget) {
-                // Allow global redo when snippetBox has auto-highlighted text
-                if (htmlTarget?.id === "snippetBox" && isAutoHighlight) {
-                    ev.preventDefault();
-                    // Prevent focus stealing during redo state restoration
-                    state.isUndoRedoInProgress = true;
-                    state.redo();
-                    setTimeout(() => { state.isUndoRedoInProgress = false; }, 100);
-                    return;
-                }
                 return;
             }
             ev.preventDefault();
@@ -157,8 +115,7 @@ export class KeyboardHandler {
 
         // Select All: Ctrl+A
         if ((ev.ctrlKey || ev.metaKey) && ev.key && ev.key.toLowerCase() === "a") {
-            const isSnippetAuto = ev.target instanceof HTMLElement && ev.target.id === "snippetBox" && isAutoHighlight;
-            if (ev.target instanceof HTMLElement && (!KeyboardHandler.isInput(ev.target) || isSnippetAuto)) {
+            if (ev.target instanceof HTMLElement && !KeyboardHandler.isInput(ev.target) && !hasNativeSelection) {
                 ev.preventDefault();
                 state.selectAllWidgets();
                 return;
@@ -242,7 +199,26 @@ export class KeyboardHandler {
     // Add interaction detection for inputs
     /** @param {unknown} el */
     static isInput(el) {
-        return el instanceof HTMLElement && (el.tagName === "INPUT" || el.tagName === "TEXTAREA");
+        return !!(el instanceof HTMLElement && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable));
+    }
+
+    /**
+     * @param {HTMLElement | null} target
+     * @returns {boolean}
+     */
+    static hasNativeTextSelection(target) {
+        if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+            const start = target.selectionStart ?? 0;
+            const end = target.selectionEnd ?? 0;
+            return end > start;
+        }
+
+        try {
+            const selection = globalThis.getSelection?.();
+            return !!selection && !selection.isCollapsed && selection.toString().trim().length > 0;
+        } catch {
+            return false;
+        }
     }
 
     /** @param {any} widgetId */

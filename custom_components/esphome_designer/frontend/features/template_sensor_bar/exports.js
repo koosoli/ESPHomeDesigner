@@ -14,6 +14,11 @@ const getDynamicColor = (getColorConst, color) => {
     return getColorConst(color);
 };
 
+const escapeLvglString = (value) => String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+
+const buildLvglSensorTextLambda = (guardExpr, formatString, valueExpr, fallbackText) =>
+    `!lambda "if (${guardExpr}) { return str_sprintf(\\"${escapeLvglString(formatString)}\\", ${valueExpr}); } return \\"${escapeLvglString(fallbackText)}\\";"`;
+
 const pushSensorValue = (lines, iconFontRef, textFontRef, color, x, y, iconCode, bodyLines) => {
     lines.push(`          {`);
     lines.push(`            it.printf(${Math.round(x)} - 4, ${Math.round(y)}, id(${iconFontRef}), ${color}, TextAlign::CENTER_RIGHT, "%s", "${iconCode}");`);
@@ -226,7 +231,27 @@ export function exportLVGL(w, { common, convertColor, getLVGLFont, profile }) {
         iconL += '                else return "\\U000F091F";\n';
         iconL += '              }\n';
         iconL += '              return "\\U000F092B";';
-        widgets.push({ obj: { width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0, layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" }, pad_all: 0, widgets: [{ label: { text: iconL, text_font: iconFont, text_color: color } }, { label: { text: '!lambda "return id(wifi_signal_dbm).has_state() ? str_sprintf(\'%.0fdB\', id(wifi_signal_dbm).state).c_str() : \'--dB\';"', text_font: textFont, text_color: color, x: 4 } }] } });
+        widgets.push({
+            obj: {
+                width: "SIZE_CONTENT",
+                height: "SIZE_CONTENT",
+                bg_opa: "transp",
+                border_width: 0,
+                layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" },
+                pad_all: 0,
+                widgets: [
+                    { label: { text: iconL, text_font: iconFont, text_color: color } },
+                    {
+                        label: {
+                            text: buildLvglSensorTextLambda("id(wifi_signal_dbm).has_state()", "%.0fdB", "id(wifi_signal_dbm).state", "--dB"),
+                            text_font: textFont,
+                            text_color: color,
+                            x: 4
+                        }
+                    }
+                ]
+            }
+        });
     }
 
     if (p.show_temperature !== false) {
@@ -236,7 +261,7 @@ export function exportLVGL(w, { common, convertColor, getLVGLFont, profile }) {
         const unit = p.temp_unit || "\u00B0C";
         const tempExpr = unit === "\u00B0F" ? `(id(${tempId}).state * 9.0 / 5.0 + 32.0)` : `id(${tempId}).state`;
         const tempText = tempId
-            ? `!lambda "if (id(${tempId}).has_state()) { return str_sprintf('%.1f${unit}', ${tempExpr}).c_str(); } return '--${unit}';"`
+            ? buildLvglSensorTextLambda(`id(${tempId}).has_state()`, `%.1f${unit}`, tempExpr, `--${unit}`)
             : `"--${unit}"`;
         widgets.push({ obj: { width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0, layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" }, pad_all: 0, widgets: [{ label: { text: '"\\U000F050F"', text_font: iconFont, text_color: color } }, { label: { text: tempText, text_font: textFont, text_color: color, x: 4 } }] } });
     }
@@ -246,7 +271,7 @@ export function exportLVGL(w, { common, convertColor, getLVGLFont, profile }) {
         if (p.hum_is_local) baseHumId = profile.features?.sht4x ? "sht4x_humidity" : profile.features?.sht3x || profile.features?.sht3xd ? "sht3x_humidity" : profile.features?.shtc3 ? "shtc3_humidity" : (p.hum_entity || "");
         const humId = baseHumId ? baseHumId.replace(/[^a-zA-Z0-9_]/g, "_") : "";
         const humText = humId
-            ? `!lambda "if (id(${humId}).has_state()) { return str_sprintf('%.0f%%', id(${humId}).state).c_str(); } return '--%%';"`
+            ? buildLvglSensorTextLambda(`id(${humId}).has_state()`, "%.0f%%", `id(${humId}).state`, "--%%")
             : `"--%%"`;
         widgets.push({ obj: { width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0, layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" }, pad_all: 0, widgets: [{ label: { text: '"\\U000F058E"', text_font: iconFont, text_color: color } }, { label: { text: humText, text_font: textFont, text_color: color, x: 4 } }] } });
     }
@@ -273,7 +298,7 @@ export function exportLVGL(w, { common, convertColor, getLVGLFont, profile }) {
             batIconL += '                else return "\\U000F0083";\n';
             batIconL += '              }\n';
             batIconL += '              return "\\U000F0082";';
-            batText = `!lambda "return id(${batId}).has_state() ? str_sprintf('%.0f%%', id(${batId}).state).c_str() : '--%%';"`;
+            batText = buildLvglSensorTextLambda(`id(${batId}).has_state()`, "%.0f%%", `id(${batId}).state`, "--%%");
         }
         widgets.push({ obj: { width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0, layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" }, pad_all: 0, widgets: [{ label: { text: batIconL, text_font: iconFont, text_color: color } }, { label: { text: batText, text_font: textFont, text_color: color, x: 4 } }] } });
     }

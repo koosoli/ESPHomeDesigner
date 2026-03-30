@@ -97,6 +97,41 @@ describe('template_sensor_bar exports', () => {
         expect(yaml).not.toContain('id(battery_level).has_state()');
     });
 
+    it('emits LVGL sensor lambdas with escaped double quotes and string returns', () => {
+        const result = exportLVGL({
+            id: 'bar_live',
+            props: {
+                show_wifi: true,
+                show_temperature: true,
+                temp_entity: 'sensor.room_temp',
+                show_humidity: true,
+                hum_entity: 'sensor.room_humidity',
+                show_battery: true,
+                bat_entity: 'sensor.room_battery'
+            }
+        }, {
+            common: { id: 'bar_live' },
+            convertColor: (value) => `COLOR_${value}`,
+            getLVGLFont: () => 'font_ref',
+            profile: { features: {} }
+        });
+
+        const wifiText = result.obj.widgets[0].obj.widgets[1].label.text;
+        const tempText = result.obj.widgets[1].obj.widgets[1].label.text;
+        const humText = result.obj.widgets[2].obj.widgets[1].label.text;
+        const batText = result.obj.widgets[3].obj.widgets[1].label.text;
+
+        expect(wifiText).toContain('str_sprintf(\\"%.0fdB\\", id(wifi_signal_dbm).state)');
+        expect(tempText).toContain('str_sprintf(\\"%.1f°C\\", id(sensor_room_temp).state)');
+        expect(humText).toContain('str_sprintf(\\"%.0f%%\\", id(sensor_room_humidity).state)');
+        expect(batText).toContain('str_sprintf(\\"%.0f%%\\", id(sensor_room_battery).state)');
+
+        [wifiText, tempText, humText, batText].forEach((text) => {
+            expect(text).not.toContain(".c_str()");
+            expect(text).not.toContain("str_sprintf('");
+        });
+    });
+
     it('exports numeric sensors and LVGL refresh triggers for mixed local and HA-backed values', () => {
         const lines = [];
         const pendingTriggers = new Map();

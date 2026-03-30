@@ -63,6 +63,7 @@ export class SnippetManager {
         this.suppressSnippetUpdate = false;
         this.snippetDebounceTimer = null;
         this.lastGeneratedYaml = "";
+        this.hasPendingManualSnippetChanges = false;
 
         // Highlighting persistence
         this.isHighlighted = localStorage.getItem('esphome_designer_yaml_highlight') !== 'false';
@@ -226,9 +227,10 @@ export class SnippetManager {
         }
 
         // Update highlight layer on manual input
-        const snippetBox = document.getElementById('snippetBox');
+        const snippetBox = getTextarea('snippetBox');
         if (snippetBox) {
             snippetBox.addEventListener('input', () => {
+                this.hasPendingManualSnippetChanges = snippetBox.value.trim() !== this.lastGeneratedYaml.trim();
                 if (this.isHighlighted) {
                     this.updateHighlightLayer();
                 }
@@ -303,6 +305,11 @@ export class SnippetManager {
                     return;
                 }
 
+                if (this.hasPendingManualSnippetChanges) {
+                    Logger.log("[SnippetManager] Preserving pending YAML edits; skipping auto-regeneration.");
+                    return;
+                }
+
                 try {
                     const selectedIds = AppState ? AppState.selectedWidgetIds : [];
                     const _isMultiSelect = selectedIds.length > 1;
@@ -318,6 +325,7 @@ export class SnippetManager {
 
                     this.adapter.generate(payload).then((/** @type {string} */ yaml) => {
                         this.lastGeneratedYaml = yaml;
+                        this.hasPendingManualSnippetChanges = false;
                         snippetBox.value = yaml;
 
                         if (this.isHighlighted) {

@@ -10,7 +10,10 @@
   "include": [],
   "files": [
     "strict-shims.d.ts",
+    "custom_components/esphome_designer/frontend/js/core/app_bootstrap_runtime.js",
     "custom_components/esphome_designer/frontend/js/core/stores/project_store.js",
+    "custom_components/esphome_designer/frontend/js/core/stores/project_store_page_helpers.js",
+    "custom_components/esphome_designer/frontend/js/core/stores/project_store_move_helpers.js",
     "custom_components/esphome_designer/frontend/js/core/stores/editor_store.ts",
     "custom_components/esphome_designer/frontend/js/core/stores/preferences_store.js",
     "custom_components/esphome_designer/frontend/js/core/stores/secrets_store.js",

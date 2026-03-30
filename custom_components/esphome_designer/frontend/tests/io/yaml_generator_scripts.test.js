@@ -23,6 +23,7 @@ describe('yaml_generator_scripts', () => {
         expect(lines).toContain('id(backlight_pwm).set_level(0.8);');
         expect(lines).toContain('id(last_page_switch_time) = millis();');
         expect(lines).toContain('Auto-switching to scheduled page %d');
+        expect(lines).not.toContain('best_page != p || id(last_page_switch_time) == 0');
         expect(lines).toContain('interval = diff * 60;');
         expect(lines).toContain('id: auto_cycle_timer');
         expect(lines).toContain('delay: 45s');

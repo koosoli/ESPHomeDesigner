@@ -2533,7 +2533,7 @@ exports[`Plugin Export Smoke Tests > Export for template_sensor_bar > should exp
             },
             {
               "label": {
-                "text": "!lambda "return id(wifi_signal_dbm).has_state() ? str_sprintf('%.0fdB', id(wifi_signal_dbm).state).c_str() : '--dB';"",
+                "text": "!lambda "if (id(wifi_signal_dbm).has_state()) { return str_sprintf(\\"%.0fdB\\", id(wifi_signal_dbm).state); } return \\"--dB\\";"",
                 "text_color": "Color(white)",
                 "text_font": "font_ptr",
                 "x": 4,

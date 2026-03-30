@@ -1,4 +1,4 @@
-import { hasHaBackend } from '../utils/env.js';
+import { hasHaBackend, isDeployedInHa } from '../utils/env.js';
 import { Logger } from '../utils/logger.js';
 import { showToast } from '../utils/dom.js';
 import { fetchEntityStates, loadLayoutFromBackend, saveLayoutToBackend } from '../io/ha_api.js';
@@ -84,13 +84,37 @@ export function bindGlobalButtons({
 }) {
     const saveLayoutBtn = document.getElementById('saveLayoutBtn');
     if (saveLayoutBtn) {
-        saveLayoutBtn.addEventListener('click', () => {
-            if (hasHaBackend()) {
-                saveLayoutToBackend()
-                    .then(() => showToast('Layout saved to Home Assistant', 'success'))
-                    .catch((error) => showToast(`Save failed: ${error.message}`, 'error'));
-            } else {
+        saveLayoutBtn.addEventListener('click', async () => {
+            const saveLocally = (message) => {
                 saveLayoutToFile();
+                showToast(message, 'info');
+            };
+
+            if (!hasHaBackend()) {
+                saveLocally('Layout downloaded locally');
+                return;
+            }
+
+            try {
+                const saved = await saveLayoutToBackend();
+                if (saved) {
+                    showToast('Layout saved to Home Assistant', 'success');
+                    return;
+                }
+
+                if (!isDeployedInHa()) {
+                    saveLocally('Home Assistant save unavailable; layout downloaded locally instead');
+                    return;
+                }
+
+                showToast('Save failed: Home Assistant backend unavailable', 'error');
+            } catch (error) {
+                if (!isDeployedInHa()) {
+                    saveLocally('Home Assistant save failed; layout downloaded locally instead');
+                    return;
+                }
+
+                showToast(`Save failed: ${error.message}`, 'error');
             }
         });
     }

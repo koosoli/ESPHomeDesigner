@@ -187,7 +187,8 @@ describe('snippet_manager_editing', () => {
         const manager = {
             lastGeneratedYaml: 'old',
             suppressSnippetUpdate: false,
-            snippetDebounceTimer: null
+            snippetDebounceTimer: null,
+            hasPendingManualSnippetChanges: true
         };
 
         await handleUpdateLayoutFromSnippetBoxEditor(manager);
@@ -206,6 +207,7 @@ describe('snippet_manager_editing', () => {
         }));
         expect(mockShowToast).toHaveBeenCalledWith('Layout updated from YAML', 'success');
         expect(mockShowToast).toHaveBeenCalledWith('Note: Custom C++ (lambda/script) may not fully preview.', 'warning', 4000);
+        expect(manager.hasPendingManualSnippetChanges).toBe(false);
         expect(manager.suppressSnippetUpdate).toBe(false);
     });
 

@@ -250,7 +250,7 @@ export function generateScriptSection(payload, pages, profile) {
             });
             lines.push("");
             lines.push("             // If current page is invisible OR another should be shown, switch");
-            lines.push("             if (best_page != -1 && (best_page != p || id(last_page_switch_time) == 0)) {");
+            lines.push("             if (best_page != -1 && best_page != p) {");
             lines.push("                 id(last_page_switch_time) = millis();");
             lines.push('                 ESP_LOGI("display", "Auto-switching to scheduled page %d", best_page);');
             lines.push("                 id(change_page_to).execute(best_page);");

@@ -1,5 +1,5 @@
 ## v1.0.0 RC9.2 - Follow-Up Bug Fixes (Issue #356)
-**Release Date:** March 29, 2026
+**Release Date:** March 30, 2026
 
 This release includes attempted fixes for the remaining bugs reported in GitHub [Issue #356](https://github.com/koosoli/ESPHomeDesigner/issues/356). These adjustments still need to be verified by users in real-world hardware deployments.
 

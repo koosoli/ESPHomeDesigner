@@ -213,6 +213,7 @@ export async function handleUpdateLayoutFromSnippetBoxEditor(manager) {
                     clearTimeout(manager.snippetDebounceTimer);
                     manager.snippetDebounceTimer = null;
                 }
+                manager.hasPendingManualSnippetChanges = false;
 
                 loadLayoutIntoState(layout);
 

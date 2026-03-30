@@ -119,7 +119,7 @@ describe('KeyboardHandler', () => {
         expect(mockAppState.deleteWidget).toHaveBeenCalledWith(null);
     });
 
-    it('deletes the selected widget set from the snippet box when the auto-highlight range is selected', async () => {
+    it('leaves snippet text deletion alone even when auto-highlight metadata exists', async () => {
         const { KeyboardHandler } = await import('../../js/core/keyboard.js');
         const handler = new KeyboardHandler();
         const snippet = /** @type {HTMLTextAreaElement} */ (document.getElementById('snippetBox'));
@@ -129,8 +129,8 @@ describe('KeyboardHandler', () => {
         const ev = makeKeyEvent({ key: 'Delete', target: snippet });
         handler.handleKeyDown(ev);
 
-        expect(ev.preventDefault).toHaveBeenCalled();
-        expect(mockAppState.deleteWidget).toHaveBeenCalledWith(null);
+        expect(ev.preventDefault).not.toHaveBeenCalled();
+        expect(mockAppState.deleteWidget).not.toHaveBeenCalled();
     });
 
     it('does not hijack delete while typing in ordinary inputs', async () => {
@@ -145,21 +145,21 @@ describe('KeyboardHandler', () => {
         expect(mockAppState.deleteWidget).not.toHaveBeenCalled();
     });
 
-    it('copies and pastes in snippet box when auto-highlight is active', async () => {
+    it('leaves native snippet copy and paste alone even when auto-highlight is active', async () => {
         const { KeyboardHandler } = await import('../../js/core/keyboard.js');
         const handler = new KeyboardHandler();
 
         const snippet = /** @type {HTMLTextAreaElement} */ (document.getElementById('snippetBox'));
 
-        const copyEv = makeKeyEvent({ key: 'c', ctrlKey: true, target: snippet });
+        const copyEv = makeKeyEvent({ key: 'c', metaKey: true, target: snippet });
         handler.handleKeyDown(copyEv);
-        expect(copyEv.preventDefault).toHaveBeenCalled();
-        expect(mockAppState.copyWidget).toHaveBeenCalled();
+        expect(copyEv.preventDefault).not.toHaveBeenCalled();
+        expect(mockAppState.copyWidget).not.toHaveBeenCalled();
 
-        const pasteEv = makeKeyEvent({ key: 'v', ctrlKey: true, target: snippet });
+        const pasteEv = makeKeyEvent({ key: 'v', metaKey: true, target: snippet });
         handler.handleKeyDown(pasteEv);
-        expect(pasteEv.preventDefault).toHaveBeenCalled();
-        expect(mockAppState.pasteWidget).toHaveBeenCalled();
+        expect(pasteEv.preventDefault).not.toHaveBeenCalled();
+        expect(mockAppState.pasteWidget).not.toHaveBeenCalled();
     });
 
     it('leaves native copy and paste alone when snippet auto-highlight is disabled', async () => {
@@ -196,18 +196,22 @@ describe('KeyboardHandler', () => {
         expect(mockAppState.redo).toHaveBeenCalled();
     });
 
-    it('does not hijack undo or redo for normal text inputs without auto-highlight', async () => {
+    it('does not hijack undo or redo for editable fields, including the snippet box', async () => {
         const { KeyboardHandler } = await import('../../js/core/keyboard.js');
         const handler = new KeyboardHandler();
         const input = document.getElementById('inputA');
+        const snippet = document.getElementById('snippetBox');
 
         const undoEv = makeKeyEvent({ key: 'z', ctrlKey: true, target: input });
         handler.handleKeyDown(undoEv);
         const redoEv = makeKeyEvent({ key: 'y', ctrlKey: true, target: input });
         handler.handleKeyDown(redoEv);
+        const snippetUndoEv = makeKeyEvent({ key: 'z', metaKey: true, target: snippet });
+        handler.handleKeyDown(snippetUndoEv);
 
         expect(undoEv.preventDefault).not.toHaveBeenCalled();
         expect(redoEv.preventDefault).not.toHaveBeenCalled();
+        expect(snippetUndoEv.preventDefault).not.toHaveBeenCalled();
         expect(mockAppState.undo).not.toHaveBeenCalled();
         expect(mockAppState.redo).not.toHaveBeenCalled();
     });
@@ -237,19 +241,34 @@ describe('KeyboardHandler', () => {
         expect(document.getElementById('rulersToggleBtn')?.classList.contains('active')).toBe(true);
     });
 
-    it('selects all widgets from an auto-highlighted snippet selection and validates static input detection', async () => {
+    it('selects all widgets outside editable fields and validates static input detection', async () => {
         const { KeyboardHandler } = await import('../../js/core/keyboard.js');
         const handler = new KeyboardHandler();
-        const snippet = document.getElementById('snippetBox');
 
-        const selectAllEv = makeKeyEvent({ key: 'a', ctrlKey: true, target: snippet });
+        const selectAllEv = makeKeyEvent({ key: 'a', ctrlKey: true, target: document.body });
         handler.handleKeyDown(selectAllEv);
 
         expect(selectAllEv.preventDefault).toHaveBeenCalled();
         expect(mockAppState.selectAllWidgets).toHaveBeenCalled();
-        expect(KeyboardHandler.isInput(snippet)).toBe(true);
+        expect(KeyboardHandler.isInput(document.getElementById('snippetBox'))).toBe(true);
         expect(KeyboardHandler.isInput(document.body)).toBe(false);
         expect(KeyboardHandler.isInput(null)).toBe(false);
+    });
+
+    it('leaves native copy alone when a DOM text selection exists outside inputs', async () => {
+        const { KeyboardHandler } = await import('../../js/core/keyboard.js');
+        const handler = new KeyboardHandler();
+        const selectionSpy = vi.spyOn(window, 'getSelection').mockReturnValue({
+            isCollapsed: false,
+            toString: () => 'ESPHome Designer'
+        });
+
+        const ev = makeKeyEvent({ key: 'c', metaKey: true, target: document.body });
+        handler.handleKeyDown(ev);
+
+        expect(ev.preventDefault).not.toHaveBeenCalled();
+        expect(mockAppState.copyWidget).not.toHaveBeenCalled();
+        selectionSpy.mockRestore();
     });
 
     it('handles Escape by blurring input and clearing selection', async () => {
