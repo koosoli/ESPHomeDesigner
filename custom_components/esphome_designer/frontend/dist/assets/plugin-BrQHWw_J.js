@@ -1,4 +1,4 @@
-import{ae as P,e as L,E as z,h as W}from"./app-shell-cJOga6M3.js";import"./vendor-Bi4LEBGV.js";import"./yaml-engine-DlxwNW0v.js";const v=(o,t="")=>{let e=o.replace(/[^a-zA-Z0-9_]/g,"_");const a=63-t.length;return e.length>a&&(e=e.substring(0,a)),e+t};function G(o,{common:t,convertColor:e,getLVGLFont:a}){const s=o.props||{},l=v(`quote_${o.id}`,""),n=parseInt(s.quote_font_size||18,10),r=s.font_family||"Roboto",c=parseInt(s.font_weight||400,10),p=e(s.color||"black"),y=s.item_count||1;let u=`!lambda |-
+import{ae as P,e as L,E as z,h as W}from"./app-shell-CGe33NuS.js";import"./vendor-Bi4LEBGV.js";import"./yaml-engine-C8ZKMOo4.js";const v=(o,t="")=>{let e=o.replace(/[^a-zA-Z0-9_]/g,"_");const a=63-t.length;return e.length>a&&(e=e.substring(0,a)),e+t};function G(o,{common:t,convertColor:e,getLVGLFont:a}){const s=o.props||{},l=v(`quote_${o.id}`,""),n=parseInt(s.quote_font_size||18,10),r=s.font_family||"Roboto",c=parseInt(s.font_weight||400,10),p=e(s.color||"black"),y=s.item_count||1;let u=`!lambda |-
 `;u+=`      std::string result = "";
 `;for(let d=0;d<y;d++){const b=y===1?"":`_${d}`;u+=`      {
 `,u+=`        std::string q = id(${l}_text_global${b});

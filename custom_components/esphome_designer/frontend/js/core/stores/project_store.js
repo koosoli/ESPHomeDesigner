@@ -244,13 +244,15 @@ export class ProjectStore {
      * @param {number|null} y Optional target Y coordinate
      */
     moveWidgetToPage(widgetId, targetPageIndex, x = null, y = null) {
+        /** @type {(orientation: string | undefined) => { width: number, height: number }} */
+        const getCanvasDimensions = (orientation) => this.getCanvasDimensions(orientation);
         const moved = moveWidgetToPageState(
             this.state,
             widgetId,
             targetPageIndex,
             x,
             y,
-            (orientation) => this.getCanvasDimensions(orientation)
+            getCanvasDimensions
         );
 
         if (!moved) return false;

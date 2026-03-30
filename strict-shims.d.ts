@@ -36,6 +36,35 @@ declare module '*helpers.js' {
   export function deepClone<T>(value: T): T;
 }
 
+declare module '*project_store_page_helpers.js' {
+  export function createDefaultPage(): Page;
+  export function normalizePages(pages: Page[] | null | undefined): Page[];
+  export function clampPageIndex(index: number, pageCount: number): number;
+  export function createPage(pages: Page[]): Page;
+  export function duplicatePage(sourcePage: Page, pageCount: number): Page;
+}
+
+declare module '*project_store_move_helpers.js' {
+  export function moveWidgetToPageState(
+    state: {
+      pages: Page[];
+      widgetsById: Map<string, Widget>;
+      protocolHardware?: { orientation?: string };
+    },
+    widgetId: string,
+    targetPageIndex: number,
+    x: number | null,
+    y: number | null,
+    getCanvasDimensions: (orientation: string | undefined) => { width: number; height: number }
+  ): boolean;
+}
+
+declare module '*legacy_renderer_ui_helpers.js' {
+  export const FONT_OPTIONS: readonly string[];
+  export function renderFontControls(panel: any, props: Record<string, any>, updateProp: (key: string, value: any) => void, options?: { defaultFont?: string, alignDefault?: string }): void;
+  export function appendFullScreenToggle(panel: any, widget: any, options?: { fullScreen?: { x: number, y: number, width: number, height: number }, restore?: { x: number, y: number, width: number, height: number }, fullLabel?: string, fillLabel?: string }): void;
+}
+
 declare module '*devices.js' {
   export const DEVICE_PROFILES: Record<string, any>;
 }
