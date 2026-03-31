@@ -21,6 +21,10 @@ export class Canvas {
         /** @type {HTMLElement} */
         this.viewport = /** @type {HTMLElement} */ (document.querySelector(".canvas-viewport"));
 
+        if (this.canvas && !this.canvas.hasAttribute("tabindex")) {
+            this.canvas.tabIndex = -1;
+        }
+
         /** @type {any} */
         this.dragState = null;
         /** @type {number} */

@@ -14,6 +14,15 @@ from .request_utils import InvalidJsonObjectError, parse_json_object, sanitize_l
 
 _LOGGER = logging.getLogger(__name__)
 
+
+async def _parse_json_body(request) -> dict[str, Any]:
+    """Compatibility shim for older tests that expect an empty object fallback."""
+    try:
+        return await parse_json_object(request)
+    except InvalidJsonObjectError:
+        return {}
+
+
 class ReTerminalLayoutView(DesignerBaseView):
     """Provide layout GET/POST for the ESPHome Designer editor."""
 

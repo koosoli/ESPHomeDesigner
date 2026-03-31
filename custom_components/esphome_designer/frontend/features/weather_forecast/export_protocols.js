@@ -1,3 +1,5 @@
+import { getDayLabelSet } from './day_labels.js';
+
 /** @typedef {Widget & { props?: Record<string, any>, entity_id?: string }} WeatherForecastWidget */
 
 /**
@@ -17,6 +19,7 @@ export const exportLVGL = (w, { common, convertColor, getLVGLFont }) => {
     const count = mode === "hourly" ? (hourlyMode === "relative" ? relativeCount : actualSlots.length) : Math.min(7, Math.max(1, parseInt(p.days, 10) || 5));
     const isHorizontal = (p.layout || "horizontal") === "horizontal";
     const color = convertColor(p.color || "theme_auto");
+    const dayLabels = getDayLabelSet(p.day_language);
     const dayFS = parseInt(p.day_font_size || 12, 10);
     const iconS = parseInt(p.icon_size || 32, 10);
     const tempFS = parseInt(p.temp_font_size || 14, 10);
@@ -46,7 +49,7 @@ export const exportLVGL = (w, { common, convertColor, getLVGLFont }) => {
                 lowId = `weather_low_h${actualSlots[i]}00`;
             }
         } else {
-            dayNameLambda = `!lambda |-\n                  if (${dayIdx} == 0) return std::string("Today");\n                  auto t = id(ha_time).now();\n                  if (!t.is_valid()) return std::string("---");\n                  ESPTime future = ESPTime::from_epoch_local(t.timestamp + (${dayIdx} * 86400));\n                  static char buf[16];\n                  future.strftime(buf, sizeof(buf), "%a");\n                  return std::string(buf);\n                `;
+            dayNameLambda = `!lambda |-\n                  static const char* weekday_names[] = {${dayLabels.weekdays.map((label) => JSON.stringify(label)).join(', ')}};\n                  if (${dayIdx} == 0) return std::string(${JSON.stringify(dayLabels.today)});\n                  auto t = id(ha_time).now();\n                  if (!t.is_valid()) return std::string("---");\n                  ESPTime future = ESPTime::from_epoch_local(t.timestamp + (${dayIdx} * 86400));\n                  char weekday_buf[2];\n                  future.strftime(weekday_buf, sizeof(weekday_buf), "%w");\n                  int weekday_index = weekday_buf[0] - '0';\n                  if (weekday_index < 0 || weekday_index > 6) return std::string("---");\n                  return std::string(weekday_names[weekday_index]);\n                `;
             condId = `weather_cond_day${dayIdx}`;
             highId = `weather_high_day${dayIdx}`;
             lowId = `weather_low_day${dayIdx}`;

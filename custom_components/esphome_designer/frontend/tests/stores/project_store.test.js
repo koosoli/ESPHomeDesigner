@@ -331,11 +331,14 @@ describe('ProjectStore', () => {
     describe('Payload Round-trip', () => {
         it('should maintain payload consistency', () => {
             store.setDeviceSettings('My-Device', 'esp32_s3');
+            store.setManualYamlOverride('# manual override');
             store.addPage();
             store.addWidget({ id: 'w-trip', type: 'text' });
 
             const payload = store.getPagesPayload();
             expect(payload.deviceName).toBe('My-Device');
+            expect(payload.manualYamlOverride).toBe('# manual override');
+            expect(payload.manual_yaml_override).toBe('# manual override');
             expect(payload.pages.length).toBe(2);
             expect(payload.pages[1].widgets[0].id).toBe('w-trip');
 

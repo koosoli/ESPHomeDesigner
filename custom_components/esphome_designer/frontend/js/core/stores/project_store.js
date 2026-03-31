@@ -13,6 +13,7 @@ export class ProjectStore {
          *  deviceName: string,
          *  deviceModel: string,
          *  currentLayoutId: string,
+         *  manualYamlOverride: string,
          *  customHardware: any,
          *  protocolHardware: any,
          *  widgetsById: Map<string, Widget>
@@ -24,6 +25,7 @@ export class ProjectStore {
             deviceName: "Layout 1",
             deviceModel: "reterminal_e1001",
             currentLayoutId: "reterminal_e1001",
+            manualYamlOverride: "",
             customHardware: {},
             protocolHardware: {
                 width: 400,
@@ -38,6 +40,7 @@ export class ProjectStore {
     reset() {
         this.state.pages = [createDefaultPage()];
         this.state.currentPageIndex = 0;
+        this.state.manualYamlOverride = "";
         this.rebuildWidgetsIndex();
     }
 
@@ -51,6 +54,8 @@ export class ProjectStore {
     get deviceModel() { return this.state.deviceModel; }
     /** @returns {string} */
     get currentLayoutId() { return this.state.currentLayoutId; }
+    /** @returns {string} */
+    get manualYamlOverride() { return this.state.manualYamlOverride || ""; }
     /** @returns {{ width: number, height: number, [key: string]: any }} */
     get protocolHardware() { return this.state.protocolHardware; }
     get customHardware() { return this.state.customHardware; }
@@ -329,6 +334,34 @@ export class ProjectStore {
     }
 
     /**
+     * @param {string | null | undefined} override
+     * @param {{ emitStateChange?: boolean }} options
+     * @returns {boolean}
+     */
+    setManualYamlOverride(override, options = {}) {
+        const nextValue = typeof override === 'string' ? override : "";
+        if (this.state.manualYamlOverride === nextValue) {
+            return false;
+        }
+
+        this.state.manualYamlOverride = nextValue;
+
+        if (options.emitStateChange !== false) {
+            emit(EVENTS.STATE_CHANGED);
+        }
+
+        return true;
+    }
+
+    /**
+     * @param {{ emitStateChange?: boolean }} options
+     * @returns {boolean}
+     */
+    clearManualYamlOverride(options = {}) {
+        return this.setManualYamlOverride("", options);
+    }
+
+    /**
      * @param {string} orientation 
      * @returns {{width: number, height: number}}
      */
@@ -368,6 +401,8 @@ export class ProjectStore {
             deviceName: this.state.deviceName,
             deviceModel: this.state.deviceModel,
             currentLayoutId: this.state.currentLayoutId,
+            manualYamlOverride: this.state.manualYamlOverride || "",
+            manual_yaml_override: this.state.manualYamlOverride || "",
             customHardware: this.state.customHardware
         };
     }

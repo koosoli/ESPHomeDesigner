@@ -686,6 +686,7 @@ exports[`Plugin Export Smoke Tests > Export for graph > should export LVGL with 
           "align": "top_mid",
           "text": ""Graph"",
           "text_color": "Color(theme_auto)",
+          "text_font": "font_ptr",
         },
       },
     ],
@@ -2784,13 +2785,16 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
                 "align": "top_mid",
                 "id": "w_test_day0",
                 "text": "!lambda |-
+                  static const char* weekday_names[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
                   if (0 == 0) return std::string("Today");
                   auto t = id(ha_time).now();
                   if (!t.is_valid()) return std::string("---");
                   ESPTime future = ESPTime::from_epoch_local(t.timestamp + (0 * 86400));
-                  static char buf[16];
-                  future.strftime(buf, sizeof(buf), "%a");
-                  return std::string(buf);
+                  char weekday_buf[2];
+                  future.strftime(weekday_buf, sizeof(weekday_buf), "%w");
+                  int weekday_index = weekday_buf[0] - '0';
+                  if (weekday_index < 0 || weekday_index > 6) return std::string("---");
+                  return std::string(weekday_names[weekday_index]);
                 ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
@@ -2848,13 +2852,16 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
                 "align": "top_mid",
                 "id": "w_test_day1",
                 "text": "!lambda |-
+                  static const char* weekday_names[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
                   if (1 == 0) return std::string("Today");
                   auto t = id(ha_time).now();
                   if (!t.is_valid()) return std::string("---");
                   ESPTime future = ESPTime::from_epoch_local(t.timestamp + (1 * 86400));
-                  static char buf[16];
-                  future.strftime(buf, sizeof(buf), "%a");
-                  return std::string(buf);
+                  char weekday_buf[2];
+                  future.strftime(weekday_buf, sizeof(weekday_buf), "%w");
+                  int weekday_index = weekday_buf[0] - '0';
+                  if (weekday_index < 0 || weekday_index > 6) return std::string("---");
+                  return std::string(weekday_names[weekday_index]);
                 ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
@@ -2912,13 +2919,16 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
                 "align": "top_mid",
                 "id": "w_test_day2",
                 "text": "!lambda |-
+                  static const char* weekday_names[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
                   if (2 == 0) return std::string("Today");
                   auto t = id(ha_time).now();
                   if (!t.is_valid()) return std::string("---");
                   ESPTime future = ESPTime::from_epoch_local(t.timestamp + (2 * 86400));
-                  static char buf[16];
-                  future.strftime(buf, sizeof(buf), "%a");
-                  return std::string(buf);
+                  char weekday_buf[2];
+                  future.strftime(weekday_buf, sizeof(weekday_buf), "%w");
+                  int weekday_index = weekday_buf[0] - '0';
+                  if (weekday_index < 0 || weekday_index > 6) return std::string("---");
+                  return std::string(weekday_names[weekday_index]);
                 ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
@@ -2976,13 +2986,16 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
                 "align": "top_mid",
                 "id": "w_test_day3",
                 "text": "!lambda |-
+                  static const char* weekday_names[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
                   if (3 == 0) return std::string("Today");
                   auto t = id(ha_time).now();
                   if (!t.is_valid()) return std::string("---");
                   ESPTime future = ESPTime::from_epoch_local(t.timestamp + (3 * 86400));
-                  static char buf[16];
-                  future.strftime(buf, sizeof(buf), "%a");
-                  return std::string(buf);
+                  char weekday_buf[2];
+                  future.strftime(weekday_buf, sizeof(weekday_buf), "%w");
+                  int weekday_index = weekday_buf[0] - '0';
+                  if (weekday_index < 0 || weekday_index > 6) return std::string("---");
+                  return std::string(weekday_names[weekday_index]);
                 ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
@@ -3040,13 +3053,16 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
                 "align": "top_mid",
                 "id": "w_test_day4",
                 "text": "!lambda |-
+                  static const char* weekday_names[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
                   if (4 == 0) return std::string("Today");
                   auto t = id(ha_time).now();
                   if (!t.is_valid()) return std::string("---");
                   ESPTime future = ESPTime::from_epoch_local(t.timestamp + (4 * 86400));
-                  static char buf[16];
-                  future.strftime(buf, sizeof(buf), "%a");
-                  return std::string(buf);
+                  char weekday_buf[2];
+                  future.strftime(weekday_buf, sizeof(weekday_buf), "%w");
+                  int weekday_index = weekday_buf[0] - '0';
+                  if (weekday_index < 0 || weekday_index > 6) return std::string("---");
+                  return std::string(weekday_names[weekday_index]);
                 ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
@@ -3164,13 +3180,16 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
   "            return weather_icons.count(cond_val) ? weather_icons[cond_val] : "\\U000F0590";",
   "          };",
   "          auto get_day_name = [](int offset) -> std::string {",
+  "            static const char* weekday_names[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};",
   "            int target_day = offset + 0;",
   "            if (target_day == 0) return "Today";",
   "            auto t = id(ha_time).now();",
   "            if (!t.is_valid()) return "---";",
   "            ESPTime future = ESPTime::from_epoch_local(t.timestamp + (target_day * 86400));",
-  "            char buf[8]; future.strftime(buf, sizeof(buf), "%a");",
-  "            return std::string(buf);",
+  "            char weekday_buf[2]; future.strftime(weekday_buf, sizeof(weekday_buf), "%w");",
+  "            int weekday_index = weekday_buf[0] - '0';",
+  "            if (weekday_index < 0 || weekday_index > 6) return "---";",
+  "            return std::string(weekday_names[weekday_index]);",
   "          };",
   "          {",
   "            int dx = 10; int dy = 10 + 17;",

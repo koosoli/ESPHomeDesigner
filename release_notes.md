@@ -1,11 +1,19 @@
-## v1.0.0 RC9.2 - Follow-Up Bug Fixes (Issue #356)
-**Release Date:** March 30, 2026
+## v1.0.0 RC10 - Release Prep, Persistence Fixes & Verification
+**Release Date:** March 31, 2026
 
-This release includes attempted fixes for the remaining bugs reported in GitHub [Issue #356](https://github.com/koosoli/ESPHomeDesigner/issues/356). These adjustments still need to be verified by users in real-world hardware deployments.
+This release rolls the project forward to the RC10 line, includes the remaining persistence and deep-sleep fixes that were still open from GitHub [Issue #356](https://github.com/koosoli/ESPHomeDesigner/issues/356), keeps the raw YAML editor override persistent across save/load, and refreshes the shipped release metadata so package/release automation stays aligned.
 
-### Tentative Bug Fixes
-- **Datetime Wrapping Consistency**: Added `overflow: hidden` to the `datetime` preview in an attempt to make text clipping in the designer more closely match the physical hardware. We are looking for feedback on whether this fully resolves the visual discrepancy.
-- **Visibility Auto-Switch Log Spam**: Tweaked the auto-page-switching logic to suppress the infinite "Auto-switching to scheduled page" log spam that could occur on boot. While a regression test passes locally, physical device verification is still needed to confirm the spam is completely eliminated.
+### Release Highlights
+- **Persistent Manual YAML Override**: YAML edits made directly in the snippet editor now persist with the saved layout as a separate raw override instead of being silently lost on save/load.
+- **Page Metadata Persistence**: Per-page schedule and visibility metadata such as `refresh_type`, `refresh_time`, `visible_from`, `visible_to`, and `layout` now survive backend storage round-trips correctly.
+- **Deep Sleep Script Cleanup**: The generated deep-sleep flow now uses a single stay-awake guard around `deep_sleep.enter`, avoiding redundant logic while keeping retry behavior intact.
+- **Compilation Regression Coverage**: The RC8.3 `is_sleep_time` scoping problem reported in [Issue #339](https://github.com/koosoli/ESPHomeDesigner/issues/339) remains covered by a dedicated generator regression so the broken `return !is_sleep_time;` pattern does not reappear in generated output.
+- **Localized Weather Forecast Day Labels**: The weather forecast widget now exposes an explicit day-language selector so editor previews and generated firmware/LVGL output stay aligned instead of mixing localized preview labels with English device labels, covering the reports in [Issue #231](https://github.com/koosoli/ESPHomeDesigner/issues/231) and [Issue #348](https://github.com/koosoli/ESPHomeDesigner/issues/348).
+- **Graph History Helper Package**: Advanced graph history mode now includes built-in `Copy HA YAML` and `Download YAML` actions that generate a starter Home Assistant helper package backed by `sql.query`. This makes the previously undocumented template/helper setup far easier to adopt for recorder-backed history graphs.
+- **Graph & Sensor Bar Typography Completion (Issue #361)**: The `graph` and `template_sensor_bar` widgets now expose `font_family`, `font_weight`, and `font_size` consistently, and those settings are honored across browser preview, direct ESPHome export, and LVGL export.
+- **Single-Page Navigation YAML Fix (Issue #362)**: Single-page projects no longer emit `change_page_to` scripts or dangling debounce references to `last_page_switch_time`, and LVGL nav bars now suppress prev/next actions when paging is unavailable.
+
+
 
 ---
 
@@ -318,13 +326,13 @@ Added standardized **Border Style** controls (Width, Color, Radius, Drop Shadow)
 - **Unified Preview**: All content-bearing widgets (Text, Sensors, DateTime, Icons) have been updated to ensure the designer preview exactly matches the on-device rendering for background fills.
 - **Multi-Select & Batch Creation**: You can now create shadows for multiple selected widgets simultaneously via the new **"Operations"** section in the properties panel.
 
-### � Seeedstudio SenseCAP Indicator Support
+###   Seeedstudio SenseCAP Indicator Support
 - **Full Model Support**: Added native hardware recipes for SenseCAP Indicator D1, D1S, D1L, and D1Pro models.
 - **RGB Display Optimization**: Implemented smart screen clearing using `page_changed` detection. This provides a full clean refresh on page transitions (no black artifacts) while maintaining high-speed updates for sensor data to keep touch input responsive.
 - **Home Assistant Control**: Added built-in Home Assistant buttons for remote page navigation and display refresh, achieving full feature parity with the reTerminal.
 - **Reliable 480x480 Rendering**: Fixed graph widget trace colors and auto-scaling logic specifically for high-resolution RGB displays.
 
-### �📦 Hardware Profile Clarification
+###  📦 Hardware Profile Clarification
 - **Clearer Terminology**: Renamed "Local Profiles" to **"User-Imported / Custom"** to avoid confusion with files shipped with the editor.
 - **Bundled vs User**: Files in the `hardware/` folder are now correctly grouped as "Built-in" (Bundled) profiles, even if they aren't in the explicitly "verified" list.
 - **Import/User Suffixes**: User-added profiles now display an **"(Imported)"** suffix for better visibility.
@@ -472,10 +480,10 @@ Added standardized **Border Style** controls (Width, Color, Radius, Drop Shadow)
 
 **Release Date:** January 1, 2026
 
-### � New Features
+###   New Features
 - **RGB Color Selectors for LCD/OLED**: The designer now intelligently switches between a limited color palette (for E-Ink) and a full RGB color mixer for LCD and OLED devices. This is automatically determined based on the hardware profile features.
 
-### �🐛 Bug Fixes
+###  🐛 Bug Fixes
 - **Calendar Widget Compiler Errors**: Fixed C++ compilation errors (`return-statement with a value`) and deprecated warnings (`containsKey`) in the Calendar widget. The generation logic was corrected in both the modular feature file and the main `yaml_export.js`.
 - **ESP-IDF Environment Tip**: Added a helpful tip to the generated YAML header recommending `framework: version: 5.4.2` for ESP32-S3 devices. This prevents build failures caused by auto-updates to bleeding-edge ESP-IDF versions (like 5.5.1) which may have broken Python environments.
 

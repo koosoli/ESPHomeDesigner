@@ -94,49 +94,42 @@ export function generateScriptSection(payload, pages, profile) {
     );
 
     lines.push("script:");
-    lines.push("  - id: change_page_to");
-    lines.push("    parameters:");
-    lines.push("      target_page: int");
-    lines.push("    then:");
-    lines.push("      - lambda: |-");
-    lines.push(`          int pages_count = ${pages.length};`);
-    lines.push("          int target = target_page;");
-    lines.push("          while (target < 0) target += pages_count;");
-    lines.push("          target %= pages_count;");
-    lines.push("");
-    lines.push(`          // Debounce: Ignore page changes within ${debounceMs}ms of last change`);
-    lines.push(`          // (adjusted for ${isLcd ? 'LCD' : 'e-paper'} display update time)`);
-    lines.push("          uint32_t now = millis();");
-    lines.push(`          if (now - id(last_page_switch_time) < ${debounceMs}) {`);
-    lines.push(`            ESP_LOGD("display", "Page change ignored (debounce), last switch was %d ms ago", now - id(last_page_switch_time));`);
-    lines.push("            return;");
-    lines.push("          }");
-    lines.push("");
-    lines.push("          if (id(display_page) != target) {");
-    lines.push("            // Set debounce time BEFORE display update (update takes ~1.6s)");
-    lines.push("            id(last_page_switch_time) = now;");
-    lines.push("            id(display_page) = target;");
-    lines.push(`            id(${displayId}).update();`);
-    lines.push(`            ESP_LOGI("display", "Switched to page %d", target);`);
-    if (isBacklightStrategy) {
-        lines.push(`            // LCD Strategy: Wake up backlight on interaction/page change`);
-        lines.push(`            id(backlight_pwm).set_level(0.8); // Restore brightness`);
+    if (hasMultiplePages) {
+        lines.push("  - id: change_page_to");
+        lines.push("    parameters:");
+        lines.push("      target_page: int");
+        lines.push("    then:");
+        lines.push("      - lambda: |-");
+        lines.push(`          int pages_count = ${pages.length};`);
+        lines.push("          int target = target_page;");
+        lines.push("          while (target < 0) target += pages_count;");
+        lines.push("          target %= pages_count;");
+        lines.push("");
+        lines.push(`          // Debounce: Ignore page changes within ${debounceMs}ms of last change`);
+        lines.push(`          // (adjusted for ${isLcd ? 'LCD' : 'e-paper'} display update time)`);
+        lines.push("          uint32_t now = millis();");
+        lines.push(`          if (now - id(last_page_switch_time) < ${debounceMs}) {`);
+        lines.push(`            ESP_LOGD("display", "Page change ignored (debounce), last switch was %d ms ago", now - id(last_page_switch_time));`);
+        lines.push("            return;");
+        lines.push("          }");
+        lines.push("");
+        lines.push("          if (id(display_page) != target) {");
+        lines.push("            // Set debounce time BEFORE display update (update takes ~1.6s)");
+        lines.push("            id(last_page_switch_time) = now;");
+        lines.push("            id(display_page) = target;");
+        lines.push(`            id(${displayId}).update();`);
+        lines.push(`            ESP_LOGI("display", "Switched to page %d", target);`);
+        if (isBacklightStrategy) {
+            lines.push(`            // LCD Strategy: Wake up backlight on interaction/page change`);
+            lines.push(`            id(backlight_pwm).set_level(0.8); // Restore brightness`);
+        }
+        lines.push("          }");
     }
-    lines.push("          }");
 
     if (isDeepSleep) {
         lines.push("");
         lines.push("  - id: deep_sleep_cycle");
         lines.push("    then:");
-        if (payload.deepSleepStayAwakeSwitch) {
-            lines.push("      - if:");
-            lines.push("          condition:");
-            lines.push("            binary_sensor.is_on: stay_awake_switch");
-            lines.push("          then:");
-            lines.push('            - logger.log: "Stay-awake active, deep sleep cycle aborted."');
-            lines.push("            - deep_sleep.prevent: deep_sleep_control");
-            lines.push("            - script.stop: deep_sleep_cycle");
-        }
 
         if (payload.sleepEnabled === true || payload.sleepEnabled === "true" || payload.sleepEnabled === 1 || payload.sleepEnabled === "1") {
             const endStr = String(sEnd).padStart(2, '0');

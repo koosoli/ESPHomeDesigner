@@ -192,8 +192,9 @@ export function drawInternalGrid(svg, width, height, _xGridStr, _yGridStr, color
  * @param {string|number} durationStr
  * @param {string} widgetId
  * @param {string} [color="#666"]
+ * @param {{ fontFamily?: string, fontSize?: number, fontWeight?: string | number }} [typography]
  */
-export function drawSmartAxisLabels(container, x, y, width, height, min, max, durationStr, widgetId, color = "#666") {
+export function drawSmartAxisLabels(container, x, y, width, height, min, max, durationStr, widgetId, color = "#666", typography = {}) {
     // container should be the ARTBOARD (div.artboard)
     if (!container) return;
 
@@ -208,6 +209,9 @@ export function drawSmartAxisLabels(container, x, y, width, height, min, max, du
     // Use artboard dimensions for logical clamping
     const canvasWidth = parseInt(container.style.width, 10) || 800;
     const canvasHeight = parseInt(container.style.height, 10) || 480;
+    const fontFamily = typography.fontFamily || "Roboto";
+    const fontSize = Math.max(8, parseInt(String(typography.fontSize || 10), 10) || 10);
+    const fontWeight = String(parseInt(String(typography.fontWeight || 400), 10) || 400);
 
     // Determine if labels should be inside or outside
     const yLabelsInside = x < 40;
@@ -236,7 +240,9 @@ export function drawSmartAxisLabels(container, x, y, width, height, min, max, du
         }
 
         style.top = `${labelY - 6}px`; // Center vertically
-        style.fontSize = "10px";
+        style.fontSize = `${fontSize}px`;
+        style.fontFamily = `${fontFamily}, system-ui, sans-serif`;
+        style.fontWeight = fontWeight;
         style.color = color;
         style.opacity = yLabelsInside ? "0.7" : "1.0";
         style.pointerEvents = "none";
@@ -276,7 +282,9 @@ export function drawSmartAxisLabels(container, x, y, width, height, min, max, du
             style.top = `${y + height + 4}px`; // Below graph
         }
 
-        style.fontSize = "10px";
+        style.fontSize = `${fontSize}px`;
+        style.fontFamily = `${fontFamily}, system-ui, sans-serif`;
+        style.fontWeight = fontWeight;
         style.color = color;
         style.opacity = xLabelsInside ? "0.7" : "1.0";
         style.pointerEvents = "none";

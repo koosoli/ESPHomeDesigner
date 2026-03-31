@@ -295,9 +295,11 @@ export default {
         const p = w.props || {};
         const iconSize = parseInt(p.icon_size || 24, 10);
         const color = convertColor(p.color || "white");
-        const showPrev = p.show_prev !== false;
+        const totalPages = parseInt(String(w._pageCount ?? ""), 10);
+        const allowPaging = Number.isFinite(totalPages) ? totalPages > 1 : true;
+        const showPrev = allowPaging && p.show_prev !== false;
         const showHome = p.show_home !== false;
-        const showNext = p.show_next !== false;
+        const showNext = allowPaging && p.show_next !== false;
 
         const widgets = [];
         const btnProps = {

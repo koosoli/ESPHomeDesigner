@@ -1,3 +1,5 @@
+import { getDayLabelSet } from './day_labels.js';
+
 /** @typedef {Widget & { props?: Record<string, any>, entity_id?: string }} WeatherForecastWidget */
 
 /**
@@ -28,6 +30,7 @@ export const exportDoc = (w, context) => {
     const fontFamily = p.font_family || "Roboto";
     const colorProp = p.color || "theme_auto";
     const color = getColorConst(colorProp);
+    const dayLabels = getDayLabelSet(p.day_language);
     const tempUnit = p.temp_unit || "C";
     const unitSymbol = tempUnit === "F" ? "°F" : "°C";
     const precision = (typeof p.precision === 'number' && !isNaN(p.precision)) ? p.precision : 1;
@@ -68,13 +71,16 @@ export const exportDoc = (w, context) => {
         lines.push(`          };`);
     } else {
         lines.push(`          auto get_day_name = [](int offset) -> std::string {`);
+        lines.push(`            static const char* weekday_names[] = {${dayLabels.weekdays.map((label) => JSON.stringify(label)).join(', ')}};`);
         lines.push(`            int target_day = offset + ${startOffset};`);
-        lines.push(`            if (target_day == 0) return "Today";`);
+        lines.push(`            if (target_day == 0) return ${JSON.stringify(dayLabels.today)};`);
         lines.push(`            auto t = id(ha_time).now();`);
         lines.push(`            if (!t.is_valid()) return "---";`);
         lines.push(`            ESPTime future = ESPTime::from_epoch_local(t.timestamp + (target_day * 86400));`);
-        lines.push(`            char buf[8]; future.strftime(buf, sizeof(buf), "%a");`);
-        lines.push(`            return std::string(buf);`);
+        lines.push(`            char weekday_buf[2]; future.strftime(weekday_buf, sizeof(weekday_buf), "%w");`);
+        lines.push(`            int weekday_index = weekday_buf[0] - '0';`);
+        lines.push(`            if (weekday_index < 0 || weekday_index > 6) return "---";`);
+        lines.push(`            return std::string(weekday_names[weekday_index]);`);
         lines.push(`          };`);
     }
 

@@ -86,7 +86,12 @@ describe('selection core', () => {
     });
 
     it('evaluates context-menu suppression and target resolution correctly', async () => {
-        const { shouldSuppressCanvasContextMenu, resolveCanvasContextMenuTarget } = await import('../../js/core/interactions/selection.js');
+        const {
+            shouldSuppressCanvasContextMenu,
+            resolveCanvasContextMenuTarget,
+            blurActiveCanvasInput,
+            focusCanvasKeyboardTarget
+        } = await import('../../js/core/interactions/selection.js');
 
         expect(shouldSuppressCanvasContextMenu({
             pinchState: true,
@@ -127,6 +132,43 @@ describe('selection core', () => {
         expect(resolveCanvasContextMenuTarget(document.querySelector('.artboard'))).toEqual({ shouldShow: true, widgetId: null });
         expect(resolveCanvasContextMenuTarget(document.getElementById('btn'))).toEqual({ shouldShow: false, widgetId: null });
         expect(resolveCanvasContextMenuTarget(null)).toEqual({ shouldShow: false, widgetId: null });
+        const stray = document.createElement('div');
+        document.body.appendChild(stray);
+        expect(resolveCanvasContextMenuTarget(stray)).toEqual({ shouldShow: false, widgetId: null });
+
+        blurActiveCanvasInput(null);
+
+        const input = document.createElement('input');
+        document.body.appendChild(input);
+        const inputBlurSpy = vi.spyOn(input, 'blur');
+        input.focus();
+        blurActiveCanvasInput(input);
+        expect(inputBlurSpy).not.toHaveBeenCalled();
+
+        document.body.innerHTML += '<div id="canvas"><div id="canvasChild"></div></div><button id="canvasButton"></button>';
+        const canvas = /** @type {HTMLElement} */ (document.getElementById('canvas'));
+        const canvasChild = /** @type {HTMLElement} */ (document.getElementById('canvasChild'));
+        const canvasButton = /** @type {HTMLElement} */ (document.getElementById('canvasButton'));
+
+        focusCanvasKeyboardTarget(null);
+        focusCanvasKeyboardTarget(canvasButton);
+        expect(document.activeElement).not.toBe(canvas);
+
+        focusCanvasKeyboardTarget(canvasChild);
+        expect(canvas.tabIndex).toBe(-1);
+        expect(document.activeElement).toBe(canvas);
+
+        canvas.remove();
+        expect(() => focusCanvasKeyboardTarget(canvasChild)).not.toThrow();
+
+        document.body.appendChild(canvas);
+        canvas.focus = vi.fn((options) => {
+            if (options && typeof options === 'object') {
+                throw new Error('focus options unsupported');
+            }
+        });
+        focusCanvasKeyboardTarget(canvasChild);
+        expect(canvas.focus).toHaveBeenCalledTimes(2);
     });
 
     it('deselects on stage clicks and starts page reordering from artboard headers', async () => {
@@ -257,6 +299,78 @@ describe('selection core', () => {
         }));
     });
 
+    it('blurs the previously focused input before handling widget selection on the canvas', async () => {
+        const { setupInteractions } = await import('../../js/core/interactions/selection.js');
+
+        document.body.innerHTML = `
+            <input id="editorInput" />
+            <div id="canvas">
+                <div class="artboard-wrapper" data-index="0">
+                    <div class="artboard">
+                        <div class="widget" data-id="text_1"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const input = /** @type {HTMLInputElement} */ (document.getElementById('editorInput'));
+        const blurSpy = vi.spyOn(input, 'blur');
+        input.focus();
+
+        const artboard = /** @type {HTMLElement} */ (document.querySelector('.artboard'));
+        artboard.getBoundingClientRect = () => ({
+            left: 10,
+            top: 20,
+            width: 200,
+            height: 100,
+            right: 210,
+            bottom: 120,
+            x: 10,
+            y: 20,
+            toJSON() {}
+        });
+
+        mockAppState.getWidgetById.mockReturnValue({
+            id: 'text_1',
+            type: 'text',
+            x: 30,
+            y: 40,
+            width: 60,
+            height: 20,
+            props: {}
+        });
+        mockAppState.getSelectedWidgets.mockReturnValue([
+            { id: 'text_1', type: 'text', x: 30, y: 40, width: 60, height: 20, props: {} }
+        ]);
+
+        const canvas = document.getElementById('canvas');
+        const canvasInstance = {
+            canvas,
+            rulers: null,
+            pinchState: null,
+            touchState: null,
+            dragState: null,
+            lassoState: null,
+            _boundMouseMove: vi.fn(),
+            _boundMouseUp: vi.fn(),
+            panX: 0,
+            panY: 0
+        };
+
+        setupInteractions(canvasInstance);
+
+        document.querySelector('.widget')?.dispatchEvent(new MouseEvent('mousedown', {
+            bubbles: true,
+            button: 0,
+            clientX: 40,
+            clientY: 50
+        }));
+
+        expect(blurSpy).toHaveBeenCalled();
+        expect(mockAppState.selectWidget).toHaveBeenCalledWith('text_1', false);
+        expect(document.activeElement).toBe(canvas);
+    });
+
     it('redirects child-widget drags to the parent group and prepares lasso/debug flows', async () => {
         const { setupInteractions } = await import('../../js/core/interactions/selection.js');
 
@@ -342,6 +456,93 @@ describe('selection core', () => {
         artboard.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 40, clientY: 60 }));
         expect(document.querySelector('.debug-cursor-tooltip')?.style.display).toBe('block');
         artboard.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
+        expect(document.querySelector('.debug-cursor-tooltip')?.style.display).toBe('none');
+    });
+
+    it('switches pages before dragging widgets, supports additive selection, and blocks child resize handles', async () => {
+        const { setupInteractions } = await import('../../js/core/interactions/selection.js');
+
+        document.body.innerHTML = `
+            <div id="canvas">
+                <div class="artboard-wrapper" data-index="0">
+                    <div class="artboard"></div>
+                </div>
+                <div class="artboard-wrapper" data-index="1">
+                    <div class="artboard">
+                        <div class="widget" data-id="child_2">
+                            <div class="widget-resize-handle" data-handle="br"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const secondArtboard = /** @type {HTMLElement} */ (document.querySelectorAll('.artboard')[1]);
+        secondArtboard.getBoundingClientRect = () => ({
+            left: 0,
+            top: 0,
+            width: 200,
+            height: 120,
+            right: 200,
+            bottom: 120,
+            x: 0,
+            y: 0,
+            toJSON() {}
+        });
+
+        mockAppState.currentPageIndex = 0;
+        mockAppState.selectedWidgetIds = ['child_2'];
+        mockAppState.getWidgetById.mockImplementation((id) => ({
+            child_2: { id: 'child_2', type: 'text', x: 20, y: 30, width: 30, height: 15, parentId: 'group_2' },
+            group_2: { id: 'group_2', type: 'group', x: 10, y: 20, width: 100, height: 50 }
+        }[id]));
+        mockAppState.getSelectedWidgets.mockReturnValue([
+            { id: 'child_2', type: 'text', x: 20, y: 30, width: 30, height: 15 }
+        ]);
+
+        const canvas = document.getElementById('canvas');
+        const canvasInstance = {
+            canvas,
+            rulers: null,
+            pinchState: null,
+            touchState: null,
+            dragState: null,
+            lassoState: null,
+            _boundMouseMove: vi.fn(),
+            _boundMouseUp: vi.fn(),
+            panX: 0,
+            panY: 0
+        };
+
+        setupInteractions(canvasInstance);
+
+        document.querySelector('.widget')?.dispatchEvent(new MouseEvent('mousedown', {
+            bubbles: true,
+            button: 0,
+            clientX: 30,
+            clientY: 40,
+            shiftKey: true
+        }));
+
+        expect(mockAppState.setCurrentPageIndex).toHaveBeenCalledWith(1, { suppressFocus: true });
+        expect(mockAppState.selectWidgets).toHaveBeenCalledWith(['child_2']);
+
+        canvasInstance.dragState = null;
+        document.querySelector('.widget-resize-handle')?.dispatchEvent(new MouseEvent('mousedown', {
+            bubbles: true,
+            button: 0,
+            clientX: 30,
+            clientY: 40
+        }));
+
+        expect(canvasInstance.dragState).toBeNull();
+
+        mockAppState.showDebugGrid = false;
+        canvas.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 10, clientY: 10 }));
+        expect(document.querySelector('.debug-cursor-tooltip')?.style.display).toBe('none');
+
+        mockAppState.showDebugGrid = true;
+        canvas.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 10, clientY: 10 }));
         expect(document.querySelector('.debug-cursor-tooltip')?.style.display).toBe('none');
     });
 });

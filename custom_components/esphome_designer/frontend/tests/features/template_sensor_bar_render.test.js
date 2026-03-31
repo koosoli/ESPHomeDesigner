@@ -42,8 +42,10 @@ describe('template_sensor_bar render', () => {
                 show_battery: true,
                 bat_is_local: true,
                 temp_unit: '\u00b0F',
+                font_family: 'Inter',
                 icon_size: 18,
-                font_size: 12
+                font_size: 12,
+                font_weight: 700
             }
         }, {
             getColorStyle: (value) => value || '#000000',
@@ -60,6 +62,9 @@ describe('template_sensor_bar render', () => {
         expect(values).toContain('68.0\u00b0F');
         expect(values).toContain('44%');
         expect(values).toContain('22%');
+        const firstValue = el.querySelectorAll('span')[1];
+        expect(firstValue.style.fontFamily).toContain('Inter');
+        expect(firstValue.style.fontWeight).toBe('700');
     });
 
     it('falls back to defaults and dashed borders for transparent backgrounds', () => {

@@ -36,6 +36,7 @@ describe('weather feature exports', () => {
                 border_color: 'black',
                 border_radius: 8,
                 color: 'blue',
+                day_language: 'de',
                 precision: 0
             }
         }, {
@@ -50,6 +51,8 @@ describe('weather feature exports', () => {
         const output = lines.join('\n');
         expect(output).toContain('it.filled_rounded_rectangle(0, 0, 210, 70, 8, Color(white));');
         expect(output).toContain('auto get_day_name = [](int offset) -> std::string {');
+        expect(output).toContain('static const char* weekday_names[] = {"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};');
+        expect(output).toContain('if (target_day == 0) return "Heute";');
         expect(output).toContain('sprintf(temp_buf, "%.*f/%.*f');
         expect(output).toContain('weather_cond_day0');
     });

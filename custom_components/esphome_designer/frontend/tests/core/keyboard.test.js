@@ -286,4 +286,21 @@ describe('KeyboardHandler', () => {
         expect(mockAppState.selectWidgets).toHaveBeenCalledWith([]);
         expect(mockEmit).toHaveBeenCalledWith('STATE_CHANGED');
     });
+
+    it('handles copy, paste, and undo from real canvas keydown events', async () => {
+        document.body.innerHTML += '<div id="canvas" tabindex="-1"></div>';
+        const { KeyboardHandler } = await import('../../js/core/keyboard.js');
+        new KeyboardHandler();
+
+        const canvas = /** @type {HTMLElement} */ (document.getElementById('canvas'));
+        canvas.focus();
+
+        canvas.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', ctrlKey: true, bubbles: true }));
+        canvas.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', ctrlKey: true, bubbles: true }));
+        canvas.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+
+        expect(mockAppState.copyWidget).toHaveBeenCalledTimes(1);
+        expect(mockAppState.pasteWidget).toHaveBeenCalledTimes(1);
+        expect(mockAppState.undo).toHaveBeenCalledTimes(1);
+    });
 });

@@ -5,7 +5,6 @@
  */
 
 import { Logger } from '../utils/logger.js';
-import { AppState } from '../core/state';
 import { canvasInstance } from '../core/canvas.js';
 import {
     clearSnippetAutoHighlight,
@@ -48,7 +47,6 @@ export function highlightWidgetInSnippet(widgetIds) {
     if (isSnippetMode) {
         try {
             box.setSelectionRange(0, yaml.length);
-            box.focus();
             setLastSnippetHighlightRange({ start: 0, end: yaml.length });
         } catch (e) {
             Logger.error("[highlightWidgetInSnippet] Selection error (SnippetMode):", e);
@@ -237,14 +235,6 @@ export function highlightWidgetInSnippet(widgetIds) {
             // Apply selection - Visually highlight the range
             try {
                 box.setSelectionRange(minStart, maxEnd);
-
-                // CRITICAL: If only one widget is selected, we DO want focus to move
-                // to the box so Ctrl+C works immediately and the highlight is visible.
-                // For multiple/Select All, we skip this to stay on the canvas.
-                // Also skip if undo/redo is in progress to prevent focus stealing.
-                if (ids.length === 1 && !AppState.isUndoRedoInProgress) {
-                    box.focus();
-                }
             } catch {
                 // Ignore
             }

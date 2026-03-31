@@ -149,4 +149,23 @@ describe('navigation debounce regression coverage', () => {
         expect(yaml).toContain('(millis() - id(last_touch_time) > 2000)');
         expect(yaml).not.toContain('(millis() - id(last_touch_time) > 250)');
     });
+
+    it('keeps only the home action in single-page LVGL nav bars', () => {
+        const exported = templateNavBarPlugin.exportLVGL(
+            {
+                ...createTemplateNavBarWidget(),
+                _pageCount: 1
+            },
+            {
+                common: { x: 0, y: 0, width: 180, height: 40 },
+                convertColor: (value) => value,
+                getLVGLFont: (family, size, weight) => `${family}-${size}-${weight}`
+            }
+        );
+
+        const widgets = exported.obj.widgets;
+        expect(widgets).toHaveLength(1);
+        expect(JSON.stringify(widgets)).not.toContain('change_page_to');
+        expect(JSON.stringify(widgets)).toContain('manage_run_and_sleep');
+    });
 });

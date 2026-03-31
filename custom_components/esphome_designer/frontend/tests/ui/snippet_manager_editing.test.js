@@ -84,7 +84,8 @@ describe('snippet_manager_editing', () => {
                 highlight: vi.fn(() => '<span>highlighted</span>')
             },
             updateHighlightLayer: vi.fn(),
-            handleUpdateLayoutFromSnippetBox: vi.fn()
+            handleUpdateLayoutFromSnippetBox: vi.fn(),
+            handleSnippetTextInput: vi.fn()
         };
 
         openSnippetModalEditor(manager);
@@ -108,7 +109,8 @@ describe('snippet_manager_editing', () => {
                 highlight: vi.fn((value) => `<mark>${value}</mark>`)
             },
             updateHighlightLayer: vi.fn(),
-            handleUpdateLayoutFromSnippetBox: vi.fn()
+            handleUpdateLayoutFromSnippetBox: vi.fn(),
+            handleSnippetTextInput: vi.fn()
         };
 
         openSnippetModalEditor(manager);
@@ -138,6 +140,8 @@ describe('snippet_manager_editing', () => {
 
         textarea.dispatchEvent(new Event('input'));
         expect(highlight.innerHTML).toContain('sensor:');
+        expect(document.getElementById('snippetBox')?.value).toContain('edited');
+        expect(manager.handleSnippetTextInput).toHaveBeenCalledWith('sensor:\n  - name: edited');
 
         updateBtn.click();
         expect(document.getElementById('snippetBox')?.value).toContain('edited');
@@ -188,7 +192,11 @@ describe('snippet_manager_editing', () => {
             lastGeneratedYaml: 'old',
             suppressSnippetUpdate: false,
             snippetDebounceTimer: null,
-            hasPendingManualSnippetChanges: true
+            hasPendingManualSnippetChanges: true,
+            persistManualYamlOverride: vi.fn(),
+            syncGeneratedSnippetBaseline: vi.fn().mockImplementation(async () => {
+                manager.lastGeneratedYaml = 'rebased generated yaml';
+            })
         };
 
         await handleUpdateLayoutFromSnippetBoxEditor(manager);
@@ -209,6 +217,9 @@ describe('snippet_manager_editing', () => {
         expect(mockShowToast).toHaveBeenCalledWith('Note: Custom C++ (lambda/script) may not fully preview.', 'warning', 4000);
         expect(manager.hasPendingManualSnippetChanges).toBe(false);
         expect(manager.suppressSnippetUpdate).toBe(false);
+        expect(manager.syncGeneratedSnippetBaseline).toHaveBeenCalled();
+        expect(manager.lastGeneratedYaml).toBe('rebased generated yaml');
+        expect(manager.persistManualYamlOverride).toHaveBeenCalledWith('lambda:\n  return 1;');
     });
 
     it('surfaces a parse error when the offline parser returns no layout', async () => {
@@ -247,7 +258,7 @@ describe('snippet_manager_editing', () => {
         expect(mockLoadLayoutIntoState).not.toHaveBeenCalled();
     });
 
-    it('creates missing layout settings before loading state and resets suppression after the timer', async () => {
+    it('creates missing layout settings before loading state and releases snippet suppression immediately after import', async () => {
         const { handleUpdateLayoutFromSnippetBoxEditor } = await import('../../js/ui/snippet_manager_editing.js');
 
         mockParseSnippetYamlOffline.mockReturnValue({ pages: [] });
@@ -268,9 +279,6 @@ describe('snippet_manager_editing', () => {
                 dark_mode: true
             })
         }));
-        expect(manager.suppressSnippetUpdate).toBe(true);
-
-        await vi.advanceTimersByTimeAsync(1500);
         expect(manager.suppressSnippetUpdate).toBe(false);
     });
 });

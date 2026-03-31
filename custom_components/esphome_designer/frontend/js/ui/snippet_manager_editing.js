@@ -83,10 +83,17 @@ export function openSnippetModalEditor(manager) {
 
                 // Update highlight for fullscreen
                 textarea.addEventListener('input', () => {
+                    const nextValue = /** @type {HTMLTextAreaElement} */ (textarea).value;
+                    if (snippetBox) {
+                        snippetBox.value = nextValue;
+                    }
+
+                    if (typeof manager.handleSnippetTextInput === 'function') {
+                        manager.handleSnippetTextInput(nextValue);
+                    }
+
                     if (manager.isHighlighted) {
-                        highlightLayer.innerHTML = manager.highlighter.highlight(
-                            /** @type {HTMLTextAreaElement} */ (textarea).value
-                        );
+                        highlightLayer.innerHTML = manager.highlighter.highlight(nextValue);
                     }
                 });
 
@@ -98,7 +105,11 @@ export function openSnippetModalEditor(manager) {
                     updateBtn.className = "btn btn-primary";
                     updateBtn.textContent = "Update Layout from YAML";
                     updateBtn.onclick = () => {
-                        snippetBox.value = /** @type {HTMLTextAreaElement} */ (textarea).value;
+                        const nextValue = /** @type {HTMLTextAreaElement} */ (textarea).value;
+                        snippetBox.value = nextValue;
+                        if (typeof manager.handleSnippetTextInput === 'function') {
+                            manager.handleSnippetTextInput(nextValue);
+                        }
                         manager.handleUpdateLayoutFromSnippetBox();
                         modal.classList.add("hidden");
                     };
@@ -217,9 +228,15 @@ export async function handleUpdateLayoutFromSnippetBoxEditor(manager) {
 
                 loadLayoutIntoState(layout);
 
-                setTimeout(() => {
-                    manager.suppressSnippetUpdate = false;
-                }, 1500);
+                if (typeof manager.syncGeneratedSnippetBaseline === 'function') {
+                    await manager.syncGeneratedSnippetBaseline();
+                }
+
+                if (typeof manager.persistManualYamlOverride === 'function') {
+                    manager.persistManualYamlOverride(yaml);
+                }
+
+                manager.suppressSnippetUpdate = false;
 
                 showToast("Layout updated from YAML", "success");
 

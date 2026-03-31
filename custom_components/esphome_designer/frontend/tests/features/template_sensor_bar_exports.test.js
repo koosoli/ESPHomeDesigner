@@ -56,7 +56,10 @@ describe('template_sensor_bar exports', () => {
                 show_humidity: true,
                 hum_is_local: true,
                 show_battery: true,
-                bat_is_local: true
+                bat_is_local: true,
+                font_family: 'Inter',
+                font_weight: 700,
+                font_size: 16
             }
         }, context);
 
@@ -68,6 +71,7 @@ describe('template_sensor_bar exports', () => {
         expect(output).toContain('id(sht4x_temperature).state * 9.0 / 5.0 + 32.0');
         expect(output).toContain('id(sht4x_humidity).state');
         expect(output).toContain('float lvl = id(battery_level).state;');
+        expect(context.addFont).toHaveBeenCalledWith('Inter', 700, 16);
         expect(context.addDitherMask).toHaveBeenCalled();
     });
 
@@ -78,16 +82,19 @@ describe('template_sensor_bar exports', () => {
                 show_wifi: false,
                 show_temperature: true,
                 show_humidity: true,
-                show_battery: true
+                show_battery: true,
+                font_family: 'Open Sans',
+                font_weight: 600
             }
         }, {
             common: { id: 'bar_missing' },
             convertColor: (value) => `COLOR_${value}`,
-            getLVGLFont: () => 'font_ref',
+            getLVGLFont: (family, size, weight) => `${family}-${size}-${weight}`,
             profile: { features: {} }
         });
 
         expect(result.obj.widgets[0].obj.widgets[1].label.text).toBe('"--\u00b0C"');
+        expect(result.obj.widgets[0].obj.widgets[1].label.text_font).toBe('Open Sans-14-600');
         expect(result.obj.widgets[1].obj.widgets[1].label.text).toBe('"--%%"');
         expect(result.obj.widgets[2].obj.widgets[0].label.text).toBe('"\\U000F0082"');
         expect(result.obj.widgets[2].obj.widgets[1].label.text).toBe('"--%%"');
@@ -107,12 +114,15 @@ describe('template_sensor_bar exports', () => {
                 show_humidity: true,
                 hum_entity: 'sensor.room_humidity',
                 show_battery: true,
-                bat_entity: 'sensor.room_battery'
+                bat_entity: 'sensor.room_battery',
+                font_family: 'Montserrat',
+                font_weight: 800,
+                font_size: 18
             }
         }, {
             common: { id: 'bar_live' },
             convertColor: (value) => `COLOR_${value}`,
-            getLVGLFont: () => 'font_ref',
+            getLVGLFont: (family, size, weight) => `${family}-${size}-${weight}`,
             profile: { features: {} }
         });
 
@@ -120,6 +130,7 @@ describe('template_sensor_bar exports', () => {
         const tempText = result.obj.widgets[1].obj.widgets[1].label.text;
         const humText = result.obj.widgets[2].obj.widgets[1].label.text;
         const batText = result.obj.widgets[3].obj.widgets[1].label.text;
+        const tempFont = result.obj.widgets[1].obj.widgets[1].label.text_font;
 
         expect(wifiText).toContain('str_sprintf(\\"%.0fdB\\", id(wifi_signal_dbm).state)');
         expect(tempText).toContain('str_sprintf(\\"%.1f°C\\", id(sensor_room_temp).state)');
@@ -130,6 +141,7 @@ describe('template_sensor_bar exports', () => {
             expect(text).not.toContain(".c_str()");
             expect(text).not.toContain("str_sprintf('");
         });
+        expect(tempFont).toBe('Montserrat-18-800');
     });
 
     it('exports numeric sensors and LVGL refresh triggers for mixed local and HA-backed values', () => {
@@ -180,12 +192,14 @@ describe('template_sensor_bar exports', () => {
         collectRequirements({
             props: {
                 icon_size: 22,
-                font_size: 16
+                font_size: 16,
+                font_family: 'Quicksand',
+                font_weight: 600
             }
         }, { trackIcon, addFont });
 
         expect(addFont).toHaveBeenCalledWith('Material Design Icons', 400, 22);
-        expect(addFont).toHaveBeenCalledWith('Roboto', 400, 16);
+        expect(addFont).toHaveBeenCalledWith('Quicksand', 600, 16);
         expect(trackIcon).toHaveBeenCalledWith('F092B', 22);
         expect(trackIcon).toHaveBeenCalledWith('F050F', 22);
         expect(trackIcon).toHaveBeenCalledWith('F058E', 22);

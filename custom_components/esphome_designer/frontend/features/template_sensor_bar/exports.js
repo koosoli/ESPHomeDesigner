@@ -1,3 +1,5 @@
+import { clampFontWeight } from '../../js/core/font_weights.js';
+
 const ensureHex = (color) => (color === "gray" || color === "grey" ? "#808080" : color);
 
 const normalizeEntityId = (entity, isLocal = false) => {
@@ -31,6 +33,8 @@ export function exportDoc(w, context) {
     const p = w.props || {};
     const iconSize = parseInt(p.icon_size || 20, 10);
     const fontSize = parseInt(p.font_size || 14, 10);
+    const fontFamily = p.font_family || "Roboto";
+    const fontWeight = clampFontWeight(fontFamily, parseInt(p.font_weight || 400, 10) || 400);
     const color = getDynamicColor(getColorConst, ensureHex(p.color || "white"));
     const showWifi = p.show_wifi !== false;
     const showTemp = p.show_temperature !== false;
@@ -59,7 +63,7 @@ export function exportDoc(w, context) {
     const tempId = rawTempEntity ? normalizeEntityId(rawTempEntity, p.temp_is_local) : "";
 
     const iconFontRef = addFont("Material Design Icons", 400, iconSize);
-    const textFontRef = addFont("Roboto", 400, fontSize);
+    const textFontRef = addFont(fontFamily, fontWeight, fontSize);
 
     const cond = getConditionCheck(w);
     if (cond) lines.push(`        ${cond}`);
@@ -217,8 +221,10 @@ export function exportLVGL(w, { common, convertColor, getLVGLFont, profile }) {
     const color = convertColor(ensureHex(p.color || "white"));
     const iconSize = parseInt(p.icon_size || 20, 10);
     const fontSize = parseInt(p.font_size || 14, 10);
+    const fontFamily = p.font_family || "Roboto";
+    const fontWeight = clampFontWeight(fontFamily, parseInt(p.font_weight || 400, 10) || 400);
     const iconFont = getLVGLFont("Material Design Icons", iconSize, 400);
-    const textFont = getLVGLFont("Roboto", fontSize, 400);
+    const textFont = getLVGLFont(fontFamily, fontSize, fontWeight);
     const widgets = [];
 
     if (p.show_wifi !== false) {
@@ -397,9 +403,10 @@ export function collectRequirements(widget, context) {
     const p = widget.props || {};
     const iconSize = parseInt(p.icon_size || 20, 10);
     const fontSize = parseInt(p.font_size || 14, 10);
+    const fontFamily = p.font_family || "Roboto";
+    const fontWeight = clampFontWeight(fontFamily, parseInt(p.font_weight || 400, 10) || 400);
     addFont("Material Design Icons", 400, iconSize);
-    addFont("Material Design Icons", 400, iconSize);
-    addFont("Roboto", 400, fontSize);
+    addFont(fontFamily, fontWeight, fontSize);
     if (p.show_wifi !== false) ["F092B", "F091F", "F0922", "F0925", "F0928"].forEach((code) => trackIcon(code, iconSize));
     if (p.show_temperature !== false) ["F050F"].forEach((code) => trackIcon(code, iconSize));
     if (p.show_humidity !== false) ["F058E"].forEach((code) => trackIcon(code, iconSize));

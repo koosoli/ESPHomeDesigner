@@ -59,7 +59,15 @@ const mockAppState = {
     currentLayoutId: 'layout_1',
     deviceName: 'Layout 1',
     deviceModel: 'reterminal_e1001',
-    isUndoRedoInProgress: false
+    isUndoRedoInProgress: false,
+    _manualYamlOverride: '',
+    getManualYamlOverride: vi.fn(() => mockAppState._manualYamlOverride),
+    setManualYamlOverride: vi.fn((value) => {
+        mockAppState._manualYamlOverride = value;
+    }),
+    clearManualYamlOverride: vi.fn(() => {
+        mockAppState._manualYamlOverride = '';
+    })
 };
 
 vi.mock('../../js/core/events.js', () => ({
@@ -126,6 +134,7 @@ describe('SnippetManager', () => {
             <button id="copyLambdaBtn">Lambda</button>
             <button id="copyOEPLServiceBtn">OEPL</button>
             <button id="copyODPServiceBtn">ODP</button>
+            <button id="clearYamlOverrideBtn" style="display:none;">Auto</button>
             <button id="updateLayoutBtn"><span class="mdi mdi-refresh"></span></button>
             <button id="importSnippetConfirm">Import</button>
             <div id="oeplNotice" class="hidden"></div>
@@ -149,6 +158,7 @@ describe('SnippetManager', () => {
         seedDom();
         resetSnippetSelectionState();
         localStorage.clear();
+        mockAppState._manualYamlOverride = '';
 
         Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
         Object.defineProperty(navigator, 'clipboard', {
@@ -282,6 +292,31 @@ describe('SnippetManager', () => {
         expect(mockHandleImportSnippetEditor).toHaveBeenCalledWith(manager);
     });
 
+    it('can rebuild the generated YAML baseline from current AppState after YAML imports', async () => {
+        adapter.generate.mockResolvedValueOnce([
+            'display:',
+            '  - platform: ili9xxx',
+            '    lambda: |-',
+            '      it.print(40,40,id(font),"rebased");'
+        ].join('\n'));
+
+        await manager.syncGeneratedSnippetBaseline();
+
+        expect(mockAppState.getPagesPayload).toHaveBeenCalled();
+        expect(manager.lastGeneratedYaml).toContain('it.print(40,40,id(font),"rebased");');
+    });
+
+    it('logs baseline rebuild failures without throwing', async () => {
+        adapter.generate.mockRejectedValueOnce(new Error('baseline failed'));
+
+        await manager.syncGeneratedSnippetBaseline();
+
+        expect(mockLogger.warn).toHaveBeenCalledWith(
+            '[SnippetManager] Failed to rebuild generated YAML baseline after import.',
+            expect.any(Error)
+        );
+    });
+
     it('copies snippet and lambda to clipboard', async () => {
         const snippetBox = document.getElementById('snippetBox');
         snippetBox.value = [
@@ -357,19 +392,213 @@ describe('SnippetManager', () => {
         expect(updateSpy).toHaveBeenCalledTimes(2);
     });
 
-    it('preserves pending manual YAML edits instead of overwriting them on state changes', async () => {
+    it('merges regenerated YAML back into a manually edited snippet on state changes', async () => {
         const snippetBox = /** @type {HTMLTextAreaElement} */ (document.getElementById('snippetBox'));
-        snippetBox.value = 'manual override';
+        const originalGeneratedYaml = snippetBox.value;
+        snippetBox.value = [
+            originalGeneratedYaml,
+            '',
+            'script:',
+            '  - id: custom_script',
+            '    then:',
+            '      - logger.log: "custom"'
+        ].join('\n');
         snippetBox.dispatchEvent(new Event('input'));
 
-        const initialGenerateCalls = adapter.generate.mock.calls.length;
+        adapter.generate.mockResolvedValueOnce([
+            'display:',
+            '  - platform: ili9xxx',
+            '    lambda: |-',
+            '      it.print(12,12,id(font),"updated");'
+        ].join('\n'));
+
         const stateChanged = mockOn.mock.calls.find(([event]) => event === 'STATE_CHANGED')?.[1];
         stateChanged?.();
         await vi.runAllTimersAsync();
 
-        expect(manager.hasPendingManualSnippetChanges).toBe(true);
-        expect(snippetBox.value).toBe('manual override');
-        expect(adapter.generate).toHaveBeenCalledTimes(initialGenerateCalls);
+        expect(adapter.generate).toHaveBeenCalledTimes(2);
+        expect(snippetBox.value).toContain('it.print(12,12,id(font),"updated");');
+        expect(snippetBox.value).toContain('id: custom_script');
+        expect(snippetBox.value).not.toContain('it.print(0,0,id(font),"ok");');
+        expect(mockAppState.getManualYamlOverride()).toContain('id: custom_script');
+        expect(mockHighlightWidgetInSnippet).toHaveBeenLastCalledWith(['widget_1']);
+    });
+
+    it('falls back to a section-based merge when inline comments break exact generated-block replacement', async () => {
+        const snippetBox = /** @type {HTMLTextAreaElement} */ (document.getElementById('snippetBox'));
+        snippetBox.value = [
+            'display:',
+            '  - platform: ili9xxx',
+            '    # custom note',
+            '    lambda: |-',
+            '      it.print(0,0,id(font),"ok");',
+            '',
+            'script:',
+            '  - id: custom_script',
+            '    then:',
+            '      - logger.log: "custom"'
+        ].join('\n');
+        snippetBox.dispatchEvent(new Event('input'));
+
+        adapter.generate.mockResolvedValueOnce([
+            'display:',
+            '  - platform: ili9xxx',
+            '    lambda: |-',
+            '      it.print(24,24,id(font),"updated");'
+        ].join('\n'));
+
+        const stateChanged = mockOn.mock.calls.find(([event]) => event === 'STATE_CHANGED')?.[1];
+        stateChanged?.();
+        await vi.runAllTimersAsync();
+
+        expect(snippetBox.value).toContain('it.print(24,24,id(font),"updated");');
+        expect(snippetBox.value).toContain('id: custom_script');
+        expect(snippetBox.value).not.toContain('# custom note');
+        expect(mockAppState.getManualYamlOverride()).toContain('id: custom_script');
+        expect(
+            mockLogger.warn.mock.calls.some(([message]) => String(message).includes('Unable to merge manual YAML override'))
+        ).toBe(false);
+    });
+
+    it('covers direct merge helpers for empty, prefix, and equality edge cases', () => {
+        expect(manager.parseTopLevelSnippetBlocks('')).toEqual([]);
+        expect(manager.reconcileManualSnippetOverrideBySections('', '', '')).toBeNull();
+
+        manager.lastGeneratedYaml = '';
+        expect(manager.reconcileManualSnippetOverride('display:\n  - platform: ili9xxx', 'manual override')).toEqual({
+            text: 'manual override',
+            usesManualOverride: true
+        });
+
+        manager.lastGeneratedYaml = 'display:\n  - platform: ili9xxx';
+        expect(manager.reconcileManualSnippetOverride('display:\n  - platform: ili9xxx', 'display:\n  - platform: ili9xxx')).toEqual({
+            text: 'display:\n  - platform: ili9xxx',
+            usesManualOverride: false
+        });
+
+        const prefixedMerge = manager.reconcileManualSnippetOverrideBySections(
+            'display:\n  - platform: updated',
+            [
+                '# custom header',
+                '',
+                'display:',
+                '  - platform: ili9xxx',
+                '',
+                'script:',
+                '  - id: custom_script'
+            ].join('\n'),
+            'display:\n  - platform: ili9xxx'
+        );
+        expect(prefixedMerge).toEqual({
+            text: [
+                '# custom header',
+                '',
+                'display:',
+                '  - platform: updated',
+                '',
+                'script:',
+                '  - id: custom_script'
+            ].join('\n'),
+            usesManualOverride: true
+        });
+
+        expect(
+            manager.reconcileManualSnippetOverrideBySections(
+                '',
+                'display:\n  - platform: ili9xxx',
+                'display:\n  - platform: ili9xxx'
+            )
+        ).toBeNull();
+    });
+
+    it('restores persisted manual YAML overrides and allows clearing back to generated output', async () => {
+        mockAppState._manualYamlOverride = 'persisted override';
+        manager.updateSnippetBox();
+        await vi.runAllTimersAsync();
+
+        const snippetBox = /** @type {HTMLTextAreaElement} */ (document.getElementById('snippetBox'));
+        const clearOverrideBtn = /** @type {HTMLButtonElement} */ (document.getElementById('clearYamlOverrideBtn'));
+
+        expect(snippetBox.value).toBe('persisted override');
+        expect(clearOverrideBtn.style.display).toBe('inline-block');
+
+        clearOverrideBtn.click();
+        await vi.runAllTimersAsync();
+
+        expect(mockAppState.clearManualYamlOverride).toHaveBeenCalled();
+        expect(snippetBox.value).toContain('lambda: |-');
+        expect(clearOverrideBtn.style.display).toBe('none');
+    });
+
+    it('clears the persisted override when the snippet matches generated YAML again', async () => {
+        const snippetBox = /** @type {HTMLTextAreaElement} */ (document.getElementById('snippetBox'));
+        const generatedYaml = snippetBox.value;
+
+        snippetBox.value = 'manual override';
+        snippetBox.dispatchEvent(new Event('input'));
+        expect(mockAppState.setManualYamlOverride).toHaveBeenLastCalledWith('manual override', { emitStateChange: false });
+
+        snippetBox.value = generatedYaml;
+        snippetBox.dispatchEvent(new Event('input'));
+
+        expect(mockAppState.clearManualYamlOverride).toHaveBeenCalled();
+    });
+
+    it('falls back to project state when manual YAML override helpers are unavailable', async () => {
+        mockAppState.project = { state: { manualYamlOverride: 'project override' } };
+        const originalGet = mockAppState.getManualYamlOverride;
+        const originalSet = mockAppState.setManualYamlOverride;
+        const originalClear = mockAppState.clearManualYamlOverride;
+        mockAppState.getManualYamlOverride = undefined;
+        mockAppState.setManualYamlOverride = undefined;
+        mockAppState.clearManualYamlOverride = undefined;
+
+        expect(manager.getPersistedManualYamlOverride()).toBe('project override');
+
+        manager.persistManualYamlOverride('manual fallback');
+        expect(mockAppState.project.state.manualYamlOverride).toBe('manual fallback');
+
+        manager.clearManualYamlOverride();
+        await vi.runAllTimersAsync();
+        expect(mockAppState.project.state.manualYamlOverride).toBe('');
+
+        mockAppState.getManualYamlOverride = originalGet;
+        mockAppState.setManualYamlOverride = originalSet;
+        mockAppState.clearManualYamlOverride = originalClear;
+    });
+
+    it('wires the copy buttons through their click handlers and toggles mirrored highlight buttons', async () => {
+        document.body.insertAdjacentHTML('beforeend', '<button id="secondaryToggleHighlightBtn"></button>');
+        manager = new SnippetManager(adapter);
+        await vi.runAllTimersAsync();
+
+        const copySnippetSpy = vi.spyOn(manager, 'copySnippetToClipboard').mockResolvedValue(undefined);
+        const copyLambdaSpy = vi.spyOn(manager, 'copyLambdaToClipboard').mockResolvedValue(undefined);
+        const copyOEPLSpy = vi.spyOn(manager, 'copyOEPLServiceToClipboard').mockResolvedValue(undefined);
+
+        document.getElementById('copySnippetBtn')?.click();
+        document.getElementById('copyLambdaBtn')?.click();
+        document.getElementById('copyOEPLServiceBtn')?.click();
+
+        expect(copySnippetSpy).toHaveBeenCalled();
+        expect(copyLambdaSpy).toHaveBeenCalled();
+        expect(copyOEPLSpy).toHaveBeenCalled();
+
+        document.getElementById('toggleHighlightBtn')?.click();
+        expect(document.getElementById('secondaryToggleHighlightBtn')?.classList.contains('active')).toBe(false);
+        document.getElementById('toggleHighlightBtn')?.click();
+        expect(document.getElementById('secondaryToggleHighlightBtn')?.classList.contains('active')).toBe(true);
+    });
+
+    it('logs and skips regeneration when pending manual edits exist without a persisted override', async () => {
+        manager.getPersistedManualYamlOverride = vi.fn(() => '');
+        manager.hasPendingManualSnippetChanges = true;
+
+        manager.updateSnippetBox();
+        await vi.runAllTimersAsync();
+
+        expect(mockLogger.log).toHaveBeenCalledWith('[SnippetManager] Preserving pending YAML edits; skipping auto-regeneration.');
+        expect(adapter.generate).toHaveBeenCalledTimes(1);
     });
 
     it('handles adapter rejection and synchronous snippet generation failures', async () => {
@@ -385,6 +614,29 @@ describe('SnippetManager', () => {
         });
         manager.updateSnippetBox();
         await vi.runAllTimersAsync();
-        expect(snippetBox.value).toContain('Error generating YAML: bad payload');
+        expect(snippetBox.value).toContain('bad payload');
+    });
+
+    it('handles synchronous updateSnippetBox failures before async generation starts', async () => {
+        const snippetBox = /** @type {HTMLTextAreaElement} */ (document.getElementById('snippetBox'));
+        const originalSelectedIds = mockAppState.selectedWidgetIds;
+        Object.defineProperty(mockAppState, 'selectedWidgetIds', {
+            get() {
+                throw new Error('selection exploded');
+            },
+            configurable: true
+        });
+
+        manager.updateSnippetBox();
+        await vi.runAllTimersAsync();
+
+        expect(snippetBox.value).toContain('Error generating YAML: selection exploded');
+        expect(mockLogger.error).toHaveBeenCalledWith('Error generating snippet:', expect.any(Error));
+
+        Object.defineProperty(mockAppState, 'selectedWidgetIds', {
+            value: originalSelectedIds,
+            writable: true,
+            configurable: true
+        });
     });
 });

@@ -38,6 +38,8 @@ export interface ParsedLayout {
     custom_hardware?: Record<string, any>;
     protocolHardware?: Record<string, any>;
     protocol_hardware?: Record<string, any>;
+    manualYamlOverride?: string;
+    manual_yaml_override?: string;
     pages?: ParsedPage[];
     data?: {
         devices?: Record<string, any>;
@@ -321,6 +323,15 @@ export function loadLayoutIntoState(layout: ParsedLayout | null | undefined): vo
         } else if (AppState.project?.state) {
             AppState.project.state.protocolHardware = protocolHardware;
         }
+    }
+
+    const manualYamlOverride = typeof data.manualYamlOverride === 'string'
+        ? data.manualYamlOverride
+        : (typeof data.manual_yaml_override === 'string' ? data.manual_yaml_override : '');
+    if (typeof AppState.setManualYamlOverride === 'function') {
+        AppState.setManualYamlOverride(manualYamlOverride, { emitStateChange: false });
+    } else if (AppState.project?.state) {
+        AppState.project.state.manualYamlOverride = manualYamlOverride;
     }
 
     // 4. Load Pages

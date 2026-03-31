@@ -54,6 +54,14 @@ def _coerce_optional_int(value: Any) -> Optional[int]:
         return None
 
 
+def _coerce_optional_str(value: Any) -> Optional[str]:
+    """Parse optional string fields while treating blanks as missing."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
 def _coerce_optional_positive_int(value: Any) -> Optional[int]:
     """Parse optional positive integers while treating zero/negative as missing."""
     parsed = _coerce_optional_int(value)
@@ -109,6 +117,7 @@ def _normalize_page_dark_mode(value: Any) -> Optional[str]:
 _DEVICE_SERIALIZED_FIELDS = (
     "name",
     "current_page",
+    "manual_yaml_override",
     "orientation",
     "device_model",
     "model",
@@ -145,6 +154,7 @@ _DEVICE_SERIALIZED_FIELDS = (
 
 _DEVICE_STRING_FIELD_SPECS = (
     ("name", "deviceName", "reTerminal"),
+    ("manual_yaml_override", "manualYamlOverride", ""),
     ("device_model", "deviceModel", "reterminal_e1001"),
     ("model", "model", "7.50inv2"),
     (
@@ -376,6 +386,13 @@ class PageConfig:
     # Per-page dark mode override: "inherit", "light", or "dark"
     # If "inherit" or None, uses the global device dark_mode setting.
     dark_mode: Optional[str] = None
+    # Optional per-page refresh mode metadata used by the editor.
+    refresh_type: Optional[str] = None
+    refresh_time: Optional[str] = None
+    visible_from: Optional[str] = None
+    visible_to: Optional[str] = None
+    # Grid layout string such as "4x4"; None means absolute positioning.
+    layout: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         data: Dict[str, Any] = {
@@ -387,6 +404,16 @@ class PageConfig:
             data["refresh_s"] = self.refresh_s
         if self.dark_mode is not None:
             data["dark_mode"] = self.dark_mode
+        if self.refresh_type is not None:
+            data["refresh_type"] = self.refresh_type
+        if self.refresh_time is not None:
+            data["refresh_time"] = self.refresh_time
+        if self.visible_from is not None:
+            data["visible_from"] = self.visible_from
+        if self.visible_to is not None:
+            data["visible_to"] = self.visible_to
+        if self.layout is not None:
+            data["layout"] = self.layout
         return data
 
     @staticmethod
@@ -395,8 +422,12 @@ class PageConfig:
         widgets = [WidgetConfig.from_dict(widget_data) for widget_data in widgets_data]
 
         refresh_s = _coerce_optional_positive_int(data.get("refresh_s"))
-
         dark_mode = _normalize_page_dark_mode(data.get("dark_mode"))
+        refresh_type = _coerce_optional_str(data.get("refresh_type"))
+        refresh_time = _coerce_optional_str(data.get("refresh_time"))
+        visible_from = _coerce_optional_str(data.get("visible_from"))
+        visible_to = _coerce_optional_str(data.get("visible_to"))
+        layout = _coerce_optional_str(data.get("layout"))
 
         return PageConfig(
             id=str(data.get("id", "page_0")),
@@ -404,6 +435,11 @@ class PageConfig:
             widgets=widgets,
             refresh_s=refresh_s,
             dark_mode=dark_mode,
+            refresh_type=refresh_type,
+            refresh_time=refresh_time,
+            visible_from=visible_from,
+            visible_to=visible_to,
+            layout=layout,
         )
 
 
@@ -435,6 +471,7 @@ class DeviceConfig:
     wifi_power_save: bool = False
     pages: List[PageConfig] = field(default_factory=list)
     current_page: int = 0
+    manual_yaml_override: str = ""
 
     # Layout-wide settings
     orientation: str = "landscape"

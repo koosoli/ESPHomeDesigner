@@ -17,6 +17,9 @@ export const render = (el, widget, { getColorStyle }) => {
     const entityId = widget.entity_id || "";
     const borderEnabled = props.border !== false;
     const isDark = getColorStyle() === "#ffffff";
+    const fontFamily = props.font_family || "Roboto";
+    const fontSize = Math.max(8, parseInt(String(props.font_size || 12), 10) || 12);
+    const fontWeight = String(parseInt(String(props.font_weight || 400), 10) || 400);
 
     let bgColor = props.background_color;
     if (!bgColor || bgColor === "transparent" || bgColor === "inherit") {
@@ -194,7 +197,12 @@ export const render = (el, widget, { getColorStyle }) => {
                 effectiveMax,
                 props.duration,
                 widget.id,
-                isDark ? "#ffffff" : "#666666"
+                isDark ? "#ffffff" : "#666666",
+                {
+                    fontFamily,
+                    fontSize,
+                    fontWeight
+                }
             );
         }
     }, 0);
@@ -205,7 +213,9 @@ export const render = (el, widget, { getColorStyle }) => {
         label.style.top = "2px";
         label.style.left = "50%";
         label.style.transform = "translateX(-50%)";
-        label.style.fontSize = "10px";
+        label.style.fontSize = `${fontSize}px`;
+        label.style.fontFamily = `${fontFamily}, system-ui, sans-serif`;
+        label.style.fontWeight = fontWeight;
         label.style.color = colorStyle;
         label.style.backgroundColor = bgColor === "black" ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.7)";
         label.style.padding = "0 4px";
@@ -219,7 +229,9 @@ export const render = (el, widget, { getColorStyle }) => {
         label.style.top = "50%";
         label.style.left = "50%";
         label.style.transform = "translate(-50%, -50%)";
-        label.style.fontSize = "10px";
+        label.style.fontSize = `${fontSize}px`;
+        label.style.fontFamily = `${fontFamily}, system-ui, sans-serif`;
+        label.style.fontWeight = fontWeight;
         label.style.color = isDark ? "#ccc" : "#999";
         label.style.backgroundColor = bgColor === "black" ? "rgba(0,0,0,0.8)" : "rgba(255,255,255,0.8)";
         label.style.padding = "2px 6px";

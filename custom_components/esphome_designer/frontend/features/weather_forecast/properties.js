@@ -1,4 +1,5 @@
 import { AppState } from '@core/state';
+import { DAY_LANGUAGE_OPTIONS, DEFAULT_DAY_LANGUAGE } from './day_labels.js';
 
 /** @typedef {Widget & { props?: Record<string, any>, entity_id?: string }} WeatherForecastWidget */
 
@@ -34,6 +35,8 @@ export const renderProperties = (panel, widget) => {
         { value: "daily", label: "Daily Forecast" },
         { value: "hourly", label: "Hourly Forecast" }
     ], setTextProp("forecast_mode"));
+    panel.addSelect("Day Language", props.day_language || DEFAULT_DAY_LANGUAGE, DAY_LANGUAGE_OPTIONS, setTextProp("day_language"));
+    panel.addHint("Controls both the preview day labels and generated firmware labels. Auto uses the current browser locale when exporting.");
 
     if (mode === "hourly") {
         panel.addSelect("Hourly Mode", hourlyMode, [

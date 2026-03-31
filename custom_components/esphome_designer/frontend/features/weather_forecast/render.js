@@ -1,4 +1,5 @@
 import { AppState } from '@core/state';
+import { getDayLabelSet } from './day_labels.js';
 
 /**
  * @typedef {{
@@ -22,6 +23,7 @@ export const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     const layout = props.layout || "horizontal";
     const mode = props.forecast_mode || "daily";
+    const dayLabels = getDayLabelSet(props.day_language);
     const hourlyMode = props.hourly_mode === "relative" ? "relative" : "fixed";
     const relativeCount = parseInt(props.relative_count || 5, 10);
     const startOffset = parseInt(props.start_offset || 0, 10);
@@ -54,7 +56,6 @@ export const render = (el, widget, { getColorStyle }) => {
         { code: "F0595", condition: "partlycloudy" }
     ];
 
-    const dayNames = ["Today", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]; // eslint-disable-line no-unused-vars
     const mockTemps = [
         { high: 24, low: 18 },
         { high: 20, low: 14 },
@@ -158,11 +159,11 @@ export const render = (el, widget, { getColorStyle }) => {
         } else {
             const dayIdx = i + startOffset;
             if (dayIdx === 0) {
-                dayLabel.textContent = "Today";
+                dayLabel.textContent = dayLabels.today;
             } else {
                 const future = new Date();
                 future.setDate(future.getDate() + dayIdx);
-                dayLabel.textContent = future.toLocaleDateString('en-US', { weekday: 'short' });
+                dayLabel.textContent = dayLabels.weekdays[future.getDay()] || dayLabels.weekdays[0];
             }
         }
         dayDiv.appendChild(dayLabel);

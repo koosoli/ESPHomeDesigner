@@ -25,6 +25,58 @@ let lastBackgroundClickTime = 0;
 let lastBackgroundClickIndex = null;
 
 /**
+ * Return keyboard focus to the canvas workflow when a non-editable canvas surface is clicked.
+ * This keeps shortcuts like Delete working after editing YAML, properties, or inline text fields.
+ * @param {HTMLElement | null} target
+ */
+export function blurActiveCanvasInput(target) {
+    if (!(target instanceof HTMLElement)) {
+        return;
+    }
+
+    if (target.closest("input, textarea, select, option, button, [contenteditable='true']")) {
+        return;
+    }
+
+    const activeElement = document.activeElement;
+    if (!(activeElement instanceof HTMLElement) || activeElement === document.body) {
+        return;
+    }
+
+    activeElement.blur();
+}
+
+/**
+ * Move keyboard ownership back to the canvas after a canvas interaction.
+ * This keeps app-level shortcuts reliable without letting the YAML textarea reclaim focus.
+ * @param {HTMLElement | null} target
+ */
+export function focusCanvasKeyboardTarget(target) {
+    if (!(target instanceof HTMLElement)) {
+        return;
+    }
+
+    if (target.closest("input, textarea, select, option, button, [contenteditable='true']")) {
+        return;
+    }
+
+    const canvas = target.closest('#canvas') || document.getElementById('canvas');
+    if (!(canvas instanceof HTMLElement)) {
+        return;
+    }
+
+    if (!canvas.hasAttribute('tabindex')) {
+        canvas.tabIndex = -1;
+    }
+
+    try {
+        canvas.focus({ preventScroll: true });
+    } catch {
+        canvas.focus();
+    }
+}
+
+/**
  * @param {any} canvasInstance
  * @returns {boolean}
  */
@@ -75,13 +127,10 @@ export function setupInteractions(canvasInstance) {
         clearSnapGuides(); // Clean up any stale guides immediately
 
         const target = /** @type {HTMLElement} */ (ev.target);
+        blurActiveCanvasInput(target);
+        focusCanvasKeyboardTarget(target);
         const wrapperEl = target.closest(".artboard-wrapper");
         if (!wrapperEl || target.closest(".artboard-btn") || target.closest("button")) {
-            // Clicked on stage background OR a button - release focus from inputs
-            if (document.activeElement && !target.closest("button")) {
-                /** @type {any} */ (document.activeElement).blur();
-            }
-
             // If clicking strictly on the stage background (not a button), deselect everything
             if (!target.closest("button") && !target.closest(".artboard-btn")) {
                 AppState.selectWidgets([]);

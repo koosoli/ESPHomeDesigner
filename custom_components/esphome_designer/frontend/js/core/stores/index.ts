@@ -29,6 +29,9 @@ type AppSettingsSnapshot = UnknownRecord & {
     oeplEntityId?: string;
     oeplDither?: number;
 };
+type ManualYamlOverrideOptions = {
+    emitStateChange?: boolean;
+};
 type PageChangeOptions = {
     forceFocus?: boolean;
     [key: string]: unknown;
@@ -132,6 +135,10 @@ export class AppStateFacade {
         return this.project.currentLayoutId;
     }
 
+    get manualYamlOverride(): string {
+        return this.project.manualYamlOverride;
+    }
+
     get snapEnabled(): boolean {
         return this.preferences.snapEnabled;
     }
@@ -218,6 +225,10 @@ export class AppStateFacade {
 
     getSettings(): AppSettingsSnapshot {
         return this.settings;
+    }
+
+    getManualYamlOverride(): string {
+        return this.project.manualYamlOverride;
     }
 
     setSettings(settings: AppSettingsSnapshot): void {
@@ -369,6 +380,14 @@ export class AppStateFacade {
         this.project.state.currentLayoutId = id;
         this.updateLayoutIndicator();
         emit(EVENTS.STATE_CHANGED);
+    }
+
+    setManualYamlOverride(value: string, options: ManualYamlOverrideOptions = {}): void {
+        this.project.setManualYamlOverride(value, options);
+    }
+
+    clearManualYamlOverride(options: ManualYamlOverrideOptions = {}): void {
+        this.project.clearManualYamlOverride(options);
     }
 
     updateLayoutIndicator(): void {

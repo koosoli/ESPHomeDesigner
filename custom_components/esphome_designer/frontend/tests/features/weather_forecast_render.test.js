@@ -88,6 +88,28 @@ describe('weather_forecast render and properties', () => {
         expect(el.style.border).toContain('2px solid');
     });
 
+    it('renders localized day labels consistently when a day language is selected', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-03-27T10:15:00'));
+
+        const el = document.createElement('div');
+        render(el, {
+            width: 300,
+            height: 90,
+            props: {
+                days: 2,
+                day_language: 'de',
+                temp_unit: 'C',
+                precision: 0
+            }
+        }, {
+            getColorStyle: (value) => value || '#000000'
+        });
+
+        expect(el.textContent).toContain('Heute');
+        expect(el.textContent).toContain('Sa');
+    });
+
     it('renders fixed hourly forecasts using slot labels and single temperature values', () => {
         mockAppState.entityStates = {
             'sensor.weather_forecast_hour_0900_condition': { state: 'cloudy' },
@@ -139,6 +161,7 @@ describe('weather_forecast render and properties', () => {
         await Promise.resolve();
 
         expect(panel.labels).toContain('Hours Ahead');
+        expect(panel.labels).toContain('Day Language');
         expect(panel.labels).toContain('Temp Precision');
         expect(navigator.clipboard.writeText).toHaveBeenCalled();
         const copiedText = navigator.clipboard.writeText.mock.calls[0][0];

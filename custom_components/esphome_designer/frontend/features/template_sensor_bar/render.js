@@ -15,6 +15,8 @@ export function render(el, widget, helpers) {
     const color = props.color || "black";
     const iconSize = props.icon_size || 20;
     const fontSize = props.font_size || 14;
+    const fontFamily = props.font_family || "Roboto";
+    const fontWeight = String(parseInt(props.font_weight || 400, 10) || 400);
     const borderWidth = props.border_thickness || 0;
 
     el.style.display = "flex";
@@ -126,8 +128,8 @@ export function render(el, widget, helpers) {
         const text = document.createElement("span");
         text.innerText = sensor.val;
         text.style.fontSize = fontSize + "px";
-        text.style.fontFamily = "Roboto, system-ui, -sans-serif";
-        text.style.fontWeight = "500";
+        text.style.fontFamily = `${fontFamily}, system-ui, -sans-serif`;
+        text.style.fontWeight = fontWeight;
         text.style.whiteSpace = "nowrap";
 
         group.appendChild(icon);

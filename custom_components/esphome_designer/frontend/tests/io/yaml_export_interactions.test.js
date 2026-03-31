@@ -110,6 +110,46 @@ describe('yaml_export interactions', () => {
         expect(selected).not.toContain('display:');
     });
 
+    it('keeps canvas-style focus while applying auto-highlight for a single selected widget', async () => {
+        const box = createSnippetDom();
+        const { highlightWidgetInSnippet } = await importYamlExportWithMocks();
+        box.value = [
+            '// widget:text id:widget_alpha x:10 y:20',
+            'it.print(10, 20, id(font), "alpha");'
+        ].join('\n');
+
+        const canvas = document.createElement('div');
+        canvas.tabIndex = -1;
+        document.body.appendChild(canvas);
+        canvas.focus();
+        const focusSpy = vi.spyOn(box, 'focus');
+
+        highlightWidgetInSnippet('widget_alpha');
+
+        expect(focusSpy).not.toHaveBeenCalled();
+        expect(document.activeElement).toBe(canvas);
+        expect(box.selectionEnd).toBeGreaterThan(box.selectionStart);
+    });
+
+    it('does not steal focus in selection snippet mode either', async () => {
+        const box = createSnippetDom('Selection Snippet');
+        const { highlightWidgetInSnippet } = await importYamlExportWithMocks();
+        box.value = 'line1\nline2\nline3';
+
+        const canvas = document.createElement('div');
+        canvas.tabIndex = -1;
+        document.body.appendChild(canvas);
+        canvas.focus();
+        const focusSpy = vi.spyOn(box, 'focus');
+
+        highlightWidgetInSnippet('widget_1');
+
+        expect(focusSpy).not.toHaveBeenCalled();
+        expect(document.activeElement).toBe(canvas);
+        expect(box.selectionStart).toBe(0);
+        expect(box.selectionEnd).toBe(box.value.length);
+    });
+
     it('logs selection failures in snippet mode and tolerates runtime selection errors during auto highlight', async () => {
         const box = createSnippetDom('Selection Snippet');
         const yamlModule = await importYamlExportWithMocks();
@@ -135,5 +175,39 @@ describe('yaml_export interactions', () => {
         });
 
         expect(() => normalModule.highlightWidgetInSnippet('widget_live')).not.toThrow();
+    });
+
+    it('logs selection failures for empty selections and clears auto-highlight on keyboard interaction', async () => {
+        const box = createSnippetDom();
+        const yamlModule = await importYamlExportWithMocks();
+        const bridge = await import('../../js/core/snippet_selection_bridge.js');
+
+        box.value = [
+            '    - type: text',
+            '      value: alpha',
+            '      id: alpha',
+            '    - type: plot',
+            '      value: beta',
+            '      id: beta',
+            '    - type: icon',
+            '      value: gamma',
+            '      id: gamma'
+        ].join('\n');
+
+        box.setSelectionRange = vi.fn(() => {
+            throw new Error('selection unavailable');
+        });
+
+        expect(() => yamlModule.highlightWidgetInSnippet([])).not.toThrow();
+        expect(mockLogger.error).toHaveBeenCalledWith('[highlightWidgetInSnippet] Selection error:', expect.any(Error));
+
+        box.setSelectionRange = HTMLTextAreaElement.prototype.setSelectionRange.bind(box);
+        yamlModule.highlightWidgetInSnippet('beta');
+        expect(box.value.slice(box.selectionStart, box.selectionEnd)).toContain('id: beta');
+        expect(box.value.slice(box.selectionStart, box.selectionEnd)).not.toContain('id: gamma');
+        expect(bridge.isSnippetAutoHighlightActive()).toBe(true);
+
+        box.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }));
+        expect(bridge.isSnippetAutoHighlightActive()).toBe(false);
     });
 });

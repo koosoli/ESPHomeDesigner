@@ -63,11 +63,22 @@ describe('graph_helpers', () => {
         container.style.height = '140px';
         document.body.appendChild(container);
 
-        drawSmartAxisLabels(container, 20, 20, 180, 80, 0, 100, '1h', 'w1');
+        drawSmartAxisLabels(container, 20, 20, 180, 80, 0, 100, '1h', 'w1', '#666', {
+            fontFamily: 'Inter',
+            fontSize: 14,
+            fontWeight: 700
+        });
         const labels = container.querySelectorAll('.graph-axis-label[data-widget-id="w1"]');
         expect(labels.length).toBeGreaterThan(0);
+        expect(labels[0].style.fontFamily).toContain('Inter');
+        expect(labels[0].style.fontWeight).toBe('700');
+        expect(labels[0].style.fontSize).toBe('14px');
 
-        drawSmartAxisLabels(container, 20, 20, 180, 80, 0, 100, '1h', 'w1');
+        drawSmartAxisLabels(container, 20, 20, 180, 80, 0, 100, '1h', 'w1', '#666', {
+            fontFamily: 'Inter',
+            fontSize: 14,
+            fontWeight: 700
+        });
         expect(container.querySelectorAll('.graph-axis-label[data-widget-id="w1"]').length).toBe(labels.length);
     });
 

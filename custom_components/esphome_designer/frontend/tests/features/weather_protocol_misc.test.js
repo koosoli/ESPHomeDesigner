@@ -149,6 +149,27 @@ describe('weather protocol misc coverage', () => {
         expect(lvgl.obj.layout.flex_flow).toBe('column');
         expect(JSON.stringify(lvgl)).toContain('weather_cond_hplus1');
 
+        const localizedDailyLvgl = exportForecastLVGL({
+            id: 'forecast_daily_de',
+            x: 0,
+            y: 0,
+            width: 180,
+            height: 80,
+            props: {
+                forecast_mode: 'daily',
+                days: 2,
+                day_language: 'de'
+            }
+        }, {
+            common: { id: 'forecast_daily_root' },
+            convertColor: (value) => `COLOR_${String(value).toUpperCase()}`,
+            getLVGLFont: (...args) => args.join('_')
+        });
+
+        const localizedOutput = JSON.stringify(localizedDailyLvgl);
+        expect(localizedOutput).toContain('weekday_names[] = {\\"So\\", \\"Mo\\", \\"Di\\", \\"Mi\\", \\"Do\\", \\"Fr\\", \\"Sa\\"}');
+        expect(localizedOutput).toContain('return std::string(\\"Heute\\")');
+
         const openDisplay = exportForecastOpenDisplay({
             x: 4,
             y: 6,

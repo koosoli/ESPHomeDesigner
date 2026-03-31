@@ -402,6 +402,8 @@ font:
             expect(yaml).toContain('id: display_page');
             expect(yaml).toContain('id: page_refresh_current_s');
             expect(yaml).not.toContain('id: last_page_switch_time');
+            expect(yaml).not.toContain('id: change_page_to');
+            expect(yaml).not.toContain('id(last_page_switch_time)');
         });
 
         it('handles entity deduplication arrays and attributes correctly', async () => {

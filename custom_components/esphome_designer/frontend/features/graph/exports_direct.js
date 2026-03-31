@@ -1,5 +1,7 @@
 /** @typedef {Widget & { props?: Record<string, any>, entity_id?: string, title?: string }} GraphWidget */
 
+import { clampFontWeight } from '../../js/core/font_weights.js';
+
 /**
  * @param {GraphWidget} w
  * @param {Record<string, any>} context
@@ -19,11 +21,14 @@ export const exportDoc = (w, context) => {
     const colorProp = p.color || "theme_auto";
     const color = getColorConst(colorProp);
     const lineThickness = parseInt(p.line_thickness || 3, 10);
+    const fontFamily = p.font_family || "Roboto";
+    const fontSize = parseInt(p.font_size || 12, 10) || 12;
+    const fontWeight = clampFontWeight(fontFamily, parseInt(p.font_weight || 400, 10) || 400);
     const minValue = p.min_value || "";
     const maxValue = p.max_value || "";
 
     const safeId = `graph_${w.id}`.replace(/-/g, "_");
-    const fontId = addFont("Roboto", 400, 12);
+    const fontId = addFont(fontFamily, fontWeight, fontSize);
 
     const gridEnabled = p.grid !== false;
     let xGrid = p.x_grid || "";

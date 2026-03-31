@@ -156,6 +156,10 @@ declare global {
         currentPageIndex?: number;
         /** Current layout identifier */
         currentLayoutId?: string;
+        /** Persisted manual YAML override for the snippet editor */
+        manualYamlOverride?: string;
+        /** Snake-case manual YAML override used by HA/backend payloads */
+        manual_yaml_override?: string;
         /** Orientation preference used by protocol adapters */
         orientation?: string;
         /** Nested settings bag for protocol adapters */
@@ -248,6 +252,7 @@ declare global {
         showRulers: boolean;
         zoomLevel: number;
         settings: Record<string, any>;
+        manualYamlOverride?: string;
 
         // Methods
         reset: () => void;
@@ -260,7 +265,10 @@ declare global {
         getCanvasShape: () => string;
         getPagesPayload: () => ProjectPayload;
         getSettings: () => Record<string, any>;
+        getManualYamlOverride?: () => string;
         setSettings: (s: any) => void;
+        setManualYamlOverride?: (value: string, options?: { emitStateChange?: boolean }) => void;
+        clearManualYamlOverride?: (options?: { emitStateChange?: boolean }) => void;
 
         // Actions
         setCurrentPageIndex: (index: number, options?: any) => void;

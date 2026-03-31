@@ -2,6 +2,8 @@
 /** @typedef {{ x: number, y: number | string }} GraphPoint */
 /** @typedef {{ line_width: number, line_rounded: boolean, line_dash_width?: number, line_dash_gap?: number }} GraphLineProps */
 
+import { clampFontWeight } from '../../js/core/font_weights.js';
+
 /**
  * @param {GraphWidget} w
  */
@@ -35,7 +37,8 @@ const getLvglGraphMetrics = (w) => {
     const width = Math.max(40, parseInt(w.width || p.width || 100, 10) || 100);
     const height = Math.max(30, parseInt(w.height || p.height || 100, 10) || 100);
     const hasTitle = !!(w.title || p.title);
-    const plotTop = hasTitle ? 18 : 6;
+    const titleFontSize = parseInt(p.font_size || 12, 10) || 12;
+    const plotTop = hasTitle ? Math.max(18, titleFontSize + 6) : 6;
     const plotBottom = 6;
     const plotHeight = Math.max(12, height - plotTop - plotBottom);
 
@@ -304,11 +307,15 @@ export const buildLvglLiveUpdateAction = (w) => {
  * @param {GraphWidget} w
  * @param {Record<string, any>} helpers
  */
-export const exportLVGL = (w, { common, convertColor }) => {
+export const exportLVGL = (w, { common, convertColor, getLVGLFont }) => {
     const p = w.props || {};
     const title = w.title || p.title || 'Graph';
     const { lineId } = getLvglGraphIds(w);
     const bgColor = p.background_color || p.bg_color || 'transparent';
+    const fontFamily = p.font_family || "Roboto";
+    const fontSize = parseInt(p.font_size || 12, 10) || 12;
+    const fontWeight = clampFontWeight(fontFamily, parseInt(p.font_weight || 400, 10) || 400);
+    const resolveLVGLFont = getLVGLFont || ((family, size, weight) => `font_${String(family || "Roboto").toLowerCase().replace(/\s+/g, "_")}_${weight || 400}_${size || 12}`);
     const widgets = [
         ...buildLvglGridLines(w, convertColor),
         {
@@ -326,6 +333,7 @@ export const exportLVGL = (w, { common, convertColor }) => {
             label: {
                 align: 'top_mid',
                 text: `"${title}"`,
+                text_font: resolveLVGLFont(fontFamily, fontSize, fontWeight),
                 text_color: convertColor(p.color || 'black')
             }
         });

@@ -36,6 +36,7 @@ describe('JSON Import Verification', () => {
             deviceName: "Modern Device",
             deviceModel: "custom",
             currentLayoutId: "modern_id_456",
+            manualYamlOverride: "# persisted manual yaml",
             renderingMode: "lvgl",
             customHardware: {
                 resWidth: 800,
@@ -50,6 +51,7 @@ describe('JSON Import Verification', () => {
         expect(AppState.deviceModel).toBe("custom");
         expect(AppState.currentLayoutId).toBe("modern_id_456");
         expect(AppState.settings.renderingMode).toBe("lvgl");
+        expect(AppState.getManualYamlOverride?.()).toBe("# persisted manual yaml");
 
         const customHw = AppState.project.state.customHardware;
         expect(customHw.resWidth).toBe(800);
@@ -180,5 +182,32 @@ describe('JSON Import Verification', () => {
 
         expect(AppState.currentLayoutId).toBe("page_restore_test");
         expect(AppState.currentPageIndex).toBe(1);
+    });
+
+    it('should preserve backend page metadata like visibility windows and grid layout', () => {
+        const layout = {
+            device_id: "page_metadata_test",
+            pages: [{
+                id: "page_0",
+                name: "Scheduled",
+                refresh_type: "daily",
+                refresh_time: "08:45",
+                visible_from: "06:00",
+                visible_to: "22:00",
+                layout: "4x4",
+                widgets: []
+            }]
+        };
+
+        loadLayoutIntoState(layout);
+
+        expect(AppState.currentLayoutId).toBe("page_metadata_test");
+        expect(AppState.pages[0]).toEqual(expect.objectContaining({
+            refresh_type: "daily",
+            refresh_time: "08:45",
+            visible_from: "06:00",
+            visible_to: "22:00",
+            layout: "4x4"
+        }));
     });
 });

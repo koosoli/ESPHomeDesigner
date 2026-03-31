@@ -78,4 +78,26 @@ describe('yaml_export highlightWidgetInSnippet', () => {
         expect(box.selectionEnd).toBeGreaterThan(box.selectionStart);
         expect(getLastSnippetHighlightRange()).not.toBeNull();
     });
+
+    it('still highlights widget ranges when custom YAML sections are present in the snippet', () => {
+        const box = document.getElementById('snippetBox');
+        box.value = [
+            'font:',
+            '  - file: "custom.ttf"',
+            '    id: custom_font',
+            '',
+            '// widget:label id:widget_custom x:10 y:10',
+            'it.print(10, 10, id(custom_font), "Hello");',
+            'logger:'
+        ].join('\n');
+
+        highlightWidgetInSnippet('widget_custom');
+
+        expect(box.selectionStart).toBe(box.value.indexOf('// widget:label id:widget_custom'));
+        expect(box.selectionEnd).toBeGreaterThan(box.selectionStart);
+        expect(getLastSnippetHighlightRange()).toEqual({
+            start: box.selectionStart,
+            end: box.selectionEnd
+        });
+    });
 });

@@ -96,11 +96,15 @@ describe('graph exports_lvgl', () => {
                 color: 'teal',
                 line_type: 'dotted',
                 line_thickness: '5',
+                font_family: 'Inter',
+                font_size: 16,
+                font_weight: 700,
                 background_color: 'transparent'
             }
         }, {
             common: { id: 'graph-root' },
-            convertColor: (value) => `0x${value}`
+            convertColor: (value) => `0x${value}`,
+            getLVGLFont: (family, size, weight) => `${family}-${size}-${weight}`
         });
 
         expect(transparent.obj.bg_opa).toBe('transp');
@@ -108,6 +112,7 @@ describe('graph exports_lvgl', () => {
         expect(transparent.obj.widgets[6].line.line_dash_width).toBe(2);
         expect(transparent.obj.widgets[6].line.line_dash_gap).toBe(3);
         expect(transparent.obj.widgets[7].label.text).toBe('"Preview"');
+        expect(transparent.obj.widgets[7].label.text_font).toBe('Inter-16-700');
 
         const noGrid = exportLVGL({
             id: 'graph-minimal',
@@ -120,7 +125,8 @@ describe('graph exports_lvgl', () => {
             }
         }, {
             common: { id: 'graph-root' },
-            convertColor: (value) => `0x${value}`
+            convertColor: (value) => `0x${value}`,
+            getLVGLFont: (family, size, weight) => `${family}-${size}-${weight}`
         });
 
         expect(noGrid.obj.bg_color).toBe('0xblack');

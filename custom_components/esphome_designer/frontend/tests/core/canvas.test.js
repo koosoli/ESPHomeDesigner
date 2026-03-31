@@ -99,6 +99,7 @@ describe('Canvas core', () => {
         expect(canvas.canvas).toBeTruthy();
         expect(canvas.canvasContainer).toBeTruthy();
         expect(canvas.viewport).toBeTruthy();
+        expect(canvas.canvas.tabIndex).toBe(-1);
 
         expect(mockOn).toHaveBeenCalled();
         expect(mockSetupPanning).toHaveBeenCalledWith(canvas);

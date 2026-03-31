@@ -1,3 +1,8 @@
+import { getWeightsForFont } from '../../js/core/font_weights.js';
+import { FONT_OPTIONS } from '../../js/core/properties/legacy_renderer_widget_properties_shared.js';
+
+const BUILT_IN_FONT_OPTIONS = FONT_OPTIONS.filter((option) => option !== "Custom...");
+
 export const defaults = {
     w: 355,
     h: 43,
@@ -21,7 +26,9 @@ export const defaults = {
     border_thickness: 0,
     border_color: "white",
     color: "white",
+    font_family: "Roboto",
     font_size: 14,
+    font_weight: 400,
     icon_size: 20,
     temp_unit: "\u00B0C",
     opa: 255,
@@ -60,7 +67,15 @@ export const schema = [
         section: "Text & Icons",
         fields: [
             { key: "color", label: "Foreground Color", type: "color", default: "white" },
+            { key: "font_family", label: "Font Family", type: "select", options: BUILT_IN_FONT_OPTIONS, default: "Roboto" },
             { key: "font_size", label: "Text Size", type: "number", default: 14 },
+            {
+                key: "font_weight",
+                label: "Font Weight",
+                type: "select",
+                dynamicOptions: (props) => getWeightsForFont(props.font_family || "Roboto"),
+                default: 400
+            },
             { key: "icon_size", label: "Icon Size", type: "number", default: 20 },
             { key: "temp_unit", label: "Temp Units", type: "select", options: ["\u00B0C", "\u00B0F"], default: "\u00B0C" },
             { key: "opa", label: "Opacity (0 - 255)", type: "number", default: 255 },

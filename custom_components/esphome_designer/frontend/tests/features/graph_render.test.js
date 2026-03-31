@@ -56,7 +56,10 @@ describe('graph render', () => {
                 history_attribute: 'history',
                 duration: '2h',
                 line_thickness: 4,
-                border_width: 1
+                border_width: 1,
+                font_family: 'Inter',
+                font_size: 16,
+                font_weight: 700
             }
         }, {
             getColorStyle: (value) => value || '#000000'
@@ -66,7 +69,11 @@ describe('graph render', () => {
 
         expect(el.querySelector('svg')).not.toBeNull();
         expect(el.querySelector('polyline')?.getAttribute('stroke-width')).toBe('4');
-        expect(artboard.querySelectorAll('.graph-axis-label[data-widget-id="graph_1"]').length).toBeGreaterThan(0);
+        const labels = artboard.querySelectorAll('.graph-axis-label[data-widget-id="graph_1"]');
+        expect(labels.length).toBeGreaterThan(0);
+        expect(labels[0].style.fontFamily).toContain('Inter');
+        expect(labels[0].style.fontWeight).toBe('700');
+        expect(labels[0].style.fontSize).toBe('16px');
     });
 
     it('fetches entity history when no inline history is configured and emits a refresh event', async () => {
@@ -133,7 +140,10 @@ describe('graph render', () => {
             props: {
                 use_ha_history: true,
                 line_type: 'DASHED',
-                background_color: 'transparent'
+                background_color: 'transparent',
+                font_family: 'Montserrat',
+                font_size: 15,
+                font_weight: 600
             }
         }, {
             getColorStyle: (value) => value || '#000000'
@@ -143,6 +153,10 @@ describe('graph render', () => {
 
         expect(el.querySelector('polyline')?.getAttribute('stroke-dasharray')).toBe('5,5');
         expect(el.textContent).toContain('Inline Graph');
+        const title = Array.from(el.querySelectorAll('div')).find((node) => node.textContent === 'Inline Graph');
+        expect(title?.style.fontFamily).toContain('Montserrat');
+        expect(title?.style.fontWeight).toBe('600');
+        expect(title?.style.fontSize).toBe('15px');
     });
 
     it('reuses cached fetched history within the cache window', async () => {

@@ -3,16 +3,46 @@ import { AppState } from './state';
 import { Logger } from '../utils/logger.js';
 import { quickSearchInstance } from '../ui/quick_search.js';
 import { emit, EVENTS } from './events.js';
+import { addBrowserEventListener } from '../utils/browser_runtime.js';
 
 export class KeyboardHandler {
+    /** @type {KeyboardHandler | null} */
+    static _activeHandler = null;
+    /** @type {boolean} */
+    static _listenersAttached = false;
+    /** @type {((ev: KeyboardEvent) => void) | null} */
+    static _boundKeyDown = null;
+
     constructor() {
+        this._seenKeyEvents = new WeakSet();
+        KeyboardHandler._activeHandler = this;
         this.init();
     }
 
     init() {
-        if (typeof globalThis.addEventListener === 'function') {
-            globalThis.addEventListener("keydown", (/** @type {KeyboardEvent} */ ev) => this.handleKeyDown(ev));
+        if (KeyboardHandler._listenersAttached) {
+            return;
         }
+
+        KeyboardHandler._boundKeyDown = (/** @type {KeyboardEvent} */ ev) => {
+            const handler = KeyboardHandler._activeHandler;
+            if (!handler) {
+                return;
+            }
+
+            if (handler._seenKeyEvents.has(ev)) {
+                return;
+            }
+
+            handler._seenKeyEvents.add(ev);
+            handler.handleKeyDown(ev);
+        };
+
+        if (typeof document?.addEventListener === 'function') {
+            document.addEventListener("keydown", KeyboardHandler._boundKeyDown);
+        }
+        addBrowserEventListener("keydown", KeyboardHandler._boundKeyDown);
+        KeyboardHandler._listenersAttached = true;
     }
 
     /**

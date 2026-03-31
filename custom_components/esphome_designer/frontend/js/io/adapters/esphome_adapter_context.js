@@ -4,6 +4,7 @@
  */
 export function collectRenderableWidgets(pages) {
     const widgets = [];
+    const pageCount = pages.length;
 
     pages.forEach((page, pageIndex) => {
         if (!page.widgets) return;
@@ -11,6 +12,7 @@ export function collectRenderableWidgets(pages) {
         page.widgets.forEach((widget) => {
             if (widget.hidden) return;
             widget._pageIndex = pageIndex;
+            widget._pageCount = pageCount;
             widgets.push(widget);
         });
     });

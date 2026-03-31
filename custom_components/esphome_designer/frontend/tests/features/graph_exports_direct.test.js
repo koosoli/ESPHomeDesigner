@@ -33,6 +33,9 @@ describe('graph exports_direct', () => {
                 border: true,
                 border_width: 2,
                 border_color: 'navy',
+                font_family: 'Inter',
+                font_size: 14,
+                font_weight: 700,
                 min_value: '0',
                 max_value: '80',
                 auto_scale: false
@@ -48,6 +51,7 @@ describe('graph exports_direct', () => {
         expect(output).toContain('it.printf(10 + 0, 20 + 60 + 2, id(graph_font), Color(blue), TextAlign::TOP_LEFT, "-2.0h");');
         expect(output).toContain('it.printf(10 + 60, 20 + 60 + 2, id(graph_font), Color(blue), TextAlign::TOP_CENTER, "-1.0h");');
         expect(output).toContain('it.printf(10 + 120, 20 + 60 + 2, id(graph_font), Color(blue), TextAlign::TOP_RIGHT, "Now");');
+        expect(context.addFont).toHaveBeenCalledWith('Inter', 700, 14);
         expect(context.addDitherMask).toHaveBeenCalledOnce();
     });
 
