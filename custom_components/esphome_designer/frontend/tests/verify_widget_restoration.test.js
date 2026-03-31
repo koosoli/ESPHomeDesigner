@@ -112,10 +112,12 @@ describe('Widget Restoration Verification', () => {
 
         // Check binary_sensor
         expect(yaml).toContain('binary_sensor:');
+        expect(yaml).toContain('id: last_touch_time');
         expect(yaml).toContain('platform: touchscreen');
         expect(yaml).toContain('x_min: 50');
         expect(yaml).toContain('x_max: 150');
         expect(yaml).toContain('entity_id: light.test');
+        expect(yaml).toContain('(millis() - id(last_touch_time)');
 
         // Check lambda
         expect(yaml).toContain('it.printf(50 + 100/2, 50 + 100/2, id(font_material_design_icons_400_40),');

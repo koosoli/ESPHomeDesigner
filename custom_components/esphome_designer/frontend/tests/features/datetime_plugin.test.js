@@ -51,6 +51,8 @@ describe('datetime plugin', () => {
         });
 
         const body = /** @type {HTMLDivElement} */ (host.firstElementChild);
+        expect(host.style.overflow).toBe('visible');
+        expect(body.style.overflow).toBe('visible');
         expect(body.style.alignItems).toBe('flex-end');
         expect(body.style.justifyContent).toBe('flex-end');
         expect(body.style.border).toBe('2px solid white');

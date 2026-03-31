@@ -14,6 +14,11 @@ export function buildGlobalExportSections(params) {
     const { context, layout, profile, pages, registry, yaml, fonts } = params;
     const globalLines = [];
     const includeLines = [];
+    const hasTouchDebounceWidgets = pages.some((page) =>
+        Array.isArray(page.widgets) && page.widgets.some((widget) =>
+            widget && (widget.type === 'touch_area' || widget.type === 'template_nav_bar')
+        )
+    );
 
     registry.onExportEsphome({ ...context, lines: includeLines });
 
@@ -24,7 +29,10 @@ export function buildGlobalExportSections(params) {
     const defaultRefresh = layout.refreshInterval || (isLcd ? 60 : (layout.deepSleepInterval || 600));
     globalLines.push("- id: page_refresh_default_s", "  type: int", "  restore_value: true", `  initial_value: '${defaultRefresh}'`);
     globalLines.push("- id: page_refresh_current_s", "  type: int", "  restore_value: false", "  initial_value: '60'");
-    globalLines.push("- id: last_touch_time", "  type: uint32_t", "  restore_value: false", "  initial_value: '0'");
+    globalLines.push("- id: initial_sensor_sync_pending", "  type: bool", "  restore_value: false", "  initial_value: 'true'");
+    if (hasTouchDebounceWidgets) {
+        globalLines.push("- id: last_touch_time", "  type: uint32_t", "  restore_value: false", "  initial_value: '0'");
+    }
     if (pages.length > 1) {
         globalLines.push("- id: last_page_switch_time", "  type: uint32_t", "  restore_value: false", "  initial_value: '0'");
     }

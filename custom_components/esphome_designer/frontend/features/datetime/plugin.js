@@ -11,7 +11,9 @@ const render = (el, widget, { getColorStyle }) => {
     el.style.flexDirection = "column";
     el.style.justifyContent = "center";
     el.style.alignItems = "center";
-    el.style.overflow = "hidden"; // Match device behavior: clip text at widget boundary
+    // Device output does not clip datetime text to the widget width, so keep the
+    // preview visible even when the configured box is narrower than the text.
+    el.style.overflow = "visible";
 
     const color = getColorStyle(props.color);
     const fontFamily = (props.font_family || "Roboto") + ", sans-serif";
@@ -42,6 +44,7 @@ const render = (el, widget, { getColorStyle }) => {
     body.style.alignItems = "center";
     body.style.width = "100%";
     body.style.height = "100%";
+    body.style.overflow = "visible";
     applyFlexAlign(textAlign, body);
 
     // Apply Border & Background

@@ -101,8 +101,10 @@ exports[`Export Path Round-Trip Enforcement > Shape Plugins > exports "shape_cir
 `;
 
 exports[`Export Path Round-Trip Enforcement > Shape Plugins > exports "shape_rect" plugin correctly 1`] = `
-"        it.filled_rectangle(0, 0, 100, 50, blue);
+"        {
+        it.filled_rectangle(0, 0, 100, 50, blue);
         for (int i = 0; i < 2; i++) {
           it.rectangle(0 + i, 0 + i, 100 - 2 * i, 50 - 2 * i, blue);
+        }
         }"
 `;

@@ -223,7 +223,7 @@ export function buildSensorSections({
     const touchWidgets = allWidgets.filter((widget: any) => widget.type === 'touch_area' || widget.type === 'template_nav_bar');
     let touchSensorContent: string[] = [];
     if (touchWidgets.length > 0 && Generators.generateBinarySensorSection) {
-        const touchBinary = Generators.generateBinarySensorSection({ features: {} }, pages.length, displayId, touchWidgets);
+        const touchBinary = Generators.generateBinarySensorSection({ touch: profile.touch, features: {} }, pages.length, displayId, touchWidgets);
         if (touchBinary.length > 0) {
             const startIdx = touchBinary[0]?.trim() === "binary_sensor:" ? 1 : 0;
             if (touchBinary.length > startIdx) {

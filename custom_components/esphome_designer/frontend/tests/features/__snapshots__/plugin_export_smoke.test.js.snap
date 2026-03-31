@@ -2344,8 +2344,10 @@ exports[`Plugin Export Smoke Tests > Export for shape_rect > should export OpenD
 
 exports[`Plugin Export Smoke Tests > Export for shape_rect > should export standard C++ with stable output 1`] = `
 [
+  "        {",
   "        for (int i = 0; i < 1; i++) {",
   "          it.rectangle(10 + i, 10 + i, 100 - 2 * i, 100 - 2 * i, Color(theme_auto));",
+  "        }",
   "        }",
 ]
 `;

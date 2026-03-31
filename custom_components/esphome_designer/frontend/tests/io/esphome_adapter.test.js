@@ -350,6 +350,8 @@ font:
             expect(yaml).toContain('globals:');
             expect(yaml).toContain('id: display_page');
             expect(yaml).toContain('id: last_page_switch_time');
+            expect(yaml).toContain('id: initial_sensor_sync_pending');
+            expect(yaml).not.toContain('id: last_touch_time');
 
             // Page switching and navigation
             expect(yaml).toContain('script:');
@@ -401,9 +403,40 @@ font:
 
             expect(yaml).toContain('id: display_page');
             expect(yaml).toContain('id: page_refresh_current_s');
+            expect(yaml).toContain('id: initial_sensor_sync_pending');
+            expect(yaml).not.toContain('id: last_touch_time');
             expect(yaml).not.toContain('id: last_page_switch_time');
             expect(yaml).not.toContain('id: change_page_to');
             expect(yaml).not.toContain('id(last_page_switch_time)');
+        });
+
+        it('emits last_touch_time only when touch debounce widgets are present', async () => {
+            const projectState = {
+                deviceName: 'Touch Device',
+                deviceModel: 'reterminal_e1001',
+                pages: [
+                    {
+                        name: 'Home',
+                        widgets: [
+                            {
+                                id: 'touch1',
+                                type: 'touch_area',
+                                x: 10,
+                                y: 10,
+                                width: 40,
+                                height: 40,
+                                props: {
+                                    nav_action: 'reload_page'
+                                }
+                            }
+                        ]
+                    }
+                ]
+            };
+
+            const yaml = await adapter.generate(projectState);
+
+            expect(yaml).toContain('id: last_touch_time');
         });
 
         it('handles entity deduplication arrays and attributes correctly', async () => {

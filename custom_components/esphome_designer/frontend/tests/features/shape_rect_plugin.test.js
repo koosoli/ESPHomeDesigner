@@ -268,4 +268,45 @@ describe('shape_rect plugin', () => {
         expect(fillOutput).toContain('// dither:gray');
         expect(fillOutput).not.toContain('draw_filled_rrect(10, 11, 24, 18, 4, Color(gray));');
     });
+
+    it('wraps each rounded direct-export rectangle in its own scope to avoid helper name collisions', () => {
+        const lines = [];
+        const context = {
+            lines,
+            getColorConst: (value) => `Color(${value})`,
+            addDitherMask: () => {},
+            getConditionCheck: () => '',
+            RECT_Y_OFFSET: 0,
+            isEpaper: false
+        };
+
+        shapeRectPlugin.export({
+            x: 0,
+            y: 0,
+            width: 20,
+            height: 20,
+            props: {
+                fill: false,
+                color: 'red',
+                border_width: 2,
+                radius: 5
+            }
+        }, context);
+
+        shapeRectPlugin.export({
+            x: 30,
+            y: 0,
+            width: 20,
+            height: 20,
+            props: {
+                fill: false,
+                color: 'blue',
+                border_width: 2,
+                radius: 5
+            }
+        }, context);
+
+        expect(lines.filter((line) => line.trim() === '{')).toHaveLength(2);
+        expect(lines.filter((line) => line.includes('auto draw_rrect_border'))).toHaveLength(2);
+    });
 });

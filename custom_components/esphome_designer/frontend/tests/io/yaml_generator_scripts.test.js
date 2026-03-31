@@ -24,6 +24,9 @@ describe('yaml_generator_scripts', () => {
         expect(lines).toContain('id(last_page_switch_time) = millis();');
         expect(lines).toContain('Auto-switching to scheduled page %d');
         expect(lines).not.toContain('best_page != p || id(last_page_switch_time) == 0');
+        expect(lines).toContain('Waiting 5s for initial sensor updates...');
+        expect(lines).toContain("lambda: 'return id(initial_sensor_sync_pending);'");
+        expect(lines).toContain("lambda: 'id(initial_sensor_sync_pending) = false;'");
         expect(lines).toContain('interval = diff * 60;');
         expect(lines).toContain('id: auto_cycle_timer');
         expect(lines).toContain('delay: 45s');
@@ -53,6 +56,7 @@ describe('yaml_generator_scripts', () => {
         expect(lines).toContain('id(firmware_fingerprint) != current_hash');
         expect(lines).not.toContain('Stay-awake active, deep sleep cycle aborted.');
         expect((lines.match(/deep_sleep\.prevent: deep_sleep_control/g) || []).length).toBeGreaterThan(1);
+        expect((lines.match(/delay: 5s/g) || []).length).toBe(1);
     });
 
     it('stops the automatic refresh loop in manual refresh mode', () => {

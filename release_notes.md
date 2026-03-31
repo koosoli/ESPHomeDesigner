@@ -12,6 +12,7 @@ This release rolls the project forward to the RC10 line, includes the remaining 
 - **Graph History Helper Package**: Advanced graph history mode now includes built-in `Copy HA YAML` and `Download YAML` actions that generate a starter Home Assistant helper package backed by `sql.query`. This makes the previously undocumented template/helper setup far easier to adopt for recorder-backed history graphs.
 - **Graph & Sensor Bar Typography Completion (Issue #361)**: The `graph` and `template_sensor_bar` widgets now expose `font_family`, `font_weight`, and `font_size` consistently, and those settings are honored across browser preview, direct ESPHome export, and LVGL export.
 - **Single-Page Navigation YAML Fix (Issue #362)**: Single-page projects no longer emit `change_page_to` scripts or dangling debounce references to `last_page_switch_time`, and LVGL nav bars now suppress prev/next actions when paging is unavailable.
+- **Issue #356 Follow-Up Fixes**: Direct-render `shape_rect` widgets now scope their rounded-corner helper lambdas per widget so repeated rounded rectangles no longer collide at compile time, the datetime canvas preview now matches device behavior by leaving narrow text visible instead of clipping it, generated startup scripts now include a one-time 5-second post-sync grace period before the first render so Home Assistant-backed sensors have time to populate, and touch-debounce globals are only emitted for layouts that actually use touch widgets.
 
 
 

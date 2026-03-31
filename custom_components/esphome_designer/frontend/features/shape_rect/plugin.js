@@ -157,6 +157,7 @@ export default {
 
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);
+        lines.push("        {");
 
         if (fill) {
             if (radius > 0) {
@@ -240,6 +241,7 @@ export default {
             }
         }
 
+        lines.push("        }");
         if (cond) lines.push(`        }`);
     }
 };

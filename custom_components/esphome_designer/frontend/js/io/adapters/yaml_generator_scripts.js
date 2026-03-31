@@ -191,7 +191,13 @@ export function generateScriptSection(payload, pages, profile) {
     lines.push("                condition:");
     lines.push(`                  lambda: 'return id(ha_time).now().is_valid() && api_is_connected();'`);
     lines.push("                timeout: 120s");
+    lines.push("      - if:");
+    lines.push("          condition:");
+    lines.push(`            lambda: 'return id(initial_sensor_sync_pending);'`);
+    lines.push("          then:");
+    lines.push('            - logger.log: "Waiting 5s for initial sensor updates..."');
     lines.push("            - delay: 5s");
+    lines.push(`            - lambda: 'id(initial_sensor_sync_pending) = false;'`);
 
     if (autoCycleEnabled) lines.push("      - script.execute: auto_cycle_timer");
 

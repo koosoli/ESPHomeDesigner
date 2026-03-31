@@ -89,10 +89,10 @@ globals:
     type: int
     restore_value: false
     initial_value: '60'
-  - id: last_touch_time
-    type: uint32_t
+  - id: initial_sensor_sync_pending
+    type: bool
     restore_value: false
-    initial_value: '0'
+    initial_value: 'true'
 psram:
   mode: octal
   speed: 80MHz
@@ -239,7 +239,13 @@ script:
                 condition:
                   lambda: 'return id(ha_time).now().is_valid() && api_is_connected();'
                 timeout: 120s
+      - if:
+          condition:
+            lambda: 'return id(initial_sensor_sync_pending);'
+          then:
+            - logger.log: "Waiting 5s for initial sensor updates..."
             - delay: 5s
+            - lambda: 'id(initial_sensor_sync_pending) = false;'
       - lambda: |-
           int interval = id(page_refresh_default_s);
           id(page_refresh_current_s) = interval;
