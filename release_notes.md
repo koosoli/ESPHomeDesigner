@@ -1,3 +1,23 @@
+## v1.0.0 RC11 - Time Formatting, Graph Presets & Stateful LVGL Buttons
+**Release Date:** April 1, 2026
+
+This release packages the work from the latest GitHub follow-ups into a focused RC11 update. It adds a persistent 12-hour clock option for datetime widgets, makes graph history durations easier to configure with built-in presets and week-aware parsing, and gives LVGL buttons an opt-in way to mirror Home Assistant on/off state instead of only firing stateless actions.
+
+### New Features & Enhancements
+- **Persistent 12-Hour Datetime Mode ([Discussion #359](https://github.com/koosoli/ESPHomeDesigner/discussions/359))**: The datetime widget now exposes a dedicated `Clock Mode` setting with `24 Hour` and `12 Hour (AM/PM)` options. Preview rendering plus OpenDisplay, OEPL, and LVGL exports all honor that saved setting, so users no longer need to manually reapply `%I:%M %p` after each edit or export.
+- **Graph Duration Presets**: Graph widgets now include a `Duration Preset` selector with common ranges like minutes, hours, days, and weeks, while still keeping the free-form duration field available for custom lookback windows.
+- **Week-Aware Graph History Parsing**: Shared graph duration parsing now supports week-based and decimal durations across canvas preview, direct export, LVGL export hooks, history helper generation, Home Assistant history fetching, grid inference, and smart axis labels. This means values like `1w` and `2w` work consistently without requiring users to translate everything into raw hours.
+- **Optional HA State Sync for LVGL Buttons ([Discussion #347](https://github.com/koosoli/ESPHomeDesigner/discussions/347))**: `lvgl_button` now has an explicit `Sync Checked State from HA` option for mirrorable binary entities such as `switch`, `light`, `fan`, and `input_boolean`. When enabled, the button becomes checkable, binds its checked state to the Home Assistant entity, and refreshes automatically when HA state changes, while the existing click action behavior remains intact.
+
+### Stability & Verification
+- **Export Shape Stability**: The new LVGL button sync path only adds `checkable` and `state` output when the feature is enabled, so existing button exports stay unchanged by default.
+- **CI Lint Hardening**: Nested workspace `tmp` directories are now ignored consistently by ESLint, preventing generated preview/build artifacts from showing up as false-positive source lint failures during release and pre-push validation.
+- **Regression Coverage**: Added or updated targeted Vitest coverage for datetime clock mode persistence, graph presets and week parsing, graph export/grid behavior, LVGL button state sync, schema parity, binary refresh triggers, and plugin export smoke output.
+
+
+
+---
+
 ## v1.0.0 RC10 - Release Prep, Persistence Fixes & Verification
 **Release Date:** March 31, 2026
 

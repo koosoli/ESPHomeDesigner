@@ -43,6 +43,18 @@ describe('lvgl_button service selection', () => {
         expect(result.button.on_click[0]["homeassistant.service"].service).toBe("script.execute");
     });
 
+    it('auto-detects script entities and uses script.execute payloads', () => {
+        const widget = {
+            id: 'btn_script_auto',
+            type: 'lvgl_button',
+            entity_id: 'script.good_night',
+            props: { service: 'auto' }
+        };
+
+        const result = plugin.exportLVGL(widget, context);
+        expect(result.button.on_click[0]['script.execute']).toBe('script.good_night');
+    });
+
     it('falls back to homeassistant.toggle for unknown entities with auto', () => {
         const widget = {
             id: "btn1",
@@ -105,5 +117,38 @@ describe('lvgl_button service selection', () => {
             props: { text: 'Empty' }
         }, context);
         expect(noEntity.button.on_click).toBeUndefined();
+    });
+
+    it('can mirror binary Home Assistant state onto checkable buttons', () => {
+        const result = plugin.exportLVGL({
+            id: 'stateful_btn',
+            type: 'lvgl_button',
+            entity_id: 'switch.kitchen_light',
+            props: {
+                service: 'auto',
+                sync_state: true,
+                checkable: false
+            }
+        }, context);
+
+        expect(result.button.checkable).toBe(true);
+        expect(result.button.state.checked).toBe('!lambda return id(switch_kitchen_light).state;');
+        expect(result.button.on_click[0]['homeassistant.service'].service).toBe('homeassistant.toggle');
+    });
+
+    it('does not attach checked-state sync for non-binary domains', () => {
+        const result = plugin.exportLVGL({
+            id: 'scene_sync_btn',
+            type: 'lvgl_button',
+            entity_id: 'scene.movie',
+            props: {
+                service: 'auto',
+                sync_state: true,
+                checkable: true
+            }
+        }, context);
+
+        expect(result.button.state).toBeUndefined();
+        expect(result.button.checkable).toBe(true);
     });
 });

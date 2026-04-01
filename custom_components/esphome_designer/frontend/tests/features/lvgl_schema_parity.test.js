@@ -26,6 +26,7 @@ describe('LVGL schema parity', () => {
         const keys = getSchemaKeys(lvglButtonPlugin);
         expect(keys.props.has('color')).toBe(true);
         expect(keys.props.has('checkable')).toBe(true);
+        expect(keys.props.has('sync_state')).toBe(true);
 
         const out = lvglButtonPlugin.exportLVGL({
             id: 'btn_1',

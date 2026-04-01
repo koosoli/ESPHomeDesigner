@@ -254,21 +254,22 @@ function durationToMilliseconds(duration) {
         return 24 * 60 * 60 * 1000;
     }
 
-    if (/^\d+$/.test(text)) {
-        return parseInt(text, 10) * 1000;
+    if (/^\d+(?:\.\d+)?$/.test(text)) {
+        return parseFloat(text) * 1000;
     }
 
-    const match = text.match(/^(\d+)([a-z]+)$/i);
+    const match = text.match(/^(\d+(?:\.\d+)?)([a-z]+)$/i);
     if (!match) {
         return 24 * 60 * 60 * 1000;
     }
 
-    const value = parseInt(match[1], 10);
+    const value = parseFloat(match[1]);
     const unit = match[2].toLowerCase();
     if (unit.startsWith('s')) return value * 1000;
     if (unit.startsWith('m')) return value * 60 * 1000;
     if (unit.startsWith('h')) return value * 60 * 60 * 1000;
     if (unit.startsWith('d')) return value * 24 * 60 * 60 * 1000;
+    if (unit.startsWith('w')) return value * 7 * 24 * 60 * 60 * 1000;
     return value * 1000;
 }
 

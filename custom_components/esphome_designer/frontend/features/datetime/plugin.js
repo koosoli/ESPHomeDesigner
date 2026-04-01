@@ -4,6 +4,49 @@
 import { AppState } from '@core/state';
 import { getWeightsForFont, clampFontWeight } from '@core/font_weights.js';
 
+const getClockMode = (props = {}) => props.clock_mode === '12h' ? '12h' : '24h';
+const getTimeStrftime = (clockMode) => clockMode === '12h' ? '%I:%M %p' : '%H:%M';
+
+const getTemplateConfig = (format, clockMode) => {
+    const timeFormat = getTimeStrftime(clockMode);
+    if (format === 'time_only') {
+        return {
+            template: `{{ now().strftime('${timeFormat}') }}`,
+            timeFormat
+        };
+    }
+
+    if (format === 'date_only') {
+        return {
+            template: "{{ now().strftime('%d.%m.%Y') }}",
+            timeFormat
+        };
+    }
+
+    if (format === 'weekday_day_month') {
+        return {
+            template: "{{ now().strftime('%A %d %B') }}",
+            timeFormat
+        };
+    }
+
+    return {
+        template: `{{ now().strftime('${timeFormat}') }}\n{{ now().strftime('%a, %b %d') }}`,
+        timeFormat
+    };
+};
+
+const formatPreviewTime = (now, clockMode) => {
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    if (clockMode === '12h') {
+        const hours = now.getHours();
+        const hour12 = hours % 12 || 12;
+        return `${String(hour12).padStart(2, '0')}:${minutes} ${hours >= 12 ? 'PM' : 'AM'}`;
+    }
+
+    return `${now.getHours().toString().padStart(2, '0')}:${minutes}`;
+};
+
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     el.innerHTML = "";
@@ -86,12 +129,13 @@ const render = (el, widget, { getColorStyle }) => {
     dateDiv.style.whiteSpace = "nowrap";
 
     const now = new Date();
+    const clockMode = getClockMode(props);
     const dayNamesShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const monthNamesShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const dayNamesFull = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const monthNamesFull = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-    const timeStr = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+    const timeStr = formatPreviewTime(now, clockMode);
     const dateStrShort = dayNamesShort[now.getDay()] + ", " + monthNamesShort[now.getMonth()] + " " + now.getDate();
     const dateStrDots = now.getDate().toString().padStart(2, '0') + "." + (now.getMonth() + 1).toString().padStart(2, '0') + "." + now.getFullYear();
     const dateStrFull = dayNamesFull[now.getDay()] + " " + now.getDate().toString().padStart(2, '0') + " " + monthNamesFull[now.getMonth()];
@@ -135,6 +179,7 @@ export default {
         border_color: "theme_auto",
         border_radius: 0,
         opa: 255,
+        clock_mode: "24h",
         bold_time: true,
         bold_date: false
     },
@@ -152,6 +197,10 @@ export default {
             { value: "date_only", label: "Date Only" },
             { value: "weekday_day_month", label: "Weekday Day Month" }
         ], (v) => updateProp("format", v));
+        panel.addSelect("Clock Mode", getClockMode(props), [
+            { value: "24h", label: "24 Hour" },
+            { value: "12h", label: "12 Hour (AM/PM)" }
+        ], (v) => updateProp("clock_mode", v));
         panel.addHint("Uses ESPHome strftime under the hood.");
         panel.addSelect("Alignment", props.text_align || "CENTER", ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], (v) => updateProp("text_align", v));
         panel.endSection();
@@ -217,6 +266,7 @@ export default {
         const p = w.props || {};
         const format = p.format || "time_date";
         const textAlign = (p.text_align || "CENTER").toUpperCase();
+        const { template } = getTemplateConfig(format, getClockMode(p));
 
         // Convert theme_auto to actual color
         let color = p.color || "black";
@@ -231,18 +281,10 @@ export default {
         const yBottom = textAlign.includes("BOTTOM");
         const anchor = (yCenter ? "m" : (yBottom ? "b" : "t")) + (xCenter ? "c" : (xRight ? "r" : "l"));
 
-        let template = "";
-        if (format === "time_only") {
-            template = "{{ now().strftime('%H:%M') }}";
-        } else if (format === "date_only") {
-            template = "{{ now().strftime('%d.%m.%Y') }}";
-        } else if (format === "weekday_day_month") {
-            template = "{{ now().strftime('%A %d %B') }}";
-        } else {
-            // "time_date" - using multiline for ODP
+        if (format === "time_date") {
             return {
                 type: "multiline",
-                value: "{{ now().strftime('%H:%M') }}\n{{ now().strftime('%a, %b %d') }}",
+                value: template,
                 delimiter: "\n",
                 x: Math.round(w.x + (xCenter ? w.width / 2 : (xRight ? w.width : 0))),
                 y: Math.round(w.y + (yCenter ? w.height / 2 : (yBottom ? w.height : 0))),
@@ -268,23 +310,12 @@ export default {
         const p = w.props || {};
         const format = p.format || "time_date";
         const textAlign = (p.text_align || "CENTER").toUpperCase();
+        const { template } = getTemplateConfig(format, getClockMode(p));
 
         // Convert theme_auto to actual color
         let color = p.color || "black";
         if (color === "theme_auto") {
             color = layout?.darkMode ? "white" : "black";
-        }
-
-        let template = "";
-        if (format === "time_only") {
-            template = "{{ now().strftime('%H:%M') }}";
-        } else if (format === "date_only") {
-            template = "{{ now().strftime('%d.%m.%Y') }}";
-        } else if (format === "weekday_day_month") {
-            template = "{{ now().strftime('%A %d %B') }}";
-        } else {
-            // "time_date" - needs to be multi-line or split. OEPL supports \n in text.
-            template = "{{ now().strftime('%H:%M') }}\n{{ now().strftime('%a, %b %d') }}";
         }
 
         const xCenter = textAlign.includes("CENTER") || textAlign === "CENTER";
@@ -321,14 +352,15 @@ export default {
     exportLVGL: (w, { common, convertColor, convertAlign, getLVGLFont, formatOpacity }) => {
         const p = w.props || {};
         const format = p.format || "time_date";
+        const { timeFormat } = getTemplateConfig(format, getClockMode(p));
 
-        let fmt = "%H:%M"; // Default time_only or fallback
+        let fmt = timeFormat; // Default time_only or fallback
         if (format === "date_only") {
             fmt = "%d.%m.%Y";
         } else if (format === "weekday_day_month") {
             fmt = "%A %d %B"; // International: Monday 01 January
         } else if (format === "time_date") {
-            fmt = "%H:%M\\n%a, %b %d";
+            fmt = `${timeFormat}\\n%a, %b %d`;
         }
 
         let lambdaStr = '!lambda |-\n';
@@ -410,6 +442,7 @@ export default {
 
         const p = w.props || {};
         const colorProp = p.color || "black";
+        const timeFormat = getTimeStrftime(getClockMode(p));
 
         // Dynamic Color Logic
         let color = getColorConst(colorProp);
@@ -483,7 +516,7 @@ export default {
         else if (alignV === "BOTTOM") yVal = Math.round(w.y + w.height);
 
         if (format === "time_only") {
-            lines.push(`          it.strftime(${xVal}, ${yVal}, id(${timeFontId}), ${color}, ${espAlign}, "%H:%M", now);`);
+            lines.push(`          it.strftime(${xVal}, ${yVal}, id(${timeFontId}), ${color}, ${espAlign}, "${timeFormat}", now);`);
         } else if (format === "date_only") {
             lines.push(`          it.strftime(${xVal}, ${yVal}, id(${dateFontId}), ${color}, ${espAlign}, "%d.%m.%Y", now);`);
         } else if (format === "weekday_day_month") {
@@ -496,7 +529,7 @@ export default {
             else if (alignV === "BOTTOM") startY = Math.round(w.y + w.height - totalH);
 
             const multiAlign = `TextAlign::TOP_${alignH}`;
-            lines.push(`          it.strftime(${xVal}, ${startY}, id(${timeFontId}), ${color}, ${multiAlign}, "%H:%M", now);`);
+            lines.push(`          it.strftime(${xVal}, ${startY}, id(${timeFontId}), ${color}, ${multiAlign}, "${timeFormat}", now);`);
             lines.push(`          it.strftime(${xVal}, ${startY} + ${timeSize} + 2, id(${dateFontId}), ${color}, ${multiAlign}, "%a, %b %d", now);`);
         }
 

@@ -143,6 +143,17 @@ describe('graph exports_hooks', () => {
                         color: 'orange',
                         duration: '90min'
                     }
+                },
+                {
+                    id: 'graph-week',
+                    type: 'graph',
+                    width: 100,
+                    height: 40,
+                    entity_id: 'sensor.weekly_energy',
+                    props: {
+                        color: 'blue',
+                        duration: '1w'
+                    }
                 }
             ]
         });
@@ -158,6 +169,7 @@ describe('graph exports_hooks', () => {
         expect(joined).toContain('blue_int: 0');
         expect(joined).toContain('x_grid: 1h');
         expect(joined).toContain('x_grid: 23min');
+        expect(joined).toContain('x_grid: 2d');
     });
 
     it('exports LVGL and HA-history globals for graph widgets', () => {

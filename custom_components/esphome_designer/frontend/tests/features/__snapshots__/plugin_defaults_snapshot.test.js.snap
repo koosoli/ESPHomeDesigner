@@ -50,6 +50,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of datet
   "border_color": "theme_auto",
   "border_radius": 0,
   "border_width": 0,
+  "clock_mode": "24h",
   "color": "black",
   "date_font_size": 16,
   "font_family": "Roboto",
@@ -200,6 +201,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_
   "opacity": 255,
   "radius": 5,
   "service": "auto",
+  "sync_state": false,
   "text": "Button",
 }
 `;

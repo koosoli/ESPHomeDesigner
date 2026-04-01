@@ -181,6 +181,7 @@ describe('datetime plugin', () => {
         });
 
         callbacks['Display Format']('weekday_day_month');
+        callbacks['Clock Mode']('12h');
         callbacks['Alignment']('BOTTOM_LEFT');
         callbacks['Custom Font Name']('Space Mono');
         callbacks['Time Font Size']('32');
@@ -197,6 +198,9 @@ describe('datetime plugin', () => {
 
         expect(mockAppState.updateWidget.mock.calls.some(([id, payload]) =>
             id === 'datetime_props' && payload.props?.format === 'weekday_day_month'
+        )).toBe(true);
+        expect(mockAppState.updateWidget.mock.calls.some(([id, payload]) =>
+            id === 'datetime_props' && payload.props?.clock_mode === '12h'
         )).toBe(true);
         expect(mockAppState.updateWidget.mock.calls.some(([id, payload]) =>
             id === 'datetime_props' && payload.props?.font_family === 'Space Mono'
@@ -331,5 +335,85 @@ describe('datetime plugin', () => {
 
         expect(dateOnlyLines.join('\n')).toContain('TextAlign::CENTER');
         expect(dateOnlyLines.join('\n')).toContain('"%d.%m.%Y"');
+    });
+
+    it('supports 12-hour clock mode in preview and export output', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-04-01T13:05:00'));
+
+        try {
+            const host = document.createElement('div');
+            plugin.render(host, {
+                id: 'datetime_12h_render',
+                width: 140,
+                height: 60,
+                props: {
+                    ...plugin.defaults,
+                    format: 'time_only',
+                    clock_mode: '12h'
+                }
+            }, {
+                getColorStyle: (value) => value || 'black'
+            });
+
+            expect(host.textContent).toContain('01:05 PM');
+
+            const openDisplay = plugin.exportOpenDisplay({
+                x: 0,
+                y: 0,
+                width: 100,
+                height: 50,
+                props: {
+                    format: 'time_only',
+                    clock_mode: '12h',
+                    time_font_size: 24
+                }
+            }, {
+                layout: { darkMode: false },
+                _page: {}
+            });
+
+            expect(openDisplay.value).toBe("{{ now().strftime('%I:%M %p') }}");
+
+            const lvgl = plugin.exportLVGL({
+                props: {
+                    format: 'time_date',
+                    clock_mode: '12h',
+                    text_align: 'CENTER'
+                }
+            }, {
+                common: { id: 'dt_12h' },
+                convertColor: (value) => `Color(${value})`,
+                convertAlign: () => 'center',
+                getLVGLFont: (_family, size, weight) => `font_${size}_${weight}`,
+                formatOpacity: (value) => `opa(${value})`
+            });
+
+            expect(lvgl.label.text).toContain('%I:%M %p\\n%a, %b %d');
+
+            const directLines = [];
+            plugin.export({
+                x: 0,
+                y: 0,
+                width: 120,
+                height: 50,
+                props: {
+                    ...plugin.defaults,
+                    format: 'time_date',
+                    clock_mode: '12h'
+                }
+            }, {
+                lines: directLines,
+                getColorConst: (value) => `Color(${value})`,
+                addFont: vi.fn((family, weight, size) => `${family}_${weight}_${size}`),
+                getCondProps: () => ({}),
+                getConditionCheck: () => '',
+                getAlignY: () => 0
+            });
+
+            expect(directLines.join('\n')).toContain('"%I:%M %p"');
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });

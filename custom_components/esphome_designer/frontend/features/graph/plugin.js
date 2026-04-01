@@ -21,6 +21,19 @@ import {
 } from './exports.js';
 
 const BUILT_IN_FONT_OPTIONS = FONT_OPTIONS.filter((option) => option !== "Custom...");
+const DURATION_PRESET_OPTIONS = [
+    { value: '15min', label: '15 Minutes' },
+    { value: '30min', label: '30 Minutes' },
+    { value: '1h', label: '1 Hour' },
+    { value: '3h', label: '3 Hours' },
+    { value: '6h', label: '6 Hours' },
+    { value: '12h', label: '12 Hours' },
+    { value: '1d', label: '1 Day' },
+    { value: '3d', label: '3 Days' },
+    { value: '1w', label: '1 Week' },
+    { value: '2w', label: '2 Weeks' },
+    { value: 'custom', label: 'Custom...' }
+];
 
 /**
  * @param {string} text
@@ -155,7 +168,15 @@ const renderProperties = (panel, widget) => {
     panel.addLabeledInput("Title", "text", widget.title || "", (/** @type {string} */ value) => {
         AppState.updateWidget(widget.id, { title: value });
     });
-    panel.addLabeledInput("Duration", "text", props.duration || "1h", setTextProp("duration"));
+    const duration = props.duration || "1h";
+    const selectedDurationPreset = DURATION_PRESET_OPTIONS.some((option) => option.value === duration) ? duration : 'custom';
+    panel.addSelect("Duration Preset", selectedDurationPreset, DURATION_PRESET_OPTIONS, (value) => {
+        if (value !== 'custom') {
+            updateProp('duration', value);
+        }
+    });
+    panel.addLabeledInput("Duration", "text", duration, setTextProp("duration"));
+    panel.addHint("Pick a preset or enter a custom span like 90min, 12h, 7d, or 1w.");
     panel.addHint("The device collects data from boot. The graph fills up over the configured duration.");
     panel.endSection();
 

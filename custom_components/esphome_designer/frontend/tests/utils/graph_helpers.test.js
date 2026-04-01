@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
+    formatGraphLookbackLabel,
+    inferGraphTimeGrid,
     parseDuration,
     generateMockData,
     generateHistoricalDataPoints,
@@ -20,7 +22,28 @@ describe('graph_helpers', () => {
         expect(parseDuration('10m')).toBe(600);
         expect(parseDuration('2h')).toBe(7200);
         expect(parseDuration('1d')).toBe(86400);
+        expect(parseDuration('1w')).toBe(604800);
+        expect(parseDuration('1.5h')).toBe(5400);
         expect(parseDuration('bad')).toBe(3600);
+    });
+
+    it('infers human-friendly grid intervals and lookback labels', () => {
+        expect(inferGraphTimeGrid('2h')).toBe('30min');
+        expect(inferGraphTimeGrid('90min')).toBe('23min');
+        expect(inferGraphTimeGrid('1w')).toBe('2d');
+        expect(inferGraphTimeGrid('bad')).toBe('1h');
+
+        expect(formatGraphLookbackLabel(7200)).toBe('-2.0h');
+        expect(formatGraphLookbackLabel(3.5 * 86400)).toBe('-3.5d');
+        expect(formatGraphLookbackLabel(604800)).toBe('-1.0w');
+    });
+
+    it('falls back cleanly for empty or unsupported durations and formats seconds labels', () => {
+        expect(inferGraphTimeGrid(undefined)).toBe('1h');
+        expect(inferGraphTimeGrid('   ')).toBe('1h');
+        expect(inferGraphTimeGrid('1fortnight')).toBe('1h');
+        expect(inferGraphTimeGrid('4s')).toBe('1s');
+        expect(formatGraphLookbackLabel(45)).toBe('-45s');
     });
 
     it('generates deterministic mock points shape', () => {
@@ -107,5 +130,20 @@ describe('graph_helpers', () => {
         expect(labels[0].style.textAlign).toBe('left');
         expect(labels.at(-1).style.transform).toBe('translateX(-100%)');
         expect(labels.at(-1).textContent).toBe('Now');
+    });
+
+    it('positions y-axis labels outside the graph when there is room on the left', () => {
+        const container = document.createElement('div');
+        container.style.width = '240px';
+        container.style.height = '160px';
+        document.body.appendChild(container);
+
+        drawSmartAxisLabels(container, 60, 20, 120, 60, 10, 30, '4s', 'w3');
+
+        const labels = [...container.querySelectorAll('.graph-axis-label[data-widget-id="w3"]')];
+        expect(labels.length).toBeGreaterThan(0);
+        expect(labels[0].style.left).toBe('56px');
+        expect(labels[0].style.transform).toBe('translateX(-100%)');
+        expect(labels[0].style.textAlign).toBe('right');
     });
 });

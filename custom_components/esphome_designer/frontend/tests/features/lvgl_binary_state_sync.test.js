@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import buttonPlugin from '../../features/lvgl_button/plugin.js';
 import checkboxPlugin from '../../features/lvgl_checkbox/plugin.js';
 import switchPlugin from '../../features/lvgl_switch/plugin.js';
 import { registry } from '../../js/core/plugin_registry';
@@ -32,6 +33,18 @@ describe('LVGL binary state sync export', () => {
         }, lvglContext);
 
         expect(output.checkbox.state.checked).toBe('!lambda return id(input_boolean_night_mode).state;');
+    });
+
+    it('exports Home Assistant button state for checkable LVGL buttons when sync is enabled', () => {
+        const output = buttonPlugin.exportLVGL({
+            id: 'btn_1',
+            type: 'lvgl_button',
+            entity_id: 'switch.kitchen_light',
+            props: { ...buttonPlugin.defaults, sync_state: true }
+        }, lvglContext);
+
+        expect(output.button.state.checked).toBe('!lambda return id(switch_kitchen_light).state;');
+        expect(output.button.checkable).toBe(true);
     });
 
     it('serializes the lambda without quoting it in generated YAML', () => {
@@ -71,8 +84,26 @@ describe('LVGL binary state sync export', () => {
             isLvgl: true,
             pendingTriggers
         });
+        buttonPlugin.onExportBinarySensors({
+            widgets: [{ id: 'btn_1', type: 'lvgl_button', entity_id: 'switch.kitchen_light', props: { sync_state: true } }],
+            isLvgl: true,
+            pendingTriggers
+        });
 
         expect(Array.from(pendingTriggers.get('switch.kitchen_light') || [])).toContain('- lvgl.widget.refresh: sw_1');
+        expect(Array.from(pendingTriggers.get('switch.kitchen_light') || [])).toContain('- lvgl.widget.refresh: btn_1');
         expect(Array.from(pendingTriggers.get('input_boolean.night_mode') || [])).toContain('- lvgl.widget.refresh: cb_1');
+    });
+
+    it('creates a pending trigger bucket when a synced button is the first widget for that entity', () => {
+        const pendingTriggers = new Map();
+
+        buttonPlugin.onExportBinarySensors({
+            widgets: [{ id: 'btn_first', type: 'lvgl_button', entity_id: 'fan.office', props: { sync_state: true } }],
+            isLvgl: true,
+            pendingTriggers
+        });
+
+        expect(Array.from(pendingTriggers.get('fan.office') || [])).toEqual(['- lvgl.widget.refresh: btn_first']);
     });
 });

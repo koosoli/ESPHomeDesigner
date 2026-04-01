@@ -920,6 +920,8 @@ exports[`Plugin Export Smoke Tests > Export for lvgl_button > should export LVGL
 }
 `;
 
+exports[`Plugin Export Smoke Tests > Export for lvgl_button > should handle onExportBinarySensors with stable output 1`] = `[]`;
+
 exports[`Plugin Export Smoke Tests > Export for lvgl_buttonmatrix > should export LVGL with stable output 1`] = `
 {
   "buttonmatrix": {

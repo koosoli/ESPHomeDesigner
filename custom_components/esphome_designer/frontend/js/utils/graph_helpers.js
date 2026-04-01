@@ -1,35 +1,103 @@
 // --- Graph Preview Helpers ---
 
+const DEFAULT_DURATION_SECONDS = 3600;
+const DURATION_PATTERN = /^(\d+(?:\.\d+)?)([a-z]+)$/i;
+
 /**
- * Parses a duration string (e.g. "1h", "30m", "60s") into seconds.
+ * @param {string|number|null|undefined} durationStr
+ * @returns {{ value: number, unit: string } | null}
+ */
+function parseDurationParts(durationStr) {
+    if (durationStr === null || durationStr === undefined || durationStr === '') {
+        return null;
+    }
+
+    if (typeof durationStr === 'number') {
+        return Number.isFinite(durationStr) ? { value: durationStr, unit: 's' } : null;
+    }
+
+    const str = String(durationStr).trim();
+    if (!str) {
+        return null;
+    }
+
+    if (/^\d+(?:\.\d+)?$/.test(str)) {
+        return { value: parseFloat(str), unit: 's' };
+    }
+
+    const match = str.match(DURATION_PATTERN);
+    if (!match) {
+        return null;
+    }
+
+    return {
+        value: parseFloat(match[1]),
+        unit: match[2].toLowerCase()
+    };
+}
+
+/**
+ * @param {{ value: number, unit: string } | null} parsed
+ * @returns {number | null}
+ */
+function durationPartsToSeconds(parsed) {
+    if (!parsed || !Number.isFinite(parsed.value)) {
+        return null;
+    }
+
+    const { value, unit } = parsed;
+    if (unit.startsWith('s')) return value;
+    if (unit.startsWith('m')) return value * 60;
+    if (unit.startsWith('h')) return value * 3600;
+    if (unit.startsWith('d')) return value * 86400;
+    if (unit.startsWith('w')) return value * 604800;
+    return null;
+}
+
+/**
+ * Parses a duration string (for example "1h", "30min", "7d", or "1w") into seconds.
  * @param {string|number} durationStr
  * @returns {number} Seconds
  */
 export function parseDuration(durationStr) {
-    if (!durationStr) return 3600; // Default 1h
+    if (!durationStr) return DEFAULT_DURATION_SECONDS;
 
-    // Handle numeric values (already in seconds)
-    if (typeof durationStr === 'number') {
-        return durationStr;
+    const seconds = durationPartsToSeconds(parseDurationParts(durationStr));
+    return Number.isFinite(seconds) ? seconds : DEFAULT_DURATION_SECONDS;
+}
+
+/**
+ * Infers a readable x-grid interval from the overall graph duration.
+ * @param {string|number} durationStr
+ * @returns {string}
+ */
+export function inferGraphTimeGrid(durationStr) {
+    const parsed = parseDurationParts(durationStr);
+    const totalSeconds = durationPartsToSeconds(parsed);
+    if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+        return '1h';
     }
 
-    // Convert to string if needed
-    const str = String(durationStr);
+    const gridSeconds = totalSeconds / 4;
+    if (gridSeconds >= 604800) return `${Math.max(1, Math.round(gridSeconds / 604800))}w`;
+    if (gridSeconds >= 86400) return `${Math.max(1, Math.round(gridSeconds / 86400))}d`;
+    if (gridSeconds >= 3600) return `${Math.max(1, Math.round(gridSeconds / 3600))}h`;
+    if (gridSeconds >= 60) return `${Math.max(1, Math.round(gridSeconds / 60))}min`;
+    return `${Math.max(1, Math.round(gridSeconds))}s`;
+}
 
-    // If it's a pure number string, treat as seconds
-    if (/^\d+$/.test(str)) {
-        return parseInt(str, 10);
-    }
-
-    const match = str.match(/^(\d+)([a-z]+)$/i);
-    if (!match) return 3600;
-    const val = parseInt(match[1], 10);
-    const unit = match[2].toLowerCase();
-    if (unit.startsWith("s")) return val;
-    if (unit.startsWith("m")) return val * 60;
-    if (unit.startsWith("h")) return val * 3600;
-    if (unit.startsWith("d")) return val * 86400;
-    return val;
+/**
+ * Formats a relative graph label like "-2.0h" or "-1.0w".
+ * @param {number} seconds
+ * @returns {string}
+ */
+export function formatGraphLookbackLabel(seconds) {
+    const safeSeconds = Math.max(0, Number(seconds) || 0);
+    if (safeSeconds >= 604800) return `-${(safeSeconds / 604800).toFixed(1)}w`;
+    if (safeSeconds >= 86400) return `-${(safeSeconds / 86400).toFixed(1)}d`;
+    if (safeSeconds >= 3600) return `-${(safeSeconds / 3600).toFixed(1)}h`;
+    if (safeSeconds >= 60) return `-${(safeSeconds / 60).toFixed(0)}m`;
+    return `-${safeSeconds.toFixed(0)}s`;
 }
 
 /**
@@ -263,9 +331,7 @@ export function drawSmartAxisLabels(container, x, y, width, height, min, max, du
         if (i === xSteps) labelText = "Now";
         else {
             const timeAgo = durationSec * (1 - ratio);
-            if (timeAgo >= 3600) labelText = `-${(timeAgo / 3600).toFixed(1)}h`;
-            else if (timeAgo >= 60) labelText = `-${(timeAgo / 60).toFixed(0)}m`;
-            else labelText = `-${timeAgo.toFixed(0)}s`;
+            labelText = formatGraphLookbackLabel(timeAgo);
         }
 
         /** @type {HTMLDivElement} */

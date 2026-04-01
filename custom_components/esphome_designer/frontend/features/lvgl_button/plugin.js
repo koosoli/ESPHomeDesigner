@@ -2,7 +2,18 @@
  * LVGL Button Plugin
  */
 
+import { makeSafeId } from '../../js/utils/export_helpers.js';
 import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js'; // eslint-disable-line no-unused-vars
+
+const isMirrorableEntity = (entityId) => {
+    const normalized = String(entityId || '').trim().toLowerCase();
+    return normalized.startsWith('switch.')
+        || normalized.startsWith('light.')
+        || normalized.startsWith('fan.')
+        || normalized.startsWith('input_boolean.');
+};
+
+const shouldSyncCheckedState = (props, entityId) => !!props.sync_state && isMirrorableEntity(entityId);
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -33,16 +44,23 @@ const exportLVGL = (w, { common, convertColor, formatOpacity, _profile, getLVGLF
 
     // Robust entity ID detection: check top-level, props.entity_id, and props.entity
     const entityId = (w.entity_id || p.entity_id || p.entity || "").trim();
+    const syncCheckedState = shouldSyncCheckedState(p, entityId);
+    const checkable = (p.checkable || syncCheckedState) ? true : common.checkable;
+    const state = syncCheckedState
+        ? { checked: `!lambda return id(${makeSafeId(entityId)}).state;` }
+        : undefined;
 
     const btnObj = {
         button: {
             ...common,
+            ...(checkable !== undefined ? { checkable } : {}),
             bg_color: convertColor(p.bg_color),
             bg_opa: "cover",
             border_width: p.border_width,
             border_color: convertColor(textColor),
             radius: p.radius,
             opa: formatOpacity(p.opa),
+            ...(state ? { state } : {}),
             on_click: undefined,
             widgets: [
                 {
@@ -87,6 +105,26 @@ const exportLVGL = (w, { common, convertColor, formatOpacity, _profile, getLVGLF
     return btnObj;
 };
 
+const onExportBinarySensors = (context) => {
+    const { widgets, isLvgl, pendingTriggers } = context;
+    if (!widgets) return;
+
+    for (const w of widgets) {
+        if (w.type !== "lvgl_button") continue;
+
+        const props = w.props || {};
+        const entityId = (w.entity_id || props.entity_id || props.entity || "").trim();
+        if (!shouldSyncCheckedState(props, entityId)) continue;
+
+        if (isLvgl && pendingTriggers) {
+            if (!pendingTriggers.has(entityId)) {
+                pendingTriggers.set(entityId, new Set());
+            }
+            pendingTriggers.get(entityId).add(`- lvgl.widget.refresh: ${w.id}`);
+        }
+    }
+};
+
 export default {
     id: "lvgl_button",
     name: "Button",
@@ -105,6 +143,7 @@ export default {
         font_weight: 400,
         italic: false,
         entity_id: "",
+        sync_state: false,
         service: "auto",
         opacity: 255
     },
@@ -114,6 +153,7 @@ export default {
             fields: [
                 { key: "text", label: "Button Text", type: "text", default: "Button" },
                 { key: "entity_id", target: "root", label: "Action Entity ID", type: "entity_picker", default: "" },
+                { key: "sync_state", label: "Sync Checked State from HA", type: "checkbox", default: false },
                 {
                     key: "service", label: "Service Override", type: "select", options: [
                         { value: "auto", label: "Auto (Detect from Entity)" },
@@ -154,6 +194,7 @@ export default {
     ],
     render,
     exportLVGL,
+    onExportBinarySensors,
     collectRequirements: (w, { addFont }) => {
         const p = w.props || {};
         addFont(p.font_family || "Roboto", p.font_weight || 400, p.font_size || 14, !!p.italic);

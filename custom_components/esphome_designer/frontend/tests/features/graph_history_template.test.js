@@ -31,6 +31,13 @@ describe('graph history template helper', () => {
                 history_points: 96
             }
         })).toBe(15);
+
+        expect(getGraphHistoryPollMinutes({
+            props: {
+                duration: '1w',
+                history_points: 168
+            }
+        })).toBe(30);
     });
 
     it('generates a HA helper package with SQL query, helper entity guidance, and matching attribute name', () => {

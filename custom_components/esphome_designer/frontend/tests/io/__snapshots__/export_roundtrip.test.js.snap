@@ -56,7 +56,7 @@ exports[`Export Path Round-Trip Enforcement > Data Plugins > exports "graph" plu
         for (int i = 0; i < 100; i += 4) {
           it.draw_pixel_at(150, 0 + i, red);
         }
-        it.printf(0 + 0, 0 + 100 + 2, id(font_roboto_12), red, TextAlign::TOP_LEFT, "-24.0h");
+        it.printf(0 + 0, 0 + 100 + 2, id(font_roboto_12), red, TextAlign::TOP_LEFT, "-1.0d");
         it.printf(0 + 100, 0 + 100 + 2, id(font_roboto_12), red, TextAlign::TOP_CENTER, "-12.0h");
         it.printf(0 + 200, 0 + 100 + 2, id(font_roboto_12), red, TextAlign::TOP_RIGHT, "Now");"
 `;

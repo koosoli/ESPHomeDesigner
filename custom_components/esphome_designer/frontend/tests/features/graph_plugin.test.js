@@ -153,6 +153,7 @@ describe('graph plugin', () => {
         expect(panel.labels).toContain('HA Attribute');
         expect(panel.labels).toContain('Points to keep');
         expect(panel.labels).toContain('Smooth Data (Moving Avg)');
+        expect(panel.labels).toContain('Duration Preset');
         expect(panel.hints.some((hint) => hint.includes('custom HA template sensor'))).toBe(true);
         expect(panel.hints).toContain('Fixed Y-axis bounds.');
         expect(panel.hints.some((hint) => hint.includes('sensor.graph_history_sensor_energy'))).toBe(true);
@@ -188,6 +189,7 @@ describe('graph plugin', () => {
 
         expect(panel.labels).not.toContain('HA Attribute');
         expect(panel.labels).not.toContain('Points to keep');
+        expect(panel.labels).toContain('Duration Preset');
         expect(panel.labels).toContain('Min Range');
         expect(panel.labels).toContain('Max Range');
         expect(panel.labels).toContain('Opacity (%)');
@@ -206,6 +208,53 @@ describe('graph plugin', () => {
         expect(mockAppState.updateWidget).toHaveBeenCalledWith('graph_2', expect.objectContaining({
             props: expect.objectContaining({
                 opacity: 55
+            })
+        }));
+    });
+
+    it('applies duration presets without removing custom duration input support', () => {
+        const panel = {
+            labels: [],
+            hints: [],
+            createSection: vi.fn(),
+            endSection: vi.fn(),
+            addHint: vi.fn(),
+            addCompactPropertyRow(callback) {
+                callback();
+            },
+            addLabeledInputWithPicker: vi.fn(),
+            addLabeledInput(label, _type, _value, _onChange) {
+                panel.labels.push(label);
+            },
+            addCheckbox: vi.fn(),
+            addSelect(label, _value, _options, onChange) {
+                panel.labels.push(label);
+                if (label === 'Duration Preset') {
+                    onChange('1w');
+                }
+            },
+            addColorSelector: vi.fn(),
+            addNumberWithSlider: vi.fn(),
+            addDropShadowButton: vi.fn(),
+            getContainer() {
+                return document.body;
+            }
+        };
+
+        graphPlugin.renderProperties(panel, {
+            id: 'graph_presets',
+            entity_id: 'sensor.energy',
+            title: '',
+            props: {
+                duration: '90min'
+            }
+        });
+
+        expect(panel.labels).toContain('Duration Preset');
+        expect(panel.labels).toContain('Duration');
+        expect(mockAppState.updateWidget).toHaveBeenCalledWith('graph_presets', expect.objectContaining({
+            props: expect.objectContaining({
+                duration: '1w'
             })
         }));
     });

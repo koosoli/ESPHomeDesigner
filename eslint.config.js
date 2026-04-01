@@ -17,7 +17,8 @@ export default [
             "oldversions/**",
             ".venv/**",
             "custom_components/!(esphome_designer)/**",
-            "tmp/**"
+            "tmp/**",
+            "**/tmp/**"
         ]
     },
     {

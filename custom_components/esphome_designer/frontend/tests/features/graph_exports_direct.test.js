@@ -101,4 +101,25 @@ describe('graph exports_direct', () => {
 
         expect(context.lines.join('\n')).toContain('Graph (no entity)');
     });
+
+    it('formats week-long graph labels with day and week units', () => {
+        const context = createContext();
+
+        exportDoc({
+            id: 'graph-week',
+            x: 0,
+            y: 0,
+            width: 120,
+            height: 50,
+            entity_id: 'sensor.energy',
+            props: {
+                duration: '1w',
+                color: 'black'
+            }
+        }, context);
+
+        const output = context.lines.join('\n');
+        expect(output).toContain('"-1.0w"');
+        expect(output).toContain('"-3.5d"');
+    });
 });

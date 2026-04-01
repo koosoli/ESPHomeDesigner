@@ -1,5 +1,6 @@
 import { getSensorPlatformLines } from '../../js/io/adapters/mqtt_helpers.js';
 import { buildLvglBoundsLines, buildLvglLineUpdateAction, buildLvglLiveUpdateAction, getLvglGraphIds, getLvglGraphPointCount } from './exports_lvgl.js';
+import { inferGraphTimeGrid } from '../../js/utils/graph_helpers.js';
 
 /** @typedef {Widget & { props?: Record<string, any>, entity_id?: string, _pageIndex?: number }} GraphWidget */
 
@@ -96,17 +97,7 @@ export const onExportComponents = (context) => {
 
             if (gridEnabled) {
                 if (!xGrid) {
-                    const durationMatch = duration.match(/^(\d+(?:\.\d+)?)(min|h|d)$/);
-                    if (durationMatch) {
-                        const value = parseFloat(durationMatch[1]);
-                        const unit = durationMatch[2];
-                        const gridValue = value / 4;
-                        if (unit === "h") xGrid = gridValue >= 1 ? `${Math.round(gridValue)}h` : `${Math.round(gridValue * 60)}min`;
-                        else if (unit === "min") xGrid = `${Math.round(gridValue)}min`;
-                        else if (unit === "d") xGrid = `${Math.round(gridValue * 24)}h`;
-                    } else {
-                        xGrid = "1h";
-                    }
+                    xGrid = inferGraphTimeGrid(duration);
                 }
                 if (!yGrid) {
                     const minValue = parseFloat(p.min_value) || 0;
