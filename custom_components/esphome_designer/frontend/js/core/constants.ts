@@ -142,7 +142,7 @@ export const DEFAULT_CANVAS_HEIGHT = 480;
 
 // Initialize global namespace
 (window as any).ESPHomeDesigner = (window as any).ESPHomeDesigner || {
-    version: "0.9.0",
+    version: "1.0.0-rc.10.1",
     constants: {
         COLORS,
         UI_DEFAULTS,

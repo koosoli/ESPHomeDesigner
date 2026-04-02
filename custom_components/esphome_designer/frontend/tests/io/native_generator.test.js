@@ -54,7 +54,13 @@ vi.mock('../../js/core/constants', () => ({
 }));
 
 vi.mock('../../js/utils/export_helpers.js', () => ({
-    isEntityStateNonNumeric: vi.fn((ent) => ent.includes('weather') || ent.includes('text'))
+    isEntityStateNonNumeric: vi.fn((ent) => ent.includes('weather') || ent.includes('text')),
+    makeSafeId: vi.fn((eid, attr, suffix = '') => {
+        const base = attr ? `${eid}_${attr}` : eid;
+        const safe = base.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+        const maxBaseLen = 63 - suffix.length;
+        return `${safe.substring(0, maxBaseLen)}${suffix}`;
+    })
 }));
 
 vi.mock('../../js/io/yaml_export_lvgl.js', () => ({
@@ -145,6 +151,45 @@ describe('Native Generator', () => {
 
             expect(output).toContain('// [widget:w1]');
             expect(output).toContain('it.print(10, 10, "Text");');
+        });
+
+        it('uses binary comparisons for input_boolean visibility conditions', () => {
+            const conditionalWidget = {
+                ...mockPages[0].widgets[0],
+                condition_entity: 'input_boolean.night_mode',
+                condition_operator: '==',
+                condition_state: 'on'
+            };
+            const pagesWithCond = [{ ...mockPages[0], widgets: [conditionalWidget] }];
+
+            vi.mocked(registry.get).mockReturnValue({
+                export: (w, ctx) => [ctx.getConditionCheck(w), `it.print(${w.x}, ${w.y}, "Text");`]
+            });
+
+            const lines = generateDisplayLambda(pagesWithCond, mockLayout, mockProfile, mockContext, mockAdapter);
+            const output = lines.join('\n');
+
+            expect(output).toContain('if (id(input_boolean_night_mode).state == true) {');
+            expect(output).not.toContain('std::string(id(input_boolean_night_mode).state)');
+        });
+
+        it('uses text sensor ids for non-binary string visibility conditions', () => {
+            const conditionalWidget = {
+                ...mockPages[0].widgets[0],
+                condition_entity: 'input_select.heating_mode',
+                condition_operator: '==',
+                condition_state: 'Boost'
+            };
+            const pagesWithCond = [{ ...mockPages[0], widgets: [conditionalWidget] }];
+
+            vi.mocked(registry.get).mockReturnValue({
+                export: (w, ctx) => [ctx.getConditionCheck(w), `it.print(${w.x}, ${w.y}, "Text");`]
+            });
+
+            const lines = generateDisplayLambda(pagesWithCond, mockLayout, mockProfile, mockContext, mockAdapter);
+            const output = lines.join('\n');
+
+            expect(output).toContain('if (std::string(id(input_select_heating_mode_txt).state) == "Boost") {');
         });
 
         it('should preserve round-trip marker for lvgl widgets without export plugin', () => {

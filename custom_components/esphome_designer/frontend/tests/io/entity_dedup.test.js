@@ -159,16 +159,31 @@ describe('Entity Deduplication & Registration', () => {
             expect(result).toContain('  id: sensor_state_name_txt');
         });
 
-        it('skips boolean condition states', () => {
+        it('keeps binary condition entities out of text sensor registration', () => {
             const pages = [{
                 widgets: [{
                     type: 'icon',
-                    condition_entity: 'sensor.door',
-                    condition_state: 'true'
+                    condition_entity: 'input_boolean.night_mode',
+                    condition_state: 'on'
                 }]
             }];
             const result = collectTextSensors(pages, context);
             expect(result.length).toBe(0);
+        });
+
+        it('registers input_select conditions as text sensors even for keyword-like values', () => {
+            const pages = [{
+                widgets: [{
+                    type: 'icon',
+                    condition_entity: 'input_select.house_mode',
+                    condition_operator: '==',
+                    condition_state: 'home'
+                }]
+            }];
+            const result = collectTextSensors(pages, context);
+
+            expect(result).toContain('  entity_id: input_select.house_mode');
+            expect(result).toContain('  id: input_select_house_mode_txt');
         });
 
         it('generates config with attribute parsed cleanly', () => {

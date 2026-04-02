@@ -4,6 +4,7 @@
  */
 
 export const HA_TEXT_DOMAINS = ["text_sensor.", "weather.", "calendar.", "person.", "device_tracker.", "sun.", "update.", "scene."];
+export const HA_BINARY_DOMAINS = ["binary_sensor.", "switch.", "light.", "input_boolean.", "fan.", "cover.", "vacuum.", "lock."];
 
 import { isEntityStateNonNumeric, makeSafeId } from '../../utils/export_helpers.js';
 import { getSensorPlatformLines } from './mqtt_helpers.js';
@@ -71,10 +72,8 @@ export const collectNumericSensors = (pages, context) => {
         if (w.type === "calendar") return;
 
         const isHaSensor = (entityId.includes(".") || entityId.toLowerCase().startsWith("mqtt:")) &&
-            !entityId.startsWith("binary_sensor.") &&
             !HA_TEXT_DOMAINS.some(d => entityId.startsWith(d));
-        const binaryDomains = ["switch.", "light.", "fan.", "input_boolean.", "cover.", "lock."];
-        const isBinaryDomain = binaryDomains.some(d => entityId.startsWith(d));
+        const isBinaryDomain = HA_BINARY_DOMAINS.some(d => entityId.startsWith(d));
 
         if (isHaSensor && !isBinaryDomain) {
             const attribute = (p.attribute || "").trim();
@@ -125,12 +124,11 @@ export const collectTextSensors = (pages, context) => {
             const isTextHa = HA_TEXT_DOMAINS.some(d => ent.startsWith(d)) || ent.toLowerCase().startsWith("mqtt:");
             let isStringCond = false;
 
-            // Check if this entity is used in a string condition
+            // Non-binary entities using string comparisons need a text_sensor ID.
             if (ent === condEnt && w.condition_operator !== "range") {
-                const state = w.condition_state;
-                const stateLower = (state || "").toLowerCase();
-                const booleanKeywords = ["on", "off", "true", "false", "online", "offline"];
-                if (state && isNaN(Number(state)) && !booleanKeywords.includes(stateLower)) {
+                const state = w.condition_state !== undefined && w.condition_state !== "" ? w.condition_state : w.condition_value;
+                const isBinaryConditionEntity = HA_BINARY_DOMAINS.some(d => ent.startsWith(d));
+                if (!isBinaryConditionEntity && state && isNaN(Number(state))) {
                     isStringCond = true;
                 }
             }
@@ -169,7 +167,6 @@ export const collectBinarySensors = (pages, context) => {
     const { seenEntityIds, seenSensorIds } = context;
     /** @type {DedupWidget[]} */
     const allWidgetsForBinary = pages.flatMap((p) => (p.widgets || []).filter((w) => !w.hidden));
-    const binaryDomains = ["binary_sensor.", "switch.", "light.", "input_boolean.", "fan.", "cover.", "vacuum.", "lock."];
     /** @type {string[]} */
     const binarySensorLinesExtra = [];
 
@@ -181,7 +178,7 @@ export const collectBinarySensors = (pages, context) => {
 
         [condEnt, primaryEnt].forEach((ent) => {
             if (!ent) return;
-            const isBinaryHa = binaryDomains.some(d => ent.startsWith(d)) || ent.toLowerCase().startsWith("mqtt:");
+            const isBinaryHa = HA_BINARY_DOMAINS.some(d => ent.startsWith(d)) || ent.toLowerCase().startsWith("mqtt:");
 
             if (isBinaryHa && !seenEntityIds.has(ent)) {
                 const safeId = makeSafeId(ent);

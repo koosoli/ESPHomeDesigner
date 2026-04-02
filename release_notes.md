@@ -1,18 +1,12 @@
-## v1.0.0 RC11 - Time Formatting, Graph Presets & Stateful LVGL Buttons
-**Release Date:** April 1, 2026
+## v1.0.0 RC10.1 - Visibility Hotfix & Release Sync
+**Release Date:** April 2, 2026
 
-This release packages the work from the latest GitHub follow-ups into a focused RC11 update. It adds a persistent 12-hour clock option for datetime widgets, makes graph history durations easier to configure with built-in presets and week-aware parsing, and gives LVGL buttons an opt-in way to mirror Home Assistant on/off state instead of only firing stateless actions.
-
-### New Features & Enhancements
-- **Persistent 12-Hour Datetime Mode ([Discussion #359](https://github.com/koosoli/ESPHomeDesigner/discussions/359))**: The datetime widget now exposes a dedicated `Clock Mode` setting with `24 Hour` and `12 Hour (AM/PM)` options. Preview rendering plus OpenDisplay, OEPL, and LVGL exports all honor that saved setting, so users no longer need to manually reapply `%I:%M %p` after each edit or export.
-- **Graph Duration Presets**: Graph widgets now include a `Duration Preset` selector with common ranges like minutes, hours, days, and weeks, while still keeping the free-form duration field available for custom lookback windows.
-- **Week-Aware Graph History Parsing**: Shared graph duration parsing now supports week-based and decimal durations across canvas preview, direct export, LVGL export hooks, history helper generation, Home Assistant history fetching, grid inference, and smart axis labels. This means values like `1w` and `2w` work consistently without requiring users to translate everything into raw hours.
-- **Optional HA State Sync for LVGL Buttons ([Discussion #347](https://github.com/koosoli/ESPHomeDesigner/discussions/347))**: `lvgl_button` now has an explicit `Sync Checked State from HA` option for mirrorable binary entities such as `switch`, `light`, `fan`, and `input_boolean`. When enabled, the button becomes checkable, binds its checked state to the Home Assistant entity, and refreshes automatically when HA state changes, while the existing click action behavior remains intact.
+This release is a focused RC10.1 follow-up for the work completed in this session. It fixes a direct-render conditional visibility regression where binary Home Assistant entities such as `input_boolean` could generate invalid `std::string(...)` comparisons and fail ESPHome compilation, and it synchronizes the shipped version metadata and frontend bundle for the RC10.1 package.
 
 ### Stability & Verification
-- **Export Shape Stability**: The new LVGL button sync path only adds `checkable` and `state` output when the feature is enabled, so existing button exports stay unchanged by default.
-- **CI Lint Hardening**: Nested workspace `tmp` directories are now ignored consistently by ESLint, preventing generated preview/build artifacts from showing up as false-positive source lint failures during release and pre-push validation.
-- **Regression Coverage**: Added or updated targeted Vitest coverage for datetime clock mode persistence, graph presets and week parsing, graph export/grid behavior, LVGL button state sync, schema parity, binary refresh triggers, and plugin export smoke output.
+- **Conditional Visibility Compilation Fix (Issue #363)**: Direct-render widget visibility checks now treat binary Home Assistant domains such as `input_boolean` as boolean IDs instead of forcing them through string conversion, while text-style entities like `input_select` still use the generated `_txt` sensors for string comparison.
+- **Regression Coverage**: Added targeted Vitest coverage for the visibility-condition binary/text branching so the broken `std::string(id(input_boolean...).state)` pattern does not return.
+- **Release Metadata Sync**: Updated the package version, Home Assistant manifest version, GUI header label, runtime GUI version string, release notes heading, and committed frontend `dist` bundle so the shipped RC10.1 package stays internally consistent.
 
 
 
@@ -27,12 +21,20 @@ This release rolls the project forward to the RC10 line, includes the remaining 
 - **Persistent Manual YAML Override**: YAML edits made directly in the snippet editor now persist with the saved layout as a separate raw override instead of being silently lost on save/load.
 - **Page Metadata Persistence**: Per-page schedule and visibility metadata such as `refresh_type`, `refresh_time`, `visible_from`, `visible_to`, and `layout` now survive backend storage round-trips correctly.
 - **Deep Sleep Script Cleanup**: The generated deep-sleep flow now uses a single stay-awake guard around `deep_sleep.enter`, avoiding redundant logic while keeping retry behavior intact.
+- **Persistent 12-Hour Datetime Mode ([Discussion #359](https://github.com/koosoli/ESPHomeDesigner/discussions/359))**: The datetime widget now exposes a dedicated `Clock Mode` setting with `24 Hour` and `12 Hour (AM/PM)` options. Preview rendering plus OpenDisplay, OEPL, and LVGL exports all honor that saved setting, so users no longer need to manually reapply `%I:%M %p` after each edit or export.
+- **Graph Duration Presets**: Graph widgets now include a `Duration Preset` selector with common ranges like minutes, hours, days, and weeks, while still keeping the free-form duration field available for custom lookback windows.
+- **Week-Aware Graph History Parsing**: Shared graph duration parsing now supports week-based and decimal durations across canvas preview, direct export, LVGL export hooks, history helper generation, Home Assistant history fetching, grid inference, and smart axis labels. This means values like `1w` and `2w` work consistently without requiring users to translate everything into raw hours.
+- **Optional HA State Sync for LVGL Buttons ([Discussion #347](https://github.com/koosoli/ESPHomeDesigner/discussions/347))**: `lvgl_button` now has an explicit `Sync Checked State from HA` option for mirrorable binary entities such as `switch`, `light`, `fan`, and `input_boolean`. When enabled, the button becomes checkable, binds its checked state to the Home Assistant entity, and refreshes automatically when HA state changes, while the existing click action behavior remains intact.
 - **Compilation Regression Coverage**: The RC8.3 `is_sleep_time` scoping problem reported in [Issue #339](https://github.com/koosoli/ESPHomeDesigner/issues/339) remains covered by a dedicated generator regression so the broken `return !is_sleep_time;` pattern does not reappear in generated output.
 - **Localized Weather Forecast Day Labels**: The weather forecast widget now exposes an explicit day-language selector so editor previews and generated firmware/LVGL output stay aligned instead of mixing localized preview labels with English device labels, covering the reports in [Issue #231](https://github.com/koosoli/ESPHomeDesigner/issues/231) and [Issue #348](https://github.com/koosoli/ESPHomeDesigner/issues/348).
 - **Graph History Helper Package**: Advanced graph history mode now includes built-in `Copy HA YAML` and `Download YAML` actions that generate a starter Home Assistant helper package backed by `sql.query`. This makes the previously undocumented template/helper setup far easier to adopt for recorder-backed history graphs.
 - **Graph & Sensor Bar Typography Completion (Issue #361)**: The `graph` and `template_sensor_bar` widgets now expose `font_family`, `font_weight`, and `font_size` consistently, and those settings are honored across browser preview, direct ESPHome export, and LVGL export.
 - **Single-Page Navigation YAML Fix (Issue #362)**: Single-page projects no longer emit `change_page_to` scripts or dangling debounce references to `last_page_switch_time`, and LVGL nav bars now suppress prev/next actions when paging is unavailable.
 - **Issue #356 Follow-Up Fixes**: Direct-render `shape_rect` widgets now scope their rounded-corner helper lambdas per widget so repeated rounded rectangles no longer collide at compile time, the datetime canvas preview now matches device behavior by leaving narrow text visible instead of clipping it, generated startup scripts now include a one-time 5-second post-sync grace period before the first render so Home Assistant-backed sensors have time to populate, and touch-debounce globals are only emitted for layouts that actually use touch widgets.
+
+### Stability & Verification
+- **Export Shape Stability**: The new LVGL button sync path only adds `checkable` and `state` output when the feature is enabled, so existing button exports stay unchanged by default.
+- **CI Lint Hardening**: Nested workspace `tmp` directories are now ignored consistently by ESLint, preventing generated preview/build artifacts from showing up as false-positive source lint failures during release and pre-push validation.
 
 
 

@@ -6,8 +6,49 @@
 import { registry } from '../../core/plugin_registry.js';
 import { Utils } from '../../core/utils';
 import { COLORS, ALIGNMENT } from '../../core/constants';
-import { isEntityStateNonNumeric } from '../../utils/export_helpers.js';
+import { isEntityStateNonNumeric, makeSafeId } from '../../utils/export_helpers.js';
+import { HA_BINARY_DOMAINS, HA_TEXT_DOMAINS } from '../adapters/entity_dedup.js';
 import { serializeWidget } from '../yaml_export_lvgl.js';
+
+const TRUE_BINARY_STATES = new Set(["1", "true", "on", "open", "locked", "home", "active", "occupied", "detected", "online"]);
+const FALSE_BINARY_STATES = new Set(["0", "false", "off", "closed", "unlocked", "not_home", "inactive", "clear", "offline"]);
+
+/**
+ * @param {string} entityId
+ * @returns {boolean}
+ */
+function isBinaryConditionEntity(entityId) {
+    return HA_BINARY_DOMAINS.some((domain) => entityId.startsWith(domain));
+}
+
+/**
+ * @param {string} entityId
+ * @returns {boolean}
+ */
+function isTextConditionEntity(entityId) {
+    return HA_TEXT_DOMAINS.some((domain) => entityId.startsWith(domain))
+        || entityId.startsWith("input_text.")
+        || entityId.startsWith("input_select.")
+        || entityId.endsWith("_txt");
+}
+
+/**
+ * @param {string | number | boolean | null | undefined} value
+ * @param {boolean} invert
+ * @returns {string}
+ */
+function getBinaryConditionLiteral(value, invert) {
+    const normalized = String(value ?? "").trim().toLowerCase();
+    let target = invert ? "false" : "true";
+
+    if (TRUE_BINARY_STATES.has(normalized)) {
+        target = invert ? "false" : "true";
+    } else if (FALSE_BINARY_STATES.has(normalized)) {
+        target = invert ? "true" : "false";
+    }
+
+    return target;
+}
 
 /**
  * @param {string | null | undefined} serialized
@@ -47,14 +88,15 @@ function getConditionCheck(w) {
     if (!ent) return null;
 
     const op = w.condition_operator || "==";
-    const isState = ent.startsWith("binary_sensor.") || ent.startsWith("switch.") || ent.startsWith("light.");
+    const isState = isBinaryConditionEntity(ent);
 
     // Check if operator implies a numeric or string comparison
     const isCompareOp = ["==", "!=", ">", "<", ">=", "<="].includes(op);
 
     // Provide default value for numeric comparison
     const targetVal = w.condition_state !== undefined && w.condition_state !== "" ? w.condition_state : (w.condition_value || "0.0");
-    let baseLhs = `id(${ent.replace(/\./g, "_")}).state`;
+    const safeId = makeSafeId(ent);
+    let baseLhs = `id(${safeId}).state`;
 
     // Handle string matching explicitly
     const isStrMatching = op === "==" || op === "!=";
@@ -64,22 +106,19 @@ function getConditionCheck(w) {
     const isTextCondition = isNaN(parseFloat(targetVal));
 
     // Check if entity is explicitly a text sensor by domain or suffix
-    const isTextEntity = ent.startsWith("text_sensor.") || ent.endsWith("_txt");
+    const isTextEntity = isTextConditionEntity(ent);
 
-    if (isStrMatching && (isNonNumeric || isTextCondition || isTextEntity)) {
-        // Safe C++ string comparison
-        baseLhs = `std::string(id(${ent.replace(/\./g, "_")}).state)`;
-        if (op === "==") return `if (${baseLhs} == "${targetVal}") {`;
-        if (op === "!=") return `if (${baseLhs} != "${targetVal}") {`;
-    }
-
-    // New Feature (Issue #159/#196): Fast Boolean Inversion
-    const checkTargetValue = w.condition_invert ? "false" : "true";
-
-    // Handle standard Home Assistant binary domains natively
-    if (isState) {
+    if (isState && isStrMatching) {
+        const checkTargetValue = getBinaryConditionLiteral(targetVal, !!w.condition_invert);
         if (op === "==") return `if (${baseLhs} == ${checkTargetValue}) {`;
         if (op === "!=") return `if (${baseLhs} != ${checkTargetValue}) {`;
+    }
+
+    if (!isState && isStrMatching && (isNonNumeric || isTextCondition || isTextEntity)) {
+        // Safe C++ string comparison
+        baseLhs = `std::string(id(${makeSafeId(ent, undefined, "_txt")}).state)`;
+        if (op === "==") return `if (${baseLhs} == "${targetVal}") {`;
+        if (op === "!=") return `if (${baseLhs} != "${targetVal}") {`;
     }
 
     // Numeric Comparisons
@@ -94,8 +133,8 @@ function getConditionCheck(w) {
 
     // Dual Entity Comparison
     if (op === "compare_entity" && w.condition_entity_2) {
-        const lhs = `id(${ent.replace(/\./g, "_")}).state`;
-        const rhs = `id(${w.condition_entity_2.replace(/\./g, "_")}).state`;
+        const lhs = `id(${makeSafeId(ent)}).state`;
+        const rhs = `id(${makeSafeId(w.condition_entity_2)}).state`;
         return `if (${lhs} == ${rhs}) {`;
     }
 
