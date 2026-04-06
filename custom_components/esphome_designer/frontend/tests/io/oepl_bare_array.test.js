@@ -94,6 +94,8 @@ describe('OEPL Bare Array Parsing', () => {
     expect(rectWidget.y).toBe(93);
     expect(rectWidget.width).toBe(100);  // 126 - 26
     expect(rectWidget.height).toBe(50);  // 143 - 93
+    expect(rectWidget.props.bg_color).toBe('white');
+    expect(rectWidget.props.border_color).toBe('black');
   });
 
   it('should correctly parse circle widget', async () => {
@@ -105,6 +107,8 @@ describe('OEPL Bare Array Parsing', () => {
     expect(circleWidget.y).toBe(99);   // 124 - 25
     expect(circleWidget.width).toBe(50);  // diameter
     expect(circleWidget.height).toBe(50);
+    expect(circleWidget.props.bg_color).toBe('black');
+    expect(circleWidget.props.border_color).toBe('black');
   });
 
   it('should correctly parse icon widget', async () => {

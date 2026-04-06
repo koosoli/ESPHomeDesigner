@@ -106,3 +106,37 @@ display:
 
         self.assertEqual(device.pages[0].widgets[0].id, "greeting")
         self.assertEqual(device.pages[0].widgets[0].props["text"], "Tagged")
+
+    def test_yaml_to_layout_parses_energy_widget_marker_props(self):
+        device = self.yaml_parser.yaml_to_layout(
+            """
+display:
+  - platform: waveshare_epaper
+    id: epaper_display
+    lambda: |-
+      if (page == 0) {
+        // widget:energy_widget id:energy type:energy_widget x:10 y:20 w:220 h:140 title:"Energy" solar_entity:sensor.solar_power solar_to_home_entity:sensor.solar_to_home solar_to_grid_entity:sensor.solar_to_grid solar_to_battery_entity:sensor.solar_to_battery autoconsumption_percent_entity:sensor.solar_self_use_pct home_entity:sensor.home_power grid_entity:sensor.grid_power battery_power_entity:sensor.battery_power battery_soc_entity:sensor.battery_soc show_gas:true gas_entity:sensor.gas_today grid_positive_mode:export battery_positive_mode:discharging flow_unit:kW gas_unit:m3 decimals:1
+      }
+"""
+        )
+
+        widget = device.pages[0].widgets[0]
+        self.assertEqual(widget.type, "energy_widget")
+        self.assertEqual(widget.props["title"], "Energy")
+        self.assertEqual(widget.props["solar_entity"], "sensor.solar_power")
+        self.assertEqual(widget.props["solar_to_home_entity"], "sensor.solar_to_home")
+        self.assertEqual(widget.props["solar_to_grid_entity"], "sensor.solar_to_grid")
+        self.assertEqual(widget.props["solar_to_battery_entity"], "sensor.solar_to_battery")
+        self.assertEqual(widget.props["autoconsumption_percent_entity"], "sensor.solar_self_use_pct")
+        self.assertEqual(widget.props["home_entity"], "sensor.home_power")
+        self.assertEqual(widget.props["grid_entity"], "sensor.grid_power")
+        self.assertEqual(widget.props["battery_power_entity"], "sensor.battery_power")
+        self.assertEqual(widget.props["battery_soc_entity"], "sensor.battery_soc")
+        self.assertTrue(widget.props["show_battery"])
+        self.assertTrue(widget.props["show_gas"])
+        self.assertEqual(widget.props["gas_entity"], "sensor.gas_today")
+        self.assertEqual(widget.props["grid_positive_mode"], "export")
+        self.assertEqual(widget.props["battery_positive_mode"], "discharging")
+        self.assertEqual(widget.props["flow_unit"], "kW")
+        self.assertEqual(widget.props["gas_unit"], "m3")
+        self.assertEqual(widget.props["decimals"], 1)

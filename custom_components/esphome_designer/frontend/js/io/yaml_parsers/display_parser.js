@@ -252,7 +252,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
                     id: p.id, type: widgetType,
                     x: parseInt(String(p.x || 0), 10), y: parseInt(String(p.y || 0), 10),
                     width: parseInt(String(p.w || 100), 10), height: parseInt(String(p.h || 30), 10),
-                    title: p.title || "", entity_id: p.entity || p.ent || "",
+                    title: p.title || "", entity_id: p.entity || p.ent || p.entity_id,
                     props: {}
                 };
 
@@ -294,7 +294,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
                 width: parseInt(String(nativeProps.width || nativeProps.w || 100), 10),
                 height: parseInt(String(nativeProps.height || nativeProps.h || 30), 10),
                 title: nativeProps.title || nativeProps.name || "",
-                entity_id: nativeProps.entity_id || nativeProps.entity || nativeProps.sensor || "",
+                entity_id: nativeProps.entity_id || nativeProps.entity || nativeProps.sensor,
                 props: {}
             };
 

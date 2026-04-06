@@ -1,4 +1,5 @@
 import { clampFontWeight } from '@core/font_weights.js';
+import { getCalendarEventSummaryCharLimit } from './layout.js';
 
 export const onExportTextSensors = (context) => {
         const { lines, widgets } = context;
@@ -206,6 +207,7 @@ export const exportDirect = (w, context) => {
         const dayFontSize = parseInt(p.font_size_day || 24, 10);
         const gridFontSize = parseInt(p.font_size_grid || 14, 10);
         const eventFontSize = parseInt(p.font_size_event || 18, 10);
+        const eventSummaryCharLimit = getCalendarEventSummaryCharLimit(w.width, eventFontSize);
         const fontFamily = p.font_family || "Roboto";
 
         const getW = (key, def) => {
@@ -355,7 +357,7 @@ export const exportDirect = (w, context) => {
             lines.push(`                             it.printf(x + 10, eventY, id(${fontEventId}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
             lines.push(``);
             lines.push(`                             // Draw Summary`);
-            lines.push(`                             it.printf(x + 50, eventY, id(${fontEventId}), ${color}, TextAlign::TOP_LEFT, "%.25s", summary);`);
+            lines.push(`                             it.printf(x + 50, eventY, id(${fontEventId}), ${color}, TextAlign::TOP_LEFT, "%.${eventSummaryCharLimit}s", summary);`);
             lines.push(``);
             lines.push(`                             // Draw Time`);
             lines.push(`                             if (is_all_day) {`);

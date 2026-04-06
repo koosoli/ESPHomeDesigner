@@ -198,7 +198,7 @@ describe('touch and shape plugin cluster', () => {
             getColorStyle: (value) => value
         });
 
-        expect(roundedHost.style.border).toBe('3px solid white');
+        expect(roundedHost.style.border).toBe('0px solid white');
         expect(roundedHost.style.borderRadius).toBe('12px');
         expect(roundedRectPlugin.exportLVGL({
             props: {
@@ -275,6 +275,10 @@ describe('touch and shape plugin cluster', () => {
         expect(lvgl.obj.widgets[1].button.on_click).toEqual([
             { 'script.execute': 'manage_run_and_sleep' }
         ]);
+        expect(lvgl.obj.bg_opa).toBe('transp');
+        expect(lvgl.obj.bg_color).toBeUndefined();
+        expect(lvgl.obj.border_width).toBe(0);
+        expect(lvgl.obj.radius).toBe(0);
 
         const sensorContext = {
             lines: [],

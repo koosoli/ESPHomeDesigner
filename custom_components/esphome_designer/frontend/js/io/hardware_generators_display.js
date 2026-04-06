@@ -3,6 +3,24 @@
  */
 
 /**
+ * ESP32 GPIO34-39 are input-only. Recent ESPHome GT911 releases require an
+ * output-capable interrupt pin, so those pins must fall back to polling.
+ *
+ * @param {unknown} pin
+ * @returns {boolean}
+ */
+function isClassicEsp32InputOnlyPin(pin) {
+    const raw = (typeof pin === "object" && pin !== null)
+        ? /** @type {{ number?: unknown }} */ (pin).number
+        : pin;
+    if (typeof raw !== "string" && typeof raw !== "number") return false;
+    const match = String(raw).trim().match(/^GPIO(\d+)$/i);
+    if (!match) return false;
+    const gpio = Number.parseInt(match[1], 10);
+    return gpio >= 34 && gpio <= 39;
+}
+
+/**
  * @param {HardwareProfileLike | null | undefined} profile
  * @param {string} [displayId="my_display"]
  * @param {number} [_displayRotation=0]
@@ -14,6 +32,10 @@ export function generateTouchscreenSection(profile, displayId = "my_display", _d
     if (!profile || !profile.touch) return [];
 
     const t = profile.touch;
+    const useGt911PollingFallback =
+        profile.chip === "esp32" &&
+        t.platform === "gt911" &&
+        isClassicEsp32InputOnlyPin(t.interrupt_pin);
     /** @type {string[]} */
     const lines = ["touchscreen:"];
     lines.push(`  - platform: ${t.platform}`);
@@ -23,7 +45,11 @@ export function generateTouchscreenSection(profile, displayId = "my_display", _d
     if (t.i2c_id) lines.push(`    i2c_id: ${t.i2c_id}`);
     if (t.spi_id) lines.push(`    spi_id: ${t.spi_id}`);
     if (t.address) lines.push(`    address: ${t.address}`);
-    if (t.update_interval) lines.push(`    update_interval: ${t.update_interval}`);
+    if (useGt911PollingFallback) {
+        lines.push(`    update_interval: ${t.update_interval && t.update_interval !== "never" ? t.update_interval : "50ms"}`);
+    } else if (t.update_interval) {
+        lines.push(`    update_interval: ${t.update_interval}`);
+    }
 
     /**
      * @param {string} key
@@ -39,7 +65,7 @@ export function generateTouchscreenSection(profile, displayId = "my_display", _d
         Object.entries(val).forEach(([k, v]) => lines.push(`      ${k}: ${v}`));
     };
 
-    addPin("interrupt_pin", t.interrupt_pin);
+    if (!useGt911PollingFallback) addPin("interrupt_pin", t.interrupt_pin);
     addPin("reset_pin", t.reset_pin);
     addPin("cs_pin", t.cs_pin);
 

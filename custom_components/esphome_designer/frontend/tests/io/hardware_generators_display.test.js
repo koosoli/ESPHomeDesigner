@@ -43,6 +43,26 @@ describe('hardware_generators_display', () => {
         expect(lines).toContain('      x_max: 480');
     });
 
+    it('falls back to polling for GT911 on classic ESP32 input-only interrupt pins', () => {
+        const lines = generateTouchscreenSection({
+            chip: 'esp32',
+            touch: {
+                platform: 'gt911',
+                i2c_id: 'bus_a',
+                address: '0x5D',
+                update_interval: 'never',
+                interrupt_pin: 'GPIO36',
+                transform: {
+                    swap_xy: true
+                }
+            }
+        }, 'epaper_display');
+
+        expect(lines).toContain('    update_interval: 50ms');
+        expect(lines).not.toContain('    interrupt_pin: GPIO36');
+        expect(lines).toContain('      swap_xy: true');
+    });
+
     it('generates switch-backed and PWM-backed backlight sections', () => {
         const switchLines = generateBacklightSection({
             backlight: {

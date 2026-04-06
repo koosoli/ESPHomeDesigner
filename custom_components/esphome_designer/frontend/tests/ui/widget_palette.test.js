@@ -77,6 +77,19 @@ describe('widget_palette', () => {
         expect(getCategoryExpansion(WIDGET_CATEGORIES.find((category) => category.id === 'opendisplay'), 'oepl')).toBe(true);
     });
 
+    it('keeps astronomy widgets in their own category while weather icon stays in core', async () => {
+        const { WIDGET_CATEGORIES } = await import('../../js/ui/widget_palette.js');
+
+        const astronomy = WIDGET_CATEGORIES.find((category) => category.id === 'astronomy');
+        const core = WIDGET_CATEGORIES.find((category) => category.id === 'core');
+
+        expect(astronomy).toBeTruthy();
+        expect(astronomy.widgets.map((widget) => widget.type)).toEqual(['moon_phase', 'sun_times']);
+        expect(core.widgets.map((widget) => widget.type)).toContain('weather_icon');
+        expect(core.widgets.map((widget) => widget.type)).not.toContain('moon_phase');
+        expect(core.widgets.map((widget) => widget.type)).not.toContain('sun_times');
+    });
+
     it('calculates compatibility by rendering mode', async () => {
         const { getWidgetCompatibility } = await import('../../js/ui/widget_palette.js');
 

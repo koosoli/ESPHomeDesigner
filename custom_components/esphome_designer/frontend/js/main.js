@@ -40,6 +40,25 @@ import { HierarchyView } from './ui/hierarchy_view.js';
 installIgnorableRejectionHandler();
 
 /** @typedef {ReturnType<typeof setTimeout>} TimerHandle */
+export const EDITOR_SELF_HEAL_INTERVAL_MS = 60000;
+export const EDITOR_RECOVERY_KEY = '__ESPHOME_DESIGNER_EDITOR_RECOVERY__';
+
+/**
+ * @param {Location | { pathname?: string } | null | undefined} [locationLike]
+ * @returns {boolean}
+ */
+export function isEditorDocumentContext(locationLike = globalThis.location) {
+    const pathname = locationLike?.pathname || '';
+    return pathname.includes('/esphome-designer/editor/index.html');
+}
+
+/**
+ * @param {Document} [root]
+ * @returns {boolean}
+ */
+export function isBlankEditorSurface(root = document) {
+    return root.readyState !== 'loading' && !hasBootstrapSurface(root);
+}
 
 export class App {
     constructor() {
@@ -326,6 +345,93 @@ export async function bootstrapApp() {
     return setBootPromise(bootPromise);
 }
 
+/**
+ * @param {{
+ *   root?: Document,
+ *   runtimeGlobal?: any,
+ *   reload?: () => void,
+ *   bootstrap?: typeof bootstrapApp,
+ *   logger?: typeof Logger
+ * }} [options]
+ * @returns {Promise<boolean>}
+ */
+export async function recoverEditorRuntimeIfNeeded({
+    root = document,
+    runtimeGlobal = globalThis,
+    reload = () => runtimeGlobal.location?.reload?.(),
+    bootstrap = bootstrapApp,
+    logger = Logger
+} = {}) {
+    if (!root || root.readyState === 'loading' || root.visibilityState === 'hidden') {
+        return false;
+    }
+
+    if (isBlankEditorSurface(root)) {
+        logger.warn('[App] Blank editor surface detected; reloading editor runtime.');
+        clearBootPromise(runtimeGlobal);
+        reload();
+        return true;
+    }
+
+    if (!getBootPromise(runtimeGlobal) && !runtimeGlobal.ESPHomeDesigner?.app) {
+        logger.warn('[App] Editor shell is present but runtime is missing; bootstrapping again.');
+        await bootstrap();
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * @param {{
+ *   root?: Document,
+ *   targetWindow?: Window & typeof globalThis,
+ *   runtimeGlobal?: any,
+ *   intervalMs?: number
+ * }} [options]
+ * @returns {boolean}
+ */
+export function installEditorRuntimeRecovery({
+    root = document,
+    targetWindow = window,
+    runtimeGlobal = globalThis,
+    intervalMs = EDITOR_SELF_HEAL_INTERVAL_MS
+} = {}) {
+    if (!isEditorDocumentContext(targetWindow?.location)) {
+        return false;
+    }
+
+    if (!root || typeof root.addEventListener !== 'function' || !targetWindow || typeof targetWindow.addEventListener !== 'function') {
+        return false;
+    }
+
+    if (runtimeGlobal[EDITOR_RECOVERY_KEY]) {
+        return false;
+    }
+
+    const runRecovery = () => {
+        void recoverEditorRuntimeIfNeeded({
+            root,
+            runtimeGlobal,
+            reload: () => targetWindow.location.reload(),
+        });
+    };
+
+    root.addEventListener('visibilitychange', runRecovery);
+    targetWindow.addEventListener('focus', runRecovery);
+    targetWindow.addEventListener('pageshow', runRecovery);
+
+    const intervalId = typeof targetWindow.setInterval === 'function'
+        ? targetWindow.setInterval(runRecovery, intervalMs)
+        : null;
+
+    runtimeGlobal[EDITOR_RECOVERY_KEY] = {
+        intervalId,
+        runRecovery
+    };
+    return true;
+}
+
 function autoBootstrapApp() {
     if (!hasBootstrapSurface()) {
         return;
@@ -333,6 +439,8 @@ function autoBootstrapApp() {
 
     void bootstrapApp();
 }
+
+installEditorRuntimeRecovery();
 
 document.addEventListener('DOMContentLoaded', autoBootstrapApp, { once: true });
 

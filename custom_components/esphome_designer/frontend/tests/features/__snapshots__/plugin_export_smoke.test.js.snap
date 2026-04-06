@@ -515,6 +515,489 @@ exports[`Plugin Export Smoke Tests > Export for debug_grid > should export OpenD
 }
 `;
 
+exports[`Plugin Export Smoke Tests > Export for energy_widget > should export LVGL with stable output 1`] = `
+{
+  "obj": {
+    "bg_opa": "transp",
+    "border_color": "Color(theme_auto)",
+    "border_width": 1,
+    "radius": 12,
+    "widgets": [
+      {
+        "line": {
+          "id": "w_test_solar_flow",
+          "line_color": "Color(#8a8a8a)",
+          "line_width": 1,
+          "points": [
+            {
+              "x": 90,
+              "y": 42,
+            },
+            {
+              "x": 90,
+              "y": 43,
+            },
+          ],
+        },
+      },
+      {
+        "line": {
+          "id": "w_test_grid_flow",
+          "line_color": "Color(#8a8a8a)",
+          "line_width": 1,
+          "points": [
+            {
+              "x": 69,
+              "y": 60,
+            },
+            {
+              "x": 59,
+              "y": 60,
+            },
+          ],
+        },
+      },
+      {
+        "line": {
+          "id": "w_test_battery_flow",
+          "line_color": "Color(#8a8a8a)",
+          "line_width": 1,
+          "points": [
+            {
+              "x": 121,
+              "y": 60,
+            },
+            {
+              "x": 111,
+              "y": 60,
+            },
+          ],
+        },
+      },
+      {
+        "label": {
+          "height": 20,
+          "id": "w_test_solar_arrow",
+          "text": "" "",
+          "text_align": "center",
+          "text_color": "Color(#3b7c3f)",
+          "text_font": "font_ptr",
+          "width": 20,
+          "x": 80,
+          "y": 33,
+        },
+      },
+      {
+        "label": {
+          "height": 12,
+          "id": "w_test_solar_label",
+          "text": """",
+          "text_align": "center",
+          "text_color": "Color(#3b7c3f)",
+          "text_font": "font_ptr",
+          "width": 84,
+          "x": 48,
+          "y": 31,
+        },
+      },
+      {
+        "label": {
+          "height": 20,
+          "id": "w_test_grid_arrow",
+          "text": "" "",
+          "text_align": "center",
+          "text_color": "Color(#3b7c3f)",
+          "text_font": "font_ptr",
+          "width": 20,
+          "x": 54,
+          "y": 50,
+        },
+      },
+      {
+        "label": {
+          "height": 12,
+          "id": "w_test_grid_label",
+          "text": """",
+          "text_align": "center",
+          "text_color": "Color(#3b7c3f)",
+          "text_font": "font_ptr",
+          "width": 96,
+          "x": 16,
+          "y": 48,
+        },
+      },
+      {
+        "label": {
+          "height": 20,
+          "id": "w_test_battery_arrow",
+          "text": "" "",
+          "text_align": "center",
+          "text_color": "Color(#3b7c3f)",
+          "text_font": "font_ptr",
+          "width": 20,
+          "x": 106,
+          "y": 50,
+        },
+      },
+      {
+        "label": {
+          "height": 12,
+          "id": "w_test_battery_label",
+          "text": """",
+          "text_align": "center",
+          "text_color": "Color(#3b7c3f)",
+          "text_font": "font_ptr",
+          "width": 96,
+          "x": 68,
+          "y": 48,
+        },
+      },
+      {
+        "obj": {
+          "bg_opa": "transp",
+          "border_color": "Color(theme_auto)",
+          "border_width": 1,
+          "height": 34,
+          "pad_all": 0,
+          "radius": 12,
+          "widgets": [
+            {
+              "label": {
+                "height": 15,
+                "text": ""Solar"",
+                "text_align": "center",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "width": 62,
+                "x": 0,
+                "y": 3,
+              },
+            },
+            {
+              "label": {
+                "height": 17,
+                "text": ""--"",
+                "text_align": "center",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "width": 62,
+                "x": 0,
+                "y": 16,
+              },
+            },
+            {
+              "label": {
+                "height": 15,
+                "text": """",
+                "text_align": "center",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "width": 62,
+                "x": 0,
+                "y": 19,
+              },
+            },
+          ],
+          "width": 62,
+          "x": 59,
+          "y": 8,
+        },
+      },
+      {
+        "obj": {
+          "bg_opa": "transp",
+          "border_color": "Color(theme_auto)",
+          "border_width": 1,
+          "height": 34,
+          "pad_all": 0,
+          "radius": 12,
+          "widgets": [
+            {
+              "label": {
+                "height": 15,
+                "text": ""Home"",
+                "text_align": "center",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "width": 62,
+                "x": 0,
+                "y": 3,
+              },
+            },
+            {
+              "label": {
+                "height": 17,
+                "text": ""--"",
+                "text_align": "center",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "width": 62,
+                "x": 0,
+                "y": 12,
+              },
+            },
+          ],
+          "width": 62,
+          "x": 59,
+          "y": 43,
+        },
+      },
+      {
+        "obj": {
+          "bg_opa": "transp",
+          "border_color": "Color(theme_auto)",
+          "border_width": 1,
+          "height": 34,
+          "pad_all": 0,
+          "radius": 12,
+          "widgets": [
+            {
+              "label": {
+                "height": 15,
+                "text": ""Grid"",
+                "text_align": "center",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "width": 58,
+                "x": 0,
+                "y": 3,
+              },
+            },
+            {
+              "label": {
+                "height": 17,
+                "text": ""--"",
+                "text_align": "center",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "width": 58,
+                "x": 0,
+                "y": 16,
+              },
+            },
+            {
+              "label": {
+                "height": 15,
+                "text": """",
+                "text_align": "center",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "width": 58,
+                "x": 0,
+                "y": 19,
+              },
+            },
+          ],
+          "width": 58,
+          "x": 11,
+          "y": 43,
+        },
+      },
+      {
+        "obj": {
+          "bg_opa": "transp",
+          "border_color": "Color(theme_auto)",
+          "border_width": 1,
+          "height": 34,
+          "pad_all": 0,
+          "radius": 12,
+          "widgets": [
+            {
+              "label": {
+                "height": 15,
+                "text": ""Battery"",
+                "text_align": "center",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "width": 58,
+                "x": 0,
+                "y": 3,
+              },
+            },
+            {
+              "label": {
+                "height": 17,
+                "text": ""--"",
+                "text_align": "center",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "width": 58,
+                "x": 0,
+                "y": 16,
+              },
+            },
+            {
+              "label": {
+                "height": 15,
+                "text": ""--"",
+                "text_align": "center",
+                "text_color": "Color(theme_auto)",
+                "text_font": "font_ptr",
+                "width": 58,
+                "x": 0,
+                "y": 19,
+              },
+            },
+          ],
+          "width": 58,
+          "x": 111,
+          "y": 43,
+        },
+      },
+    ],
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for energy_widget > should export standard C++ with stable output 1`] = `
+[
+  "        {",
+  "        it.rectangle(10 + 0, 10 + 0, 100 - 0, 100 - 0, Color(theme_auto));",
+  "          char solar_buf[32] = "--";",
+  "          float solar_value = 0.0f;",
+  "          bool solar_valid = false;",
+  "          char solar_to_home_buf[32] = "";",
+  "          float solar_to_home_value = 0.0f;",
+  "          bool solar_to_home_valid = false;",
+  "          char solar_to_grid_buf[32] = "";",
+  "          float solar_to_grid_value = 0.0f;",
+  "          bool solar_to_grid_valid = false;",
+  "          char solar_to_battery_buf[32] = "";",
+  "          float solar_to_battery_value = 0.0f;",
+  "          bool solar_to_battery_valid = false;",
+  "          char autoconsumption_pct_buf[32] = "";",
+  "          float autoconsumption_pct_value = 0.0f;",
+  "          bool autoconsumption_pct_valid = false;",
+  "          char home_buf[32] = "--";",
+  "          float home_value = 0.0f;",
+  "          bool home_valid = false;",
+  "          char grid_buf[32] = "--";",
+  "          float grid_value = 0.0f;",
+  "          bool grid_valid = false;",
+  "          char battery_power_buf[32] = "--";",
+  "          float battery_power_value = 0.0f;",
+  "          bool battery_power_valid = false;",
+  "          char battery_soc_buf[32] = "--";",
+  "          float battery_soc_value = 0.0f;",
+  "          bool battery_soc_valid = false;",
+  "          char gas_buf[32] = "--";",
+  "          float gas_value = 0.0f;",
+  "          bool gas_valid = false;",
+  "          bool solar_active = solar_valid && (solar_value > 0.05f || solar_value < -0.05f);",
+  "          bool gas_active = gas_valid && (gas_value > 0.05f || gas_value < -0.05f);",
+  "          const char* solar_arrow = solar_active ? "v" : " ";",
+  "          const char* gas_arrow = gas_active ? "^" : " ";",
+  "          auto flow_color = Color(#3b7c3f);",
+  "          auto inactive_flow_color = Color(#8a8a8a);",
+  "          const char* grid_arrow = " ";",
+  "          const char* grid_label = "";",
+  "          bool grid_active = false;",
+  "          if (grid_valid && (grid_value > 0.05f || grid_value < -0.05f)) {",
+  "            grid_active = true;",
+  "            if (grid_value > 0.0f) { grid_arrow = ">"; grid_label = "Import"; }",
+  "            else { grid_arrow = "<"; grid_label = "Export"; }",
+  "          }",
+  "          const char* battery_arrow = " ";",
+  "          const char* battery_label = "";",
+  "          bool battery_active = false;",
+  "          if (battery_power_valid && (battery_power_value > 0.05f || battery_power_value < -0.05f)) {",
+  "            battery_active = true;",
+  "            if (battery_power_value > 0.0f) { battery_arrow = ">"; battery_label = "Charging"; }",
+  "            else { battery_arrow = "<"; battery_label = "Discharging"; }",
+  "          }",
+  "          if (solar_to_grid_valid && solar_to_grid_value < 0.0f) solar_to_grid_value = 0.0f;",
+  "          if (solar_to_home_valid && solar_to_home_value < 0.0f) solar_to_home_value = 0.0f;",
+  "          if (solar_to_battery_valid && solar_to_battery_value < 0.0f) solar_to_battery_value = 0.0f;",
+  "          if (autoconsumption_pct_valid) {",
+  "            if (autoconsumption_pct_value < 0.0f) autoconsumption_pct_value = 0.0f;",
+  "            if (autoconsumption_pct_value > 100.0f) autoconsumption_pct_value = 100.0f;",
+  "            sprintf(autoconsumption_pct_buf, "%.0f%%", autoconsumption_pct_value);",
+  "          }",
+  "          if (!solar_to_grid_valid && grid_active && strcmp(grid_label, "Export") == 0) {",
+  "            solar_to_grid_value = fabsf(grid_value);",
+  "            solar_to_grid_valid = true;",
+  "            sprintf(solar_to_grid_buf, "%.0f W", solar_to_grid_value);",
+  "          }",
+  "          if (!autoconsumption_pct_valid && solar_valid && solar_value > 0.05f) {",
+  "            float solar_self_consumed = solar_value - (solar_to_grid_valid ? solar_to_grid_value : 0.0f);",
+  "            if (solar_self_consumed < 0.0f) solar_self_consumed = 0.0f;",
+  "            if (solar_self_consumed > solar_value) solar_self_consumed = solar_value;",
+  "            autoconsumption_pct_value = (solar_self_consumed / solar_value) * 100.0f;",
+  "            if (autoconsumption_pct_value < 0.0f) autoconsumption_pct_value = 0.0f;",
+  "            if (autoconsumption_pct_value > 100.0f) autoconsumption_pct_value = 100.0f;",
+  "            autoconsumption_pct_valid = true;",
+  "            sprintf(autoconsumption_pct_buf, "%.0f%%", autoconsumption_pct_value);",
+  "          }",
+  "          if (!solar_to_home_valid && solar_valid && solar_value > 0.05f && solar_to_battery_valid) {",
+  "            float solar_self_consumed = solar_value - (solar_to_grid_valid ? solar_to_grid_value : 0.0f);",
+  "            if (solar_self_consumed < 0.0f) solar_self_consumed = 0.0f;",
+  "            if (solar_self_consumed > solar_value) solar_self_consumed = solar_value;",
+  "            solar_to_home_value = solar_self_consumed - solar_to_battery_value;",
+  "            if (solar_to_home_value < 0.0f) solar_to_home_value = 0.0f;",
+  "            solar_to_home_valid = true;",
+  "            sprintf(solar_to_home_buf, "%.0f W", solar_to_home_value);",
+  "          }",
+  "          char solar_subvalue_buf[32] = "";",
+  "          if (autoconsumption_pct_valid) {",
+  "            snprintf(solar_subvalue_buf, sizeof(solar_subvalue_buf), "Self %.0f%%", autoconsumption_pct_value);",
+  "          }",
+  "          char solar_flow_label_buf[32] = "";",
+  "          if (solar_to_home_valid && solar_to_home_value > 0.05f) {",
+  "            snprintf(solar_flow_label_buf, sizeof(solar_flow_label_buf), "Home %.0f W", solar_to_home_value);",
+  "          }",
+  "          char grid_flow_label_buf[32] = "";",
+  "          if (grid_active) {",
+  "            float grid_flow_value = strcmp(grid_label, "Export") == 0 && solar_to_grid_valid ? solar_to_grid_value : fabsf(grid_value);",
+  "            if (grid_flow_value < 0.0f) grid_flow_value = 0.0f;",
+  "            if (strcmp(grid_label, "Export") == 0) {",
+  "              snprintf(grid_flow_label_buf, sizeof(grid_flow_label_buf), "Export %.0f W", grid_flow_value);",
+  "            } else {",
+  "              snprintf(grid_flow_label_buf, sizeof(grid_flow_label_buf), "Import %.0f W", grid_flow_value);",
+  "            }",
+  "          }",
+  "          char battery_flow_label_buf[32] = "";",
+  "          if (battery_active) {",
+  "            if (strcmp(battery_label, "Charging") == 0 && solar_to_battery_valid && solar_to_battery_value > 0.05f) {",
+  "              snprintf(battery_flow_label_buf, sizeof(battery_flow_label_buf), "Solar %.0f W", solar_to_battery_value);",
+  "            } else {",
+  "              float battery_flow_value = fabsf(battery_power_value);",
+  "              if (strcmp(battery_label, "Charging") == 0) {",
+  "                snprintf(battery_flow_label_buf, sizeof(battery_flow_label_buf), "Charging %.0f W", battery_flow_value);",
+  "              } else {",
+  "                snprintf(battery_flow_label_buf, sizeof(battery_flow_label_buf), "Discharging %.0f W", battery_flow_value);",
+  "              }",
+  "            }",
+  "          }",
+  "        it.line(100, 52, 100, 53, solar_active ? flow_color : inactive_flow_color);",
+  "        it.printf(100, 53, id(font_id), solar_active ? flow_color : inactive_flow_color, TextAlign::CENTER, "%s", solar_arrow);",
+  "        it.printf(100, 43, id(font_id), solar_active ? flow_color : inactive_flow_color, TextAlign::CENTER, "%s", solar_flow_label_buf);",
+  "        it.line(79, 70, 69, 70, grid_active ? flow_color : inactive_flow_color);",
+  "        it.printf(74, 70, id(font_id), grid_active ? flow_color : inactive_flow_color, TextAlign::CENTER, "%s", grid_arrow);",
+  "        it.printf(74, 60, id(font_id), grid_active ? flow_color : inactive_flow_color, TextAlign::CENTER, "%s", grid_flow_label_buf);",
+  "        it.line(131, 70, 121, 70, battery_active ? flow_color : inactive_flow_color);",
+  "        it.printf(126, 70, id(font_id), battery_active ? flow_color : inactive_flow_color, TextAlign::CENTER, "%s", battery_arrow);",
+  "        it.printf(126, 60, id(font_id), battery_active ? flow_color : inactive_flow_color, TextAlign::CENTER, "%s", battery_flow_label_buf);",
+  "        it.rectangle(69 + 0, 18 + 0, 62 - 0, 34 - 0, Color(theme_auto));",
+  "        it.printf(100, 22, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "Solar");",
+  "        it.printf(100, 34, id(font_id), Color(theme_auto), TextAlign::CENTER, "%s", solar_buf);",
+  "        it.printf(100, 47, id(font_id), Color(theme_auto), TextAlign::BOTTOM_CENTER, "%s", solar_subvalue_buf);",
+  "        it.rectangle(69 + 0, 53 + 0, 62 - 0, 34 - 0, Color(theme_auto));",
+  "        it.printf(100, 57, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "Home");",
+  "        it.printf(100, 70, id(font_id), Color(theme_auto), TextAlign::CENTER, "%s", home_buf);",
+  "        it.rectangle(21 + 0, 53 + 0, 58 - 0, 34 - 0, Color(theme_auto));",
+  "        it.printf(50, 57, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "Grid");",
+  "        it.printf(50, 69, id(font_id), Color(theme_auto), TextAlign::CENTER, "%s", grid_buf);",
+  "        it.printf(50, 82, id(font_id), Color(theme_auto), TextAlign::BOTTOM_CENTER, "%s", grid_label);",
+  "        it.rectangle(121 + 0, 53 + 0, 58 - 0, 34 - 0, Color(theme_auto));",
+  "        it.printf(150, 57, id(font_id), Color(theme_auto), TextAlign::TOP_CENTER, "Battery");",
+  "        it.printf(150, 69, id(font_id), Color(theme_auto), TextAlign::CENTER, "%s", battery_power_buf);",
+  "        it.printf(150, 82, id(font_id), Color(theme_auto), TextAlign::BOTTOM_CENTER, "%s", battery_soc_buf);",
+  "        }",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for energy_widget > should handle onExportNumericSensors with stable output 1`] = `[]`;
+
 exports[`Plugin Export Smoke Tests > Export for graph > should export LVGL with stable output 1`] = `
 {
   "obj": {
@@ -803,7 +1286,7 @@ exports[`Plugin Export Smoke Tests > Export for line > should export LVGL with s
   "line": {
     "line_color": "Color(theme_auto)",
     "line_rounded": true,
-    "line_width": 3,
+    "line_width": 1,
     "opa": 255,
     "points": [
       {
@@ -823,7 +1306,7 @@ exports[`Plugin Export Smoke Tests > Export for line > should export OEPL with s
 {
   "color": "theme_auto",
   "type": "line",
-  "width": 3,
+  "width": 1,
   "x_end": 110,
   "x_start": 10,
   "y_end": 10,
@@ -835,7 +1318,7 @@ exports[`Plugin Export Smoke Tests > Export for line > should export OpenDisplay
 {
   "fill": "black",
   "type": "line",
-  "width": 3,
+  "width": 1,
   "x_end": 110,
   "x_start": 10,
   "y_end": 10,
@@ -845,7 +1328,7 @@ exports[`Plugin Export Smoke Tests > Export for line > should export OpenDisplay
 
 exports[`Plugin Export Smoke Tests > Export for line > should export standard C++ with stable output 1`] = `
 [
-  "        it.filled_rectangle(10, 10, 100, 3, Color(theme_auto));",
+  "        it.filled_rectangle(10, 10, 100, 1, Color(theme_auto));",
 ]
 `;
 
@@ -1357,6 +1840,91 @@ exports[`Plugin Export Smoke Tests > Export for lvgl_tileview > should export LV
     ],
   },
 }
+`;
+
+exports[`Plugin Export Smoke Tests > Export for moon_phase > should export LVGL with stable output 1`] = `
+{
+  "label": {
+    "text": "!lambda |-
+          std::string moon_state = id(sensor_moon_txt).state;
+          std::string normalized = "";
+          for (auto c : moon_state) {
+            if (c == '-' || c == ' ') normalized += '_';
+            else normalized += static_cast<char>(tolower(static_cast<unsigned char>(c)));
+          }
+          if (normalized == "waxing_crescent") return "\\U000F0F67";
+          if (normalized == "first_quarter") return "\\U000F0F61";
+          if (normalized == "waxing_gibbous") return "\\U000F0F68";
+          if (normalized == "full_moon") return "\\U000F0F62";
+          if (normalized == "waning_gibbous") return "\\U000F0F66";
+          if (normalized == "last_quarter") return "\\U000F0F63";
+          if (normalized == "waning_crescent") return "\\U000F0F65";
+          if (normalized == "new_moon") return "\\U000F0F64";
+          return "\\U000F0F67";",
+    "text_align": "center",
+    "text_color": "Color(theme_auto)",
+    "text_font": "font_ptr",
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for moon_phase > should export OEPL with stable output 1`] = `
+{
+  "anchor": "lt",
+  "color": "theme_auto",
+  "size": 48,
+  "type": "icon",
+  "value": "{{ { 'waxing_crescent': 'moon-waxing-crescent', 'first_quarter': 'moon-first-quarter', 'waxing_gibbous': 'moon-waxing-gibbous', 'full_moon': 'moon-full', 'waning_gibbous': 'moon-waning-gibbous', 'last_quarter': 'moon-last-quarter', 'waning_crescent': 'moon-waning-crescent', 'new_moon': 'moon-new' }[states('sensor.moon') | lower | replace('-', '_') | replace(' ', '_')] | default('moon-waxing-crescent') }}",
+  "x": 10,
+  "y": 10,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for moon_phase > should export OpenDisplay with stable output 1`] = `
+{
+  "anchor": "mm",
+  "fill": "black",
+  "size": 48,
+  "type": "icon",
+  "value": "{{ { 'waxing_crescent': 'moon-waxing-crescent', 'first_quarter': 'moon-first-quarter', 'waxing_gibbous': 'moon-waxing-gibbous', 'full_moon': 'moon-full', 'waning_gibbous': 'moon-waning-gibbous', 'last_quarter': 'moon-last-quarter', 'waning_crescent': 'moon-waning-crescent', 'new_moon': 'moon-new' }[states('sensor.moon') | lower | replace('-', '_') | replace(' ', '_')] | default('moon-waxing-crescent') }}",
+  "x": 60,
+  "y": 60,
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for moon_phase > should export standard C++ with stable output 1`] = `
+[
+  "        {",
+  "          std::string raw_state = id(sensor_moon_txt).state;",
+  "          std::string moon_state = "";",
+  "          for (auto c : raw_state) {",
+  "            if (c == '-' || c == ' ') moon_state += '_';",
+  "            else moon_state += static_cast<char>(tolower(static_cast<unsigned char>(c)));",
+  "          }",
+  "          const char* icon = "\\U000F0F67";",
+  "          if (moon_state == "waxing_crescent") icon = "\\U000F0F67";",
+  "          else if (moon_state == "first_quarter") icon = "\\U000F0F61";",
+  "          else if (moon_state == "waxing_gibbous") icon = "\\U000F0F68";",
+  "          else if (moon_state == "full_moon") icon = "\\U000F0F62";",
+  "          else if (moon_state == "waning_gibbous") icon = "\\U000F0F66";",
+  "          else if (moon_state == "last_quarter") icon = "\\U000F0F63";",
+  "          else if (moon_state == "waning_crescent") icon = "\\U000F0F65";",
+  "          else if (moon_state == "new_moon") icon = "\\U000F0F64";",
+  "          else if (moon_state != "" && moon_state != "unknown" && moon_state != "unavailable") ESP_LOGW("moon_phase", "Unhandled moon phase: %s", raw_state.c_str());",
+  "          it.printf(60, 60, id(font_id), color_on, TextAlign::CENTER, "%s", icon);",
+  "        }",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for moon_phase > should handle onExportTextSensors with stable output 1`] = `
+[
+  "",
+  "# Moon Phase Sensors",
+  "- platform: homeassistant",
+  "  id: sensor_moon_txt",
+  "  entity_id: sensor.moon",
+  "  internal: true",
+]
 `;
 
 exports[`Plugin Export Smoke Tests > Export for odp_arc > should export OEPL with stable output 1`] = `
@@ -2133,10 +2701,10 @@ exports[`Plugin Export Smoke Tests > Export for quote_rss > should handle onExpo
 exports[`Plugin Export Smoke Tests > Export for rounded_rect > should export LVGL with stable output 1`] = `
 {
   "obj": {
-    "bg_color": "Color(theme_auto)",
+    "bg_color": "Color(transparent)",
     "bg_opa": "transp",
     "border_color": "Color(theme_auto)",
-    "border_width": 4,
+    "border_width": 1,
     "opa": 255,
     "radius": 10,
   },
@@ -2149,7 +2717,7 @@ exports[`Plugin Export Smoke Tests > Export for rounded_rect > should export OEP
   "outline": "theme_auto",
   "radius": 10,
   "type": "rectangle",
-  "width": 4,
+  "width": 1,
   "x_end": 110,
   "x_start": 10,
   "y_end": 110,
@@ -2163,7 +2731,7 @@ exports[`Plugin Export Smoke Tests > Export for rounded_rect > should export Ope
   "outline": "black",
   "radius": 10,
   "type": "rectangle",
-  "width": 4,
+  "width": 1,
   "x_end": 110,
   "x_start": 10,
   "y_end": 110,
@@ -2191,7 +2759,7 @@ exports[`Plugin Export Smoke Tests > Export for rounded_rect > should export sta
   "              }",
   "            }",
   "          };",
-  "          draw_rrect_border(10, 10, 100, 100, 10, 4, Color(theme_auto));",
+  "          draw_rrect_border(10, 10, 100, 100, 10, 1, Color(theme_auto));",
   "        }",
 ]
 `;
@@ -2261,7 +2829,7 @@ exports[`Plugin Export Smoke Tests > Export for sensor_text > should handle onEx
 exports[`Plugin Export Smoke Tests > Export for shape_circle > should export LVGL with stable output 1`] = `
 {
   "obj": {
-    "bg_color": "Color(theme_auto)",
+    "bg_color": "Color(transparent)",
     "bg_opa": "transp",
     "border_color": "Color(theme_auto)",
     "border_width": 1,
@@ -2306,7 +2874,7 @@ exports[`Plugin Export Smoke Tests > Export for shape_circle > should export sta
 exports[`Plugin Export Smoke Tests > Export for shape_rect > should export LVGL with stable output 1`] = `
 {
   "obj": {
-    "bg_color": "Color(theme_auto)",
+    "bg_color": "Color(transparent)",
     "bg_opa": "transp",
     "border_color": "Color(theme_auto)",
     "border_width": 1,
@@ -2351,6 +2919,238 @@ exports[`Plugin Export Smoke Tests > Export for shape_rect > should export stand
   "          it.rectangle(10 + i, 10 + i, 100 - 2 * i, 100 - 2 * i, Color(theme_auto));",
   "        }",
   "        }",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for sun_times > should export LVGL with stable output 1`] = `
+{
+  "obj": {
+    "bg_opa": "transp",
+    "border_width": 0,
+    "pad_all": 0,
+    "widgets": [
+      {
+        "label": {
+          "height": 20,
+          "id": "w_test_sunrise_icon",
+          "text": ""\\U000F059C"",
+          "text_align": "left",
+          "text_color": "Color(theme_auto)",
+          "text_font": "font_ptr",
+          "width": 22,
+          "x": 6,
+          "y": 29,
+        },
+      },
+      {
+        "label": {
+          "height": 20,
+          "id": "w_test_sunrise_text",
+          "text": "!lambda |-
+          std::string raw = id(sensor_sun_next_rising_txt).state;
+          if (raw.empty() || raw == "unknown" || raw == "unavailable") return "n.d.";
+          size_t t_pos = raw.find('T');
+          size_t colon = raw.find(':');
+          if (t_pos != std::string::npos && colon != std::string::npos && colon >= 2) return raw.substr(colon - 2, 5).c_str();
+          if (colon != std::string::npos && colon >= 1) {
+            size_t start = colon >= 2 ? colon - 2 : 0;
+            size_t len = (start + 5 <= raw.size()) ? 5 : raw.size() - start;
+            return raw.substr(start, len).c_str();
+          }
+          return raw.c_str();",
+          "text_align": "left",
+          "text_color": "Color(theme_auto)",
+          "text_font": "font_ptr",
+          "width": 62,
+          "x": 32,
+          "y": 30,
+        },
+      },
+      {
+        "label": {
+          "height": 20,
+          "id": "w_test_sunset_icon",
+          "text": ""\\U000F059B"",
+          "text_align": "left",
+          "text_color": "Color(theme_auto)",
+          "text_font": "font_ptr",
+          "width": 22,
+          "x": 6,
+          "y": 53,
+        },
+      },
+      {
+        "label": {
+          "height": 20,
+          "id": "w_test_sunset_text",
+          "text": "!lambda |-
+          std::string raw = id(sensor_sun_next_setting_txt).state;
+          if (raw.empty() || raw == "unknown" || raw == "unavailable") return "n.d.";
+          size_t t_pos = raw.find('T');
+          size_t colon = raw.find(':');
+          if (t_pos != std::string::npos && colon != std::string::npos && colon >= 2) return raw.substr(colon - 2, 5).c_str();
+          if (colon != std::string::npos && colon >= 1) {
+            size_t start = colon >= 2 ? colon - 2 : 0;
+            size_t len = (start + 5 <= raw.size()) ? 5 : raw.size() - start;
+            return raw.substr(start, len).c_str();
+          }
+          return raw.c_str();",
+          "text_align": "left",
+          "text_color": "Color(theme_auto)",
+          "text_font": "font_ptr",
+          "width": 62,
+          "x": 32,
+          "y": 54,
+        },
+      },
+    ],
+  },
+}
+`;
+
+exports[`Plugin Export Smoke Tests > Export for sun_times > should export OEPL with stable output 1`] = `
+[
+  {
+    "anchor": "lt",
+    "color": "black",
+    "size": 18,
+    "type": "icon",
+    "value": "weather-sunset-up",
+    "x": 16,
+    "y": 39,
+  },
+  {
+    "align": "left",
+    "anchor": "lt",
+    "color": "black",
+    "size": 16,
+    "type": "text",
+    "value": "{{ states('sensor.sun_next_rising') | default('', true) | string | regex_findall_index('(\\d{1,2}:\\d{2})', 0) | default('n.d.', true) }}",
+    "x": 42,
+    "y": 40,
+  },
+  {
+    "anchor": "lt",
+    "color": "black",
+    "size": 18,
+    "type": "icon",
+    "value": "weather-sunset-down",
+    "x": 16,
+    "y": 63,
+  },
+  {
+    "align": "left",
+    "anchor": "lt",
+    "color": "black",
+    "size": 16,
+    "type": "text",
+    "value": "{{ states('sensor.sun_next_setting') | default('', true) | string | regex_findall_index('(\\d{1,2}:\\d{2})', 0) | default('n.d.', true) }}",
+    "x": 42,
+    "y": 64,
+  },
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for sun_times > should export OpenDisplay with stable output 1`] = `
+[
+  {
+    "anchor": "lt",
+    "fill": "black",
+    "size": 18,
+    "type": "icon",
+    "value": "weather-sunset-up",
+    "x": 16,
+    "y": 39,
+  },
+  {
+    "align": "left",
+    "anchor": "lt",
+    "color": "black",
+    "size": 16,
+    "type": "text",
+    "value": "{{ states('sensor.sun_next_rising') | default('', true) | string | regex_findall_index('(\\d{1,2}:\\d{2})', 0) | default('n.d.', true) }}",
+    "x": 42,
+    "y": 40,
+  },
+  {
+    "anchor": "lt",
+    "fill": "black",
+    "size": 18,
+    "type": "icon",
+    "value": "weather-sunset-down",
+    "x": 16,
+    "y": 63,
+  },
+  {
+    "align": "left",
+    "anchor": "lt",
+    "color": "black",
+    "size": 16,
+    "type": "text",
+    "value": "{{ states('sensor.sun_next_setting') | default('', true) | string | regex_findall_index('(\\d{1,2}:\\d{2})', 0) | default('n.d.', true) }}",
+    "x": 42,
+    "y": 64,
+  },
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for sun_times > should export standard C++ with stable output 1`] = `
+[
+  "        {",
+  "          std::string display_value = "n.d.";",
+  "          if (id(sensor_sun_next_rising_txt).has_state()) {",
+  "            std::string raw = id(sensor_sun_next_rising_txt).state;",
+  "            if (!raw.empty() && raw != "unknown" && raw != "unavailable") {",
+  "              size_t t_pos = raw.find('T');",
+  "              size_t colon = raw.find(':');",
+  "              if (t_pos != std::string::npos && colon != std::string::npos && colon >= 2) display_value = raw.substr(colon - 2, 5);",
+  "              else if (colon != std::string::npos && colon >= 1) {",
+  "                size_t start = colon >= 2 ? colon - 2 : 0;",
+  "                size_t len = (start + 5 <= raw.size()) ? 5 : raw.size() - start;",
+  "                display_value = raw.substr(start, len);",
+  "              } else {",
+  "                display_value = raw;",
+  "              }",
+  "            }",
+  "          }",
+  "          it.printf(16, 39, id(font_id), color_on, TextAlign::TOP_LEFT, "%s", "\\U000F059C");",
+  "          it.printf(42, 40, id(font_id), color_on, TextAlign::TOP_LEFT, "%s", display_value.c_str());",
+  "        }",
+  "        {",
+  "          std::string display_value = "n.d.";",
+  "          if (id(sensor_sun_next_setting_txt).has_state()) {",
+  "            std::string raw = id(sensor_sun_next_setting_txt).state;",
+  "            if (!raw.empty() && raw != "unknown" && raw != "unavailable") {",
+  "              size_t t_pos = raw.find('T');",
+  "              size_t colon = raw.find(':');",
+  "              if (t_pos != std::string::npos && colon != std::string::npos && colon >= 2) display_value = raw.substr(colon - 2, 5);",
+  "              else if (colon != std::string::npos && colon >= 1) {",
+  "                size_t start = colon >= 2 ? colon - 2 : 0;",
+  "                size_t len = (start + 5 <= raw.size()) ? 5 : raw.size() - start;",
+  "                display_value = raw.substr(start, len);",
+  "              } else {",
+  "                display_value = raw;",
+  "              }",
+  "            }",
+  "          }",
+  "          it.printf(16, 63, id(font_id), color_on, TextAlign::TOP_LEFT, "%s", "\\U000F059B");",
+  "          it.printf(42, 64, id(font_id), color_on, TextAlign::TOP_LEFT, "%s", display_value.c_str());",
+  "        }",
+]
+`;
+
+exports[`Plugin Export Smoke Tests > Export for sun_times > should handle onExportTextSensors with stable output 1`] = `
+[
+  "",
+  "# Sunrise / Sunset Text Sensors",
+  "- platform: homeassistant",
+  "  id: sensor_sun_next_rising_txt",
+  "  entity_id: sensor.sun_next_rising",
+  "  internal: true",
+  "- platform: homeassistant",
+  "  id: sensor_sun_next_setting_txt",
+  "  entity_id: sensor.sun_next_setting",
+  "  internal: true",
 ]
 `;
 

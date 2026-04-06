@@ -68,9 +68,13 @@ describe('YAML Parsers', () => {
                 x: 5,
                 y: 5,
                 width: 50,
-                height: 50
+                height: 50,
+                props: {
+                    bg_color: 'black',
+                    border_color: 'black',
+                    border_width: 1
+                }
             });
-            expect(widgets[0].props.fill).toBe(true);
 
             // it.circle(20, 20, 10) -> shape_circle, x:20-10=10, y:20-10=10, w:20, h:20
             expect(widgets[1]).toMatchObject({
@@ -78,7 +82,12 @@ describe('YAML Parsers', () => {
                 x: 10,
                 y: 10,
                 width: 20,
-                height: 20
+                height: 20,
+                props: {
+                    bg_color: 'transparent',
+                    border_color: 'black',
+                    border_width: 1
+                }
             });
         });
     });

@@ -177,7 +177,10 @@ describe('display_parser integration', () => {
             width: 16,
             height: 16,
             props: {
-                fill: true
+                bg_color: 'black',
+                border_color: 'black',
+                border_width: 1,
+                opacity: 100
             }
         });
     });

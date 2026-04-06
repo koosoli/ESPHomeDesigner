@@ -68,6 +68,34 @@ class ParsedWidget:
     line_type: str | None = None
     line_thickness: int | None = None
     show_axis_labels: bool = False
+    # Energy widget properties
+    solar_entity: str | None = None
+    solar_to_home_entity: str | None = None
+    solar_to_grid_entity: str | None = None
+    solar_to_battery_entity: str | None = None
+    autoconsumption_percent_entity: str | None = None
+    home_entity: str | None = None
+    grid_entity: str | None = None
+    battery_power_entity: str | None = None
+    battery_soc_entity: str | None = None
+    gas_entity: str | None = None
+    solar_label: str | None = None
+    home_label: str | None = None
+    grid_label: str | None = None
+    battery_label: str | None = None
+    gas_label: str | None = None
+    show_battery: bool | None = None
+    show_gas: bool | None = None
+    display_mode: str | None = None
+    grid_positive_mode: str | None = None
+    battery_positive_mode: str | None = None
+    flow_unit: str | None = None
+    gas_unit: str | None = None
+    decimals: int | None = None
+    background_color: str | None = None
+    border_color: str | None = None
+    flow_color: str | None = None
+    inactive_flow_color: str | None = None
     # Conditional visibility properties
     condition_entity: str | None = None
     condition_operator: str | None = None

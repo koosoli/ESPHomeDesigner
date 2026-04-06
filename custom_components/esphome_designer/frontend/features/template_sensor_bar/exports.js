@@ -219,6 +219,7 @@ export function exportDoc(w, context) {
 export function exportLVGL(w, { common, convertColor, getLVGLFont, profile }) {
     const p = w.props || {};
     const color = convertColor(ensureHex(p.color || "white"));
+    const showBackground = p.show_background !== false;
     const iconSize = parseInt(p.icon_size || 20, 10);
     const fontSize = parseInt(p.font_size || 14, 10);
     const fontFamily = p.font_family || "Roboto";
@@ -312,12 +313,18 @@ export function exportLVGL(w, { common, convertColor, getLVGLFont, profile }) {
     return {
         obj: {
             ...common,
-            bg_color: p.show_background !== false ? convertColor(ensureHex(p.background_color || "black")) : "transp",
-            bg_opa: p.show_background !== false ? "cover" : "transp",
-            radius: p.border_radius || 8,
-            clip_corner: true,
-            border_width: p.border_thickness || 0,
-            border_color: convertColor(ensureHex(p.border_color || "white")),
+            ...(showBackground ? {
+                bg_color: convertColor(ensureHex(p.background_color || "black")),
+                radius: p.border_radius || 8,
+                clip_corner: true,
+                border_width: p.border_thickness || 0,
+                border_color: convertColor(ensureHex(p.border_color || "white"))
+            } : {
+                radius: 0,
+                clip_corner: false,
+                border_width: 0
+            }),
+            bg_opa: showBackground ? "cover" : "transp",
             layout: { type: "flex", flex_flow: "row", flex_align_main: "space_around", flex_align_cross: "center" },
             widgets
         }

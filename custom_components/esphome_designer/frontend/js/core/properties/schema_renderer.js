@@ -42,6 +42,8 @@ export class SchemaRenderer {
             panel.createSection(sectionDef.section, sectionDef.defaultExpanded !== false);
 
             sectionDef.fields.forEach(field => {
+                if (field.hidden) return;
+
                 const isRoot = field.target === "root";
                 const val = isRoot ?
                     (widget[field.key] !== undefined ? widget[field.key] : field.default)

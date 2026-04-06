@@ -295,6 +295,7 @@ export default {
         const p = w.props || {};
         const iconSize = parseInt(p.icon_size || 24, 10);
         const color = convertColor(p.color || "white");
+        const showBackground = p.show_background !== false;
         const totalPages = parseInt(String(w._pageCount ?? ""), 10);
         const allowPaging = Number.isFinite(totalPages) ? totalPages > 1 : true;
         const showPrev = allowPaging && p.show_prev !== false;
@@ -357,11 +358,16 @@ export default {
         return {
             obj: {
                 ...common,
-                bg_color: p.show_background !== false ? convertColor(p.background_color || "black") : "transp",
-                bg_opa: p.show_background !== false ? "cover" : "transp",
-                radius: p.border_radius || 8,
-                border_width: p.border_thickness || 0,
-                border_color: convertColor(p.border_color || "white"),
+                ...(showBackground ? {
+                    bg_color: convertColor(p.background_color || "black"),
+                    radius: p.border_radius || 8,
+                    border_width: p.border_thickness || 0,
+                    border_color: convertColor(p.border_color || "white")
+                } : {
+                    radius: 0,
+                    border_width: 0
+                }),
+                bg_opa: showBackground ? "cover" : "transp",
                 layout: { type: "flex", flex_flow: "row", flex_align_main: "space_around", flex_align_cross: "center" },
                 widgets: widgets
             }

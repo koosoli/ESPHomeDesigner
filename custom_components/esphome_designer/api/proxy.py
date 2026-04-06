@@ -19,9 +19,11 @@ from .base import DesignerBaseView
 _LOGGER = logging.getLogger(__name__)
 _MAX_RSS_REDIRECTS = 5
 _ALLOWED_IMAGE_ROOTS = (
+    Path("esphome") / "image",
     Path("esphome") / "images",
+    Path("esphome_designer") / "image",
     Path("esphome_designer") / "images",
-    Path("www") / "esphome_designer" / "images",
+    Path("www"),
 )
 
 
@@ -39,7 +41,9 @@ def _resolve_image_path(config_dir: str | Path, raw_path: str | None) -> Path | 
     if not requested or "\x00" in requested:
         return None
 
-    if requested.startswith("/"):
+    if requested.startswith("/local/"):
+        posix_path = PurePosixPath("www") / PurePosixPath(requested.removeprefix("/local/"))
+    elif requested.startswith("/"):
         if not requested.startswith("/config/"):
             return None
         posix_path = PurePosixPath(requested.removeprefix("/config/"))

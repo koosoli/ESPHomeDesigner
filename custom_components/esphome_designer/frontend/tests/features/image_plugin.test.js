@@ -1,22 +1,50 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockAppState = {
     updateWidget: vi.fn(),
     getCanvasDimensions: vi.fn(() => ({ width: 800, height: 480 }))
 };
+const mockGetHaHeaders = vi.fn(() => ({
+    Authorization: 'Bearer panel-token',
+    'Content-Type': 'application/json'
+}));
 
 vi.mock('@core/state', () => ({
     AppState: mockAppState
 }));
 
+vi.mock('../../js/io/ha_api.js', () => ({
+    getHaHeaders: mockGetHaHeaders
+}));
+
 describe('image plugin', () => {
     beforeEach(() => {
+        vi.resetModules();
         vi.clearAllMocks();
+        document.body.innerHTML = '';
+        Object.defineProperty(URL, 'createObjectURL', {
+            configurable: true,
+            value: vi.fn(() => 'blob:image-preview')
+        });
+        Object.defineProperty(URL, 'revokeObjectURL', {
+            configurable: true,
+            value: vi.fn()
+        });
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            ok: true,
+            blob: vi.fn().mockResolvedValue(new Blob(['png'], { type: 'image/png' }))
+        }));
     });
 
-    it('renders local-path images with proxy URLs, filters, borders, and selection overlays', async () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+        vi.unstubAllGlobals();
+    });
+
+    it('renders local-path images through the authenticated preview fetch and selection overlays', async () => {
         const plugin = (await import('../../features/image/plugin.js')).default;
         const host = document.createElement('div');
+        document.body.appendChild(host);
         const widget = {
             id: 'img-1',
             x: 10,
@@ -24,7 +52,7 @@ describe('image plugin', () => {
             width: 100,
             height: 50,
             props: {
-                path: '/config/images/logo.png',
+                path: '/local/backgrounds/logo.png',
                 invert: true,
                 border_width: 2,
                 border_color: 'red',
@@ -44,12 +72,63 @@ describe('image plugin', () => {
         expect(host.style.borderStyle).toBe('solid');
         expect(host.style.borderRadius).toBe('4px');
         expect(host.style.backgroundColor).not.toBe('');
-        expect(img.src).toContain('/api/esphome_designer/image_proxy?path=');
         expect(img.style.filter).toContain('invert(1)');
         expect(img.style.filter).toContain('grayscale(100%)');
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(fetch).toHaveBeenCalledWith('/api/esphome_designer/image_proxy?path=%2Fconfig%2Fwww%2Fbackgrounds%2Flogo.png', expect.objectContaining({
+            headers: { Authorization: 'Bearer panel-token' }
+        }));
+        expect(mockGetHaHeaders).toHaveBeenCalledTimes(1);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
 
         img.onload?.(new Event('load'));
         expect(host.textContent).toContain('logo.png');
+        expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+    });
+
+    it('reuses the same local preview image node and cached blob URL across rerenders', async () => {
+        const plugin = (await import('../../features/image/plugin.js')).default;
+        const host = document.createElement('div');
+        document.body.appendChild(host);
+        const widget = {
+            id: 'img-rerender',
+            x: 0,
+            y: 0,
+            width: 80,
+            height: 40,
+            props: {
+                path: '/config/esphome/image/oli.jpg'
+            }
+        };
+        const context = {
+            getColorStyle: (value) => value,
+            selected: true,
+            profile: { displayType: 'color' }
+        };
+
+        plugin.render(host, widget, context);
+        await Promise.resolve();
+        await Promise.resolve();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        const firstImg = /** @type {HTMLImageElement} */ (host.querySelector('img'));
+        firstImg.onload?.(new Event('load'));
+
+        plugin.render(host, widget, {
+            ...context,
+            selected: false
+        });
+        await Promise.resolve();
+        await Promise.resolve();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        const secondImg = /** @type {HTMLImageElement} */ (host.querySelector('img'));
+        expect(secondImg).toBe(firstImg);
+        expect(secondImg.src).toBe('blob:image-preview');
+        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
     });
 
     it('renders URL images, load failures, and placeholder content', async () => {
@@ -114,6 +193,43 @@ describe('image plugin', () => {
         expect(placeholderHost.textContent).toContain('Image Widget');
     });
 
+    it('falls back cleanly when authenticated local preview fetch fails and returns null OEPL export without a source', async () => {
+        const plugin = (await import('../../features/image/plugin.js')).default;
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            ok: false,
+            status: 503
+        }));
+
+        const host = document.createElement('div');
+        document.body.appendChild(host);
+        plugin.render(host, {
+            id: 'img-fetch-fail',
+            x: 0,
+            y: 0,
+            width: 40,
+            height: 40,
+            props: { path: '/local/backgrounds/fetch-fail.png' }
+        }, {
+            getColorStyle: (value) => value,
+            selected: false,
+            profile: { displayType: 'color' }
+        });
+
+        await Promise.resolve();
+        await Promise.resolve();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(host.textContent).toContain('fetch-fail.png');
+
+        expect(plugin.exportOEPL({
+            id: 'img-empty-export',
+            x: 1,
+            y: 2,
+            width: 3,
+            height: 4,
+            props: {}
+        }, { _layout: {}, _page: {} })).toBeNull();
+    });
+
     it('wires property editors and the fullscreen toggle to AppState updates', async () => {
         const plugin = (await import('../../features/image/plugin.js')).default;
         const container = document.createElement('div');
@@ -128,6 +244,7 @@ describe('image plugin', () => {
                 url: '',
                 invert: false,
                 render_mode: 'Auto',
+                transparency: 'opaque',
                 opacity: 60,
                 border_width: 1,
                 border_color: 'theme_auto',
@@ -161,13 +278,14 @@ describe('image plugin', () => {
 
         plugin.renderProperties(panel, widget);
 
-        callbacks['Image Path']('/config/new-logo.png');
+        callbacks['Image Path']('/local/backgrounds/new-logo.png');
         callbacks['Invert colors'](true);
+        callbacks['Transparency']('alpha_channel');
         callbacks['Border Width']('4');
 
         expect(mockAppState.updateWidget).toHaveBeenNthCalledWith(1, 'img-props', expect.objectContaining({
             props: expect.objectContaining({
-                path: '/config/new-logo.png',
+                path: '/config/www/backgrounds/new-logo.png',
             })
         }));
         expect(mockAppState.updateWidget).toHaveBeenNthCalledWith(2, 'img-props', expect.objectContaining({
@@ -176,6 +294,11 @@ describe('image plugin', () => {
             })
         }));
         expect(mockAppState.updateWidget).toHaveBeenNthCalledWith(3, 'img-props', expect.objectContaining({
+            props: expect.objectContaining({
+                transparency: 'alpha_channel'
+            })
+        }));
+        expect(mockAppState.updateWidget).toHaveBeenNthCalledWith(4, 'img-props', expect.objectContaining({
             props: expect.objectContaining({
                 border_width: 4
             })
@@ -267,6 +390,18 @@ describe('image plugin', () => {
             height: 64
         });
 
+        expect(plugin.exportOEPL({
+            ...widget,
+            props: { ...widget.props, path: '/local/backgrounds/logo.png' }
+        }, { _layout: {}, _page: {} })).toEqual({
+            type: 'image',
+            file: '/config/www/backgrounds/logo.png',
+            x: 4,
+            y: 5,
+            width: 120,
+            height: 64
+        });
+
         expect(plugin.exportOpenDisplay({
             ...widget,
             props: { url: 'https://example.com/test.png', rotation: 5 }
@@ -329,6 +464,25 @@ describe('image plugin', () => {
             profile: { features: { lcd: true }, name: 'Color Panel' }
         });
         expect(colorLines.join('\n')).toContain('type: RGB565');
-        expect(colorLines.join('\n')).toContain('use_transparency: false');
+        expect(colorLines.join('\n')).toContain('transparency: opaque');
+        expect(colorLines.join('\n')).not.toContain('use_transparency');
+
+        const alphaLines = [];
+        plugin.onExportComponents({
+            lines: alphaLines,
+            widgets: [{
+                id: 'c',
+                type: 'image',
+                width: 80,
+                height: 40,
+                props: {
+                    path: '/config/esphome/images/overlay.png',
+                    transparency: 'alpha_channel'
+                }
+            }],
+            profile: { features: { lcd: true }, name: 'Color Panel' }
+        });
+        expect(alphaLines.join('\n')).toContain('type: RGB565');
+        expect(alphaLines.join('\n')).toContain('transparency: alpha_channel');
     });
 });

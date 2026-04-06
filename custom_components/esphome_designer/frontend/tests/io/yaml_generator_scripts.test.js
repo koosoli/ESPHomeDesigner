@@ -21,7 +21,8 @@ describe('yaml_generator_scripts', () => {
         expect(lines).toContain('Page change ignored (debounce)');
         expect(lines).toContain('id(my_display).update();');
         expect(lines).toContain('id(backlight_pwm).set_level(0.8);');
-        expect(lines).toContain('id(last_page_switch_time) = millis();');
+        expect(lines).toContain('id(last_page_switch_time) = now;');
+        expect(lines).not.toContain('id(last_page_switch_time) = millis();');
         expect(lines).toContain('Auto-switching to scheduled page %d');
         expect(lines).not.toContain('best_page != p || id(last_page_switch_time) == 0');
         expect(lines).toContain('Waiting 5s for initial sensor updates...');

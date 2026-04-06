@@ -42,8 +42,22 @@ class LayoutApiTests(unittest.IsolatedAsyncioTestCase):
         self.layout_module = modules["layout"]
         self.models = modules["models"]
 
-    async def test_parse_json_body_returns_empty_dict_for_invalid_json(self):
+    async def test_parse_json_body_returns_payload_for_valid_json(self):
+        request = FakeRequest(b'{"pages":[{"id":"page_0"}]}')
+
+        parsed = await self.layout_module.parse_json_object(request)
+
+        self.assertEqual(parsed["pages"][0]["id"], "page_0")
+
+    async def test_legacy_parse_json_body_returns_empty_dict_for_invalid_json(self):
         request = FakeRequest(b"{not-json")
+
+        parsed = await self.layout_module._parse_json_body(request)
+
+        self.assertEqual(parsed, {})
+
+    async def test_legacy_parse_json_body_returns_empty_dict_for_non_object_payloads(self):
+        request = FakeRequest(b'["not","an","object"]')
 
         parsed = await self.layout_module._parse_json_body(request)
 
@@ -52,16 +66,19 @@ class LayoutApiTests(unittest.IsolatedAsyncioTestCase):
     async def test_parse_json_body_rejects_non_object_payloads(self):
         request = FakeRequest(b'["not","an","object"]')
 
-        parsed = await self.layout_module._parse_json_body(request)
+        with self.assertRaises(self.layout_module.InvalidJsonObjectError):
+            await self.layout_module.parse_json_object(request)
 
-        self.assertEqual(parsed, {})
+    async def test_parse_json_body_rejects_invalid_json(self):
+        request = FakeRequest(b"{not-json")
 
-    async def test_parse_json_body_returns_payload_for_valid_json(self):
-        request = FakeRequest(b'{"pages":[{"id":"page_0"}]}')
+        with self.assertRaises(self.layout_module.InvalidJsonObjectError):
+            await self.layout_module.parse_json_object(request)
 
-        parsed = await self.layout_module._parse_json_body(request)
+    async def test_sanitize_layout_id_removes_disallowed_characters(self):
+        sanitized = self.layout_module.sanitize_layout_id("Kitchen Display!!")
 
-        self.assertEqual(parsed["pages"][0]["id"], "page_0")
+        self.assertEqual(sanitized, "kitchendisplay")
 
     async def test_layout_view_rejects_invalid_json(self):
         storage = FakeStorage(None)

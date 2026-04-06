@@ -1,3 +1,5 @@
+import { getCalendarEventSummaryCharLimit } from './layout.js';
+
 /**
  * @typedef {{
  *   id: string,
@@ -22,6 +24,8 @@ export function generateSnippet(widget, _pages, _deviceModel) {
     const h = widget.h;
     const props = widget.properties || {};
     const maxEntries = props.max_events || 8;
+    const eventFontSize = parseInt(props.font_size_event || 18, 10);
+    const eventSummaryCharLimit = getCalendarEventSummaryCharLimit(w, eventFontSize);
 
     // We need to fetch data from HA, so we assume the user has set up the python script.
     // The reference project uses a text_sensor to pull the JSON string.
@@ -274,7 +278,7 @@ text_sensor:
                               const char* start = event["start"] | "";
     
                               it.printf(${x} + 20, y_cursor, id(font_event_day), color_content, TextAlign::TOP_LEFT, "%d", currentDayNum);
-                              it.printf(${x} + 60, y_cursor + 4, id(font_event), color_content, TextAlign::TOP_LEFT, "%.25s", summary);
+                              it.printf(${x} + 60, y_cursor + 4, id(font_event), color_content, TextAlign::TOP_LEFT, "%.${eventSummaryCharLimit}s", summary);
     
                               if (is_all_day) {
                                   it.printf(${x} + ${w} - 20, y_cursor + 4, id(font_event), color_content, TextAlign::TOP_RIGHT, "All Day");

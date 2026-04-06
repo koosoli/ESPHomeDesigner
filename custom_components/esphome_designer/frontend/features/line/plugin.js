@@ -32,7 +32,7 @@ const exportLVGL = (w, { common, convertColor, formatOpacity }) => {
         line: {
             ...common,
             points: pointsArr,
-            line_width: p.stroke_width || 3,
+            line_width: p.stroke_width || 1,
             line_color: convertColor(p.color),
             line_rounded: true,
             opa: formatOpacity(p.opa || 255)
@@ -48,7 +48,7 @@ export default {
     defaults: {
         width: 100,
         height: 10,
-        stroke_width: 3,
+        stroke_width: 1,
         color: "theme_auto",
         orientation: "horizontal",
         opa: 255,
@@ -61,7 +61,7 @@ export default {
             section: "Line Settings",
             fields: [
                 { key: "orientation", label: "Orientation", type: "select", options: ["horizontal", "vertical"], default: "horizontal" },
-                { key: "stroke_width", label: "Thickness", type: "number", default: 3 }
+                { key: "stroke_width", label: "Thickness", type: "number", default: 1 }
             ]
         },
         {
@@ -85,7 +85,7 @@ export default {
     render,
     exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
-        const strokeWidth = parseInt(p.stroke_width || 3, 10);
+        const strokeWidth = parseInt(p.stroke_width || 1, 10);
         const orientation = p.orientation || "horizontal";
 
         let x_start = Math.round(w.x);
@@ -105,7 +105,7 @@ export default {
     },
     exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
-        const strokeWidth = parseInt(p.stroke_width || 3, 10);
+        const strokeWidth = parseInt(p.stroke_width || 1, 10);
         const orientation = p.orientation || "horizontal";
 
         let x_start = Math.round(w.x);
@@ -130,7 +130,7 @@ export default {
         } = context;
 
         const p = w.props || {};
-        const strokeWidth = parseInt(p.stroke_width || 3, 10);
+        const strokeWidth = parseInt(p.stroke_width || 1, 10);
         const colorProp = p.color || "theme_auto";
         const color = getColorConst(colorProp);
         const orientation = p.orientation || "horizontal";

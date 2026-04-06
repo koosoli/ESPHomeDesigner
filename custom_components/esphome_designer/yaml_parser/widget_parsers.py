@@ -115,6 +115,34 @@ def parse_widget_line(line: str) -> ParsedWidget | None:
         line_thickness = parse_int(meta.get("line_thickness"))
         show_axis_labels = parse_bool(meta.get("show_axis_labels")) or False
 
+        solar_entity = meta.get("solar_entity")
+        solar_to_home_entity = meta.get("solar_to_home_entity")
+        solar_to_grid_entity = meta.get("solar_to_grid_entity")
+        solar_to_battery_entity = meta.get("solar_to_battery_entity")
+        autoconsumption_percent_entity = meta.get("autoconsumption_percent_entity")
+        home_entity = meta.get("home_entity")
+        grid_entity = meta.get("grid_entity")
+        battery_power_entity = meta.get("battery_power_entity")
+        battery_soc_entity = meta.get("battery_soc_entity")
+        gas_entity = meta.get("gas_entity")
+        solar_label = meta.get("solar_label")
+        home_label = meta.get("home_label")
+        grid_label = meta.get("grid_label")
+        battery_label = meta.get("battery_label")
+        gas_label = meta.get("gas_label")
+        show_battery = parse_bool(meta.get("show_battery"))
+        show_gas = parse_bool(meta.get("show_gas"))
+        display_mode = meta.get("display_mode")
+        grid_positive_mode = meta.get("grid_positive_mode")
+        battery_positive_mode = meta.get("battery_positive_mode")
+        flow_unit = meta.get("flow_unit")
+        gas_unit = meta.get("gas_unit")
+        decimals = parse_int(meta.get("decimals"))
+        background_color = meta.get("background_color")
+        border_color = meta.get("border_color")
+        flow_color = meta.get("flow_color")
+        inactive_flow_color = meta.get("inactive_flow_color")
+
         condition_entity = meta.get("condition_entity")
         condition_operator = meta.get("condition_operator")
         condition_state = meta.get("condition_state")
@@ -134,6 +162,10 @@ def parse_widget_line(line: str) -> ParsedWidget | None:
         if word_wrap is None: word_wrap = True
         italic_quote = parse_bool(meta.get("italic_quote"))
         if italic_quote is None: italic_quote = True
+        if wtype == "energy_widget" and show_battery is None:
+            show_battery = True
+        if wtype == "energy_widget" and show_gas is None:
+            show_gas = False
 
         return ParsedWidget(
             id=wid, type=wtype, x=x, y=y, width=w, height=h,
@@ -155,6 +187,19 @@ def parse_widget_line(line: str) -> ParsedWidget | None:
             min_range=min_range, max_range=max_range, x_grid=x_grid,
             y_grid=y_grid, line_type=line_type, line_thickness=line_thickness,
             show_axis_labels=show_axis_labels,
+            solar_entity=solar_entity, solar_to_home_entity=solar_to_home_entity,
+            solar_to_grid_entity=solar_to_grid_entity,
+            solar_to_battery_entity=solar_to_battery_entity,
+            autoconsumption_percent_entity=autoconsumption_percent_entity,
+            home_entity=home_entity, grid_entity=grid_entity,
+            battery_power_entity=battery_power_entity, battery_soc_entity=battery_soc_entity,
+            gas_entity=gas_entity, solar_label=solar_label, home_label=home_label,
+            grid_label=grid_label, battery_label=battery_label, gas_label=gas_label,
+            show_battery=show_battery, show_gas=show_gas, display_mode=display_mode,
+            grid_positive_mode=grid_positive_mode, battery_positive_mode=battery_positive_mode,
+            flow_unit=flow_unit, gas_unit=gas_unit, decimals=decimals,
+            background_color=background_color, border_color=border_color,
+            flow_color=flow_color, inactive_flow_color=inactive_flow_color,
             condition_entity=condition_entity, condition_operator=condition_operator,
             condition_state=condition_state, condition_min=condition_min,
             condition_max=condition_max, condition_logic=condition_logic,

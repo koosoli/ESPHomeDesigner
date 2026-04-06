@@ -114,6 +114,12 @@ def _map_parsed_widget_to_props(pw: ParsedWidget) -> Dict[str, Any]:
         "time_font_size", "date_font_size", "format", "path", "invert", "url",
         "is_local_sensor", "is_text_sensor", "continuous", "duration", "min_value", "max_value",
         "min_range", "max_range", "x_grid", "y_grid", "line_type", "line_thickness", "show_axis_labels",
+        "solar_entity", "solar_to_home_entity", "solar_to_grid_entity", "solar_to_battery_entity",
+        "autoconsumption_percent_entity", "home_entity", "grid_entity", "battery_power_entity", "battery_soc_entity",
+        "gas_entity", "solar_label", "home_label", "grid_label", "battery_label", "gas_label",
+        "show_battery", "show_gas", "display_mode", "grid_positive_mode", "battery_positive_mode",
+        "flow_unit", "gas_unit", "decimals", "background_color", "border_color", "flow_color",
+        "inactive_flow_color",
         "feed_url", "show_author", "quote_font_size", "author_font_size", "refresh_interval",
         "random_quote", "word_wrap", "italic_quote"
     ]
@@ -133,6 +139,8 @@ def _map_parsed_widget_to_props(pw: ParsedWidget) -> Dict[str, Any]:
         props["size"] = props["font_size"]
     if pw.type == "puppet" and "url" in props:
         props["image_url"] = props["url"]
+    if pw.type == "energy_widget" and pw.title:
+        props["title"] = pw.title
 
     return props
 

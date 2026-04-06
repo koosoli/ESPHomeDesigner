@@ -91,6 +91,7 @@ describe('SchemaRenderer', () => {
                     { type: 'number', label: 'Width', key: 'width', target: 'root', default: 10 },
                     { type: 'number', label: 'Corner Radius', key: 'border_radius', default: 0 },
                     { type: 'color', label: 'Color', key: 'color', default: 'black' },
+                    { type: 'color', label: 'Hidden Fallback', key: 'hidden_color', default: 'white', hidden: true },
                     { type: 'select', label: 'Mode', key: 'mode', options: ['compact', 'full'], default: 'compact' },
                     {
                         type: 'select',
@@ -114,6 +115,7 @@ describe('SchemaRenderer', () => {
         expect(panel.createSection).toHaveBeenCalledWith('General', true);
         expect(panel.endSection).toHaveBeenCalledTimes(1);
         expect(panel.addDropShadowButton).toHaveBeenCalledWith(panel.getContainer(), 'main_widget');
+        expect(panel.addColorSelector).toHaveBeenCalledTimes(1);
 
         expect(mockAppState.updateWidget).toHaveBeenCalledWith('main_widget', { width: 10 });
         expect(mockAppState.updateWidget).toHaveBeenCalledWith('main_widget', expect.objectContaining({
@@ -128,6 +130,11 @@ describe('SchemaRenderer', () => {
         expect(mockAppState.updateWidget).toHaveBeenCalledWith('main_widget', expect.objectContaining({
             props: expect.objectContaining({
                 color: 'blue'
+            })
+        }));
+        expect(mockAppState.updateWidget).not.toHaveBeenCalledWith('main_widget', expect.objectContaining({
+            props: expect.objectContaining({
+                hidden_color: expect.anything()
             })
         }));
         expect(mockAppState.updateWidget).toHaveBeenCalledWith('main_widget', expect.objectContaining({

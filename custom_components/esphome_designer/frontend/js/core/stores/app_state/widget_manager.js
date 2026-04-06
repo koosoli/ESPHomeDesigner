@@ -96,6 +96,7 @@ export class WidgetManager {
         // Keep track of secondary updates
         /** @type {{ id: string, props: Record<string, any> }[]} */
         const additionalUpdates = [];
+        const syncedCornerRadius = propUpdates.radius ?? propUpdates.border_radius ?? propUpdates.corner_radius;
 
         ids.forEach(id => {
             const widget = this.app.getWidgetById(id);
@@ -103,8 +104,8 @@ export class WidgetManager {
                 const newProps = { ...(widget.props || {}), ...propUpdates };
                 this.app.project.updateWidget(id, { props: newProps });
 
-                // Shadow Group Sync Logic: If radius changed and widget is in a shadow group, sync it to the shadow
-                if (propUpdates.radius !== undefined && widget.parentId) {
+                // Shadow Group Sync Logic: If a corner radius changed and widget is in a shadow group, sync it to the shadow
+                if (syncedCornerRadius !== undefined && widget.parentId) {
                     const group = this.app.getWidgetById(widget.parentId);
                     if (group && group.type === 'group' && group.title && group.title.endsWith('Group')) {
                         // Find the sibling widget that represents the shadow
@@ -113,7 +114,7 @@ export class WidgetManager {
                         if (shadowWidget) {
                             additionalUpdates.push({
                                 id: shadowWidget.id,
-                                props: { ...(shadowWidget.props || {}), radius: propUpdates.radius }
+                                props: { ...(shadowWidget.props || {}), radius: syncedCornerRadius }
                             });
                         }
                     }
@@ -251,10 +252,16 @@ export class WidgetManager {
         else if (pageDarkMode === "light") isDark = false;
         else isDark = !!this.app.settings.dark_mode;
 
-        // Colors for shadow and fills
+        const isTransparentFill = (value) => {
+            if (typeof value !== "string") return false;
+            const normalized = value.trim().toLowerCase();
+            return normalized === "" || normalized === "transparent" || normalized === "transp";
+        };
+        const firstOpaqueFill = (...values) => values.find((value) => typeof value === "string" && !isTransparentFill(value));
+
+        // Colors for shadow and default fill masks
         const shadowColor = isDark ? "white" : "black";
-        const fillColor = isDark ? "black" : "white";
-        const defaultForeground = isDark ? "white" : "black";
+        const fillColor = "white";
 
         /** @type {string[]} */
         const newGroupIds = [];
@@ -283,10 +290,8 @@ export class WidgetManager {
                 height: widget.height,
                 props: {
                     name: (widget.props?.name || widget.type) + " Shadow",
-                    color: shadowColor,
-                    background_color: shadowColor,
                     bg_color: shadowColor,
-                    fill: true,
+                    border_color: shadowColor,
                 }
             });
 
@@ -303,22 +308,30 @@ export class WidgetManager {
             // Determine if this is a "shape" widget vs a "content" widget
             const isPureShape = ["shape_rect", "rounded_rect", "shape_circle", "rectangle", "rrect", "circle"].includes(widget.type);
 
-            // Preserve original border color (if it was using 'color' property)
-            const originalColor = (widget.props.color && widget.props.color !== 'theme_auto')
-                ? widget.props.color
-                : defaultForeground;
-            if (!widget.props.border_color || widget.props.border_color === 'theme_auto') {
-                widget.props.border_color = originalColor;
-            }
+            const hasShapeFill = isPureShape && (
+                firstOpaqueFill(widget.props.bg_color, widget.props.color)
+                || widget.props.fill
+            );
+            const preservedShapeFill = hasShapeFill
+                ? firstOpaqueFill(widget.props.bg_color, widget.props.color)
+                : null;
+            const nextBackground = preservedShapeFill
+                ?? firstOpaqueFill(widget.props.bg_color, widget.props.background_color)
+                ?? fillColor;
 
-            // Apply Infill to original
-            widget.props.fill = true;
-            widget.props.background_color = fillColor;
-            widget.props.bg_color = fillColor;
-
-            // If it's a pure shape, the main 'color' IS the fill color
+            // Apply infill to the original so it masks the shadow behind it.
             if (isPureShape) {
-                widget.props.color = fillColor;
+                widget.props.bg_color = nextBackground;
+                delete widget.props.background_color;
+                delete widget.props.fill;
+            } else {
+                widget.props.fill = true;
+                if (widget.props.bg_color !== undefined || widget.props.background_color === undefined) {
+                    widget.props.bg_color = nextBackground;
+                }
+                if (widget.props.background_color !== undefined) {
+                    widget.props.background_color = nextBackground;
+                }
             }
 
             // EXPLICIT UPDATE: Ensure the project store knows the original widget changed

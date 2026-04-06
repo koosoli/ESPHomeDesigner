@@ -1,4 +1,5 @@
 import { AppState } from '../state';
+import { registry } from '../plugin_registry.js';
 import { getAvailableColors } from '../../utils/device.js';
 import { MIXED_VALUE } from '../../utils/color_utils.js';
 import { Logger } from '../../utils/logger.js';
@@ -24,6 +25,29 @@ export class MultiSelectRenderer {
     static render(panel, ids) {
         const widgets = /** @type {MultiSelectWidget[]} */ (ids.map(id => AppState.getWidgetById(id)).filter(w => !!w));
         if (widgets.length === 0) return;
+
+        const borderKeys = new Set(["border_width", "border_color", "border_radius", "radius"]);
+        const isShadowWidget = (widget) => typeof widget?.props?.name === "string" && widget.props.name.trim().endsWith("Shadow");
+        const supportsBorderKey = (widget, key) => {
+            if (!widget || widget.type === "group" || isShadowWidget(widget)) return false;
+
+            const props = widget.props || {};
+            if (props[key] !== undefined) return true;
+
+            if (key === "radius" && props.corner_radius !== undefined) return true;
+            if (key === "border_radius" && props.corner_radius !== undefined) return true;
+
+            const defaults = registry.get(widget.type)?.defaults || {};
+            if (defaults[key] !== undefined) return true;
+
+            if (key === "radius" && defaults.corner_radius !== undefined) return true;
+            if (key === "border_radius" && defaults.corner_radius !== undefined) return true;
+
+            return false;
+        };
+        const getWidgetsForKey = (key) => borderKeys.has(key)
+            ? widgets.filter((widget) => supportsBorderKey(widget, key))
+            : widgets;
 
         Logger.log(`[MultiSelectRenderer] Rendering ${widgets.length} widgets. Display keys detection starting...`);
 
@@ -80,9 +104,8 @@ export class MultiSelectRenderer {
         const displayKeysSet = new Set([...intersectionKeys, ...commonAppearanceKeys]);
 
         const displayKeys = Array.from(displayKeysSet).filter(key => {
-            if (["border_width", "border_color", "border_radius", "radius"].includes(key)) {
-                const supportedTypes = ["text", "label", "sensor_text", "lvgl_label", "lvgl_button", "shape_rect", "rounded_rect", "shape_circle", "datetime"];
-                return widgets.every(w => supportedTypes.includes(w.type) || (w.type && w.type.startsWith("lvgl_")));
+            if (borderKeys.has(key)) {
+                return getWidgetsForKey(key).length > 0;
             }
 
             if (commonAppearanceKeys.includes(key)) {
@@ -110,8 +133,11 @@ export class MultiSelectRenderer {
 
             /** @param {string} key */
             const getCommonProp = (key) => {
-                const first = widgets[0].props ? widgets[0].props[key] : undefined;
-                return widgets.every(w => (w.props ? w.props[key] : undefined) === first) ? first : MIXED_VALUE;
+                const targetWidgets = getWidgetsForKey(key);
+                if (targetWidgets.length === 0) return MIXED_VALUE;
+
+                const first = targetWidgets[0].props ? targetWidgets[0].props[key] : undefined;
+                return targetWidgets.every(w => (w.props ? w.props[key] : undefined) === first) ? first : MIXED_VALUE;
             };
 
             /**
@@ -119,14 +145,22 @@ export class MultiSelectRenderer {
              * @param {string | number | boolean} val
              */
             const updateWidgetsProps = (key, val) => {
-                AppState.updateWidgetsProps(ids, { [key]: val });
+                const targetIds = getWidgetsForKey(key).map((widget) => widget.id);
+                if (targetIds.length === 0) return;
+                AppState.updateWidgetsProps(targetIds, { [key]: val });
             };
 
-            const filteredDisplayKeys = displayKeys.filter(k => {
+            const primitiveDisplayKeys = displayKeys.filter(k => {
                 const firstVal = widgets.find(w => w.props && w.props[k] !== undefined)?.props?.[k];
                 const val = firstVal !== undefined ? firstVal : "";
                 return typeof val === 'number' || typeof val === 'string' || typeof val === 'boolean' || val === "";
             });
+
+            const redundantBackgroundKey = primitiveDisplayKeys.includes("bg_color") &&
+                primitiveDisplayKeys.includes("background_color") &&
+                widgets.every(w => w.props?.background_color === undefined || w.props?.bg_color !== undefined);
+
+            const filteredDisplayKeys = primitiveDisplayKeys.filter((key) => !(redundantBackgroundKey && key === "background_color"));
 
             filteredDisplayKeys.sort((a, b) => {
                 if (a.includes("color") && !b.includes("color")) return -1;
@@ -135,10 +169,13 @@ export class MultiSelectRenderer {
             });
 
             filteredDisplayKeys.forEach(key => {
-                const label = key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                const label = key === "bg_color" && !filteredDisplayKeys.includes("background_color")
+                    ? "Background Color"
+                    : key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
                 const val = getCommonProp(key);
 
-                const sampleWidget = widgets.find(w => w.props && w.props[key] !== undefined) || widgets[0];
+                const targetWidgets = getWidgetsForKey(key);
+                const sampleWidget = targetWidgets.find(w => w.props && w.props[key] !== undefined) || targetWidgets[0] || widgets[0];
                 const type = sampleWidget.props && sampleWidget.props[key] !== undefined ? typeof sampleWidget.props[key] : 'string';
 
                 if (key.includes("color") || key === "bg" || key === "fg") {

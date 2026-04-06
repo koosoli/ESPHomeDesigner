@@ -104,6 +104,32 @@ describe('template_sensor_bar exports', () => {
         expect(yaml).not.toContain('id(battery_level).has_state()');
     });
 
+    it('omits invalid LVGL background colors when the bar background is disabled', () => {
+        const result = exportLVGL({
+            id: 'bar_plain',
+            props: {
+                show_wifi: false,
+                show_temperature: false,
+                show_humidity: false,
+                show_battery: false,
+                show_background: false,
+                border_thickness: 2,
+                border_radius: 12
+            }
+        }, {
+            common: { id: 'bar_plain' },
+            convertColor: (value) => `COLOR_${value}`,
+            getLVGLFont: (family, size, weight) => `${family}-${size}-${weight}`,
+            profile: { features: {} }
+        });
+
+        expect(result.obj.bg_opa).toBe('transp');
+        expect(result.obj.bg_color).toBeUndefined();
+        expect(result.obj.border_width).toBe(0);
+        expect(result.obj.radius).toBe(0);
+        expect(result.obj.clip_corner).toBe(false);
+    });
+
     it('emits LVGL sensor lambdas with escaped double quotes and string returns', () => {
         const result = exportLVGL({
             id: 'bar_live',

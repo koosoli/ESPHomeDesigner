@@ -129,19 +129,11 @@ describe('shape_circle plugin', () => {
             }
         });
 
-        callbacks['Fill Circle'](true);
-        callbacks['Main Color']('orange');
-        callbacks['Fill Color Override']('yellow');
+        callbacks['Fill Color']('yellow');
         callbacks['Border Thickness']('4');
         callbacks['Border Color']('purple');
         callbacks['Opacity (%)'](80);
 
-        expect(mockAppState.updateWidget.mock.calls.some(([id, payload]) =>
-            id === 'circle_props' && payload.props?.fill === true
-        )).toBe(true);
-        expect(mockAppState.updateWidget.mock.calls.some(([id, payload]) =>
-            id === 'circle_props' && payload.props?.color === 'orange'
-        )).toBe(true);
         expect(mockAppState.updateWidget.mock.calls.some(([id, payload]) =>
             id === 'circle_props' && payload.props?.bg_color === 'yellow'
         )).toBe(true);
@@ -208,5 +200,30 @@ describe('shape_circle plugin', () => {
         expect(borderOutput).toContain('if (id(show_circle)) {');
         expect(borderOutput).toContain('// dither:blue');
         expect(borderOutput.trim().endsWith('}')).toBe(true);
+    });
+
+    it('exports a filled non-gray circle with a concrete filled_circle draw call', () => {
+        const lines = [];
+        shapeCirclePlugin.export({
+            x: 2,
+            y: 3,
+            width: 30,
+            height: 30,
+            props: {
+                fill: true,
+                color: 'red',
+                border_color: 'black',
+                border_width: 0
+            }
+        }, {
+            lines,
+            getColorConst: (value) => `Color(${value})`,
+            addDitherMask: () => {},
+            getConditionCheck: () => '',
+            RECT_Y_OFFSET: 0,
+            isEpaper: true
+        });
+
+        expect(lines.join('\n')).toContain('it.filled_circle');
     });
 });

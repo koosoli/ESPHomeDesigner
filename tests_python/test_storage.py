@@ -45,6 +45,15 @@ class DashboardStorageTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(storage._store.saved_payloads), 1)
         self.assertIn("reterminal_e1001", storage.state.devices)
 
+    async def test_load_ignores_non_mapping_payloads(self):
+        storage = self.storage_module.DashboardStorage(object())
+        storage._store.load_map[storage._store.key] = ["not", "a", "mapping"]
+
+        await storage.async_load()
+
+        self.assertEqual(storage.state.devices, {})
+        self.assertIsNone(storage.state.last_active_layout_id)
+
     async def test_update_layout_preserves_existing_token_and_tracks_last_active(self):
         storage = self.storage_module.DashboardStorage(object())
         existing = self._device("kiosk", "secret-token", rendering_mode="lvgl")
@@ -72,6 +81,38 @@ class DashboardStorageTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(updated.rendering_mode, "lvgl")
         self.assertEqual(storage.state.last_active_layout_id, "kiosk")
         self.assertEqual(len(storage._store.saved_payloads), 1)
+
+    async def test_update_layout_persists_page_schedule_and_visibility_metadata(self):
+        storage = self.storage_module.DashboardStorage(object())
+        existing = self._device("kiosk", "secret-token")
+        storage._state = self.models.DashboardState(devices={"kiosk": existing})
+
+        updated = await storage.async_update_layout("kiosk", {
+            "name": "Scheduled Layout",
+            "pages": [{
+                "id": "page_0",
+                "name": "Morning",
+                "refresh_type": "daily",
+                "refresh_time": "08:15",
+                "visible_from": "06:00",
+                "visible_to": "22:00",
+                "layout": "4x4",
+                "widgets": [],
+            }],
+        })
+
+        self.assertIsNotNone(updated)
+        self.assertEqual(updated.pages[0].refresh_type, "daily")
+        self.assertEqual(updated.pages[0].refresh_time, "08:15")
+        self.assertEqual(updated.pages[0].visible_from, "06:00")
+        self.assertEqual(updated.pages[0].visible_to, "22:00")
+        self.assertEqual(updated.pages[0].layout, "4x4")
+        saved_page = storage._store.saved_payloads[-1]["devices"]["kiosk"]["pages"][0]
+        self.assertEqual(saved_page["refresh_type"], "daily")
+        self.assertEqual(saved_page["refresh_time"], "08:15")
+        self.assertEqual(saved_page["visible_from"], "06:00")
+        self.assertEqual(saved_page["visible_to"], "22:00")
+        self.assertEqual(saved_page["layout"], "4x4")
 
     async def test_update_layout_from_device_preserves_existing_token(self):
         storage = self.storage_module.DashboardStorage(object())

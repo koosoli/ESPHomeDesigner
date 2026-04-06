@@ -2,6 +2,36 @@
  * @typedef {Record<string, any>} WidgetPropSource
  */
 
+const THEME_AUTO = "theme_auto";
+
+/**
+ * @param {WidgetPropSource} p
+ * @param {{ defaultBorderWidth: number, includeRadius?: boolean, defaultRadius?: number, includeShowBorder?: boolean }} options
+ * @returns {WidgetPropSource}
+ */
+function buildFillableShapeImportedProps(p, options) {
+    const {
+        defaultBorderWidth,
+        includeRadius = false,
+        defaultRadius = 0,
+        includeShowBorder = false
+    } = options;
+
+    const fill = (p.fill === true || p.fill === "true" || p.fill === "1");
+    const legacyColor = p.color || THEME_AUTO;
+    const fillColor = p.bg_color || (fill ? legacyColor : "transparent");
+    const borderColor = p.border_color || (fill ? fillColor : legacyColor);
+
+    return {
+        border_width: parseInt(p.border_width || p.border || defaultBorderWidth, 10),
+        bg_color: fillColor,
+        border_color: borderColor,
+        ...(includeRadius ? { radius: parseInt(p.radius || defaultRadius, 10) } : {}),
+        ...(includeShowBorder ? { show_border: (p.show_border !== false && p.show_border !== "false" && p.show_border !== "0") } : {}),
+        opacity: parseInt(p.opacity || 100, 10)
+    };
+}
+
 /**
  * @param {string} widgetType
  * @param {WidgetPropSource} p
@@ -142,6 +172,45 @@ export function buildBasicWidgetProps(widgetType, p, widget) {
         };
     }
 
+    if (widgetType === "moon_phase") {
+        return {
+            entity_id: p.entity_id || p.entity || p.ent || "sensor.moon",
+            size: parseInt(p.size || 48, 10),
+            color: p.color || "theme_auto",
+            bg_color: p.bg_color || p.background_color || "transparent",
+            fit_icon_to_frame: p.fit_icon_to_frame !== "false",
+            border_width: parseInt(p.border_width || 0, 10),
+            border_color: p.border_color || "theme_auto",
+            border_radius: parseInt(p.border_radius || 0, 10),
+            opacity: parseInt(p.opacity || 100, 10),
+            opa: parseInt(p.opa || 255, 10)
+        };
+    }
+
+    if (widgetType === "sun_times") {
+        return {
+            sunrise_entity: p.sunrise_entity || "sensor.sun_next_rising",
+            sunset_entity: p.sunset_entity || "sensor.sun_next_setting",
+            show_sunrise: p.show_sunrise !== "false",
+            show_sunset: p.show_sunset !== "false",
+            placeholder: p.placeholder || "n.d.",
+            icon_size: parseInt(p.icon_size || 18, 10),
+            font_size: parseInt(p.font_size || 16, 10),
+            font_family: p.font_family || "Roboto",
+            font_weight: parseInt(p.font_weight || 400, 10),
+            color: p.color || "theme_auto",
+            bg_color: p.bg_color || p.background_color || "transparent",
+            row_gap: parseInt(p.row_gap || 6, 10),
+            icon_gap: parseInt(p.icon_gap || 8, 10),
+            padding: parseInt(p.padding || 6, 10),
+            border_width: parseInt(p.border_width || 0, 10),
+            border_color: p.border_color || "theme_auto",
+            border_radius: parseInt(p.border_radius || 0, 10),
+            opacity: parseInt(p.opacity || 100, 10),
+            opa: parseInt(p.opa || 255, 10)
+        };
+    }
+
     if (widgetType === "qr_code") {
         return {
             value: p.value || "https://github.com/koosoli/ESPHomeDesigner/",
@@ -182,13 +251,9 @@ export function buildBasicWidgetProps(widgetType, p, widget) {
     }
 
     if (widgetType === "shape_rect") {
-        return {
-            fill: (p.fill === "true" || p.fill === "1"),
-            border_width: parseInt(p.border_width || p.border || 1, 10),
-            color: p.color || "theme_auto",
-            border_color: p.border_color || p.color || "theme_auto",
-            opacity: parseInt(p.opacity || 100, 10)
-        };
+        return buildFillableShapeImportedProps(p, {
+            defaultBorderWidth: 1
+        });
     }
 
     if (widgetType === "touch_area") {
@@ -205,30 +270,23 @@ export function buildBasicWidgetProps(widgetType, p, widget) {
     }
 
     if (widgetType === "rounded_rect") {
-        return {
-            fill: (p.fill === "true" || p.fill === "1"),
-            show_border: (p.show_border !== "false" && p.show_border !== "0"),
-            border_width: parseInt(p.border_width || p.border || 4, 10),
-            radius: parseInt(p.radius || 10, 10),
-            color: p.color || "theme_auto",
-            border_color: p.border_color || "theme_auto",
-            opacity: parseInt(p.opacity || 100, 10)
-        };
+        return buildFillableShapeImportedProps(p, {
+            defaultBorderWidth: 1,
+            includeRadius: true,
+            defaultRadius: 10,
+            includeShowBorder: true
+        });
     }
 
     if (widgetType === "shape_circle") {
-        return {
-            fill: (p.fill === "true" || p.fill === "1"),
-            border_width: parseInt(p.border_width || p.border || 1, 10),
-            color: p.color || "theme_auto",
-            border_color: p.border_color || p.color || "theme_auto",
-            opacity: parseInt(p.opacity || 100, 10)
-        };
+        return buildFillableShapeImportedProps(p, {
+            defaultBorderWidth: 1
+        });
     }
 
     if (widgetType === "line") {
         return {
-            stroke_width: parseInt(p.stroke_width || p.stroke || 3, 10),
+            stroke_width: parseInt(p.stroke_width || p.stroke || 1, 10),
             color: p.color || "theme_auto",
             orientation: p.orientation || "horizontal"
         };
@@ -252,6 +310,47 @@ export function buildBasicWidgetProps(widgetType, p, widget) {
             min_range: p.min_range || "",
             max_range: p.max_range || "",
             is_local_sensor: (p.is_local_sensor === "true" || p.local === "true")
+        };
+    }
+
+    if (widgetType === "energy_widget") {
+        return {
+            title: p.title || "",
+            solar_entity: p.solar_entity || "",
+            solar_to_home_entity: p.solar_to_home_entity || "",
+            solar_to_grid_entity: p.solar_to_grid_entity || "",
+            solar_to_battery_entity: p.solar_to_battery_entity || "",
+            autoconsumption_percent_entity: p.autoconsumption_percent_entity || "",
+            home_entity: p.home_entity || "",
+            grid_entity: p.grid_entity || "",
+            battery_power_entity: p.battery_power_entity || "",
+            battery_soc_entity: p.battery_soc_entity || "",
+            gas_entity: p.gas_entity || "",
+            solar_label: p.solar_label || "Solar",
+            home_label: p.home_label || "Home",
+            grid_label: p.grid_label || "Grid",
+            battery_label: p.battery_label || "Battery",
+            gas_label: p.gas_label || "Gas",
+            show_battery: (p.show_battery !== "false"),
+            show_gas: (p.show_gas === "true" || p.show_gas === true),
+            display_mode: p.display_mode || "power_now",
+            grid_positive_mode: p.grid_positive_mode || "import",
+            battery_positive_mode: p.battery_positive_mode || "charging",
+            flow_unit: p.flow_unit || "",
+            gas_unit: p.gas_unit || "m3",
+            decimals: parseInt(p.decimals || 0, 10),
+            color: p.color || "theme_auto",
+            background_color: p.background_color || "transparent",
+            border_color: p.border_color || "theme_auto",
+            flow_color: p.flow_color || "#3b7c3f",
+            inactive_flow_color: p.inactive_flow_color || "#8a8a8a",
+            font_family: p.font_family || "Roboto",
+            font_weight: parseInt(p.font_weight || 400, 10),
+            font_size: parseInt(p.font_size || 13, 10),
+            label_font_size: parseInt(p.label_font_size || 11, 10),
+            border_width: parseInt(p.border_width || 1, 10),
+            border_radius: parseInt(p.border_radius || 12, 10),
+            opacity: parseInt(p.opacity || 100, 10)
         };
     }
 

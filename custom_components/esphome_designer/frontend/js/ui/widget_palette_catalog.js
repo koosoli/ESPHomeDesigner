@@ -178,6 +178,32 @@ export const WIDGET_CATEGORIES = [
                 label: 'Quote / RSS',
                 tag: 'Info',
                 icon: '<svg class="widget-icon" viewBox="0 0 24 24"><path d="M6 17h3l2-4V7H5v6h3M13 17h3l2-4V7h-6v6h3" fill="none" stroke="currentColor" stroke-width="2" /></svg>'
+            },
+            {
+                type: 'energy_widget',
+                label: 'Energy Flow',
+                tag: 'Template',
+                icon: '<svg class="widget-icon" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="2" /><rect x="3" y="10" width="6" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="2" /><rect x="15" y="10" width="6" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="2" /><rect x="9" y="17" width="6" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="2" /><path d="M12 7v3M9 12h-3M15 12h-3M12 14v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>'
+            }
+        ]
+    },
+    {
+        id: 'astronomy',
+        name: 'Astronomy',
+        expanded: true,
+        icon: '<svg class="category-svg" viewBox="0 0 24 24" width="16" height="16"><path d="M15.5 3.5a8.5 8.5 0 107 13A9 9 0 0115.5 3.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        widgets: [
+            {
+                type: 'moon_phase',
+                label: 'Moon phase',
+                tag: 'Moon',
+                icon: '<svg class="widget-icon" viewBox="0 0 24 24"><path d="M15.5 3.5a8.5 8.5 0 107 13A9 9 0 0115.5 3.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /></svg>'
+            },
+            {
+                type: 'sun_times',
+                label: 'Sunrise / Sunset',
+                tag: 'Sun',
+                icon: '<svg class="widget-icon" viewBox="0 0 24 24"><path d="M4 16h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" /><path d="M7 14a5 5 0 0110 0" fill="none" stroke="currentColor" stroke-width="2" /><path d="M12 4v5" stroke="currentColor" stroke-width="2" stroke-linecap="round" /><path d="M9.5 7.5L12 5l2.5 2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>'
             }
         ]
     },

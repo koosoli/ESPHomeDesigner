@@ -146,6 +146,11 @@ export class Canvas {
         // Start a 1-second interval to update time-dependent widgets (like datetime)
         if (this.updateInterval) clearInterval(this.updateInterval);
         this.updateInterval = setInterval(() => {
+            const ownerDocument = this.canvas?.ownerDocument || document;
+
+            // Do not churn the DOM while the editor tab is hidden or the canvas was detached.
+            if (ownerDocument.visibilityState === 'hidden' || !this.canvas?.isConnected) return;
+
             // SKIP auto-render during active interaction to prevent DOM detachment
             if (this.touchState || this.pinchState || this.dragState || this.panState || this.lassoState || this.isExternalDragging) return;
 

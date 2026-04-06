@@ -18,6 +18,7 @@ const mockLayoutInit = vi.fn();
 const mockLayoutOpen = vi.fn();
 const mockPageSettingsOpen = vi.fn();
 const mockCanvasFocusPage = vi.fn();
+let sidebarCtorError = null;
 
 const mockLoadLayoutFromBackend = vi.fn();
 const mockSaveLayoutToBackend = vi.fn().mockResolvedValue(true);
@@ -45,6 +46,11 @@ const mockAppState = {
 
 vi.mock('../../js/core/sidebar.js', () => ({
     Sidebar: class {
+        constructor() {
+            if (sidebarCtorError) {
+                throw sidebarCtorError;
+            }
+        }
         init() {
             mockSidebarInit();
         }
@@ -255,6 +261,7 @@ vi.mock('../../js/io/hardware_import.js', () => ({}));
 describe('App bootstrap', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        sidebarCtorError = null;
         backendEnabled = true;
         mockAppState.settings.renderingMode = 'direct';
         delete window.ESPHomeDesigner;
@@ -291,6 +298,20 @@ describe('App bootstrap', () => {
         expect(mockLoadExternalProfiles).toHaveBeenCalled();
         expect(mockLoadLayoutFromBackend).toHaveBeenCalled();
         expect(mockFetchEntityStates).toHaveBeenCalled();
+    });
+
+    it('logs constructor failures and getCoreUi throws when required pieces are missing', async () => {
+        const { Logger } = await import('../../js/utils/logger.js');
+        const { App } = await import('../../js/main.js');
+
+        sidebarCtorError = new Error('sidebar failed');
+        const _brokenApp = new App();
+        expect(Logger.error).toHaveBeenCalledWith('[App] Critical Error in Constructor:', sidebarCtorError);
+
+        sidebarCtorError = null;
+        const app = new App();
+        app.quickSearch = null;
+        expect(() => app.getCoreUi()).toThrow('[App] Core UI failed to initialize');
     });
 
     it('falls back to local storage mode when backend is disabled', async () => {
@@ -434,6 +455,25 @@ describe('App bootstrap', () => {
         vi.useRealTimers();
     });
 
+    it('skips autosave work while initialization is still in progress', async () => {
+        vi.useFakeTimers();
+        const { App } = await import('../../js/main.js');
+        const { on, EVENTS } = await import('../../js/core/events.js');
+        const app = new App();
+        app.isInitializing = true;
+
+        app.setupAutoSave();
+
+        const stateChangedRegistration = /** @type {any} */ (on).mock.calls.find((call) => call[0] === EVENTS.STATE_CHANGED);
+        const stateChanged = stateChangedRegistration[1];
+        stateChanged();
+        vi.advanceTimersByTime(3000);
+
+        expect(mockSaveLayoutToBackend).not.toHaveBeenCalled();
+        expect(mockAppState.saveToLocalStorage).not.toHaveBeenCalled();
+        vi.useRealTimers();
+    });
+
     it('logs when device settings controls are unavailable', async () => {
         document.body.innerHTML = `
             <button id="saveLayoutBtn"></button>
@@ -523,5 +563,175 @@ describe('App bootstrap', () => {
 
         mockRenderWidgetPalette.mockResolvedValueOnce(undefined);
         await expect(bootstrapApp()).resolves.toBeTruthy();
+    });
+
+    it('does nothing on module auto-bootstrap when no editor surface exists', async () => {
+        vi.resetModules();
+        document.body.innerHTML = '';
+        delete window.ESPHomeDesigner;
+        delete globalThis.__ESPHOME_DESIGNER_BOOT_PROMISE__;
+
+        await import('../../js/main.js');
+        await Promise.resolve();
+
+        expect(window.ESPHomeDesigner).toBeUndefined();
+    });
+
+    it('reloads the editor document when the surface has gone blank after idle', async () => {
+        const { recoverEditorRuntimeIfNeeded } = await import('../../js/main.js');
+        const reload = vi.fn();
+        const bootstrap = vi.fn();
+
+        document.body.innerHTML = '';
+        delete window.ESPHomeDesigner;
+        delete globalThis.__ESPHOME_DESIGNER_BOOT_PROMISE__;
+
+        await expect(recoverEditorRuntimeIfNeeded({
+            root: document,
+            runtimeGlobal: window,
+            reload,
+            bootstrap
+        })).resolves.toBe(true);
+
+        expect(reload).toHaveBeenCalledTimes(1);
+        expect(bootstrap).not.toHaveBeenCalled();
+    });
+
+    it('rebootstraps when the editor shell exists but the runtime namespace is missing', async () => {
+        const { recoverEditorRuntimeIfNeeded } = await import('../../js/main.js');
+        const reload = vi.fn();
+        const bootstrap = vi.fn().mockResolvedValue({ restored: true });
+
+        delete window.ESPHomeDesigner;
+        delete globalThis.__ESPHOME_DESIGNER_BOOT_PROMISE__;
+
+        await expect(recoverEditorRuntimeIfNeeded({
+            root: document,
+            runtimeGlobal: window,
+            reload,
+            bootstrap
+        })).resolves.toBe(true);
+
+        expect(bootstrap).toHaveBeenCalledTimes(1);
+        expect(reload).not.toHaveBeenCalled();
+    });
+
+    it('returns false for recovery when the document is hidden or the runtime is already healthy', async () => {
+        const { recoverEditorRuntimeIfNeeded, isEditorDocumentContext } = await import('../../js/main.js');
+        const reload = vi.fn();
+        const bootstrap = vi.fn();
+
+        expect(isEditorDocumentContext({})).toBe(false);
+
+        await expect(recoverEditorRuntimeIfNeeded({
+            root: { readyState: 'complete', visibilityState: 'hidden' },
+            runtimeGlobal: window,
+            reload,
+            bootstrap
+        })).resolves.toBe(false);
+
+        window.ESPHomeDesigner = { app: { healthy: true } };
+        await expect(recoverEditorRuntimeIfNeeded({
+            root: document,
+            runtimeGlobal: window,
+            reload,
+            bootstrap
+        })).resolves.toBe(false);
+
+        expect(bootstrap).not.toHaveBeenCalled();
+        expect(reload).not.toHaveBeenCalled();
+    });
+
+    it('installs editor runtime recovery only inside the editor iframe context', async () => {
+        const {
+            installEditorRuntimeRecovery,
+            EDITOR_RECOVERY_KEY,
+            EDITOR_SELF_HEAL_INTERVAL_MS
+        } = await import('../../js/main.js');
+
+        const root = {
+            addEventListener: vi.fn()
+        };
+        const targetWindow = {
+            addEventListener: vi.fn(),
+            setInterval: vi.fn(() => 123),
+            location: {
+                pathname: '/esphome-designer/editor/index.html',
+                reload: vi.fn()
+            }
+        };
+        const runtimeGlobal = {};
+
+        expect(installEditorRuntimeRecovery({
+            root,
+            targetWindow,
+            runtimeGlobal
+        })).toBe(true);
+        expect(targetWindow.setInterval).toHaveBeenCalledWith(expect.any(Function), EDITOR_SELF_HEAL_INTERVAL_MS);
+        expect(root.addEventListener).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
+        expect(runtimeGlobal[EDITOR_RECOVERY_KEY]).toEqual(expect.objectContaining({
+            intervalId: 123
+        }));
+
+        expect(installEditorRuntimeRecovery({
+            root,
+            targetWindow,
+            runtimeGlobal
+        })).toBe(false);
+
+        expect(installEditorRuntimeRecovery({
+            root,
+            targetWindow: {
+                ...targetWindow,
+                location: { pathname: '/lovelace/default_view' }
+            },
+            runtimeGlobal: {}
+        })).toBe(false);
+    });
+
+    it('handles missing interval support and invalid recovery targets safely', async () => {
+        const {
+            installEditorRuntimeRecovery,
+            EDITOR_RECOVERY_KEY
+        } = await import('../../js/main.js');
+
+        expect(installEditorRuntimeRecovery({
+            root: null,
+            targetWindow: {
+                addEventListener: vi.fn(),
+                location: { pathname: '/esphome-designer/editor/index.html' }
+            },
+            runtimeGlobal: {}
+        })).toBe(false);
+
+        const runtimeGlobal = {};
+        const root = { addEventListener: vi.fn() };
+        const targetWindow = {
+            addEventListener: vi.fn(),
+            location: {
+                pathname: '/esphome-designer/editor/index.html',
+                reload: vi.fn()
+            }
+        };
+
+        expect(installEditorRuntimeRecovery({
+            root,
+            targetWindow,
+            runtimeGlobal
+        })).toBe(true);
+        expect(runtimeGlobal[EDITOR_RECOVERY_KEY]).toEqual(expect.objectContaining({
+            intervalId: null
+        }));
+    });
+
+    it('refreshes adapters with the direct-mode fallback when rendering mode is empty', async () => {
+        const { App } = await import('../../js/main.js');
+        const app = new App();
+
+        mockAppState.settings.renderingMode = '';
+        app.adapter = null;
+        app.refreshAdapter();
+
+        expect(app.adapter.mode).toBe('direct');
     });
 });

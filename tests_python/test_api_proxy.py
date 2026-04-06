@@ -91,6 +91,28 @@ class ProxyApiTests(unittest.IsolatedAsyncioTestCase):
 
             self.assertEqual(resolved, image_path.resolve())
 
+    def test_resolve_image_path_allows_legacy_singular_esphome_image_root(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            image_path = Path(tmpdir) / "esphome" / "image" / "logo.png"
+            image_path.parent.mkdir(parents=True)
+            image_path.write_text("png", encoding="utf-8")
+
+            resolved = self.proxy_module._resolve_image_path(tmpdir, "/config/esphome/image/logo.png")
+
+            self.assertEqual(resolved, image_path.resolve())
+
+    def test_resolve_image_path_allows_home_assistant_public_www_paths(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            image_path = Path(tmpdir) / "www" / "backgrounds" / "wallpaper.png"
+            image_path.parent.mkdir(parents=True)
+            image_path.write_text("png", encoding="utf-8")
+
+            resolved_config_path = self.proxy_module._resolve_image_path(tmpdir, "/config/www/backgrounds/wallpaper.png")
+            resolved_local_alias = self.proxy_module._resolve_image_path(tmpdir, "/local/backgrounds/wallpaper.png")
+
+            self.assertEqual(resolved_config_path, image_path.resolve())
+            self.assertEqual(resolved_local_alias, image_path.resolve())
+
     def test_resolve_image_path_rejects_arbitrary_config_reads(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             secret_path = Path(tmpdir) / "secrets.yaml"

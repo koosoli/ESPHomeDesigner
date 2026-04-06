@@ -297,7 +297,7 @@ WIDGET TYPES & PROPS:
 - battery_icon: { x, y, width, height, entity, color }
 - progress_bar: { x, y, width, height, color, bar_height }
 - graph: { x, y, width, height, entity, color, duration }
-- shape_rect / rounded_rect / shape_circle: { x, y, width, height, color, fill (bool), border_width, opacity }
+- shape_rect / rounded_rect / shape_circle: { x, y, width, height, bg_color, border_color, border_width, opacity }
 - lvgl_*: Advanced widgets (lvgl_button, lvgl_switch, lvgl_slider, lvgl_arc, etc).
 
 STRICT OPERATIONAL RULES:
@@ -316,7 +316,7 @@ FEW-SHOT EXAMPLE:
 User: "Add a large bold title that reads 'Home Status' at the top with a separator line."
 Response: [
   {"id": "w_title", "type": "text", "x": 20, "y": 10, "width": 760, "height": 50, "text": "Home Status", "font_size": 32, "font_weight": 700, "align": "CENTER"},
-  {"id": "w_sep", "type": "shape_rect", "x": 20, "y": 65, "width": 760, "height": 2, "color": "black", "fill": true}
+  {"id": "w_sep", "type": "shape_rect", "x": 20, "y": 65, "width": 760, "height": 2, "bg_color": "black", "border_color": "black"}
 ]
 
 8. DROP SHADOWS: For LCD displays ("color_lcd"), add subtle drop shadows to shapes and cards.

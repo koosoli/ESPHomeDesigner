@@ -57,4 +57,24 @@ describe('calendar yaml export', () => {
         expect(result.instructions).toContain('nr_entries: 8');
         expect(result.lambda).toContain('if (false) {');
     });
+
+    it('scales the snippet event summary width when the calendar widget is widened', () => {
+        const result = generateSnippet({
+            id: 'calendar_d',
+            x: 0,
+            y: 0,
+            w: 520,
+            h: 220,
+            properties: {
+                show_header: false,
+                show_grid: false,
+                show_events: true,
+                font_size_event: 18
+            }
+        });
+
+        const match = result.lambda.match(/"%\.(\d+)s", summary/);
+        expect(match).not.toBeNull();
+        expect(Number(match?.[1])).toBeGreaterThan(25);
+    });
 });

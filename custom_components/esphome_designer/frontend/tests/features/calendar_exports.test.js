@@ -123,6 +123,40 @@ describe('calendar exports', () => {
         expect(addFont).toHaveBeenCalledWith('Material Design Icons', 400, 24);
     });
 
+    it('scales direct calendar event summary width for wider widgets', () => {
+        const lines = [];
+
+        exportDirect({
+            x: 0,
+            y: 0,
+            width: 520,
+            height: 220,
+            entity_id: 'sensor.family_calendar',
+            props: {
+                show_header: false,
+                show_grid: false,
+                show_events: true,
+                text_color: 'black',
+                background_color: 'white',
+                font_family: 'Roboto',
+                font_size_event: 18
+            }
+        }, {
+            lines,
+            addFont: vi.fn(() => 'font_ref'),
+            getColorConst: (value) => `Color(${value})`,
+            addDitherMask: vi.fn(),
+            getCondProps: () => ({}),
+            getConditionCheck: () => '',
+            isEpaper: false
+        });
+
+        const output = lines.join('\n');
+        const match = output.match(/"%\.(\d+)s", summary/);
+        expect(match).not.toBeNull();
+        expect(Number(match?.[1])).toBeGreaterThan(25);
+    });
+
     it('exports rounded direct calendar borders when border_radius is set', () => {
         const lines = [];
 

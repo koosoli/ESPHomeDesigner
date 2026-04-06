@@ -1,3 +1,38 @@
+## v1.0.0 RC11 - Shape Cleanup, New Widgets & Verification
+**Release Date:** April 6, 2026
+
+This release continues the shape-model cleanup so fills, borders, and lines behave more consistently across the editor and generated output, adds the new astronomy and energy widgets discussed in GitHub [Issue #367](https://github.com/koosoli/ESPHomeDesigner/issues/367), [Issue #368](https://github.com/koosoli/ESPHomeDesigner/issues/368), and https://github.com/koosoli/ESPHomeDesigner/discussions/219#discussioncomment-16442603 and rolls in the supporting stability and verification work for the RC11 line.
+
+### Release Highlights
+- **Canonical Shape Color Model**: Rectangle, circle, and rounded rectangle widgets now use explicit `bg_color` and `border_color` as their primary shape colors, while legacy `color` values are still accepted as compatibility fallbacks for existing layouts and imports.
+- **Unified Shape Controls**: Rectangle, circle, and rounded rectangle widgets now share the same visible shape-editing model: `Fill`, `Fill Color`, `Border Thickness`, and `Border Color`, plus shape-specific geometry such as `Corner Radius`.
+- **Smarter Shape Border Defaults**: When a fillable shape is filled and the border color has not been explicitly chosen, the border now defaults to the same color as the fill until the user overrides it.
+- **Unified Default Border & Line Widths**: Rectangle, circle, rounded rectangle, and line widgets now default to a consistent visible border or stroke weight in new layouts, while legacy imports continue to normalize toward the shared shape model.
+- **Astronomy Widget Category**: Added a dedicated `Astronomy` section in the widget palette for the new `moon_phase` and `sun_times` widgets, while keeping the existing weather icon in its current core location.
+- **Moon Phase Widget (Issue #367)**: Added a dedicated `moon_phase` widget with Home Assistant moon-state icon mapping across editor preview, direct ESPHome export, LVGL export, OEPL export, and OpenDisplay export.
+- **Sun Times Widget (Issue #368)**: Added a dedicated `sun_times` widget with independent `Show Sunrise` and `Show Sunset` toggles, native Home Assistant defaults for `sensor.sun_next_rising` / `sensor.sun_next_setting`, and support for `sun.sun` attributes like `next_rising` and `next_setting`.
+- **Energy Flow Widget**: Added a new `energy_widget` / `Energy Flow` widget for `direct` and `lvgl` projects with a fixed solar, home, grid, battery, and optional gas topology, sign-aware import/export and charge/discharge arrows, and visible bordered node boxes for the core energy slots. 
+- **Advanced Solar Breakdown**: The new energy widget supports optional helper entities for `Solar -> Home`, `Solar -> Grid`, `Solar -> Battery`, and `Autoconsumption %`, while still deriving safe fallbacks for grid export and self-consumption when only the base net sensors are available.
+
+### Stability & Verification
+- **Home Assistant Local Image Preview Fix (Issue #366)**: Fixed an HA-specific regression where local image previews could trigger authentication failures after the backend hardening pass. Image previews now load through the authenticated request path again, while common public image locations such as `/local/...` and `/config/www/...` continue to work without reopening arbitrary `/config` file reads.
+- **ESPHome Image Transparency & LVGL Background YAML Fix (Issue #369)**: Color image components now emit ESPHome's current `transparency` option instead of the deprecated `use_transparency` flag, honoring the widget's configured transparency mode, and transparent LVGL template bars no longer generate invalid `bg_color: transp` output.
+- **M5Paper GT911 ESPHome Compatibility Fix (Issue #370)**: The M5Paper preset no longer exports `GPIO36` as a GT911 `interrupt_pin` on classic ESP32 builds where that pin is input-only and rejected by current ESPHome releases. Affected exports now fall back to polling with `update_interval: 50ms`, restoring successful YAML compilation on ESPHome 2026.3.2 and newer.
+- **Scheduled Page Switching & Calendar Width Fixes (Issue #356)**: Scheduled page visibility changes no longer self-trigger the page-switch debounce before `change_page_to` runs, restoring automatic switching between time-windowed pages, and calendar event summaries now expand their on-device text width with wider calendar widgets instead of staying hard-capped at 25 characters.
+- **Drop Shadow Fill & Group Border Editing Cleanup**: Adding a drop shadow now preserves existing opaque fills, forces transparent widget infills to white so the shadow remains visible, and grouped shadow selections can edit shared border width, border color, and corner settings without pushing those properties onto the invisible group wrapper.
+- **Backward-Compatible Imports**: YAML, C++ drawing, and OEPL parser paths continue to accept older shape definitions while normalizing imported shapes toward the new `bg_color` / `border_color` model.
+- **Regression Coverage for Shape Cleanup**: Updated focused tests and snapshots for the shared fillable-shape helpers, shape widgets, line defaults, parser round-trips, and widget-manager shadow behavior.
+- **Regression Coverage for Issue #356**: Added focused generator and calendar export tests so scheduled visibility auto-switching and width-scaled calendar summaries stay locked in.
+- **Regression Coverage for Issue #369**: Added focused test coverage for modern image component export plus transparent LVGL template-bar export so the invalid YAML patterns stay fixed.
+- **Regression Coverage for Issue #370**: Added targeted touchscreen generator coverage so classic ESP32 GT911 profiles with input-only pins keep using the polling fallback instead of emitting invalid output-mode interrupt pins.
+- **Astronomy Widget Coverage**: Added targeted tests for the new moon phase and sun times widgets so preview behavior and export wiring stay locked in.
+- **Energy Widget Coverage & Round-Trip Support**: Added direct-export, LVGL-export, preview, parser, and round-trip coverage for the new energy widget so its helper entities and derived flow labels stay stable across YAML import/export and frontend builds.
+- **Release Metadata Refresh**: Updated the package metadata, Home Assistant manifest version, runtime GUI version string, and visible header label for the RC11 release.
+
+
+
+---
+
 ## v1.0.0 RC10.1 - Visibility Hotfix & Release Sync
 **Release Date:** April 2, 2026
 

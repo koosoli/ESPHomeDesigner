@@ -175,32 +175,30 @@ describe('shape_rect plugin', () => {
         shapeRectPlugin.renderProperties(panel, {
             id: 'rect_props',
             props: {
-                ...shapeRectPlugin.defaults
+                ...shapeRectPlugin.defaults,
+                color: 'orange'
             }
         });
 
-        callbacks['Fill Rectangle'](true);
-        callbacks['Main Color']('orange');
-        callbacks['Fill Color Override']('yellow');
+        callbacks['Fill Color']('yellow');
         callbacks['Border Thickness']('4');
         callbacks['Border Color']('purple');
         callbacks['Corner Radius']('9');
         callbacks['Opacity (%)'](80);
 
         expect(mockAppState.updateWidget.mock.calls.some(([id, payload]) =>
-            id === 'rect_props' && payload.props?.fill === true
-        )).toBe(true);
-        expect(mockAppState.updateWidget.mock.calls.some(([id, payload]) =>
-            id === 'rect_props' && payload.props?.color === 'orange'
-        )).toBe(true);
-        expect(mockAppState.updateWidget.mock.calls.some(([id, payload]) =>
-            id === 'rect_props' && payload.props?.bg_color === 'yellow'
+            id === 'rect_props'
+            && payload.props?.bg_color === 'yellow'
+            && !Object.prototype.hasOwnProperty.call(payload.props ?? {}, 'color')
         )).toBe(true);
         expect(mockAppState.updateWidget.mock.calls.some(([id, payload]) =>
             id === 'rect_props' && payload.props?.border_width === 4
         )).toBe(true);
         expect(mockAppState.updateWidget.mock.calls.some(([id, payload]) =>
-            id === 'rect_props' && payload.props?.border_color === 'purple'
+            id === 'rect_props'
+            && payload.props?.border_color === 'purple'
+            && payload.props?.bg_color === 'yellow'
+            && !Object.prototype.hasOwnProperty.call(payload.props ?? {}, 'color')
         )).toBe(true);
         expect(mockAppState.updateWidget.mock.calls.some(([id, payload]) =>
             id === 'rect_props' && payload.props?.radius === 9

@@ -120,6 +120,8 @@ describe('OpenDisplay Bare Array Parsing', () => {
     expect(rectWidget.y).toBe(230);
     expect(rectWidget.width).toBe(90);   // 187 - 97
     expect(rectWidget.height).toBe(40);  // 270 - 230
+    expect(rectWidget.props.bg_color).toBe('transparent');
+    expect(rectWidget.props.border_color).toBe('black');
   });
 
   it('should correctly parse circle widget', async () => {
@@ -129,6 +131,8 @@ describe('OpenDisplay Bare Array Parsing', () => {
     expect(circleWidget).toBeDefined();
     expect(circleWidget.x).toBe(352);  // 372 - 20
     expect(circleWidget.y).toBe(226);  // 246 - 20
+    expect(circleWidget.props.bg_color).toBe('transparent');
+    expect(circleWidget.props.border_color).toBe('black');
   });
 
   it('should correctly parse icon widget with large size', async () => {

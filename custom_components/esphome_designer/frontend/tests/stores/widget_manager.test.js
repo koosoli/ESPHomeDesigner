@@ -195,6 +195,30 @@ describe('WidgetManager', () => {
         });
     });
 
+    it('should sync border_radius updates to sibling shadow widgets', () => {
+        const ids = ['calendar_1'];
+        const widgets = [
+            { id: 'calendar_1', parentId: 'group_1', props: { border_radius: 4 } },
+            { id: 'shadow_1', parentId: 'group_1', props: { name: 'Calendar Shadow', radius: 4 } }
+        ];
+        mockApp.pages[0].widgets = widgets;
+        mockApp.getCurrentPage.mockReturnValue(mockApp.pages[0]);
+        mockApp.getWidgetById.mockImplementation((id) => {
+            if (id === 'calendar_1') return widgets[0];
+            if (id === 'group_1') return { id: 'group_1', type: 'group', title: 'Calendar Group' };
+            return null;
+        });
+
+        wm.updateWidgetsProps(ids, { border_radius: 12 });
+
+        expect(mockApp.project.updateWidget).toHaveBeenCalledWith('calendar_1', {
+            props: { border_radius: 12 }
+        });
+        expect(mockApp.project.updateWidget).toHaveBeenCalledWith('shadow_1', {
+            props: { name: 'Calendar Shadow', radius: 12 }
+        });
+    });
+
     it('should paste widget from editor state properly', () => {
         mockApp.editor.clipboardWidgets = [{ type: 'text', x: 10, y: 10, props: {} }];
 
@@ -233,7 +257,7 @@ describe('WidgetManager', () => {
         expect(mockApp.recordHistory).not.toHaveBeenCalled();
     });
 
-    it('should normalize theme_auto border_color to a concrete color when creating drop shadow', () => {
+    it('preserves an existing shape fill when creating drop shadow', () => {
         const widget = {
             id: 'rect_1',
             type: 'shape_rect',
@@ -242,8 +266,10 @@ describe('WidgetManager', () => {
             width: 100,
             height: 50,
             props: {
-                color: 'theme_auto',
-                border_color: 'theme_auto',
+                fill: true,
+                color: 'navy',
+                bg_color: 'tomato',
+                background_color: 'tomato',
                 border_width: 2
             }
         };
@@ -279,8 +305,13 @@ describe('WidgetManager', () => {
         const localManager = new WidgetManager(app);
         localManager.createDropShadow(widget.id);
 
-        expect(widget.props.border_color).toBe('black');
-        expect(widget.props.border_color).not.toBe('theme_auto');
+        const shadow = page.widgets.find((entry) => entry.id !== widget.id && entry.props?.name === 'shape_rect Shadow');
+        expect(widget.props.fill).toBeUndefined();
+        expect(widget.props.color).toBe('navy');
+        expect(widget.props.bg_color).toBe('tomato');
+        expect(widget.props.background_color).toBeUndefined();
+        expect(shadow?.props.bg_color).toBe('black');
+        expect(shadow?.props.background_color).toBeUndefined();
     });
 
     it('should build circle shadows in dark mode and preserve radius for rounded rect shadows', () => {
@@ -328,6 +359,157 @@ describe('WidgetManager', () => {
         expect(roundedShadow?.type).toBe('rounded_rect');
         expect(roundedShadow?.props.radius).toBe(12);
         expect(app.selectWidgets).toHaveBeenCalled();
+    });
+
+    it('forces transparent content widget backgrounds to white when creating drop shadows', () => {
+        const widget = {
+            id: 'calendar_1',
+            type: 'calendar',
+            x: 20,
+            y: 30,
+            width: 180,
+            height: 120,
+            props: {
+                background_color: 'transparent',
+                border_color: 'black'
+            }
+        };
+
+        const page = {
+            dark_mode: 'dark',
+            widgets: [widget]
+        };
+        const widgetsById = new Map([[widget.id, widget]]);
+
+        const app = {
+            settings: { dark_mode: true },
+            getCurrentPage: vi.fn(() => page),
+            project: {
+                currentPageIndex: 0,
+                getCurrentPage: vi.fn(() => page),
+                addWidget: vi.fn((w) => {
+                    page.widgets.push(w);
+                    widgetsById.set(w.id, w);
+                }),
+                updateWidget: vi.fn((id, updates) => {
+                    const current = widgetsById.get(id);
+                    if (current) Object.assign(current, updates);
+                }),
+                reorderWidget: vi.fn(),
+                rebuildWidgetsIndex: vi.fn()
+            },
+            getWidgetById: vi.fn((id) => widgetsById.get(id)),
+            selectWidgets: vi.fn(),
+            recordHistory: vi.fn()
+        };
+
+        const localManager = new WidgetManager(app);
+        localManager.createDropShadow(widget.id);
+
+        expect(widget.props.fill).toBe(true);
+        expect(widget.props.background_color).toBe('white');
+        expect(widget.props.bg_color).toBeUndefined();
+    });
+
+    it('forces transparent bg_color content widgets to white when creating drop shadows', () => {
+        const widget = {
+            id: 'content_bg_color',
+            type: 'calendar',
+            x: 20,
+            y: 30,
+            width: 180,
+            height: 120,
+            props: {
+                bg_color: 'transparent',
+                border_color: 'black'
+            }
+        };
+
+        const page = {
+            dark_mode: 'dark',
+            widgets: [widget]
+        };
+        const widgetsById = new Map([[widget.id, widget]]);
+
+        const app = {
+            settings: { dark_mode: true },
+            getCurrentPage: vi.fn(() => page),
+            project: {
+                currentPageIndex: 0,
+                getCurrentPage: vi.fn(() => page),
+                addWidget: vi.fn((w) => {
+                    page.widgets.push(w);
+                    widgetsById.set(w.id, w);
+                }),
+                updateWidget: vi.fn((id, updates) => {
+                    const current = widgetsById.get(id);
+                    if (current) Object.assign(current, updates);
+                }),
+                reorderWidget: vi.fn(),
+                rebuildWidgetsIndex: vi.fn()
+            },
+            getWidgetById: vi.fn((id) => widgetsById.get(id)),
+            selectWidgets: vi.fn(),
+            recordHistory: vi.fn()
+        };
+
+        const localManager = new WidgetManager(app);
+        localManager.createDropShadow(widget.id);
+
+        expect(widget.props.fill).toBe(true);
+        expect(widget.props.bg_color).toBe('white');
+        expect(widget.props.background_color).toBeUndefined();
+    });
+
+    it('forces transparent shape fills to white when creating drop shadows', () => {
+        const widget = {
+            id: 'rounded_transparent',
+            type: 'shape_rect',
+            x: 40,
+            y: 50,
+            width: 90,
+            height: 45,
+            props: {
+                bg_color: 'transparent',
+                fill: true,
+                radius: 10
+            }
+        };
+
+        const page = {
+            dark_mode: 'dark',
+            widgets: [widget]
+        };
+        const widgetsById = new Map([[widget.id, widget]]);
+
+        const app = {
+            settings: { dark_mode: true },
+            getCurrentPage: vi.fn(() => page),
+            project: {
+                currentPageIndex: 0,
+                getCurrentPage: vi.fn(() => page),
+                addWidget: vi.fn((w) => {
+                    page.widgets.push(w);
+                    widgetsById.set(w.id, w);
+                }),
+                updateWidget: vi.fn((id, updates) => {
+                    const current = widgetsById.get(id);
+                    if (current) Object.assign(current, updates);
+                }),
+                reorderWidget: vi.fn(),
+                rebuildWidgetsIndex: vi.fn()
+            },
+            getWidgetById: vi.fn((id) => widgetsById.get(id)),
+            selectWidgets: vi.fn(),
+            recordHistory: vi.fn()
+        };
+
+        const localManager = new WidgetManager(app);
+        localManager.createDropShadow(widget.id);
+
+        expect(widget.props.fill).toBeUndefined();
+        expect(widget.props.bg_color).toBe('white');
+        expect(widget.props.background_color).toBeUndefined();
     });
 
     it('should move group and direct child to target page with preserved relative offset', () => {
@@ -394,6 +576,7 @@ describe('WidgetManager', () => {
         expect(wm.isWidgetCompatibleWithMode({ type: 'odp_card' }, 'opendisplay')).toBe(false);
         expect(wm.isWidgetCompatibleWithMode({ type: 'lvgl_label' }, 'lvgl')).toBe(true);
         expect(wm.isWidgetCompatibleWithMode({ type: 'lvgl_label' }, 'direct')).toBe(false);
+        expect(wm.isWidgetCompatibleWithMode({ type: 'text' }, 'custom-mode')).toBe(true);
     });
 
     it('should auto-switch rendering modes for oepl and odp widgets but ignore empty types', () => {

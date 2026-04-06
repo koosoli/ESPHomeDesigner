@@ -100,10 +100,19 @@ When you run ESPHome Designer inside Home Assistant, your saved layouts are stor
 
 - **Layouts and editor state**: `/config/.storage/esphome_designer`
 - **Custom layouts you create in the editor**: saved inside that same `/config/.storage/esphome_designer` file as separate layout entries
+- **Manual edits made in the YAML snippet box**: saved inside the active layout entry in `/config/.storage/esphome_designer` as part of the layout state, not as a standalone ESPHome device YAML file
 - **Legacy installs (0.8.6.2 and older)**: may still have old data in `/config/.storage/reterminal_dashboard`; the integration can read that and migrate it on a later save
 - **Uploaded custom hardware profiles**: `/config/esphomedesigner_custom_profiles/*.yaml`
 
 If you are browsing the Home Assistant filesystem from the host OS, replace `/config` with your actual Home Assistant configuration directory.
+
+### How Saving and YAML Import Work
+
+- **Save Layout** saves the current canvas, layout settings, and any persisted manual YAML override to the active layout in Home Assistant storage. It does **not** automatically overwrite your real ESPHome device YAML file.
+- **Save Hardware Profile** is a separate action for reusable hardware recipes. It writes a YAML profile to `/config/esphomedesigner_custom_profiles/*.yaml`.
+- **Generated ESPHome YAML** in the snippet box is meant to be copied into your actual ESPHome device configuration. The normal workflow is still: design in the editor, copy the generated snippet, paste/merge it into your device YAML, then compile/flash from ESPHome.
+- **Import YAML back to canvas** / **Update Layout from YAML** does the reverse: it parses supported YAML back into pages/widgets and rebuilds the editor canvas for round-trip editing.
+- **Round-trip note**: very custom `lambda:` or `script:` code may not preview or reconstruct perfectly in the visual editor, even though the raw YAML can still be preserved.
 
 #### 4. Local Development Server
 
@@ -197,6 +206,8 @@ Then create a new ESPHome device:
 1. Copy the generated YAML snippet
 2. Paste it below ESPHome's auto-generated sections in your device config
 3. Compile and flash via ESPHome
+
+`Save Layout` stores your editor state in Home Assistant so you can come back later. Flashing still uses the YAML in your actual ESPHome device configuration.
 
 Done! Your custom dashboard is now running on your device.
 
@@ -301,7 +312,7 @@ Most widgets (text, shapes, images, icons, QR codes) work on all platforms. Grap
 
 ## Technical Details
 
-The generator produces **complete, standalone YAML** - no templates needed!
+The generator produces a **complete display/application snippet** for your project. In the normal ESPHome workflow, you paste that snippet into your existing device YAML below ESPHome's auto-generated base sections.
 
 **What it generates (everything you need):**
 - **Hardware Config**: `psram`, `i2c`, `spi`, `external_components`, and device-specific sections (`m5paper`, `axp2101`)

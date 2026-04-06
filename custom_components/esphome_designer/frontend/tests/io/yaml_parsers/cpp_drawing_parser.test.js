@@ -13,7 +13,7 @@ describe('cpp_drawing_parser', () => {
             height: 40,
             title: '',
             entity_id: '',
-            props: { fill: false, border_width: 1, color: 'black', opacity: 100 }
+            props: { border_width: 1, bg_color: 'transparent', border_color: 'black', opacity: 100 }
         });
 
         expect(parseCppDrawingCommand('it.filled_rectangle(5, 6, 7, 8, COLOR_OFF);', 4)).toEqual({
@@ -25,7 +25,7 @@ describe('cpp_drawing_parser', () => {
             height: 8,
             title: '',
             entity_id: '',
-            props: { fill: true, border_width: 1, color: 'black', opacity: 100 }
+            props: { border_width: 1, bg_color: 'black', border_color: 'black', opacity: 100 }
         });
     });
 
@@ -39,7 +39,7 @@ describe('cpp_drawing_parser', () => {
             height: 20,
             title: '',
             entity_id: '',
-            props: { fill: false, border_width: 1, color: 'black', opacity: 100 }
+            props: { border_width: 1, bg_color: 'transparent', border_color: 'black', opacity: 100 }
         });
 
         expect(parseCppDrawingCommand('it.filled_circle(40, 50, 5, COLOR_OFF);', 6)).toEqual({
@@ -51,7 +51,7 @@ describe('cpp_drawing_parser', () => {
             height: 10,
             title: '',
             entity_id: '',
-            props: { fill: true, border_width: 1, color: 'black', opacity: 100 }
+            props: { border_width: 1, bg_color: 'black', border_color: 'black', opacity: 100 }
         });
     });
 

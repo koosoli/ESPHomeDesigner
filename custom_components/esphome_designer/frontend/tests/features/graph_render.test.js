@@ -20,12 +20,20 @@ vi.mock('../../js/core/events.js', () => ({
 
 import { render } from '../../features/graph/render.js';
 
+const setDocumentVisibility = (state) => {
+    Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        value: state
+    });
+};
+
 describe('graph render', () => {
     beforeEach(() => {
         vi.useFakeTimers();
         mockFetchEntityHistory.mockReset();
         mockGetEntityAttributes.mockReset();
         mockEmit.mockReset();
+        setDocumentVisibility('visible');
         document.body.innerHTML = '';
     });
 
@@ -157,6 +165,39 @@ describe('graph render', () => {
         expect(title?.style.fontFamily).toContain('Montserrat');
         expect(title?.style.fontWeight).toBe('600');
         expect(title?.style.fontSize).toBe('15px');
+    });
+
+    it('skips deferred axis labels while the document is hidden', () => {
+        mockGetEntityAttributes.mockReturnValue({
+            history: JSON.stringify([{ value: 10 }, { value: 20 }, { value: 30 }])
+        });
+
+        const artboard = document.createElement('div');
+        artboard.className = 'artboard';
+        const el = document.createElement('div');
+        artboard.appendChild(el);
+        document.body.appendChild(artboard);
+        setDocumentVisibility('hidden');
+
+        render(el, {
+            id: 'graph_hidden',
+            x: 10,
+            y: 12,
+            width: 200,
+            height: 100,
+            entity_id: 'sensor.power',
+            props: {
+                use_ha_history: true,
+                history_attribute: 'history',
+                duration: '2h'
+            }
+        }, {
+            getColorStyle: (value) => value || '#000000'
+        });
+
+        vi.runAllTimers();
+
+        expect(artboard.querySelectorAll('.graph-axis-label[data-widget-id="graph_hidden"]')).toHaveLength(0);
     });
 
     it('reuses cached fetched history within the cache window', async () => {

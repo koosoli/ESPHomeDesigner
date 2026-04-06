@@ -184,9 +184,14 @@ export const render = (el, widget, { getColorStyle }) => {
     svg.appendChild(polyline);
     el.appendChild(svg);
 
+    const ownerDocument = el.ownerDocument || document;
     setTimeout(() => {
+        if (ownerDocument.visibilityState === 'hidden' || !el.isConnected) {
+            return;
+        }
+
         const artboard = /** @type {HTMLElement | null} */ (el.closest('.artboard'));
-        if (artboard) {
+        if (artboard && artboard.isConnected) {
             drawSmartAxisLabels(
                 artboard,
                 widget.x,

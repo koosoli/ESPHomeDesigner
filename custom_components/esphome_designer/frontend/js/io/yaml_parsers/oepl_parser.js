@@ -136,9 +136,8 @@ export function parseOEPLArrayToLayout(oeplArray) {
                 widget.width = Math.abs((parseInt(item.x_end || 100, 10)) - widget.x);
                 widget.height = Math.abs((parseInt(item.y_end || 50, 10)) - widget.y);
                 widget.props = {
-                    fill: item.fill ? (item.fill !== 'white' && item.fill !== '#ffffff') : false,
                     border_width: parseInt(item.width || 1, 10),
-                    color: item.fill || 'white',
+                    bg_color: item.fill || 'transparent',
                     border_color: item.outline || 'black',
                     opacity: 100
                 };
@@ -152,9 +151,8 @@ export function parseOEPLArrayToLayout(oeplArray) {
                 widget.width = radius * 2;
                 widget.height = radius * 2;
                 widget.props = {
-                    fill: item.fill ? (item.fill !== 'white' && item.fill !== '#ffffff') : false,
                     border_width: parseInt(item.width || 1, 10),
-                    color: item.fill || 'black',
+                    bg_color: item.fill || 'transparent',
                     border_color: item.outline || item.fill || 'black',
                     opacity: 100
                 };

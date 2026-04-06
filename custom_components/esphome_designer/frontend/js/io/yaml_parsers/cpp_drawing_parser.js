@@ -34,7 +34,7 @@ export function parseCppDrawingCommand(trimmed, widgetCount) {
             height: parseInt(m[4], 10),
             title: "",
             entity_id: "",
-            props: { fill: false, border_width: 1, color: "black", opacity: 100 }
+            props: { border_width: 1, bg_color: "transparent", border_color: "black", opacity: 100 }
         };
     }
 
@@ -49,7 +49,7 @@ export function parseCppDrawingCommand(trimmed, widgetCount) {
             height: parseInt(m[4], 10),
             title: "",
             entity_id: "",
-            props: { fill: true, border_width: 1, color: "black", opacity: 100 }
+            props: { border_width: 1, bg_color: "black", border_color: "black", opacity: 100 }
         };
     }
 
@@ -65,7 +65,7 @@ export function parseCppDrawingCommand(trimmed, widgetCount) {
             height: r * 2,
             title: "",
             entity_id: "",
-            props: { fill: false, border_width: 1, color: "black", opacity: 100 }
+            props: { border_width: 1, bg_color: "transparent", border_color: "black", opacity: 100 }
         };
     }
 
@@ -81,7 +81,7 @@ export function parseCppDrawingCommand(trimmed, widgetCount) {
             height: r * 2,
             title: "",
             entity_id: "",
-            props: { fill: true, border_width: 1, color: "black", opacity: 100 }
+            props: { border_width: 1, bg_color: "black", border_color: "black", opacity: 100 }
         };
     }
 

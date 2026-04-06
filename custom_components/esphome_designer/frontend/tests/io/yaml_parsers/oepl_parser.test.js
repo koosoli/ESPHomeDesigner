@@ -18,11 +18,13 @@ describe('oepl_parser', () => {
     it('detects bare arrays and extracts template metadata', () => {
         expect(isBareOEPLArray(`- type: text\n  value: "Hello"`)).toBe(true);
         expect(isBareOEPLArray(`service: opendisplay.drawcustom`)).toBe(false);
+        expect(isBareOEPLArray(`widgets:\n  - id: a`)).toBe(false);
         expect(extractInfoFromTemplate(`Temp: {{ states('sensor.temp') }} F`)).toEqual({
             prefix: 'Temp: ',
             entity_id: 'sensor.temp',
             postfix: ' F'
         });
+        expect(extractInfoFromTemplate(`No template here`)).toBeNull();
     });
 
     it('normalizes diverse OEPL widgets into standard widget payloads', () => {
@@ -66,11 +68,23 @@ describe('oepl_parser', () => {
                 outline: 'red'
             },
             {
+                type: 'plot',
+                x_start: 11,
+                y_start: 13,
+                x_end: 61,
+                y_end: 43,
+                duration: 3600,
+                data: ['sensor.power'],
+                background: 'black',
+                outline: 'green',
+                ylegend: 'W'
+            },
+            {
                 type: 'unknown'
             }
         ]);
 
-        expect(layout.pages[0].widgets).toHaveLength(5);
+        expect(layout.pages[0].widgets).toHaveLength(6);
         expect(layout.pages[0].widgets[0]).toMatchObject({
             type: 'odp_multiline',
             props: {
@@ -111,6 +125,20 @@ describe('oepl_parser', () => {
             y: 7,
             width: 20,
             height: 13
+        });
+        expect(layout.pages[0].widgets[5]).toMatchObject({
+            type: 'odp_plot',
+            x: 11,
+            y: 13,
+            width: 50,
+            height: 30,
+            props: {
+                duration: 3600,
+                data: ['sensor.power'],
+                background: 'black',
+                outline: 'green',
+                ylegend: 'W'
+            }
         });
     });
 });

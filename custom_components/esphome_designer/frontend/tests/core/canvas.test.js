@@ -21,6 +21,13 @@ const mockAppState = {
     getCurrentPage: vi.fn(() => ({ widgets: [] }))
 };
 
+const setDocumentVisibility = (state) => {
+    Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        value: state
+    });
+};
+
 vi.mock('../../js/core/state', () => ({
     AppState: mockAppState
 }));
@@ -74,6 +81,7 @@ vi.mock('../../js/core/canvas_touch.js', () => ({
 describe('Canvas core', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        setDocumentVisibility('visible');
         document.body.innerHTML = `
             <div class="canvas-viewport">
                 <div id="canvasContainer">
@@ -147,6 +155,12 @@ describe('Canvas core', () => {
         const beforeBlockedTick = mockRender.mock.calls.length;
         vi.advanceTimersByTime(1100);
         expect(mockRender.mock.calls.length).toBe(beforeBlockedTick);
+
+        canvas.dragState = null;
+        setDocumentVisibility('hidden');
+        const beforeHiddenTick = mockRender.mock.calls.length;
+        vi.advanceTimersByTime(1100);
+        expect(mockRender.mock.calls.length).toBe(beforeHiddenTick);
     });
 
     it('cleans up interval and resize listener on destroy', async () => {

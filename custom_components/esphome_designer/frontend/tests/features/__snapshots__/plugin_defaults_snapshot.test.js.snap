@@ -82,6 +82,49 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of debug
 }
 `;
 
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of energy_widget 1`] = `
+{
+  "autoconsumption_percent_entity": "",
+  "background_color": "transparent",
+  "battery_label": "Battery",
+  "battery_positive_mode": "charging",
+  "battery_power_entity": "",
+  "battery_soc_entity": "",
+  "border_color": "theme_auto",
+  "border_radius": 12,
+  "border_width": 1,
+  "color": "theme_auto",
+  "decimals": 0,
+  "display_mode": "power_now",
+  "flow_color": "#3b7c3f",
+  "flow_unit": "",
+  "font_family": "Roboto",
+  "font_size": 13,
+  "font_weight": 400,
+  "gas_entity": "",
+  "gas_label": "Gas",
+  "gas_unit": "m3",
+  "grid_entity": "",
+  "grid_label": "Grid",
+  "grid_positive_mode": "import",
+  "height": 140,
+  "home_entity": "",
+  "home_label": "Home",
+  "inactive_flow_color": "#8a8a8a",
+  "label_font_size": 11,
+  "opacity": 100,
+  "show_battery": true,
+  "show_gas": false,
+  "solar_entity": "",
+  "solar_label": "Solar",
+  "solar_to_battery_entity": "",
+  "solar_to_grid_entity": "",
+  "solar_to_home_entity": "",
+  "title": "",
+  "width": 220,
+}
+`;
+
 exports[`Plugin Defaults Snapshots > should match snapshot for defaults of graph 1`] = `
 {
   "background_color": "transparent",
@@ -147,7 +190,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of line 
   "opa": 255,
   "opacity": 255,
   "orientation": "horizontal",
-  "stroke_width": 3,
+  "stroke_width": 1,
   "width": 100,
   "x": 0,
   "y": 0,
@@ -512,6 +555,24 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of lvgl_
 }
 `;
 
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of moon_phase 1`] = `
+{
+  "background_color": "transparent",
+  "bg_color": "transparent",
+  "border_color": "theme_auto",
+  "border_radius": 0,
+  "border_width": 0,
+  "color": "theme_auto",
+  "entity_id": "sensor.moon",
+  "fit_icon_to_frame": true,
+  "height": 60,
+  "opa": 255,
+  "opacity": 100,
+  "size": 48,
+  "width": 60,
+}
+`;
+
 exports[`Plugin Defaults Snapshots > should match snapshot for defaults of odp_arc 1`] = `
 {
   "border_width": 2,
@@ -745,10 +806,9 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of quote
 
 exports[`Plugin Defaults Snapshots > should match snapshot for defaults of rounded_rect 1`] = `
 {
+  "bg_color": "transparent",
   "border_color": "theme_auto",
-  "border_width": 4,
-  "color": "theme_auto",
-  "fill": false,
+  "border_width": 1,
   "height": 100,
   "opa": 255,
   "opacity": 100,
@@ -797,10 +857,9 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of senso
 
 exports[`Plugin Defaults Snapshots > should match snapshot for defaults of shape_circle 1`] = `
 {
+  "bg_color": "transparent",
   "border_color": "theme_auto",
   "border_width": 1,
-  "color": "theme_auto",
-  "fill": false,
   "height": 80,
   "opa": 255,
   "opacity": 100,
@@ -810,15 +869,41 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of shape
 
 exports[`Plugin Defaults Snapshots > should match snapshot for defaults of shape_rect 1`] = `
 {
+  "bg_color": "transparent",
   "border_color": "theme_auto",
   "border_width": 1,
-  "color": "theme_auto",
-  "fill": false,
   "height": 100,
   "opa": 255,
   "opacity": 100,
   "radius": 0,
   "width": 100,
+}
+`;
+
+exports[`Plugin Defaults Snapshots > should match snapshot for defaults of sun_times 1`] = `
+{
+  "background_color": "transparent",
+  "bg_color": "transparent",
+  "border_color": "theme_auto",
+  "border_radius": 0,
+  "border_width": 0,
+  "color": "theme_auto",
+  "font_family": "Roboto",
+  "font_size": 16,
+  "font_weight": 400,
+  "height": 60,
+  "icon_gap": 8,
+  "icon_size": 18,
+  "opa": 255,
+  "opacity": 100,
+  "padding": 6,
+  "placeholder": "n.d.",
+  "row_gap": 6,
+  "show_sunrise": true,
+  "show_sunset": true,
+  "sunrise_entity": "sensor.sun_next_rising",
+  "sunset_entity": "sensor.sun_next_setting",
+  "width": 140,
 }
 `;
 
