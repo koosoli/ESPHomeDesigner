@@ -131,6 +131,77 @@ describe('image plugin', () => {
         expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
     });
 
+    it('reuses pending and cached protected previews, then clears them on beforeunload', async () => {
+        const responseBlob = new Blob(['png'], { type: 'image/png' });
+        /** @type {(value: { ok: boolean, blob: () => Promise<Blob> }) => void} */
+        let resolveFirstFetch;
+        const fetchMock = vi.fn()
+            .mockImplementationOnce(() => new Promise((resolve) => {
+                resolveFirstFetch = resolve;
+            }))
+            .mockResolvedValue({
+                ok: true,
+                blob: vi.fn().mockResolvedValue(responseBlob)
+            });
+        vi.stubGlobal('fetch', fetchMock);
+
+        const plugin = (await import('../../features/image/plugin.js')).default;
+        const widget = {
+            id: 'img-cache',
+            x: 0,
+            y: 0,
+            width: 80,
+            height: 40,
+            props: {
+                path: '/config/esphome/image/cache.png'
+            }
+        };
+        const context = {
+            getColorStyle: (value) => value,
+            selected: false,
+            profile: { displayType: 'color' }
+        };
+
+        const firstHost = document.createElement('div');
+        const secondHost = document.createElement('div');
+        document.body.append(firstHost, secondHost);
+
+        plugin.render(firstHost, widget, context);
+        plugin.render(secondHost, widget, context);
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+
+        resolveFirstFetch({
+            ok: true,
+            blob: vi.fn().mockResolvedValue(responseBlob)
+        });
+        await Promise.resolve();
+        await Promise.resolve();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        const thirdHost = document.createElement('div');
+        document.body.appendChild(thirdHost);
+        plugin.render(thirdHost, widget, context);
+        await Promise.resolve();
+        await Promise.resolve();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect((/** @type {HTMLImageElement} */ (thirdHost.querySelector('img'))).src).toBe('blob:image-preview');
+
+        window.dispatchEvent(new Event('beforeunload'));
+        expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:image-preview');
+
+        const fourthHost = document.createElement('div');
+        document.body.appendChild(fourthHost);
+        plugin.render(fourthHost, widget, context);
+        await Promise.resolve();
+        await Promise.resolve();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
     it('renders URL images, load failures, and placeholder content', async () => {
         const plugin = (await import('../../features/image/plugin.js')).default;
 
@@ -191,6 +262,111 @@ describe('image plugin', () => {
             profile: { displayType: 'color' }
         });
         expect(placeholderHost.textContent).toContain('Image Widget');
+    });
+
+    it('repairs reused content containers and clears cached preview URLs on local image errors', async () => {
+        const plugin = (await import('../../features/image/plugin.js')).default;
+        const host = document.createElement('div');
+        document.body.appendChild(host);
+        const widget = {
+            id: 'img-dom-repair',
+            x: 0,
+            y: 0,
+            width: 64,
+            height: 32,
+            props: {
+                path: '/config/esphome/image/dom-repair.png'
+            }
+        };
+        const context = {
+            getColorStyle: (value) => value,
+            selected: true,
+            profile: { displayType: 'color' }
+        };
+
+        plugin.render(host, widget, context);
+        await Promise.resolve();
+        await Promise.resolve();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        host.appendChild(document.createElement('span'));
+        plugin.render(host, widget, context);
+
+        const content = /** @type {HTMLElement} */ (host.firstElementChild);
+        content.prepend(document.createElement('div'));
+        plugin.render(host, widget, context);
+
+        const img = /** @type {HTMLImageElement} */ (host.querySelector('img'));
+        img.onerror?.(new Event('error'));
+
+        expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:image-preview');
+        expect(host.textContent).toContain('dom-repair.png');
+    });
+
+    it('updates the remote-image overlay when rerendering the same URL source', async () => {
+        const plugin = (await import('../../features/image/plugin.js')).default;
+        const host = document.createElement('div');
+        document.body.appendChild(host);
+        const widget = {
+            id: 'img-remote-repeat',
+            x: 0,
+            y: 0,
+            width: 90,
+            height: 90,
+            props: {
+                url: 'https://example.com/repeat.png'
+            }
+        };
+        const context = {
+            getColorStyle: (value) => value,
+            selected: true,
+            profile: { displayType: 'color' }
+        };
+
+        plugin.render(host, widget, context);
+        const img = /** @type {HTMLImageElement} */ (host.querySelector('img'));
+        img.onload?.(new Event('load'));
+
+        plugin.render(host, widget, context);
+
+        expect(img.src).toBe('https://example.com/repeat.png');
+        expect(host.textContent).toContain('repeat.png');
+    });
+
+    it('ignores stale protected-preview failures after the image source changes', async () => {
+        /** @type {(reason?: unknown) => void} */
+        let rejectFetch;
+        const fetchMock = vi.fn().mockImplementation(() => new Promise((_, reject) => {
+            rejectFetch = reject;
+        }));
+        vi.stubGlobal('fetch', fetchMock);
+
+        const plugin = (await import('../../features/image/plugin.js')).default;
+        const host = document.createElement('div');
+        document.body.appendChild(host);
+        plugin.render(host, {
+            id: 'img-stale-failure',
+            x: 0,
+            y: 0,
+            width: 48,
+            height: 48,
+            props: { path: '/config/esphome/image/stale.png' }
+        }, {
+            getColorStyle: (value) => value,
+            selected: false,
+            profile: { displayType: 'color' }
+        });
+
+        const img = /** @type {HTMLImageElement} */ (host.querySelector('img'));
+        img.dataset.sourceKey = 'local:/config/esphome/image/other.png';
+        rejectFetch(new Error('network failed'));
+
+        await Promise.resolve();
+        await Promise.resolve();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(host.textContent).not.toContain('Load Failed');
+        expect(host.textContent).not.toContain('stale.png');
     });
 
     it('falls back cleanly when authenticated local preview fetch fails and returns null OEPL export without a source', async () => {
@@ -359,6 +535,18 @@ describe('image plugin', () => {
             profile: { features: { lcd: true }, name: 'Color Panel' }
         });
         expect(colorLines.join('\n')).toContain('it.image(4, 5, id(img_config_esphome_images_logo_png_120x64));');
+
+        const normalMonoLines = [];
+        plugin.export({
+            ...widget,
+            props: { ...widget.props, invert: false }
+        }, {
+            lines: normalMonoLines,
+            getConditionCheck: () => '',
+            getColorConst: (value) => `Color(${value})`,
+            profile: { features: {}, name: 'Mono Panel' }
+        });
+        expect(normalMonoLines.join('\n')).toContain('it.image(4, 5, id(img_config_esphome_images_logo_png_120x64), color_on, color_off);');
 
         expect(plugin.exportLVGL(widget, {
             common: { id: 'base' },
