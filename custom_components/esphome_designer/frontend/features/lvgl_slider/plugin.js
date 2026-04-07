@@ -2,6 +2,12 @@
  * LVGL Slider Plugin
  */
 
+const isLightEntity = (entityId) => String(entityId || "").trim().toLowerCase().startsWith("light.");
+
+const getSliderSensorId = (entityId) => String(entityId || "").trim().replace(/[^a-zA-Z0-9_]/g, "_");
+
+const getBrightnessSensorId = (entityId) => `${getSliderSensorId(entityId)}_brightness_pct`;
+
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     const fgColor = getColorStyle(props.color || "black");
@@ -78,10 +84,16 @@ const exportLVGL = (w, { common, convertColor, profile }) => {
     const p = w.props || {};
     const hasTouch = profile?.touch; // eslint-disable-line no-unused-vars
     let sliderValue = p.value || 30;
+    const entityId = (w.entity_id || p.entity_id || p.entity || "").trim();
+    const normalizedEntityId = entityId.toLowerCase();
 
-    if (w.entity_id) {
-        const safeId = w.entity_id.replace(/[^a-zA-Z0-9_]/g, "_");
-        sliderValue = `!lambda "return id(${safeId}).state;"`;
+    if (entityId) {
+        if (isLightEntity(entityId)) {
+            const brightnessSensorId = getBrightnessSensorId(entityId);
+            sliderValue = `!lambda "return id(${brightnessSensorId}).has_state() ? id(${brightnessSensorId}).state : 0;"`;
+        } else {
+            sliderValue = `!lambda "return id(${getSliderSensorId(entityId)}).state;"`;
+        }
     }
 
     const sliderObj = {
@@ -99,21 +111,30 @@ const exportLVGL = (w, { common, convertColor, profile }) => {
         }
     };
 
-    if (w.entity_id) {
-        const safeEntity = w.entity_id.trim();
+    if (entityId) {
         let serviceCall;
-        if (safeEntity.startsWith("light.")) {
-            serviceCall = { "homeassistant.service": { service: "light.turn_on", data: { entity_id: safeEntity, brightness_pct: "!lambda 'return x;'" } } };
-        } else if (safeEntity.startsWith("fan.")) {
-            serviceCall = { "homeassistant.service": { service: "fan.set_percentage", data: { entity_id: safeEntity, percentage: "!lambda 'return x;'" } } };
-        } else if (safeEntity.startsWith("cover.")) {
-            serviceCall = { "homeassistant.service": { service: "cover.set_cover_position", data: { entity_id: safeEntity, position: "!lambda 'return x;'" } } };
-        } else if (safeEntity.startsWith("media_player.")) {
-            serviceCall = { "homeassistant.service": { service: "media_player.volume_set", data: { entity_id: safeEntity, volume_level: "!lambda 'return x / 100.0;'" } } };
-        } else if (safeEntity.startsWith("climate.")) {
-            serviceCall = { "homeassistant.service": { service: "climate.set_temperature", data: { entity_id: safeEntity, temperature: "!lambda 'return x;'" } } };
+        if (isLightEntity(entityId)) {
+            serviceCall = {
+                "if": {
+                    condition: { lambda: "return x <= 0;" },
+                    then: [
+                        { "homeassistant.service": { service: "light.turn_off", data: { entity_id: entityId } } }
+                    ],
+                    else: [
+                        { "homeassistant.service": { service: "light.turn_on", data: { entity_id: entityId, brightness_pct: "!lambda 'return x;'" } } }
+                    ]
+                }
+            };
+        } else if (normalizedEntityId.startsWith("fan.")) {
+            serviceCall = { "homeassistant.service": { service: "fan.set_percentage", data: { entity_id: entityId, percentage: "!lambda 'return x;'" } } };
+        } else if (normalizedEntityId.startsWith("cover.")) {
+            serviceCall = { "homeassistant.service": { service: "cover.set_cover_position", data: { entity_id: entityId, position: "!lambda 'return x;'" } } };
+        } else if (normalizedEntityId.startsWith("media_player.")) {
+            serviceCall = { "homeassistant.service": { service: "media_player.volume_set", data: { entity_id: entityId, volume_level: "!lambda 'return x / 100.0;'" } } };
+        } else if (normalizedEntityId.startsWith("climate.")) {
+            serviceCall = { "homeassistant.service": { service: "climate.set_temperature", data: { entity_id: entityId, temperature: "!lambda 'return x;'" } } };
         } else {
-            serviceCall = { "homeassistant.service": { service: "number.set_value", data: { entity_id: safeEntity, value: "!lambda 'return x;'" } } };
+            serviceCall = { "homeassistant.service": { service: "number.set_value", data: { entity_id: entityId, value: "!lambda 'return x;'" } } };
         }
         sliderObj.slider.on_value = [serviceCall];
     }
@@ -121,14 +142,32 @@ const exportLVGL = (w, { common, convertColor, profile }) => {
 };
 
 const onExportNumericSensors = (context) => {
-    const { widgets, isLvgl, pendingTriggers } = context;
+    const { widgets, isLvgl, pendingTriggers, lines, seenEntityIds, seenSensorIds } = context;
     if (!widgets) return;
 
     for (const w of widgets) {
         if (w.type !== "lvgl_slider") continue;
 
-        const eid = (w.entity_id || w.props?.entity_id || "").trim();
+        const eid = (w.entity_id || w.props?.entity_id || w.props?.entity || "").trim();
         if (!eid) continue;
+
+        if (isLightEntity(eid)) {
+            const sensorId = getBrightnessSensorId(eid);
+            const entityKey = `${eid}__attr__brightness_pct`;
+            if (seenEntityIds && !seenEntityIds.has(entityKey)) {
+                seenEntityIds.add(entityKey);
+                if (seenSensorIds && !seenSensorIds.has(sensorId)) {
+                    seenSensorIds.add(sensorId);
+                    lines.push(
+                        "- platform: homeassistant",
+                        `  id: ${sensorId}`,
+                        `  entity_id: ${eid}`,
+                        "  attribute: brightness_pct",
+                        "  internal: true"
+                    );
+                }
+            }
+        }
 
         if (isLvgl && pendingTriggers) {
             if (!pendingTriggers.has(eid)) {

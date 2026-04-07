@@ -9,6 +9,78 @@ const normalizeEntityId = (entity, isLocal = false) => {
     return next.replace(/[^a-zA-Z0-9_]/g, "_");
 };
 
+const normalizeExternalEntityId = (entity) => {
+    const next = String(entity || '').trim();
+    if (!next) return "";
+    if (next.includes(".") || next.toLowerCase().startsWith("mqtt:")) return next;
+    return `sensor.${next}`;
+};
+
+const makeSafeWidgetId = (widgetId) => String(widgetId || '').replace(/[^a-zA-Z0-9_]/g, "_");
+
+const getLvglRefreshIds = (widgetId) => {
+    const safeWidgetId = makeSafeWidgetId(widgetId);
+    return {
+        wifiIcon: `${safeWidgetId}_wifi_icon`,
+        wifiText: `${safeWidgetId}_wifi_text`,
+        temperatureText: `${safeWidgetId}_temperature_text`,
+        humidityText: `${safeWidgetId}_humidity_text`,
+        batteryIcon: `${safeWidgetId}_battery_icon`,
+        batteryText: `${safeWidgetId}_battery_text`
+    };
+};
+
+const resolveWifiSource = (props = {}) => {
+    const customEntityId = String(props.wifi_entity || '').trim();
+    if (props.wifi_is_local || !customEntityId) {
+        return { sensorId: 'wifi_signal_dbm', registerEntityId: '' };
+    }
+
+    const entityId = normalizeExternalEntityId(customEntityId);
+    return { sensorId: normalizeEntityId(entityId), registerEntityId: entityId };
+};
+
+const resolveTemperatureSource = (props = {}, profile = {}) => {
+    if (props.temp_is_local) {
+        const baseId = profile.features?.sht4x
+            ? "sht4x_temperature"
+            : profile.features?.sht3x || profile.features?.sht3xd
+                ? "sht3x_temperature"
+                : profile.features?.shtc3
+                    ? "shtc3_temperature"
+                    : (props.temp_entity || "internal_temp");
+        return { sensorId: baseId ? normalizeEntityId(baseId, true) : "", registerEntityId: '' };
+    }
+
+    const entityId = normalizeExternalEntityId(props.temp_entity || '');
+    return { sensorId: entityId ? normalizeEntityId(entityId) : "", registerEntityId: entityId };
+};
+
+const resolveHumiditySource = (props = {}, profile = {}) => {
+    if (props.hum_is_local) {
+        const baseId = profile.features?.sht4x
+            ? "sht4x_humidity"
+            : profile.features?.sht3x || profile.features?.sht3xd
+                ? "sht3x_humidity"
+                : profile.features?.shtc3
+                    ? "shtc3_humidity"
+                    : (props.hum_entity || "");
+        return { sensorId: baseId ? normalizeEntityId(baseId, true) : "", registerEntityId: '' };
+    }
+
+    const entityId = normalizeExternalEntityId(props.hum_entity || '');
+    return { sensorId: entityId ? normalizeEntityId(entityId) : "", registerEntityId: entityId };
+};
+
+const resolveBatterySource = (props = {}) => {
+    if (props.bat_is_local) {
+        return { sensorId: 'battery_level', registerEntityId: '' };
+    }
+
+    const entityId = normalizeExternalEntityId(props.bat_entity || '');
+    return { sensorId: entityId ? normalizeEntityId(entityId) : "", registerEntityId: entityId };
+};
+
 const getDynamicColor = (getColorConst, color) => {
     if (color === "white" || color === "#ffffff") return "color_off";
     if (color === "black" || color === "#000000") return "color_on";
@@ -227,11 +299,13 @@ export function exportLVGL(w, { common, convertColor, getLVGLFont, profile }) {
     const iconFont = getLVGLFont("Material Design Icons", iconSize, 400);
     const textFont = getLVGLFont(fontFamily, fontSize, fontWeight);
     const widgets = [];
+    const refreshIds = getLvglRefreshIds(w.id);
 
     if (p.show_wifi !== false) {
+        const { sensorId: wifiId } = resolveWifiSource(p);
         let iconL = '!lambda |-\n';
-        iconL += '              if (id(wifi_signal_dbm).has_state()) {\n';
-        iconL += '                float sig = id(wifi_signal_dbm).state;\n';
+        iconL += `              if (id(${wifiId}).has_state()) {\n`;
+        iconL += `                float sig = id(${wifiId}).state;\n`;
         iconL += '                if (sig >= -50) return "\\U000F0928";\n';
         iconL += '                else if (sig >= -70) return "\\U000F0925";\n';
         iconL += '                else if (sig >= -85) return "\\U000F0922";\n';
@@ -247,10 +321,11 @@ export function exportLVGL(w, { common, convertColor, getLVGLFont, profile }) {
                 layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" },
                 pad_all: 0,
                 widgets: [
-                    { label: { text: iconL, text_font: iconFont, text_color: color } },
+                    { label: { id: refreshIds.wifiIcon, text: iconL, text_font: iconFont, text_color: color } },
                     {
                         label: {
-                            text: buildLvglSensorTextLambda("id(wifi_signal_dbm).has_state()", "%.0fdB", "id(wifi_signal_dbm).state", "--dB"),
+                            id: refreshIds.wifiText,
+                            text: buildLvglSensorTextLambda(`id(${wifiId}).has_state()`, "%.0fdB", `id(${wifiId}).state`, "--dB"),
                             text_font: textFont,
                             text_color: color,
                             x: 4
@@ -262,30 +337,25 @@ export function exportLVGL(w, { common, convertColor, getLVGLFont, profile }) {
     }
 
     if (p.show_temperature !== false) {
-        let baseTempId = p.temp_entity || "";
-        if (p.temp_is_local) baseTempId = profile.features?.sht4x ? "sht4x_temperature" : profile.features?.sht3x || profile.features?.sht3xd ? "sht3x_temperature" : profile.features?.shtc3 ? "shtc3_temperature" : (p.temp_entity || "internal_temp");
-        const tempId = baseTempId ? baseTempId.replace(/[^a-zA-Z0-9_]/g, "_") : "";
+        const { sensorId: tempId } = resolveTemperatureSource(p, profile);
         const unit = p.temp_unit || "\u00B0C";
         const tempExpr = unit === "\u00B0F" ? `(id(${tempId}).state * 9.0 / 5.0 + 32.0)` : `id(${tempId}).state`;
         const tempText = tempId
             ? buildLvglSensorTextLambda(`id(${tempId}).has_state()`, `%.1f${unit}`, tempExpr, `--${unit}`)
             : `"--${unit}"`;
-        widgets.push({ obj: { width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0, layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" }, pad_all: 0, widgets: [{ label: { text: '"\\U000F050F"', text_font: iconFont, text_color: color } }, { label: { text: tempText, text_font: textFont, text_color: color, x: 4 } }] } });
+        widgets.push({ obj: { width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0, layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" }, pad_all: 0, widgets: [{ label: { text: '"\\U000F050F"', text_font: iconFont, text_color: color } }, { label: { id: refreshIds.temperatureText, text: tempText, text_font: textFont, text_color: color, x: 4 } }] } });
     }
 
     if (p.show_humidity !== false) {
-        let baseHumId = p.hum_entity || "";
-        if (p.hum_is_local) baseHumId = profile.features?.sht4x ? "sht4x_humidity" : profile.features?.sht3x || profile.features?.sht3xd ? "sht3x_humidity" : profile.features?.shtc3 ? "shtc3_humidity" : (p.hum_entity || "");
-        const humId = baseHumId ? baseHumId.replace(/[^a-zA-Z0-9_]/g, "_") : "";
+        const { sensorId: humId } = resolveHumiditySource(p, profile);
         const humText = humId
             ? buildLvglSensorTextLambda(`id(${humId}).has_state()`, "%.0f%%", `id(${humId}).state`, "--%%")
             : `"--%%"`;
-        widgets.push({ obj: { width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0, layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" }, pad_all: 0, widgets: [{ label: { text: '"\\U000F058E"', text_font: iconFont, text_color: color } }, { label: { text: humText, text_font: textFont, text_color: color, x: 4 } }] } });
+        widgets.push({ obj: { width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0, layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" }, pad_all: 0, widgets: [{ label: { text: '"\\U000F058E"', text_font: iconFont, text_color: color } }, { label: { id: refreshIds.humidityText, text: humText, text_font: textFont, text_color: color, x: 4 } }] } });
     }
 
     if (p.show_battery !== false) {
-        const baseBatId = p.bat_is_local ? "battery_level" : (p.bat_entity || "");
-        const batId = baseBatId ? baseBatId.replace(/[^a-zA-Z0-9_]/g, "_") : "";
+        const { sensorId: batId } = resolveBatterySource(p);
         let batIconL = '"\\U000F0082"';
         let batText = '"--%%"';
         if (batId) {
@@ -307,7 +377,7 @@ export function exportLVGL(w, { common, convertColor, getLVGLFont, profile }) {
             batIconL += '              return "\\U000F0082";';
             batText = buildLvglSensorTextLambda(`id(${batId}).has_state()`, "%.0f%%", `id(${batId}).state`, "--%%");
         }
-        widgets.push({ obj: { width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0, layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" }, pad_all: 0, widgets: [{ label: { text: batIconL, text_font: iconFont, text_color: color } }, { label: { text: batText, text_font: textFont, text_color: color, x: 4 } }] } });
+        widgets.push({ obj: { width: "SIZE_CONTENT", height: "SIZE_CONTENT", bg_opa: "transp", border_width: 0, layout: { type: "flex", flex_flow: "row", flex_align_main: "center", flex_align_cross: "center" }, pad_all: 0, widgets: [{ label: { id: refreshIds.batteryIcon, text: batIconL, text_font: iconFont, text_color: color } }, { label: { id: refreshIds.batteryText, text: batText, text_font: textFont, text_color: color, x: 4 } }] } });
     }
 
     return {
@@ -348,59 +418,57 @@ export function onExportNumericSensors(context) {
     barWidgets.forEach((w) => {
         const p = w.props || {};
         const checkLines = context.mainLines || lines;
-        const addTrigger = (entityId) => {
-            if (!entityId || !isLvgl || !pendingTriggers) return;
-            if (!pendingTriggers.has(entityId)) pendingTriggers.set(entityId, new Set());
-            pendingTriggers.get(entityId).add(`- lvgl.widget.refresh: ${w.id}`);
+        const refreshIds = getLvglRefreshIds(w.id);
+        const addTrigger = (sensorId, targetIds) => {
+            if (!sensorId || !isLvgl || !pendingTriggers) return;
+            if (!pendingTriggers.has(sensorId)) pendingTriggers.set(sensorId, new Set());
+            targetIds.forEach((targetId) => pendingTriggers.get(sensorId).add(`- lvgl.widget.refresh: ${targetId}`));
         };
 
         if (p.show_wifi !== false) {
-            let entityId = p.wifi_entity || "wifi_signal_dbm";
-            if (entityId.includes(".") && !entityId.startsWith("text_sensor.")) {
-                if (!entityId.includes(".")) entityId = `sensor.${entityId}`;
-            }
-            addTrigger(entityId);
+            const { sensorId: wifiSensorId, registerEntityId } = resolveWifiSource(p);
+            addTrigger(wifiSensorId, [refreshIds.wifiIcon, refreshIds.wifiText]);
             if (!p.wifi_entity) {
                 const alreadyDefined = context.seenSensorIds && context.seenSensorIds.has("wifi_signal_dbm");
                 if (!alreadyDefined && !checkLines.some((line) => line.includes("id: wifi_signal_dbm")) && !lines.some((line) => line.includes("id: wifi_signal_dbm"))) {
                     if (context.seenSensorIds) context.seenSensorIds.add("wifi_signal_dbm");
                     lines.push("- platform: wifi_signal", "  id: wifi_signal_dbm", "  internal: true");
                 }
-            } else if (p.wifi_entity.includes(".")) {
-                registerHaSensor(context.seenSensorIds, p.wifi_entity);
+            } else if (registerEntityId) {
+                registerHaSensor(context.seenSensorIds, registerEntityId);
             }
         }
 
-        if (p.show_temperature !== false && p.temp_is_local) {
+        if (p.show_temperature !== false) {
+            const { sensorId: tempSensorId, registerEntityId } = resolveTemperatureSource(p, profile);
+            addTrigger(tempSensorId, [refreshIds.temperatureText]);
             const hasSHT = profile.features?.sht4x || profile.features?.sht3x || profile.features?.sht3xd || profile.features?.shtc3;
             if (!hasSHT) {
-                const customId = (p.temp_entity || "internal_temp").replace(/[^a-zA-Z0-9_]/g, "_");
-                if (context.seenSensorIds && !context.seenSensorIds.has(customId)) {
+                const customId = normalizeEntityId(p.temp_entity || "internal_temp", true);
+                if (p.temp_is_local && context.seenSensorIds && !context.seenSensorIds.has(customId)) {
                     context.seenSensorIds.add(customId);
                     lines.push("- platform: internal_temperature", '  name: "Internal Temperature"', `  id: ${customId}`, '  entity_category: "diagnostic"');
                 }
             }
+            if (!p.temp_is_local && registerEntityId) {
+                registerHaSensor(context.seenSensorIds, registerEntityId);
+            }
         }
 
-        if (p.show_temperature !== false && p.temp_entity && !p.temp_is_local) {
-            let entityId = p.temp_entity;
-            if (!entityId.includes(".")) entityId = `sensor.${entityId}`;
-            registerHaSensor(context.seenSensorIds, entityId);
-            addTrigger(entityId);
+        if (p.show_humidity !== false) {
+            const { sensorId: humSensorId, registerEntityId } = resolveHumiditySource(p, profile);
+            addTrigger(humSensorId, [refreshIds.humidityText]);
+            if (!p.hum_is_local && registerEntityId) {
+                registerHaSensor(context.seenSensorIds, registerEntityId);
+            }
         }
 
-        if (p.show_humidity !== false && p.hum_entity && !p.hum_is_local) {
-            let entityId = p.hum_entity;
-            if (!entityId.includes(".")) entityId = `sensor.${entityId}`;
-            registerHaSensor(context.seenSensorIds, entityId);
-            addTrigger(entityId);
-        }
-
-        if (p.show_battery !== false && p.bat_entity && !p.bat_is_local) {
-            let entityId = p.bat_entity;
-            if (!entityId.includes(".")) entityId = `sensor.${entityId}`;
-            registerHaSensor(context.seenSensorIds, entityId);
-            addTrigger(entityId);
+        if (p.show_battery !== false) {
+            const { sensorId: batSensorId, registerEntityId } = resolveBatterySource(p);
+            addTrigger(batSensorId, [refreshIds.batteryIcon, refreshIds.batteryText]);
+            if (!p.bat_is_local && registerEntityId) {
+                registerHaSensor(context.seenSensorIds, registerEntityId);
+            }
         }
     });
 }

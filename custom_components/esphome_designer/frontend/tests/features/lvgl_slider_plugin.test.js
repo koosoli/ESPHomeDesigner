@@ -94,24 +94,50 @@ describe('lvgl slider plugin', () => {
                 profile: { touch: true }
             });
 
-            expect(exported.slider.value).toContain(`id(${entityId.replace(/[^a-zA-Z0-9_]/g, '_')}).state`);
+            if (entityId.startsWith('light.')) {
+                const brightnessSensorId = `${entityId.replace(/[^a-zA-Z0-9_]/g, '_')}_brightness_pct`;
+                expect(exported.slider.value).toContain(`id(${brightnessSensorId}).has_state() ? id(${brightnessSensorId}).state : 0`);
+                expect(exported.slider.on_value[0]['if'].condition.lambda).toBe('return x <= 0;');
+                expect(exported.slider.on_value[0]['if'].then[0]['homeassistant.service'].service).toBe('light.turn_off');
+                expect(exported.slider.on_value[0]['if'].else[0]['homeassistant.service'].service).toBe('light.turn_on');
+                expect(exported.slider.on_value[0]['if'].else[0]['homeassistant.service'].data.brightness_pct).toBe("!lambda 'return x;'");
+            } else {
+                expect(exported.slider.value).toContain(`id(${entityId.replace(/[^a-zA-Z0-9_]/g, '_')}).state`);
+            }
             expect(exported.slider.min_value).toBe(10);
             expect(exported.slider.max_value).toBe(90);
             expect(exported.slider.indicator.bg_color).toBe('0xGREEN');
             expect(exported.slider.knob.bg_color).toBe('0xGREEN');
-            expect(exported.slider.on_value[0]['homeassistant.service'].service).toBe(service);
+            if (!entityId.startsWith('light.')) {
+                expect(exported.slider.on_value[0]['homeassistant.service'].service).toBe(service);
+            }
         }
 
         const pendingTriggers = new Map();
+        const lines = [];
+        const seenEntityIds = new Set();
+        const seenSensorIds = new Set();
         plugin.onExportNumericSensors({
             widgets: [
+                { id: 'slider_light', type: 'lvgl_slider', entity_id: 'light.kitchen' },
                 { id: 'slider_1', type: 'lvgl_slider', entity_id: ' number.manual ' },
                 { id: 'ignore', type: 'lvgl_arc', entity_id: 'sensor.ignored' }
             ],
             isLvgl: true,
-            pendingTriggers
+            pendingTriggers,
+            lines,
+            seenEntityIds,
+            seenSensorIds
         });
 
+        expect(lines).toEqual([
+            '- platform: homeassistant',
+            '  id: light_kitchen_brightness_pct',
+            '  entity_id: light.kitchen',
+            '  attribute: brightness_pct',
+            '  internal: true'
+        ]);
+        expect([...pendingTriggers.get('light.kitchen')]).toEqual(['- lvgl.widget.refresh: slider_light']);
         expect([...pendingTriggers.get('number.manual')]).toEqual(['- lvgl.widget.refresh: slider_1']);
     });
 });

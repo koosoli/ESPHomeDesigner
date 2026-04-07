@@ -31,6 +31,49 @@ describe('datetime LVGL export', () => {
         expect(output.obj.border_color).toBe('Color(white)');
         expect(output.obj.radius).toBe(6);
         expect(output.obj.widgets).toHaveLength(1);
+        expect(output.obj.widgets[0].label.id).toBe('dt_1_text');
         expect(output.obj.widgets[0].label.text_color).toBe('Color(black)');
+    });
+
+    it('adds LVGL refresh intervals for plain and styled datetime widgets without duplicating interval sections', () => {
+        const lines = [
+            'interval:',
+            '  - interval: 30m',
+            '    then:',
+            '      - lambda: |-',
+            '          ESP_LOGD("test", "tick");',
+            'font:'
+        ];
+
+        datetimePlugin.onExportComponents({
+            lines,
+            isLvgl: true,
+            widgets: [
+                {
+                    id: 'dt_plain',
+                    type: 'datetime',
+                    props: {
+                        ...datetimePlugin.defaults,
+                        bg_color: 'transparent',
+                        border_width: 0
+                    }
+                },
+                {
+                    id: 'dt-styled',
+                    type: 'datetime',
+                    props: {
+                        ...datetimePlugin.defaults,
+                        bg_color: 'navy',
+                        border_width: 2
+                    }
+                }
+            ]
+        });
+
+        const output = lines.join('\n');
+        expect(lines.filter((line) => line.trim() === 'interval:')).toHaveLength(1);
+        expect(output).toContain('lvgl.widget.refresh: dt_plain');
+        expect(output).toContain('lvgl.widget.refresh: dt_styled_text');
+        expect(output.indexOf('lvgl.widget.refresh: dt_styled_text')).toBeLessThan(output.indexOf('font:'));
     });
 });

@@ -1,3 +1,20 @@
+## v1.0.0 RC12 - LVGL Follow-Up & Release Sync
+**Release Date:** April 7, 2026
+
+This release is a focused RC12 follow-up that closes the remaining RC11 regressions reported after the RC11 rollout, especially around LVGL live updates and light-slider behavior, and synchronizes the shipped release metadata for the new build.
+
+### Stability & Verification
+- **LVGL Light Slider Fix (Issue #371)**: `light.*` entities now use a dedicated Home Assistant brightness sensor for the slider value instead of mirroring binary on/off state, so toggling a light no longer forces the slider back through `1%`, and moving the slider now behaves like a native dimmer by turning the light off at `0` and calling `light.turn_on` with `brightness_pct` otherwise.
+- **LVGL Date & Time Refresh Fix (Issue #372)**: Date & Time widgets in LVGL mode now emit an explicit timed refresh loop so their `ha_time`-backed labels update on real devices instead of staying frozen after the initial render. Styled datetime widgets now refresh the actual child label that owns the live lambda instead of the wrapper container.
+- **LVGL On-Board Sensor Bar Refresh Fix (Issue #372)**: The LVGL sensor bar now refreshes its live child labels and battery icon/text directly, covers local on-device values as well as Home Assistant-backed sensors, and uses the configured Wi-Fi source consistently in LVGL output instead of always hard-wiring `wifi_signal_dbm`.
+- **Interval Section Merge Safety**: Widget-owned `interval:` exports now merge cleanly when multiple features contribute timed updates, preventing duplicate top-level interval sections in generated YAML.
+- **Regression Coverage for Issues #371 and #372**: Added focused Vitest coverage for the LVGL light slider path, datetime refresh wiring, sensor-bar child refresh targets, and interval-section coexistence so the RC12 fixes stay locked in.
+- **Release Metadata Refresh**: Updated the package metadata, Home Assistant manifest version, runtime GUI version string, visible header label, and release notes heading for the RC12 release.
+
+
+
+---
+
 ## v1.0.0 RC11 - Shape Cleanup, New Widgets & Verification
 **Release Date:** April 6, 2026
 

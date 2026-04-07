@@ -483,6 +483,16 @@ exports[`Plugin Export Smoke Tests > Export for datetime > should export standar
 ]
 `;
 
+exports[`Plugin Export Smoke Tests > Export for datetime > should handle onExportComponents with stable output 1`] = `
+[
+  "# Date & Time LVGL Refresh",
+  "interval:",
+  "  - interval: 10s",
+  "    then:",
+  "      - lvgl.widget.refresh: w_test",
+]
+`;
+
 exports[`Plugin Export Smoke Tests > Export for debug_grid > should export OEPL with stable output 1`] = `
 {
   "dash_length": 2,
@@ -3323,6 +3333,7 @@ exports[`Plugin Export Smoke Tests > Export for template_sensor_bar > should exp
           "widgets": [
             {
               "label": {
+                "id": "w_test_wifi_icon",
                 "text": "!lambda |-
               if (id(wifi_signal_dbm).has_state()) {
                 float sig = id(wifi_signal_dbm).state;
@@ -3338,6 +3349,7 @@ exports[`Plugin Export Smoke Tests > Export for template_sensor_bar > should exp
             },
             {
               "label": {
+                "id": "w_test_wifi_text",
                 "text": "!lambda "if (id(wifi_signal_dbm).has_state()) { return str_sprintf(\\"%.0fdB\\", id(wifi_signal_dbm).state); } return \\"--dB\\";"",
                 "text_color": "Color(white)",
                 "text_font": "font_ptr",
@@ -3370,6 +3382,7 @@ exports[`Plugin Export Smoke Tests > Export for template_sensor_bar > should exp
             },
             {
               "label": {
+                "id": "w_test_temperature_text",
                 "text": ""--°C"",
                 "text_color": "Color(white)",
                 "text_font": "font_ptr",
@@ -3402,6 +3415,7 @@ exports[`Plugin Export Smoke Tests > Export for template_sensor_bar > should exp
             },
             {
               "label": {
+                "id": "w_test_humidity_text",
                 "text": ""--%%"",
                 "text_color": "Color(white)",
                 "text_font": "font_ptr",
@@ -3427,6 +3441,7 @@ exports[`Plugin Export Smoke Tests > Export for template_sensor_bar > should exp
           "widgets": [
             {
               "label": {
+                "id": "w_test_battery_icon",
                 "text": ""\\U000F0082"",
                 "text_color": "Color(white)",
                 "text_font": "font_ptr",
@@ -3434,6 +3449,7 @@ exports[`Plugin Export Smoke Tests > Export for template_sensor_bar > should exp
             },
             {
               "label": {
+                "id": "w_test_battery_text",
                 "text": ""--%%"",
                 "text_color": "Color(white)",
                 "text_font": "font_ptr",

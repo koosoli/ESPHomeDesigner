@@ -6,6 +6,45 @@ import { getWeightsForFont, clampFontWeight } from '@core/font_weights.js';
 
 const getClockMode = (props = {}) => props.clock_mode === '12h' ? '12h' : '24h';
 const getTimeStrftime = (clockMode) => clockMode === '12h' ? '%I:%M %p' : '%H:%M';
+const makeSafeLvglId = (id) => String(id || '').replace(/[^a-zA-Z0-9_]/g, '_');
+const getLvglDatetimeLabelId = (widgetId) => `${makeSafeLvglId(widgetId)}_text`;
+
+const hasStyledLvglContainer = (props = {}) => {
+    const borderWidth = parseInt(props.border_width ?? 0, 10) || 0;
+    const bgColor = props.background_color || props.bg_color || (props.fill ? 'white' : 'transparent');
+    const hasBackground = !!(props.fill || (bgColor && bgColor !== 'transparent'));
+    return borderWidth > 0 || hasBackground;
+};
+
+const getLvglRefreshTarget = (widget) => hasStyledLvglContainer(widget?.props || {}) ? getLvglDatetimeLabelId(widget?.id) : widget?.id;
+
+function insertTopLevelSectionEntries(lines, sectionName, entryLines, commentLine = '') {
+    if (!Array.isArray(lines) || entryLines.length === 0) return;
+
+    const sectionHeader = `${sectionName}:`;
+    const sectionIndex = lines.findIndex((line) => line.trim() === sectionHeader);
+    const linesToInsert = commentLine ? [commentLine, ...entryLines] : entryLines;
+
+    if (sectionIndex === -1) {
+        if (lines.length > 0 && lines[lines.length - 1].trim() !== '') {
+            lines.push('');
+        }
+        if (commentLine) lines.push(commentLine);
+        lines.push(sectionHeader, ...entryLines);
+        return;
+    }
+
+    let insertIndex = sectionIndex + 1;
+    while (insertIndex < lines.length) {
+        const line = lines[insertIndex];
+        if (/^[a-z0-9_]+:(\s*#.*)?$/i.test(line)) {
+            break;
+        }
+        insertIndex++;
+    }
+
+    lines.splice(insertIndex, 0, ...linesToInsert);
+}
 
 const getTemplateConfig = (format, clockMode) => {
     const timeFormat = getTimeStrftime(clockMode);
@@ -376,6 +415,7 @@ export default {
         const borderRadius = parseInt(p.border_radius ?? 0, 10) || 0;
         const bgColor = p.background_color || p.bg_color || (p.fill ? "white" : "transparent");
         const hasBackground = !!(p.fill || (bgColor && bgColor !== "transparent"));
+        const refreshTargetId = getLvglDatetimeLabelId(w.id);
 
         const label = {
             text: lambdaStr,
@@ -415,6 +455,7 @@ export default {
                 widgets: [
                     {
                         label: {
+                            id: refreshTargetId,
                             ...label,
                             width: "100%"
                         }
@@ -422,6 +463,23 @@ export default {
                 ]
             }
         };
+    },
+    onExportComponents: ({ lines, widgets, isLvgl }) => {
+        if (!isLvgl || !widgets?.length) return;
+
+        const targets = widgets.filter((widget) => widget.type === 'datetime');
+        if (targets.length === 0) return;
+
+        const intervalEntries = [];
+        targets.forEach((widget) => {
+            intervalEntries.push(
+                '  - interval: 10s',
+                '    then:',
+                `      - lvgl.widget.refresh: ${getLvglRefreshTarget(widget)}`
+            );
+        });
+
+        insertTopLevelSectionEntries(lines, 'interval', intervalEntries, '# Date & Time LVGL Refresh');
     },
     collectRequirements: (w, context) => {
         const { addFont } = context;

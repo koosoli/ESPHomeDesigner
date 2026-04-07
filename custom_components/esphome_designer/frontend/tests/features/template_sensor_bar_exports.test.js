@@ -135,6 +135,7 @@ describe('template_sensor_bar exports', () => {
             id: 'bar_live',
             props: {
                 show_wifi: true,
+                wifi_entity: 'sensor.wifi_signal',
                 show_temperature: true,
                 temp_entity: 'sensor.room_temp',
                 show_humidity: true,
@@ -158,13 +159,20 @@ describe('template_sensor_bar exports', () => {
         const batText = result.obj.widgets[3].obj.widgets[1].label.text;
         const tempFont = result.obj.widgets[1].obj.widgets[1].label.text_font;
 
-        expect(wifiText).toContain('str_sprintf(\\"%.0fdB\\", id(wifi_signal_dbm).state)');
-        expect(tempText).toContain('str_sprintf(\\"%.1f°C\\", id(sensor_room_temp).state)');
+        expect(result.obj.widgets[0].obj.widgets[0].label.id).toBe('bar_live_wifi_icon');
+        expect(result.obj.widgets[0].obj.widgets[1].label.id).toBe('bar_live_wifi_text');
+        expect(result.obj.widgets[1].obj.widgets[1].label.id).toBe('bar_live_temperature_text');
+        expect(result.obj.widgets[2].obj.widgets[1].label.id).toBe('bar_live_humidity_text');
+        expect(result.obj.widgets[3].obj.widgets[0].label.id).toBe('bar_live_battery_icon');
+        expect(result.obj.widgets[3].obj.widgets[1].label.id).toBe('bar_live_battery_text');
+        expect(wifiText).toContain('str_sprintf(\\"%.0fdB\\", id(sensor_wifi_signal).state)');
+        expect(tempText).toContain('str_sprintf(\\"%.1f');
+        expect(tempText).toContain('id(sensor_room_temp).state)');
         expect(humText).toContain('str_sprintf(\\"%.0f%%\\", id(sensor_room_humidity).state)');
         expect(batText).toContain('str_sprintf(\\"%.0f%%\\", id(sensor_room_battery).state)');
 
         [wifiText, tempText, humText, batText].forEach((text) => {
-            expect(text).not.toContain(".c_str()");
+            expect(text).not.toContain('.c_str()');
             expect(text).not.toContain("str_sprintf('");
         });
         expect(tempFont).toBe('Montserrat-18-800');
@@ -207,8 +215,20 @@ describe('template_sensor_bar exports', () => {
         expect(output).toContain('id: board_temp');
         expect(output).toContain('entity_id: sensor.remote_humidity');
         expect(output).toContain('entity_id: sensor.house_battery');
-        expect(pendingTriggers.get('sensor.remote_humidity')).toEqual(new Set(['- lvgl.widget.refresh: bar_trigger']));
-        expect(pendingTriggers.get('sensor.house_battery')).toEqual(new Set(['- lvgl.widget.refresh: bar_trigger']));
+        expect(pendingTriggers.get('wifi_signal_dbm')).toEqual(new Set([
+            '- lvgl.widget.refresh: bar_trigger_wifi_icon',
+            '- lvgl.widget.refresh: bar_trigger_wifi_text'
+        ]));
+        expect(pendingTriggers.get('board_temp')).toEqual(new Set([
+            '- lvgl.widget.refresh: bar_trigger_temperature_text'
+        ]));
+        expect(pendingTriggers.get('sensor_remote_humidity')).toEqual(new Set([
+            '- lvgl.widget.refresh: bar_trigger_humidity_text'
+        ]));
+        expect(pendingTriggers.get('sensor_house_battery')).toEqual(new Set([
+            '- lvgl.widget.refresh: bar_trigger_battery_icon',
+            '- lvgl.widget.refresh: bar_trigger_battery_text'
+        ]));
     });
 
     it('collects fonts and all required sensor icons', () => {

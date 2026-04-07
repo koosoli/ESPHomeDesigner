@@ -142,4 +142,32 @@ describe('quote_rss exports', () => {
         expect(componentLines.join('\n')).toContain('quotes.example%2Fa');
         expect(componentLines.join('\n')).toContain('quotes.example%2Fb');
     });
+
+    it('reuses an existing interval section when another widget already created one', () => {
+        const widgets = [
+            {
+                id: 'quote-shared',
+                type: 'quote_rss',
+                props: {
+                    feed_url: 'https://quotes.example/shared'
+                }
+            }
+        ];
+
+        const lines = [
+            'interval:',
+            '  - interval: 10s',
+            '    then:',
+            '      - lambda: |-',
+            '          ESP_LOGD("test", "tick");',
+            'font:'
+        ];
+
+        onExportComponents({ lines, widgets, displayId: 'display_main' });
+
+        const output = lines.join('\n');
+        expect(lines.filter((line) => line.trim() === 'interval:')).toHaveLength(1);
+        expect(output).toContain('quotes.example%2Fshared');
+        expect(output.indexOf('quotes.example%2Fshared')).toBeLessThan(output.indexOf('font:'));
+    });
 });

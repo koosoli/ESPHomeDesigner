@@ -5,6 +5,34 @@ const makeSafeId = (entityId, suffix = "") => {
     return safe + suffix;
 };
 
+function insertTopLevelSectionEntries(lines, sectionName, entryLines, commentLine = '') {
+    if (!Array.isArray(lines) || entryLines.length === 0) return;
+
+    const sectionHeader = `${sectionName}:`;
+    const sectionIndex = lines.findIndex((line) => line.trim() === sectionHeader);
+    const linesToInsert = commentLine ? [commentLine, ...entryLines] : entryLines;
+
+    if (sectionIndex === -1) {
+        if (lines.length > 0 && lines[lines.length - 1].trim() !== '') {
+            lines.push('');
+        }
+        if (commentLine) lines.push(commentLine);
+        lines.push(sectionHeader, ...entryLines);
+        return;
+    }
+
+    let insertIndex = sectionIndex + 1;
+    while (insertIndex < lines.length) {
+        const line = lines[insertIndex];
+        if (/^[a-z0-9_]+:(\s*#.*)?$/i.test(line)) {
+            break;
+        }
+        insertIndex++;
+    }
+
+    lines.splice(insertIndex, 0, ...linesToInsert);
+}
+
 export function exportLVGL(w, { common, convertColor, getLVGLFont }) {
     const p = w.props || {};
     const safeIdPrefix = makeSafeId(`quote_${w.id}`, "");
@@ -193,7 +221,7 @@ export function onExportComponents(context) {
         lines.push("", "http_request:", "  verify_ssl: false", "  timeout: 20s", "  buffer_size_rx: 4096");
     }
 
-    lines.push("", "# Quote RSS Widget Update Loop", "interval:");
+    const intervalEntries = [];
     for (const w of targets) {
         const p = w.props || {};
         const refreshInterval = p.refresh_interval || "1h";
@@ -207,70 +235,71 @@ export function onExportComponents(context) {
         if (itemCount > 1) proxyParams.append("count", itemCount.toString());
         const proxyUrl = `${haUrl}/api/esphome_designer/rss_proxy?${proxyParams.toString()}`;
 
-        lines.push(`  - interval: ${refreshInterval}`);
-        lines.push(`    startup_delay: 20s`);
-        lines.push(`    then:`);
-        lines.push(`      - if:`);
-        lines.push(`          condition:`);
-        lines.push(`            wifi.connected:`);
-        lines.push(`          then:`);
-        lines.push(`            - http_request.get:`);
-        lines.push(`                url: "${proxyUrl}"`);
-        lines.push(`                capture_response: true`);
-        lines.push(`                on_response:`);
-        lines.push(`                  - lambda: |-`);
-        lines.push(`                      if (response->status_code == 200) {`);
-        lines.push(`                        ESP_LOGD("quote", "Raw body: %s", body.c_str());`);
-        lines.push(`                        JsonDocument doc;`);
-        lines.push(`                        DeserializationError error = deserializeJson(doc, body);`);
-        lines.push(`                        if (error) {`);
-        lines.push(`                          ESP_LOGW("quote", "Failed to parse JSON: %s", error.c_str());`);
-        lines.push(`                          return;`);
-        lines.push(`                        }`);
-        lines.push(`                        if (doc["success"].as<bool>()) {`);
+        intervalEntries.push(`  - interval: ${refreshInterval}`);
+        intervalEntries.push(`    startup_delay: 20s`);
+        intervalEntries.push(`    then:`);
+        intervalEntries.push(`      - if:`);
+        intervalEntries.push(`          condition:`);
+        intervalEntries.push(`            wifi.connected:`);
+        intervalEntries.push(`          then:`);
+        intervalEntries.push(`            - http_request.get:`);
+        intervalEntries.push(`                url: "${proxyUrl}"`);
+        intervalEntries.push(`                capture_response: true`);
+        intervalEntries.push(`                on_response:`);
+        intervalEntries.push(`                  - lambda: |-`);
+        intervalEntries.push(`                      if (response->status_code == 200) {`);
+        intervalEntries.push(`                        ESP_LOGD("quote", "Raw body: %s", body.c_str());`);
+        intervalEntries.push(`                        JsonDocument doc;`);
+        intervalEntries.push(`                        DeserializationError error = deserializeJson(doc, body);`);
+        intervalEntries.push(`                        if (error) {`);
+        intervalEntries.push(`                          ESP_LOGW("quote", "Failed to parse JSON: %s", error.c_str());`);
+        intervalEntries.push(`                          return;`);
+        intervalEntries.push(`                        }`);
+        intervalEntries.push(`                        if (doc["success"].as<bool>()) {`);
         if (itemCount === 1) {
-            lines.push(`                          JsonVariant q_var = doc["quote"];`);
-            lines.push(`                          if (q_var.is<JsonObject>()) {`);
-            lines.push(`                            JsonObject q = q_var.as<JsonObject>();`);
-            lines.push(`                            std::string q_str = q["quote"] | "";`);
-            lines.push(`                            if (!q_str.empty()) {`);
-            lines.push(`                              id(${safeIdPrefix}_text_global) = q_str;`);
-            if (p.show_author !== false) lines.push(`                              id(${safeIdPrefix}_author_global) = q["author"] | "Unknown";`);
-            lines.push(`                              ESP_LOGI("quote", "Fetched quote: %s", q_str.c_str());`);
-            lines.push(`                            }`);
-            lines.push(`                          }`);
+            intervalEntries.push(`                          JsonVariant q_var = doc["quote"];`);
+            intervalEntries.push(`                          if (q_var.is<JsonObject>()) {`);
+            intervalEntries.push(`                            JsonObject q = q_var.as<JsonObject>();`);
+            intervalEntries.push(`                            std::string q_str = q["quote"] | "";`);
+            intervalEntries.push(`                            if (!q_str.empty()) {`);
+            intervalEntries.push(`                              id(${safeIdPrefix}_text_global) = q_str;`);
+            if (p.show_author !== false) intervalEntries.push(`                              id(${safeIdPrefix}_author_global) = q["author"] | "Unknown";`);
+            intervalEntries.push(`                              ESP_LOGI("quote", "Fetched quote: %s", q_str.c_str());`);
+            intervalEntries.push(`                            }`);
+            intervalEntries.push(`                          }`);
         } else {
-            lines.push(`                          JsonArray arr = doc["quotes"].as<JsonArray>();`);
-            lines.push(`                          int i = 0;`);
-            lines.push(`                          for (JsonVariant v : arr) {`);
-            lines.push(`                            if (i >= ${itemCount}) break;`);
-            lines.push(`                            if (v.is<JsonObject>()) {`);
-            lines.push(`                              JsonObject q = v.as<JsonObject>();`);
-            lines.push(`                              std::string q_str = q["quote"] | "";`);
-            lines.push(`                              std::string a_str = q["author"] | "Unknown";`);
-            lines.push(`                              if (!q_str.empty()) {`);
+            intervalEntries.push(`                          JsonArray arr = doc["quotes"].as<JsonArray>();`);
+            intervalEntries.push(`                          int i = 0;`);
+            intervalEntries.push(`                          for (JsonVariant v : arr) {`);
+            intervalEntries.push(`                            if (i >= ${itemCount}) break;`);
+            intervalEntries.push(`                            if (v.is<JsonObject>()) {`);
+            intervalEntries.push(`                              JsonObject q = v.as<JsonObject>();`);
+            intervalEntries.push(`                              std::string q_str = q["quote"] | "";`);
+            intervalEntries.push(`                              std::string a_str = q["author"] | "Unknown";`);
+            intervalEntries.push(`                              if (!q_str.empty()) {`);
             for (let index = 0; index < itemCount; index++) {
-                lines.push(`                                if (i == ${index}) {`);
-                lines.push(`                                  id(${safeIdPrefix}_text_global_${index}) = q_str;`);
-                if (p.show_author !== false) lines.push(`                                  id(${safeIdPrefix}_author_global_${index}) = a_str;`);
-                lines.push(`                                }`);
+                intervalEntries.push(`                                if (i == ${index}) {`);
+                intervalEntries.push(`                                  id(${safeIdPrefix}_text_global_${index}) = q_str;`);
+                if (p.show_author !== false) intervalEntries.push(`                                  id(${safeIdPrefix}_author_global_${index}) = a_str;`);
+                intervalEntries.push(`                                }`);
             }
-            lines.push(`                                ESP_LOGI("quote", "Fetched quote %d: %s", i, q_str.c_str());`);
-            lines.push(`                              }`);
-            lines.push(`                            }`);
-            lines.push(`                            i++;`);
-            lines.push(`                          }`);
+            intervalEntries.push(`                                ESP_LOGI("quote", "Fetched quote %d: %s", i, q_str.c_str());`);
+            intervalEntries.push(`                              }`);
+            intervalEntries.push(`                            }`);
+            intervalEntries.push(`                            i++;`);
+            intervalEntries.push(`                          }`);
         }
-        lines.push(`                        }`);
-        lines.push(`                      }`);
-        lines.push(`                  - if:`);
-        lines.push(`                      condition:`);
-        lines.push(`                        lambda: 'return response->status_code == 200;'`);
-        lines.push(`                      then:`);
-        lines.push(context.isLvgl ? `                        - lvgl.widget.refresh: ${w.id}` : `                        - component.update: ${displayId}`);
-        lines.push(`                      else:`);
-        lines.push(`                        - lambda: 'ESP_LOGW("quote", "HTTP Request failed with code: %d", response->status_code);'`);
+        intervalEntries.push(`                        }`);
+        intervalEntries.push(`                      }`);
+        intervalEntries.push(`                  - if:`);
+        intervalEntries.push(`                      condition:`);
+        intervalEntries.push(`                        lambda: 'return response->status_code == 200;'`);
+        intervalEntries.push(`                      then:`);
+        intervalEntries.push(context.isLvgl ? `                        - lvgl.widget.refresh: ${w.id}` : `                        - component.update: ${displayId}`);
+        intervalEntries.push(`                      else:`);
+        intervalEntries.push(`                        - lambda: 'ESP_LOGW("quote", "HTTP Request failed with code: %d", response->status_code);'`);
     }
+    insertTopLevelSectionEntries(lines, 'interval', intervalEntries, '# Quote RSS Widget Update Loop');
     lines.push('');
 }
 
