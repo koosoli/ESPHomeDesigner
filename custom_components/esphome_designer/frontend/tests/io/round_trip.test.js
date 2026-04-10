@@ -8,6 +8,12 @@ vi.mock('../../js/utils/logger.js', () => ({
     Logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn() }
 }));
 
+function normalizeGeneratedYaml(yaml) {
+    return String(yaml || '')
+        .replace(/(# Layout Signature: )([0-9a-f]{8})/gi, '$1<layout-signature>')
+        .replace(/(ESPHome Designer build: sig=)([0-9a-f]{8})/gi, '$1<layout-signature>');
+}
+
 // Real plugins need minimal DOM/AppState globals
 beforeEach(() => {
     vi.stubGlobal('document', {
@@ -60,8 +66,8 @@ describe('ESPHomeAdapter & YamlImport Round-Trip', () => {
         const reimported = await parseSnippetYamlOffline(gen1);
         const gen2 = await adapter.generate({ ...initialState, pages: reimported.pages });
 
-        expect(gen2).toBe(gen1);
-        expect(gen1).toMatchSnapshot();
+        expect(normalizeGeneratedYaml(gen2)).toBe(normalizeGeneratedYaml(gen1));
+        expect(normalizeGeneratedYaml(gen1)).toMatchSnapshot();
     });
 
     it('round-trips real plugins (Integration Check)', async () => {

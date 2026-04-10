@@ -196,4 +196,61 @@ describe('sensor_text exports_sensors', () => {
         expect(seenTextEntityIds).toEqual(new Set(['sensor.status__attr__friendly_name']));
         expect(lines.filter((line) => line === '# Text Sensors (Detected from Sensor Text)')).toHaveLength(1);
     });
+
+    it('queues LVGL refresh triggers for generated text sensor ids', () => {
+        mockAppState.entityStates = {
+            'sensor.greeting_message': { state: 'hello' },
+            'text_sensor.status': { state: 'ready' },
+            'weather.home': { state: 'sunny' }
+        };
+
+        const pendingTriggers = new Map();
+
+        onExportTextSensors({
+            isLvgl: true,
+            pendingTriggers,
+            lines: [],
+            seenSensorIds: new Set(),
+            seenTextEntityIds: new Set(),
+            widgets: [
+                {
+                    id: 'w_mns42gpabx3bt',
+                    type: 'sensor_text',
+                    entity_id: 'sensor.greeting_message',
+                    props: {}
+                },
+                {
+                    id: 'w_text_status',
+                    type: 'sensor_text',
+                    entity_id: 'text_sensor.status',
+                    props: {}
+                },
+                {
+                    id: 'w_weather',
+                    type: 'sensor_text',
+                    entity_id: 'weather.home',
+                    props: {
+                        attribute: 'forecast.daily[0]'
+                    }
+                },
+                {
+                    id: 'w_weather_secondary',
+                    type: 'sensor_text',
+                    entity_id: 'sensor.greeting_message',
+                    entity_id_2: 'weather.home',
+                    props: {
+                        attribute2: 'condition'
+                    }
+                }
+            ]
+        });
+
+        expect(pendingTriggers.get('sensor_greeting_message_txt')).toEqual(new Set([
+            '- lvgl.widget.refresh: w_mns42gpabx3bt',
+            '- lvgl.widget.refresh: w_weather_secondary'
+        ]));
+        expect(pendingTriggers.get('text_sensor_status_txt')).toEqual(new Set(['- lvgl.widget.refresh: w_text_status']));
+        expect(pendingTriggers.get('weather_home_forecast_txt')).toEqual(new Set(['- lvgl.widget.refresh: w_weather']));
+        expect(pendingTriggers.get('weather_home_condition_txt')).toEqual(new Set(['- lvgl.widget.refresh: w_weather_secondary']));
+    });
 });

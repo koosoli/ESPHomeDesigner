@@ -5,6 +5,12 @@ import { registry } from '../../js/core/plugin_registry';
 import fs from 'fs';
 import path from 'path';
 
+function normalizeGeneratedYaml(yaml) {
+    return String(yaml || '')
+        .replace(/(# Layout Signature: )([0-9a-f]{8})/gi, '$1<layout-signature>')
+        .replace(/(ESPHome Designer build: sig=)([0-9a-f]{8})/gi, '$1<layout-signature>');
+}
+
 // Mocks
 vi.mock('../../js/utils/logger.js', () => ({
     Logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn() }
@@ -106,16 +112,18 @@ describe('Plugin YAML Round-Trip Hardening', () => {
                 pages: reimportedPayload.pages
             };
             const gen2 = await adapter.generate(secondState);
+            const normalizedGen1 = normalizeGeneratedYaml(gen1);
+            const normalizedGen2 = normalizeGeneratedYaml(gen2);
 
             // 5. Symmetric guarantee: Export of imported state MUST match original export
-            // We use specialized matching to ignore whitespace differences if any, 
-            // but ideally bit-identical.
+            // Build diagnostics intentionally embed a content signature, so normalize
+            // that volatile metadata while preserving the semantic YAML symmetry check.
             try {
-                expect(gen2, `${pluginDir} export mismatch after round-trip`).toBe(gen1);
+                expect(normalizedGen2, `${pluginDir} export mismatch after round-trip`).toBe(normalizedGen1);
             } catch (e) {
                 // If they differ, log why for debugging
-                const lines1 = gen1.split('\n');
-                const lines2 = gen2.split('\n');
+                const lines1 = normalizedGen1.split('\n');
+                const lines2 = normalizedGen2.split('\n');
                 let diffMsg = "";
                 for (let i = 0; i < Math.max(lines1.length, lines2.length); i++) {
                     if (lines1[i] !== lines2[i]) {

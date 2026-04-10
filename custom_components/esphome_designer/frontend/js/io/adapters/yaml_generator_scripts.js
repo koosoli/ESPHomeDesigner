@@ -1,4 +1,5 @@
 import { getPageSwitchDebounceMs } from '../navigation_debounce.js';
+import { buildLayoutDiagnostics } from './yaml_generation_diagnostics.js';
 
 /**
  * @param {any} payload
@@ -8,6 +9,7 @@ import { getPageSwitchDebounceMs } from '../navigation_debounce.js';
  */
 export function generateScriptSection(payload, pages, profile) {
     const lines = [];
+    const diagnostics = buildLayoutDiagnostics(payload, pages);
     const displayId = profile.features?.lcd ? "my_display" : "epaper_display";
     const hasMultiplePages = pages.length > 1;
     const autoCycleEnabled = payload.autoCycleEnabled && pages.length > 1;
@@ -195,6 +197,8 @@ export function generateScriptSection(payload, pages, profile) {
     lines.push("          condition:");
     lines.push(`            lambda: 'return id(initial_sensor_sync_pending);'`);
     lines.push("          then:");
+    lines.push(`            - logger.log: "${diagnostics.bootLogLine}"`);
+    lines.push('            - logger.log: "OTA hint: if this build line does not match the YAML header, the device booted a different image or rolled back."');
     lines.push('            - logger.log: "Waiting 5s for initial sensor updates..."');
     lines.push("            - delay: 5s");
     lines.push(`            - lambda: 'id(initial_sensor_sync_pending) = false;'`);

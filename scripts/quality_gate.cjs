@@ -300,13 +300,17 @@ function prepareVitestCoverageRun() {
 
 function runVitestCoverageCommand(attempt = 1) {
     const { coverageDir, reportPath } = prepareVitestCoverageRun();
+    // The default worker pool can hang during V8 coverage finalization on Windows
+    // even after the JSON test report is fully written. Force the threads pool so
+    // release/quality runs complete deterministically in this environment.
+    const poolArgs = process.platform === 'win32' ? '--pool=threads ' : '';
     const reporters = [
         '--coverage.reporter=json-summary',
         '--coverage.reporter=json',
         '--coverage.reporter=html'
     ].join(' ');
     const result = run(
-        `npx vitest run --coverage ${reporters} --coverage.reportsDirectory=${rel(coverageDir)} --reporter=json --outputFile=${rel(reportPath)}`
+        `npx vitest run ${poolArgs}--coverage ${reporters} --coverage.reportsDirectory=${rel(coverageDir)} --reporter=json --outputFile=${rel(reportPath)}`
     );
 
     if (result.status !== 0 && attempt === 1) {

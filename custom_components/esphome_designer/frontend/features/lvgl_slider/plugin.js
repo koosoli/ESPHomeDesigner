@@ -170,10 +170,11 @@ const onExportNumericSensors = (context) => {
         }
 
         if (isLvgl && pendingTriggers) {
-            if (!pendingTriggers.has(eid)) {
-                pendingTriggers.set(eid, new Set());
+            const triggerKey = isLightEntity(eid) ? getBrightnessSensorId(eid) : eid;
+            if (!pendingTriggers.has(triggerKey)) {
+                pendingTriggers.set(triggerKey, new Set());
             }
-            pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
+            pendingTriggers.get(triggerKey).add(`- lvgl.widget.refresh: ${w.id}`);
         }
     }
 };

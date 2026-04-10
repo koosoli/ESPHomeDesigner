@@ -215,6 +215,46 @@ export class SnippetManager {
     }
 
     /**
+     * @param {string} yamlText
+     * @returns {string}
+     */
+    getLeadingSnippetPreamble(yamlText) {
+        const [firstBlock] = this.parseTopLevelSnippetBlocks(yamlText);
+        if (!firstBlock || firstBlock.type !== 'preamble') {
+            return '';
+        }
+
+        return this.normalizeSnippetText(firstBlock.text).trimEnd();
+    }
+
+    /**
+     * @param {string} blockText
+     * @param {string} generatedPreamble
+     * @returns {string}
+     */
+    stripGeneratedPreamble(blockText, generatedPreamble) {
+        const normalizedBlock = this.normalizeSnippetText(blockText).trimEnd();
+        const normalizedGenerated = this.normalizeSnippetText(generatedPreamble).trimEnd();
+
+        if (!normalizedGenerated.trim()) {
+            return normalizedBlock;
+        }
+
+        if (normalizedBlock.includes(normalizedGenerated)) {
+            return normalizedBlock
+                .replace(normalizedGenerated, '')
+                .replace(/^\n+|\n+$/g, '')
+                .trimEnd();
+        }
+
+        if (normalizedBlock.trim() === normalizedGenerated.trim()) {
+            return '';
+        }
+
+        return normalizedBlock;
+    }
+
+    /**
      * @param {...string} yamlTexts
      * @returns {Set<string>}
      */
@@ -250,6 +290,8 @@ export class SnippetManager {
             return null;
         }
 
+        const lastGeneratedPreamble = this.getLeadingSnippetPreamble(lastGeneratedYaml);
+
         const manualBlocks = this.parseTopLevelSnippetBlocks(manualYamlOverride);
         const containsManagedSections = manualBlocks.some((block) => block.type === 'section' && block.key && managedSectionKeys.has(block.key));
         if (!containsManagedSections) {
@@ -263,10 +305,19 @@ export class SnippetManager {
         manualBlocks.forEach((block) => {
             const isManagedSection = block.type === 'section' && block.key && managedSectionKeys.has(block.key);
             if (!isManagedSection) {
+                let blockText = block.text;
+                if (!seenManagedSection && block.type === 'preamble') {
+                    blockText = this.stripGeneratedPreamble(block.text, lastGeneratedPreamble);
+                }
+
+                if (!blockText.trim()) {
+                    return;
+                }
+
                 if (seenManagedSection) {
-                    suffixBlocks.push(block.text);
+                    suffixBlocks.push(blockText);
                 } else {
-                    prefixBlocks.push(block.text);
+                    prefixBlocks.push(blockText);
                 }
             }
 

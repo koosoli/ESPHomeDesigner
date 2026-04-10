@@ -8,7 +8,8 @@ describe('yaml_generator_scripts', () => {
             autoCycleEnabled: true,
             autoCycleIntervalS: 45,
             lcdEcoStrategy: 'backlight_off',
-            refreshInterval: 10
+            refreshInterval: 10,
+            renderingMode: 'lvgl'
         }, [
             { refresh_s: '15' },
             { visible_from: '08:00', visible_to: '17:00', refresh_type: 'daily', refresh_time: '12:30' }
@@ -25,6 +26,9 @@ describe('yaml_generator_scripts', () => {
         expect(lines).not.toContain('id(last_page_switch_time) = millis();');
         expect(lines).toContain('Auto-switching to scheduled page %d');
         expect(lines).not.toContain('best_page != p || id(last_page_switch_time) == 0');
+        expect(lines).toContain('ESPHome Designer build: sig=');
+        expect(lines).toContain('mode=lvgl pages=2 widgets=0');
+        expect(lines).toContain('OTA hint: if this build line does not match the YAML header');
         expect(lines).toContain('Waiting 5s for initial sensor updates...');
         expect(lines).toContain("lambda: 'return id(initial_sensor_sync_pending);'");
         expect(lines).toContain("lambda: 'id(initial_sensor_sync_pending) = false;'");

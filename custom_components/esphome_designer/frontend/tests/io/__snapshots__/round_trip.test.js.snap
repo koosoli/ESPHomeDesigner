@@ -46,6 +46,9 @@ exports[`ESPHomeAdapter & YamlImport Round-Trip > round-trips a layout with mock
 # Deep Sleep Stay Awake Entity: input_boolean.esphome_stay_awake
 # Deep Sleep Firmware Guard: disabled
 # Deep Sleep Interval: Disabled
+# Layout Signature: <layout-signature>
+# Layout Summary: mode=direct pages=1 widgets=1 types=button:1
+# Boot Log Hint: Compare the runtime build signature with this header to spot OTA rollbacks.
 # ====================================
 
 # esphome:
@@ -243,6 +246,8 @@ script:
           condition:
             lambda: 'return id(initial_sensor_sync_pending);'
           then:
+            - logger.log: "ESPHome Designer build: sig=<layout-signature> mode=direct pages=1 widgets=1 types=button:1"
+            - logger.log: "OTA hint: if this build line does not match the YAML header, the device booted a different image or rolled back."
             - logger.log: "Waiting 5s for initial sensor updates..."
             - delay: 5s
             - lambda: 'id(initial_sensor_sync_pending) = false;'

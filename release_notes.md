@@ -1,3 +1,23 @@
+## v1.0.0 RC12.1 - OTA Rollback Diagnostics & LVGL Light Sync
+**Release Date:** April 10, 2026
+
+This RC12.1 follow-up tightens the LVGL light-control fix from [Issue #371](https://github.com/koosoli/ESPHomeDesigner/issues/371), adds generated diagnostics that make OTA rollback mismatches much easier to spot in reports like [Issue #372](https://github.com/koosoli/ESPHomeDesigner/issues/372), and folds in two additional YAML-generation fixes from [Issue #376](https://github.com/koosoli/ESPHomeDesigner/issues/376) and [Issue #377](https://github.com/koosoli/ESPHomeDesigner/issues/377).
+
+### Stability & Verification
+- **LVGL Light Slider/Button Separation (Issue #371)**: Light-backed LVGL sliders now refresh only from their generated `brightness_pct` Home Assistant sensor instead of also listening to the light's binary on/off updates. This prevents a synced button toggle from forcing the slider back through stale `0/1` brightness values and resolves the button/slider feedback loop seen in the attached `kitchen-display-ui.yaml`.
+- **Generated Layout Signatures for OTA Debugging (Issue #372)**: Generated YAML now includes a stable layout signature and summary in the header, and the startup script logs the same signature once per boot. If a user's device log shows a different signature than the YAML they attached, it is now immediately obvious that the device is running an older image or has rolled back after OTA.
+- **Rollback Triage Hint in Boot Logs**: The one-time startup diagnostics now include an explicit rollback hint so issue reports can distinguish "widget did not update" from "the new firmware never stayed booted."
+- **LVGL Sensor Text Refresh Hooks (Issue #377)**: LVGL-backed `sensor_text` widgets now register their generated `text_sensor` IDs for `on_value` refresh wiring, including weather/text attribute variants, so live labels update when Home Assistant pushes new text values.
+- **Generated YAML Header Deduplication (Issue #376)**: Repeated snippet save/update cycles no longer prepend multiple copies of the generated ESPHome header when reconciling manual YAML overrides, so the raw YAML editor stays stable across round trips.
+- **Issue #356 Audit Confirmation**: Rechecked the three items listed in [Issue #356](https://github.com/koosoli/ESPHomeDesigner/issues/356) against current generator code and regression tests; the scheduled page auto-switch guard, deep-sleep interval handling, and long-sleep-until-end-hour behavior are all already covered in RC12.1.
+- **Home Assistant Panel Console Noise Mitigation**: The embedded panel shell now suppresses additional benign Home Assistant transition abort variants and wrapped host-error shapes, which reduces `Transition was skipped` / `invalid state` unhandled rejection noise in the browser console without masking real editor failures.
+- **Regression Coverage**: Added focused generator coverage for the new header/log diagnostics, updated the LVGL slider regression coverage so light refresh hooks stay bound to the brightness attribute sensor, and hardened the panel/runtime rejection-filter tests for Home Assistant transition-abort noise.
+- **Release Metadata Refresh**: Updated the package metadata, Home Assistant manifest version, runtime GUI version label, release notes heading, and rebuilt frontend assets for the RC12.1 release line.
+
+
+
+---
+
 ## v1.0.0 RC12 - LVGL Follow-Up & Release Sync
 **Release Date:** April 7, 2026
 

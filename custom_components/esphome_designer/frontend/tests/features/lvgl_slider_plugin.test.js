@@ -137,7 +137,8 @@ describe('lvgl slider plugin', () => {
             '  attribute: brightness_pct',
             '  internal: true'
         ]);
-        expect([...pendingTriggers.get('light.kitchen')]).toEqual(['- lvgl.widget.refresh: slider_light']);
+        expect([...pendingTriggers.get('light_kitchen_brightness_pct')]).toEqual(['- lvgl.widget.refresh: slider_light']);
+        expect(pendingTriggers.has('light.kitchen')).toBe(false);
         expect([...pendingTriggers.get('number.manual')]).toEqual(['- lvgl.widget.refresh: slider_1']);
     });
 });

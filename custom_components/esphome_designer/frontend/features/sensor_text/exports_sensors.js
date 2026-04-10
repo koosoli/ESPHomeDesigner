@@ -8,7 +8,7 @@ import { HA_TEXT_DOMAINS } from './shared.js';
  * @param {Record<string, any>} context
  */
 export const onExportTextSensors = (context) => {
-        const { lines, widgets } = context;
+        const { lines, widgets, isLvgl, pendingTriggers } = context;
         if (!widgets) return;
 
         // Helper to check if an entity's current state is non-numeric
@@ -32,6 +32,27 @@ export const onExportTextSensors = (context) => {
             return safe + suffix;
         };
 
+        /**
+         * @param {string} rawEntityId
+         * @param {string} rawAttribute
+         * @param {string} mqttTopic
+         * @param {string | undefined} widgetId
+         */
+        const queueLvglRefreshTrigger = (rawEntityId, rawAttribute, mqttTopic, widgetId) => {
+            if (!isLvgl || !pendingTriggers || !widgetId) return;
+
+            const entityId = (rawEntityId || "").trim();
+            const attributePath = (rawAttribute || "").trim();
+            const isNested = attributePath.includes(".") || attributePath.includes("[");
+            const rootAttr = isNested ? attributePath.split(/[.[]/)[0] : attributePath;
+            const safeId = makeSafeId(entityId, rootAttr, "_txt");
+
+            if (!pendingTriggers.has(safeId)) {
+                pendingTriggers.set(safeId, new Set());
+            }
+            pendingTriggers.get(safeId).add(`- lvgl.widget.refresh: ${widgetId}`);
+        };
+
         const weatherEntities = new Set();
         const textEntities = new Set();
 
@@ -53,8 +74,10 @@ export const onExportTextSensors = (context) => {
 
             if (entityId.startsWith("weather.")) {
                 weatherEntities.add(JSON.stringify({ entity_id: entityId, attribute, mqtt_topic: mqttTopic }));
+                queueLvglRefreshTrigger(entityId, attribute, mqttTopic, w.id);
             } else if (mqttTopic || p.is_text_sensor || isAutoText || HA_TEXT_DOMAINS.some(d => entityId.startsWith(d))) {
                 textEntities.add(JSON.stringify({ entity_id: entityId, attribute, mqtt_topic: mqttTopic }));
+                queueLvglRefreshTrigger(entityId, attribute, mqttTopic, w.id);
             }
 
             const entityId2 = (w.entity_id_2 || p.entity_id_2 || "").trim();
@@ -64,8 +87,10 @@ export const onExportTextSensors = (context) => {
                 // We don't have a secondary MQTT topic field for now, just entity ID. So mqtt_topic is empty.
                 if (entityId2.startsWith("weather.")) {
                     weatherEntities.add(JSON.stringify({ entity_id: entityId2, attribute: attribute2 }));
+                    queueLvglRefreshTrigger(entityId2, attribute2, "", w.id);
                 } else if (p.is_text_sensor || isAutoText2 || HA_TEXT_DOMAINS.some(d => entityId2.startsWith(d))) {
                     textEntities.add(JSON.stringify({ entity_id: entityId2, attribute: attribute2 }));
+                    queueLvglRefreshTrigger(entityId2, attribute2, "", w.id);
                 }
             }
         }

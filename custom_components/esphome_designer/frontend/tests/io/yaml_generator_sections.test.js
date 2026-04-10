@@ -34,6 +34,9 @@ describe('yaml_generator_sections', () => {
         expect(lines).toContain('Framework: Arduino (Default)');
         expect(lines).toContain('Power Strategy: Manual Refresh Only');
         expect(lines).toContain('Deep Sleep Stay Awake Entity: input_boolean.panel_awake');
+        expect(lines).toContain('Layout Signature:');
+        expect(lines).toContain('Layout Summary: mode=direct pages=0 widgets=0');
+        expect(lines).toContain('Boot Log Hint: Compare the runtime build signature with this header to spot OTA rollbacks.');
     });
 
     it('generates commented coreink system sections and un-commented deep sleep for epaper layouts', () => {
