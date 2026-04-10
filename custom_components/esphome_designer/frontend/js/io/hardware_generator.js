@@ -64,6 +64,10 @@ export function generateCustomHardwareYaml(config) {
         lines.push("#         - Select: ESP32-C6");
         lines.push("#         - Board: esp32-c6-devkitc-1");
         lines.push("#         - Framework: esp-idf (Recommended)");
+    } else if (chip === "esp32-p4") {
+        lines.push("#         - Select: ESP32-P4");
+        lines.push("#         - Board: esp32-p4-evboard");
+        lines.push("#         - Framework: esp-idf (Required)");
     } else {
         lines.push("#         - Select: ESP32-S3");
         lines.push("#         - Board: esp32-s3-devkitc-1");
@@ -86,11 +90,17 @@ export function generateCustomHardwareYaml(config) {
     }
     lines.push(`#   board: ${getBoardForChip(chip)}`);
 
+    if (chip === "esp32-p4") {
+        lines.push("#   variant: esp32p4");
+    }
     if (chip !== "esp8266") {
         lines.push("#   framework:");
         lines.push("#     type: esp-idf");
     }
-    if (effectivePsram && chip.includes("s3")) {
+    if (chip === "esp32-p4") {
+        lines.push("#     advanced:");
+        lines.push("#       enable_idf_experimental_features: true");
+    } else if (effectivePsram && chip.includes("s3")) {
         lines.push("#     # For stability on S3 devices with high-res displays/LVGL:");
         lines.push("#     advanced:");
         lines.push("#       execute_from_psram: true");
@@ -104,6 +114,9 @@ export function generateCustomHardwareYaml(config) {
             lines.push("#   # Quad or Octal depending on your board");
             lines.push("#   mode: quad");
             lines.push("#   speed: 80MHz");
+        } else if (chip === "esp32-p4") {
+            lines.push("#   mode: hex");
+            lines.push("#   speed: 200MHz");
         }
         lines.push("");
     }
@@ -284,6 +297,7 @@ export function generateCustomHardwareYaml(config) {
 function getBoardForChip(chip) {
     switch (chip) {
         case 'esp32-s3': return 'esp32-s3-devkitc-1';
+        case 'esp32-p4': return 'esp32-p4-evboard';
         case 'esp32-c3': return 'esp32-c3-devkitm-1';
         case 'esp32-c6': return 'esp32-c6-devkitc-1';
         case 'esp32': return 'esp32dev';

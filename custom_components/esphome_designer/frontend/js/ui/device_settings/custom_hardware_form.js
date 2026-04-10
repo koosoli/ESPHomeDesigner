@@ -20,6 +20,7 @@ export function updatePinDatalist(panel) {
     const chip = panel.customChip?.value || 'esp32-s3';
     let datalistId = 'gpio-pins-esp32s3';
     if (chip === 'esp32') datalistId = 'gpio-pins-esp32';
+    else if (chip === 'esp32-p4') datalistId = 'gpio-pins-esp32';
     else if (chip === 'esp8266') datalistId = 'gpio-pins-esp8266';
 
     Object.values(panel.pinInputs).forEach(id => {
