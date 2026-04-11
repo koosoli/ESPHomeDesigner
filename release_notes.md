@@ -1,3 +1,20 @@
+## v1.0.0 RC12.2 - Widget State Accuracy & Release Polish
+**Release Date:** April 11, 2026
+
+This RC12.2 follow-up rolls the remaining [Issue #356](https://github.com/koosoli/ESPHomeDesigner/issues/356) polish into a fresh release cut, with a focus on making astronomy and weather widgets fail safely when Home Assistant data is missing or timezone-shifted, while keeping the RC12.x stability fixes and release metadata aligned for deployment.
+
+### Stability & Verification
+- **Local-Time Sunrise/Sunset Rendering (Issue #356)**: `sun_times` widgets now convert Home Assistant ISO timestamps into local runtime time before formatting them, so `sensor.sun_next_rising` and `sensor.sun_next_setting` no longer show UTC hours as if they were already local.
+- **Explicit Unknown Weather Fallbacks (Issue #356)**: Weather icon and forecast widgets now fall back to a visible unknown icon and `--` text when no valid condition or value is available, instead of implying a real `sunny` or `cloudy` state.
+- **Unknown-State Moon Phase Fallback (Issue #356)**: Moon-phase widgets now show an unknown-state icon when the selected entity is missing, invalid, or not a moon-phase source, rather than rendering a misleading real lunar phase.
+- **Deep-Sleep Flow Revalidation (Issue #356)**: Rechecked the reported `is_sleep_time`, `interval`, and long-sleep-until-end-hour concerns against the generator output and locked that behavior in with regression coverage; no additional generator change was required because the long-sleep branch was already present.
+- **Regression Coverage Expansion**: Added focused tests for astronomy widget local-time handling, weather unknown-state exports/rendering, moon-phase invalid-entity behavior, and the existing deep-sleep overnight branch so the RC12.2 fixes stay pinned.
+- **Release Metadata Refresh**: Updated the package version, Home Assistant manifest version, visible header label, release notes heading, and rebuilt frontend assets for the RC12.2 release line.
+
+
+
+---
+
 ## v1.0.0 RC12.1 - OTA Rollback Diagnostics & LVGL Light Sync
 **Release Date:** April 10, 2026
 
@@ -10,6 +27,7 @@ This RC12.1 follow-up tightens the LVGL light-control fix from [Issue #371](http
 - **LVGL Sensor Text Refresh Hooks (Issue #377)**: LVGL-backed `sensor_text` widgets now register their generated `text_sensor` IDs for `on_value` refresh wiring, including weather/text attribute variants, so live labels update when Home Assistant pushes new text values.
 - **Generated YAML Header Deduplication (Issue #376)**: Repeated snippet save/update cycles no longer prepend multiple copies of the generated ESPHome header when reconciling manual YAML overrides, so the raw YAML editor stays stable across round trips.
 - **Issue #356 Audit Confirmation**: Rechecked the three items listed in [Issue #356](https://github.com/koosoli/ESPHomeDesigner/issues/356) against current generator code and regression tests; the scheduled page auto-switch guard, deep-sleep interval handling, and long-sleep-until-end-hour behavior are all already covered in RC12.1.
+- **Issue #356 Follow-Up Widget Fixes**: Sunrise and sunset widgets now convert ISO datetime values into local device/browser time instead of showing the raw UTC hour, weather widgets now fall back to an explicit unknown icon or `--` temperatures when no condition/value is available, and moon-phase widgets now show an unknown-state icon instead of implying a real lunar phase when the entity is missing or invalid.
 - **Home Assistant Panel Console Noise Mitigation**: The embedded panel shell now suppresses additional benign Home Assistant transition abort variants and wrapped host-error shapes, which reduces `Transition was skipped` / `invalid state` unhandled rejection noise in the browser console without masking real editor failures.
 - **Regression Coverage**: Added focused generator coverage for the new header/log diagnostics, updated the LVGL slider regression coverage so light refresh hooks stay bound to the brightness attribute sensor, and hardened the panel/runtime rejection-filter tests for Home Assistant transition-abort noise.
 - **Release Metadata Refresh**: Updated the package metadata, Home Assistant manifest version, runtime GUI version label, release notes heading, and rebuilt frontend assets for the RC12.1 release line.

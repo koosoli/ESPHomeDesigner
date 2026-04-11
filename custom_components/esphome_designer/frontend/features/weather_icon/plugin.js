@@ -1,6 +1,11 @@
 import { getSensorPlatformLines } from '../../js/io/adapters/mqtt_helpers.js';
 import { renderWeatherIcon } from './render.js';
 import { renderWeatherIconProperties } from './properties.js';
+import {
+    UNKNOWN_WEATHER_ICON,
+    WEATHER_ICON_CODES,
+    WEATHER_ICON_OPTIONS
+} from './shared.js';
 
 const render = renderWeatherIcon;
 
@@ -63,22 +68,11 @@ const exportDoc = (w, context) => {
         lines.push(`          std::string raw_state = id(${safeId}).state;`);
         lines.push(`          std::string weather_state = "";`);
         lines.push(`          for(auto &c : raw_state) weather_state += tolower(c);`);
-        lines.push(`          const char* icon = "\\U000F0599"; // Default: sunny`);
-        lines.push(`          if (weather_state == "clear-night") icon = "\\U000F0594";`);
-        lines.push(`          else if (weather_state == "cloudy") icon = "\\U000F0590";`);
-        lines.push(`          else if (weather_state == "exceptional") icon = "\\U000F0026";`);
-        lines.push(`          else if (weather_state == "fog") icon = "\\U000F0591";`);
-        lines.push(`          else if (weather_state == "hail") icon = "\\U000F0592";`);
-        lines.push(`          else if (weather_state == "lightning") icon = "\\U000F0593";`);
-        lines.push(`          else if (weather_state == "lightning-rainy") icon = "\\U000F067E";`);
-        lines.push(`          else if (weather_state == "partlycloudy") icon = "\\U000F0595";`);
-        lines.push(`          else if (weather_state == "pouring") icon = "\\U000F0596";`);
-        lines.push(`          else if (weather_state == "rainy") icon = "\\U000F0597";`);
-        lines.push(`          else if (weather_state == "snowy") icon = "\\U000F0598";`);
-        lines.push(`          else if (weather_state == "snowy-rainy") icon = "\\U000F067F";`);
-        lines.push(`          else if (weather_state == "sunny") icon = "\\U000F0599";`);
-        lines.push(`          else if (weather_state == "windy") icon = "\\U000F059D";`);
-        lines.push(`          else if (weather_state == "windy-variant") icon = "\\U000F059E";`);
+        lines.push(`          const char* icon = "\\U000${UNKNOWN_WEATHER_ICON.code}";`);
+        WEATHER_ICON_OPTIONS.forEach(({ condition, code }, index) => {
+            const keyword = index === 0 ? 'if' : 'else if';
+            lines.push(`          ${keyword} (weather_state == "${condition}") icon = "\\U000${code}";`);
+        });
         lines.push(`          else if (weather_state != "" && weather_state != "unknown") ESP_LOGW("weather", "Unhandled weather state: %s", raw_state.c_str());`);
         lines.push(`          it.printf(${centerX}, ${centerY}, id(${fontRef}), ${color}, TextAlign::CENTER, "%s", icon);`);
         lines.push(`        }`);
@@ -86,7 +80,7 @@ const exportDoc = (w, context) => {
         // Fallback preview
         const centerX = Math.round(w.x + w.width / 2);
         const centerY = Math.round(w.y + w.height / 2);
-        lines.push(`        it.printf(${centerX}, ${centerY}, id(${fontRef}), ${color}, TextAlign::CENTER, "\\U000F0595");`);
+        lines.push(`        it.printf(${centerX}, ${centerY}, id(${fontRef}), ${color}, TextAlign::CENTER, "\\U000${UNKNOWN_WEATHER_ICON.code}");`);
     }
 
     if (cond) lines.push(`        }`);
@@ -143,7 +137,7 @@ const collectRequirements = (widget, { trackIcon }) => {
     const props = widget.props || {};
     const size = props.size || 48;
     // Track all possible weather icons
-    ["F0594", "F0590", "F0026", "F0591", "F0592", "F0593", "F067E", "F0595", "F0596", "F0597", "F0598", "F067F", "F0599", "F059D", "F059E"].forEach(c => trackIcon(c, size));
+    WEATHER_ICON_CODES.forEach(c => trackIcon(c, size));
 };
 
 export default {
@@ -182,24 +176,12 @@ export default {
 
         // Mapping for ODP weather icons based on HA state
         const template = `{{ {
-            'clear-night': 'moon',
-            'cloudy': 'cloud',
-            'fog': 'fog',
-            'hail': 'hail',
-            'lightning': 'lightning',
-            'lightning-rainy': 'lightning-rainy',
-            'partlycloudy': 'partly-cloudy',
-            'pouring': 'pouring',
-            'rainy': 'rainy',
-            'snowy': 'snowy',
-            'snowy-rainy': 'snowy-rainy',
-            'sunny': 'sun',
-            'windy': 'wind'
-        }[states('${entityId}')] | default('sun') }}`;
+            ${WEATHER_ICON_OPTIONS.map(({ condition, protocolIcon }) => `'${condition}': '${protocolIcon}'`).join(',\n            ')}
+        }[states('${entityId}')] | default('${UNKNOWN_WEATHER_ICON.protocolIcon}') }}`;
 
         return {
             type: "icon",
-            value: template,
+            value: entityId ? template : UNKNOWN_WEATHER_ICON.protocolIcon,
             x: Math.round(w.x + w.width / 2),
             y: Math.round(w.y + w.height / 2),
             size: p.size || 48,
@@ -216,24 +198,12 @@ export default {
         // OEPL has built-in weather icon support if we use their icon names
         // We can create a template that returns the icon name based on state
         const template = `{{ {
-            'clear-night': 'moon',
-            'cloudy': 'cloud',
-            'fog': 'fog',
-            'hail': 'hail',
-            'lightning': 'lightning',
-            'lightning-rainy': 'lightning-rainy',
-            'partlycloudy': 'partly-cloudy',
-            'pouring': 'pouring',
-            'rainy': 'rainy',
-            'snowy': 'snowy',
-            'snowy-rainy': 'snowy-rainy',
-            'sunny': 'sun',
-            'windy': 'wind'
-        }[states('${entityId}')] | default('sun') }}`;
+            ${WEATHER_ICON_OPTIONS.map(({ condition, protocolIcon }) => `'${condition}': '${protocolIcon}'`).join(',\n            ')}
+        }[states('${entityId}')] | default('${UNKNOWN_WEATHER_ICON.protocolIcon}') }}`;
 
         return {
             type: "icon",
-            value: template,
+            value: entityId ? template : UNKNOWN_WEATHER_ICON.protocolIcon,
             x: Math.round(w.x),
             y: Math.round(w.y),
             size: size,
@@ -247,7 +217,7 @@ export default {
         const size = parseInt(p.size || 48, 10);
         const color = convertColor(p.color || "theme_auto");
 
-        let lambdaStr = '"\\U000F0599"'; // Default: sunny
+        let lambdaStr = `"\\U000${UNKNOWN_WEATHER_ICON.code}"`;
         if (entityId) {
             // Helper to create safe ESPHome ID (max 59 chars)
             const attributePath = (p.attribute || "").trim();
@@ -262,22 +232,10 @@ export default {
             const safeId = makeSafeId(entityId, "_txt");
             lambdaStr = '!lambda |-\n';
             lambdaStr += `              std::string ws = id(${safeId}).state;\n`;
-            lambdaStr += `              if (ws == "clear-night") return "\\U000F0594";\n`;
-            lambdaStr += `              if (ws == "cloudy") return "\\U000F0590";\n`;
-            lambdaStr += `              if (ws == "exceptional") return "\\U000F0026";\n`;
-            lambdaStr += `              if (ws == "fog") return "\\U000F0591";\n`;
-            lambdaStr += `              if (ws == "hail") return "\\U000F0592";\n`;
-            lambdaStr += `              if (ws == "lightning") return "\\U000F0593";\n`;
-            lambdaStr += `              if (ws == "lightning-rainy") return "\\U000F067E";\n`;
-            lambdaStr += `              if (ws == "partlycloudy") return "\\U000F0595";\n`;
-            lambdaStr += `              if (ws == "pouring") return "\\U000F0596";\n`;
-            lambdaStr += `              if (ws == "rainy") return "\\U000F0597";\n`;
-            lambdaStr += `              if (ws == "snowy") return "\\U000F0598";\n`;
-            lambdaStr += `              if (ws == "snowy-rainy") return "\\U000F067F";\n`;
-            lambdaStr += `              if (ws == "sunny") return "\\U000F0599";\n`;
-            lambdaStr += `              if (ws == "windy") return "\\U000F059D";\n`;
-            lambdaStr += `              if (ws == "windy-variant") return "\\U000F059E";\n`;
-            lambdaStr += `              return "\\U000F0599";`;
+            WEATHER_ICON_OPTIONS.forEach(({ condition, code }) => {
+                lambdaStr += `              if (ws == "${condition}") return "\\U000${code}";\n`;
+            });
+            lambdaStr += `              return "\\U000${UNKNOWN_WEATHER_ICON.code}";`;
         }
 
         return {

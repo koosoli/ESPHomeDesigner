@@ -1,3 +1,5 @@
+import { WEATHER_ICON_CODES } from '../weather_icon/shared.js';
+
 /**
  * @typedef {{
  *   id: string,
@@ -273,7 +275,7 @@ export const onExportTextSensors = (context) => {
                     lines.push(`#           {% set fc = hourly['${config.entity}'].forecast %}`);
                     lines.push(`#           {% set target = (now() + timedelta(hours=${slot})).strftime('%Y-%m-%dT%H:00:00') %}`);
                     lines.push(`#           {% set hit = fc | selectattr('datetime','search',target) | list | first %}`);
-                    lines.push(`#           {{ hit.condition if hit else 'cloudy' }}`);
+                    lines.push(`#           {{ hit.condition if hit else 'unknown' }}`);
                 } else {
                     lines.push(`#       - name: 'Weather Forecast Hour ${slot}00 High'`);
                     lines.push(`#         unique_id: weather_forecast_hour_${slot}00_high`);
@@ -287,7 +289,7 @@ export const onExportTextSensors = (context) => {
                     lines.push(`#         state: >`);
                     lines.push(`#           {% set fc = hourly['${config.entity}'].forecast %}`);
                     lines.push(`#           {% set hit = fc | selectattr('datetime','search','T${slot}:') | list | first %}`);
-                    lines.push(`#           {{ hit.condition if hit else 'cloudy' }}`);
+                    lines.push(`#           {{ hit.condition if hit else 'unknown' }}`);
                 }
             });
         } else {
@@ -316,7 +318,7 @@ export const onExportTextSensors = (context) => {
                 lines.push(`#         state: '{{ forecast_data["${config.entity}"].forecast[${dayIdx}].templow | default("N/A") }}'`);
                 lines.push(`#       - name: 'Weather Forecast Day ${dayIdx} Condition'`);
                 lines.push(`#         unique_id: weather_forecast_day_${dayIdx}_condition`);
-                lines.push(`#         state: '{{ forecast_data["${config.entity}"].forecast[${dayIdx}].condition | default("cloudy") }}'`);
+                lines.push(`#         state: '{{ forecast_data["${config.entity}"].forecast[${dayIdx}].condition | default("unknown") }}'`);
             });
         }
         lines.push("#");
@@ -342,5 +344,5 @@ export const collectRequirements = (w, context) => {
     addFont(family, 400, tempFS);
     addFont("Material Design Icons", 400, iconSize);
 
-    ["F0594", "F0590", "F0026", "F0591", "F0592", "F0593", "F067E", "F0595", "F0596", "F0597", "F0598", "F067F", "F0599", "F059D", "F059E"].forEach(c => trackIcon(c, iconSize));
+    WEATHER_ICON_CODES.forEach(c => trackIcon(c, iconSize));
 };

@@ -1,7 +1,7 @@
 import { AppState } from '@core/state';
 import {
-    DEFAULT_MOON_PHASE,
     getMoonPhaseMeta,
+    UNKNOWN_MOON_PHASE,
     toMdiCharacter
 } from './shared.js';
 
@@ -58,7 +58,7 @@ export function renderMoonPhase(el, widget, { getColorStyle }) {
         label.textContent = 'No Entity';
         el.appendChild(label);
     } else if (!state) {
-        el.title = DEFAULT_MOON_PHASE.state;
+        el.title = UNKNOWN_MOON_PHASE.state;
     } else {
         el.title = phase.state;
     }

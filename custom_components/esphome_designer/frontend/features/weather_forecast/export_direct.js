@@ -1,4 +1,5 @@
 import { getDayLabelSet } from './day_labels.js';
+import { UNKNOWN_WEATHER_ICON } from '../weather_icon/shared.js';
 
 /** @typedef {Widget & { props?: Record<string, any>, entity_id?: string }} WeatherForecastWidget */
 
@@ -54,7 +55,7 @@ export const exportDoc = (w, context) => {
     lines.push(`            {"windy-variant", "\\U000F059E"}`);
     lines.push(`          };`);
     lines.push(`          auto get_icon = [&](const std::string& cond_val) -> const char* {`);
-    lines.push(`            return weather_icons.count(cond_val) ? weather_icons[cond_val] : "\\U000F0590";`);
+    lines.push(`            return weather_icons.count(cond_val) ? weather_icons[cond_val] : "\\U000${UNKNOWN_WEATHER_ICON.code}";`);
     lines.push(`          };`);
     if (mode === "hourly") {
         lines.push(`          auto get_hour_label = [](int offset) -> std::string {`);

@@ -1870,7 +1870,7 @@ exports[`Plugin Export Smoke Tests > Export for moon_phase > should export LVGL 
           if (normalized == "last_quarter") return "\\U000F0F63";
           if (normalized == "waning_crescent") return "\\U000F0F65";
           if (normalized == "new_moon") return "\\U000F0F64";
-          return "\\U000F0F67";",
+          return "\\U000F0625";",
     "text_align": "center",
     "text_color": "Color(theme_auto)",
     "text_font": "font_ptr",
@@ -1884,7 +1884,7 @@ exports[`Plugin Export Smoke Tests > Export for moon_phase > should export OEPL 
   "color": "theme_auto",
   "size": 48,
   "type": "icon",
-  "value": "{{ { 'waxing_crescent': 'moon-waxing-crescent', 'first_quarter': 'moon-first-quarter', 'waxing_gibbous': 'moon-waxing-gibbous', 'full_moon': 'moon-full', 'waning_gibbous': 'moon-waning-gibbous', 'last_quarter': 'moon-last-quarter', 'waning_crescent': 'moon-waning-crescent', 'new_moon': 'moon-new' }[states('sensor.moon') | lower | replace('-', '_') | replace(' ', '_')] | default('moon-waxing-crescent') }}",
+  "value": "{{ { 'waxing_crescent': 'moon-waxing-crescent', 'first_quarter': 'moon-first-quarter', 'waxing_gibbous': 'moon-waxing-gibbous', 'full_moon': 'moon-full', 'waning_gibbous': 'moon-waning-gibbous', 'last_quarter': 'moon-last-quarter', 'waning_crescent': 'moon-waning-crescent', 'new_moon': 'moon-new' }[states('sensor.moon') | lower | replace('-', '_') | replace(' ', '_')] | default('help-circle-outline') }}",
   "x": 10,
   "y": 10,
 }
@@ -1896,7 +1896,7 @@ exports[`Plugin Export Smoke Tests > Export for moon_phase > should export OpenD
   "fill": "black",
   "size": 48,
   "type": "icon",
-  "value": "{{ { 'waxing_crescent': 'moon-waxing-crescent', 'first_quarter': 'moon-first-quarter', 'waxing_gibbous': 'moon-waxing-gibbous', 'full_moon': 'moon-full', 'waning_gibbous': 'moon-waning-gibbous', 'last_quarter': 'moon-last-quarter', 'waning_crescent': 'moon-waning-crescent', 'new_moon': 'moon-new' }[states('sensor.moon') | lower | replace('-', '_') | replace(' ', '_')] | default('moon-waxing-crescent') }}",
+  "value": "{{ { 'waxing_crescent': 'moon-waxing-crescent', 'first_quarter': 'moon-first-quarter', 'waxing_gibbous': 'moon-waxing-gibbous', 'full_moon': 'moon-full', 'waning_gibbous': 'moon-waning-gibbous', 'last_quarter': 'moon-last-quarter', 'waning_crescent': 'moon-waning-crescent', 'new_moon': 'moon-new' }[states('sensor.moon') | lower | replace('-', '_') | replace(' ', '_')] | default('help-circle-outline') }}",
   "x": 60,
   "y": 60,
 }
@@ -1911,7 +1911,7 @@ exports[`Plugin Export Smoke Tests > Export for moon_phase > should export stand
   "            if (c == '-' || c == ' ') moon_state += '_';",
   "            else moon_state += static_cast<char>(tolower(static_cast<unsigned char>(c)));",
   "          }",
-  "          const char* icon = "\\U000F0F67";",
+  "          const char* icon = "\\U000F0625";",
   "          if (moon_state == "waxing_crescent") icon = "\\U000F0F67";",
   "          else if (moon_state == "first_quarter") icon = "\\U000F0F61";",
   "          else if (moon_state == "waxing_gibbous") icon = "\\U000F0F68";",
@@ -2957,17 +2957,63 @@ exports[`Plugin Export Smoke Tests > Export for sun_times > should export LVGL w
           "height": 20,
           "id": "w_test_sunrise_text",
           "text": "!lambda |-
+          static std::string display_value;
+          display_value = "n.d.";
           std::string raw = id(sensor_sun_next_rising_txt).state;
-          if (raw.empty() || raw == "unknown" || raw == "unavailable") return "n.d.";
-          size_t t_pos = raw.find('T');
-          size_t colon = raw.find(':');
-          if (t_pos != std::string::npos && colon != std::string::npos && colon >= 2) return raw.substr(colon - 2, 5).c_str();
-          if (colon != std::string::npos && colon >= 1) {
-            size_t start = colon >= 2 ? colon - 2 : 0;
-            size_t len = (start + 5 <= raw.size()) ? 5 : raw.size() - start;
-            return raw.substr(start, len).c_str();
+          if (!raw.empty() && raw != "unknown" && raw != "unavailable" && raw != "none") {
+            int year = 0;
+            int month = 0;
+            int day = 0;
+            int hour = 0;
+            int minute = 0;
+            int second = 0;
+            int offset_hour = 0;
+            int offset_minute = 0;
+            char tz_sign = '+';
+            auto format_hhmm = [](int hour_value, int minute_value) -> std::string {
+              char buf[6];
+              snprintf(buf, sizeof(buf), "%02d:%02d", hour_value, minute_value);
+              return std::string(buf);
+            };
+            auto days_from_civil = [](int y, unsigned m, unsigned d) -> int {
+              y -= m <= 2;
+              const int era = (y >= 0 ? y : y - 399) / 400;
+              const unsigned yoe = static_cast<unsigned>(y - era * 400);
+              const unsigned doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
+              const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+              return era * 146097 + static_cast<int>(doe) - 719468;
+            };
+            auto parse_epoch = [&](char sign, int tzHour, int tzMinute) -> long long {
+              const int offset_minutes = (tzHour * 60 + tzMinute) * (sign == '-' ? -1 : 1);
+              return static_cast<long long>(days_from_civil(year, static_cast<unsigned>(month), static_cast<unsigned>(day))) * 86400LL +
+                  static_cast<long long>(hour) * 3600LL + static_cast<long long>(minute) * 60LL + second -
+                  static_cast<long long>(offset_minutes) * 60LL;
+            };
+            auto try_local_datetime = [&](char sign, int tzHour, int tzMinute) -> bool {
+              time_t ts = static_cast<time_t>(parse_epoch(sign, tzHour, tzMinute));
+              struct tm* local_tm = localtime(&ts);
+              if (local_tm == nullptr) return false;
+              display_value = format_hhmm(local_tm->tm_hour, local_tm->tm_min);
+              return true;
+            };
+            if (sscanf(raw.c_str(), "%d-%d-%dT%d:%d:%d%c%d:%d", &year, &month, &day, &hour, &minute, &second, &tz_sign, &offset_hour, &offset_minute) == 9 && try_local_datetime(tz_sign, offset_hour, offset_minute)) {
+            } else if (sscanf(raw.c_str(), "%d-%d-%dT%d:%d:%dZ", &year, &month, &day, &hour, &minute, &second) == 6 && try_local_datetime('+', 0, 0)) {
+            } else if (sscanf(raw.c_str(), "%d-%d-%dT%d:%d", &year, &month, &day, &hour, &minute) == 5) {
+              display_value = format_hhmm(hour, minute);
+            } else {
+              size_t t_pos = raw.find('T');
+              size_t colon = raw.find(':');
+              if (t_pos != std::string::npos && colon != std::string::npos && colon >= 2) display_value = raw.substr(colon - 2, 5);
+              else if (colon != std::string::npos && colon >= 1) {
+                size_t start = colon >= 2 ? colon - 2 : 0;
+                size_t len = (start + 5 <= raw.size()) ? 5 : raw.size() - start;
+                display_value = raw.substr(start, len);
+              } else {
+                display_value = raw;
+              }
+            }
           }
-          return raw.c_str();",
+          return display_value.c_str();",
           "text_align": "left",
           "text_color": "Color(theme_auto)",
           "text_font": "font_ptr",
@@ -2994,17 +3040,63 @@ exports[`Plugin Export Smoke Tests > Export for sun_times > should export LVGL w
           "height": 20,
           "id": "w_test_sunset_text",
           "text": "!lambda |-
+          static std::string display_value;
+          display_value = "n.d.";
           std::string raw = id(sensor_sun_next_setting_txt).state;
-          if (raw.empty() || raw == "unknown" || raw == "unavailable") return "n.d.";
-          size_t t_pos = raw.find('T');
-          size_t colon = raw.find(':');
-          if (t_pos != std::string::npos && colon != std::string::npos && colon >= 2) return raw.substr(colon - 2, 5).c_str();
-          if (colon != std::string::npos && colon >= 1) {
-            size_t start = colon >= 2 ? colon - 2 : 0;
-            size_t len = (start + 5 <= raw.size()) ? 5 : raw.size() - start;
-            return raw.substr(start, len).c_str();
+          if (!raw.empty() && raw != "unknown" && raw != "unavailable" && raw != "none") {
+            int year = 0;
+            int month = 0;
+            int day = 0;
+            int hour = 0;
+            int minute = 0;
+            int second = 0;
+            int offset_hour = 0;
+            int offset_minute = 0;
+            char tz_sign = '+';
+            auto format_hhmm = [](int hour_value, int minute_value) -> std::string {
+              char buf[6];
+              snprintf(buf, sizeof(buf), "%02d:%02d", hour_value, minute_value);
+              return std::string(buf);
+            };
+            auto days_from_civil = [](int y, unsigned m, unsigned d) -> int {
+              y -= m <= 2;
+              const int era = (y >= 0 ? y : y - 399) / 400;
+              const unsigned yoe = static_cast<unsigned>(y - era * 400);
+              const unsigned doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
+              const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+              return era * 146097 + static_cast<int>(doe) - 719468;
+            };
+            auto parse_epoch = [&](char sign, int tzHour, int tzMinute) -> long long {
+              const int offset_minutes = (tzHour * 60 + tzMinute) * (sign == '-' ? -1 : 1);
+              return static_cast<long long>(days_from_civil(year, static_cast<unsigned>(month), static_cast<unsigned>(day))) * 86400LL +
+                  static_cast<long long>(hour) * 3600LL + static_cast<long long>(minute) * 60LL + second -
+                  static_cast<long long>(offset_minutes) * 60LL;
+            };
+            auto try_local_datetime = [&](char sign, int tzHour, int tzMinute) -> bool {
+              time_t ts = static_cast<time_t>(parse_epoch(sign, tzHour, tzMinute));
+              struct tm* local_tm = localtime(&ts);
+              if (local_tm == nullptr) return false;
+              display_value = format_hhmm(local_tm->tm_hour, local_tm->tm_min);
+              return true;
+            };
+            if (sscanf(raw.c_str(), "%d-%d-%dT%d:%d:%d%c%d:%d", &year, &month, &day, &hour, &minute, &second, &tz_sign, &offset_hour, &offset_minute) == 9 && try_local_datetime(tz_sign, offset_hour, offset_minute)) {
+            } else if (sscanf(raw.c_str(), "%d-%d-%dT%d:%d:%dZ", &year, &month, &day, &hour, &minute, &second) == 6 && try_local_datetime('+', 0, 0)) {
+            } else if (sscanf(raw.c_str(), "%d-%d-%dT%d:%d", &year, &month, &day, &hour, &minute) == 5) {
+              display_value = format_hhmm(hour, minute);
+            } else {
+              size_t t_pos = raw.find('T');
+              size_t colon = raw.find(':');
+              if (t_pos != std::string::npos && colon != std::string::npos && colon >= 2) display_value = raw.substr(colon - 2, 5);
+              else if (colon != std::string::npos && colon >= 1) {
+                size_t start = colon >= 2 ? colon - 2 : 0;
+                size_t len = (start + 5 <= raw.size()) ? 5 : raw.size() - start;
+                display_value = raw.substr(start, len);
+              } else {
+                display_value = raw;
+              }
+            }
           }
-          return raw.c_str();",
+          return display_value.c_str();",
           "text_align": "left",
           "text_color": "Color(theme_auto)",
           "text_font": "font_ptr",
@@ -3035,7 +3127,7 @@ exports[`Plugin Export Smoke Tests > Export for sun_times > should export OEPL w
     "color": "black",
     "size": 16,
     "type": "text",
-    "value": "{{ states('sensor.sun_next_rising') | default('', true) | string | regex_findall_index('(\\d{1,2}:\\d{2})', 0) | default('n.d.', true) }}",
+    "value": "{% set raw = states('sensor.sun_next_rising') %}{% set parsed = as_datetime(raw, none) %}{{ (parsed | as_local).strftime('%H:%M') if raw not in [none, '', 'unknown', 'unavailable', 'none'] and parsed is not none else 'n.d.' }}",
     "x": 42,
     "y": 40,
   },
@@ -3054,7 +3146,7 @@ exports[`Plugin Export Smoke Tests > Export for sun_times > should export OEPL w
     "color": "black",
     "size": 16,
     "type": "text",
-    "value": "{{ states('sensor.sun_next_setting') | default('', true) | string | regex_findall_index('(\\d{1,2}:\\d{2})', 0) | default('n.d.', true) }}",
+    "value": "{% set raw = states('sensor.sun_next_setting') %}{% set parsed = as_datetime(raw, none) %}{{ (parsed | as_local).strftime('%H:%M') if raw not in [none, '', 'unknown', 'unavailable', 'none'] and parsed is not none else 'n.d.' }}",
     "x": 42,
     "y": 64,
   },
@@ -3078,7 +3170,7 @@ exports[`Plugin Export Smoke Tests > Export for sun_times > should export OpenDi
     "color": "black",
     "size": 16,
     "type": "text",
-    "value": "{{ states('sensor.sun_next_rising') | default('', true) | string | regex_findall_index('(\\d{1,2}:\\d{2})', 0) | default('n.d.', true) }}",
+    "value": "{% set raw = states('sensor.sun_next_rising') %}{% set parsed = as_datetime(raw, none) %}{{ (parsed | as_local).strftime('%H:%M') if raw not in [none, '', 'unknown', 'unavailable', 'none'] and parsed is not none else 'n.d.' }}",
     "x": 42,
     "y": 40,
   },
@@ -3097,7 +3189,7 @@ exports[`Plugin Export Smoke Tests > Export for sun_times > should export OpenDi
     "color": "black",
     "size": 16,
     "type": "text",
-    "value": "{{ states('sensor.sun_next_setting') | default('', true) | string | regex_findall_index('(\\d{1,2}:\\d{2})', 0) | default('n.d.', true) }}",
+    "value": "{% set raw = states('sensor.sun_next_setting') %}{% set parsed = as_datetime(raw, none) %}{{ (parsed | as_local).strftime('%H:%M') if raw not in [none, '', 'unknown', 'unavailable', 'none'] and parsed is not none else 'n.d.' }}",
     "x": 42,
     "y": 64,
   },
@@ -3110,16 +3202,57 @@ exports[`Plugin Export Smoke Tests > Export for sun_times > should export standa
   "          std::string display_value = "n.d.";",
   "          if (id(sensor_sun_next_rising_txt).has_state()) {",
   "            std::string raw = id(sensor_sun_next_rising_txt).state;",
-  "            if (!raw.empty() && raw != "unknown" && raw != "unavailable") {",
-  "              size_t t_pos = raw.find('T');",
-  "              size_t colon = raw.find(':');",
-  "              if (t_pos != std::string::npos && colon != std::string::npos && colon >= 2) display_value = raw.substr(colon - 2, 5);",
-  "              else if (colon != std::string::npos && colon >= 1) {",
-  "                size_t start = colon >= 2 ? colon - 2 : 0;",
-  "                size_t len = (start + 5 <= raw.size()) ? 5 : raw.size() - start;",
-  "                display_value = raw.substr(start, len);",
+  "            if (!raw.empty() && raw != "unknown" && raw != "unavailable" && raw != "none") {",
+  "              int year = 0;",
+  "              int month = 0;",
+  "              int day = 0;",
+  "              int hour = 0;",
+  "              int minute = 0;",
+  "              int second = 0;",
+  "              int offset_hour = 0;",
+  "              int offset_minute = 0;",
+  "              char tz_sign = '+';",
+  "              auto format_hhmm = [](int hour_value, int minute_value) -> std::string {",
+  "                char buf[6];",
+  "                snprintf(buf, sizeof(buf), "%02d:%02d", hour_value, minute_value);",
+  "                return std::string(buf);",
+  "              };",
+  "              auto days_from_civil = [](int y, unsigned m, unsigned d) -> int {",
+  "                y -= m <= 2;",
+  "                const int era = (y >= 0 ? y : y - 399) / 400;",
+  "                const unsigned yoe = static_cast<unsigned>(y - era * 400);",
+  "                const unsigned doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;",
+  "                const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;",
+  "                return era * 146097 + static_cast<int>(doe) - 719468;",
+  "              };",
+  "              auto parse_epoch = [&](char sign, int tzHour, int tzMinute) -> long long {",
+  "                const int offset_minutes = (tzHour * 60 + tzMinute) * (sign == '-' ? -1 : 1);",
+  "                return static_cast<long long>(days_from_civil(year, static_cast<unsigned>(month), static_cast<unsigned>(day))) * 86400LL +",
+  "                    static_cast<long long>(hour) * 3600LL + static_cast<long long>(minute) * 60LL + second -",
+  "                    static_cast<long long>(offset_minutes) * 60LL;",
+  "              };",
+  "              auto try_local_datetime = [&](char sign, int tzHour, int tzMinute) -> bool {",
+  "                time_t ts = static_cast<time_t>(parse_epoch(sign, tzHour, tzMinute));",
+  "                struct tm* local_tm = localtime(&ts);",
+  "                if (local_tm == nullptr) return false;",
+  "                display_value = format_hhmm(local_tm->tm_hour, local_tm->tm_min);",
+  "                return true;",
+  "              };",
+  "              if (sscanf(raw.c_str(), "%d-%d-%dT%d:%d:%d%c%d:%d", &year, &month, &day, &hour, &minute, &second, &tz_sign, &offset_hour, &offset_minute) == 9 && try_local_datetime(tz_sign, offset_hour, offset_minute)) {",
+  "              } else if (sscanf(raw.c_str(), "%d-%d-%dT%d:%d:%dZ", &year, &month, &day, &hour, &minute, &second) == 6 && try_local_datetime('+', 0, 0)) {",
+  "              } else if (sscanf(raw.c_str(), "%d-%d-%dT%d:%d", &year, &month, &day, &hour, &minute) == 5) {",
+  "                display_value = format_hhmm(hour, minute);",
   "              } else {",
-  "                display_value = raw;",
+  "                size_t t_pos = raw.find('T');",
+  "                size_t colon = raw.find(':');",
+  "                if (t_pos != std::string::npos && colon != std::string::npos && colon >= 2) display_value = raw.substr(colon - 2, 5);",
+  "                else if (colon != std::string::npos && colon >= 1) {",
+  "                  size_t start = colon >= 2 ? colon - 2 : 0;",
+  "                  size_t len = (start + 5 <= raw.size()) ? 5 : raw.size() - start;",
+  "                  display_value = raw.substr(start, len);",
+  "                } else {",
+  "                  display_value = raw;",
+  "                }",
   "              }",
   "            }",
   "          }",
@@ -3130,16 +3263,57 @@ exports[`Plugin Export Smoke Tests > Export for sun_times > should export standa
   "          std::string display_value = "n.d.";",
   "          if (id(sensor_sun_next_setting_txt).has_state()) {",
   "            std::string raw = id(sensor_sun_next_setting_txt).state;",
-  "            if (!raw.empty() && raw != "unknown" && raw != "unavailable") {",
-  "              size_t t_pos = raw.find('T');",
-  "              size_t colon = raw.find(':');",
-  "              if (t_pos != std::string::npos && colon != std::string::npos && colon >= 2) display_value = raw.substr(colon - 2, 5);",
-  "              else if (colon != std::string::npos && colon >= 1) {",
-  "                size_t start = colon >= 2 ? colon - 2 : 0;",
-  "                size_t len = (start + 5 <= raw.size()) ? 5 : raw.size() - start;",
-  "                display_value = raw.substr(start, len);",
+  "            if (!raw.empty() && raw != "unknown" && raw != "unavailable" && raw != "none") {",
+  "              int year = 0;",
+  "              int month = 0;",
+  "              int day = 0;",
+  "              int hour = 0;",
+  "              int minute = 0;",
+  "              int second = 0;",
+  "              int offset_hour = 0;",
+  "              int offset_minute = 0;",
+  "              char tz_sign = '+';",
+  "              auto format_hhmm = [](int hour_value, int minute_value) -> std::string {",
+  "                char buf[6];",
+  "                snprintf(buf, sizeof(buf), "%02d:%02d", hour_value, minute_value);",
+  "                return std::string(buf);",
+  "              };",
+  "              auto days_from_civil = [](int y, unsigned m, unsigned d) -> int {",
+  "                y -= m <= 2;",
+  "                const int era = (y >= 0 ? y : y - 399) / 400;",
+  "                const unsigned yoe = static_cast<unsigned>(y - era * 400);",
+  "                const unsigned doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;",
+  "                const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;",
+  "                return era * 146097 + static_cast<int>(doe) - 719468;",
+  "              };",
+  "              auto parse_epoch = [&](char sign, int tzHour, int tzMinute) -> long long {",
+  "                const int offset_minutes = (tzHour * 60 + tzMinute) * (sign == '-' ? -1 : 1);",
+  "                return static_cast<long long>(days_from_civil(year, static_cast<unsigned>(month), static_cast<unsigned>(day))) * 86400LL +",
+  "                    static_cast<long long>(hour) * 3600LL + static_cast<long long>(minute) * 60LL + second -",
+  "                    static_cast<long long>(offset_minutes) * 60LL;",
+  "              };",
+  "              auto try_local_datetime = [&](char sign, int tzHour, int tzMinute) -> bool {",
+  "                time_t ts = static_cast<time_t>(parse_epoch(sign, tzHour, tzMinute));",
+  "                struct tm* local_tm = localtime(&ts);",
+  "                if (local_tm == nullptr) return false;",
+  "                display_value = format_hhmm(local_tm->tm_hour, local_tm->tm_min);",
+  "                return true;",
+  "              };",
+  "              if (sscanf(raw.c_str(), "%d-%d-%dT%d:%d:%d%c%d:%d", &year, &month, &day, &hour, &minute, &second, &tz_sign, &offset_hour, &offset_minute) == 9 && try_local_datetime(tz_sign, offset_hour, offset_minute)) {",
+  "              } else if (sscanf(raw.c_str(), "%d-%d-%dT%d:%d:%dZ", &year, &month, &day, &hour, &minute, &second) == 6 && try_local_datetime('+', 0, 0)) {",
+  "              } else if (sscanf(raw.c_str(), "%d-%d-%dT%d:%d", &year, &month, &day, &hour, &minute) == 5) {",
+  "                display_value = format_hhmm(hour, minute);",
   "              } else {",
-  "                display_value = raw;",
+  "                size_t t_pos = raw.find('T');",
+  "                size_t colon = raw.find(':');",
+  "                if (t_pos != std::string::npos && colon != std::string::npos && colon >= 2) display_value = raw.substr(colon - 2, 5);",
+  "                else if (colon != std::string::npos && colon >= 1) {",
+  "                  size_t start = colon >= 2 ? colon - 2 : 0;",
+  "                  size_t len = (start + 5 <= raw.size()) ? 5 : raw.size() - start;",
+  "                  display_value = raw.substr(start, len);",
+  "                } else {",
+  "                  display_value = raw;",
+  "                }",
   "              }",
   "            }",
   "          }",
@@ -3641,7 +3815,7 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
               if (c == "sunny") return "\\U000F0599";
               if (c == "windy") return "\\U000F059D";
               if (c == "windy-variant") return "\\U000F059E";
-              return "\\U000F0590";
+              return "\\U000F0625";
             ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
@@ -3652,7 +3826,16 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
               "label": {
                 "align": "bottom_mid",
                 "id": "w_test_temp0",
-                "text": "!lambda "return str_sprintf(\\'%.1f/%.1f\\', id(weather_high_day0).state, id(weather_low_day0).state).c_str();"",
+                "text": "!lambda |-
+              static std::string temp_text;
+              float high = id(weather_high_day0).state;
+              float low = id(weather_low_day0).state;
+              if (std::isnan(high) && std::isnan(low)) temp_text = "--/--";
+              else if (std::isnan(high)) temp_text = str_sprintf("--/%.*f", 1, low);
+              else if (std::isnan(low)) temp_text = str_sprintf("%.*f/--", 1, high);
+              else temp_text = str_sprintf("%.*f/%.*f", 1, high, 1, low);
+              return temp_text.c_str();
+            ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
               },
@@ -3708,7 +3891,7 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
               if (c == "sunny") return "\\U000F0599";
               if (c == "windy") return "\\U000F059D";
               if (c == "windy-variant") return "\\U000F059E";
-              return "\\U000F0590";
+              return "\\U000F0625";
             ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
@@ -3719,7 +3902,16 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
               "label": {
                 "align": "bottom_mid",
                 "id": "w_test_temp1",
-                "text": "!lambda "return str_sprintf(\\'%.1f/%.1f\\', id(weather_high_day1).state, id(weather_low_day1).state).c_str();"",
+                "text": "!lambda |-
+              static std::string temp_text;
+              float high = id(weather_high_day1).state;
+              float low = id(weather_low_day1).state;
+              if (std::isnan(high) && std::isnan(low)) temp_text = "--/--";
+              else if (std::isnan(high)) temp_text = str_sprintf("--/%.*f", 1, low);
+              else if (std::isnan(low)) temp_text = str_sprintf("%.*f/--", 1, high);
+              else temp_text = str_sprintf("%.*f/%.*f", 1, high, 1, low);
+              return temp_text.c_str();
+            ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
               },
@@ -3775,7 +3967,7 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
               if (c == "sunny") return "\\U000F0599";
               if (c == "windy") return "\\U000F059D";
               if (c == "windy-variant") return "\\U000F059E";
-              return "\\U000F0590";
+              return "\\U000F0625";
             ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
@@ -3786,7 +3978,16 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
               "label": {
                 "align": "bottom_mid",
                 "id": "w_test_temp2",
-                "text": "!lambda "return str_sprintf(\\'%.1f/%.1f\\', id(weather_high_day2).state, id(weather_low_day2).state).c_str();"",
+                "text": "!lambda |-
+              static std::string temp_text;
+              float high = id(weather_high_day2).state;
+              float low = id(weather_low_day2).state;
+              if (std::isnan(high) && std::isnan(low)) temp_text = "--/--";
+              else if (std::isnan(high)) temp_text = str_sprintf("--/%.*f", 1, low);
+              else if (std::isnan(low)) temp_text = str_sprintf("%.*f/--", 1, high);
+              else temp_text = str_sprintf("%.*f/%.*f", 1, high, 1, low);
+              return temp_text.c_str();
+            ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
               },
@@ -3842,7 +4043,7 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
               if (c == "sunny") return "\\U000F0599";
               if (c == "windy") return "\\U000F059D";
               if (c == "windy-variant") return "\\U000F059E";
-              return "\\U000F0590";
+              return "\\U000F0625";
             ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
@@ -3853,7 +4054,16 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
               "label": {
                 "align": "bottom_mid",
                 "id": "w_test_temp3",
-                "text": "!lambda "return str_sprintf(\\'%.1f/%.1f\\', id(weather_high_day3).state, id(weather_low_day3).state).c_str();"",
+                "text": "!lambda |-
+              static std::string temp_text;
+              float high = id(weather_high_day3).state;
+              float low = id(weather_low_day3).state;
+              if (std::isnan(high) && std::isnan(low)) temp_text = "--/--";
+              else if (std::isnan(high)) temp_text = str_sprintf("--/%.*f", 1, low);
+              else if (std::isnan(low)) temp_text = str_sprintf("%.*f/--", 1, high);
+              else temp_text = str_sprintf("%.*f/%.*f", 1, high, 1, low);
+              return temp_text.c_str();
+            ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
               },
@@ -3909,7 +4119,7 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
               if (c == "sunny") return "\\U000F0599";
               if (c == "windy") return "\\U000F059D";
               if (c == "windy-variant") return "\\U000F059E";
-              return "\\U000F0590";
+              return "\\U000F0625";
             ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
@@ -3920,7 +4130,16 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
               "label": {
                 "align": "bottom_mid",
                 "id": "w_test_temp4",
-                "text": "!lambda "return str_sprintf(\\'%.1f/%.1f\\', id(weather_high_day4).state, id(weather_low_day4).state).c_str();"",
+                "text": "!lambda |-
+              static std::string temp_text;
+              float high = id(weather_high_day4).state;
+              float low = id(weather_low_day4).state;
+              if (std::isnan(high) && std::isnan(low)) temp_text = "--/--";
+              else if (std::isnan(high)) temp_text = str_sprintf("--/%.*f", 1, low);
+              else if (std::isnan(low)) temp_text = str_sprintf("%.*f/--", 1, high);
+              else temp_text = str_sprintf("%.*f/%.*f", 1, high, 1, low);
+              return temp_text.c_str();
+            ",
                 "text_color": "Color(theme_auto)",
                 "text_font": "font_ptr",
               },
@@ -3956,6 +4175,7 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
     "value": "{{ {
             'clear-night': 'moon',
             'cloudy': 'cloud',
+            'exceptional': 'alert-circle-outline',
             'fog': 'fog',
             'hail': 'hail',
             'lightning': 'lightning',
@@ -3966,8 +4186,9 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
             'snowy': 'snowy',
             'snowy-rainy': 'snowy-rainy',
             'sunny': 'sun',
-            'windy': 'wind'
-        }[states('weather.forecast_home')] | default('sun') }}",
+            'windy': 'wind',
+            'windy-variant': 'wind'
+        }[states('weather.forecast_home')] | default('help-circle-outline') }}",
     "x": 60,
     "y": 10,
   },
@@ -3997,7 +4218,7 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should export
   "            {"windy-variant", "\\U000F059E"}",
   "          };",
   "          auto get_icon = [&](const std::string& cond_val) -> const char* {",
-  "            return weather_icons.count(cond_val) ? weather_icons[cond_val] : "\\U000F0590";",
+  "            return weather_icons.count(cond_val) ? weather_icons[cond_val] : "\\U000F0625";",
   "          };",
   "          auto get_day_name = [](int offset) -> std::string {",
   "            static const char* weekday_names[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};",
@@ -4161,7 +4382,7 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should handle
   "#         state: '{{ forecast_data["weather.forecast_home"].forecast[0].templow | default("N/A") }}'",
   "#       - name: 'Weather Forecast Day 0 Condition'",
   "#         unique_id: weather_forecast_day_0_condition",
-  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[0].condition | default("cloudy") }}'",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[0].condition | default("unknown") }}'",
   "#       - name: 'Weather Forecast Day 1 High'",
   "#         unique_id: weather_forecast_day_1_high",
   "#         unit_of_measurement: '°C'",
@@ -4172,7 +4393,7 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should handle
   "#         state: '{{ forecast_data["weather.forecast_home"].forecast[1].templow | default("N/A") }}'",
   "#       - name: 'Weather Forecast Day 1 Condition'",
   "#         unique_id: weather_forecast_day_1_condition",
-  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[1].condition | default("cloudy") }}'",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[1].condition | default("unknown") }}'",
   "#       - name: 'Weather Forecast Day 2 High'",
   "#         unique_id: weather_forecast_day_2_high",
   "#         unit_of_measurement: '°C'",
@@ -4183,7 +4404,7 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should handle
   "#         state: '{{ forecast_data["weather.forecast_home"].forecast[2].templow | default("N/A") }}'",
   "#       - name: 'Weather Forecast Day 2 Condition'",
   "#         unique_id: weather_forecast_day_2_condition",
-  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[2].condition | default("cloudy") }}'",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[2].condition | default("unknown") }}'",
   "#       - name: 'Weather Forecast Day 3 High'",
   "#         unique_id: weather_forecast_day_3_high",
   "#         unit_of_measurement: '°C'",
@@ -4194,7 +4415,7 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should handle
   "#         state: '{{ forecast_data["weather.forecast_home"].forecast[3].templow | default("N/A") }}'",
   "#       - name: 'Weather Forecast Day 3 Condition'",
   "#         unique_id: weather_forecast_day_3_condition",
-  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[3].condition | default("cloudy") }}'",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[3].condition | default("unknown") }}'",
   "#       - name: 'Weather Forecast Day 4 High'",
   "#         unique_id: weather_forecast_day_4_high",
   "#         unit_of_measurement: '°C'",
@@ -4205,7 +4426,7 @@ exports[`Plugin Export Smoke Tests > Export for weather_forecast > should handle
   "#         state: '{{ forecast_data["weather.forecast_home"].forecast[4].templow | default("N/A") }}'",
   "#       - name: 'Weather Forecast Day 4 Condition'",
   "#         unique_id: weather_forecast_day_4_condition",
-  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[4].condition | default("cloudy") }}'",
+  "#         state: '{{ forecast_data["weather.forecast_home"].forecast[4].condition | default("unknown") }}'",
   "#",
   "# ============================================================================",
 ]
@@ -4231,7 +4452,7 @@ exports[`Plugin Export Smoke Tests > Export for weather_icon > should export LVG
               if (ws == "sunny") return "\\U000F0599";
               if (ws == "windy") return "\\U000F059D";
               if (ws == "windy-variant") return "\\U000F059E";
-              return "\\U000F0599";",
+              return "\\U000F0625";",
     "text_align": "center",
     "text_color": "Color(theme_auto)",
     "text_font": "font_ptr",
@@ -4248,6 +4469,7 @@ exports[`Plugin Export Smoke Tests > Export for weather_icon > should export OEP
   "value": "{{ {
             'clear-night': 'moon',
             'cloudy': 'cloud',
+            'exceptional': 'alert-circle-outline',
             'fog': 'fog',
             'hail': 'hail',
             'lightning': 'lightning',
@@ -4258,8 +4480,9 @@ exports[`Plugin Export Smoke Tests > Export for weather_icon > should export OEP
             'snowy': 'snowy',
             'snowy-rainy': 'snowy-rainy',
             'sunny': 'sun',
-            'windy': 'wind'
-        }[states('weather.forecast_home')] | default('sun') }}",
+            'windy': 'wind',
+            'windy-variant': 'wind'
+        }[states('weather.forecast_home')] | default('help-circle-outline') }}",
   "x": 10,
   "y": 10,
 }
@@ -4274,6 +4497,7 @@ exports[`Plugin Export Smoke Tests > Export for weather_icon > should export Ope
   "value": "{{ {
             'clear-night': 'moon',
             'cloudy': 'cloud',
+            'exceptional': 'alert-circle-outline',
             'fog': 'fog',
             'hail': 'hail',
             'lightning': 'lightning',
@@ -4284,8 +4508,9 @@ exports[`Plugin Export Smoke Tests > Export for weather_icon > should export Ope
             'snowy': 'snowy',
             'snowy-rainy': 'snowy-rainy',
             'sunny': 'sun',
-            'windy': 'wind'
-        }[states('weather.forecast_home')] | default('sun') }}",
+            'windy': 'wind',
+            'windy-variant': 'wind'
+        }[states('weather.forecast_home')] | default('help-circle-outline') }}",
   "x": 60,
   "y": 60,
 }
@@ -4297,7 +4522,7 @@ exports[`Plugin Export Smoke Tests > Export for weather_icon > should export sta
   "          std::string raw_state = id(weather_forecast_home_txt).state;",
   "          std::string weather_state = "";",
   "          for(auto &c : raw_state) weather_state += tolower(c);",
-  "          const char* icon = "\\U000F0599"; // Default: sunny",
+  "          const char* icon = "\\U000F0625";",
   "          if (weather_state == "clear-night") icon = "\\U000F0594";",
   "          else if (weather_state == "cloudy") icon = "\\U000F0590";",
   "          else if (weather_state == "exceptional") icon = "\\U000F0026";",

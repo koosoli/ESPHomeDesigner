@@ -1,5 +1,9 @@
 import { AppState } from '@core/state';
 import { getNestedValue } from '../../js/utils/helpers.js';
+import {
+    getWeatherIconMeta,
+    toWeatherMdiCharacter
+} from './shared.js';
 
 export const renderWeatherIcon = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -15,11 +19,11 @@ export const renderWeatherIcon = (el, widget, { getColorStyle }) => {
     if (props.bg_color) {
         el.style.backgroundColor = getColorStyle(props.bg_color);
     }
-    let iconCode = "F0595"; // Default
+    let iconCode = getWeatherIconMeta('').code;
     let size = props.size || 24;
     const color = props.color || "theme_auto";
 
-    let weatherState = "sunny"; // Default preview
+    let weatherState = "";
     const entityId = widget.entity_id || props.weather_entity || "weather.forecast_home";
 
     if (entityId && AppState && AppState.entityStates) {
@@ -48,27 +52,8 @@ export const renderWeatherIcon = (el, widget, { getColorStyle }) => {
         size = Math.round(maxDim);
     }
 
-    switch (weatherState) {
-        case "clear-night": iconCode = "F0594"; break;
-        case "cloudy": iconCode = "F0590"; break;
-        case "exceptional": iconCode = "F0026"; break;
-        case "fog": iconCode = "F0591"; break;
-        case "hail": iconCode = "F0592"; break;
-        case "lightning": iconCode = "F0593"; break;
-        case "lightning-rainy": iconCode = "F067E"; break;
-        case "partlycloudy": iconCode = "F0595"; break;
-        case "pouring": iconCode = "F0596"; break;
-        case "rainy": iconCode = "F0597"; break;
-        case "snowy": iconCode = "F0598"; break;
-        case "snowy-rainy": iconCode = "F067F"; break;
-        case "sunny": iconCode = "F0599"; break;
-        case "windy": iconCode = "F059D"; break;
-        case "windy-variant": iconCode = "F059E"; break;
-        default: iconCode = "F0599";
-    }
-
-    const cp = 0xf0000 + parseInt(iconCode.slice(1), 16);
-    const ch = String.fromCodePoint(cp);
+    iconCode = getWeatherIconMeta(weatherState).code;
+    const ch = toWeatherMdiCharacter(iconCode);
 
     el.innerText = ch;
     el.style.fontSize = `${size}px`;

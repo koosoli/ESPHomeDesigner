@@ -1,7 +1,7 @@
 import { getSensorPlatformLines } from '../../js/io/adapters/mqtt_helpers.js';
 import {
-    DEFAULT_MOON_PHASE,
     MOON_PHASE_OPTIONS,
+    UNKNOWN_MOON_PHASE,
     makeSafeMoonSensorId,
     resolveForegroundColor
 } from './shared.js';
@@ -24,7 +24,7 @@ function buildMoonPhaseLvglLambda(sensorId) {
     MOON_PHASE_OPTIONS.forEach((phase) => {
         lambda += `          if (normalized == "${phase.state}") return "\\U000${phase.code}";\n`;
     });
-    lambda += `          return "\\U000${DEFAULT_MOON_PHASE.code}";`;
+    lambda += `          return "\\U000${UNKNOWN_MOON_PHASE.code}";`;
     return lambda;
 }
 
@@ -33,6 +33,7 @@ export function collectRequirements(widget, { trackIcon, addFont }) {
     const size = parseInt(props.size || 48, 10);
     addFont('Material Design Icons', 400, size);
     MOON_PHASE_OPTIONS.forEach((phase) => trackIcon(phase.code, size));
+    trackIcon(UNKNOWN_MOON_PHASE.code, size);
 }
 
 export function exportDirect(widget, context) {
@@ -71,13 +72,13 @@ export function exportDirect(widget, context) {
         lines.push('            if (c == \'-\' || c == \' \') moon_state += \'_\';');
         lines.push('            else moon_state += static_cast<char>(tolower(static_cast<unsigned char>(c)));');
         lines.push('          }');
-        lines.push(`          const char* icon = "\\U000${DEFAULT_MOON_PHASE.code}";`);
+        lines.push(`          const char* icon = "\\U000${UNKNOWN_MOON_PHASE.code}";`);
         buildMoonPhaseDirectMappingLines(lines, 'moon_state', 'icon');
         lines.push('          else if (moon_state != "" && moon_state != "unknown" && moon_state != "unavailable") ESP_LOGW("moon_phase", "Unhandled moon phase: %s", raw_state.c_str());');
         lines.push(`          it.printf(${centerX}, ${centerY}, id(${fontRef}), ${color}, TextAlign::CENTER, "%s", icon);`);
         lines.push('        }');
     } else {
-        lines.push(`        it.printf(${centerX}, ${centerY}, id(${fontRef}), ${color}, TextAlign::CENTER, "\\U000${DEFAULT_MOON_PHASE.code}");`);
+        lines.push(`        it.printf(${centerX}, ${centerY}, id(${fontRef}), ${color}, TextAlign::CENTER, "\\U000${UNKNOWN_MOON_PHASE.code}");`);
     }
 
     if (cond) lines.push('        }');
@@ -93,7 +94,7 @@ export function exportLVGL(widget, { common, convertColor, getLVGLFont }) {
     return {
         label: {
             ...common,
-            text: sensorId ? buildMoonPhaseLvglLambda(sensorId) : `"\\U000${DEFAULT_MOON_PHASE.code}"`,
+            text: sensorId ? buildMoonPhaseLvglLambda(sensorId) : `"\\U000${UNKNOWN_MOON_PHASE.code}"`,
             text_font: getLVGLFont('Material Design Icons', size, 400),
             text_color: color,
             text_align: 'center'
@@ -105,7 +106,7 @@ export function exportOpenDisplay(widget, { layout }) {
     const props = widget.props || {};
     const entityId = String(widget.entity_id ?? props.entity_id ?? 'sensor.moon').trim();
     const color = props.color === 'theme_auto' ? (layout?.darkMode ? 'white' : 'black') : (props.color || 'black');
-    const fallback = DEFAULT_MOON_PHASE.icon;
+    const fallback = UNKNOWN_MOON_PHASE.icon;
     const mapping = MOON_PHASE_OPTIONS
         .map((phase) => `'${phase.state}': '${phase.icon}'`)
         .join(', ');
@@ -127,7 +128,7 @@ export function exportOpenDisplay(widget, { layout }) {
 export function exportOEPL(widget, { _layout, _page }) {
     const props = widget.props || {};
     const entityId = String(widget.entity_id ?? props.entity_id ?? 'sensor.moon').trim();
-    const fallback = DEFAULT_MOON_PHASE.icon;
+    const fallback = UNKNOWN_MOON_PHASE.icon;
     const mapping = MOON_PHASE_OPTIONS
         .map((phase) => `'${phase.state}': '${phase.icon}'`)
         .join(', ');

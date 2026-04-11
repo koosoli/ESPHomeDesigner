@@ -1,5 +1,9 @@
 import { AppState } from '@core/state';
 import { getDayLabelSet } from './day_labels.js';
+import {
+    getWeatherIconMeta,
+    toWeatherMdiCharacter
+} from '../weather_icon/shared.js';
 
 /**
  * @typedef {{
@@ -48,24 +52,6 @@ export const render = (el, widget, { getColorStyle }) => {
     const colorStyle = getColorStyle(color);
     el.style.color = colorStyle;
 
-    const weatherIcons = [
-        { code: "F0599", condition: "sunny" },
-        { code: "F0595", condition: "partlycloudy" },
-        { code: "F0597", condition: "rainy" },
-        { code: "F0590", condition: "cloudy" },
-        { code: "F0595", condition: "partlycloudy" }
-    ];
-
-    const mockTemps = [
-        { high: 24, low: 18 },
-        { high: 20, low: 14 },
-        { high: 22, low: 15 },
-        { high: 19, low: 13 },
-        { high: 18, low: 12 },
-        { high: 21, low: 15 },
-        { high: 23, low: 16 }
-    ];
-
     el.innerHTML = "";
     el.style.display = "flex";
     el.style.flexDirection = layout === "vertical" ? "column" : "row";
@@ -96,7 +82,7 @@ export const render = (el, widget, { getColorStyle }) => {
     const itemWidth = layout === "horizontal" ? Math.floor(availableWidth / count) : availableWidth;
     const itemHeight = layout === "vertical" ? Math.floor(availableHeight / count) : availableHeight;
 
-    const weatherEntity = widget.entity_id || props.weather_entity || "weather.forecast_home";
+    const weatherEntity = String(widget.entity_id ?? props.weather_entity ?? '').trim();
 
     for (let i = 0; i < count; i++) {
         const dayDiv = document.createElement("div");
@@ -169,31 +155,8 @@ export const render = (el, widget, { getColorStyle }) => {
         dayDiv.appendChild(dayLabel);
 
         const iconDiv = document.createElement("div");
-        let iconCode = "F0590"; // Default cloudy
-        const condition = liveCond || (weatherIcons[i % weatherIcons.length].condition);
-
-        const iconMatch = [
-            { code: "F0594", condition: "clear-night" },
-            { code: "F0590", condition: "cloudy" },
-            { code: "F0026", condition: "exceptional" },
-            { code: "F0591", condition: "fog" },
-            { code: "F0592", condition: "hail" },
-            { code: "F0593", condition: "lightning" },
-            { code: "F067E", condition: "lightning-rainy" },
-            { code: "F0595", condition: "partlycloudy" },
-            { code: "F0596", condition: "pouring" },
-            { code: "F0597", condition: "rainy" },
-            { code: "F0598", condition: "snowy" },
-            { code: "F067F", condition: "snowy-rainy" },
-            { code: "F0599", condition: "sunny" },
-            { code: "F059D", condition: "windy" },
-            { code: "F059E", condition: "windy-variant" }
-        ].find(ic => ic.condition === condition);
-
-        if (iconMatch) iconCode = iconMatch.code;
-
-        const cp = 0xf0000 + parseInt(iconCode.slice(1), 16);
-        iconDiv.innerText = String.fromCodePoint(cp);
+        const weatherIcon = getWeatherIconMeta(liveCond);
+        iconDiv.innerText = toWeatherMdiCharacter(weatherIcon.code);
         iconDiv.style.fontSize = `${iconSize}px`;
         iconDiv.style.fontFamily = "MDI, system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
         iconDiv.style.lineHeight = "1.1";
@@ -205,8 +168,6 @@ export const render = (el, widget, { getColorStyle }) => {
 
         const hasLiveHigh = typeof liveHigh === "number" && !Number.isNaN(liveHigh);
         const hasLiveLow = typeof liveLow === "number" && !Number.isNaN(liveLow);
-        const high = hasLiveHigh ? liveHigh : mockTemps[i % mockTemps.length].high;
-        const low = hasLiveLow ? liveLow : mockTemps[i % mockTemps.length].low;
 
         /** @param {number | null} val */
         const formatTemp = (val) => {
@@ -217,9 +178,17 @@ export const render = (el, widget, { getColorStyle }) => {
         const tempUnit = props.temp_unit || "C";
         const unitSymbol = tempUnit === "F" ? "°F" : "°C";
         if (showHighLow) {
-            tempDiv.textContent = `${formatTemp(high)}${unitSymbol}/${formatTemp(low)}${unitSymbol}`;
+            if (!hasLiveHigh && !hasLiveLow) {
+                tempDiv.textContent = "--/--";
+            } else if (!hasLiveHigh) {
+                tempDiv.textContent = `--/${formatTemp(liveLow)}${unitSymbol}`;
+            } else if (!hasLiveLow) {
+                tempDiv.textContent = `${formatTemp(liveHigh)}${unitSymbol}/--`;
+            } else {
+                tempDiv.textContent = `${formatTemp(liveHigh)}${unitSymbol}/${formatTemp(liveLow)}${unitSymbol}`;
+            }
         } else {
-            tempDiv.textContent = `${formatTemp(high)}${unitSymbol}`;
+            tempDiv.textContent = hasLiveHigh ? `${formatTemp(liveHigh)}${unitSymbol}` : "--";
         }
         dayDiv.appendChild(tempDiv);
 

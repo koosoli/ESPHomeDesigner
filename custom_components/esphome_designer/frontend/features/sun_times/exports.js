@@ -20,7 +20,71 @@ function buildTemplateValue(source, placeholder) {
         ? `state_attr('${source.entityId}', '${source.attribute}')`
         : `states('${source.entityId}')`;
 
-    return `{{ ${valueExpr} | default('', true) | string | regex_findall_index('(\\d{1,2}:\\d{2})', 0) | default('${placeholder}', true) }}`;
+    return `{% set raw = ${valueExpr} %}{% set parsed = as_datetime(raw, none) %}{{ (parsed | as_local).strftime('%H:%M') if raw not in [none, '', 'unknown', 'unavailable', 'none'] and parsed is not none else '${placeholder}' }}`;
+}
+
+function buildSunTimeConversionLines(baseIndent, includeReturn = false) {
+    const lines = [
+        `${baseIndent}if (!raw.empty() && raw != "unknown" && raw != "unavailable" && raw != "none") {`,
+        `${baseIndent}  int year = 0;`,
+        `${baseIndent}  int month = 0;`,
+        `${baseIndent}  int day = 0;`,
+        `${baseIndent}  int hour = 0;`,
+        `${baseIndent}  int minute = 0;`,
+        `${baseIndent}  int second = 0;`,
+        `${baseIndent}  int offset_hour = 0;`,
+        `${baseIndent}  int offset_minute = 0;`,
+        `${baseIndent}  char tz_sign = '+';`,
+        `${baseIndent}  auto format_hhmm = [](int hour_value, int minute_value) -> std::string {`,
+        `${baseIndent}    char buf[6];`,
+        `${baseIndent}    snprintf(buf, sizeof(buf), "%02d:%02d", hour_value, minute_value);`,
+        `${baseIndent}    return std::string(buf);`,
+        `${baseIndent}  };`,
+        `${baseIndent}  auto days_from_civil = [](int y, unsigned m, unsigned d) -> int {`,
+        `${baseIndent}    y -= m <= 2;`,
+        `${baseIndent}    const int era = (y >= 0 ? y : y - 399) / 400;`,
+        `${baseIndent}    const unsigned yoe = static_cast<unsigned>(y - era * 400);`,
+        `${baseIndent}    const unsigned doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;`,
+        `${baseIndent}    const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;`,
+        `${baseIndent}    return era * 146097 + static_cast<int>(doe) - 719468;`,
+        `${baseIndent}  };`,
+        `${baseIndent}  auto parse_epoch = [&](char sign, int tzHour, int tzMinute) -> long long {`,
+        `${baseIndent}    const int offset_minutes = (tzHour * 60 + tzMinute) * (sign == '-' ? -1 : 1);`,
+        `${baseIndent}    return static_cast<long long>(days_from_civil(year, static_cast<unsigned>(month), static_cast<unsigned>(day))) * 86400LL +`,
+        `${baseIndent}        static_cast<long long>(hour) * 3600LL + static_cast<long long>(minute) * 60LL + second -`,
+        `${baseIndent}        static_cast<long long>(offset_minutes) * 60LL;`,
+        `${baseIndent}  };`,
+        `${baseIndent}  auto try_local_datetime = [&](char sign, int tzHour, int tzMinute) -> bool {`,
+        `${baseIndent}    time_t ts = static_cast<time_t>(parse_epoch(sign, tzHour, tzMinute));`,
+        `${baseIndent}    struct tm* local_tm = localtime(&ts);`,
+        `${baseIndent}    if (local_tm == nullptr) return false;`,
+        `${baseIndent}    display_value = format_hhmm(local_tm->tm_hour, local_tm->tm_min);`,
+        `${baseIndent}    return true;`,
+        `${baseIndent}  };`,
+        `${baseIndent}  if (sscanf(raw.c_str(), "%d-%d-%dT%d:%d:%d%c%d:%d", &year, &month, &day, &hour, &minute, &second, &tz_sign, &offset_hour, &offset_minute) == 9 && try_local_datetime(tz_sign, offset_hour, offset_minute)) {`,
+        `${baseIndent}  } else if (sscanf(raw.c_str(), "%d-%d-%dT%d:%d:%dZ", &year, &month, &day, &hour, &minute, &second) == 6 && try_local_datetime('+', 0, 0)) {`,
+        `${baseIndent}  } else if (sscanf(raw.c_str(), "%d-%d-%dT%d:%d", &year, &month, &day, &hour, &minute) == 5) {`,
+        `${baseIndent}    display_value = format_hhmm(hour, minute);`,
+        `${baseIndent}  } else {`,
+        `${baseIndent}    size_t t_pos = raw.find('T');`,
+        `${baseIndent}    size_t colon = raw.find(':');`,
+        `${baseIndent}    if (t_pos != std::string::npos && colon != std::string::npos && colon >= 2) display_value = raw.substr(colon - 2, 5);`,
+        `${baseIndent}    else if (colon != std::string::npos && colon >= 1) {`,
+        `${baseIndent}      size_t start = colon >= 2 ? colon - 2 : 0;`,
+        `${baseIndent}      size_t len = (start + 5 <= raw.size()) ? 5 : raw.size() - start;`,
+        `${baseIndent}      display_value = raw.substr(start, len);`,
+        `${baseIndent}    } else {`,
+        `${baseIndent}      display_value = raw;`,
+        `${baseIndent}    }`,
+        `${baseIndent}  }`,
+        `${baseIndent}}`
+    ];
+
+    if (includeReturn) {
+        lines.push(`${baseIndent}return display_value.c_str();`);
+    }
+
+    return lines;
 }
 
 function buildRowMetrics(widget, props) {
@@ -40,17 +104,10 @@ function buildRowMetrics(widget, props) {
 function buildDisplayValueExpression(sensorId, placeholder) {
     const safePlaceholder = JSON.stringify(placeholder || 'n.d.');
     return `!lambda |-\n` +
+        `          static std::string display_value;\n` +
+        `          display_value = ${safePlaceholder};\n` +
         `          std::string raw = id(${sensorId}).state;\n` +
-        `          if (raw.empty() || raw == "unknown" || raw == "unavailable") return ${safePlaceholder};\n` +
-        '          size_t t_pos = raw.find(\'T\');\n' +
-        '          size_t colon = raw.find(\':\');\n' +
-        '          if (t_pos != std::string::npos && colon != std::string::npos && colon >= 2) return raw.substr(colon - 2, 5).c_str();\n' +
-        '          if (colon != std::string::npos && colon >= 1) {\n' +
-        '            size_t start = colon >= 2 ? colon - 2 : 0;\n' +
-        '            size_t len = (start + 5 <= raw.size()) ? 5 : raw.size() - start;\n' +
-        '            return raw.substr(start, len).c_str();\n' +
-        '          }\n' +
-        '          return raw.c_str();';
+        buildSunTimeConversionLines('          ', true).join('\n');
 }
 
 function buildProtocolRows(widget, props, useFillColor = false, darkMode = false) {
@@ -144,18 +201,7 @@ export function exportDirect(widget, context) {
         if (sensorId) {
             lines.push(`          if (id(${sensorId}).has_state()) {`);
             lines.push('            std::string raw = id(' + sensorId + ').state;');
-            lines.push('            if (!raw.empty() && raw != "unknown" && raw != "unavailable") {');
-            lines.push('              size_t t_pos = raw.find(\'T\');');
-            lines.push('              size_t colon = raw.find(\':\');');
-            lines.push('              if (t_pos != std::string::npos && colon != std::string::npos && colon >= 2) display_value = raw.substr(colon - 2, 5);');
-            lines.push('              else if (colon != std::string::npos && colon >= 1) {');
-            lines.push('                size_t start = colon >= 2 ? colon - 2 : 0;');
-            lines.push('                size_t len = (start + 5 <= raw.size()) ? 5 : raw.size() - start;');
-            lines.push('                display_value = raw.substr(start, len);');
-            lines.push('              } else {');
-            lines.push('                display_value = raw;');
-            lines.push('              }');
-            lines.push('            }');
+            buildSunTimeConversionLines('            ').forEach((line) => lines.push(line));
             lines.push('          }');
         }
         lines.push(`          it.printf(${left}, ${rowY}, id(${iconFont}), ${color}, TextAlign::TOP_LEFT, "%s", "\\U000${row.iconCode}");`);

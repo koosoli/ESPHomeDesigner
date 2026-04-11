@@ -118,6 +118,21 @@ describe('Deep Sleep Enhancements (Issue #310)', () => {
             expect(scriptYaml).toContain('component.update: epaper_display');
         });
 
+        it('keeps manage_run_and_sleep sleep tracking active while adjusting refresh interval', () => {
+            const payload = {
+                deepSleepEnabled: true,
+                sleepEnabled: true,
+                sleepEndHour: 7,
+                sleepStartHour: 23
+            };
+            const scriptYaml = gen.generateScriptSection(payload, pages, epaperProfile).join('\n');
+
+            expect(scriptYaml).toContain('bool is_sleep_time = false;');
+            expect(scriptYaml).toContain('int interval = id(page_refresh_default_s);');
+            expect(scriptYaml).toContain('id(page_refresh_current_s) = interval;');
+            expect(scriptYaml).toContain('Night-time sleep active, skipping display update.');
+        });
+
         it('does not refresh the display before the overnight until-sleep branch', () => {
             const payload = {
                 deepSleepEnabled: true,

@@ -134,5 +134,6 @@ describe('weather feature exports', () => {
         });
 
         expect(noEntity.textContent).toContain('No Entity');
+        expect(noEntity.innerText.codePointAt(0)).toBe(0xf0625);
     });
 });

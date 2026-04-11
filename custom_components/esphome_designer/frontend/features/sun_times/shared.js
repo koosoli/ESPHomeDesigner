@@ -102,6 +102,15 @@ export function formatSunTimeValue(value, placeholder = 'n.d.') {
         return placeholder;
     }
 
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toLocaleTimeString('en-GB', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+    }
+
     const timeMatch = raw.match(/(\d{1,2}:\d{2})/);
     if (timeMatch) {
         return timeMatch[1];

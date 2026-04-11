@@ -95,13 +95,44 @@ describe('astronomy widgets', () => {
         ]);
     });
 
+    it('uses an explicit unknown icon when the moon phase entity is missing', () => {
+        const host = document.createElement('div');
+        moonPhasePlugin.render(host, {
+            id: 'moon_missing',
+            width: 36,
+            height: 36,
+            props: {
+                fit_icon_to_frame: true,
+                color: 'theme_auto'
+            }
+        }, {
+            getColorStyle: (value) => value === 'theme_auto' ? 'black' : value
+        });
+
+        expect(host.innerText.codePointAt(0)).toBe(0xf0625);
+        expect(host.textContent).toContain('No Entity');
+    });
+
     it('formats sunrise and sunset rows across preview, direct export, and LVGL hooks', () => {
+        const sunriseRaw = '2026-04-05T06:42:00+00:00';
+        const sunsetRaw = '2026-04-05T19:58:00+00:00';
+        const expectedSunrise = new Date(sunriseRaw).toLocaleTimeString('en-GB', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+        const expectedSunset = new Date(sunsetRaw).toLocaleTimeString('en-GB', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+
         mockAppState.entityStates = {
             'sun.sun': {
                 state: 'above_horizon',
                 attributes: {
-                    next_rising: '2026-04-05T06:42:00+00:00',
-                    next_setting: '2026-04-05T19:58:00+00:00'
+                    next_rising: sunriseRaw,
+                    next_setting: sunsetRaw
                 }
             }
         };
@@ -126,8 +157,8 @@ describe('astronomy widgets', () => {
             getColorStyle: (value) => value === 'theme_auto' ? 'black' : value
         });
 
-        expect(host.textContent).toContain('06:42');
-        expect(host.textContent).toContain('19:58');
+        expect(host.textContent).toContain(expectedSunrise);
+        expect(host.textContent).toContain(expectedSunset);
         expect(host.style.backgroundColor).toBe('white');
 
         const exportContext = {
@@ -158,6 +189,7 @@ describe('astronomy widgets', () => {
         expect(exported).toContain('\\U000F059B');
         expect(exported).toContain('id(sun_sun_next_rising_txt).has_state()');
         expect(exported).toContain('id(sun_sun_next_setting_txt).has_state()');
+        expect(exported).toContain('localtime(&ts)');
 
         const lvgl = sunTimesPlugin.exportLVGL({
             id: 'sun-1',
@@ -182,6 +214,7 @@ describe('astronomy widgets', () => {
         expect(lvgl.obj.widgets).toHaveLength(4);
         expect(lvgl.obj.widgets[1].label.text).toContain('sun_sun_next_rising_txt');
         expect(lvgl.obj.widgets[3].label.text).toContain('sun_sun_next_setting_txt');
+        expect(lvgl.obj.widgets[1].label.text).toContain('localtime(&ts)');
 
         const sensorContext = {
             lines: [],

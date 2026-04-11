@@ -236,6 +236,7 @@ describe('weather_forecast render and properties', () => {
             width: 120,
             height: 160,
             props: {
+                weather_entity: 'weather.home',
                 forecast_mode: 'hourly',
                 hourly_mode: 'relative',
                 relative_count: 2,
@@ -255,7 +256,32 @@ describe('weather_forecast render and properties', () => {
         expect(el.textContent).toContain('12°C');
     });
 
-    it('falls back to mock daily temperatures when live values are unknown', () => {
+    it('renders one-sided temperature placeholders when only part of a forecast is missing', () => {
+        mockAppState.entityStates = {
+            'sensor.weather_forecast_day_0_condition': { state: 'rainy' },
+            'sensor.weather_forecast_day_0_low': { state: '9.5' },
+            'sensor.weather_forecast_day_1_condition': { state: 'cloudy' },
+            'sensor.weather_forecast_day_1_high': { state: '17.2' }
+        };
+
+        const el = document.createElement('div');
+        render(el, {
+            width: 260,
+            height: 90,
+            props: {
+                days: 2,
+                temp_unit: 'C',
+                precision: 1
+            }
+        }, {
+            getColorStyle: (value) => value || '#000000'
+        });
+
+        expect(el.children[0].textContent).toContain('--/9.5°C');
+        expect(el.children[1].textContent).toContain('17.2°C/--');
+    });
+
+    it('shows explicit unknown placeholders when live forecast values are unavailable', () => {
         mockAppState.entityStates = {
             'sensor.weather_forecast_day_2_condition': { state: 'unknown' },
             'sensor.weather_forecast_day_2_high': { state: 'unknown' },
@@ -278,7 +304,8 @@ describe('weather_forecast render and properties', () => {
 
         const firstDay = /** @type {HTMLDivElement} */ (el.firstElementChild);
         expect(firstDay.textContent).not.toContain('Today');
-        expect(firstDay.textContent).toContain('24.0°C/18.0°C');
+        expect(firstDay.textContent).toContain('--/--');
+        expect(firstDay.children[1].innerText.codePointAt(0)).toBe(0xf0625);
         expect(el.style.border).toBe('');
     });
 });

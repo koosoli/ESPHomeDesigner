@@ -66,6 +66,7 @@ describe('weather_forecast export_sensors', () => {
         expect(output).toContain('entity_id: weather.garden');
         expect(output).toContain("name: 'Weather Forecast Hour 0900 High'");
         expect(output).toContain("name: 'Weather Forecast Hour 1200 High'");
+        expect(output).toContain("{{ hit.condition if hit else 'unknown' }}");
     });
 
     it('exports relative hourly template sensors and tracks required fonts/icons', () => {
@@ -91,6 +92,7 @@ describe('weather_forecast export_sensors', () => {
         expect(output).toContain("name: 'Weather Forecast Plus 2h'");
         expect(output).toContain("timedelta(hours=2)");
         expect(output).toContain("weather_forecast_plus_2h_condition");
+        expect(output).toContain("{{ hit.condition if hit else 'unknown' }}");
 
         const addFont = vi.fn();
         const trackIcon = vi.fn();
@@ -106,7 +108,7 @@ describe('weather_forecast export_sensors', () => {
         expect(addFont).toHaveBeenCalledWith('Montserrat', 700, 13);
         expect(addFont).toHaveBeenCalledWith('Montserrat', 400, 16);
         expect(addFont).toHaveBeenCalledWith('Material Design Icons', 400, 48);
-        expect(trackIcon).toHaveBeenCalledTimes(15);
+        expect(trackIcon).toHaveBeenCalledTimes(16);
     });
 
     it('deduplicates repeated daily condition sensors across matching widgets', () => {

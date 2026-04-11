@@ -1,4 +1,8 @@
 import { getDayLabelSet } from './day_labels.js';
+import {
+    UNKNOWN_WEATHER_ICON,
+    WEATHER_ICON_OPTIONS
+} from '../weather_icon/shared.js';
 
 /** @typedef {Widget & { props?: Record<string, any>, entity_id?: string }} WeatherForecastWidget */
 
@@ -55,7 +59,11 @@ export const exportLVGL = (w, { common, convertColor, getLVGLFont }) => {
             lowId = `weather_low_day${dayIdx}`;
         }
 
-        const iconLambda = `!lambda |-\n              std::string c = id(${condId}).state;\n              if (c == "clear-night") return "\\U000F0594";\n              if (c == "cloudy") return "\\U000F0590";\n              if (c == "exceptional") return "\\U000F0026";\n              if (c == "fog") return "\\U000F0591";\n              if (c == "hail") return "\\U000F0592";\n              if (c == "lightning") return "\\U000F0593";\n              if (c == "lightning-rainy") return "\\U000F067E";\n              if (c == "partlycloudy") return "\\U000F0595";\n              if (c == "pouring") return "\\U000F0596";\n              if (c == "rainy") return "\\U000F0597";\n              if (c == "snowy") return "\\U000F0598";\n              if (c == "snowy-rainy") return "\\U000F067F";\n              if (c == "sunny") return "\\U000F0599";\n              if (c == "windy") return "\\U000F059D";\n              if (c == "windy-variant") return "\\U000F059E";\n              return "\\U000F0590";\n            `;
+        const iconLambda = `!lambda |-\n              std::string c = id(${condId}).state;\n${WEATHER_ICON_OPTIONS.map(({ condition, code }) => `              if (c == "${condition}") return "\\U000${code}";\n`).join('')}              return "\\U000${UNKNOWN_WEATHER_ICON.code}";\n            `;
+
+        const tempTextLambda = showHighLow
+            ? `!lambda |-\n              static std::string temp_text;\n              float high = id(${highId}).state;\n              float low = id(${lowId}).state;\n              if (std::isnan(high) && std::isnan(low)) temp_text = "--/--";\n              else if (std::isnan(high)) temp_text = str_sprintf("--/%.*f", ${precision}, low);\n              else if (std::isnan(low)) temp_text = str_sprintf("%.*f/--", ${precision}, high);\n              else temp_text = str_sprintf("%.*f/%.*f", ${precision}, high, ${precision}, low);\n              return temp_text.c_str();\n            `
+            : `!lambda |-\n              static std::string temp_text;\n              float temp_val = id(${highId}).state;\n              if (std::isnan(temp_val)) return "--";\n              temp_text = str_sprintf("%.*f", ${precision}, temp_val);\n              return temp_text.c_str();\n            `;
 
         const dayWidgets = [
             {
@@ -81,7 +89,7 @@ export const exportLVGL = (w, { common, convertColor, getLVGLFont }) => {
                 label: {
                     id: `${w.id}_temp${i}`.replace(/-/g, '_'),
                     align: "bottom_mid",
-                    text: showHighLow ? `!lambda "return str_sprintf(\\'%.${precision}f/%.${precision}f\\', id(${highId}).state, id(${lowId}).state).c_str();"` : `!lambda "return str_sprintf(\\'%.${precision}f\\', id(${highId}).state).c_str();"`,
+                    text: tempTextLambda,
                     text_font: getLVGLFont(p.font_family || "Roboto", tempFS, 400),
                     text_color: color
                 }
@@ -119,7 +127,7 @@ export const exportLVGL = (w, { common, convertColor, getLVGLFont }) => {
  */
 export const exportOpenDisplay = (w, { layout, _page }) => {
     const p = w.props || {};
-    const entityId = (w.entity_id || p.weather_entity || "weather.forecast_home").trim();
+    const entityId = String(w.entity_id ?? p.weather_entity ?? '').trim();
     const iconSize = p.icon_size || 32;
     const tempSize = p.temp_font_size || 14;
 
@@ -129,27 +137,15 @@ export const exportOpenDisplay = (w, { layout, _page }) => {
     }
 
     const iconTemplate = `{{ {
-            'clear-night': 'moon',
-            'cloudy': 'cloud',
-            'fog': 'fog',
-            'hail': 'hail',
-            'lightning': 'lightning',
-            'lightning-rainy': 'lightning-rainy',
-            'partlycloudy': 'partly-cloudy',
-            'pouring': 'pouring',
-            'rainy': 'rainy',
-            'snowy': 'snowy',
-            'snowy-rainy': 'snowy-rainy',
-            'sunny': 'sun',
-            'windy': 'wind'
-        }[states('${entityId}')] | default('sun') }}`;
+            ${WEATHER_ICON_OPTIONS.map(({ condition, protocolIcon }) => `'${condition}': '${protocolIcon}'`).join(',\n            ')}
+        }[states('${entityId}')] | default('${UNKNOWN_WEATHER_ICON.protocolIcon}') }}`;
 
     const tempTemplate = `{{ states('${entityId}') }} | {{ state_attr('${entityId}', 'temperature') }}°`;
 
     return [
         {
             type: "icon",
-            value: iconTemplate,
+            value: entityId ? iconTemplate : UNKNOWN_WEATHER_ICON.protocolIcon,
             x: Math.round(w.x + w.width / 2),
             y: Math.round(w.y),
             size: iconSize,
@@ -174,7 +170,7 @@ export const exportOpenDisplay = (w, { layout, _page }) => {
  */
 export const exportOEPL = (w, { _layout, _page }) => {
     const p = w.props || {};
-    const entityId = (w.entity_id || p.weather_entity || "weather.forecast_home").trim();
+    const entityId = String(w.entity_id ?? p.weather_entity ?? '').trim();
     return {
         type: "text",
         value: `{{ states('${entityId}') }}`,

@@ -9,6 +9,12 @@ export const MOON_PHASE_OPTIONS = [
     { state: 'new_moon', code: 'F0F64', icon: 'moon-new' }
 ];
 
+export const UNKNOWN_MOON_PHASE = {
+    state: 'unknown',
+    code: 'F0625',
+    icon: 'help-circle-outline'
+};
+
 export const DEFAULT_MOON_PHASE = MOON_PHASE_OPTIONS[0];
 
 const moonPhaseMap = new Map(MOON_PHASE_OPTIONS.map((entry) => [entry.state, entry]));
@@ -21,7 +27,7 @@ export function normalizeMoonPhaseState(value) {
 }
 
 export function getMoonPhaseMeta(value) {
-    return moonPhaseMap.get(normalizeMoonPhaseState(value)) || DEFAULT_MOON_PHASE;
+    return moonPhaseMap.get(normalizeMoonPhaseState(value)) || UNKNOWN_MOON_PHASE;
 }
 
 export function toMdiCharacter(code) {
