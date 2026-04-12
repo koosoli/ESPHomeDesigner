@@ -91,10 +91,10 @@ describe('Deep Sleep Enhancements (Issue #310)', () => {
     });
 
     describe('Night-time until-sleep', () => {
-        it('uses until: <hour>:00:00 when sleep hours are configured', () => {
+        it('uses until: <hour>:00:00 in Deep Sleep mode when sleep hours are configured', () => {
             const payload = { 
                 deepSleepEnabled: true, 
-                sleepEnabled: true, 
+                sleepEnabled: false,
                 sleepEndHour: 7,
                 sleepStartHour: 23
             };
@@ -107,7 +107,7 @@ describe('Deep Sleep Enhancements (Issue #310)', () => {
         it('uses the sleep window as the trigger for long overnight sleep', () => {
             const payload = {
                 deepSleepEnabled: true,
-                sleepEnabled: true,
+                sleepEnabled: false,
                 sleepEndHour: 7,
                 sleepStartHour: 23
             };
@@ -118,25 +118,25 @@ describe('Deep Sleep Enhancements (Issue #310)', () => {
             expect(scriptYaml).toContain('component.update: epaper_display');
         });
 
-        it('keeps manage_run_and_sleep sleep tracking active while adjusting refresh interval', () => {
+        it('omits the unused interval and sleep-tracking variables from manage_run_and_sleep in Deep Sleep mode', () => {
             const payload = {
                 deepSleepEnabled: true,
-                sleepEnabled: true,
+                sleepEnabled: false,
                 sleepEndHour: 7,
                 sleepStartHour: 23
             };
             const scriptYaml = gen.generateScriptSection(payload, pages, epaperProfile).join('\n');
 
-            expect(scriptYaml).toContain('bool is_sleep_time = false;');
-            expect(scriptYaml).toContain('int interval = id(page_refresh_default_s);');
-            expect(scriptYaml).toContain('id(page_refresh_current_s) = interval;');
+            expect(scriptYaml).not.toContain('bool is_sleep_time = false;');
+            expect(scriptYaml).not.toContain('int interval = id(page_refresh_default_s);');
+            expect(scriptYaml).not.toContain('id(page_refresh_current_s) = interval;');
             expect(scriptYaml).toContain('Night-time sleep active, skipping display update.');
         });
 
         it('does not refresh the display before the overnight until-sleep branch', () => {
             const payload = {
                 deepSleepEnabled: true,
-                sleepEnabled: true,
+                sleepEnabled: false,
                 sleepEndHour: 7,
                 sleepStartHour: 23
             };

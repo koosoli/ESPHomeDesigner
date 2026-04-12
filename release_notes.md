@@ -1,3 +1,18 @@
+## v1.0.0 RC12.3 - Deep Sleep Follow-Through
+**Release Date:** April 12, 2026
+
+This RC12.3 follow-up takes another pass at the remaining deep-sleep behavior from [Issue #356](https://github.com/koosoli/ESPHomeDesigner/issues/356). RC12.2 was too optimistic here: the overnight `until:` branch still dropped out when users chose `Ultra Eco (Deep Sleep)` and relied on the shared sleep-hours controls. This release fixes that mismatch, trims the misleading deep-sleep refresh bookkeeping in the generated script, and rebuilds the shipped assets for a clean RC12.3 cut.
+
+### Stability & Verification
+- **Deep-Sleep Overnight Window Fix (Issue #356)**: Generated `deep_sleep_cycle` now uses the configured shared sleep window in Deep Sleep mode as well as Light Sleep mode, so users who set overnight hours and export `Ultra Eco (Deep Sleep)` once again get the `deep_sleep.enter` `until:` / `time_id: ha_time` branch at night.
+- **Deep-Sleep Script Cleanup (Issue #356)**: `manage_run_and_sleep` no longer emits the unused `interval` and `is_sleep_time` bookkeeping in the epaper deep-sleep path, which makes the generated YAML match the real execution flow more closely.
+- **Regression Coverage Expansion**: Added focused generator tests for the Deep Sleep plus sleep-hours path and for omitting the unused refresh bookkeeping from the deep-sleep loop.
+- **Release Metadata Refresh**: Updated the package version, Home Assistant manifest version, visible header label, release notes heading, and rebuilt frontend assets for the RC12.3 release line.
+
+
+
+---
+
 ## v1.0.0 RC12.2 - Widget State Accuracy & Release Polish
 **Release Date:** April 11, 2026
 

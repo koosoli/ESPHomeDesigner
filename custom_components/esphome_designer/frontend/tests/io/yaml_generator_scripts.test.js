@@ -64,6 +64,25 @@ describe('yaml_generator_scripts', () => {
         expect((lines.match(/delay: 5s/g) || []).length).toBe(1);
     });
 
+    it('uses the overnight until branch for Deep Sleep mode even when sleep mode itself is not selected', () => {
+        const lines = generateScriptSection({
+            deepSleepEnabled: true,
+            sleepEnabled: false,
+            sleepStartHour: 23,
+            sleepEndHour: 7
+        }, [
+            { refresh_s: '300' }
+        ], {
+            features: { epaper: true }
+        }).join('\n');
+
+        expect(lines).toContain('Entering Night-time Deep Sleep...');
+        expect(lines).toContain('until: "07:00:00"');
+        expect(lines).toContain('time_id: ha_time');
+        expect(lines).not.toContain('int interval = id(page_refresh_default_s);');
+        expect(lines).not.toContain('bool is_sleep_time = false;');
+    });
+
     it('stops the automatic refresh loop in manual refresh mode', () => {
         const lines = generateScriptSection({
             manualRefreshOnly: true,

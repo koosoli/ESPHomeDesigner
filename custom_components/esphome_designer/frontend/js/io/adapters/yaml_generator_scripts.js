@@ -88,9 +88,13 @@ export function generateScriptSection(payload, pages, profile) {
         return parseInt(parts[0]) * 60 + parseInt(parts[1]);
     };
 
-    const sStart = parseInt(payload.noRefreshStartHour ?? payload.sleepStartHour) || 0;
-    const sEnd = parseInt(payload.noRefreshEndHour ?? payload.sleepEndHour) || 0;
-    const sEnabled = (
+    const rawSleepStart = payload.noRefreshStartHour ?? payload.sleepStartHour;
+    const rawSleepEnd = payload.noRefreshEndHour ?? payload.sleepEndHour;
+    const sStart = parseInt(rawSleepStart ?? 0) || 0;
+    const sEnd = parseInt(rawSleepEnd ?? 0) || 0;
+    const hasSleepWindowConfig = rawSleepStart !== undefined && rawSleepStart !== null
+        && rawSleepEnd !== undefined && rawSleepEnd !== null;
+    const sEnabled = hasSleepWindowConfig && (
         payload.sleepEnabled === true || payload.sleepEnabled === "true" || payload.sleepEnabled === 1 || payload.sleepEnabled === "1" ||
         payload.deepSleepEnabled === true || payload.deepSleepEnabled === "true" || payload.deepSleepEnabled === 1 || payload.deepSleepEnabled === "1"
     );
@@ -133,7 +137,7 @@ export function generateScriptSection(payload, pages, profile) {
         lines.push("  - id: deep_sleep_cycle");
         lines.push("    then:");
 
-        if (payload.sleepEnabled === true || payload.sleepEnabled === "true" || payload.sleepEnabled === 1 || payload.sleepEnabled === "1") {
+        if (sEnabled) {
             const endStr = String(sEnd).padStart(2, '0');
             lines.push("      - if:");
             lines.push("          condition:");
@@ -205,108 +209,114 @@ export function generateScriptSection(payload, pages, profile) {
 
     if (autoCycleEnabled) lines.push("      - script.execute: auto_cycle_timer");
 
-    lines.push("      - lambda: |-");
-    if (hasMultiplePages || hasPageRefreshOverrides) lines.push("          int p = id(display_page);");
-    lines.push("          int interval = id(page_refresh_default_s);");
+    const hasPageRefreshRuntimeOverrides = !isDeepSleep && hasPageRefreshOverrides;
+    /** @type {string[]} */
+    const runtimeLines = [];
+    if (hasMultiplePages || hasPageRefreshRuntimeOverrides) runtimeLines.push("          int p = id(display_page);");
+    if (!isDeepSleep) runtimeLines.push("          int interval = id(page_refresh_default_s);");
 
-    const needsCurrentTime = sEnabled || hasAnyVisibility || hasPageRefreshOverrides;
-    const needsSleepFlag = sEnabled || isBacklightStrategy;
-    if (needsSleepFlag) lines.push("          bool is_sleep_time = false;");
+    const needsSleepFlag = (!isDeepSleep && sEnabled) || isBacklightStrategy;
+    const needsCurrentTime = hasAnyVisibility || needsSleepFlag || hasPageRefreshRuntimeOverrides;
+    if (needsSleepFlag) runtimeLines.push("          bool is_sleep_time = false;");
 
     if (needsCurrentTime) {
-        lines.push("          auto time = id(ha_time).now();");
-        lines.push("          if (time.is_valid()) {");
-        lines.push("             int hour = time.hour;");
-        if (hasAnyVisibility || hasPageRefreshOverrides) {
-            lines.push("             int minute = time.minute;");
-            lines.push("             int curr_min = hour * 60 + minute;");
+        runtimeLines.push("          auto time = id(ha_time).now();");
+        runtimeLines.push("          if (time.is_valid()) {");
+        runtimeLines.push("             int hour = time.hour;");
+        if (hasAnyVisibility || hasPageRefreshRuntimeOverrides) {
+            runtimeLines.push("             int minute = time.minute;");
+            runtimeLines.push("             int curr_min = hour * 60 + minute;");
         }
-        if (sEnabled) {
-            lines.push(`             int start = ${sStart};`);
-            lines.push(`             int end = ${sEnd};`);
-            lines.push("             if (start < end) {");
-            lines.push("                 if (hour >= start && hour < end) is_sleep_time = true;");
-            lines.push("             } else if (start > end) {");
-            lines.push("                 if (hour >= start || hour < end) is_sleep_time = true;");
-            lines.push("             } ");
+        if (needsSleepFlag) {
+            runtimeLines.push(`             int start = ${sStart};`);
+            runtimeLines.push(`             int end = ${sEnd};`);
+            runtimeLines.push("             if (start < end) {");
+            runtimeLines.push("                 if (hour >= start && hour < end) is_sleep_time = true;");
+            runtimeLines.push("             } else if (start > end) {");
+            runtimeLines.push("                 if (hour >= start || hour < end) is_sleep_time = true;");
+            runtimeLines.push("             } ");
         }
 
         if (hasMultiplePages && hasAnyVisibility) {
-            lines.push("");
-            lines.push("             // Visibility Logic: Find best page for current time");
-            lines.push("             int best_page = -1;");
+            runtimeLines.push("");
+            runtimeLines.push("             // Visibility Logic: Find best page for current time");
+            runtimeLines.push("             int best_page = -1;");
             pages.forEach((page, idx) => {
                 const from = getMin(page.visible_from);
                 const to = getMin(page.visible_to);
                 if (from !== null && to !== null) {
                     if (from < to) {
-                        lines.push(`             if (best_page == -1 && curr_min >= ${from} && curr_min < ${to}) best_page = ${idx};`);
+                        runtimeLines.push(`             if (best_page == -1 && curr_min >= ${from} && curr_min < ${to}) best_page = ${idx};`);
                     } else {
-                        lines.push(`             if (best_page == -1 && (curr_min >= ${from} || curr_min < ${to})) best_page = ${idx};`);
+                        runtimeLines.push(`             if (best_page == -1 && (curr_min >= ${from} || curr_min < ${to})) best_page = ${idx};`);
                     }
                 }
             });
             pages.forEach((page, idx) => {
                 if (!page.visible_from && !page.visible_to) {
-                    lines.push(`             if (best_page == -1) best_page = ${idx};`);
+                    runtimeLines.push(`             if (best_page == -1) best_page = ${idx};`);
                 }
             });
-            lines.push("");
-            lines.push("             // If current page is invisible OR another should be shown, switch");
-            lines.push("             if (best_page != -1 && best_page != p) {");
-            lines.push('                 ESP_LOGI("display", "Auto-switching to scheduled page %d", best_page);');
-            lines.push("                 id(change_page_to).execute(best_page);");
-            lines.push("                 return;");
-            lines.push("             }");
+            runtimeLines.push("");
+            runtimeLines.push("             // If current page is invisible OR another should be shown, switch");
+            runtimeLines.push("             if (best_page != -1 && best_page != p) {");
+            runtimeLines.push('                 ESP_LOGI("display", "Auto-switching to scheduled page %d", best_page);');
+            runtimeLines.push("                 id(change_page_to).execute(best_page);");
+            runtimeLines.push("                 return;");
+            runtimeLines.push("             }");
         }
-        lines.push("          }");
+        runtimeLines.push("          }");
     }
 
     if (isLcd) {
         if (isBacklightStrategy) {
-            lines.push("          #ifdef USE_BACKLIGHT");
-            lines.push("          if (is_sleep_time) {");
-            lines.push("              auto call = id(backlight_pwm).make_call();");
-            lines.push("              call.set_brightness(0.0);");
-            lines.push("              call.perform();");
-            lines.push("              interval = 3600; // Check back in an hour");
-            lines.push("          } else {");
-            lines.push("              auto call = id(backlight_pwm).make_call();");
-            lines.push("              call.set_brightness(0.8);");
-            lines.push("              call.perform();");
-            lines.push("          }");
-            lines.push("          #endif");
+            runtimeLines.push("          #ifdef USE_BACKLIGHT");
+            runtimeLines.push("          if (is_sleep_time) {");
+            runtimeLines.push("              auto call = id(backlight_pwm).make_call();");
+            runtimeLines.push("              call.set_brightness(0.0);");
+            runtimeLines.push("              call.perform();");
+            runtimeLines.push("              interval = 3600; // Check back in an hour");
+            runtimeLines.push("          } else {");
+            runtimeLines.push("              auto call = id(backlight_pwm).make_call();");
+            runtimeLines.push("              call.set_brightness(0.8);");
+            runtimeLines.push("              call.perform();");
+            runtimeLines.push("          }");
+            runtimeLines.push("          #endif");
         } else if (isOled && sEnabled) {
-            lines.push("          if (is_sleep_time) {");
-            lines.push("              interval = 3600;");
-            lines.push("          }");
+            runtimeLines.push("          if (is_sleep_time) {");
+            runtimeLines.push("              interval = 3600;");
+            runtimeLines.push("          }");
         }
     } else if (sEnabled && !isDeepSleep) {
-        lines.push("          if (is_sleep_time) {");
-        lines.push("              interval = 3600; // Sleep for an hour (skip updates)");
-        lines.push("          }");
+        runtimeLines.push("          if (is_sleep_time) {");
+        runtimeLines.push("              interval = 3600; // Sleep for an hour (skip updates)");
+        runtimeLines.push("          }");
     }
 
-    if (hasPageRefreshOverrides) {
-        if (sEnabled) lines.push("          if (!is_sleep_time) {");
+    if (hasPageRefreshRuntimeOverrides) {
+        if (sEnabled) runtimeLines.push("          if (!is_sleep_time) {");
         pages.forEach((page, idx) => {
             if (page.refresh_type === 'daily' && page.refresh_time) {
                 const targetMin = getMin(page.refresh_time);
-                lines.push(`            if (p == ${idx}) {`);
-                lines.push(`               int target_min = ${targetMin};`);
-                lines.push("               int diff = target_min - curr_min;");
-                lines.push("               if (diff <= 0) diff += 1440; // Next day");
-                lines.push("               interval = diff * 60;");
-                lines.push("            }");
+                runtimeLines.push(`            if (p == ${idx}) {`);
+                runtimeLines.push(`               int target_min = ${targetMin};`);
+                runtimeLines.push("               int diff = target_min - curr_min;");
+                runtimeLines.push("               if (diff <= 0) diff += 1440; // Next day");
+                runtimeLines.push("               interval = diff * 60;");
+                runtimeLines.push("            }");
             } else {
                 const refresh = parseInt(page.refresh_s);
-                if (!isNaN(refresh) && refresh > 0) lines.push(`            if (p == ${idx}) interval = ${refresh};`);
+                if (!isNaN(refresh) && refresh > 0) runtimeLines.push(`            if (p == ${idx}) interval = ${refresh};`);
             }
         });
-        if (sEnabled) lines.push("          }");
+        if (sEnabled) runtimeLines.push("          }");
     }
 
-    lines.push("          id(page_refresh_current_s) = interval;");
+    if (!isDeepSleep) runtimeLines.push("          id(page_refresh_current_s) = interval;");
+    if (runtimeLines.length > 0) {
+        lines.push("      - lambda: |-");
+        lines.push(...runtimeLines);
+    }
 
     if (isDeepSleep && sEnabled) {
         lines.push("      - if:");
