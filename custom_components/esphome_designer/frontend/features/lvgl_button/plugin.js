@@ -15,6 +15,11 @@ const isMirrorableEntity = (entityId) => {
 
 const shouldSyncCheckedState = (props, entityId) => !!props.sync_state && isMirrorableEntity(entityId);
 
+const buildCheckedStateUpdateAction = (widgetId) => `- lvgl.widget.update:
+    id: ${widgetId}
+    state:
+      checked: !lambda return x;`;
+
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     const textColor = props.color || props.text_color || "theme_auto";
@@ -120,7 +125,7 @@ const onExportBinarySensors = (context) => {
             if (!pendingTriggers.has(entityId)) {
                 pendingTriggers.set(entityId, new Set());
             }
-            pendingTriggers.get(entityId).add(`- lvgl.widget.refresh: ${w.id}`);
+            pendingTriggers.get(entityId).add(buildCheckedStateUpdateAction(w.id));
         }
     }
 };

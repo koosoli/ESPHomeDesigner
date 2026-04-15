@@ -131,7 +131,12 @@ describe('LVGL primitive plugin cluster', () => {
             isLvgl: true,
             pendingTriggers
         });
-        expect([...pendingTriggers.get('switch.kitchen')]).toEqual(['- lvgl.widget.refresh: checkbox_1']);
+        expect([...pendingTriggers.get('switch.kitchen')]).toEqual([
+            `- lvgl.widget.update:
+    id: checkbox_1
+    state:
+      checked: !lambda return x;`
+        ]);
     });
 
     it('renders and exports bars and switches with sensor hooks', () => {
@@ -230,6 +235,11 @@ describe('LVGL primitive plugin cluster', () => {
             isLvgl: true,
             pendingTriggers: switchTriggers
         });
-        expect([...switchTriggers.get('switch.fan')]).toEqual(['- lvgl.widget.refresh: switch_1']);
+        expect([...switchTriggers.get('switch.fan')]).toEqual([
+            `- lvgl.widget.update:
+    id: switch_1
+    state:
+      checked: !lambda return x;`
+        ]);
     });
 });

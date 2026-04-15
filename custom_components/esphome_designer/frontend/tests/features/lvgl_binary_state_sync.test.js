@@ -5,6 +5,7 @@ import checkboxPlugin from '../../features/lvgl_checkbox/plugin.js';
 import switchPlugin from '../../features/lvgl_switch/plugin.js';
 import { registry } from '../../js/core/plugin_registry';
 import { generateLVGLSnippet } from '../../js/io/yaml_export_lvgl.js';
+import { processPendingTriggers } from '../../js/io/adapters/esphome_adapter_sections.ts';
 
 const lvglContext = {
     common: { id: 'w_test', x: 0, y: 0, width: 100, height: 40 },
@@ -72,7 +73,7 @@ describe('LVGL binary state sync export', () => {
         expect(lines.join('\n')).toContain('checked: !lambda return id(switch_kitchen_light).state;');
     });
 
-    it('adds refresh triggers for HA-backed LVGL binary widgets', () => {
+    it('adds state update triggers for HA-backed LVGL binary widgets', () => {
         const pendingTriggers = new Map();
         switchPlugin.onExportBinarySensors({
             widgets: [{ id: 'sw_1', type: 'lvgl_switch', entity_id: 'switch.kitchen_light', props: {} }],
@@ -90,9 +91,18 @@ describe('LVGL binary state sync export', () => {
             pendingTriggers
         });
 
-        expect(Array.from(pendingTriggers.get('switch.kitchen_light') || [])).toContain('- lvgl.widget.refresh: sw_1');
-        expect(Array.from(pendingTriggers.get('switch.kitchen_light') || [])).toContain('- lvgl.widget.refresh: btn_1');
-        expect(Array.from(pendingTriggers.get('input_boolean.night_mode') || [])).toContain('- lvgl.widget.refresh: cb_1');
+        expect(Array.from(pendingTriggers.get('switch.kitchen_light') || [])).toContain(`- lvgl.widget.update:
+    id: sw_1
+    state:
+      checked: !lambda return x;`);
+        expect(Array.from(pendingTriggers.get('switch.kitchen_light') || [])).toContain(`- lvgl.widget.update:
+    id: btn_1
+    state:
+      checked: !lambda return x;`);
+        expect(Array.from(pendingTriggers.get('input_boolean.night_mode') || [])).toContain(`- lvgl.widget.update:
+    id: cb_1
+    state:
+      checked: !lambda return x;`);
     });
 
     it('creates a pending trigger bucket when a synced button is the first widget for that entity', () => {
@@ -104,6 +114,41 @@ describe('LVGL binary state sync export', () => {
             pendingTriggers
         });
 
-        expect(Array.from(pendingTriggers.get('fan.office') || [])).toEqual(['- lvgl.widget.refresh: btn_first']);
+        expect(Array.from(pendingTriggers.get('fan.office') || [])).toEqual([
+            `- lvgl.widget.update:
+    id: btn_first
+    state:
+      checked: !lambda return x;`
+        ]);
+    });
+
+    it('adds trigger_on_initial_state for HA-backed binary sync triggers', () => {
+        const result = processPendingTriggers([
+            '- platform: homeassistant',
+            '  id: light_kitchen',
+            '  entity_id: light.kitchen',
+            '  internal: true'
+        ], new Map([
+            ['light.kitchen', new Set([
+                `- lvgl.widget.update:
+    id: btn_1
+    state:
+      checked: !lambda return x;`
+            ])]
+        ]), true, 'on_state');
+
+        expect(result).toEqual([
+            '- platform: homeassistant',
+            '  id: light_kitchen',
+            '  entity_id: light.kitchen',
+            '  trigger_on_initial_state: true',
+            '  on_state:',
+            '    then:',
+            '      - lvgl.widget.update:',
+            '          id: btn_1',
+            '          state:',
+            '            checked: !lambda return x;',
+            '  internal: true'
+        ]);
     });
 });

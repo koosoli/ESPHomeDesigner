@@ -1,3 +1,21 @@
+## v1.0.0 RC12.4 - OpenAI GPT-5 Compatibility & Guition 3.5 Support
+**Release Date:** April 15, 2026
+
+This RC12.4 follow-up rolls in four concrete post-RC12.3 fixes: restoring OpenAI GPT-5 prompt generation after the token-parameter change reported in [Issue #379](https://github.com/koosoli/ESPHomeDesigner/issues/379), promoting the Guition 3.5" `JC4832W535` board discussed in [Issue #340](https://github.com/koosoli/ESPHomeDesigner/issues/340) to a cleaner built-in package/profile path, finishing the Home Assistant light state-tracking follow-up from [Issue #371](https://github.com/koosoli/ESPHomeDesigner/issues/371), and taking one more small cleanup pass on the generated deep-sleep control flow from [Issue #356](https://github.com/koosoli/ESPHomeDesigner/issues/356). It also synchronizes the visible release metadata and rebuilds the shipped frontend assets for today's RC12.4 cut.
+
+### Stability & Verification
+- **OpenAI GPT-5 Request Compatibility (Issue #379):** The OpenAI chat-completions path now sends `max_completion_tokens` for `gpt-5*` models while preserving `max_tokens` for older models, so GPT-5 layout generation works again without regressing the existing GPT-4/OpenAI flow.
+- **Guition JC4832W535 v3 Package Alignment (Issue #340):** The bundled 3.5" Guition hardware package now targets the documented `JC4832W535` QSPI display model, includes the linked AXS15231 touchscreen configuration, and captures the working calibration/transform/rotation values needed for the board's v3 pinout.
+- **Stable Device ID with Legacy Alias:** Added a supported built-in `guition_esp32_jc4832w535` device profile for new layouts while keeping the older misnamed internal id as a hidden compatibility alias so previously saved layouts continue to resolve the same hardware package.
+- **LVGL Light State Tracking Completion (Issue #371):** Light-backed LVGL sliders now push explicit `lvgl.slider.update` actions from the Home Assistant `brightness_pct` attribute, synced LVGL buttons/switches/checkboxes now update their checked state from HA with `trigger_on_initial_state: true`, and scaled slider ranges such as `0..255` now map cleanly to `brightness_pct` in both directions so the widgets track HA, each other, and boot-time state correctly.
+- **Deep-Sleep Guard Consolidation (Issue #356):** The generated `deep_sleep_cycle` script now performs the firmware-flash delay and stay-awake retry handling once at the top of the script before branching into the overnight `until:` or normal deep-sleep entry path, which keeps the RC12.3 behavior fix while removing duplicated guard blocks from the generated YAML.
+- **Regression Coverage Expansion:** Added focused tests for the GPT-5/OpenAI request payload branch and for surfacing the corrected Guition board id without exposing the legacy alias as a new supported device choice.
+
+
+
+
+---
+
 ## v1.0.0 RC12.3 - Deep Sleep Follow-Through
 **Release Date:** April 12, 2026
 
@@ -7,7 +25,7 @@ This RC12.3 follow-up takes another pass at the remaining deep-sleep behavior fr
 - **Deep-Sleep Overnight Window Fix (Issue #356)**: Generated `deep_sleep_cycle` now uses the configured shared sleep window in Deep Sleep mode as well as Light Sleep mode, so users who set overnight hours and export `Ultra Eco (Deep Sleep)` once again get the `deep_sleep.enter` `until:` / `time_id: ha_time` branch at night.
 - **Deep-Sleep Script Cleanup (Issue #356)**: `manage_run_and_sleep` no longer emits the unused `interval` and `is_sleep_time` bookkeeping in the epaper deep-sleep path, which makes the generated YAML match the real execution flow more closely.
 - **Regression Coverage Expansion**: Added focused generator tests for the Deep Sleep plus sleep-hours path and for omitting the unused refresh bookkeeping from the deep-sleep loop.
-- **Release Metadata Refresh**: Updated the package version, Home Assistant manifest version, visible header label, release notes heading, and rebuilt frontend assets for the RC12.3 release line.
+
 
 
 

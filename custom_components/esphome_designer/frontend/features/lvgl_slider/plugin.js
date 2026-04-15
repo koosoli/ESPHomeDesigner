@@ -8,6 +8,61 @@ const getSliderSensorId = (entityId) => String(entityId || "").trim().replace(/[
 
 const getBrightnessSensorId = (entityId) => `${getSliderSensorId(entityId)}_brightness_pct`;
 
+const parseSliderBound = (value, fallback) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const getSliderRange = (props = {}) => ({
+    min: parseSliderBound(props.min, 0),
+    max: parseSliderBound(props.max, 100)
+});
+
+const buildLightSliderValueLambda = (sensorId, minValue, maxValue) => {
+    if (minValue === 0 && maxValue === 100) {
+        return `!lambda "return id(${sensorId}).has_state() ? id(${sensorId}).state : 0;"`;
+    }
+
+    return `!lambda |-
+      if (!id(${sensorId}).has_state()) return ${minValue};
+      const float slider_min = ${minValue};
+      const float slider_max = ${maxValue};
+      if (slider_max <= slider_min) return id(${sensorId}).state;
+      const float brightness_pct = id(${sensorId}).state;
+      return (int)(slider_min + ((brightness_pct / 100.0f) * (slider_max - slider_min)));`;
+};
+
+const buildLightBrightnessPercentLambda = (minValue, maxValue) => {
+    if (minValue === 0 && maxValue === 100) {
+        return "!lambda 'return x;'";
+    }
+
+    return `!lambda |-
+      const float slider_min = ${minValue};
+      const float slider_max = ${maxValue};
+      if (slider_max <= slider_min) return x;
+      const float clamped = x < slider_min ? slider_min : (x > slider_max ? slider_max : x);
+      return (int)(((clamped - slider_min) * 100.0f) / (slider_max - slider_min));`;
+};
+
+const buildLightSliderUpdateAction = (widgetId, minValue, maxValue) => {
+    if (minValue === 0 && maxValue === 100) {
+        return `- lvgl.slider.update:
+    id: ${widgetId}
+    value: !lambda |-
+      return isnan(x) ? 0 : x;`;
+    }
+
+    return `- lvgl.slider.update:
+    id: ${widgetId}
+    value: !lambda |-
+      if (isnan(x)) return ${minValue};
+      const float slider_min = ${minValue};
+      const float slider_max = ${maxValue};
+      if (slider_max <= slider_min) return x;
+      return (int)(slider_min + ((x / 100.0f) * (slider_max - slider_min)));`;
+};
+
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     const fgColor = getColorStyle(props.color || "black");
@@ -83,6 +138,7 @@ const render = (el, widget, { getColorStyle }) => {
 const exportLVGL = (w, { common, convertColor, profile }) => {
     const p = w.props || {};
     const hasTouch = profile?.touch; // eslint-disable-line no-unused-vars
+    const { min: minValue, max: maxValue } = getSliderRange(p);
     let sliderValue = p.value || 30;
     const entityId = (w.entity_id || p.entity_id || p.entity || "").trim();
     const normalizedEntityId = entityId.toLowerCase();
@@ -90,7 +146,7 @@ const exportLVGL = (w, { common, convertColor, profile }) => {
     if (entityId) {
         if (isLightEntity(entityId)) {
             const brightnessSensorId = getBrightnessSensorId(entityId);
-            sliderValue = `!lambda "return id(${brightnessSensorId}).has_state() ? id(${brightnessSensorId}).state : 0;"`;
+            sliderValue = buildLightSliderValueLambda(brightnessSensorId, minValue, maxValue);
         } else {
             sliderValue = `!lambda "return id(${getSliderSensorId(entityId)}).state;"`;
         }
@@ -99,8 +155,8 @@ const exportLVGL = (w, { common, convertColor, profile }) => {
     const sliderObj = {
         slider: {
             ...common,
-            min_value: p.min || 0,
-            max_value: p.max || 100,
+            min_value: minValue,
+            max_value: maxValue,
             value: sliderValue,
             border_width: p.border_width || 2,
             bg_color: convertColor(p.bg_color || "gray"),
@@ -114,6 +170,7 @@ const exportLVGL = (w, { common, convertColor, profile }) => {
     if (entityId) {
         let serviceCall;
         if (isLightEntity(entityId)) {
+            const brightnessPercentValue = buildLightBrightnessPercentLambda(minValue, maxValue);
             serviceCall = {
                 "if": {
                     condition: { lambda: "return x <= 0;" },
@@ -121,7 +178,7 @@ const exportLVGL = (w, { common, convertColor, profile }) => {
                         { "homeassistant.service": { service: "light.turn_off", data: { entity_id: entityId } } }
                     ],
                     else: [
-                        { "homeassistant.service": { service: "light.turn_on", data: { entity_id: entityId, brightness_pct: "!lambda 'return x;'" } } }
+                        { "homeassistant.service": { service: "light.turn_on", data: { entity_id: entityId, brightness_pct: brightnessPercentValue } } }
                     ]
                 }
             };
@@ -151,6 +208,8 @@ const onExportNumericSensors = (context) => {
         const eid = (w.entity_id || w.props?.entity_id || w.props?.entity || "").trim();
         if (!eid) continue;
 
+        const { min: minValue, max: maxValue } = getSliderRange(w.props || {});
+
         if (isLightEntity(eid)) {
             const sensorId = getBrightnessSensorId(eid);
             const entityKey = `${eid}__attr__brightness_pct`;
@@ -174,7 +233,11 @@ const onExportNumericSensors = (context) => {
             if (!pendingTriggers.has(triggerKey)) {
                 pendingTriggers.set(triggerKey, new Set());
             }
-            pendingTriggers.get(triggerKey).add(`- lvgl.widget.refresh: ${w.id}`);
+            pendingTriggers.get(triggerKey).add(
+                isLightEntity(eid)
+                    ? buildLightSliderUpdateAction(w.id, minValue, maxValue)
+                    : `- lvgl.widget.refresh: ${w.id}`
+            );
         }
     }
 };

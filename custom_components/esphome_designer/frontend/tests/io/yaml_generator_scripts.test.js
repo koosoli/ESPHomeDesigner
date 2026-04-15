@@ -52,7 +52,8 @@ describe('yaml_generator_scripts', () => {
         }).join('\n');
 
         expect(lines).toContain('id: deep_sleep_cycle');
-        expect(lines).toContain('binary_sensor.is_off: stay_awake_switch');
+        expect(lines).toContain('mode: restart');
+        expect(lines).toContain('binary_sensor.is_on: stay_awake_switch');
         expect(lines).toContain('staying awake 90s to prevent rollback');
         expect(lines).toContain('delay: 90s');
         expect(lines).toContain('deep_sleep.enter:');
@@ -60,7 +61,7 @@ describe('yaml_generator_scripts', () => {
         expect(lines).toContain('std::string version_str = __DATE__ " " __TIME__;');
         expect(lines).toContain('id(firmware_fingerprint) != current_hash');
         expect(lines).not.toContain('Stay-awake active, deep sleep cycle aborted.');
-        expect((lines.match(/deep_sleep\.prevent: deep_sleep_control/g) || []).length).toBeGreaterThan(1);
+        expect((lines.match(/New firmware - staying awake 90s to prevent rollback/g) || []).length).toBe(1);
         expect((lines.match(/delay: 5s/g) || []).length).toBe(1);
     });
 

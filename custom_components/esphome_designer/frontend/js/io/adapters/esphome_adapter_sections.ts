@@ -30,6 +30,7 @@ export function processPendingTriggers(
 
             if (hasTrigger) {
                 let hasExistingTrigger = false;
+                let hasInitialTrigger = false;
                 const currentIndent = (line.match(/^\s*/) || [""])[0].length;
 
                 for (let j = i + 1; j < sensorLines.length; j++) {
@@ -40,10 +41,19 @@ export function processPendingTriggers(
 
                     if (nextIndent <= currentIndent && nextTrimmed.startsWith("-")) break;
 
+                    if (triggerName === "on_state" && nextTrimmed === "trigger_on_initial_state: true") {
+                        hasInitialTrigger = true;
+                    }
+
                     if (nextTrimmed === `${triggerName}:`) {
                         hasExistingTrigger = true;
                         break;
                     }
+                }
+
+                if (triggerName === "on_state" && !hasInitialTrigger) {
+                    const indent = " ".repeat(currentIndent);
+                    mergedLines.push(`${indent}trigger_on_initial_state: true`);
                 }
 
                 if (hasExistingTrigger) {

@@ -121,10 +121,14 @@ describe('ai_service', () => {
         await expect(service.callOpenAI('openai-key', 'gpt-5-mini', 'system', 'user')).resolves.toBe('{"widgets":[]}');
         const gpt5Body = JSON.parse(fetch.mock.calls[1][1].body);
         expect(gpt5Body.response_format.type).toBe('json_schema');
+        expect(gpt5Body.max_completion_tokens).toBe(8192);
+        expect(gpt5Body.max_tokens).toBeUndefined();
 
         await expect(service.callOpenAI('openai-key', 'gpt-4o', 'system', 'user')).resolves.toBe('{"widgets":[]}');
         const gpt4Body = JSON.parse(fetch.mock.calls[2][1].body);
         expect(gpt4Body.response_format.type).toBe('json_object');
+        expect(gpt4Body.max_tokens).toBe(8192);
+        expect(gpt4Body.max_completion_tokens).toBeUndefined();
 
         await expect(service.callOpenRouter('router-key', 'openrouter/model', 'system', 'user')).resolves.toBe('{"widgets":[]}');
         const routerBody = JSON.parse(fetch.mock.calls[3][1].body);

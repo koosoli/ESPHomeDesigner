@@ -50,27 +50,6 @@ export function generateScriptSection(payload, pages, profile) {
      */
     const appendDeepSleepEnter = (baseIndent, logMessage, untilTime = null) => {
         lines.push(`${baseIndent}- logger.log: "${logMessage}"`);
-        if (payload.deepSleepStayAwakeSwitch) {
-            lines.push(`${baseIndent}- if:`);
-            lines.push(`${baseIndent}    condition:`);
-            lines.push(`${baseIndent}      binary_sensor.is_off: stay_awake_switch`);
-            lines.push(`${baseIndent}    then:`);
-            if (untilTime) {
-                lines.push(`${baseIndent}      - deep_sleep.enter:`);
-                lines.push(`${baseIndent}          id: deep_sleep_control`);
-                lines.push(`${baseIndent}          until: "${untilTime}:00:00"`);
-                lines.push(`${baseIndent}          time_id: ha_time`);
-            } else {
-                lines.push(`${baseIndent}      - deep_sleep.enter: deep_sleep_control`);
-            }
-            lines.push(`${baseIndent}    else:`);
-            lines.push(`${baseIndent}      - logger.log: "Deep Sleep prevented, retrying in 60s"`);
-            lines.push(`${baseIndent}      - deep_sleep.prevent: deep_sleep_control`);
-            lines.push(`${baseIndent}      - delay: 60s`);
-            lines.push(`${baseIndent}      - script.execute: deep_sleep_cycle`);
-            return;
-        }
-
         if (untilTime) {
             lines.push(`${baseIndent}- deep_sleep.enter:`);
             lines.push(`${baseIndent}    id: deep_sleep_control`);
@@ -79,6 +58,35 @@ export function generateScriptSection(payload, pages, profile) {
         } else {
             lines.push(`${baseIndent}- deep_sleep.enter: deep_sleep_control`);
         }
+    };
+
+    /** @param {string} baseIndent */
+    const appendDeepSleepCycleBranch = (baseIndent) => {
+        if (sEnabled) {
+            const endStr = String(sEnd).padStart(2, '0');
+            lines.push(`${baseIndent}- if:`);
+            lines.push(`${baseIndent}    condition:`);
+            lines.push(`${baseIndent}      lambda: |-`);
+            lines.push(`${baseIndent}        auto time = id(ha_time).now();`);
+            lines.push(`${baseIndent}        if (time.is_valid()) {`);
+            lines.push(`${baseIndent}            int hour = time.hour;`);
+            lines.push(`${baseIndent}            int start = ${sStart};`);
+            lines.push(`${baseIndent}            int end = ${sEnd};`);
+            lines.push(`${baseIndent}            if (start < end) {`);
+            lines.push(`${baseIndent}                if (hour >= start && hour < end) return true;`);
+            lines.push(`${baseIndent}            } else {`);
+            lines.push(`${baseIndent}                if (hour >= start || hour < end) return true;`);
+            lines.push(`${baseIndent}            }`);
+            lines.push(`${baseIndent}        }`);
+            lines.push(`${baseIndent}        return false;`);
+            lines.push(`${baseIndent}    then:`);
+            appendDeepSleepEnter(`${baseIndent}      `, 'Entering Night-time Deep Sleep...', endStr);
+            lines.push(`${baseIndent}    else:`);
+            appendDeepSleepEnter(`${baseIndent}      `, 'Entering Deep Sleep now...');
+            return;
+        }
+
+        appendDeepSleepEnter(baseIndent, 'Entering Deep Sleep now...');
     };
 
     /** @param {string | null | undefined} ts */
@@ -135,34 +143,24 @@ export function generateScriptSection(payload, pages, profile) {
     if (isDeepSleep) {
         lines.push("");
         lines.push("  - id: deep_sleep_cycle");
+        lines.push("    mode: restart");
         lines.push("    then:");
 
-        if (sEnabled) {
-            const endStr = String(sEnd).padStart(2, '0');
+        appendFirmwareGuardDelay('      ');
+
+        if (payload.deepSleepStayAwakeSwitch) {
             lines.push("      - if:");
             lines.push("          condition:");
-            lines.push("            lambda: |-");
-            lines.push("              auto time = id(ha_time).now();");
-            lines.push("              if (time.is_valid()) {");
-            lines.push(`                  int hour = time.hour;`);
-            lines.push(`                  int start = ${sStart};`);
-            lines.push(`                  int end = ${sEnd};`);
-            lines.push("                  if (start < end) {");
-            lines.push("                      if (hour >= start && hour < end) return true;");
-            lines.push("                  } else {");
-            lines.push("                      if (hour >= start || hour < end) return true;");
-            lines.push("                  }");
-            lines.push("              }");
-            lines.push("              return false;");
+            lines.push("            binary_sensor.is_on: stay_awake_switch");
             lines.push("          then:");
-            appendFirmwareGuardDelay('            ');
-            appendDeepSleepEnter('            ', 'Entering Night-time Deep Sleep...', endStr);
+            lines.push('            - logger.log: "Deep Sleep prevented, retrying in 60s"');
+            lines.push("            - deep_sleep.prevent: deep_sleep_control");
+            lines.push("            - delay: 60s");
+            lines.push("            - script.execute: deep_sleep_cycle");
             lines.push("          else:");
-            appendFirmwareGuardDelay('            ');
-            appendDeepSleepEnter('            ', 'Entering Deep Sleep now...');
+            appendDeepSleepCycleBranch('            ');
         } else {
-            appendFirmwareGuardDelay('      ');
-            appendDeepSleepEnter('      ', 'Entering Deep Sleep now...');
+            appendDeepSleepCycleBranch('      ');
         }
     }
 

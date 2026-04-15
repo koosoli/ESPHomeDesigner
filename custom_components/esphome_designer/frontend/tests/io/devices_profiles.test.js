@@ -41,6 +41,21 @@ describe('built-in device profiles', async () => {
         expect(devices.SUPPORTED_DEVICE_IDS).toContain('reterminal_e1001');
     });
 
+    it('surfaces the corrected JC4832W535 board id while hiding the legacy alias', () => {
+        const profile = devices.DEVICE_PROFILES.guition_esp32_jc4832w535;
+        const legacy = devices.DEVICE_PROFILES.guition_esp32_jc8048w535;
+
+        expect(profile).toBeTruthy();
+        expect(profile.name).toContain('JC4832W535');
+        expect(profile.hardwarePackage).toBe('hardware/guition-esp32-jc8048w535.yaml');
+        expect(profile.displayModel).toBe('JC4832W535');
+        expect(devices.SUPPORTED_DEVICE_IDS).toContain('guition_esp32_jc4832w535');
+
+        expect(legacy).toBeTruthy();
+        expect(legacy.isUntestedProfile).toBe(true);
+        expect(devices.SUPPORTED_DEVICE_IDS).not.toContain('guition_esp32_jc8048w535');
+    });
+
     it('recomputes supported ids after loading external profiles', async () => {
         fetchDynamicHardwareProfilesMock.mockResolvedValueOnce([
             {

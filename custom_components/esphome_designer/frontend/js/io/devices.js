@@ -244,6 +244,36 @@ export const DEVICE_PROFILES = {
       transform: { swap_xy: true }
     }
   },
+  guition_esp32_jc4832w535: {
+    name: "Guition JC4832W535 v3 3.5\" 480x320",
+    displayType: "color",
+    chip: "esp32-s3",
+    displayPlatform: "qspi_dbi",
+    displayModel: "JC4832W535",
+    isPackageBased: true,
+    hardwarePackage: "hardware/guition-esp32-jc8048w535.yaml",
+    resolution: { width: 320, height: 480 },
+    features: { psram: true, buzzer: false, buttons: false, lcd: true, lvgl: true, touch: true },
+    touch: {
+      platform: "axs15231",
+      transformed: true,
+      transform: { mirror_x: true, swap_xy: true },
+      calibration: { x_min: 14, x_max: 461, y_min: 12, y_max: 310 }
+    }
+  },
+  // Legacy compatibility alias for layouts saved before the corrected board id existed.
+  guition_esp32_jc8048w535: {
+    name: "Guition JC4832W535 v3 3.5\" 480x320 (Legacy ID)",
+    displayType: "color",
+    chip: "esp32-s3",
+    displayPlatform: "qspi_dbi",
+    displayModel: "JC4832W535",
+    isPackageBased: true,
+    isUntestedProfile: true,
+    hardwarePackage: "hardware/guition-esp32-jc8048w535.yaml",
+    resolution: { width: 320, height: 480 },
+    features: { psram: true, buzzer: false, buttons: false, lcd: true, lvgl: true, touch: true }
+  },
 
   // ========================================================================
   // OTHER DEVICES

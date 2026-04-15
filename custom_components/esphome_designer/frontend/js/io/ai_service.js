@@ -237,22 +237,29 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
             }
             : { type: "json_object" };
 
+        const requestBody = {
+            model: model,
+            messages: [
+                { role: "system", content: system },
+                { role: "user", content: user }
+            ],
+            temperature: 0.1,
+            response_format: responseFormat
+        };
+
+        if (isGpt5) {
+            requestBody.max_completion_tokens = 8192;
+        } else {
+            requestBody.max_tokens = 8192;
+        }
+
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                model: model,
-                messages: [
-                    { role: "system", content: system },
-                    { role: "user", content: user }
-                ],
-                temperature: 0.1,
-                max_tokens: 8192,
-                response_format: responseFormat
-            })
+            body: JSON.stringify(requestBody)
         });
 
         const data = await response.json();

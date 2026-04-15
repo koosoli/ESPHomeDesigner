@@ -4,6 +4,11 @@
 
 import { makeSafeId } from '../../js/utils/export_helpers.js';
 
+const buildCheckedStateUpdateAction = (widgetId) => `- lvgl.widget.update:
+    id: ${widgetId}
+    state:
+      checked: !lambda return x;`;
+
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     const checked = props.checked || false;
@@ -86,7 +91,7 @@ const onExportBinarySensors = (context) => {
             if (!pendingTriggers.has(eid)) {
                 pendingTriggers.set(eid, new Set());
             }
-            pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
+            pendingTriggers.get(eid).add(buildCheckedStateUpdateAction(w.id));
         }
     }
 };
