@@ -1,3 +1,17 @@
+## v1.0.0 RC12.5 - Light Brightness Attribute Compatibility
+**Release Date:** April 16, 2026
+
+This RC12.5 follow-up is a narrow post-release correction for [Issue #371](https://github.com/koosoli/ESPHomeDesigner/issues/371). Real-device feedback after the RC12.4 release showed that some Home Assistant lights publish live state through the raw `brightness` attribute instead of `brightness_pct`, and that the generated light-slider lambdas could still fail ESPHome compilation because different branches returned mixed numeric types. RC12.5 fixes both issues, refreshes the visible release metadata, and rebuilds the shipped frontend assets for a clean follow-up cut.
+
+### Stability & Verification
+- **Home Assistant Light Attribute Compatibility (Issue #371):** Light-backed LVGL sliders now subscribe to the HA `brightness` attribute for initial state and live updates, which matches the state model shown in Home Assistant Developer Tools for integrations that only expose raw `0..255` brightness values.
+- **Compile-Safe Light Slider Lambdas (Issue #371):** Generated light-slider `value`, `lvgl.slider.update`, and `light.turn_on` brightness lambdas now keep a consistent float return type across every branch, eliminating the ESPHome C++ `inconsistent types 'float' and 'int' deduced for lambda return type` build error seen on generated YAML.
+- **Regression Coverage Expansion:** Updated the LVGL slider regression tests to lock the raw `brightness` attribute path, the `0..255` scaling behavior, and the new compile-safe lambda output for both default and scaled slider ranges.
+- **Release Metadata Refresh:** Updated the npm package version, package lock metadata, Home Assistant manifest version, visible header label, release notes heading/date, and rebuilt frontend assets for the RC12.5 release line.
+
+
+---
+
 ## v1.0.0 RC12.4 - OpenAI GPT-5 Compatibility & Guition 3.5 Support
 **Release Date:** April 15, 2026
 

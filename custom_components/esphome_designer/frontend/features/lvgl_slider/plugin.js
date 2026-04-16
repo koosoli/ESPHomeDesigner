@@ -6,7 +6,7 @@ const isLightEntity = (entityId) => String(entityId || "").trim().toLowerCase().
 
 const getSliderSensorId = (entityId) => String(entityId || "").trim().replace(/[^a-zA-Z0-9_]/g, "_");
 
-const getBrightnessSensorId = (entityId) => `${getSliderSensorId(entityId)}_brightness_pct`;
+const getBrightnessSensorId = (entityId) => `${getSliderSensorId(entityId)}_brightness`;
 
 const parseSliderBound = (value, fallback) => {
     const parsed = Number(value);
@@ -19,48 +19,46 @@ const getSliderRange = (props = {}) => ({
 });
 
 const buildLightSliderValueLambda = (sensorId, minValue, maxValue) => {
-    if (minValue === 0 && maxValue === 100) {
-        return `!lambda "return id(${sensorId}).has_state() ? id(${sensorId}).state : 0;"`;
-    }
-
     return `!lambda |-
-      if (!id(${sensorId}).has_state()) return ${minValue};
-      const float slider_min = ${minValue};
-      const float slider_max = ${maxValue};
-      if (slider_max <= slider_min) return id(${sensorId}).state;
-      const float brightness_pct = id(${sensorId}).state;
-      return (int)(slider_min + ((brightness_pct / 100.0f) * (slider_max - slider_min)));`;
+      if (!id(${sensorId}).has_state()) return static_cast<float>(${minValue});
+      const float slider_min = static_cast<float>(${minValue});
+      const float slider_max = static_cast<float>(${maxValue});
+      const float brightness = id(${sensorId}).state;
+      if (slider_max <= slider_min) return brightness;
+      return slider_min + ((brightness / 255.0f) * (slider_max - slider_min));`;
 };
 
-const buildLightBrightnessPercentLambda = (minValue, maxValue) => {
-    if (minValue === 0 && maxValue === 100) {
-        return "!lambda 'return x;'";
+const buildLightBrightnessLambda = (minValue, maxValue) => {
+    if (minValue === 0 && maxValue === 255) {
+        return "!lambda 'return static_cast<float>(x);'";
     }
 
     return `!lambda |-
-      const float slider_min = ${minValue};
-      const float slider_max = ${maxValue};
-      if (slider_max <= slider_min) return x;
-      const float clamped = x < slider_min ? slider_min : (x > slider_max ? slider_max : x);
-      return (int)(((clamped - slider_min) * 100.0f) / (slider_max - slider_min));`;
+      const float raw_x = static_cast<float>(x);
+      const float slider_min = static_cast<float>(${minValue});
+      const float slider_max = static_cast<float>(${maxValue});
+      if (slider_max <= slider_min) return raw_x;
+      const float clamped = raw_x < slider_min ? slider_min : (raw_x > slider_max ? slider_max : raw_x);
+      return ((clamped - slider_min) * 255.0f) / (slider_max - slider_min);`;
 };
 
 const buildLightSliderUpdateAction = (widgetId, minValue, maxValue) => {
-    if (minValue === 0 && maxValue === 100) {
+    if (minValue === 0 && maxValue === 255) {
         return `- lvgl.slider.update:
     id: ${widgetId}
     value: !lambda |-
-      return isnan(x) ? 0 : x;`;
+      return isnan(x) ? 0.0f : static_cast<float>(x);`;
     }
 
     return `- lvgl.slider.update:
     id: ${widgetId}
     value: !lambda |-
-      if (isnan(x)) return ${minValue};
-      const float slider_min = ${minValue};
-      const float slider_max = ${maxValue};
-      if (slider_max <= slider_min) return x;
-      return (int)(slider_min + ((x / 100.0f) * (slider_max - slider_min)));`;
+      if (isnan(x)) return static_cast<float>(${minValue});
+      const float raw_x = static_cast<float>(x);
+      const float slider_min = static_cast<float>(${minValue});
+      const float slider_max = static_cast<float>(${maxValue});
+      if (slider_max <= slider_min) return raw_x;
+      return slider_min + ((raw_x / 255.0f) * (slider_max - slider_min));`;
 };
 
 const render = (el, widget, { getColorStyle }) => {
@@ -170,7 +168,7 @@ const exportLVGL = (w, { common, convertColor, profile }) => {
     if (entityId) {
         let serviceCall;
         if (isLightEntity(entityId)) {
-            const brightnessPercentValue = buildLightBrightnessPercentLambda(minValue, maxValue);
+            const brightnessValue = buildLightBrightnessLambda(minValue, maxValue);
             serviceCall = {
                 "if": {
                     condition: { lambda: "return x <= 0;" },
@@ -178,7 +176,7 @@ const exportLVGL = (w, { common, convertColor, profile }) => {
                         { "homeassistant.service": { service: "light.turn_off", data: { entity_id: entityId } } }
                     ],
                     else: [
-                        { "homeassistant.service": { service: "light.turn_on", data: { entity_id: entityId, brightness_pct: brightnessPercentValue } } }
+                        { "homeassistant.service": { service: "light.turn_on", data: { entity_id: entityId, brightness: brightnessValue } } }
                     ]
                 }
             };
@@ -212,7 +210,7 @@ const onExportNumericSensors = (context) => {
 
         if (isLightEntity(eid)) {
             const sensorId = getBrightnessSensorId(eid);
-            const entityKey = `${eid}__attr__brightness_pct`;
+            const entityKey = `${eid}__attr__brightness`;
             if (seenEntityIds && !seenEntityIds.has(entityKey)) {
                 seenEntityIds.add(entityKey);
                 if (seenSensorIds && !seenSensorIds.has(sensorId)) {
@@ -221,7 +219,7 @@ const onExportNumericSensors = (context) => {
                         "- platform: homeassistant",
                         `  id: ${sensorId}`,
                         `  entity_id: ${eid}`,
-                        "  attribute: brightness_pct",
+                        "  attribute: brightness",
                         "  internal: true"
                     );
                 }

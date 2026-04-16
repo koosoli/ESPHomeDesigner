@@ -120,11 +120,15 @@ describe('lvgl slider plugin', () => {
             profile: { touch: true }
         });
 
-        expect(defaultLight.slider.value).toContain('id(light_kitchen_brightness_pct).has_state() ? id(light_kitchen_brightness_pct).state : 0');
+        expect(defaultLight.slider.value).toContain('if (!id(light_kitchen_brightness).has_state()) return static_cast<float>(0);');
+        expect(defaultLight.slider.value).toContain('const float brightness = id(light_kitchen_brightness).state;');
+        expect(defaultLight.slider.value).toContain('return slider_min + ((brightness / 255.0f) * (slider_max - slider_min));');
         expect(defaultLight.slider.on_value[0]['if'].condition.lambda).toBe('return x <= 0;');
         expect(defaultLight.slider.on_value[0]['if'].then[0]['homeassistant.service'].service).toBe('light.turn_off');
         expect(defaultLight.slider.on_value[0]['if'].else[0]['homeassistant.service'].service).toBe('light.turn_on');
-        expect(defaultLight.slider.on_value[0]['if'].else[0]['homeassistant.service'].data.brightness_pct).toBe("!lambda 'return x;'");
+        expect(defaultLight.slider.on_value[0]['if'].else[0]['homeassistant.service'].data.brightness).toContain('const float raw_x = static_cast<float>(x);');
+        expect(defaultLight.slider.on_value[0]['if'].else[0]['homeassistant.service'].data.brightness).not.toContain('(int)');
+        expect(defaultLight.slider.on_value[0]['if'].else[0]['homeassistant.service'].data.brightness).toContain('return ((clamped - slider_min) * 255.0f) / (slider_max - slider_min);');
 
         const scaledLight = plugin.exportLVGL({
             id: 'slider_light_scaled',
@@ -145,9 +149,11 @@ describe('lvgl slider plugin', () => {
             profile: { touch: true }
         });
 
-        expect(scaledLight.slider.value).toContain('brightness_pct = id(light_kitchen_brightness_pct).state;');
-        expect(scaledLight.slider.value).toContain('return (int)(slider_min + ((brightness_pct / 100.0f) * (slider_max - slider_min)));');
-        expect(scaledLight.slider.on_value[0]['if'].else[0]['homeassistant.service'].data.brightness_pct).toContain('return (int)(((clamped - slider_min) * 100.0f) / (slider_max - slider_min));');
+        expect(scaledLight.slider.value).toContain('const float brightness = id(light_kitchen_brightness).state;');
+        expect(scaledLight.slider.value).toContain('if (slider_max <= slider_min) return brightness;');
+        expect(scaledLight.slider.value).not.toContain('(int)');
+        expect(scaledLight.slider.value).toContain('return slider_min + ((brightness / 255.0f) * (slider_max - slider_min));');
+        expect(scaledLight.slider.on_value[0]['if'].else[0]['homeassistant.service'].data.brightness).toBe("!lambda 'return static_cast<float>(x);'");
 
         const pendingTriggers = new Map();
         const lines = [];
@@ -169,31 +175,32 @@ describe('lvgl slider plugin', () => {
 
         expect(lines).toEqual([
             '- platform: homeassistant',
-            '  id: light_kitchen_brightness_pct',
+            '  id: light_kitchen_brightness',
             '  entity_id: light.kitchen',
-            '  attribute: brightness_pct',
+            '  attribute: brightness',
             '  internal: true',
             '- platform: homeassistant',
-            '  id: light_desk_brightness_pct',
+            '  id: light_desk_brightness',
             '  entity_id: light.desk',
-            '  attribute: brightness_pct',
+            '  attribute: brightness',
             '  internal: true'
         ]);
-        expect([...pendingTriggers.get('light_kitchen_brightness_pct')]).toEqual([
+        expect([...pendingTriggers.get('light_kitchen_brightness')]).toEqual([
             `- lvgl.slider.update:
     id: slider_light
     value: !lambda |-
-      if (isnan(x)) return 0;
-      const float slider_min = 0;
-      const float slider_max = 255;
-      if (slider_max <= slider_min) return x;
-      return (int)(slider_min + ((x / 100.0f) * (slider_max - slider_min)));`
+      return isnan(x) ? 0.0f : static_cast<float>(x);`
         ]);
-        expect([...pendingTriggers.get('light_desk_brightness_pct')]).toEqual([
+        expect([...pendingTriggers.get('light_desk_brightness')]).toEqual([
             `- lvgl.slider.update:
     id: slider_light_default
     value: !lambda |-
-      return isnan(x) ? 0 : x;`
+      if (isnan(x)) return static_cast<float>(0);
+      const float raw_x = static_cast<float>(x);
+      const float slider_min = static_cast<float>(0);
+      const float slider_max = static_cast<float>(100);
+      if (slider_max <= slider_min) return raw_x;
+      return slider_min + ((raw_x / 255.0f) * (slider_max - slider_min));`
         ]);
         expect(pendingTriggers.has('light.kitchen')).toBe(false);
         expect([...pendingTriggers.get('number.manual')]).toEqual(['- lvgl.widget.refresh: slider_1']);
