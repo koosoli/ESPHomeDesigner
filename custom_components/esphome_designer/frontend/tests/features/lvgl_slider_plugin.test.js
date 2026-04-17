@@ -123,12 +123,12 @@ describe('lvgl slider plugin', () => {
         expect(defaultLight.slider.value).toContain('if (!id(light_kitchen_brightness).has_state()) return static_cast<float>(0);');
         expect(defaultLight.slider.value).toContain('const float brightness = id(light_kitchen_brightness).state;');
         expect(defaultLight.slider.value).toContain('return slider_min + ((brightness / 255.0f) * (slider_max - slider_min));');
-        expect(defaultLight.slider.on_value[0]['if'].condition.lambda).toBe('return x <= 0;');
-        expect(defaultLight.slider.on_value[0]['if'].then[0]['homeassistant.service'].service).toBe('light.turn_off');
-        expect(defaultLight.slider.on_value[0]['if'].else[0]['homeassistant.service'].service).toBe('light.turn_on');
-        expect(defaultLight.slider.on_value[0]['if'].else[0]['homeassistant.service'].data.brightness).toContain('const float raw_x = static_cast<float>(x);');
-        expect(defaultLight.slider.on_value[0]['if'].else[0]['homeassistant.service'].data.brightness).not.toContain('(int)');
-        expect(defaultLight.slider.on_value[0]['if'].else[0]['homeassistant.service'].data.brightness).toContain('return ((clamped - slider_min) * 255.0f) / (slider_max - slider_min);');
+        expect(defaultLight.slider.on_value).toBeUndefined();
+        expect(defaultLight.slider.on_release[0]['if'].condition.lambda).toBe('return x <= 0;');
+        expect(defaultLight.slider.on_release[0]['if'].then[0]['homeassistant.action'].action).toBe('light.turn_off');
+        expect(defaultLight.slider.on_release[0]['if'].else[0]['homeassistant.action'].action).toBe('light.turn_on');
+        expect(defaultLight.slider.on_release[0]['if'].else[0]['homeassistant.action'].data.brightness).toContain('const float raw_x = static_cast<float>(x);');
+        expect(defaultLight.slider.on_release[0]['if'].else[0]['homeassistant.action'].data.brightness).toContain('return int(((clamped - slider_min) * 255.0f) / (slider_max - slider_min));');
 
         const scaledLight = plugin.exportLVGL({
             id: 'slider_light_scaled',
@@ -153,7 +153,8 @@ describe('lvgl slider plugin', () => {
         expect(scaledLight.slider.value).toContain('if (slider_max <= slider_min) return brightness;');
         expect(scaledLight.slider.value).not.toContain('(int)');
         expect(scaledLight.slider.value).toContain('return slider_min + ((brightness / 255.0f) * (slider_max - slider_min));');
-        expect(scaledLight.slider.on_value[0]['if'].else[0]['homeassistant.service'].data.brightness).toBe("!lambda 'return static_cast<float>(x);'");
+        expect(scaledLight.slider.on_value).toBeUndefined();
+        expect(scaledLight.slider.on_release[0]['if'].else[0]['homeassistant.action'].data.brightness).toBe("!lambda 'return int(x);'");
 
         const pendingTriggers = new Map();
         const lines = [];

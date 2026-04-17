@@ -30,16 +30,16 @@ const buildLightSliderValueLambda = (sensorId, minValue, maxValue) => {
 
 const buildLightBrightnessLambda = (minValue, maxValue) => {
     if (minValue === 0 && maxValue === 255) {
-        return "!lambda 'return static_cast<float>(x);'";
+        return "!lambda 'return int(x);'";
     }
 
     return `!lambda |-
       const float raw_x = static_cast<float>(x);
       const float slider_min = static_cast<float>(${minValue});
       const float slider_max = static_cast<float>(${maxValue});
-      if (slider_max <= slider_min) return raw_x;
+      if (slider_max <= slider_min) return int(raw_x);
       const float clamped = raw_x < slider_min ? slider_min : (raw_x > slider_max ? slider_max : raw_x);
-      return ((clamped - slider_min) * 255.0f) / (slider_max - slider_min);`;
+      return int(((clamped - slider_min) * 255.0f) / (slider_max - slider_min));`;
 };
 
 const buildLightSliderUpdateAction = (widgetId, minValue, maxValue) => {
@@ -173,10 +173,10 @@ const exportLVGL = (w, { common, convertColor, profile }) => {
                 "if": {
                     condition: { lambda: "return x <= 0;" },
                     then: [
-                        { "homeassistant.service": { service: "light.turn_off", data: { entity_id: entityId } } }
+                        { "homeassistant.action": { action: "light.turn_off", data: { entity_id: entityId } } }
                     ],
                     else: [
-                        { "homeassistant.service": { service: "light.turn_on", data: { entity_id: entityId, brightness: brightnessValue } } }
+                        { "homeassistant.action": { action: "light.turn_on", data: { entity_id: entityId, brightness: brightnessValue } } }
                     ]
                 }
             };
@@ -191,7 +191,12 @@ const exportLVGL = (w, { common, convertColor, profile }) => {
         } else {
             serviceCall = { "homeassistant.service": { service: "number.set_value", data: { entity_id: entityId, value: "!lambda 'return x;'" } } };
         }
-        sliderObj.slider.on_value = [serviceCall];
+        if (isLightEntity(entityId)) {
+            sliderObj.slider.on_release = [serviceCall];
+            delete sliderObj.slider.on_value;
+        } else {
+            sliderObj.slider.on_value = [serviceCall];
+        }
     }
     return sliderObj;
 };

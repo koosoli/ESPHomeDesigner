@@ -1,3 +1,16 @@
+## v1.0.0 RC12.6 - Cookbook-Aligned Light Slider Actions
+**Release Date:** April 17, 2026
+
+This RC12.6 follow-up carries the next real-device correction for [Issue #371](https://github.com/koosoli/ESPHomeDesigner/issues/371). After the RC12.5 release restored raw `brightness` tracking and fixed the mixed-type lambda build failure, additional user testing showed that newer ESPHome/Home Assistant combinations behave more reliably when generated LVGL light sliders follow the current cookbook pattern for action dispatch. RC12.6 moves that behavior onto its own release line, refreshes the visible release metadata, and rebuilds the shipped frontend assets for a clean follow-up cut.
+
+### Stability & Verification
+- **Cookbook-Aligned Light Slider Actions (Issue #371):** Light-backed LVGL sliders now export `homeassistant.action` with raw `brightness` values and trigger the HA call on `on_release`, matching the current ESPHome LVGL light-brightness cookbook pattern and avoiding the silent no-op behavior reported with the older `homeassistant.service` path on newer Home Assistant installs.
+- **Regression Coverage Expansion:** Updated the LVGL slider regression tests to lock the `homeassistant.action` payload shape, the raw integer `brightness` lambda output, and the `on_release` event path for light-backed sliders without changing the existing non-light slider service flow.
+- **Release Metadata Refresh:** Updated the package version, package lock metadata, Home Assistant manifest version, visible header label, release notes heading/date, and rebuilt frontend assets for the RC12.6 release line.
+
+
+---
+
 ## v1.0.0 RC12.5 - Light Brightness Attribute Compatibility
 **Release Date:** April 16, 2026
 
