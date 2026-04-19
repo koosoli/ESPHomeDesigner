@@ -21,6 +21,7 @@ const controlsMethods = {
     addNumberWithSlider: vi.fn(),
     addCompactPropertyRow: vi.fn((fn) => fn()),
     addCommonLVGLProperties: vi.fn(),
+    addLVGLStateTriggerControls: vi.fn(),
     addVisibilityConditions: vi.fn(),
     addPageSelector: vi.fn(),
     addLabeledInputWithDataList: vi.fn(),
@@ -141,6 +142,10 @@ describe('PropertiesPanel', () => {
         snapToggle.checked = false;
         snapToggle.dispatchEvent(new Event('change', { bubbles: true }));
         expect(mockAppState.setSnapEnabled).toHaveBeenCalledWith(false);
+
+        const settingsChanged = mockOn.mock.calls.find((call) => call[0] === 'SETTINGS_CHANGED')?.[1];
+        settingsChanged?.({ snapEnabled: true });
+        expect(snapToggle.checked).toBe(true);
     });
 
     it('renders empty-state message when no widget selected', async () => {
@@ -229,6 +234,42 @@ describe('PropertiesPanel', () => {
 
         expect(controlsMethods.addCommonLVGLProperties).toHaveBeenCalledWith(widget, widget.props);
         expect(mockSchemaRender).toHaveBeenCalled();
+    });
+
+    it('renders transform callbacks, lvgl trigger controls, and visibility controls in lvgl mode', async () => {
+        const widget = {
+            id: 'w-lvgl-mode',
+            type: 'sensor_text',
+            x: 10,
+            y: 20,
+            width: 100,
+            height: 40,
+            props: {}
+        };
+
+        mockAppState.settings.renderingMode = 'lvgl';
+        mockAppState.selectedWidgetId = 'w-lvgl-mode';
+        mockAppState.selectedWidgetIds = ['w-lvgl-mode'];
+        mockAppState.getSelectedWidgetIds.mockReturnValue(['w-lvgl-mode']);
+        mockAppState.getSelectedWidget.mockReturnValue(widget);
+        mockAppState.getSelectedWidgets.mockReturnValue([widget]);
+
+        const { PropertiesPanel } = await import('../../js/core/properties.js');
+        const panel = new PropertiesPanel(mockApp);
+        panel.render();
+
+        const findInputCallback = (label) => controlsMethods.addLabeledInput.mock.calls.find((call) => call[0] === label)?.[3];
+        findInputCallback('Pos X')?.('');
+        findInputCallback('Pos Y')?.('7');
+        findInputCallback('Width')?.('');
+        findInputCallback('Height')?.('55');
+
+        expect(mockAppState.updateWidget).toHaveBeenCalledWith('w-lvgl-mode', { x: 0 });
+        expect(mockAppState.updateWidget).toHaveBeenCalledWith('w-lvgl-mode', { y: 7 });
+        expect(mockAppState.updateWidget).toHaveBeenCalledWith('w-lvgl-mode', { width: 10 });
+        expect(mockAppState.updateWidget).toHaveBeenCalledWith('w-lvgl-mode', { height: 55 });
+        expect(controlsMethods.addLVGLStateTriggerControls).toHaveBeenCalledWith(widget);
+        expect(controlsMethods.addVisibilityConditions).toHaveBeenCalledWith(widget);
     });
 
     it('skips rerendering while lasso selection is active', async () => {
@@ -362,5 +403,27 @@ describe('PropertiesPanel', () => {
         btn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
         expect(mockAppState.createDropShadow).toHaveBeenCalledWith(['w1']);
+    });
+
+    it('toggles section state, handles missing containers, and targets a single widget for drop shadows', async () => {
+        const { PropertiesPanel } = await import('../../js/core/properties.js');
+        const panel = new PropertiesPanel(mockApp);
+
+        const content = panel.createSection('Advanced', false);
+        const header = document.querySelector('.properties-section-header');
+        expect(content).toBeTruthy();
+        header?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        expect(panel.sectionStates.Advanced).toBe(true);
+
+        panel.panel = null;
+        const detachedContent = panel.createSection('Detached', true);
+        expect(detachedContent.className).toBe('properties-section-content');
+
+        const container = document.createElement('div');
+        panel.addDropShadowButton(container, 'solo-widget');
+        const btn = container.querySelector('button');
+        btn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+        expect(mockAppState.createDropShadow).toHaveBeenCalledWith('solo-widget');
     });
 });

@@ -87,6 +87,23 @@ describe('PropertyControls', () => {
         expect(container.textContent).toContain('Title');
     });
 
+    it('styles mixed plain inputs and clears the mixed formatting after editing', () => {
+        const onChange = vi.fn();
+        controls.addLabeledInput('Mixed Title', 'text', MIXED_VALUE, onChange);
+
+        const input = container.querySelector('input.prop-input');
+        expect(input.placeholder).toBe('Mixed');
+        expect(input.style.fontStyle).toBe('italic');
+        expect(input.style.color).toBe('rgb(136, 136, 136)');
+
+        input.value = 'normalized';
+        input.dispatchEvent(new Event('input'));
+
+        expect(input.style.fontStyle).toBe('normal');
+        expect(input.style.color).toBe('inherit');
+        expect(onChange).toHaveBeenCalledWith('normalized');
+    });
+
     it('supports mixed textarea and mixed select states', () => {
         const onTextareaChange = vi.fn();
         controls.addLabeledInput('Body', 'textarea', MIXED_VALUE, onTextareaChange);
@@ -231,6 +248,13 @@ describe('PropertyControls', () => {
         expect(panel.createSection).toHaveBeenCalled();
         expect(panel.endSection).toHaveBeenCalled();
         expect(mockUpdateWidget).toHaveBeenCalled();
+    });
+
+    it('delegates lvgl state trigger controls through the property controls facade', () => {
+        controls.addLVGLStateTriggerControls({ id: 'w-trigger', props: {} });
+
+        expect(panel.createSection).toHaveBeenCalledWith('State Trigger', false);
+        expect(container.textContent).toContain('supported Home Assistant trigger');
     });
 
     it('creates visibility conditions and clear action', () => {

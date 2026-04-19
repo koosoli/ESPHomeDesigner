@@ -150,6 +150,29 @@ describe('weather protocol misc coverage', () => {
         expect(JSON.stringify(lvgl)).toContain('weather_cond_hplus1');
         expect(JSON.stringify(lvgl)).toContain('\\U000F0625');
 
+        const fixedHourlyLvgl = exportForecastLVGL({
+            id: 'forecast_hourly_fixed',
+            x: 0,
+            y: 0,
+            width: 180,
+            height: 80,
+            props: {
+                forecast_mode: 'hourly',
+                hourly_mode: 'fixed',
+                hourly_slots: '06,09,12',
+                start_offset: 1
+            }
+        }, {
+            common: { id: 'forecast_hourly_fixed_root' },
+            convertColor: (value) => `COLOR_${String(value).toUpperCase()}`,
+            getLVGLFont: (...args) => args.join('_')
+        });
+
+        const fixedOutput = JSON.stringify(fixedHourlyLvgl);
+        expect(fixedHourlyLvgl.obj.widgets[0].obj.widgets[0].label.text).toContain('09:00');
+        expect(fixedOutput).toContain('weather_cond_h0900');
+        expect(fixedOutput).toContain('weather_high_h0900');
+
         const dailyLvgl = exportForecastLVGL({
             id: 'forecast_daily_unknowns',
             x: 0,

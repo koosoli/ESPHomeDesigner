@@ -343,6 +343,21 @@ describe('Entity Deduplication & Registration', () => {
             expect(action).toContain('# esphome-designer-state-trigger: label_1');
             expect(action).toContain('- lvgl.label.update:');
         });
+
+        it('preserves an explicit on_value trigger mode when the widget asks for it', () => {
+            const pendingTriggers = new Map();
+
+            collectCustomStateTriggerActions([{
+                id: 'label_2',
+                props: {
+                    state_trigger_entity: 'sensor.energy_usage',
+                    state_trigger_mode: 'on_value',
+                    state_trigger_actions: '- script.execute: refresh_energy'
+                }
+            }], pendingTriggers);
+
+            expect(Array.from(pendingTriggers.keys())).toEqual(['sensor.energy_usage']);
+        });
     });
 
 });
