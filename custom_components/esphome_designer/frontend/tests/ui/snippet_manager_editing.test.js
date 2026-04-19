@@ -222,6 +222,35 @@ describe('snippet_manager_editing', () => {
         expect(manager.persistManualYamlOverride).toHaveBeenCalledWith('lambda:\n  return 1;');
     });
 
+    it('surfaces supported-import warnings after a successful YAML update', async () => {
+        const { handleUpdateLayoutFromSnippetBoxEditor } = await import('../../js/ui/snippet_manager_editing.js');
+
+        mockParseSnippetYamlOffline.mockReturnValue({
+            pages: [],
+            settings: {},
+            importWarnings: ['Imported visual layout; unsupported custom automations remain raw YAML only.']
+        });
+        /** @type {HTMLTextAreaElement} */ (document.getElementById('snippetBox')).value = 'display:\n  - platform: ili9xxx';
+
+        const manager = {
+            lastGeneratedYaml: 'old yaml',
+            suppressSnippetUpdate: false,
+            snippetDebounceTimer: null,
+            syncGeneratedSnippetBaseline: vi.fn().mockResolvedValue(undefined),
+            persistManualYamlOverride: vi.fn()
+        };
+
+        await handleUpdateLayoutFromSnippetBoxEditor(manager);
+        await vi.runAllTimersAsync();
+
+        expect(mockShowToast).toHaveBeenCalledWith('Layout updated from YAML', 'success');
+        expect(mockShowToast).toHaveBeenCalledWith(
+            'Imported visual layout; unsupported custom automations remain raw YAML only.',
+            'warning',
+            4500
+        );
+    });
+
     it('surfaces a parse error when the offline parser returns no layout', async () => {
         const { handleUpdateLayoutFromSnippetBoxEditor } = await import('../../js/ui/snippet_manager_editing.js');
 

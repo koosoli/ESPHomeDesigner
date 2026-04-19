@@ -2,6 +2,10 @@ import { AppState } from '../core/state';
 import { Logger } from '../utils/logger.js';
 import { DEVICE_PROFILES } from './devices.js';
 import * as yaml from 'js-yaml';
+import {
+    DESIGNER_STATE_TRIGGER_MARKER,
+    HA_BINARY_DOMAINS
+} from './adapters/entity_dedup.js';
 
 import { parseSettings } from './yaml_parsers/settings_parser.js';
 import { parseDisplayBlocks } from './yaml_parsers/display_parser.js';
@@ -40,11 +44,19 @@ export interface ParsedLayout {
     protocol_hardware?: Record<string, any>;
     manualYamlOverride?: string;
     manual_yaml_override?: string;
+    importWarnings?: string[];
     pages?: ParsedPage[];
     data?: {
         devices?: Record<string, any>;
     };
     [key: string]: any;
+}
+
+interface RawTriggerBlock {
+    entityId: string;
+    triggerName: 'on_state' | 'on_value';
+    actionsText: string;
+    widgetId: string | null;
 }
 
 const SNAKE_CASE_SETTING_MAP: Record<string, string> = {
@@ -178,6 +190,194 @@ function extractServicePayloadArray(yamlText: string): any[] | null {
     }
 }
 
+function getLineIndent(line: string): number {
+    return (line.match(/^\s*/) || [''])[0].length;
+}
+
+function extractMarkedWidgetId(actionLines: string[]): string | null {
+    const markerLine = actionLines.find((line) => line.trim().startsWith(DESIGNER_STATE_TRIGGER_MARKER));
+    if (!markerLine) {
+        return null;
+    }
+
+    return markerLine.trim().slice(DESIGNER_STATE_TRIGGER_MARKER.length).trim() || null;
+}
+
+function stripStateTriggerMarker(actionLines: string[]): string[] {
+    return actionLines.filter((line) => !line.trim().startsWith(DESIGNER_STATE_TRIGGER_MARKER));
+}
+
+function isKnownGeneratedStateTrigger(actionsText: string): boolean {
+    const normalized = actionsText.trim();
+    if (!normalized) return true;
+
+    if (/^- lvgl\.widget\.refresh:\s+[A-Za-z0-9_:-]+\s*$/m.test(normalized)) {
+        return true;
+    }
+
+    return /- lvgl\.widget\.update:\s*\n\s+id:\s*[A-Za-z0-9_:-]+\s*\n\s+state:\s*\n\s+checked:\s*!lambda return x;?\s*$/m.test(normalized);
+}
+
+function extractRawTriggerBlocks(rawLines: string[]): RawTriggerBlock[] {
+    const sections = ['sensor:', 'text_sensor:', 'binary_sensor:'];
+    /** @type {RawTriggerBlock[]} */
+    const blocks: RawTriggerBlock[] = [];
+
+    for (let sectionIndex = 0; sectionIndex < rawLines.length; sectionIndex += 1) {
+        const sectionLine = rawLines[sectionIndex];
+        if (!sections.includes(sectionLine.trim())) continue;
+
+        const sectionIndent = getLineIndent(sectionLine);
+        let sectionEnd = rawLines.length;
+        for (let lineIndex = sectionIndex + 1; lineIndex < rawLines.length; lineIndex += 1) {
+            const line = rawLines[lineIndex];
+            if (!line.trim()) continue;
+            if (getLineIndent(line) <= sectionIndent) {
+                sectionEnd = lineIndex;
+                break;
+            }
+        }
+
+        for (let itemStart = sectionIndex + 1; itemStart < sectionEnd; itemStart += 1) {
+            const itemLine = rawLines[itemStart];
+            if (!itemLine.trim().startsWith('- ') || getLineIndent(itemLine) !== sectionIndent + 2) {
+                continue;
+            }
+
+            let itemEnd = sectionEnd;
+            for (let lineIndex = itemStart + 1; lineIndex < sectionEnd; lineIndex += 1) {
+                const line = rawLines[lineIndex];
+                if (line.trim().startsWith('- ') && getLineIndent(line) === sectionIndent + 2) {
+                    itemEnd = lineIndex;
+                    break;
+                }
+            }
+
+            const itemLines = rawLines.slice(itemStart, itemEnd);
+            const entityLine = itemLines.find((line) => /^\s*entity_id:\s*/.test(line));
+            if (!entityLine) {
+                itemStart = itemEnd - 1;
+                continue;
+            }
+
+            const entityMatch = entityLine.match(/^\s*entity_id:\s*["']?([^"'\s#]+)["']?/);
+            const entityId = entityMatch?.[1]?.trim();
+            if (!entityId) {
+                itemStart = itemEnd - 1;
+                continue;
+            }
+
+            (['on_state', 'on_value'] as const).forEach((triggerName) => {
+                const triggerIndex = itemLines.findIndex((line) => line.trim() === `${triggerName}:`);
+                if (triggerIndex === -1) return;
+
+                const triggerIndent = getLineIndent(itemLines[triggerIndex]);
+                const thenIndex = itemLines.findIndex((line, index) => index > triggerIndex && line.trim() === 'then:');
+                if (thenIndex === -1 || getLineIndent(itemLines[thenIndex]) <= triggerIndent) return;
+
+                let baseIndent: number | null = null;
+                const actionLines: string[] = [];
+
+                for (let lineIndex = thenIndex + 1; lineIndex < itemLines.length; lineIndex += 1) {
+                    const line = itemLines[lineIndex];
+                    if (!line.trim()) {
+                        if (baseIndent !== null) actionLines.push('');
+                        continue;
+                    }
+
+                    const indent = getLineIndent(line);
+                    if (indent <= getLineIndent(itemLines[thenIndex])) {
+                        break;
+                    }
+
+                    if (baseIndent === null) {
+                        baseIndent = indent;
+                    }
+
+                    actionLines.push(line.slice(baseIndent));
+                }
+
+                if (actionLines.length === 0) return;
+
+                const widgetId = extractMarkedWidgetId(actionLines);
+                const strippedActionLines = stripStateTriggerMarker(actionLines);
+                const actionsText = strippedActionLines.join('\n').trim();
+                if (!actionsText) return;
+
+                blocks.push({
+                    entityId,
+                    triggerName,
+                    actionsText,
+                    widgetId
+                });
+            });
+
+            itemStart = itemEnd - 1;
+        }
+    }
+
+    return blocks;
+}
+
+export function recoverDesignerStateTriggers(layout: ParsedLayout | null, rawLines: string[]): ParsedLayout | null {
+    if (!layout?.pages?.length) {
+        return layout;
+    }
+
+    const widgets = layout.pages.flatMap((page) => page.widgets || []);
+    const widgetById = new Map(
+        widgets
+            .filter((widget) => widget.id)
+            .map((widget) => [String(widget.id), widget])
+    );
+
+    if (widgetById.size === 0) {
+        return layout;
+    }
+
+    const triggerBlocks = extractRawTriggerBlocks(rawLines);
+    if (triggerBlocks.length === 0) {
+        return layout;
+    }
+
+    let recoveredBlocks = 0;
+    let unsupportedBlocks = 0;
+
+    triggerBlocks.forEach((block) => {
+        const targetWidget = block.widgetId ? widgetById.get(block.widgetId) : null;
+        if (!targetWidget) {
+            if (!isKnownGeneratedStateTrigger(block.actionsText)) {
+                unsupportedBlocks += 1;
+            }
+            return;
+        }
+
+        const props = { ...(targetWidget.props || {}) };
+        if (props.state_trigger_entity || props.state_trigger_actions) {
+            unsupportedBlocks += 1;
+            return;
+        }
+
+        props.state_trigger_entity = block.entityId;
+        props.state_trigger_mode = block.triggerName === 'on_state' || HA_BINARY_DOMAINS.some((domain) => block.entityId.startsWith(domain))
+            ? 'on_state'
+            : 'on_value';
+        props.state_trigger_actions = block.actionsText;
+        targetWidget.props = props;
+        recoveredBlocks += 1;
+    });
+
+    if (unsupportedBlocks > 0) {
+        layout.importWarnings = [
+            'Imported visual layout; unsupported custom automations remain raw YAML only.'
+        ];
+    } else if (recoveredBlocks > 0) {
+        layout.importWarnings = [];
+    }
+
+    return layout;
+}
+
 /**
  * Parses an ESPHome YAML snippet offline to extract the layout.
  * 
@@ -246,7 +446,7 @@ export function parseSnippetYamlOffline(yamlText: string): ParsedLayout | null {
     const deviceSettings = parseSettings(rawLines, doc);
     const layout = parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESPHomeSchema, yaml);
 
-    return layout;
+    return recoverDesignerStateTriggers(layout, rawLines);
 }
 
 /**

@@ -304,6 +304,8 @@ class WidgetConfig:
 
     # Optional semantic helpers; concrete behavior uses props where appropriate.
     entity_id: Optional[str] = None
+    entity_id_2: Optional[str] = None
+    parentId: Optional[str] = None
     title: Optional[str] = None
     icon: Optional[str] = None
 
@@ -333,6 +335,8 @@ class WidgetConfig:
             width=int(data.get("width", 100)),
             height=int(data.get("height", 40)),
             entity_id=data.get("entity_id"),
+            entity_id_2=data.get("entity_id_2"),
+            parentId=data.get("parentId", data.get("parent_id")),
             title=data.get("title"),
             icon=data.get("icon"),
             condition_entity=data.get("condition_entity"),

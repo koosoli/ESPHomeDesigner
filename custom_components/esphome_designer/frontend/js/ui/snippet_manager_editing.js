@@ -21,6 +21,16 @@ function getErrorMessage(error) {
     return error instanceof Error ? error.message : String(error);
 }
 
+/**
+ * @param {{ importWarnings?: string[] } | null | undefined} layout
+ */
+function showImportWarnings(layout) {
+    const warnings = Array.isArray(layout?.importWarnings) ? layout.importWarnings : [];
+    warnings.forEach((warning, index) => {
+        setTimeout(() => showToast(warning, "warning", 4500), index * 200);
+    });
+}
+
 /** @param {any} manager */
 export function openSnippetModalEditor(manager) {
             const modal = getElement('snippetFullscreenModal');
@@ -173,6 +183,7 @@ export async function handleImportSnippetEditor(_manager) {
                 }
 
                 showToast("Layout imported successfully", "success");
+                showImportWarnings(layout);
 
             } catch (err) {
                 Logger.error("Import failed:", err);
@@ -239,6 +250,7 @@ export async function handleUpdateLayoutFromSnippetBoxEditor(manager) {
                 manager.suppressSnippetUpdate = false;
 
                 showToast("Layout updated from YAML", "success");
+                showImportWarnings(layout);
 
                 if (yaml.includes("lambda:") || yaml.includes("script:")) {
                     setTimeout(() => {

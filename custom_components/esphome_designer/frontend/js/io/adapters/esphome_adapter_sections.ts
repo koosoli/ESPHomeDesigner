@@ -2,7 +2,8 @@ import * as Generators from '../hardware_generators.js';
 import {
     collectNumericSensors,
     collectTextSensors,
-    collectBinarySensors
+    collectBinarySensors,
+    collectCustomStateTriggerActions
 } from './entity_dedup.js';
 import { registry } from '../../core/plugin_registry.js';
 
@@ -178,6 +179,8 @@ export function buildSensorSections({
 }): void {
     const { widgets: allWidgets, displayId, profile, isLvgl, pendingTriggers } = context;
     const pages = context.layout.pages || [];
+
+    collectCustomStateTriggerActions(allWidgets, pendingTriggers);
 
     if (Generators.generateSensorSection) {
         lines.push(...Generators.generateSensorSection(profile, [], displayId, allWidgets));

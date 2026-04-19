@@ -214,6 +214,10 @@ export class PropertiesPanel {
             LegacyRenderer.renderLegacyProperties(this, widget, type);
         }
 
+        if (mode === 'lvgl') {
+            this.addLVGLStateTriggerControls(widget);
+        }
+
         // 4. Visibility Conditions (Common for all)
         this.createSection("Visibility Conditions", false);
         this.addVisibilityConditions(widget);
@@ -315,6 +319,8 @@ export class PropertiesPanel {
     addCompactPropertyRow(...args) { return this.controls.addCompactPropertyRow.apply(this.controls, args); }
     /** @param {...any} args */
     addCommonLVGLProperties(...args) { return this.controls.addCommonLVGLProperties.apply(this.controls, args); }
+    /** @param {...any} args */
+    addLVGLStateTriggerControls(...args) { return this.controls.addLVGLStateTriggerControls.apply(this.controls, args); }
     /** @param {...any} args */
     addVisibilityConditions(...args) { return this.controls.addVisibilityConditions.apply(this.controls, args); }
     /** @param {...any} args */

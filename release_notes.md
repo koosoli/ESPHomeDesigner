@@ -1,3 +1,18 @@
+## v1.0.0 RC12.7 - Persistence & LVGL YAML Round-Trip Fixes
+**Release Date:** April 19, 2026
+
+This RC12.7 follow-up extends the earlier storage fix from [Issue #382](https://github.com/koosoli/ESPHomeDesigner/issues/382) with two more persistence-focused corrections: restoring grouped-widget parent references from [Issue #384](https://github.com/koosoli/ESPHomeDesigner/issues/384) and adding a supported LVGL custom state-trigger path for the YAML round-trip gap reported in [Issue #385](https://github.com/koosoli/ESPHomeDesigner/issues/385). The result is a safer save/load path for grouped layouts and a more honest, more durable workflow for custom LVGL automations.
+
+### Stability & Verification
+- **Sensor Text Secondary Entity Persistence (Issue #382):** Sensor Text widgets continue to preserve `entity_id_2` through backend save/load, so the secondary Home Assistant entity survives alongside `attribute2` instead of dropping on reload.
+- **Grouped Widget Parent Persistence (Issue #384):** The backend widget model now stores and reloads `parentId`, so children remain attached to their group containers after layouts are saved and loaded again.
+- **Supported LVGL State Trigger Round-Trip (Issue #385):** LVGL layouts now have a first-class widget-level state-trigger path that stores the trigger entity, trigger mode, and raw `then:` action YAML in widget `props`, then injects those actions back into generated `sensor`, `text_sensor`, or `binary_sensor` sections during export.
+- **Import Recovery & Honesty Warnings (Issue #385):** YAML imports now recover the supported marked state-trigger blocks back into widget props when possible, and show a warning when unsupported custom automations remain raw YAML only instead of pretending they are fully editable on the canvas.
+- **Regression Coverage Expansion:** Added backend model/storage regressions for grouped-widget parent persistence plus frontend tests that cover the new LVGL state-trigger editor controls, trigger registration/export injection, import recovery, and warning flow.
+
+
+---
+
 ## v1.0.0 RC12.6 - Cookbook-Aligned Light Slider Actions
 **Release Date:** April 17, 2026
 

@@ -6,6 +6,7 @@ import switchPlugin from '../../features/lvgl_switch/plugin.js';
 import { registry } from '../../js/core/plugin_registry';
 import { generateLVGLSnippet } from '../../js/io/yaml_export_lvgl.js';
 import { processPendingTriggers } from '../../js/io/adapters/esphome_adapter_sections.ts';
+import { collectCustomStateTriggerActions } from '../../js/io/adapters/entity_dedup.js';
 
 const lvglContext = {
     common: { id: 'w_test', x: 0, y: 0, width: 100, height: 40 },
@@ -150,5 +151,29 @@ describe('LVGL binary state sync export', () => {
             '            checked: !lambda return x;',
             '  internal: true'
         ]);
+    });
+
+    it('injects marked custom state-trigger actions into binary_sensor on_state blocks', () => {
+        const pendingTriggers = new Map();
+        collectCustomStateTriggerActions([{
+            id: 'status_label',
+            props: {
+                state_trigger_entity: 'binary_sensor.front_door',
+                state_trigger_mode: 'on_state',
+                state_trigger_actions: '- lvgl.label.update:\n    id: status_label\n    text: "Door changed"'
+            }
+        }], pendingTriggers);
+
+        const result = processPendingTriggers([
+            '- platform: homeassistant',
+            '  id: binary_sensor_front_door',
+            '  entity_id: binary_sensor.front_door',
+            '  internal: true'
+        ], pendingTriggers, true, 'on_state');
+
+        expect(result.some((line) => line.includes('# esphome-designer-state-trigger: status_label'))).toBe(true);
+        expect(result.some((line) => line.includes('- lvgl.label.update:'))).toBe(true);
+        expect(result.some((line) => line.includes('id: status_label'))).toBe(true);
+        expect(result.some((line) => line.includes('text: "Door changed"'))).toBe(true);
     });
 });

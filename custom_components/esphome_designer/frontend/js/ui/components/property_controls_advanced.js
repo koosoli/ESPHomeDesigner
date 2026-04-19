@@ -109,3 +109,60 @@ export function addVisibilityConditions(controls, widget) {
     clearWrap.appendChild(clearBtn);
     controls.getContainer().appendChild(clearWrap);
 }
+
+export function addLVGLStateTriggerControls(controls, widget) {
+    const props = widget.props || {};
+    const updateProp = (key, value) => {
+        const newProps = { ...widget.props, [key]: value };
+        AppState.updateWidget(widget.id, { props: newProps });
+    };
+
+    controls.panel.createSection("State Trigger", false);
+
+    const helpWrap = document.createElement("div");
+    helpWrap.className = "field";
+    helpWrap.style.fontSize = "9px";
+    helpWrap.style.color = "#9499a6";
+    helpWrap.style.marginBottom = "6px";
+    helpWrap.innerHTML = "Add a supported Home Assistant trigger that round-trips with the canvas. Paste the YAML actions exactly as they belong under <code>then:</code>.";
+    controls.getContainer().appendChild(helpWrap);
+
+    controls.addLabeledInputWithPicker("Trigger Entity", "text", props.state_trigger_entity || "", (value) => {
+        updateProp("state_trigger_entity", value);
+    }, widget);
+
+    controls.addSelect("Trigger Type", props.state_trigger_mode || "auto", [
+        { value: "auto", label: "Auto (binary uses on_state)" },
+        { value: "on_state", label: "State Change (binary)" },
+        { value: "on_value", label: "Value Change" }
+    ], (value) => {
+        updateProp("state_trigger_mode", value);
+    });
+
+    controls.addLabeledInput("Actions YAML", "textarea", props.state_trigger_actions || "", (value) => {
+        updateProp("state_trigger_actions", value);
+    });
+
+    const clearWrap = document.createElement("div");
+    clearWrap.className = "field";
+    clearWrap.style.marginTop = "8px";
+
+    const clearBtn = document.createElement("button");
+    clearBtn.className = "btn btn-secondary btn-full";
+    clearBtn.textContent = "Clear State Trigger";
+    clearBtn.type = "button";
+    clearBtn.addEventListener("click", () => {
+        AppState.updateWidget(widget.id, {
+            props: {
+                ...widget.props,
+                state_trigger_entity: "",
+                state_trigger_mode: "auto",
+                state_trigger_actions: ""
+            }
+        });
+    });
+
+    clearWrap.appendChild(clearBtn);
+    controls.getContainer().appendChild(clearWrap);
+    controls.panel.endSection();
+}

@@ -3,7 +3,8 @@ import { isRGBDevice, getAvailableColors } from '../../utils/device.js';
 import { debounce } from '../../utils/helpers.js';
 import {
     addCommonLVGLProperties as addCommonLVGLPropertiesHelper,
-    addVisibilityConditions as addVisibilityConditionsHelper
+    addVisibilityConditions as addVisibilityConditionsHelper,
+    addLVGLStateTriggerControls as addLVGLStateTriggerControlsHelper
 } from './property_controls_advanced.js';
 import {
     addLabeledInputWithPickerControl,
@@ -210,6 +211,10 @@ export class PropertyControls {
 
     addVisibilityConditions(widget) {
         addVisibilityConditionsHelper(this, widget);
+    }
+
+    addLVGLStateTriggerControls(widget) {
+        addLVGLStateTriggerControlsHelper(this, widget);
     }
 
     addPageSelector(label, value, onChange) {

@@ -4,7 +4,8 @@ import {
     collectNumericSensors,
     collectTextSensors,
     collectBinarySensors,
-    HA_TEXT_DOMAINS // eslint-disable-line no-unused-vars
+    HA_TEXT_DOMAINS, // eslint-disable-line no-unused-vars
+    collectCustomStateTriggerActions
 } from '../../js/io/adapters/entity_dedup.js';
 
 describe('Entity Deduplication & Registration', () => {
@@ -122,6 +123,24 @@ describe('Entity Deduplication & Registration', () => {
             expect(result).toContain('  id: mqtt_home_cpu_temp');
             expect(result).toContain('  topic: "home/cpu/temp"');
         });
+
+        it('registers standalone custom on_value trigger entities as numeric sensors', () => {
+            const pages = [{
+                widgets: [{
+                    id: 'text_1',
+                    type: 'text',
+                    props: {
+                        state_trigger_entity: 'sensor.room_temperature',
+                        state_trigger_actions: '- script.execute: refresh_layout'
+                    }
+                }]
+            }];
+
+            const result = collectNumericSensors(pages, context);
+
+            expect(result).toContain('  entity_id: sensor.room_temperature');
+            expect(result).toContain('  id: sensor_room_temperature');
+        });
     });
 
     describe('collectTextSensors', () => {
@@ -219,6 +238,24 @@ describe('Entity Deduplication & Registration', () => {
             expect(result).toContain('  id: mqtt_home_weather_state_txt');
             expect(result).toContain('  topic: "home/weather/state"');
         });
+
+        it('registers standalone custom on_value trigger entities as text sensors', () => {
+            const pages = [{
+                widgets: [{
+                    id: 'label_1',
+                    type: 'text',
+                    props: {
+                        state_trigger_entity: 'text_sensor.panel_status',
+                        state_trigger_actions: '- lvgl.widget.refresh: label_1'
+                    }
+                }]
+            }];
+
+            const result = collectTextSensors(pages, context);
+
+            expect(result).toContain('  entity_id: text_sensor.panel_status');
+            expect(result).toContain('  id: text_sensor_panel_status_txt');
+        });
     });
 
     describe('collectBinarySensors', () => {
@@ -268,6 +305,43 @@ describe('Entity Deduplication & Registration', () => {
             expect(result).toContain('- platform: mqtt_subscribe');
             expect(result).toContain('  id: mqtt_home_relay_state');
             expect(result).toContain('  topic: "home/relay/state"');
+        });
+
+        it('registers standalone custom on_state trigger entities as binary sensors', () => {
+            const pages = [{
+                widgets: [{
+                    id: 'label_1',
+                    type: 'text',
+                    props: {
+                        state_trigger_entity: 'binary_sensor.front_door',
+                        state_trigger_mode: 'on_state',
+                        state_trigger_actions: '- script.execute: refresh_layout'
+                    }
+                }]
+            }];
+
+            const result = collectBinarySensors(pages, context);
+
+            expect(result).toContain('  entity_id: binary_sensor.front_door');
+            expect(result).toContain('  id: binary_sensor_front_door');
+        });
+    });
+
+    describe('collectCustomStateTriggerActions', () => {
+        it('adds marked pending trigger actions for supported widget-level triggers', () => {
+            const pendingTriggers = new Map();
+
+            collectCustomStateTriggerActions([{
+                id: 'label_1',
+                props: {
+                    state_trigger_entity: 'binary_sensor.front_door',
+                    state_trigger_actions: '- lvgl.label.update:\n    id: label_1\n    text: "Open"'
+                }
+            }], pendingTriggers);
+
+            const [action] = Array.from(pendingTriggers.get('binary_sensor.front_door') || []);
+            expect(action).toContain('# esphome-designer-state-trigger: label_1');
+            expect(action).toContain('- lvgl.label.update:');
         });
     });
 
