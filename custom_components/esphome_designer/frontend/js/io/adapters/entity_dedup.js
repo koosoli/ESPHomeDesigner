@@ -6,6 +6,7 @@
 export const HA_TEXT_DOMAINS = ["text_sensor.", "weather.", "calendar.", "person.", "device_tracker.", "sun.", "update.", "scene."];
 export const HA_BINARY_DOMAINS = ["binary_sensor.", "switch.", "light.", "input_boolean.", "fan.", "cover.", "vacuum.", "lock."];
 export const DESIGNER_STATE_TRIGGER_MARKER = "# esphome-designer-state-trigger:";
+export const MODE_AWARE_PENDING_TRIGGER_SEPARATOR = "::";
 
 import { isEntityStateNonNumeric, makeSafeId } from '../../utils/export_helpers.js';
 import { getSensorPlatformLines } from './mqtt_helpers.js';
@@ -50,6 +51,17 @@ const buildMarkedStateTriggerActions = (widgetId, actions) => {
     return lines.join('\n');
 };
 
+export const buildPendingTriggerLookupKey = (entityId, triggerName) => {
+    const trimmedEntityId = String(entityId || "").trim();
+    const trimmedTriggerName = String(triggerName || "").trim();
+
+    if (!trimmedEntityId || !trimmedTriggerName) {
+        return trimmedEntityId;
+    }
+
+    return `${trimmedTriggerName}${MODE_AWARE_PENDING_TRIGGER_SEPARATOR}${trimmedEntityId}`;
+};
+
 export const collectCustomStateTriggerActions = (widgets, pendingTriggers) => {
     if (!widgets || !pendingTriggers) return;
 
@@ -57,11 +69,13 @@ export const collectCustomStateTriggerActions = (widgets, pendingTriggers) => {
         const triggerSpec = getCustomStateTriggerSpec(widget);
         if (!triggerSpec) return;
 
-        if (!pendingTriggers.has(triggerSpec.entityId)) {
-            pendingTriggers.set(triggerSpec.entityId, new Set());
+        const lookupKey = buildPendingTriggerLookupKey(triggerSpec.entityId, triggerSpec.mode);
+
+        if (!pendingTriggers.has(lookupKey)) {
+            pendingTriggers.set(lookupKey, new Set());
         }
 
-        pendingTriggers.get(triggerSpec.entityId).add(
+        pendingTriggers.get(lookupKey).add(
             buildMarkedStateTriggerActions(triggerSpec.widgetId, triggerSpec.actions)
         );
     });

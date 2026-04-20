@@ -260,6 +260,41 @@ font:
             expect(result).toContain('font_base');
             expect(result).toContain('font_extra');
         });
+
+        it('coalesces repeated mergeable sections that reappear later in extra yaml', () => {
+            const baseYaml = `display:
+  - platform: ili9xxx
+    id: panel`;
+
+            const extraYaml = `sensor:
+  - platform: homeassistant
+    id: sensor_one
+    entity_id: sensor.one
+text_sensor:
+  - platform: homeassistant
+    id: text_one
+    entity_id: text.one
+lvgl:
+  pages: []
+sensor:
+  - platform: homeassistant
+    id: sensor_two
+    entity_id: sensor.two
+text_sensor:
+  - platform: homeassistant
+    id: text_two
+    entity_id: text.two`;
+
+            const result = mergeYamlSections(baseYaml, extraYaml);
+
+            expect(result.match(/^sensor:$/gm)).toHaveLength(1);
+            expect(result.match(/^text_sensor:$/gm)).toHaveLength(1);
+            expect(result).toContain('id: sensor_one');
+            expect(result).toContain('id: sensor_two');
+            expect(result).toContain('id: text_one');
+            expect(result).toContain('id: text_two');
+            expect(result).toContain('lvgl:');
+        });
     });
 
     it('should generate a basic YAML structure for a page', async () => {

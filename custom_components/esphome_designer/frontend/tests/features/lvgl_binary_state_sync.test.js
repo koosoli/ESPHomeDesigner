@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import buttonPlugin from '../../features/lvgl_button/plugin.js';
 import checkboxPlugin from '../../features/lvgl_checkbox/plugin.js';
+import sliderPlugin from '../../features/lvgl_slider/plugin.js';
 import switchPlugin from '../../features/lvgl_switch/plugin.js';
 import { registry } from '../../js/core/plugin_registry';
 import { generateLVGLSnippet } from '../../js/io/yaml_export_lvgl.js';
@@ -175,5 +176,66 @@ describe('LVGL binary state sync export', () => {
         expect(result.some((line) => line.includes('- lvgl.label.update:'))).toBe(true);
         expect(result.some((line) => line.includes('id: status_label'))).toBe(true);
         expect(result.some((line) => line.includes('text: "Door changed"'))).toBe(true);
+    });
+
+    it('keeps light-slider sync triggers in one on_value block and routes custom light triggers to on_state', () => {
+        const pendingTriggers = new Map();
+        const numericLines = [];
+
+        sliderPlugin.onExportNumericSensors({
+            widgets: [{
+                id: 'slider_light',
+                type: 'lvgl_slider',
+                entity_id: 'light.kitchen_counter',
+                props: { min: 0, max: 100 }
+            }],
+            isLvgl: true,
+            pendingTriggers,
+            lines: numericLines,
+            seenEntityIds: new Set(),
+            seenSensorIds: new Set()
+        });
+
+        collectCustomStateTriggerActions([{
+            id: 'status_icon',
+            props: {
+                state_trigger_entity: 'light.kitchen_counter',
+                state_trigger_actions: '- lvgl.label.update:\n    id: status_icon\n    text: "Kitchen changed"'
+            }
+        }], pendingTriggers);
+
+        const numericResult = processPendingTriggers(numericLines, pendingTriggers, true, 'on_value');
+        const binaryResult = processPendingTriggers([
+            '- platform: homeassistant',
+            '  id: light_kitchen_counter',
+            '  entity_id: light.kitchen_counter',
+            '  internal: true'
+        ], pendingTriggers, true, 'on_state');
+
+        expect(numericResult.filter((line) => line.trim() === 'on_value:')).toHaveLength(1);
+        expect(numericResult.some((line) => line.includes('lvgl.slider.update'))).toBe(true);
+        expect(numericResult.some((line) => line.includes('# esphome-designer-state-trigger: status_icon'))).toBe(false);
+
+        expect(binaryResult.filter((line) => line.trim() === 'on_state:')).toHaveLength(1);
+        expect(binaryResult.some((line) => line.includes('# esphome-designer-state-trigger: status_icon'))).toBe(true);
+        expect(binaryResult.some((line) => line.includes('text: "Kitchen changed"'))).toBe(true);
+    });
+
+    it('merges multiple on_value trigger sources into a single sensor block', () => {
+        const pendingTriggers = new Map([
+            ['sensor_room_temp', new Set(['- lvgl.widget.refresh: temp_slider'])],
+            ['on_value::sensor.room_temp', new Set(['- script.execute: refresh_temp'])]
+        ]);
+
+        const result = processPendingTriggers([
+            '- platform: homeassistant',
+            '  id: sensor_room_temp',
+            '  entity_id: sensor.room_temp',
+            '  internal: true'
+        ], pendingTriggers, true, 'on_value');
+
+        expect(result.filter((line) => line.trim() === 'on_value:')).toHaveLength(1);
+        expect(result.some((line) => line.includes('lvgl.widget.refresh: temp_slider'))).toBe(true);
+        expect(result.some((line) => line.includes('script.execute: refresh_temp'))).toBe(true);
     });
 });

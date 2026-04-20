@@ -3,9 +3,119 @@ import {
     collectNumericSensors,
     collectTextSensors,
     collectBinarySensors,
-    collectCustomStateTriggerActions
+    collectCustomStateTriggerActions,
+    buildPendingTriggerLookupKey
 } from './entity_dedup.js';
 import { registry } from '../../core/plugin_registry.js';
+
+const getLineIndent = (line: string): number => (line.match(/^\s*/) || [""])[0].length;
+
+const isTopLevelItemStart = (line: string): boolean => {
+    const trimmed = line.trim();
+    return getLineIndent(line) === 0 && trimmed.startsWith("- ");
+};
+
+const getPendingActionsForItem = (
+    pendingTriggers: Map<string, Set<string>>,
+    triggerName: string,
+    keys: string[]
+): string[] => {
+    const orderedActions: string[] = [];
+    const seenActions = new Set<string>();
+
+    keys.forEach((key) => {
+        if (!key) return;
+
+        [key, buildPendingTriggerLookupKey(key, triggerName)].forEach((lookupKey) => {
+            const actions = pendingTriggers.get(lookupKey);
+            if (!actions) return;
+
+            actions.forEach((action) => {
+                if (seenActions.has(action)) return;
+                seenActions.add(action);
+                orderedActions.push(action);
+            });
+        });
+    });
+
+    return orderedActions;
+};
+
+const appendActionLines = (target: string[], actions: string[], indent: string): void => {
+    actions.forEach((action) => {
+        action.split('\n').forEach((actionLine) => {
+            target.push(`${indent}${actionLine}`);
+        });
+    });
+};
+
+const findItemInsertionIndex = (itemLines: string[], propertyIndent: number): number => {
+    for (let index = 1; index < itemLines.length; index += 1) {
+        const trimmed = itemLines[index].trim();
+        if (!trimmed) continue;
+
+        const indent = getLineIndent(itemLines[index]);
+        if (indent === propertyIndent && (trimmed === "internal: true" || trimmed.startsWith("attribute:"))) {
+            return index;
+        }
+    }
+
+    return itemLines.length;
+};
+
+const mergePendingActionsIntoItem = (
+    itemLines: string[],
+    triggerName: string,
+    actions: string[]
+): string[] => {
+    if (actions.length === 0) return itemLines;
+
+    const propertyIndent = getLineIndent(itemLines[0]) + 2;
+    const propertyIndentStr = " ".repeat(propertyIndent);
+    const actionIndentStr = " ".repeat(propertyIndent + 4);
+    const hasInitialTrigger = itemLines.some((line) => line.trim() === "trigger_on_initial_state: true");
+    const triggerIndex = itemLines.findIndex((line) => line.trim() === `${triggerName}:`);
+
+    if (triggerIndex !== -1) {
+        const mergedLines = [...itemLines];
+
+        if (triggerName === "on_state" && !hasInitialTrigger) {
+            mergedLines.splice(triggerIndex, 0, `${propertyIndentStr}trigger_on_initial_state: true`);
+        }
+
+        const triggerIndexWithInitialState = mergedLines.findIndex((line) => line.trim() === `${triggerName}:`);
+        const thenIndex = mergedLines.findIndex((line, index) =>
+            index > triggerIndexWithInitialState &&
+            line.trim() === "then:" &&
+            getLineIndent(line) > propertyIndent
+        );
+
+        const insertionIndex = thenIndex === -1 ? triggerIndexWithInitialState + 1 : thenIndex + 1;
+        const insertedLines: string[] = [];
+
+        if (thenIndex === -1) {
+            insertedLines.push(`${propertyIndentStr}  then:`);
+        }
+
+        appendActionLines(insertedLines, actions, actionIndentStr);
+        mergedLines.splice(insertionIndex, 0, ...insertedLines);
+        return mergedLines;
+    }
+
+    const mergedLines = [...itemLines];
+    const insertionIndex = findItemInsertionIndex(mergedLines, propertyIndent);
+    const insertedLines: string[] = [];
+
+    if (triggerName === "on_state" && !hasInitialTrigger) {
+        insertedLines.push(`${propertyIndentStr}trigger_on_initial_state: true`);
+    }
+
+    insertedLines.push(`${propertyIndentStr}${triggerName}:`);
+    insertedLines.push(`${propertyIndentStr}  then:`);
+    appendActionLines(insertedLines, actions, actionIndentStr);
+    mergedLines.splice(insertionIndex, 0, ...insertedLines);
+    return mergedLines;
+};
 
 export function processPendingTriggers(
     sensorLines: string[],
@@ -16,91 +126,32 @@ export function processPendingTriggers(
     if (!isLvgl || !pendingTriggers || pendingTriggers.size === 0) return sensorLines;
 
     const mergedLines: string[] = [];
-    let pendingInjection: { triggers: Set<string>; active: boolean; foundKey?: boolean } | null = null;
 
-    for (let i = 0; i < sensorLines.length; i++) {
-        const line = sensorLines[i];
-        const trimmed = line.trim();
+    for (let index = 0; index < sensorLines.length; index += 1) {
+        const line = sensorLines[index];
 
-        mergedLines.push(line);
-
-        const match = line.match(/^\s*(entity_id|id):\s*"?([^"]+)"?/);
-        if (match) {
-            const entityId = match[2].trim();
-            const hasTrigger = pendingTriggers.has(entityId);
-
-            if (hasTrigger) {
-                let hasExistingTrigger = false;
-                let hasInitialTrigger = false;
-                const currentIndent = (line.match(/^\s*/) || [""])[0].length;
-
-                for (let j = i + 1; j < sensorLines.length; j++) {
-                    const nextLine = sensorLines[j];
-                    const nextTrimmed = nextLine.trim();
-                    if (!nextTrimmed) continue;
-                    const nextIndent = (nextLine.match(/^\s*/) || [""])[0].length;
-
-                    if (nextIndent <= currentIndent && nextTrimmed.startsWith("-")) break;
-
-                    if (triggerName === "on_state" && nextTrimmed === "trigger_on_initial_state: true") {
-                        hasInitialTrigger = true;
-                    }
-
-                    if (nextTrimmed === `${triggerName}:`) {
-                        hasExistingTrigger = true;
-                        break;
-                    }
-                }
-
-                if (triggerName === "on_state" && !hasInitialTrigger) {
-                    const indent = " ".repeat(currentIndent);
-                    mergedLines.push(`${indent}trigger_on_initial_state: true`);
-                }
-
-                if (hasExistingTrigger) {
-                    pendingInjection = {
-                        triggers: pendingTriggers.get(entityId)!,
-                        active: true
-                    };
-                } else {
-                    const indent = " ".repeat(currentIndent);
-                    mergedLines.push(`${indent}${triggerName}:`);
-                    mergedLines.push(`${indent}  then:`);
-                    for (const action of pendingTriggers.get(entityId)!) {
-                        const actionLines = action.split('\n');
-                        actionLines.forEach(actionLine => {
-                            mergedLines.push(`${indent}    ${actionLine}`);
-                        });
-                    }
-                }
-            }
+        if (!isTopLevelItemStart(line)) {
+            mergedLines.push(line);
+            continue;
         }
 
-        if (pendingInjection && pendingInjection.active) {
-            if (trimmed === `${triggerName}:`) {
-                pendingInjection.foundKey = true;
-            } else if (pendingInjection.foundKey) {
-                if (trimmed === "then:") {
-                    const indentStr = " ".repeat((line.match(/^\s*/) || [""])[0].length + 2);
-                    for (const action of pendingInjection.triggers) {
-                        const actionLines = action.split('\n');
-                        actionLines.forEach(actionLine => {
-                            mergedLines.push(`${indentStr}${actionLine}`);
-                        });
-                    }
-                    pendingInjection = null;
-                } else if (trimmed.startsWith("-")) {
-                    const indentStr = " ".repeat((line.match(/^\s*/) || [""])[0].length);
-                    for (const action of pendingInjection.triggers) {
-                        const actionLines = action.split('\n');
-                        actionLines.forEach(actionLine => {
-                            mergedLines.push(`${indentStr}${actionLine}`);
-                        });
-                    }
-                    pendingInjection = null;
-                }
-            }
+        let itemEnd = index + 1;
+        while (itemEnd < sensorLines.length && !isTopLevelItemStart(sensorLines[itemEnd])) {
+            itemEnd += 1;
         }
+
+        const itemLines = sensorLines.slice(index, itemEnd);
+        const matchedKeys = Array.from(new Set(
+            itemLines
+                .map((itemLine) => itemLine.match(/^\s*(entity_id|id):\s*["']?([^"'\s#]+)["']?/))
+                .filter(Boolean)
+                .map((match) => match?.[2]?.trim() || "")
+                .filter(Boolean)
+        ));
+        const actions = getPendingActionsForItem(pendingTriggers, triggerName, matchedKeys);
+
+        mergedLines.push(...mergePendingActionsIntoItem(itemLines, triggerName, actions));
+        index = itemEnd - 1;
     }
 
     return mergedLines;

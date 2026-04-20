@@ -5,7 +5,8 @@ import {
     collectTextSensors,
     collectBinarySensors,
     HA_TEXT_DOMAINS, // eslint-disable-line no-unused-vars
-    collectCustomStateTriggerActions
+    collectCustomStateTriggerActions,
+    buildPendingTriggerLookupKey
 } from '../../js/io/adapters/entity_dedup.js';
 
 describe('Entity Deduplication & Registration', () => {
@@ -339,7 +340,7 @@ describe('Entity Deduplication & Registration', () => {
                 }
             }], pendingTriggers);
 
-            const [action] = Array.from(pendingTriggers.get('binary_sensor.front_door') || []);
+            const [action] = Array.from(pendingTriggers.get(buildPendingTriggerLookupKey('binary_sensor.front_door', 'on_state')) || []);
             expect(action).toContain('# esphome-designer-state-trigger: label_1');
             expect(action).toContain('- lvgl.label.update:');
         });
@@ -356,7 +357,14 @@ describe('Entity Deduplication & Registration', () => {
                 }
             }], pendingTriggers);
 
-            expect(Array.from(pendingTriggers.keys())).toEqual(['sensor.energy_usage']);
+            expect(Array.from(pendingTriggers.keys())).toEqual([
+                buildPendingTriggerLookupKey('sensor.energy_usage', 'on_value')
+            ]);
+        });
+
+        it('falls back to the trimmed entity id when a lookup key is missing a trigger name', () => {
+            expect(buildPendingTriggerLookupKey(' sensor.energy_usage ', '')).toBe('sensor.energy_usage');
+            expect(buildPendingTriggerLookupKey('', 'on_value')).toBe('');
         });
     });
 

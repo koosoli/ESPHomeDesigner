@@ -164,6 +164,15 @@ export function mergeYamlSections(baseYaml, extraYaml) {
         let currentContent = [];
         /** @type {string[]} */
         let nonSectionLines = [];
+        /**
+         * @param {string | null} sectionKey
+         * @param {string[]} content
+         */
+        const storeSection = (sectionKey, content) => {
+            if (!sectionKey) return;
+            const existingContent = sections.get(sectionKey) || [];
+            sections.set(sectionKey, [...existingContent, ...content]);
+        };
 
         for (const line of lines) {
             const trimmed = line.trim();
@@ -177,14 +186,14 @@ export function mergeYamlSections(baseYaml, extraYaml) {
             if (isTopLevelHeader && mergeableSections.includes(cleanHeader)) {
                 // Save previous section
                 if (currentSection) {
-                    sections.set(currentSection, currentContent);
+                    storeSection(currentSection, currentContent);
                 }
                 currentSection = cleanHeader;
                 currentContent = [];
             } else if (isTopLevelHeader && !mergeableSections.includes(cleanHeader)) {
                 // Non-mergeable top-level section - save to non-section lines
                 if (currentSection) {
-                    sections.set(currentSection, currentContent);
+                    storeSection(currentSection, currentContent);
                     currentSection = null;
                     currentContent = [];
                 }
@@ -200,7 +209,7 @@ export function mergeYamlSections(baseYaml, extraYaml) {
 
         // Save last section
         if (currentSection) {
-            sections.set(currentSection, currentContent);
+            storeSection(currentSection, currentContent);
         }
 
         return { sections, nonSectionLines };

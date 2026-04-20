@@ -1,3 +1,17 @@
+## v1.0.0 RC12.8 - LVGL Trigger Routing & Package Merge Hardening
+**Release Date:** April 20, 2026
+
+This RC12.8 follow-up is a targeted hardening release for [Issue #385](https://github.com/koosoli/ESPHomeDesigner/issues/385). Real-world feedback on the first YAML round-trip implementation exposed a deeper exporter bug: custom widget state triggers for lights could be merged into LVGL brightness sensor blocks as a second `on_value`, producing invalid ESPHome YAML, and package-based outputs could still end up with repeated mergeable sections in certain regenerated layouts. RC12.8 fixes both paths and adds regression coverage around the exact slider-plus-icon failure pattern reported from the field.
+
+### Stability & Verification
+- **Mode-Aware Custom Trigger Routing (Issue #385):** Widget-level custom triggers now keep their resolved `on_state` versus `on_value` mode when queued for export, so binary-domain entities such as `light.*` no longer get misrouted into numeric sensor sections just because the same `entity_id` appears there.
+- **Single-Block Trigger Merging (Issue #385):** Sensor export now merges all matching trigger actions for one YAML item into a single trigger block, preventing duplicate `on_value:` keys when a light-backed LVGL slider and a custom widget trigger both reference the same Home Assistant light.
+- **Repeated Section Coalescing (Issue #385):** YAML section merging now coalesces repeated `sensor:` and `text_sensor:` blocks that reappear later in package-based output, reducing the chance of regenerated package snippets carrying duplicate mergeable sections after `lvgl:`.
+- **Regression Coverage Expansion:** Added focused frontend regressions for the light-slider/custom-trigger collision, mixed trigger-source single-item merging, and repeated mergeable-section coalescing in package-style YAML merges.
+
+
+---
+
 ## v1.0.0 RC12.7 - Persistence & LVGL YAML Round-Trip Fixes
 **Release Date:** April 19, 2026
 
