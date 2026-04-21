@@ -459,6 +459,71 @@ describe('selection core', () => {
         expect(document.querySelector('.debug-cursor-tooltip')?.style.display).toBe('none');
     });
 
+    it('keeps a group directly selectable even if stale nested data still carries a parentId', async () => {
+        const { setupInteractions } = await import('../../js/core/interactions/selection.js');
+
+        document.body.innerHTML = `
+            <div id="canvas">
+                <div class="artboard-wrapper" data-index="0">
+                    <div class="artboard">
+                        <div class="widget" data-id="group_2"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const artboard = document.querySelector('.artboard');
+        artboard.getBoundingClientRect = () => ({
+            left: 0,
+            top: 0,
+            width: 200,
+            height: 120,
+            right: 200,
+            bottom: 120,
+            x: 0,
+            y: 0,
+            toJSON() {}
+        });
+
+        mockAppState.getWidgetById.mockImplementation((id) => ({
+            group_1: { id: 'group_1', type: 'group', x: 10, y: 15, width: 80, height: 40 },
+            group_2: { id: 'group_2', type: 'group', parentId: 'group_1', x: 20, y: 25, width: 60, height: 30 }
+        }[id]));
+        mockAppState.getSelectedWidgets.mockReturnValue([
+            { id: 'group_2', type: 'group', parentId: 'group_1', x: 20, y: 25, width: 60, height: 30 }
+        ]);
+
+        const canvas = document.getElementById('canvas');
+        const canvasInstance = {
+            canvas,
+            rulers: { setIndicators: vi.fn() },
+            pinchState: null,
+            touchState: null,
+            dragState: null,
+            lassoState: null,
+            _boundMouseMove: vi.fn(),
+            _boundMouseUp: vi.fn(),
+            panX: 0,
+            panY: 0
+        };
+
+        setupInteractions(canvasInstance);
+
+        document.querySelector('.widget')?.dispatchEvent(new MouseEvent('mousedown', {
+            bubbles: true,
+            button: 0,
+            clientX: 35,
+            clientY: 40
+        }));
+
+        expect(mockAppState.selectWidget).toHaveBeenCalledWith('group_2', false);
+        expect(mockAppState.selectWidget).not.toHaveBeenCalledWith('group_1', false);
+        expect(canvasInstance.dragState).toEqual(expect.objectContaining({
+            mode: 'move',
+            id: 'group_2'
+        }));
+    });
+
     it('switches pages before dragging widgets, supports additive selection, and blocks child resize handles', async () => {
         const { setupInteractions } = await import('../../js/core/interactions/selection.js');
 

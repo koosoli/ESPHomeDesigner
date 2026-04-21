@@ -11,11 +11,11 @@ import { createHierarchyItem } from './hierarchy_view_items.js';
  * @returns {{ topLevel: any[], childrenMap: Map<string, any[]> }}
  */
 export function buildWidgetHierarchy(widgets) {
-    const topLevel = widgets.filter((widget) => !widget.parentId).reverse();
+    const topLevel = widgets.filter((widget) => widget.type === 'group' || !widget.parentId).reverse();
     const childrenMap = new Map();
 
     widgets.forEach((widget) => {
-        if (!widget.parentId) return;
+        if (!widget.parentId || widget.type === 'group') return;
         if (!childrenMap.has(widget.parentId)) {
             childrenMap.set(widget.parentId, []);
         }

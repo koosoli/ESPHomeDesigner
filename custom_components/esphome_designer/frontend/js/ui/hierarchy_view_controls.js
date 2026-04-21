@@ -19,6 +19,16 @@ function appendButtonRow(container) {
     return wrap;
 }
 
+function appendHelperText(container, text) {
+    const element = document.createElement('div');
+    element.style.fontSize = '10px';
+    element.style.color = 'var(--muted)';
+    element.style.lineHeight = '1.4';
+    element.style.marginTop = '6px';
+    element.textContent = text;
+    container.appendChild(element);
+}
+
 /**
  * @param {any} view
  * @param {HTMLElement | null} controlsContainer
@@ -57,6 +67,7 @@ export function renderHierarchyControls(view, controlsContainer) {
     ungroupBtn.disabled = !hasGroup;
     ungroupBtn.onclick = () => AppState.ungroupSelection();
     groupingRow.appendChild(ungroupBtn);
+    appendHelperText(controlsContainer, 'Tip: Shift/Ctrl-click or drag an empty canvas area to multi-select, then drag one selected widget to move the whole selection.');
 
     if (selectedWidgets.length !== 1) {
         return;

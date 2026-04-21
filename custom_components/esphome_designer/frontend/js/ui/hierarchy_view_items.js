@@ -199,13 +199,21 @@ export function createHierarchyItem(view, widget, actualIndex, level = 0) {
         const targetId = div.dataset.id;
         if (draggedId === targetId) return;
 
+        const draggedWidget = AppState.getWidgetById(draggedId);
         const targetWidget = AppState.getWidgetById(targetId);
-        if (!targetWidget) return;
+        if (!draggedWidget || !targetWidget) return;
 
-        if (targetWidget.type === 'group') {
-            AppState.updateWidget(draggedId, { parentId: targetId, expanded: true });
-        } else {
-            AppState.updateWidget(draggedId, { parentId: targetWidget.parentId || null });
+        const nextParentId = draggedWidget.type === 'group'
+            ? null
+            : (targetWidget.type === 'group' ? targetId : (targetWidget.parentId || null));
+
+        if (draggedWidget.parentId !== nextParentId) {
+            const parentUpdate = { parentId: nextParentId };
+            if (nextParentId && targetWidget.type === 'group') {
+                AppState.updateWidget(draggedId, { ...parentUpdate, expanded: true });
+            } else {
+                AppState.updateWidget(draggedId, parentUpdate);
+            }
         }
 
         const targetIndex = parseInt(div.dataset.index || '-1', 10);

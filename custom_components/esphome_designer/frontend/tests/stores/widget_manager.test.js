@@ -96,7 +96,11 @@ describe('WidgetManager', () => {
     it('should update a widget and sync hierarchy if parentId changes', () => {
         const id = 'w1';
         const updates = { parentId: 'new-parent' };
-        mockApp.getWidgetById.mockReturnValue({ id, type: 'text' });
+        mockApp.getWidgetById.mockImplementation((targetId) => {
+            if (targetId === id) return { id, type: 'text' };
+            if (targetId === 'new-parent') return { id: 'new-parent', type: 'group' };
+            return null;
+        });
 
         // Mock internal sync method
         const syncSpy = vi.spyOn(wm, 'syncWidgetOrderWithHierarchy').mockImplementation(() => { });
@@ -106,6 +110,22 @@ describe('WidgetManager', () => {
         expect(mockApp.project.updateWidget).toHaveBeenCalledWith(id, updates);
         expect(syncSpy).toHaveBeenCalled();
         expect(emit).toHaveBeenCalledWith('state-changed');
+    });
+
+    it('should prevent nested groups and reject non-group parents', () => {
+        mockApp.getWidgetById.mockImplementation((id) => {
+            if (id === 'group_1') return { id: 'group_1', type: 'group', parentId: null };
+            if (id === 'group_2') return { id: 'group_2', type: 'group', parentId: null };
+            if (id === 'text_1') return { id: 'text_1', type: 'text', parentId: null };
+            if (id === 'text_parent') return { id: 'text_parent', type: 'text', parentId: null };
+            return null;
+        });
+
+        wm.updateWidget('group_1', { parentId: 'group_2' });
+        expect(mockApp.project.updateWidget).toHaveBeenNthCalledWith(1, 'group_1', { parentId: null });
+
+        wm.updateWidget('text_1', { parentId: 'text_parent' });
+        expect(mockApp.project.updateWidget).toHaveBeenNthCalledWith(2, 'text_1', { parentId: null });
     });
 
     it('should propagate updates to children if widget is a group', () => {
@@ -577,6 +597,25 @@ describe('WidgetManager', () => {
         expect(wm.isWidgetCompatibleWithMode({ type: 'lvgl_label' }, 'lvgl')).toBe(true);
         expect(wm.isWidgetCompatibleWithMode({ type: 'lvgl_label' }, 'direct')).toBe(false);
         expect(wm.isWidgetCompatibleWithMode({ type: 'text' }, 'custom-mode')).toBe(true);
+    });
+
+    it('should keep groups top-level while syncing hierarchy order', () => {
+        const page = {
+            widgets: [
+                { id: 'group_outer', type: 'group', parentId: null },
+                { id: 'group_inner', type: 'group', parentId: 'group_outer' },
+                { id: 'child_inner', type: 'text', parentId: 'group_inner' },
+                { id: 'lonely', type: 'text' }
+            ]
+        };
+        mockApp.pages = [page];
+        mockApp.project.pages = [page];
+        mockApp.getCurrentPage.mockReturnValue(page);
+
+        wm.syncWidgetOrderWithHierarchy();
+
+        expect(page.widgets.map((widget) => widget.id)).toEqual(['group_outer', 'group_inner', 'child_inner', 'lonely']);
+        expect(mockApp.project.rebuildWidgetsIndex).toHaveBeenCalled();
     });
 
     it('should auto-switch rendering modes for oepl and odp widgets but ignore empty types', () => {

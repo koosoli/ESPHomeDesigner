@@ -1,3 +1,17 @@
+## v1.0.0 RC12.9 - Group Reordering Guardrails
+**Release Date:** April 21, 2026
+
+This RC12.9 follow-up closes the hierarchy regression reported in [Issue #384](https://github.com/koosoli/ESPHomeDesigner/issues/384). After the earlier persistence fix restored grouped-widget `parentId` data, users found that dragging groups in the hierarchy could still nest one group inside another by accident, and stale nested groups were then awkward to select or pull back out. RC12.9 keeps groups top-level during hierarchy drag/drop, lets older broken layouts recover cleanly, and makes the existing multi-select drag workflow easier to discover from the UI.
+
+### Stability & Verification
+- **Top-Level Group Reordering (Issue #384):** Dragging groups in the hierarchy now reorders them without assigning a new `parentId`, so groups no longer get nested accidentally when dropped on other groups or grouped children.
+- **Stale Nested Group Recovery (Issue #384):** Hierarchy traversal, hierarchy ordering sync, and canvas selection now treat groups as top-level containers even if older saved data still carries a stale `parentId`, making those layouts recoverable instead of trapping the nested group under its parent.
+- **Multi-Select Drag Discoverability:** The hierarchy controls now include a selection tip for `Shift`/`Ctrl` multi-select and box selection, clarifying that multiple widgets can already be moved together by dragging any selected widget on the canvas.
+- **Regression Coverage Expansion:** Added focused frontend regressions for top-level-only group traversal, stale nested group recovery through the hierarchy, protected selection behavior for groups with stale `parentId` data, and the new grouping hint copy.
+
+
+---
+
 ## v1.0.0 RC12.8 - LVGL Trigger Routing & Package Merge Hardening
 **Release Date:** April 20, 2026
 

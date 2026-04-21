@@ -102,14 +102,17 @@ describe('hierarchy_view helpers', () => {
         const widgets = [
             { id: 'parent_a', type: 'group' },
             { id: 'child_a1', type: 'text', parentId: 'parent_a' },
+            { id: 'nested_group', type: 'group', parentId: 'parent_a' },
+            { id: 'nested_child', type: 'text', parentId: 'nested_group' },
             { id: 'parent_b', type: 'text' },
             { id: 'child_a2', type: 'icon', parentId: 'parent_a' }
         ];
 
         const { topLevel, childrenMap } = buildWidgetHierarchy(widgets);
 
-        expect(topLevel.map((widget) => widget.id)).toEqual(['parent_b', 'parent_a']);
+        expect(topLevel.map((widget) => widget.id)).toEqual(['parent_b', 'nested_group', 'parent_a']);
         expect(childrenMap.get('parent_a')?.map((widget) => widget.id)).toEqual(['child_a1', 'child_a2']);
+        expect(childrenMap.get('nested_group')?.map((widget) => widget.id)).toEqual(['nested_child']);
     });
 
     it('moves widgets through each layer-order direction', () => {
@@ -237,6 +240,7 @@ describe('hierarchy_view helpers', () => {
         const buttons = Array.from(controls.querySelectorAll('button'));
         expect(buttons[0].disabled).toBe(false);
         expect(buttons[1].disabled).toBe(true);
+        expect(controls.textContent).toContain('Shift/Ctrl-click');
         buttons[0].click();
         expect(mockAppState.groupSelection).toHaveBeenCalled();
 
@@ -306,5 +310,48 @@ describe('hierarchy_view helpers', () => {
         siblingTarget.dispatchEvent(dropOnSibling);
         expect(mockAppState.updateWidget).toHaveBeenCalledWith('image_1', { parentId: null });
         expect(mockAppState.reorderWidget).toHaveBeenCalledWith(0, 2, 3);
+    });
+
+    it('keeps groups top-level and lets stale nested groups recover through drag and drop', () => {
+        mockAppState.pages = [{
+            id: 'page_0',
+            widgets: [
+                { id: 'group_1', type: 'group', expanded: true, locked: false, hidden: false, title: 'Outer Group' },
+                { id: 'group_2', type: 'group', parentId: 'group_1', expanded: true, locked: false, hidden: false, title: 'Nested Group' },
+                { id: 'text_2', type: 'text', parentId: 'group_2', locked: false, hidden: false, props: { text: 'Child' } },
+                { id: 'custom_card_9', type: 'custom_card', locked: false, hidden: false, props: {} }
+            ]
+        }];
+
+        const view = new HierarchyView();
+        view.init();
+
+        const items = Array.from(document.querySelectorAll('.hierarchy-item'));
+        expect(items.map((item) => item.getAttribute('data-id'))).toEqual(['custom_card_9', 'group_2', 'text_2', 'group_1']);
+
+        const source = /** @type {HTMLElement} */ (document.querySelector('.hierarchy-item[data-id="group_2"]'));
+        const target = /** @type {HTMLElement} */ (document.querySelector('.hierarchy-item[data-id="custom_card_9"]'));
+        const dataTransfer = {
+            store: /** @type {Record<string, string>} */ ({}),
+            setData(type, value) {
+                this.store[type] = value;
+            },
+            getData(type) {
+                return this.store[type] || '';
+            },
+            effectAllowed: '',
+            dropEffect: ''
+        };
+
+        const dragStart = new Event('dragstart', { bubbles: true });
+        Object.defineProperty(dragStart, 'dataTransfer', { value: dataTransfer });
+        source.dispatchEvent(dragStart);
+
+        const drop = new Event('drop', { bubbles: true, cancelable: true });
+        Object.defineProperty(drop, 'dataTransfer', { value: dataTransfer });
+        target.dispatchEvent(drop);
+
+        expect(mockAppState.updateWidget).toHaveBeenCalledWith('group_2', { parentId: null });
+        expect(mockAppState.reorderWidget).toHaveBeenCalledWith(0, 1, 3);
     });
 });

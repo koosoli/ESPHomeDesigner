@@ -49,18 +49,19 @@ export class WidgetManager {
      */
     updateWidget(id, u) {
         const appAny = /** @type {any} */ (this.app);
-        this.app.project.updateWidget(id, u);
+        const widget = appAny.getWidgetById(id);
+        const updates = this.sanitizeParentUpdate(widget, u);
+        this.app.project.updateWidget(id, updates);
 
         // Recursive propagation for certain properties if it's a group
-        const widget = appAny.getWidgetById(id);
         if (widget && widget.type === 'group') {
             /** @type {string[]} */
             const propsToPropagate = ['locked', 'hidden'];
             /** @type {Record<string, any>} */
             const childUpdates = {};
-            const updates = /** @type {Record<string, any>} */ (u || {});
+            const normalizedUpdates = /** @type {Record<string, any>} */ (updates || {});
             propsToPropagate.forEach(p => {
-                if (updates[p] !== undefined) childUpdates[p] = updates[p];
+                if (normalizedUpdates[p] !== undefined) childUpdates[p] = normalizedUpdates[p];
             });
 
             if (Object.keys(childUpdates).length > 0) {
@@ -72,11 +73,38 @@ export class WidgetManager {
             }
         }
 
-        if (u.parentId !== undefined) {
+        if (updates.parentId !== undefined) {
             this.syncWidgetOrderWithHierarchy();
         }
 
         emit(EVENTS.STATE_CHANGED);
+    }
+
+    /**
+     * Prevent invalid hierarchy states such as nested groups or non-group parents.
+     *
+     * @param {Widget | null | undefined} widget
+     * @param {Partial<Widget>} updates
+     * @returns {Partial<Widget>}
+     */
+    sanitizeParentUpdate(widget, updates) {
+        if (!updates || updates.parentId === undefined || !widget) return updates;
+
+        let nextParentId = updates.parentId || null;
+        if (widget.type === 'group' || nextParentId === widget.id) {
+            nextParentId = null;
+        } else if (nextParentId) {
+            const parentWidget = this.app.getWidgetById(nextParentId);
+            if (!parentWidget || parentWidget.type !== 'group') {
+                nextParentId = null;
+            }
+        }
+
+        if (nextParentId === updates.parentId) {
+            return updates;
+        }
+
+        return { ...updates, parentId: nextParentId };
     }
 
     /**
@@ -392,14 +420,14 @@ export class WidgetManager {
 
         const widgets = [...page.widgets];
 
-        // Find top level widgets (those with no parentId)
-        const topLevel = widgets.filter((/** @type {Widget} */ w) => !w.parentId);
+        // Groups always stay top-level even if a stale parentId slipped into saved data.
+        const topLevel = widgets.filter((/** @type {Widget} */ w) => w.type === 'group' || !w.parentId);
 
         // Build children map
         /** @type {Map<string, Widget[]>} */
         const childrenMap = new Map();
         widgets.forEach((/** @type {Widget} */ w) => {
-            if (w.parentId) {
+            if (w.parentId && w.type !== 'group') {
                 if (!childrenMap.has(w.parentId)) childrenMap.set(w.parentId, []);
                 const children = childrenMap.get(w.parentId);
                 if (children) children.push(w);

@@ -214,7 +214,7 @@ export function setupInteractions(canvasInstance) {
             // This ensures clicking/dragging any child moves the entire group
             let effectiveWidget = widget;
             let effectiveWidgetId = widgetId;
-            if (widget.parentId) {
+            if (widget.parentId && widget.type !== 'group') {
                 const parentWidget = AppState.getWidgetById(widget.parentId);
                 if (parentWidget) {
                     effectiveWidget = parentWidget;
@@ -228,7 +228,7 @@ export function setupInteractions(canvasInstance) {
 
             if (isResizeHandle) {
                 // Block resizing for widgets that are part of a group
-                if (widget.parentId) {
+                if (widget.parentId && widget.type !== 'group') {
                     return;
                 }
                 if (effectiveWidget.locked) return;
