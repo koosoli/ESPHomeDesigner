@@ -23,7 +23,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN, STORAGE_KEY, STORAGE_VERSION
 from .http_api import async_register_http_views
-from .panel import ESPHomeDesignerPanelView, ESPHomeDesignerFontView, get_panel_module_url
+from .panel import ESPHomeDesignerPanelView, ESPHomeDesignerFontView, async_get_panel_module_url
 from .services import async_register_services, async_unregister_services
 from .storage import DashboardStorage
 from .models import DashboardState, DeviceConfig, PageConfig, WidgetConfig
@@ -212,7 +212,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 webcomponent_name="esphome-designer-panel",
                 sidebar_title="ESPHome Designer",
                 sidebar_icon="mdi:tablet-dashboard",
-                module_url=get_panel_module_url(),
+                module_url=await async_get_panel_module_url(hass),
                 require_admin=False,
             )
             _LOGGER.info("%s: Sidebar panel registered", DOMAIN)

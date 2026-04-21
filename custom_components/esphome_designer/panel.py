@@ -16,7 +16,7 @@ import logging
 import mimetypes
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
@@ -83,6 +83,17 @@ def get_panel_module_url() -> str:
     )
 
 
+async def _run_in_executor(hass: HomeAssistant, func: Callable[..., Any], *args: Any) -> Any:
+    if hasattr(hass, "async_add_executor_job"):
+        return await hass.async_add_executor_job(func, *args)
+
+    return await asyncio.to_thread(func, *args)
+
+
+async def async_get_panel_module_url(hass: HomeAssistant) -> str:
+    return await _run_in_executor(hass, get_panel_module_url)
+
+
 def _rewrite_editor_asset_path(prefix: str, path: str) -> str:
     if path.startswith(("http://", "https://", "data:", "/")):
         return path
@@ -141,6 +152,27 @@ def _resolve_frontend_html_candidates() -> tuple[tuple[str, Path], ...]:
     )
 
 
+def _load_frontend_html_sync() -> tuple[str | None, Path | None, str | None, tuple[Path, ...]]:
+    searched_paths: list[Path] = []
+    for prefix, candidate in _resolve_frontend_html_candidates():
+        searched_paths.append(candidate)
+        if not candidate.exists():
+            continue
+
+        try:
+            html_text = candidate.read_text(encoding="utf-8")
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.error("Failed to read editor HTML from %s: %s", candidate, err)
+            continue
+
+        if prefix != "www":
+            html_text = _rewrite_editor_html(prefix, html_text)
+
+        return prefix, candidate, html_text, tuple(searched_paths)
+
+    return None, None, None, tuple(searched_paths)
+
+
 def _resolve_static_asset_path(path: str) -> Path:
     if path.startswith("dist/"):
         candidate = (DIST_DIR / path[5:]).resolve()
@@ -188,6 +220,20 @@ def _guess_content_type(path: str, file_path: Path) -> str:
     if path.endswith(".woff2"):
         return "font/woff2"
     return "application/octet-stream"
+
+
+def _load_static_asset_sync(path: str, file_path: Path) -> tuple[str, bool, bytes | str]:
+    if not file_path.exists() or not file_path.is_file():
+        raise FileNotFoundError(file_path)
+
+    content_type = _guess_content_type(path, file_path)
+    is_binary = content_type.startswith(("font/", "image/", "application/octet"))
+    if is_binary:
+        content: bytes | str = file_path.read_bytes()
+    else:
+        content = file_path.read_text(encoding="utf-8")
+
+    return content_type, is_binary, content
 
 
 def _render_unavailable_editor_html(searched_paths: tuple[Path, ...]) -> str:
@@ -283,6 +329,19 @@ def _render_unavailable_editor_html(searched_paths: tuple[Path, ...]) -> str:
 </html>"""
 
 
+def _load_font_file_sync() -> tuple[Path | None, bytes | None]:
+    for candidate in FONT_CANDIDATES:
+        if not candidate.exists():
+            continue
+
+        try:
+            return candidate, candidate.read_bytes()
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.error("Failed to read font from %s: %s", candidate, err)
+
+    return None, None
+
+
 class ESPHomeDesignerPanelView(HomeAssistantView):
     """Serve the editor HTML shell for the panel iframe."""
 
@@ -295,30 +354,23 @@ class ESPHomeDesignerPanelView(HomeAssistantView):
         self.hass = hass
 
     async def get(self, request) -> Any:  # type: ignore[override]
-        searched_paths: list[Path] = []
-        for prefix, candidate in _resolve_frontend_html_candidates():
-            searched_paths.append(candidate)
-            if not candidate.exists():
-                continue
+        prefix, candidate, html_text, searched_paths = await _run_in_executor(
+            self.hass,
+            _load_frontend_html_sync
+        )
 
-            try:
-                html_text = await asyncio.to_thread(candidate.read_text, encoding="utf-8")
-                if prefix != "www":
-                    html_text = _rewrite_editor_html(prefix, html_text)
-
-                _LOGGER.info("Serving editor HTML from %s: %s", prefix, candidate)
-                return web.Response(
-                    body=html_text,
-                    status=200,
-                    content_type="text/html",
-                    headers=_no_cache_headers(),
-                )
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.error("Failed to read editor HTML from %s: %s", candidate, err)
+        if prefix is not None and candidate is not None and html_text is not None:
+            _LOGGER.info("Serving editor HTML from %s: %s", prefix, candidate)
+            return web.Response(
+                body=html_text,
+                status=200,
+                content_type="text/html",
+                headers=_no_cache_headers(),
+            )
 
         _LOGGER.error("ESPHome Designer frontend bundle not found; serving diagnostic fallback")
         return web.Response(
-            body=_render_unavailable_editor_html(tuple(searched_paths)),
+            body=_render_unavailable_editor_html(searched_paths),
             status=200,
             content_type="text/html",
             headers=_no_cache_headers(),
@@ -347,33 +399,31 @@ class ESPHomeDesignerStaticView(HomeAssistantView):
                     return web.Response(status=401, text="Unauthorized")
                 file_path = _resolve_custom_profile_path(self.hass, path)
             else:
-                file_path = _resolve_static_asset_path(path)
+                file_path = await _run_in_executor(self.hass, _resolve_static_asset_path, path)
         except ValueError:
             _LOGGER.warning("Blocked static path escape attempt: %s", path)
             return web.Response(status=403, text="Forbidden")
 
-        if not file_path.exists() or not file_path.is_file():
+        try:
+            content_type, is_binary, content = await _run_in_executor(
+                self.hass,
+                _load_static_asset_sync,
+                path,
+                file_path,
+            )
+        except FileNotFoundError:
             _LOGGER.debug("Static file not found: %s", file_path)
             return web.Response(status=404, text="File not found")
-
-        content_type = _guess_content_type(path, file_path)
-        is_binary = content_type.startswith(("font/", "image/", "application/octet"))
-
-        try:
-            if is_binary:
-                content = await asyncio.to_thread(file_path.read_bytes)
-            else:
-                content = await asyncio.to_thread(file_path.read_text, encoding="utf-8")
-
-            return web.Response(
-                body=content,
-                status=200,
-                content_type=content_type,
-                headers=_static_cache_headers(path, is_binary),
-            )
         except Exception as err:  # noqa: BLE001
             _LOGGER.error("Failed to serve static file %s: %s", path, err)
             return web.Response(status=500, text="Internal Server Error")
+
+        return web.Response(
+            body=content,
+            status=200,
+            content_type=content_type,
+            headers=_static_cache_headers(path, is_binary),
+        )
 
 
 class ESPHomeDesignerFontView(HomeAssistantView):
@@ -388,20 +438,14 @@ class ESPHomeDesignerFontView(HomeAssistantView):
         self.hass = hass
 
     async def get(self, request) -> Any:  # type: ignore[override]
-        for candidate in FONT_CANDIDATES:
-            if not candidate.exists():
-                continue
-
-            try:
-                font_data = await asyncio.to_thread(candidate.read_bytes)
-                return web.Response(
-                    body=font_data,
-                    status=200,
-                    content_type="font/ttf",
-                    headers={"Cache-Control": "public, max-age=31536000"},
-                )
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.error("Failed to read font from %s: %s", candidate, err)
+        candidate, font_data = await _run_in_executor(self.hass, _load_font_file_sync)
+        if candidate is not None and font_data is not None:
+            return web.Response(
+                body=font_data,
+                status=200,
+                content_type="font/ttf",
+                headers={"Cache-Control": "public, max-age=31536000"},
+            )
 
         _LOGGER.error("Font file not found for ESPHome Designer panel fallback")
         return web.Response(

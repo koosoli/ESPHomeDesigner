@@ -1,3 +1,18 @@
+## v1.0.0 RC12.9.1 - Home Assistant Async I/O Hotfix
+**Release Date:** April 21, 2026
+
+This RC12.9.1 hotfix follows the RC12.9 hierarchy cleanup with a Home Assistant integration hardening pass. Recent Home Assistant builds now flag blocking filesystem work inside the event loop more aggressively, and ESPHome Designer still had a few synchronous panel/frontend and hardware-template file paths that could trigger those warnings during startup or API requests. RC12.9.1 moves those paths onto executor-backed helpers, refreshes the shipped release metadata, and adds focused regression coverage for the repaired hardware-template endpoint.
+
+### Stability & Verification
+- **Async-Safe Panel Module Registration:** Sidebar panel module URL resolution now loads the Vite manifest through Home Assistant's executor path during config-entry setup, avoiding blocking `read_text`/`open` calls on the event loop when the integration registers its custom panel.
+- **Async-Safe Frontend Asset Serving:** The panel HTML shell, static asset responses, and fallback font reads now perform their existence checks and file reads off the event loop, keeping Home Assistant's HTTP worker responsive while still serving the same cache-busted assets.
+- **Async-Safe Hardware Template Discovery:** Built-in/custom hardware template scanning, hardware package reads, and uploaded-template directory creation now run through executor-backed helpers so template listing no longer triggers blocking `scandir` warnings in Home Assistant logs.
+- **Regression Coverage Expansion:** Added HTTP regression coverage for the authenticated hardware-template listing flow alongside the panel/static/package route checks, locking in the exact path that produced the Home Assistant warning.
+- **Release Metadata Refresh:** Updated the package version, package lock metadata, Home Assistant manifest version, runtime version string, visible header label, and rebuilt frontend assets for the RC12.9.1 hotfix line.
+
+
+---
+
 ## v1.0.0 RC12.9 - Group Reordering Guardrails
 **Release Date:** April 21, 2026
 
