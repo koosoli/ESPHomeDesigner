@@ -82,6 +82,8 @@ You can use the designer without installing anything!
 
 #### 2. Install via HACS (Recommended)
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=koosoli&repository=ESPHomeDesigner&category=Integration)
+
 1. Add `https://github.com/koosoli/ESPHomeDesigner` to HACS as a custom repository
 2. Search for "ESPHome Designer" and install
 3. Restart Home Assistant
