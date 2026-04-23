@@ -97,13 +97,19 @@ export function parseOEPLArrayToLayout(oeplArray) {
                         hide_unit: true
                     };
                 } else {
-                    widget.width = size * 6;
+                    const reverseAnchorMap = {
+                        "lt": "TOP_LEFT",    "ct": "TOP_CENTER",    "rt": "TOP_RIGHT",
+                        "lm": "CENTER_LEFT", "cm": "CENTER_CENTER", "rm": "CENTER_RIGHT",
+                        "lb": "BOTTOM_LEFT", "cb": "BOTTOM_CENTER", "rb": "BOTTOM_RIGHT"
+                    };
+                    widget.width = item.max_width || size * 6;
                     widget.height = size * 1.5;
                     widget.props = {
                         text: textVal,
                         font_size: size,
                         font_family: item.font ? item.font.replace('.ttf', '') : 'Roboto',
-                        color: item.fill || item.color || 'black'
+                        color: item.fill || item.color || 'black',
+                        text_align: reverseAnchorMap[item.anchor] || "TOP_LEFT"
                     };
                 }
                 break;
