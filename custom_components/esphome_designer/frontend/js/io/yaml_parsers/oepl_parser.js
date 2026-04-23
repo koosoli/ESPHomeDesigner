@@ -84,7 +84,7 @@ export function parseOEPLArrayToLayout(oeplArray) {
 
                 const reverseAnchorMap = {
                     "lt": "TOP_LEFT",    "ct": "TOP_CENTER",    "rt": "TOP_RIGHT",
-                    "lm": "CENTER_LEFT", "cm": "CENTER_CENTER", "rm": "CENTER_RIGHT",
+                    "lm": "CENTER_LEFT", "cm": "CENTER", "rm": "CENTER_RIGHT",
                     "lb": "BOTTOM_LEFT", "cb": "BOTTOM_CENTER", "rb": "BOTTOM_RIGHT"
                 };
                 if (templateInfo) {

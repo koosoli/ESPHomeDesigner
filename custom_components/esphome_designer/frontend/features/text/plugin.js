@@ -246,27 +246,29 @@ export default {
         // Mapping for alignment to ODP anchor
         const alignMap = {
             "TOP_LEFT": "lt", "TOP_CENTER": "ct", "TOP_RIGHT": "rt",
-            "CENTER_LEFT": "lm", "CENTER_CENTER": "cm", "CENTER_RIGHT": "rm",
+            "CENTER_LEFT": "lm", "CENTER_CENTER": "cm", "CENTER": "cm", "CENTER_RIGHT": "rm",
             "BOTTOM_LEFT": "lb", "BOTTOM_CENTER": "cb", "BOTTOM_RIGHT": "rb"
         };
         const anchor = alignMap[p.text_align] || "lt";
 
-        // Check if text needs word wrapping based on widget width
-        const wrappedLines = wordWrap(text, w.width || 200, fontSize, fontFamily);
-
-        // If multiple lines, use multiline type with \n delimiter
-        if (wrappedLines.length > 1) {
-            return {
-                type: "multiline",
-                value: wrappedLines.join('\n'),
-                delimiter: "\n",
-                x: Math.round(w.x),
-                y: Math.round(w.y),
-                offset_y: fontSize + 5,
-                size: fontSize,
-                color: (color === "theme_auto") ? (layout?.darkMode ? "white" : "black") : color,
-                font: fontFamily?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf"
-            };
+        // Only pre-wrap to multiline when no explicit width is set.
+        // When max_width is present the ODP renderer wraps the text itself,
+        // so converting here would drop anchor/max_width on round-trip.
+        if (!w.width) {
+            const wrappedLines = wordWrap(text, 200, fontSize, fontFamily);
+            if (wrappedLines.length > 1) {
+                return {
+                    type: "multiline",
+                    value: wrappedLines.join('\n'),
+                    delimiter: "\n",
+                    x: Math.round(w.x),
+                    y: Math.round(w.y),
+                    offset_y: fontSize + 5,
+                    size: fontSize,
+                    color: (color === "theme_auto") ? (layout?.darkMode ? "white" : "black") : color,
+                    font: fontFamily?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf"
+                };
+            }
         }
 
         // Single line - use text
