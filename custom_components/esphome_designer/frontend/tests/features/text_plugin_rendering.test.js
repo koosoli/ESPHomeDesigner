@@ -327,4 +327,33 @@ describe('text plugin rendering and export variants', () => {
             max_width: 72
         });
     });
+
+    it('converts long OpenDisplay text without an explicit width into multiline output', () => {
+        const openDisplay = plugin.exportOpenDisplay({
+            id: 'text_wrapped',
+            type: 'text',
+            x: 4,
+            y: 8,
+            props: {
+                text: 'This long sentence should be auto wrapped by the exporter when no widget width is set.',
+                font_size: 16,
+                font_family: 'Roboto',
+                color: 'theme_auto',
+                text_align: 'TOP_CENTER'
+            }
+        }, {
+            layout: { darkMode: false },
+            _page: {}
+        });
+
+        expect(openDisplay).toMatchObject({
+            type: 'multiline',
+            delimiter: '\n',
+            x: 4,
+            y: 8,
+            color: 'black',
+            font: 'ppb.ttf'
+        });
+        expect(openDisplay.value).toContain('\n');
+    });
 });

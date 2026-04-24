@@ -317,6 +317,67 @@ describe('SnippetManager', () => {
         );
     });
 
+    it('ignores stale baseline rebuild results once a newer rebuild starts', async () => {
+        /** @type {(value: string) => void} */
+        let resolveFirst;
+
+        adapter.generate.mockReset();
+        adapter.generate
+            .mockImplementationOnce(() => new Promise((resolve) => {
+                resolveFirst = resolve;
+            }))
+            .mockResolvedValueOnce([
+                'display:',
+                '  - platform: ili9xxx',
+                '    lambda: |-',
+                '      it.print(55,55,id(font),"fresh");'
+            ].join('\n'));
+
+        const firstRun = manager.syncGeneratedSnippetBaseline();
+        const secondRun = manager.syncGeneratedSnippetBaseline();
+        await secondRun;
+
+        resolveFirst([
+            'display:',
+            '  - platform: ili9xxx',
+            '    lambda: |-',
+            '      it.print(11,11,id(font),"stale");'
+        ].join('\n'));
+        await firstRun;
+
+        expect(manager.lastGeneratedYaml).toContain('it.print(55,55,id(font),"fresh");');
+    });
+
+    it('ignores stale baseline rebuild failures after a newer rebuild succeeds', async () => {
+        /** @type {(error: Error) => void} */
+        let rejectFirst;
+
+        adapter.generate.mockReset();
+        adapter.generate
+            .mockImplementationOnce(() => new Promise((_, reject) => {
+                rejectFirst = reject;
+            }))
+            .mockResolvedValueOnce([
+                'display:',
+                '  - platform: ili9xxx',
+                '    lambda: |-',
+                '      it.print(66,66,id(font),"fresh");'
+            ].join('\n'));
+
+        const firstRun = manager.syncGeneratedSnippetBaseline();
+        const secondRun = manager.syncGeneratedSnippetBaseline();
+        await secondRun;
+
+        rejectFirst(new Error('stale baseline failed'));
+        await firstRun;
+
+        expect(mockLogger.warn).not.toHaveBeenCalledWith(
+            '[SnippetManager] Failed to rebuild generated YAML baseline after import.',
+            expect.objectContaining({ message: 'stale baseline failed' })
+        );
+        expect(manager.lastGeneratedYaml).toContain('it.print(66,66,id(font),"fresh");');
+    });
+
     it('copies snippet and lambda to clipboard', async () => {
         const snippetBox = document.getElementById('snippetBox');
         snippetBox.value = [
@@ -629,6 +690,16 @@ describe('SnippetManager', () => {
         expect(snippetBox.value).toContain('it.print(22,22,id(font),"newer");');
         expect(snippetBox.value).not.toContain('it.print(11,11,id(font),"stale");');
         expect(manager.lastGeneratedYaml).toContain('it.print(22,22,id(font),"newer");');
+    });
+
+    it('skips a queued snippet regeneration when a newer generation id exists before the debounce fires', async () => {
+        adapter.generate.mockClear();
+
+        manager.updateSnippetBox();
+        manager.generationCounter += 1;
+        await vi.advanceTimersByTimeAsync(60);
+
+        expect(adapter.generate).not.toHaveBeenCalled();
     });
 
     it('restores persisted manual YAML overrides and allows clearing back to generated output', async () => {
