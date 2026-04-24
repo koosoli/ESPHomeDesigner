@@ -62,6 +62,7 @@ export class SnippetManager {
         this.highlighter = new YamlHighlighter();
         this.suppressSnippetUpdate = false;
         this.snippetDebounceTimer = null;
+        this.generationCounter = 0;
         this.lastGeneratedYaml = "";
         this.hasPendingManualSnippetChanges = false;
 
@@ -140,9 +141,17 @@ export class SnippetManager {
      * @returns {Promise<void>}
      */
     async syncGeneratedSnippetBaseline() {
+        const generationId = ++this.generationCounter;
         try {
-            this.lastGeneratedYaml = await this.generateCurrentSnippetYaml();
+            const generatedYaml = await this.generateCurrentSnippetYaml();
+            if (generationId !== this.generationCounter) {
+                return;
+            }
+            this.lastGeneratedYaml = generatedYaml;
         } catch (error) {
+            if (generationId !== this.generationCounter) {
+                return;
+            }
             Logger.warn('[SnippetManager] Failed to rebuild generated YAML baseline after import.', error);
         }
     }
@@ -241,8 +250,11 @@ export class SnippetManager {
         }
 
         if (normalizedBlock.includes(normalizedGenerated)) {
-            return normalizedBlock
-                .replace(normalizedGenerated, '')
+            let stripped = normalizedBlock;
+            while (stripped.includes(normalizedGenerated)) {
+                stripped = stripped.replace(normalizedGenerated, '');
+            }
+            return stripped
                 .replace(/^\n+|\n+$/g, '')
                 .trimEnd();
         }
@@ -678,8 +690,13 @@ export class SnippetManager {
         if (snippetBox) {
             // Debounce the update
             if (this.snippetDebounceTimer) clearTimeout(this.snippetDebounceTimer);
+            const generationId = ++this.generationCounter;
 
             this.snippetDebounceTimer = setTimeout(() => {
+                if (generationId !== this.generationCounter) {
+                    return;
+                }
+
                 // Double-check suppression flag inside callback
                 if (this.suppressSnippetUpdate) {
                     return;
@@ -701,6 +718,9 @@ export class SnippetManager {
 
                     // IMPORTANT: Deep clone to prevent mutating AppState
                     this.generateCurrentSnippetYaml().then((/** @type {string} */ normalizedGeneratedYaml) => {
+                        if (generationId !== this.generationCounter) {
+                            return;
+                        }
                         const nextSnippet = this.reconcileManualSnippetOverride(normalizedGeneratedYaml, manualYamlOverride);
 
                         this.lastGeneratedYaml = normalizedGeneratedYaml;
@@ -725,6 +745,9 @@ export class SnippetManager {
                             highlightWidgetInSnippet(selectedIds);
                         }
                     }).catch((/** @type {unknown} */ e) => {
+                        if (generationId !== this.generationCounter) {
+                            return;
+                        }
                         Logger.error("Error generating snippet via adapter:", e);
                         this.setSnippetText("# Error generating YAML (adapter): " + getErrorMessage(e));
                         if (this.isHighlighted) this.updateHighlightLayer();

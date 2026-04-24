@@ -63,6 +63,9 @@ export function generateInstructionHeader(profile, layout, requiresMaterialIcons
     } else if (chip === 'esp32') {
         lines.push("#         - Select: ESP32");
         lines.push(`#         - Framework: ${frameworkHint}`);
+    } else if (chip.includes('p4')) {
+        lines.push("#         - Select: ESP32-P4");
+        lines.push("#         - Framework: ESP-IDF (Required)");
     } else if (chip.includes('c3')) {
         lines.push("#         - Select: ESP32-C3");
         lines.push("#         - Framework: ESP-IDF (Recommended) or Arduino");
@@ -140,7 +143,7 @@ export function generateInstructionHeader(profile, layout, requiresMaterialIcons
 export function generateSystemSections(profile, layout) {
     const lines = [];
     const chip = profile.chip || "esp32-s3";
-    const board = profile.board || (chip === 'esp8266' ? 'nodemcuv2' : (chip === 'esp32' ? 'esp32dev' : (chip.includes('c3') ? 'esp32-c3-devkitm-1' : (chip.includes('c6') ? 'esp32-c6-devkitc-1' : 'esp32-s3-devkitc-1'))));
+    const board = profile.board || (chip === 'esp8266' ? 'nodemcuv2' : (chip === 'esp32' ? 'esp32dev' : (chip.includes('c3') ? 'esp32-c3-devkitm-1' : (chip.includes('c6') ? 'esp32-c6-devkitc-1' : (chip.includes('p4') ? 'esp32-p4-evboard' : 'esp32-s3-devkitc-1')))));
     const overrides = profile.system_section_overrides || {};
     /** @param {string[]} [blockLines] */
     const pushCommentedBlock = (blockLines = []) => {
@@ -221,6 +224,9 @@ export function generateSystemSections(profile, layout) {
         lines.push("#");
         lines.push("# esp32:");
         lines.push(`#   board: ${board}`);
+        if (chip.includes("p4")) {
+            lines.push("#   variant: esp32p4");
+        }
         if (overrides.esp32 && overrides.esp32.length > 0) {
             pushCommentedBlock(overrides.esp32);
         } else {
@@ -230,6 +236,9 @@ export function generateSystemSections(profile, layout) {
                 lines.push("#     sdkconfig_options:");
                 lines.push("#       CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: y");
                 lines.push("#       CONFIG_ESP32S3_DATA_CACHE_64KB: y");
+            } else if (chip.includes("p4")) {
+                lines.push("#     advanced:");
+                lines.push("#       enable_idf_experimental_features: true");
             }
         }
     }

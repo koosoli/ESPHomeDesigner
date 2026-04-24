@@ -1,6 +1,10 @@
 import { clampFontWeight } from '@core/font_weights.js';
 import { getCalendarEventSummaryCharLimit } from './layout.js';
 
+function escapeYamlDoubleQuoted(value) {
+    return String(value || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
 export const onExportTextSensors = (context) => {
         const { lines, widgets } = context;
         if (!widgets) return;
@@ -43,6 +47,12 @@ export const onExportTextSensors = (context) => {
         const maxEntries = (primaryWidget.props && (primaryWidget.props.max_events || primaryWidget.props.event_limit))
             ? (primaryWidget.props.max_events || primaryWidget.props.event_limit)
             : 8;
+        const prefixLength = Number.isFinite(parseInt(String(primaryWidget.props?.prefix_length), 10))
+            ? parseInt(String(primaryWidget.props?.prefix_length), 10)
+            : 3;
+        const prefixSeparator = typeof primaryWidget.props?.prefix_separator === 'string'
+            ? primaryWidget.props.prefix_separator
+            : ': ';
 
         // Generate calendar entity list for calendar.get_events
         const calendarEntities = sourceCalendars.split(',')
@@ -81,6 +91,8 @@ export const onExportTextSensors = (context) => {
         lines.push("#           calendar: \"{{ calendar_events }}\"");
         lines.push("#           now: \"{{ now().isoformat().split('T')[0] }}\"");
         lines.push(`#           nr_entries: ${maxEntries}`);
+        lines.push(`#           prefix_length: ${prefixLength}`);
+        lines.push(`#           prefix_separator: "${escapeYamlDoubleQuoted(prefixSeparator)}"`);
         lines.push("#         response_variable: output");
         lines.push("#     sensor:");
         lines.push("#       - name: ESP Calendar Data");
@@ -322,6 +334,8 @@ export const exportDirect = (w, context) => {
             lines.push(`          int eventY = gridY + (r+1)*rowH + 10;`);
             lines.push(`          int max_y = y + h - 5;`);
             lines.push(`          const int event_limit = ${p.max_events || p.event_limit || 8};`);
+            lines.push(`          const bool group_events_by_day = ${p.group_events_by_day === true ? 'true' : 'false'};`);
+            lines.push(`          int last_drawn_day = -1;`);
             lines.push(``);
             // Use entity-based sensor ID to match onExportTextSensors
             const sensorSafeId = `calendar_data_${entityId.replace(/[^a-zA-Z0-9_]/g, "_")}`;
@@ -354,7 +368,10 @@ export const exportDirect = (w, context) => {
             lines.push(`                             const char* start = event["start"] | "";`);
             lines.push(``);
             lines.push(`                             // Draw Day Number`);
-            lines.push(`                             it.printf(x + 10, eventY, id(${fontEventId}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
+            lines.push(`                             if (!group_events_by_day || currentDayNum != last_drawn_day) {`);
+            lines.push(`                                 it.printf(x + 10, eventY, id(${fontEventId}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
+            lines.push(`                                 last_drawn_day = currentDayNum;`);
+            lines.push(`                             }`);
             lines.push(``);
             lines.push(`                             // Draw Summary`);
             lines.push(`                             it.printf(x + 50, eventY, id(${fontEventId}), ${color}, TextAlign::TOP_LEFT, "%.${eventSummaryCharLimit}s", summary);`);

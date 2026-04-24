@@ -68,6 +68,7 @@ describe('CustomHardwarePanel behavior', () => {
             <div id="customHardwareSection"></div>
             <select id="customChip">
                 <option value="esp32-s3">esp32-s3</option>
+                <option value="esp32-p4">esp32-p4</option>
                 <option value="esp32-c3">esp32-c3</option>
                 <option value="esp8266">esp8266</option>
             </select>
@@ -218,6 +219,21 @@ describe('CustomHardwarePanel behavior', () => {
 
         expect(getProfileButtonLabel(false)).toBe('Save Profile');
         expect(getProfileButtonLabel(true)).toBe('Update Profile');
+    });
+
+    it('maps ESP32-P4 custom profiles onto the ESP32 pin datalist without disabling PSRAM', async () => {
+        const { CustomHardwarePanel } = await import('../../js/ui/device_settings/custom_hardware.js');
+        const panel = new CustomHardwarePanel(parent);
+        panel.init();
+
+        const customChip = /** @type {HTMLSelectElement} */ (document.getElementById('customChip'));
+        const customPsram = /** @type {HTMLInputElement} */ (document.getElementById('customPsram'));
+        customChip.value = 'esp32-p4';
+        customChip.dispatchEvent(new Event('change'));
+
+        expect(document.getElementById('pin_cs')?.getAttribute('list')).toBe('gpio-pins-esp32');
+        expect(customPsram.disabled).toBe(false);
+        expect(customPsram.checked).toBe(true);
     });
 
     it('updates visibility for saved profiles, unsaved custom profiles, and protocol modes', async () => {

@@ -82,6 +82,8 @@ You can use the designer without installing anything!
 
 #### 2. Install via HACS (Recommended)
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=koosoli&repository=ESPHomeDesigner&category=Integration)
+
 1. Add `https://github.com/koosoli/ESPHomeDesigner` to HACS as a custom repository
 2. Search for "ESPHome Designer" and install
 3. Restart Home Assistant
@@ -112,6 +114,7 @@ If you are browsing the Home Assistant filesystem from the host OS, replace `/co
 - **Save Hardware Profile** is a separate action for reusable hardware recipes. It writes a YAML profile to `/config/esphomedesigner_custom_profiles/*.yaml`.
 - **Generated ESPHome YAML** in the snippet box is meant to be copied into your actual ESPHome device configuration. The normal workflow is still: design in the editor, copy the generated snippet, paste/merge it into your device YAML, then compile/flash from ESPHome.
 - **Import YAML back to canvas** / **Update Layout from YAML** does the reverse: it parses supported YAML back into pages/widgets and rebuilds the editor canvas for round-trip editing.
+- **Show grid coordinates** by enabling **Debug Grid** in **Editor Settings** when you want an overlay with placement coordinates while arranging widgets.
 - **Round-trip note**: very custom `lambda:` or `script:` code may not preview or reconstruct perfectly in the visual editor, even though the raw YAML can still be preserved.
 
 #### 4. Local Development Server

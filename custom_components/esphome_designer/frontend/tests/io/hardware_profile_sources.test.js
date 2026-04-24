@@ -41,4 +41,26 @@ touchscreen:
         expect(profile.features.epaper).toBe(false);
         expect(profile.hardwarePackage).toBeUndefined();
     });
+
+    it('detects ESP32-P4 boards from esp32 variants and board ids', () => {
+        const yaml = `
+# Name: Waveshare ESP32-P4 Panel
+# Resolution: 800x480
+# Shape: rect
+
+esp32:
+  board: esp32-p4-evboard
+  variant: esp32p4
+
+display:
+  - platform: ili9xxx
+    id: my_display
+`;
+
+        const profile = parseHardwareRecipeClientSide(yaml, 'waveshare-esp32-p4.yaml');
+
+        expect(profile.chip).toBe('esp32-p4');
+        expect(profile.board).toBe('esp32-p4-evboard');
+        expect(profile.displayPlatform).toBe('ili9xxx');
+    });
 });

@@ -137,7 +137,9 @@ describe('calendar properties', () => {
         expect(downloadedScript).toContain("for original_event in events_list['events']:");
         expect(downloadedScript).toContain("event = original_event.copy()");
         expect(downloadedScript).toContain("event['start'] = today");
-        expect(downloadedScript).toContain("event['summary'] = prefix + event.get('summary', '')");
+        expect(downloadedScript).toContain('def build_calendar_prefix(calendar_name, prefix_length, prefix_separator):');
+        expect(downloadedScript).toContain('raw_prefix_length = data.get("prefix_length", None)');
+        expect(downloadedScript).toContain('converted_data = convert_calendar_format(input_data, today, prefix_length=PREFIX_LENGTH, prefix_separator=PREFIX_SEPARATOR)');
         expect(downloadedScript).toContain('MAX_ENTRIES = int(data.get("nr_entries", MAX_ENTRIES))');
         expect(downloadedScript).not.toContain('location_name');
         expect(clickSpy).toHaveBeenCalledTimes(1);
@@ -180,6 +182,8 @@ describe('calendar properties', () => {
         expect(copied).toContain('calendar.family, calendar.work');
         expect(copied).toContain('python_script.esp_calendar_data_conversion');
         expect(copied).toContain('nr_entries: 12');
+        expect(copied).toContain('prefix_length: 3');
+        expect(copied).toContain('prefix_separator: ": "');
         expect(yamlButton?.textContent).toBe('Copied');
 
         vi.advanceTimersByTime(2000);

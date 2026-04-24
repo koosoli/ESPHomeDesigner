@@ -1,14 +1,16 @@
-## v1.0.0 RC12.9.1 - Home Assistant Async I/O Hotfix
-**Release Date:** April 21, 2026
+## v1.0.0 RC12.10 - Round-Trip Repair & Calendar Control
+**Release Date:** April 24, 2026
 
-This RC12.9.1 hotfix follows the RC12.9 hierarchy cleanup with a Home Assistant integration hardening pass. Recent Home Assistant builds now flag blocking filesystem work inside the event loop more aggressively, and ESPHome Designer still had a few synchronous panel/frontend and hardware-template file paths that could trigger those warnings during startup or API requests. RC12.9.1 moves those paths onto executor-backed helpers, refreshes the shipped release metadata, and adds focused regression coverage for the repaired hardware-template endpoint.
+This RC12.10 follow-up rolls together the latest user-reported round-trip bugs and the lowest-risk quality-of-life requests from recent PRs/discussions. OpenDisplay text widgets now round-trip cleanly through export/import with centered anchors and explicit widths intact, snippet regeneration no longer duplicates generated headers when async refreshes race, custom hardware now understands ESP32-P4, and calendar widgets finally gain configurable source prefixes plus optional grouped day labels. The release also adds a one-click HACS badge and documents the existing YAML-import/debug-grid workflow more clearly for users who were missing those entry points.
 
 ### Stability & Verification
-- **Async-Safe Panel Module Registration:** Sidebar panel module URL resolution now loads the Vite manifest through Home Assistant's executor path during config-entry setup, avoiding blocking `read_text`/`open` calls on the event loop when the integration registers its custom panel.
-- **Async-Safe Frontend Asset Serving:** The panel HTML shell, static asset responses, and fallback font reads now perform their existence checks and file reads off the event loop, keeping Home Assistant's HTTP worker responsive while still serving the same cache-busted assets.
-- **Async-Safe Hardware Template Discovery:** Built-in/custom hardware template scanning, hardware package reads, and uploaded-template directory creation now run through executor-backed helpers so template listing no longer triggers blocking `scandir` warnings in Home Assistant logs.
-- **Regression Coverage Expansion:** Added HTTP regression coverage for the authenticated hardware-template listing flow alongside the panel/static/package route checks, locking in the exact path that produced the Home Assistant warning.
-- **Release Metadata Refresh:** Updated the package version, package lock metadata, Home Assistant manifest version, runtime version string, visible header label, and rebuilt frontend assets for the RC12.9.1 hotfix line.
+- **OpenDisplay Width/Alignment Round-Trip (Issue #390, PR #391):** OpenDisplay `text` and `sensor_text` exports now use the correct centered anchor mapping, keep `max_width` instead of forcing unwanted multiline conversion when a width is explicit, and restore both alignment and width when the payload is imported back into the canvas.
+- **Snippet Regeneration Hardening (Issue #392):** Snippet merging now strips repeated generated preambles instead of only the first copy, and stale async snippet generations are ignored once a newer refresh has been requested, preventing duplicate YAML headers and old widget output from overwriting current output.
+- **ESP32-P4 Custom Hardware Support (PR #378):** Added `ESP32-P4` to the custom hardware chip picker, mapped it onto the right pin datalist, taught hardware import/profile parsing to recognize P4 boards, and generated the expected `board`, `variant`, framework, and PSRAM guidance for exported YAML.
+- **Calendar Prefix & Grouping Controls (Discussion #375):** Calendar widgets now expose configurable prefix length and separator settings for the Home Assistant helper flow, the downloaded helper script accepts those parameters while preserving legacy fallback behavior for older setups, and direct/preview event rows can optionally group repeated day numbers for cleaner multi-event lists.
+- **Install/Discoverability Docs (PR #389, Discussion #387):** Added the Home Assistant "Open in HACS" badge to the README and documented that YAML can already be imported back into the canvas while the existing **Debug Grid** toggle can be used for coordinate overlays during layout work.
+- **Regression Coverage Expansion:** Added focused frontend regressions for OpenDisplay centered-width imports/exports, snippet preamble self-healing and stale-generation races, ESP32-P4 hardware generation/import/UI flows, calendar helper/config rendering, grouped day display, and refreshed calendar export snapshots.
+- **Release Metadata Refresh:** Updated the package version, package lock metadata, Home Assistant manifest version, runtime version string, visible header label, release notes heading/date, and rebuilt frontend assets for the RC12.10 release line.
 
 
 ---

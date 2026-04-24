@@ -6,8 +6,24 @@ CALENDAR_NAMES = {"calendar.x": "X", "calendar.Y": "Y"}
 DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 # Default number of entries to send to the ESPHome device
 MAX_ENTRIES = 8
+# Optional default separator used when generated YAML passes a configurable prefix length
+DEFAULT_PREFIX_SEPARATOR = ": "
 
-def convert_calendar_format(data, today):
+def build_calendar_prefix(calendar_name, prefix_length, prefix_separator):
+    if not calendar_name or prefix_length <= 0:
+        return ""
+
+    normalized = "".join(ch for ch in calendar_name if ch.isalnum())
+    if not normalized:
+        normalized = calendar_name.replace(" ", "")
+
+    if not normalized:
+        return ""
+
+    prefix = normalized[:prefix_length].upper()
+    return f"{prefix}{prefix_separator}"
+
+def convert_calendar_format(data, today, prefix_length=None, prefix_separator=DEFAULT_PREFIX_SEPARATOR):
     # Initialize a dictionary to store events grouped by date
     events_by_date = {}
     entrie_count = 0
@@ -38,9 +54,13 @@ def convert_calendar_format(data, today):
             event['calendar_name'] = CALENDAR_NAMES.get(calendar_key, calendar_key.split(".")[1].capitalize())
 
             if multiple_calendars and event['calendar_name']:
-                first_letter = event['calendar_name'][0].upper()
-                prefix = f"[{first_letter}] "
-                event['summary'] = prefix + event.get('summary', '')
+                if prefix_length is None:
+                    first_letter = event['calendar_name'][0].upper()
+                    prefix = f"[{first_letter}] "
+                else:
+                    prefix = build_calendar_prefix(event['calendar_name'], prefix_length, prefix_separator)
+                if prefix:
+                    event['summary'] = prefix + event.get('summary', '')
             
             if 'location' in event:
                 event.pop('location')
@@ -100,9 +120,12 @@ def convert_calendar_format(data, today):
 input_data = data["calendar"]
 today = data["now"]
 MAX_ENTRIES = int(data.get("nr_entries", MAX_ENTRIES))
+raw_prefix_length = data.get("prefix_length", None)
+PREFIX_LENGTH = None if raw_prefix_length in (None, "") else max(0, int(raw_prefix_length))
+PREFIX_SEPARATOR = str(data.get("prefix_separator", DEFAULT_PREFIX_SEPARATOR))
 
 # Convert the received data into the format expected by the epaper display
-converted_data = convert_calendar_format(input_data, today)
+converted_data = convert_calendar_format(input_data, today, prefix_length=PREFIX_LENGTH, prefix_separator=PREFIX_SEPARATOR)
 
 # Pass the output back to Home Assistant
 output["entries"] = {"days": converted_data[0]}

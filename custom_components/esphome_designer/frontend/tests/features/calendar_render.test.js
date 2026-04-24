@@ -103,6 +103,40 @@ describe('calendar render', () => {
         expect(el.textContent).not.toContain('Later');
     });
 
+    it('can group event rows so repeated day numbers are only shown once per day', () => {
+        mockAppState.entityStates = {
+            'sensor.calendar_grouped': {
+                attributes: {
+                    entries: JSON.stringify([
+                        {
+                            day: 17,
+                            all_day: [{ summary: 'Holiday', start: '', end: '' }],
+                            other: [{ summary: 'Lunch', start: '2026-03-17T12:30:00', end: '2026-03-17T13:00:00' }]
+                        }
+                    ])
+                }
+            }
+        };
+
+        const el = document.createElement('div');
+        render(el, {
+            entity_id: 'sensor.calendar_grouped',
+            props: {
+                show_header: false,
+                show_grid: false,
+                group_events_by_day: true
+            }
+        }, createContext());
+
+        const eventsPanel = /** @type {HTMLDivElement} */ (el.firstElementChild);
+        const rows = Array.from(eventsPanel.children);
+
+        expect(rows).toHaveLength(2);
+        expect(rows[0]?.textContent).toContain('17Holiday');
+        expect(rows[1]?.textContent).toContain('Lunch');
+        expect(rows[1]?.textContent).not.toContain('17');
+    });
+
     it('parses event data from the entity state JSON payload', () => {
         mockAppState.entityStates = {
             'sensor.calendar_state': {

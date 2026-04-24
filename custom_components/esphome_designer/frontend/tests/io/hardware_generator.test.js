@@ -97,4 +97,33 @@ describe('hardware_generator', () => {
         expect(yaml).toContain('id: start_antiburn');
         expect(yaml).toContain('show_snow: true');
     });
+
+    it('emits ESP32-P4 board guidance, variant config, and PSRAM tuning', () => {
+        const yaml = generateCustomHardwareYaml({
+            name: 'Waveshare P4',
+            chip: 'esp32-p4',
+            tech: 'lcd',
+            resWidth: 800,
+            resHeight: 480,
+            shape: 'rect',
+            psram: true,
+            displayDriver: 'ili9xxx',
+            touchTech: 'none',
+            pins: {
+                clk: 'GPIO1',
+                mosi: 'GPIO2',
+                cs: 'GPIO3',
+                dc: 'GPIO4'
+            }
+        });
+
+        expect(yaml).toContain('#         - Select: ESP32-P4');
+        expect(yaml).toContain('#         - Board: esp32-p4-evboard');
+        expect(yaml).toContain('#         - Framework: esp-idf (Required)');
+        expect(yaml).toContain('#   board: esp32-p4-evboard');
+        expect(yaml).toContain('#   variant: esp32p4');
+        expect(yaml).toContain('#       enable_idf_experimental_features: true');
+        expect(yaml).toContain('#   mode: hex');
+        expect(yaml).toContain('#   speed: 200MHz');
+    });
 });

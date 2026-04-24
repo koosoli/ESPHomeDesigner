@@ -158,6 +158,7 @@ export function parseHardwareRecipeClientSide(yaml, filename) {
             if (yaml.toLowerCase().includes('esp32-s3')) chip = 'esp32-s3';
             else if (yaml.toLowerCase().includes('esp32-c3')) chip = 'esp32-c3';
             else if (yaml.toLowerCase().includes('esp32-c6')) chip = 'esp32-c6';
+            else if (yaml.toLowerCase().includes('esp32p4') || yaml.toLowerCase().includes('esp32-p4')) chip = 'esp32-p4';
             else chip = 'esp32';
         }
     }
@@ -169,6 +170,7 @@ export function parseHardwareRecipeClientSide(yaml, filename) {
             if (board.toLowerCase().includes('s3')) chip = 'esp32-s3';
             else if (board.toLowerCase().includes('c3')) chip = 'esp32-c3';
             else if (board.toLowerCase().includes('c6')) chip = 'esp32-c6';
+            else if (board.toLowerCase().includes('p4')) chip = 'esp32-p4';
         }
     }
 

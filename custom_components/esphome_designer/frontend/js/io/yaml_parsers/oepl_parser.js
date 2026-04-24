@@ -81,11 +81,16 @@ export function parseOEPLArrayToLayout(oeplArray) {
                 const textVal = item.value || item.text || '';
                 const templateInfo = extractInfoFromTemplate(textVal);
                 const size = parseInt(item.size || 20, 10);
+                const reverseAnchorMap = {
+                    "lt": "TOP_LEFT", "ct": "TOP_CENTER", "rt": "TOP_RIGHT",
+                    "lm": "CENTER_LEFT", "cm": "CENTER", "rm": "CENTER_RIGHT",
+                    "lb": "BOTTOM_LEFT", "cb": "BOTTOM_CENTER", "rb": "BOTTOM_RIGHT"
+                };
 
                 if (templateInfo) {
                     widget.type = 'sensor_text';
                     widget.entity_id = templateInfo.entity_id || '';
-                    widget.width = size * 8;
+                    widget.width = item.max_width || size * 8;
                     widget.height = size * 1.5;
                     widget.props = {
                         value_font_size: size,
@@ -94,16 +99,18 @@ export function parseOEPLArrayToLayout(oeplArray) {
                         prefix: templateInfo.prefix,
                         postfix: templateInfo.postfix,
                         value_format: "value_only",
-                        hide_unit: true
+                        hide_unit: true,
+                        text_align: reverseAnchorMap[item.anchor] || "TOP_LEFT"
                     };
                 } else {
-                    widget.width = size * 6;
+                    widget.width = item.max_width || size * 6;
                     widget.height = size * 1.5;
                     widget.props = {
                         text: textVal,
                         font_size: size,
                         font_family: item.font ? item.font.replace('.ttf', '') : 'Roboto',
-                        color: item.fill || item.color || 'black'
+                        color: item.fill || item.color || 'black',
+                        text_align: reverseAnchorMap[item.anchor] || "TOP_LEFT"
                     };
                 }
                 break;

@@ -372,6 +372,27 @@ describe('sensor_text export variants', () => {
         expect(openDisplay.font).toBe('mononoki.ttf');
         expect(openDisplay.max_width).toBe(90);
 
+        const centeredOpenDisplay = exportOpenDisplay({
+            id: 'sensor_centered_odp',
+            entity_id: 'sensor.power',
+            x: 10,
+            y: 12,
+            width: 96,
+            props: {
+                value_format: 'value_only',
+                color: 'black',
+                text_align: 'CENTER'
+            }
+        }, {
+            layout: { darkMode: false },
+            _page: {}
+        });
+        expect(centeredOpenDisplay).toMatchObject({
+            type: 'text',
+            anchor: 'cm',
+            max_width: 96
+        });
+
         const oepl = exportOEPL({
             id: 'sensor_oepl_multiline',
             entity_id: 'sensor.power',

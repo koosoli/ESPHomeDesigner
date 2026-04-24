@@ -300,4 +300,31 @@ describe('text plugin rendering and export variants', () => {
         expect(output).toContain('it.rectangle(10 + 0, 20 + 0, 240 - 2 * 0, 30 - 2 * 0, COLOR_BLACK);');
         expect(output.trim().endsWith('}')).toBe(true);
     });
+
+    it('keeps explicit OpenDisplay text widths as text widgets with centered anchors', () => {
+        const openDisplay = plugin.exportOpenDisplay({
+            id: 'text_centered',
+            type: 'text',
+            x: 10,
+            y: 12,
+            width: 72,
+            height: 30,
+            props: {
+                text: 'Centered text that should wrap in OpenDisplay',
+                font_size: 14,
+                font_family: 'Roboto',
+                color: 'black',
+                text_align: 'CENTER'
+            }
+        }, {
+            layout: { darkMode: false },
+            _page: {}
+        });
+
+        expect(openDisplay).toMatchObject({
+            type: 'text',
+            anchor: 'cm',
+            max_width: 72
+        });
+    });
 });

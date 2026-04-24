@@ -1,5 +1,9 @@
 import { getCalendarEventSummaryCharLimit } from './layout.js';
 
+function escapeYamlDoubleQuoted(value) {
+    return String(value || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
 /**
  * @typedef {{
  *   id: string,
@@ -24,6 +28,10 @@ export function generateSnippet(widget, _pages, _deviceModel) {
     const h = widget.h;
     const props = widget.properties || {};
     const maxEntries = props.max_events || 8;
+    const prefixLength = Number.isFinite(parseInt(String(props.prefix_length), 10))
+        ? parseInt(String(props.prefix_length), 10)
+        : 3;
+    const prefixSeparator = typeof props.prefix_separator === 'string' ? props.prefix_separator : ': ';
     const eventFontSize = parseInt(props.font_size_event || 18, 10);
     const eventSummaryCharLimit = getCalendarEventSummaryCharLimit(w, eventFontSize);
 
@@ -66,6 +74,8 @@ export function generateSnippet(widget, _pages, _deviceModel) {
 #           calendar: "{{ calendar_response }}"
 #           now: "{{ now().date() }}"
 #           nr_entries: ${maxEntries}
+#           prefix_length: ${prefixLength}
+#           prefix_separator: "${escapeYamlDoubleQuoted(prefixSeparator)}"
 #         response_variable: calendar_converted
 #     sensor:
 #       - name: ESP Calendar Data
@@ -260,6 +270,8 @@ text_sensor:
                       if (${props.show_grid === false}) {
                           y_cursor = calendar_y_pos + 10; // Reset if grid hidden
                       }
+                      bool group_events_by_day = ${props.group_events_by_day === true};
+                      int last_drawn_day = -1;
                       
                       int max_y = ${y} + ${h} - 5;
     
@@ -277,7 +289,10 @@ text_sensor:
                               const char* summary = event["summary"] | "No Title";
                               const char* start = event["start"] | "";
     
-                              it.printf(${x} + 20, y_cursor, id(font_event_day), color_content, TextAlign::TOP_LEFT, "%d", currentDayNum);
+                              if (!group_events_by_day || currentDayNum != last_drawn_day) {
+                                  it.printf(${x} + 20, y_cursor, id(font_event_day), color_content, TextAlign::TOP_LEFT, "%d", currentDayNum);
+                                  last_drawn_day = currentDayNum;
+                              }
                               it.printf(${x} + 60, y_cursor + 4, id(font_event), color_content, TextAlign::TOP_LEFT, "%.${eventSummaryCharLimit}s", summary);
     
                               if (is_all_day) {

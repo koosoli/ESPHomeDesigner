@@ -245,7 +245,7 @@ export const exportOpenDisplay = (w, { layout, _page }) => {
         /** @type {Record<string, string>} */
         const alignMap = {
             "TOP_LEFT": "lt", "TOP_CENTER": "ct", "TOP_RIGHT": "rt",
-            "CENTER_LEFT": "lm", "CENTER_CENTER": "cm", "CENTER_RIGHT": "rm",
+            "CENTER_LEFT": "lm", "CENTER": "cm", "CENTER_RIGHT": "rm",
             "BOTTOM_LEFT": "lb", "BOTTOM_CENTER": "cb", "BOTTOM_RIGHT": "rb"
         };
         const anchor = alignMap[p.text_align] || "lt";

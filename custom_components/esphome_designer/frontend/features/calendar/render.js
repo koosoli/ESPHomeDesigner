@@ -171,7 +171,9 @@ export const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
     if (liveEvents && Array.isArray(liveEvents) && liveEvents.length > 0) {
         events.innerHTML = "";
         const limit = parseInt(String(props.max_events || props.event_limit || 8), 10);
+        const groupEventsByDay = props.group_events_by_day === true;
         let count = 0;
+        let lastDrawnDay = null;
         for (const dayEntry of liveEvents) {
             if (count >= limit) break;
             const dayNum = dayEntry.day;
@@ -188,12 +190,17 @@ export const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
                 if (!isAllDay && start.includes("T")) {
                     timeText = start.split("T")[1].substring(0, 5);
                 }
+                const shouldDrawDay = !groupEventsByDay || dayNum !== lastDrawnDay;
+                const dayLabel = shouldDrawDay ? String(dayNum) : "";
+                if (shouldDrawDay) {
+                    lastDrawnDay = dayNum;
+                }
 
                 const row = document.createElement("div");
                 row.style.marginBottom = "4px";
                 row.style.display = "flex";
                 row.style.justifyContent = "space-between";
-                row.innerHTML = `<span style="flex-shrink:0;width:25px;"><b>${dayNum}</b></span>` +
+                row.innerHTML = `<span style="flex-shrink:0;width:25px;"><b>${dayLabel}</b></span>` +
                     `<span style="flex-grow:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px;">${summary}</span>` +
                     `<span style="flex-shrink:0;opacity:0.7;font-size:0.9em;">${timeText}</span>`;
                 events.appendChild(row);

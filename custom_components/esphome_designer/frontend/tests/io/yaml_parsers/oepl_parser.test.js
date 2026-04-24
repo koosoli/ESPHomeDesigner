@@ -141,4 +141,42 @@ describe('oepl_parser', () => {
             }
         });
     });
+
+    it('restores explicit text widths and centered anchors on re-import', () => {
+        const layout = parseOEPLArrayToLayout([
+            {
+                type: 'text',
+                value: 'Centered label',
+                size: 18,
+                max_width: 144,
+                anchor: 'cm',
+                font: 'Roboto.ttf',
+                color: 'black'
+            },
+            {
+                type: 'text',
+                value: "Temp: {{ states('sensor.temp') }} C",
+                size: 16,
+                max_width: 132,
+                anchor: 'cm',
+                font: 'Roboto.ttf',
+                color: 'black'
+            }
+        ]);
+
+        expect(layout.pages[0].widgets[0]).toMatchObject({
+            type: 'text',
+            width: 144,
+            props: {
+                text_align: 'CENTER'
+            }
+        });
+        expect(layout.pages[0].widgets[1]).toMatchObject({
+            type: 'sensor_text',
+            width: 132,
+            props: {
+                text_align: 'CENTER'
+            }
+        });
+    });
 });

@@ -8,6 +8,11 @@ export const renderProperties = (panel, widget) => {
             const newProps = { ...widget.props, [key]: val };
             AppState.updateWidget(widget.id, { props: newProps });
         };
+        const prefixLength = Number.isFinite(parseInt(String(props.prefix_length), 10))
+            ? parseInt(String(props.prefix_length), 10)
+            : 3;
+        const prefixSeparator = typeof props.prefix_separator === "string" ? props.prefix_separator : ": ";
+        const escapedPrefixSeparator = prefixSeparator.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
         panel.createSection("Data Source", true);
         panel.addLabeledInputWithPicker("Calendar Sensor ID", "text", widget.entity_id || "sensor.esp_calendar_data", (v) => {
@@ -16,6 +21,9 @@ export const renderProperties = (panel, widget) => {
 
         panel.addLabeledInput("Source Calendars (CSV)", "text", props.source_calendars || "calendar.example_1, calendar.example_2", (v) => updateProp("source_calendars", v));
         panel.addHint("List the HA calendar entities to include, separated by commas.");
+        panel.addLabeledInput("Prefix Length", "number", prefixLength, (v) => updateProp("prefix_length", Math.max(0, parseInt(v, 10) || 0)));
+        panel.addLabeledInput("Prefix Separator", "text", prefixSeparator, (v) => updateProp("prefix_separator", v));
+        panel.addHint("Set prefix length to 0 to hide calendar-name prefixes in event titles.");
 
         const btnGroup = document.createElement("div");
         btnGroup.style.display = "flex";
@@ -61,6 +69,8 @@ template:
           calendar: "{{ calendar_events }}"
           now: "{{ now().isoformat().split('T')[0] }}"
           nr_entries: ${maxEntries}
+          prefix_length: ${prefixLength}
+          prefix_separator: "${escapedPrefixSeparator}"
         response_variable: output
     sensor:
       - name: ESP Calendar Data
@@ -117,6 +127,7 @@ template:
         panel.addCheckbox("Show Header", props.show_header !== false, (v) => updateProp("show_header", v));
         panel.addCheckbox("Show Grid", props.show_grid !== false, (v) => updateProp("show_grid", v));
         panel.addCheckbox("Show Events", props.show_events !== false, (v) => updateProp("show_events", v));
+        panel.addCheckbox("Group Events By Day", props.group_events_by_day === true, (v) => updateProp("group_events_by_day", v));
         panel.addLabeledInput("Max Events", "number", props.max_events || 8, (v) => updateProp("max_events", parseInt(v, 10)));
         panel.endSection();
 

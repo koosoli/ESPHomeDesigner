@@ -15,16 +15,23 @@ describe('calendar yaml export', () => {
                 show_header: false,
                 show_grid: false,
                 show_events: true,
-                max_events: 6
+                max_events: 6,
+                prefix_length: 4,
+                prefix_separator: ' - ',
+                group_events_by_day: true
             }
         });
 
         expect(result.instructions).toContain('python_script.esp_calendar_data_conversion');
         expect(result.instructions).toContain('nr_entries: 6');
+        expect(result.instructions).toContain('prefix_length: 4');
+        expect(result.instructions).toContain('prefix_separator: " - "');
         expect(result.sensors).toContain('entity_id: sensor.family_calendar');
         expect(result.sensors).toContain('id: calendar_json_calendar_a');
         expect(result.lambda).toContain('calendar_y_pos = 20; // Move up if header hidden');
         expect(result.lambda).toContain('cell_height = 0; // Collapse if hidden');
+        expect(result.lambda).toContain('bool group_events_by_day = true;');
+        expect(result.lambda).toContain('int last_drawn_day = -1;');
         expect(result.lambda).toContain('id(calendar_json_calendar_a).state');
     });
 
