@@ -83,6 +83,7 @@ const SNAKE_CASE_SETTING_MAP: Record<string, string> = {
     extended_latin_glyphs: 'extendedLatinGlyphs',
     oepl_entity_id: 'oeplEntityId',
     oepl_dither: 'oeplDither',
+    opendisplay_device_id: 'opendisplayDeviceId',
     opendisplay_entity_id: 'opendisplayEntityId',
     opendisplay_dither: 'opendisplayDither',
     opendisplay_ttl: 'opendisplayTtl'
@@ -105,6 +106,21 @@ function normalizeImportedSettings(settings: Record<string, any>): Record<string
             normalized[mappedKey] = value;
         }
     });
+
+    const deviceId = typeof normalized.opendisplayDeviceId === 'string'
+        ? normalized.opendisplayDeviceId.trim()
+        : '';
+    const legacyEntityId = typeof normalized.opendisplayEntityId === 'string'
+        ? normalized.opendisplayEntityId.trim()
+        : '';
+
+    if (!normalized.opendisplayEntityId && deviceId) {
+        normalized.opendisplayEntityId = deviceId;
+    }
+
+    if (!deviceId && legacyEntityId && !legacyEntityId.includes('.') && !/\s/.test(legacyEntityId)) {
+        normalized.opendisplayDeviceId = legacyEntityId;
+    }
 
     return normalized;
 }
@@ -145,7 +161,7 @@ function getESPHomeSchema(): yaml.Schema | null {
  * @returns {any[] | null}
  */
 function extractServicePayloadArray(yamlText: string): any[] | null {
-    const serviceMatch = yamlText.match(/^\s*service:\s*([^\n]+)\s*$/m);
+    const serviceMatch = yamlText.match(/^\s*(?:service|action):\s*([^\n]+)\s*$/m);
     if (!serviceMatch) {
         return null;
     }
@@ -156,11 +172,12 @@ function extractServicePayloadArray(yamlText: string): any[] | null {
     }
 
     const lines = yamlText.split(/\r?\n/);
-    const payloadStart = lines.findIndex((line) => /^\s*payload:\s*\|-/.test(line));
+    const payloadStart = lines.findIndex((line) => /^\s*payload:\s*(?:\|-)?\s*$/.test(line));
     if (payloadStart === -1) {
         return null;
     }
 
+    const payloadIndent = getLineIndent(lines[payloadStart]);
     const payloadLines: string[] = [];
     for (let index = payloadStart + 1; index < lines.length; index += 1) {
         const line = lines[index];
@@ -169,11 +186,11 @@ function extractServicePayloadArray(yamlText: string): any[] | null {
             continue;
         }
 
-        if (!line.startsWith('    ')) {
+        if (getLineIndent(line) <= payloadIndent) {
             break;
         }
 
-        payloadLines.push(line.slice(4));
+        payloadLines.push(line.slice(payloadIndent + 2));
     }
 
     if (payloadLines.length === 0) {
@@ -409,12 +426,13 @@ export function parseSnippetYamlOffline(yamlText: string): ParsedLayout | null {
         return parseOEPLArrayToLayout(doc);
     }
 
-    if (doc && doc.service) {
-        if (['opendisplay.drawcustom', 'open_epaper_link.drawcustom'].includes(doc.service) && doc.data && doc.data.payload) {
+    const actionName = doc?.action || doc?.service;
+    if (actionName) {
+        if (['opendisplay.drawcustom', 'open_epaper_link.drawcustom'].includes(actionName) && doc.data && doc.data.payload) {
             let payload = doc.data.payload;
 
-            // The adapter outputs `payload: |-` (block scalar), so js-yaml parses it as a string.
-            // Re-parse the string into an array of objects.
+            // Older adapters emitted `payload: |-` block scalars while newer ones emit
+            // structured YAML arrays. Re-parse legacy string payloads when needed.
             if (typeof payload === 'string') {
                 try {
                     payload = yaml.load(payload);
@@ -487,6 +505,7 @@ export function loadLayoutIntoState(layout: ParsedLayout | null | undefined): vo
         'deepSleepEnabled', 'deepSleepInterval', 'deepSleepStayAwakeSwitch', 'deepSleepStayAwakeEntityId', 'deepSleepFirmwareGuard',
         'dailyRefreshEnabled', 'dailyRefreshTime',
         'noRefreshStartHour', 'noRefreshEndHour', 'oeplEntityId', 'oeplDither',
+        'opendisplayDeviceId',
         'opendisplayEntityId', 'opendisplayDither', 'opendisplayTtl', 'glyphsets',
         'extendedLatinGlyphs', 'editor_light_mode', 'snapEnabled', 'showGrid',
         'showDebugGrid', 'showRulers', 'gridOpacity'

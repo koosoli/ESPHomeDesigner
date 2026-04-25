@@ -12,9 +12,10 @@ import { parseSnippetYamlOffline, recoverDesignerStateTriggers } from '../../js/
 
 describe('yaml_import service payload parsing', () => {
     it('recovers ODP payload blocks from malformed outer YAML', () => {
-        const yamlText = `service: opendisplay.drawcustom
+        const yamlText = `action: opendisplay.drawcustom
 bad: [oops
-payload: |-
+data:
+  payload:
     - type: text
       value: "Temp: {{ states('sensor.office_temp') }} F"
       x: 10

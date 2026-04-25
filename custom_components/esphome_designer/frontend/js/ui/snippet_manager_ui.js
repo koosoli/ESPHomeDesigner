@@ -14,7 +14,7 @@ export function syncSnippetModeUi(adapterName) {
         if (isODP) {
             const noticeText = odpNotice.querySelector('div');
             if (noticeText) {
-                noticeText.innerHTML = '<strong>OpenDisplay YAML (ODP)</strong> - Copy this to Home Assistant > Developer Tools > Services > <code>opendisplay.drawcustom</code>';
+                noticeText.innerHTML = '<strong>OpenDisplay YAML (ODP)</strong> - Copy this to Home Assistant > Developer Tools > Actions > <code>opendisplay.drawcustom</code>';
             }
         }
     }

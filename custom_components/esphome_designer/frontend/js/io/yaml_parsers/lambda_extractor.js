@@ -35,7 +35,7 @@ export function extractLambdaLines(rawLines, _yamlText) {
                 blockType = 'oepl';
                 blockIndent = 0;
                 continue;
-            } else if (line.match(/^\s*service:\s*opendisplay\.drawcustom/)) {
+            } else if (line.match(/^\s*(?:service|action):\s*opendisplay\.drawcustom/)) {
                 inBlock = true;
                 blockType = 'odp_service';
                 blockIndent = 0;

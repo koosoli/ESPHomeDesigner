@@ -3,6 +3,18 @@ import { DEVICE_PROFILES } from '../../io/devices.js';
 import { Logger } from '../../utils/logger.js';
 
 /**
+ * @param {unknown} value
+ * @returns {string}
+ */
+function normalizeOpenDisplayDeviceId(value) {
+    const trimmed = typeof value === 'string' ? value.trim() : '';
+    if (!trimmed || trimmed.includes('.') || /\s/.test(trimmed)) {
+        return '';
+    }
+    return trimmed;
+}
+
+/**
  * Manages protocol-specific hardware settings (OEPL/ODP).
  */
 export class ProtocolHardwarePanel {
@@ -25,11 +37,21 @@ export class ProtocolHardwarePanel {
         this.oeplDitherInput = /** @type {HTMLInputElement | HTMLSelectElement | null} */ (document.getElementById('oeplDither'));
 
         /** @type {HTMLInputElement | null} */
-        this.odpEntityIdInput = /** @type {HTMLInputElement | null} */ (document.getElementById('odpEntityId'));
+        this.odpDeviceIdInput = /** @type {HTMLInputElement | null} */ (
+            document.getElementById('odpDeviceId')
+            || document.getElementById('odpEntityId')
+            || document.getElementById('opendisplayEntityId')
+        );
         /** @type {HTMLInputElement | HTMLSelectElement | null} */
-        this.odpDitherInput = /** @type {HTMLInputElement | HTMLSelectElement | null} */ (document.getElementById('odpDither'));
+        this.odpDitherInput = /** @type {HTMLInputElement | HTMLSelectElement | null} */ (
+            document.getElementById('odpDither')
+            || document.getElementById('opendisplayDither')
+        );
         /** @type {HTMLInputElement | null} */
-        this.odpTtlInput = /** @type {HTMLInputElement | null} */ (document.getElementById('odpTtl'));
+        this.odpTtlInput = /** @type {HTMLInputElement | null} */ (
+            document.getElementById('odpTtl')
+            || document.getElementById('opendisplayTtl')
+        );
     }
 
     init() {
@@ -82,9 +104,9 @@ export class ProtocolHardwarePanel {
             });
         }
 
-        if (this.odpEntityIdInput) {
-            this.odpEntityIdInput.addEventListener('input', () => {
-                updateSetting('opendisplayEntityId', this.odpEntityIdInput?.value.trim() || '');
+        if (this.odpDeviceIdInput) {
+            this.odpDeviceIdInput.addEventListener('input', () => {
+                updateSetting('opendisplayDeviceId', this.odpDeviceIdInput?.value.trim() || '');
             });
         }
         if (this.odpDitherInput) {
@@ -115,7 +137,10 @@ export class ProtocolHardwarePanel {
         if (this.oeplEntityIdInput) this.oeplEntityIdInput.value = AppState.settings.oeplEntityId || '';
         if (this.oeplDitherInput) this.oeplDitherInput.value = String(AppState.settings.oeplDither ?? 2);
 
-        if (this.odpEntityIdInput) this.odpEntityIdInput.value = AppState.settings.opendisplayEntityId || '';
+        const odpDeviceId = (typeof AppState.settings.opendisplayDeviceId === 'string' && AppState.settings.opendisplayDeviceId.trim())
+            || normalizeOpenDisplayDeviceId(AppState.settings.opendisplayEntityId)
+            || '';
+        if (this.odpDeviceIdInput) this.odpDeviceIdInput.value = odpDeviceId;
         if (this.odpDitherInput) this.odpDitherInput.value = String(AppState.settings.opendisplayDither ?? 2);
         if (this.odpTtlInput) this.odpTtlInput.value = String(AppState.settings.opendisplayTtl ?? 60);
     }

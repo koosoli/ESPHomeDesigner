@@ -2,9 +2,69 @@ import { BaseAdapter } from './base_adapter.js';
 import { Logger } from '../../utils/logger.js';
 import { registry } from '../../core/plugin_registry.js';
 
+const DEFAULT_ODP_REFRESH_TYPE = "0";
+
 /**
- * OpenDisplay-specific adapter for generating ODP v1 JSON payloads.
- * Targets MQTT/HTTP based e-paper controllers.
+ * @param {unknown} value
+ * @returns {string}
+ */
+function coerceString(value) {
+    return typeof value === 'string' ? value.trim() : '';
+}
+
+/**
+ * Legacy ODP settings used entity IDs. Only carry old values forward if they already
+ * look like device IDs, otherwise force the user onto the new explicit device field.
+ *
+ * @param {Record<string, any>} settings
+ * @returns {string}
+ */
+function resolveOpenDisplayDeviceId(settings) {
+    const deviceId = coerceString(settings.opendisplayDeviceId);
+    if (deviceId) {
+        return deviceId;
+    }
+
+    const legacyValue = coerceString(settings.opendisplayEntityId);
+    if (!legacyValue || legacyValue.includes('.') || /\s/.test(legacyValue)) {
+        return '';
+    }
+
+    return legacyValue;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+function formatYamlValue(value) {
+    if (typeof value === 'string') {
+        if (
+            value === '' ||
+            /\r|\n/.test(value) ||
+            /^\s|\s$/.test(value) ||
+            /[:#'"[\]{}]|^- /.test(value) ||
+            /^(?:true|false|null|yes|no|on|off|[-+]?\d+(?:\.\d+)?)$/i.test(value)
+        ) {
+            return JSON.stringify(value);
+        }
+        return value;
+    }
+
+    if (Array.isArray(value) || (typeof value === 'object' && value !== null)) {
+        return JSON.stringify(value);
+    }
+
+    if (value === null) {
+        return 'null';
+    }
+
+    return String(value);
+}
+
+/**
+ * OpenDisplay-specific adapter for generating ODP v1 action payloads.
+ * Targets Home Assistant drawcustom actions for MQTT/HTTP based e-paper controllers.
  */
 export class OpenDisplayAdapter extends BaseAdapter {
     constructor() {
@@ -12,9 +72,9 @@ export class OpenDisplayAdapter extends BaseAdapter {
     }
 
     /**
-     * Main entry point for generating the ODP YAML configuration.
+     * Main entry point for generating the ODP action YAML.
      * @param {ProjectPayload} layout
-     * @returns {Promise<string>} The generated YAML configuration.
+     * @returns {Promise<string>} The generated action YAML.
      */
     async generate(layout) {
         if (!layout) {
@@ -57,43 +117,44 @@ export class OpenDisplayAdapter extends BaseAdapter {
         const orientation = layout.orientation || "landscape";
         const rotate = (orientation === "portrait") ? 90 : 0;
 
-        // Get entity ID from settings, with fallback placeholder
+        // Get device ID from settings, with backwards-compatible legacy fallback
         const settings = layout.settings || {};
-        const entityId = settings.opendisplayEntityId || "opendisplay.0000000000000000";
+        const deviceId = resolveOpenDisplayDeviceId(settings);
 
         // Build the YAML structure
-        let yaml = `service: opendisplay.drawcustom\n`;
-        yaml += `target:\n  entity_id: ${entityId}\n`;
-        yaml += `data:\n`;
-        yaml += `  background: "${background}"\n`;
-        yaml += `  rotate: ${rotate}\n`;
-        yaml += `  dither: ${settings.opendisplayDither ?? 2}\n`;
-        yaml += `  ttl: ${settings.opendisplayTtl || 60}\n`;
-        yaml += `  payload: |-\n`;
+        const lines = [
+            'action: opendisplay.drawcustom',
+            'target:',
+            `  device_id: ${formatYamlValue(deviceId)}`,
+            'data:',
+            `  background: ${formatYamlValue(background)}`,
+            `  rotate: ${rotate}`,
+            `  dither: ${settings.opendisplayDither ?? 2}`,
+            `  ttl: ${settings.opendisplayTtl || 60}`,
+            `  refresh_type: ${JSON.stringify(DEFAULT_ODP_REFRESH_TYPE)}`,
+            '  dry-run: false'
+        ];
+
+        if (payloadItems.length === 0) {
+            lines.push('  payload: []');
+            return lines.join('\n');
+        }
+
+        lines.push('  payload:');
 
         // Format payload items into YAML list
         payloadItems.forEach(item => {
-            const idComment = item.id ? `\n    # id: ${item.id}` : "";
-            yaml += `${idComment}\n    - type: ${item.type}\n`;
+            if (item.id) {
+                lines.push(`    # id: ${item.id}`);
+            }
+            lines.push(`    - type: ${formatYamlValue(item.type)}`);
             Object.entries(item).forEach(([key, value]) => {
                 if (key === 'type' || key === 'id') return; // Skip type (already done) and id (internal)
-
-                let valStr = value;
-                if (typeof value === 'string') {
-                    if (value.includes('\n') || value.includes(':') || value.includes('"')) {
-                        valStr = JSON.stringify(value);
-                    }
-                } else if (Array.isArray(value)) {
-                    valStr = JSON.stringify(value);
-                } else if (typeof value === 'object' && value !== null) {
-                    valStr = JSON.stringify(value);
-                }
-
-                yaml += `      ${key}: ${valStr}\n`;
+                lines.push(`      ${key}: ${formatYamlValue(value)}`);
             });
         });
 
-        return yaml;
+        return lines.join('\n');
     }
 
     /**

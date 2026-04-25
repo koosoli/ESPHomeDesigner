@@ -1,3 +1,18 @@
+## v1.0.0 RC12.11 - OpenDisplay Action Compatibility
+**Release Date:** April 25, 2026
+
+This RC12.11 follow-up closes [Issue #393](https://github.com/koosoli/ESPHomeDesigner/issues/393), where OpenDisplay exports had fallen behind the current Home Assistant/OpenDisplay service contract. The generated ODP snippet now targets devices the way the upstream integration expects, sends a real structured payload instead of a block-scalar string, and once again preserves the selected target from the settings UI instead of silently dropping it.
+
+### Stability & Verification
+- **OpenDisplay drawcustom Contract Alignment (Issue #393):** ODP exports now emit `action: opendisplay.drawcustom` snippets with `target.device_id`, structured `payload` arrays, `dry-run: false`, and the default `refresh_type: "0"`, matching the current OpenDisplay/Home Assistant action schema instead of the older entity-id plus `payload: |-` shape that Home Assistant rejects.
+- **ODP Device Selection Persistence Repair (Issue #393):** The OpenDisplay settings field is now explicitly a device-id field end to end, and the shipped modal input IDs once again match the protocol-settings controller, so the selected ODP target actually persists instead of falling back to the placeholder on export.
+- **Import/Compatibility Hardening:** OpenDisplay snippet import now accepts both `action:` and legacy `service:` wrappers plus structured `payload:` arrays, while older saved settings keep loading safely when their legacy ODP identifier already looks like a device ID.
+- **Regression Coverage Expansion:** Added focused frontend regressions for the new ODP action payload shape, legacy ODP setting compatibility, action-style snippet parsing, and the repaired device-id settings flow.
+- **Release Metadata Refresh:** Updated the package version, package lock metadata, Home Assistant manifest version, runtime version string, visible header label, release notes heading/date, and rebuilt frontend assets for the RC12.11 release line.
+
+
+---
+
 ## v1.0.0 RC12.10 - Round-Trip Repair & Calendar Control
 **Release Date:** April 24, 2026
 

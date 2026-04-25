@@ -103,6 +103,7 @@ export const DEFAULT_PREFERENCES = {
     renderingMode: "direct" as "direct" | "lvgl",
     oeplEntityId: "",
     oeplDither: 2,
+    opendisplayDeviceId: "",
     opendisplayEntityId: "",
     opendisplayDither: 2,
     opendisplayTtl: 60,
@@ -142,7 +143,7 @@ export const DEFAULT_CANVAS_HEIGHT = 480;
 
 // Initialize global namespace
 (window as any).ESPHomeDesigner = (window as any).ESPHomeDesigner || {
-    version: "1.0.0-rc.12.10",
+    version: "1.0.0-rc.12.11",
     constants: {
         COLORS,
         UI_DEFAULTS,

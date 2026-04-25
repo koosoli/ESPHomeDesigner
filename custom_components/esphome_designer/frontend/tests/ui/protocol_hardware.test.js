@@ -10,6 +10,7 @@ const mockAppState = {
     settings: {
         oeplEntityId: '',
         oeplDither: 2,
+        opendisplayDeviceId: '',
         opendisplayEntityId: '',
         opendisplayDither: 2,
         opendisplayTtl: 60,
@@ -63,6 +64,7 @@ describe('ProtocolHardwarePanel', () => {
         vi.clearAllMocks();
         mockAppState.settings.oeplEntityId = '';
         mockAppState.settings.oeplDither = 2;
+        mockAppState.settings.opendisplayDeviceId = '';
         mockAppState.settings.opendisplayEntityId = '';
         mockAppState.settings.opendisplayDither = 2;
         mockAppState.settings.opendisplayTtl = 60;
@@ -91,7 +93,7 @@ describe('ProtocolHardwarePanel', () => {
                 <option value="4">4</option>
             </select>
 
-            <input id="odpEntityId" value="" />
+            <input id="odpDeviceId" value="" />
             <select id="odpDither">
                 <option value="1">1</option>
                 <option value="2" selected>2</option>
@@ -132,7 +134,7 @@ describe('ProtocolHardwarePanel', () => {
         const colorMode = /** @type {HTMLSelectElement} */ (document.getElementById('protocolColorMode'));
         const oeplEntity = /** @type {HTMLInputElement} */ (document.getElementById('oeplEntityId'));
         const oeplDither = /** @type {HTMLSelectElement} */ (document.getElementById('oeplDither'));
-        const odpEntity = /** @type {HTMLInputElement} */ (document.getElementById('odpEntityId'));
+        const odpDevice = /** @type {HTMLInputElement} */ (document.getElementById('odpDeviceId'));
         const odpDither = /** @type {HTMLSelectElement} */ (document.getElementById('odpDither'));
         const odpTtl = /** @type {HTMLInputElement} */ (document.getElementById('odpTtl'));
 
@@ -158,9 +160,9 @@ describe('ProtocolHardwarePanel', () => {
         oeplDither.dispatchEvent(new Event('change'));
         expect(mockAppState.updateSettings).toHaveBeenCalledWith({ oeplDither: 4 });
 
-        odpEntity.value = ' media_player.display ';
-        odpEntity.dispatchEvent(new Event('input'));
-        expect(mockAppState.updateSettings).toHaveBeenCalledWith({ opendisplayEntityId: 'media_player.display' });
+        odpDevice.value = ' 95b2d0433f2c26d08088d6296a00a70d ';
+        odpDevice.dispatchEvent(new Event('input'));
+        expect(mockAppState.updateSettings).toHaveBeenCalledWith({ opendisplayDeviceId: '95b2d0433f2c26d08088d6296a00a70d' });
 
         odpDither.value = '3';
         odpDither.dispatchEvent(new Event('change'));
@@ -179,7 +181,7 @@ describe('ProtocolHardwarePanel', () => {
         mockAppState.project.protocolHardware = { width: 123, height: 456, colorMode: 'gray' };
         mockAppState.settings.oeplEntityId = 'sensor.oepl';
         mockAppState.settings.oeplDither = 4;
-        mockAppState.settings.opendisplayEntityId = 'media_player.display';
+        mockAppState.settings.opendisplayDeviceId = '95b2d0433f2c26d08088d6296a00a70d';
         mockAppState.settings.opendisplayDither = 3;
         mockAppState.settings.opendisplayTtl = 90;
 
@@ -191,7 +193,7 @@ describe('ProtocolHardwarePanel', () => {
         expect(document.getElementById('protocolResPreset')?.value).toBe('custom');
         expect(document.getElementById('oeplEntityId')?.value).toBe('sensor.oepl');
         expect(document.getElementById('oeplDither')?.value).toBe('4');
-        expect(document.getElementById('odpEntityId')?.value).toBe('media_player.display');
+        expect(document.getElementById('odpDeviceId')?.value).toBe('95b2d0433f2c26d08088d6296a00a70d');
         expect(document.getElementById('odpDither')?.value).toBe('3');
         expect(document.getElementById('odpTtl')?.value).toBe('90');
     });

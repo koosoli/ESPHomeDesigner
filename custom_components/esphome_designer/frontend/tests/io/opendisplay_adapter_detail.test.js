@@ -55,7 +55,7 @@ describe('OpenDisplayAdapter details', () => {
             darkMode: true,
             currentPageIndex: 0,
             settings: {
-                opendisplayEntityId: 'opendisplay.DEADBEEF0003'
+                opendisplayDeviceId: '95b2d0433f2c26d08088d6296a00a70d'
             },
             pages: [{
                 dark_mode: 'inherit',
@@ -65,8 +65,13 @@ describe('OpenDisplayAdapter details', () => {
             }]
         });
 
-        expect(yaml).toContain('background: "black"');
+        expect(yaml).toContain('action: opendisplay.drawcustom');
+        expect(yaml).toContain('device_id: 95b2d0433f2c26d08088d6296a00a70d');
+        expect(yaml).toContain('background: black');
         expect(yaml).toContain('rotate: 90');
+        expect(yaml).toContain('refresh_type: "0"');
+        expect(yaml).toContain('dry-run: false');
+        expect(yaml).not.toContain('payload: |-');
         expect((yaml.match(/# id: w_payload/g) || [])).toHaveLength(2);
         expect(yaml).toContain('value: "Line 1\\nLine: 2"');
         expect(yaml).toContain('data: [{"entity":"sensor.temperature","color":"black"}]');
@@ -93,5 +98,43 @@ describe('OpenDisplayAdapter details', () => {
         expect(mockLogger.warn).toHaveBeenCalledTimes(1);
         expect(yaml).not.toContain('missing_1');
         expect(yaml).not.toContain('missing_2');
+    });
+
+    it('only reuses legacy ODP ids when they already look like device ids', async () => {
+        mockRegistry.get.mockReturnValue({
+            exportOpenDisplay: () => ({
+                type: 'text',
+                value: 'Compat'
+            })
+        });
+
+        const adapter = new OpenDisplayAdapter();
+        const baseLayout = {
+            orientation: 'landscape',
+            currentPageIndex: 0,
+            settings: {},
+            pages: [{
+                dark_mode: 'light',
+                widgets: [
+                    { id: 'legacy_widget', type: 'text', x: 0, y: 0, props: {} }
+                ]
+            }]
+        };
+
+        const legacyDeviceIdYaml = await adapter.generate({
+            ...baseLayout,
+            settings: {
+                opendisplayEntityId: '95b2d0433f2c26d08088d6296a00a70d'
+            }
+        });
+        expect(legacyDeviceIdYaml).toContain('device_id: 95b2d0433f2c26d08088d6296a00a70d');
+
+        const legacyEntityYaml = await adapter.generate({
+            ...baseLayout,
+            settings: {
+                opendisplayEntityId: 'opendisplay.e0:72:a1:f9:00:75'
+            }
+        });
+        expect(legacyEntityYaml).toContain('device_id: ""');
     });
 });

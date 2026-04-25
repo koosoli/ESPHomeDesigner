@@ -190,13 +190,13 @@
             <div style="font-size: 11px; font-weight: bold; color: var(--accent); margin-bottom: 8px;">
               OpenDisplay Configuration (ODP)</div>
             <div class="field">
-              <div class="prop-label">ODP Display Entity ID</div>
-              <input id="opendisplayEntityId" class="prop-input" type="text"
-                placeholder="opendisplay.0000000000000000" />
+              <div class="prop-label">ODP Device ID</div>
+              <input id="odpDeviceId" class="prop-input" type="text"
+                placeholder="95b2d0433f2c26d08088d6296a00a70d" />
             </div>
             <div class="field">
               <div class="prop-label">Dithering Algorithm</div>
-              <select id="opendisplayDither" class="prop-input">
+              <select id="odpDither" class="prop-input">
                 <option value="0">None (Faster)</option>
                 <option value="1">Ordered</option>
                 <option value="2" selected>Burkes (Recommended)</option>
@@ -209,7 +209,7 @@
             </div>
             <div class="field">
               <div class="prop-label">Update Interval (TTL)</div>
-              <input id="opendisplayTtl" class="prop-input" type="number" min="0" placeholder="60" />
+              <input id="odpTtl" class="prop-input" type="number" min="0" placeholder="60" />
               <div style="font-size:9px; color:var(--muted); margin-top:4px;">In seconds. 0 = never expires.</div>
             </div>
           </div>

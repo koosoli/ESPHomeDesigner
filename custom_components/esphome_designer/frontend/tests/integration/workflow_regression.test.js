@@ -109,7 +109,7 @@ describe('workflow regression coverage', () => {
             darkMode: false,
             currentPageIndex: 0,
             settings: {
-                opendisplayEntityId: 'opendisplay.DEADBEEF0002',
+                opendisplayDeviceId: '95b2d0433f2c26d08088d6296a00a70d',
                 opendisplayDither: 2,
                 opendisplayTtl: 90
             },

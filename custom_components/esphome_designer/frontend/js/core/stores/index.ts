@@ -28,6 +28,10 @@ type AppSettingsSnapshot = UnknownRecord & {
     orientation?: string | null;
     oeplEntityId?: string;
     oeplDither?: number;
+    opendisplayDeviceId?: string;
+    opendisplayEntityId?: string;
+    opendisplayDither?: number;
+    opendisplayTtl?: number;
 };
 type ManualYamlOverrideOptions = {
     emitStateChange?: boolean;

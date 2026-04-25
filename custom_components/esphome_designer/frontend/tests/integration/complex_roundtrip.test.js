@@ -214,10 +214,10 @@ describe('complex workflow round-trip coverage', () => {
 
     it('imports active-page protocol payloads without losing widget identity markers', async () => {
         const openDisplay = new OpenDisplayAdapter();
-        const openDisplayLayout = createProtocolLayout('opendisplayEntityId', 'opendisplay.DEADBEEF0002');
+        const openDisplayLayout = createProtocolLayout('opendisplayDeviceId', '95b2d0433f2c26d08088d6296a00a70d');
 
         const openDisplayYaml = await openDisplay.generate(openDisplayLayout);
-        expect(openDisplayYaml).toContain('entity_id: opendisplay.DEADBEEF0002');
+        expect(openDisplayYaml).toContain('device_id: 95b2d0433f2c26d08088d6296a00a70d');
         expect(openDisplayYaml).toContain('# id: w_text_protocol_a');
         expect(openDisplayYaml).toContain('# id: w_text_protocol_b');
 

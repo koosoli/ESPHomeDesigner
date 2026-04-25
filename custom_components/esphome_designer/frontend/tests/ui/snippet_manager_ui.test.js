@@ -36,6 +36,7 @@ describe('snippet_manager_ui', () => {
         expect(document.getElementById('odpNotice')?.classList.contains('hidden')).toBe(false);
         expect(document.getElementById('copyODPServiceBtn')?.style.display).toBe('inline-block');
         expect(document.querySelector('#odpNotice div')?.innerHTML).toContain('opendisplay.drawcustom');
+        expect(document.querySelector('#odpNotice div')?.textContent).toContain('Developer Tools > Actions');
         expect(document.querySelector('.code-panel-title')?.textContent).toContain('OpenDisplay YAML (ODP)');
 
         seedDom();
