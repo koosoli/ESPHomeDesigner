@@ -198,6 +198,20 @@ describe('ProtocolHardwarePanel', () => {
         expect(document.getElementById('odpTtl')?.value).toBe('90');
     });
 
+    it('accepts legacy ODP device ids but ignores legacy entity ids when populating fields', async () => {
+        const { ProtocolHardwarePanel } = await import('../../js/ui/device_settings/protocol_hardware.js');
+        const panel = new ProtocolHardwarePanel(parent);
+
+        mockAppState.settings.opendisplayDeviceId = '';
+        mockAppState.settings.opendisplayEntityId = '95b2d0433f2c26d08088d6296a00a70d';
+        panel.populateFields();
+        expect(document.getElementById('odpDeviceId')?.value).toBe('95b2d0433f2c26d08088d6296a00a70d');
+
+        mockAppState.settings.opendisplayEntityId = 'opendisplay.e0:72:a1:f9:00:75';
+        panel.populateFields();
+        expect(document.getElementById('odpDeviceId')?.value).toBe('');
+    });
+
     it('updates strategy visibility for custom LCD hardware and resets invalid dim strategy outside LVGL', async () => {
         const { ProtocolHardwarePanel } = await import('../../js/ui/device_settings/protocol_hardware.js');
         const panel = new ProtocolHardwarePanel(parent);
