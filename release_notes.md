@@ -1,3 +1,16 @@
+## v1.0.0 RC12.12 - E1002 Inversion Override Hotfix
+**Release Date:** April 28, 2026
+
+This RC12.12 hotfix closes [Issue #394](https://github.com/koosoli/ESPHomeDesigner/issues/394), where the reTerminal E1002 (6-color) could still export inverted black-background YAML even when the user had disabled the **Inverted Colors** device setting. The native generator now treats the layout-level inversion setting as an explicit override instead of always forcing the e-paper/profile default, so regenerated E1002 snippets once again produce the expected white background with black text when inversion is turned off.
+
+### Stability & Verification
+- **Explicit Inversion Override (Issue #394):** Native ESPHome display lambda generation now respects an explicit `invertedColors: false` layout setting before falling back to the device profile's e-paper default, preventing unwanted black-background exports on the reTerminal E1002 when users disable inverted colors.
+- **Targeted Regression Validation:** Rechecked the native generator behavior against the corrected on-disk source and reran the frontend validation slice plus the full repo validation set (`npm run lint`, `npm test`, `npm run build`, and `npm run python:test`) to confirm the hotfix did not introduce collateral regressions.
+- **Release Metadata Refresh:** Updated the package version, package lock metadata, Home Assistant manifest version, runtime version string, visible header label, and release notes heading/date for the RC12.12 hotfix line.
+
+
+---
+
 ## v1.0.0 RC12.11 - OpenDisplay Action Compatibility
 **Release Date:** April 25, 2026
 

@@ -10,6 +10,7 @@ tmp/proof/
 .idea/
 *.swp
 *.swo
+/.agent
 
 # OS artifacts
 .DS_Store

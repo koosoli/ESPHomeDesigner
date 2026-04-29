@@ -124,6 +124,17 @@ describe('Native Generator', () => {
             expect(output).not.toContain('static int last_rendered_page = -1;');
         });
 
+        it('should honor explicit invertedColors false over e-paper defaults', () => {
+            const epaperProfile = { id: 'epaper', features: { epaper: true, inverted_colors: true } };
+            const layoutOverride = { ...mockLayout, invertedColors: false };
+            const lines = generateDisplayLambda(mockPages, layoutOverride, epaperProfile, mockContext, mockAdapter);
+            const output = lines.join('\n');
+
+            expect(output).toContain('const auto COLOR_WHITE = Color(255, 255, 255);');
+            expect(output).toContain('const auto COLOR_BLACK = Color(0, 0, 0);');
+            expect(output).not.toContain('const auto COLOR_WHITE = Color(0, 0, 0); // Inverted for e-ink');
+        });
+
         it('should generate color palette for PhotoPainter', () => {
             const painterProfile = { id: 'esp32_s3_photopainter' };
             const lines = generateDisplayLambda(mockPages, mockLayout, painterProfile, mockContext, mockAdapter);

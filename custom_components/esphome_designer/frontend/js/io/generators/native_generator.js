@@ -228,7 +228,10 @@ function generateWidget(widget, context) {
 export function generateDisplayLambda(pages, layout, profile, context, adapter) {
     const lines = [];
     const isEpaper = !!(profile.features && (profile.features.epaper || profile.features.epd));
-    const useInvertedColors = layout.invertedColors || profile.features?.inverted_colors || (isEpaper && profile.features?.inverted_colors !== false);
+    const layoutDefinesInversion = Object.prototype.hasOwnProperty.call(layout || {}, 'invertedColors');
+    const useInvertedColors = layoutDefinesInversion
+        ? !!layout.invertedColors
+        : (profile.features?.inverted_colors ?? isEpaper);
 
     if (useInvertedColors) {
         lines.push("const auto COLOR_WHITE = Color(0, 0, 0); // Inverted for e-ink");
