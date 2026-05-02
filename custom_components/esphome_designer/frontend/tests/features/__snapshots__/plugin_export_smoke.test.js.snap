@@ -2650,6 +2650,7 @@ exports[`Plugin Export Smoke Tests > Export for quote_rss > should handle onExpo
   "            - http_request.get:",
   "                url: "http://homeassistant.local:8123/api/esphome_designer/rss_proxy?url=https%3A%2F%2Fwww.brainyquote.com%2Flink%2Fquotebr.rss&random=true"",
   "                capture_response: true",
+  "                max_response_buffer_size: 4096",
   "                on_response:",
   "                  - lambda: |-",
   "                      if (response->status_code == 200) {",

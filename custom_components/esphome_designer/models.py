@@ -143,6 +143,7 @@ _DEVICE_SERIALIZED_FIELDS = (
     "auto_cycle_enabled",
     "auto_cycle_interval_s",
     "refresh_interval",
+    "http_buffer_size_rx",
     "inverted_colors",
     "width",
     "height",
@@ -191,6 +192,7 @@ _DEVICE_INT_FIELD_SPECS = (
     ("oepl_dither", "oeplDither", 2),
     ("auto_cycle_interval_s", "autoCycleIntervalS", 30),
     ("refresh_interval", "refreshInterval", 600),
+    ("http_buffer_size_rx", "httpBufferSizeRx", 4096),
     ("width", "resWidth", 800),
     ("height", "resHeight", 480),
 )
@@ -228,7 +230,8 @@ def _deserialize_device_settings(data: Dict[str, Any]) -> Dict[str, Any]:
     )
     settings.update(
         {
-            snake_key: _get_compat_dict(data, snake_key, camel_key, default_factory)
+            snake_key: _get_compat_dict(
+                data, snake_key, camel_key, default_factory)
             for snake_key, camel_key, default_factory in _DEVICE_DICT_FIELD_SPECS
         }
     )
@@ -312,7 +315,8 @@ class WidgetConfig:
     # Conditional visibility settings
     condition_entity: Optional[str] = None  # Entity to check for visibility
     condition_state: Optional[str] = None  # Expected state for visibility
-    condition_operator: Optional[str] = None  # Comparison operator: "==", "!=", ">", "<", ">=", "<="
+    # Comparison operator: "==", "!=", ">", "<", ">=", "<="
+    condition_operator: Optional[str] = None
     condition_min: Optional[float] = None
     condition_max: Optional[float] = None
     condition_logic: Optional[str] = None
@@ -423,7 +427,8 @@ class PageConfig:
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> "PageConfig":
         widgets_data = data.get("widgets", []) or []
-        widgets = [WidgetConfig.from_dict(widget_data) for widget_data in widgets_data]
+        widgets = [WidgetConfig.from_dict(widget_data)
+                   for widget_data in widgets_data]
 
         refresh_s = _coerce_optional_positive_int(data.get("refresh_s"))
         dark_mode = _normalize_page_dark_mode(data.get("dark_mode"))
@@ -445,7 +450,6 @@ class PageConfig:
             visible_to=visible_to,
             layout=layout,
         )
-
 
 
 @dataclass
@@ -482,7 +486,7 @@ class DeviceConfig:
     device_model: str = "reterminal_e1001"
     model: str = "7.50inv2"
     dark_mode: bool = False
-    
+
     # Energy Saving / Night Mode
     sleep_enabled: bool = False
     sleep_start_hour: int = 0
@@ -494,16 +498,16 @@ class DeviceConfig:
     deep_sleep_stay_awake_switch: bool = False
     deep_sleep_stay_awake_entity_id: str = "input_boolean.esphome_stay_awake"
     deep_sleep_firmware_guard: bool = False
-    
+
     # Refresh Strategy
     manual_refresh_only: bool = False
     no_refresh_start_hour: int | None = None
     no_refresh_end_hour: int | None = None
-    
+
     # Daily Scheduled Refresh
     daily_refresh_enabled: bool = False
     daily_refresh_time: str = "08:00"
-    
+
     # Rendering and UI Settings
     rendering_mode: str = "direct"
     extended_latin_glyphs: bool = False
@@ -515,6 +519,7 @@ class DeviceConfig:
     auto_cycle_enabled: bool = False
     auto_cycle_interval_s: int = 30
     refresh_interval: int = 600
+    http_buffer_size_rx: int = 4096
     inverted_colors: bool = False
     width: int = 800
     height: int = 480
@@ -586,7 +591,8 @@ class DeviceConfig:
         settings = _deserialize_device_settings(data)
 
         cfg = DeviceConfig(
-            device_id=str(data.get("device_id", data.get("currentLayoutId", ""))),
+            device_id=str(
+                data.get("device_id", data.get("currentLayoutId", ""))),
             api_token=str(data.get("api_token", "")),
             pages=pages,
             current_page=current_page,
@@ -607,7 +613,8 @@ class DashboardState:
     """
 
     devices: Dict[str, DeviceConfig] = field(default_factory=dict)
-    last_active_layout_id: Optional[str] = None  # Tracks the last saved/active layout
+    # Tracks the last saved/active layout
+    last_active_layout_id: Optional[str] = None
 
     def get_or_create_device(self, device_id: str, api_token: str) -> DeviceConfig:
         if device_id not in self.devices:
