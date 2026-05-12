@@ -1,3 +1,15 @@
+## v1.0.0 RC12.14 - HACS Wrapper Compatibility
+**Release Date:** May 12, 2026
+
+This RC12.14 follow-up completes the HACS default submission compatibility fix. The HACS/default PR helper searches for any file matching `*manifest.json`, so the Vite asset map now ships as `vite-assets.json` to avoid being mistaken for a second Home Assistant integration manifest.
+
+### Stability & Verification
+- **HACS Default Wrapper Compatibility:** Renamed the Vite dist asset map from `vite-manifest.json` to `vite-assets.json`, avoiding both Hassfest's `manifest.json` scan and HACS/default's broader `*manifest.json` helper.
+- **Release Metadata Refresh:** Updated the package version, package lock metadata, Home Assistant manifest version, runtime version string, visible header label, release notes heading/date, and rebuilt frontend assets for the RC12.14 release line.
+
+
+---
+
 ## v1.0.0 RC12.13 - HACS Submission Compatibility
 **Release Date:** May 12, 2026
 

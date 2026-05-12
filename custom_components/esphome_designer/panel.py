@@ -31,7 +31,7 @@ _LOGGER = logging.getLogger(__name__)
 PANEL_URL_PATH = "/esphome-designer/editor/index.html"
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 DIST_DIR = FRONTEND_DIR / "dist"
-DIST_MANIFEST_PATH = DIST_DIR / "vite-manifest.json"
+DIST_MANIFEST_PATH = DIST_DIR / "vite-assets.json"
 PANEL_ENTRY_KEY = "panel/esphome-designer-panel.js"
 FONT_CANDIDATES = (
     FRONTEND_DIR / "materialdesignicons-webfont.ttf",

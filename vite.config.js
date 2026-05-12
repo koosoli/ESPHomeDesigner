@@ -124,7 +124,7 @@ export default defineConfig({
         target: 'esnext',
         outDir: resolve(frontendRoot, 'dist'),
         emptyOutDir: true,
-        manifest: 'vite-manifest.json',
+        manifest: 'vite-assets.json',
         rollupOptions: {
             input: {
                 main: resolve(frontendRoot, 'index.html'),
