@@ -1,3 +1,16 @@
+## v1.0.0 RC12.13 - HACS Submission Compatibility
+**Release Date:** May 12, 2026
+
+This RC12.13 release addresses the HACS default review feedback for the ESPHome Designer submission. The shipped frontend bundle no longer contains a nested Vite file named `manifest.json`, which prevented the HACS default Hassfest job from recursively mistaking the frontend build manifest for a Home Assistant integration manifest.
+
+### Stability & Verification
+- **HACS Hassfest Compatibility:** Renamed the Vite dist manifest to `vite-manifest.json` and updated the dist freshness metadata tooling so the HACS default Hassfest mount-only validation scans only the real Home Assistant integration manifest.
+- **Submission Cleanup:** Removed the duplicate integration-level `hacs.json` and the unused integration-level `icon.png`; HACS reads the root `hacs.json`, and brand assets are served from `home-assistant/brands`.
+- **Release Metadata Refresh:** Updated the package version, package lock metadata, Home Assistant manifest version, runtime version string, visible header label, release notes heading/date, and rebuilt frontend assets for the RC12.13 release line.
+
+
+---
+
 ## v1.0.0 RC12.12 - E1002 Inversion Override Hotfix
 **Release Date:** April 28, 2026
 

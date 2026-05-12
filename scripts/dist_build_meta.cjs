@@ -9,7 +9,8 @@ const ROOT = path.join(__dirname, '..');
 const FRONTEND_DIR = path.join(ROOT, 'custom_components', 'esphome_designer', 'frontend');
 const DIST_DIR = path.join(FRONTEND_DIR, 'dist');
 const DIST_META_PATH = path.join(DIST_DIR, 'build-meta.json');
-const DIST_MANIFEST_PATH = path.join(DIST_DIR, '.vite', 'manifest.json');
+const DIST_MANIFEST_RELATIVE_PATH = 'vite-manifest.json';
+const DIST_MANIFEST_PATH = path.join(DIST_DIR, DIST_MANIFEST_RELATIVE_PATH);
 const VITE_CONFIG_PATH = path.join(ROOT, 'vite.config.js');
 const PACKAGE_JSON_PATH = path.join(ROOT, 'package.json');
 const PACKAGE_LOCK_PATH = path.join(ROOT, 'package-lock.json');
@@ -216,7 +217,7 @@ function readDistManifest() {
 }
 
 function collectActiveDistFilesFromManifest(manifest) {
-    const files = new Set(['.vite/manifest.json', 'index.html']);
+    const files = new Set([DIST_MANIFEST_RELATIVE_PATH, 'index.html']);
 
     for (const entry of Object.values(manifest)) {
         if (!entry || typeof entry !== 'object') {
@@ -251,7 +252,7 @@ function collectActiveDistFiles() {
 
 function readDistManifestFromGitRef(ref = 'HEAD') {
     try {
-        return JSON.parse(readGitBlob('custom_components/esphome_designer/frontend/dist/.vite/manifest.json', ref).toString('utf8'));
+        return JSON.parse(readGitBlob(`custom_components/esphome_designer/frontend/dist/${DIST_MANIFEST_RELATIVE_PATH}`, ref).toString('utf8'));
     } catch {
         return null;
     }
@@ -290,7 +291,7 @@ function computeActiveDistSignatureFromGitRef(ref = 'HEAD') {
         return {
             signature: null,
             files: [],
-            missing: '.vite/manifest.json'
+            missing: DIST_MANIFEST_RELATIVE_PATH
         };
     }
 
@@ -497,6 +498,7 @@ if (require.main === module) {
 
 module.exports = {
     DIST_DIR,
+    DIST_MANIFEST_RELATIVE_PATH,
     DIST_MANIFEST_PATH,
     DIST_META_PATH,
     collectActiveDistFiles,
