@@ -1,0 +1,47 @@
+{
+    "name": "ESPHome Designer",
+    "image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
+    "features": {
+        "ghcr.io/devcontainers/features/node:2.0.0": {
+            "version": "22"
+        },
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+    },
+    "postCreateCommand": "npm install && pip install -r requirements-dev.txt && npm run hooks:install",
+    "forwardPorts": [
+        5173,
+        5174
+    ],
+    "portsAttributes": {
+        "5173": {
+            "label": "Vite Dev Server",
+            "onAutoForward": "notify"
+        },
+        "5174": {
+            "label": "Vite Dev Server (alt)",
+            "onAutoForward": "notify"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "ms-python.python",
+                "ms-python.pylint"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "[javascript]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                },
+                "[typescript]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                },
+                "[json]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                }
+            }
+        }
+    }
+}
