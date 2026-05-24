@@ -1,6 +1,6 @@
 import { Logger } from '../../utils/logger.js';
 
-/** @typedef {'ai_api_key_gemini'|'ai_api_key_openai'|'ai_api_key_openrouter'} SecretKey */
+/** @typedef {'ai_api_key_gemini'|'ai_api_key_openai'|'ai_api_key_openrouter'|'ai_api_key_minimax'|'ai_api_key_glm'} SecretKey */
 
 /** @returns {Storage | null} */
 function getWebStorage() {

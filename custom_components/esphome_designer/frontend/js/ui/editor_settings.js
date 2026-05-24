@@ -65,6 +65,8 @@ export class EditorSettings {
         this.aiApiKeyGemini = getInput('aiApiKeyGemini');
         this.aiApiKeyOpenai = getInput('aiApiKeyOpenai');
         this.aiApiKeyOpenrouter = getInput('aiApiKeyOpenrouter');
+        this.aiApiKeyMinimax = getInput('aiApiKeyMinimax');
+        this.aiApiKeyGlm = getInput('aiApiKeyGlm');
         this.aiModelFilter = getInput('aiModelFilter');
         this.aiModelSelect = getSelect('aiModelSelect');
         this.aiRefreshModelsBtn = getButton('aiRefreshModelsBtn');
@@ -73,7 +75,9 @@ export class EditorSettings {
         this.aiKeyRows = {
             gemini: getElement('aiKeyGeminiRow'),
             openai: getElement('aiKeyOpenaiRow'),
-            openrouter: getElement('aiKeyOpenrouterRow')
+            openrouter: getElement('aiKeyOpenrouterRow'),
+            minimax: getElement('aiKeyMinimaxRow'),
+            glm: getElement('aiKeyGlmRow')
         };
     }
 
@@ -107,6 +111,8 @@ export class EditorSettings {
         if (this.aiApiKeyGemini) this.aiApiKeyGemini.value = settings.ai_api_key_gemini || "";
         if (this.aiApiKeyOpenai) this.aiApiKeyOpenai.value = settings.ai_api_key_openai || "";
         if (this.aiApiKeyOpenrouter) this.aiApiKeyOpenrouter.value = settings.ai_api_key_openrouter || "";
+        if (this.aiApiKeyMinimax) this.aiApiKeyMinimax.value = settings.ai_api_key_minimax || "";
+        if (this.aiApiKeyGlm) this.aiApiKeyGlm.value = settings.ai_api_key_glm || "";
         if (this.aiModelFilter) this.aiModelFilter.value = settings.ai_model_filter || "";
 
         this.updateAIKeyVisibility();
@@ -296,6 +302,8 @@ export class EditorSettings {
         bindAIKey('aiApiKeyGemini', 'ai_api_key_gemini');
         bindAIKey('aiApiKeyOpenai', 'ai_api_key_openai');
         bindAIKey('aiApiKeyOpenrouter', 'ai_api_key_openrouter');
+        bindAIKey('aiApiKeyMinimax', 'ai_api_key_minimax');
+        bindAIKey('aiApiKeyGlm', 'ai_api_key_glm');
 
         const aiModelFilter = this.aiModelFilter;
         if (aiModelFilter) {
@@ -393,7 +401,7 @@ export class EditorSettings {
 
     updateAIKeyVisibility() {
         const provider = AppState.settings.ai_provider || "gemini";
-        const providers = /** @type {Array<'gemini' | 'openai' | 'openrouter'>} */ (Object.keys(this.aiKeyRows));
+        const providers = /** @type {Array<'gemini' | 'openai' | 'openrouter' | 'minimax' | 'glm'>} */ (Object.keys(this.aiKeyRows));
         providers.forEach((p) => {
             if (this.aiKeyRows[p]) {
                 this.aiKeyRows[p].style.display = (p === provider) ? "block" : "none";
