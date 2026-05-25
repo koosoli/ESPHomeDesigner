@@ -51,9 +51,11 @@ export function getWidgetCompatibility(widget, category, plugin, currentMode) {
     let isCompatible = true;
     let explanation = '';
 
+    const compatibilityMode = currentMode === 'c' ? 'direct' : currentMode;
+
     if (plugin?.supportedModes) {
         return {
-            isCompatible: plugin.supportedModes.includes(currentMode),
+            isCompatible: plugin.supportedModes.includes(compatibilityMode),
             explanation: `Not supported in ${currentMode} mode`
         };
     }
@@ -73,14 +75,14 @@ export function getWidgetCompatibility(widget, category, plugin, currentMode) {
 
         isCompatible = isLvglNative || isInputCategory || hasLVGLExport;
         explanation = 'Widget not compatible with LVGL mode';
-    } else if (currentMode === 'direct') {
+    } else if (currentMode === 'direct' || currentMode === 'c') {
         const isProtocolSpecific = widget.type.startsWith('lvgl_') || widget.type.startsWith('oepl_');
         if (!plugin) {
             isCompatible = !isProtocolSpecific;
         } else {
             isCompatible = !!plugin.export && !isProtocolSpecific;
         }
-        explanation = 'Not supported in Direct rendering mode';
+        explanation = `Not supported in ${currentMode === 'c' ? 'C/C++ drawing' : 'Direct rendering'} mode`;
     }
 
     return { isCompatible, explanation };

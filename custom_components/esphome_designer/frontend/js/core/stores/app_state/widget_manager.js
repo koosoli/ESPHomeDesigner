@@ -500,7 +500,7 @@ export class WidgetManager {
             const hasLVGLExport = typeof plugin.exportLVGL === 'function';
             return isNativeLVGL || hasLVGLExport;
         }
-        if (mode === 'direct') {
+        if (mode === 'direct' || mode === 'c') {
             const isProtocolSpecific = w.type && (w.type.startsWith('lvgl_') || w.type.startsWith('oepl_'));
             return !!plugin.export && !isProtocolSpecific;
         }

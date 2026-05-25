@@ -1,6 +1,7 @@
 import { BaseAdapter } from './base_adapter.js';
 import { Logger } from '../../utils/logger.js';
 import { registry } from '../../core/plugin_registry.js';
+import { normalizeOpenDisplayAnchor } from './opendisplay_helpers.js';
 
 const DEFAULT_ODP_REFRESH_TYPE = "0";
 const ORIENTATION_ROTATION = {
@@ -163,7 +164,10 @@ export class OpenDisplayAdapter extends BaseAdapter {
             lines.push(`    - type: ${formatYamlValue(item.type)}`);
             Object.entries(item).forEach(([key, value]) => {
                 if (key === 'type' || key === 'id') return; // Skip type (already done) and id (internal)
-                lines.push(`      ${key}: ${formatYamlValue(value)}`);
+                const serializedValue = key === 'anchor'
+                    ? normalizeOpenDisplayAnchor(value)
+                    : value;
+                lines.push(`      ${key}: ${formatYamlValue(serializedValue)}`);
             });
         });
 

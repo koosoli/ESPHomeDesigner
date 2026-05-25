@@ -1,3 +1,18 @@
+## v1.0.0 RC14 - OpenDisplay Icons & C/C++ Export
+**Release Date:** May 25, 2026
+
+This RC14 release addresses the new OpenDisplay compatibility reports and adds a raw drawing-code export mode for users who want to reuse ESPHome Designer layouts outside ESPHome projects.
+
+### Stability & Verification
+- **OpenDisplay Weather Icon Compatibility (Issue #403):** Weather Icon OpenDisplay exports now use MDI weather icon names such as `weather-sunny`, `weather-partly-cloudy`, and `weather-cloudy`, while preserving the existing OEPL aliases for OEPL exports.
+- **OpenDisplay Anchor Normalization (Issue #401):** OpenDisplay payload serialization now normalizes legacy center-first anchors such as `ct`, `cm`, and `cb` into Pillow-style anchors such as `mt`, `mm`, and `mb` before YAML is emitted.
+- **C/C++ Drawing Mode (Issue #400):** Added a `C/C++ Drawing Code` rendering mode that emits the direct drawing callback body without the ESPHome YAML scaffold, giving non-ESPHome ESP32 projects a practical starting point.
+- **Theme-Auto Shape Borders:** Shape borders set to theme auto now stay on the foreground color when the fill is white, so light pages correctly render black borders across canvas, OpenDisplay, LVGL, and C/C++ drawing exports.
+- **Release Metadata Refresh:** Updated the package version, package lock metadata, Home Assistant manifest version, runtime version string, visible header label, release notes heading/date, and rebuilt frontend assets for the RC14 release line.
+
+
+---
+
 ## v1.0.0 RC13 - OpenDisplay Anchors & Portrait Rotation
 **Release Date:** May 23, 2026
 

@@ -67,7 +67,11 @@ export const resolveFillableShapeColors = (props = {}) => {
         : (fillEnabled ? legacyColor : "transparent");
     const borderColor = isExplicitShapeColor(props.border_color)
         ? props.border_color
-        : (fillEnabled ? fillColor : legacyColor);
+        : (
+            props.border_color === THEME_AUTO && !isExplicitShapeColor(props.color)
+                ? THEME_AUTO
+                : (fillEnabled ? fillColor : legacyColor)
+        );
     return { legacyColor, fillColor, borderColor, fillEnabled };
 };
 

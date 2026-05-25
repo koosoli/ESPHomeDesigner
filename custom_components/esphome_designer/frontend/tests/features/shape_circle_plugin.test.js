@@ -109,6 +109,58 @@ describe('shape_circle plugin', () => {
         expect(lvgl.obj.radius).toBe('CIRCLE');
     });
 
+    it('keeps theme-auto borders on the foreground color when the fill is white', () => {
+        const host = document.createElement('div');
+        const widget = {
+            id: 'circle_theme_auto_border',
+            type: 'shape_circle',
+            x: 10,
+            y: 20,
+            width: 40,
+            height: 40,
+            props: {
+                bg_color: 'white',
+                border_color: 'theme_auto',
+                border_width: 1
+            }
+        };
+
+        shapeCirclePlugin.render(host, widget, {
+            getColorStyle: (value) => value === 'theme_auto' ? 'black' : value
+        });
+
+        expect(host.style.backgroundColor).toBe('white');
+        expect(host.style.border).toBe('1px solid black');
+
+        const openDisplay = shapeCirclePlugin.exportOpenDisplay(widget, {
+            layout: { darkMode: false },
+            _page: {}
+        });
+        expect(openDisplay.fill).toBe('white');
+        expect(openDisplay.outline).toBe('black');
+
+        const lvgl = shapeCirclePlugin.exportLVGL(widget, {
+            common: { id: 'circle_theme_auto_border' },
+            convertColor: (value) => `Color(${value})`,
+            formatOpacity: (value) => `opa(${value})`
+        });
+        expect(lvgl.obj.bg_color).toBe('Color(white)');
+        expect(lvgl.obj.border_color).toBe('Color(theme_auto)');
+
+        const lines = [];
+        shapeCirclePlugin.export(widget, {
+            lines,
+            getColorConst: (value) => value === 'theme_auto' ? 'color_on' : `Color(${value})`,
+            addDitherMask: () => {},
+            getConditionCheck: () => '',
+            RECT_Y_OFFSET: 0,
+            isEpaper: false
+        });
+        const output = lines.join('\n');
+        expect(output).toContain('it.filled_circle(30, 40, 20, Color(white));');
+        expect(output).toContain('it.circle(30, 40, 20 - i, color_on);');
+    });
+
     it('renders property controls and exports gray fill/border dither branches', () => {
         const callbacks = {};
         const panel = {

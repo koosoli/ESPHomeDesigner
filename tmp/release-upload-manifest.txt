@@ -1,0 +1,29 @@
+ESPHome Designer release upload checklist
+Generated: 2026-05-25T16:51:46.523Z
+Version: 1.0.0-rc.14
+GUI label: v1.0.0 RC14
+
+Required upload set for a version/frontend release:
+- custom_components/esphome_designer/manifest.json
+- package.json
+- package-lock.json
+- release_notes.md
+- custom_components/esphome_designer/frontend/js/ui/components/header.html
+- custom_components/esphome_designer/frontend/dist/
+
+Important:
+- Upload the whole custom_components/esphome_designer/frontend/dist directory, not just one or two hashed assets.
+- Make sure custom_components/esphome_designer/frontend/dist/build-meta.json is included; CI uses it to verify the shipped frontend bundle.
+- GitHub Pages builds from source, but the Home Assistant package and CI dist-freshness check depend on dist staying in sync.
+
+Upload these too if you changed them locally:
+- .github/workflows/test.yml
+- .github/workflows/release.yml
+- .github/workflows/deploy-pages.yml
+- .github/workflows/hassfest.yaml
+- scripts/check_baseline_governance.cjs
+- requirements-dev.txt
+- tests_python/
+- tsconfig.strict.json
+- strict-shims.d.ts
+- jsconfig.json

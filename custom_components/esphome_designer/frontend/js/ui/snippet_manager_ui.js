@@ -4,6 +4,7 @@
 export function syncSnippetModeUi(adapterName) {
     const isOEPL = adapterName === 'OEPLAdapter';
     const isODP = adapterName === 'OpenDisplayAdapter';
+    const isC = adapterName === 'CAdapter';
 
     const oeplNotice = document.getElementById('oeplNotice');
     if (oeplNotice) oeplNotice.classList.toggle('hidden', !isOEPL);
@@ -28,6 +29,7 @@ export function syncSnippetModeUi(adapterName) {
         let titleText = ' ESPHome YAML';
         if (isOEPL) titleText = ' OpenEpaperLink JSON';
         if (isODP) titleText = ' OpenDisplay YAML (ODP)';
+        if (isC) titleText = ' C/C++ Drawing Code';
 
         titleEl.appendChild(document.createTextNode(titleText));
     }
@@ -39,10 +41,10 @@ export function syncSnippetModeUi(adapterName) {
     if (copyODPBtn) copyODPBtn.style.display = isODP ? 'inline-block' : 'none';
 
     const copyLambdaBtn = document.getElementById('copyLambdaBtn');
-    if (copyLambdaBtn) copyLambdaBtn.style.display = (isOEPL || isODP) ? 'none' : 'inline-block';
+    if (copyLambdaBtn) copyLambdaBtn.style.display = (isOEPL || isODP || isC) ? 'none' : 'inline-block';
 
     const importBtn = document.getElementById('updateLayoutBtn');
     if (importBtn) importBtn.style.display = 'inline-block';
 
-    return { isOEPL, isODP };
+    return { isOEPL, isODP, isC };
 }

@@ -92,7 +92,7 @@ export function updateDeviceSettingsVisibility(instance) {
     if (instance.dimTimeoutRow) instance.dimTimeoutRow.style.display = (lcdStrategy === 'dim_after_timeout') ? 'flex' : 'none';
 
     const mode = instance.renderingModeInput?.value || AppState.settings.renderingMode || 'direct';
-    const isESPHome = mode === 'lvgl' || mode === 'direct';
+    const isESPHome = mode === 'lvgl' || mode === 'direct' || mode === 'c';
     const isProtocol = mode === 'oepl' || mode === 'opendisplay';
 
     if (instance.powerStrategySection) instance.powerStrategySection.style.display = isESPHome ? 'block' : 'none';

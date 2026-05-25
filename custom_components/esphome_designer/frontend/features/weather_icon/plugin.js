@@ -174,14 +174,14 @@ export default {
             color = layout?.darkMode ? "white" : "black";
         }
 
-        // Mapping for ODP weather icons based on HA state
+        // Mapping for OpenDisplay weather icons based on HA state.
         const template = `{{ {
-            ${WEATHER_ICON_OPTIONS.map(({ condition, protocolIcon }) => `'${condition}': '${protocolIcon}'`).join(',\n            ')}
-        }[states('${entityId}')] | default('${UNKNOWN_WEATHER_ICON.protocolIcon}') }}`;
+            ${WEATHER_ICON_OPTIONS.map(({ condition, openDisplayIcon }) => `'${condition}': '${openDisplayIcon}'`).join(',\n            ')}
+        }[states('${entityId}')] | default('${UNKNOWN_WEATHER_ICON.openDisplayIcon}') }}`;
 
         return {
             type: "icon",
-            value: entityId ? template : UNKNOWN_WEATHER_ICON.protocolIcon,
+            value: entityId ? template : UNKNOWN_WEATHER_ICON.openDisplayIcon,
             x: Math.round(w.x + w.width / 2),
             y: Math.round(w.y + w.height / 2),
             size: p.size || 48,
@@ -252,6 +252,5 @@ export default {
     onExportTextSensors,
     export: exportDoc
 };
-
 
 

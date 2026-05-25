@@ -95,6 +95,31 @@ describe('weather protocol misc coverage', () => {
         ]);
     });
 
+    it('uses OpenDisplay MDI weather icon names instead of OEPL aliases', () => {
+        const openDisplay = weatherIconPlugin.exportOpenDisplay({
+            id: 'weather_odp',
+            type: 'weather_icon',
+            x: 10,
+            y: 20,
+            width: 40,
+            height: 40,
+            entity_id: 'weather.home',
+            props: {
+                size: 24,
+                color: 'theme_auto'
+            }
+        }, {
+            layout: { darkMode: false },
+            _page: {}
+        });
+
+        expect(openDisplay.value).toContain("'sunny': 'weather-sunny'");
+        expect(openDisplay.value).toContain("'partlycloudy': 'weather-partly-cloudy'");
+        expect(openDisplay.value).toContain("'cloudy': 'weather-cloudy'");
+        expect(openDisplay.value).not.toContain("'sunny': 'sun'");
+        expect(openDisplay.color).toBe('black');
+    });
+
     it('renders weak wifi previews without a dBm label and with cleared borders', () => {
         mockAppState.entityStates = {
             'sensor.wifi_bad': { state: '-120' }

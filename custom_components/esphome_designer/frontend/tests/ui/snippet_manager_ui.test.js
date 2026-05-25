@@ -22,7 +22,7 @@ describe('snippet_manager_ui', () => {
     it('switches the snippet UI into OEPL mode', () => {
         const result = syncSnippetModeUi('OEPLAdapter');
 
-        expect(result).toEqual({ isOEPL: true, isODP: false });
+        expect(result).toEqual({ isOEPL: true, isODP: false, isC: false });
         expect(document.getElementById('oeplNotice')?.classList.contains('hidden')).toBe(false);
         expect(document.getElementById('copyOEPLServiceBtn')?.style.display).toBe('inline-block');
         expect(document.getElementById('copyLambdaBtn')?.style.display).toBe('none');
@@ -32,7 +32,7 @@ describe('snippet_manager_ui', () => {
     it('switches the snippet UI into OpenDisplay mode and restores the default title otherwise', () => {
         let result = syncSnippetModeUi('OpenDisplayAdapter');
 
-        expect(result).toEqual({ isOEPL: false, isODP: true });
+        expect(result).toEqual({ isOEPL: false, isODP: true, isC: false });
         expect(document.getElementById('odpNotice')?.classList.contains('hidden')).toBe(false);
         expect(document.getElementById('copyODPServiceBtn')?.style.display).toBe('inline-block');
         expect(document.querySelector('#odpNotice div')?.innerHTML).toContain('opendisplay.drawcustom');
@@ -42,9 +42,18 @@ describe('snippet_manager_ui', () => {
         seedDom();
         result = syncSnippetModeUi('ESPHomeAdapter');
 
-        expect(result).toEqual({ isOEPL: false, isODP: false });
+        expect(result).toEqual({ isOEPL: false, isODP: false, isC: false });
         expect(document.getElementById('oeplNotice')?.classList.contains('hidden')).toBe(true);
         expect(document.getElementById('copyLambdaBtn')?.style.display).toBe('inline-block');
         expect(document.querySelector('.code-panel-title')?.textContent).toContain('ESPHome YAML');
+    });
+
+    it('switches the snippet UI into C/C++ drawing mode', () => {
+        const result = syncSnippetModeUi('CAdapter');
+
+        expect(result).toEqual({ isOEPL: false, isODP: false, isC: true });
+        expect(document.getElementById('copyLambdaBtn')?.style.display).toBe('none');
+        expect(document.getElementById('copyOEPLServiceBtn')?.style.display).toBe('none');
+        expect(document.querySelector('.code-panel-title')?.textContent).toContain('C/C++ Drawing Code');
     });
 });

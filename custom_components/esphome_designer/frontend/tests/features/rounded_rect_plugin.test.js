@@ -84,6 +84,60 @@ describe('rounded_rect plugin', () => {
         expect(output).toContain('draw_filled_rrect(15, 21, 74, 34, 5, Color(yellow));');
     });
 
+    it('keeps theme-auto borders on the foreground color when the fill is white', () => {
+        const host = document.createElement('div');
+        const widget = {
+            id: 'rounded_theme_auto_border',
+            type: 'rounded_rect',
+            x: 12,
+            y: 18,
+            width: 80,
+            height: 40,
+            props: {
+                bg_color: 'white',
+                border_color: 'theme_auto',
+                border_width: 2,
+                radius: 8,
+                show_border: true
+            }
+        };
+
+        roundedRectPlugin.render(host, widget, {
+            getColorStyle: (value) => value === 'theme_auto' ? 'black' : value
+        });
+
+        expect(host.style.backgroundColor).toBe('white');
+        expect(host.style.border).toBe('2px solid black');
+
+        const openDisplay = roundedRectPlugin.exportOpenDisplay(widget, {
+            layout: { darkMode: false },
+            _page: {}
+        });
+        expect(openDisplay.fill).toBe('white');
+        expect(openDisplay.outline).toBe('black');
+
+        const lvgl = roundedRectPlugin.exportLVGL(widget, {
+            common: { id: 'rounded_theme_auto_border' },
+            convertColor: (value) => `Color(${value})`,
+            formatOpacity: (value) => `opa(${value})`
+        });
+        expect(lvgl.obj.bg_color).toBe('Color(white)');
+        expect(lvgl.obj.border_color).toBe('Color(theme_auto)');
+
+        const lines = [];
+        roundedRectPlugin.export(widget, {
+            lines,
+            getColorConst: (value) => value === 'theme_auto' ? 'color_on' : `Color(${value})`,
+            addDitherMask: () => {},
+            getConditionCheck: () => '',
+            RECT_Y_OFFSET: 0,
+            isEpaper: false
+        });
+        const output = lines.join('\n');
+        expect(output).toContain('draw_filled_rrect(12, 18, 80, 40, 8, color_on);');
+        expect(output).toContain('draw_filled_rrect(14, 20, 76, 36, 6, Color(white));');
+    });
+
     it('renders the shared fill and border controls and uses thickness to re-enable hidden borders', () => {
         const callbacks = {};
         const panel = {

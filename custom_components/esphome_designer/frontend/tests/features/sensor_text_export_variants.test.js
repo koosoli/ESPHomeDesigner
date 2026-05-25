@@ -442,4 +442,74 @@ describe('sensor_text export variants', () => {
         expect(isColorDisplay({ name: '6-Color Panel' })).toBe(true);
         expect(isColorDisplay({ name: 'Mono Panel' })).toBe(false);
     });
+
+    it('covers presentation export edge formatting for sensor text', () => {
+        mockAppState.entityStates = {
+            'sensor.voltage': {
+                state: '230',
+                formatted: '230 V',
+                attributes: {}
+            },
+            'sensor.room_mode': {
+                state: 'night',
+                attributes: {
+                    display: 'Night mode'
+                }
+            }
+        };
+
+        const lvgl = exportLVGL({
+            id: 'sensor_lvgl_edge',
+            entity_id: 'voltage',
+            entity_id_2: 'room_mode',
+            title: 'Voltage',
+            props: {
+                value_format: 'value_label',
+                attribute2: 'display',
+                separator: ' / ',
+                value_align: 'CENTER_RIGHT',
+                bg_color: 'transparent',
+                value_font_size: 16
+            }
+        }, {
+            common: { id: 'sensor_lvgl_edge' },
+            convertColor: (value) => `COLOR_${String(value).toUpperCase()}`,
+            getLVGLFont: () => 'font_lvgl',
+            formatOpacity: (value) => `opa(${value})`,
+            profile: { name: 'Mono Panel' }
+        });
+
+        expect(lvgl.label.text).toContain('sensor_voltage');
+        expect(lvgl.label.text).toContain('sensor_room_mode_display_txt');
+        expect(lvgl.label.text).toContain('%s');
+        expect(lvgl.label.text_align).toBe('RIGHT');
+        expect(lvgl.label.bg_color).toBeUndefined();
+
+        const openDisplay = exportOpenDisplay({
+            id: 'sensor_odp_edge',
+            entity_id: 'sensor.voltage',
+            title: 'Voltage',
+            x: 4,
+            y: 8,
+            width: 120,
+            props: {
+                value_format: 'value_label',
+                precision: 0,
+                unit: 'V',
+                postfix: '!',
+                text_align: 'BOTTOM_RIGHT',
+                color: 'black'
+            }
+        }, {
+            layout: { darkMode: false },
+            _page: {}
+        });
+
+        expect(openDisplay).toMatchObject({
+            type: 'text',
+            anchor: 'rb',
+            value: 'TPL(sensor.voltage|0|true) V! Voltage',
+            max_width: 120
+        });
+    });
 });

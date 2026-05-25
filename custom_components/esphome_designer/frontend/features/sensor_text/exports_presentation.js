@@ -1,6 +1,7 @@
 import { AppState } from '@core/state';
 import { TemplateConverter } from '../../js/utils/template_converter.js';
 import { getNestedValue } from '../../js/utils/helpers.js';
+import { openDisplayAnchorFromAlign } from '../../js/io/adapters/opendisplay_helpers.js';
 import { HA_TEXT_DOMAINS, hexToRgb, isColorDisplay, isStrictlyNumeric } from './shared.js';
 
 /** @typedef {Widget & { props?: Record<string, any>, entity_id?: string, entity_id_2?: string, title?: string }} SensorTextWidget */
@@ -241,14 +242,7 @@ export const exportOpenDisplay = (w, { layout, _page }) => {
             color = p.dynamic_color_low || color;
         }
 
-        // Mapping for alignment to ODP anchor
-        /** @type {Record<string, string>} */
-        const alignMap = {
-            "TOP_LEFT": "lt", "TOP_CENTER": "mt", "TOP_RIGHT": "rt",
-            "CENTER_LEFT": "lm", "CENTER": "mm", "CENTER_RIGHT": "rm",
-            "BOTTOM_LEFT": "lb", "BOTTOM_CENTER": "mb", "BOTTOM_RIGHT": "rb"
-        };
-        const anchor = alignMap[p.text_align] || "lt";
+        const anchor = openDisplayAnchorFromAlign(p.text_align, "lt");
 
         const val1 = TemplateConverter.toHATemplate(entityId, { precision, isNumeric: !p.is_text_sensor });
         const val2 = entityId2 ? TemplateConverter.toHATemplate(entityId2, { precision, isNumeric: !p.is_text_sensor }) : null;

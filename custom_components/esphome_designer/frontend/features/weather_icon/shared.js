@@ -1,25 +1,26 @@
 export const UNKNOWN_WEATHER_ICON = Object.freeze({
     condition: 'unknown',
     code: 'F0625',
-    protocolIcon: 'help-circle-outline'
+    protocolIcon: 'help-circle-outline',
+    openDisplayIcon: 'help-circle-outline'
 });
 
 export const WEATHER_ICON_OPTIONS = Object.freeze([
-    Object.freeze({ condition: 'clear-night', code: 'F0594', protocolIcon: 'moon' }),
-    Object.freeze({ condition: 'cloudy', code: 'F0590', protocolIcon: 'cloud' }),
-    Object.freeze({ condition: 'exceptional', code: 'F0026', protocolIcon: 'alert-circle-outline' }),
-    Object.freeze({ condition: 'fog', code: 'F0591', protocolIcon: 'fog' }),
-    Object.freeze({ condition: 'hail', code: 'F0592', protocolIcon: 'hail' }),
-    Object.freeze({ condition: 'lightning', code: 'F0593', protocolIcon: 'lightning' }),
-    Object.freeze({ condition: 'lightning-rainy', code: 'F067E', protocolIcon: 'lightning-rainy' }),
-    Object.freeze({ condition: 'partlycloudy', code: 'F0595', protocolIcon: 'partly-cloudy' }),
-    Object.freeze({ condition: 'pouring', code: 'F0596', protocolIcon: 'pouring' }),
-    Object.freeze({ condition: 'rainy', code: 'F0597', protocolIcon: 'rainy' }),
-    Object.freeze({ condition: 'snowy', code: 'F0598', protocolIcon: 'snowy' }),
-    Object.freeze({ condition: 'snowy-rainy', code: 'F067F', protocolIcon: 'snowy-rainy' }),
-    Object.freeze({ condition: 'sunny', code: 'F0599', protocolIcon: 'sun' }),
-    Object.freeze({ condition: 'windy', code: 'F059D', protocolIcon: 'wind' }),
-    Object.freeze({ condition: 'windy-variant', code: 'F059E', protocolIcon: 'wind' })
+    Object.freeze({ condition: 'clear-night', code: 'F0594', protocolIcon: 'moon', openDisplayIcon: 'weather-night' }),
+    Object.freeze({ condition: 'cloudy', code: 'F0590', protocolIcon: 'cloud', openDisplayIcon: 'weather-cloudy' }),
+    Object.freeze({ condition: 'exceptional', code: 'F0026', protocolIcon: 'alert-circle-outline', openDisplayIcon: 'alert-circle-outline' }),
+    Object.freeze({ condition: 'fog', code: 'F0591', protocolIcon: 'fog', openDisplayIcon: 'weather-fog' }),
+    Object.freeze({ condition: 'hail', code: 'F0592', protocolIcon: 'hail', openDisplayIcon: 'weather-hail' }),
+    Object.freeze({ condition: 'lightning', code: 'F0593', protocolIcon: 'lightning', openDisplayIcon: 'weather-lightning' }),
+    Object.freeze({ condition: 'lightning-rainy', code: 'F067E', protocolIcon: 'lightning-rainy', openDisplayIcon: 'weather-lightning-rainy' }),
+    Object.freeze({ condition: 'partlycloudy', code: 'F0595', protocolIcon: 'partly-cloudy', openDisplayIcon: 'weather-partly-cloudy' }),
+    Object.freeze({ condition: 'pouring', code: 'F0596', protocolIcon: 'pouring', openDisplayIcon: 'weather-pouring' }),
+    Object.freeze({ condition: 'rainy', code: 'F0597', protocolIcon: 'rainy', openDisplayIcon: 'weather-rainy' }),
+    Object.freeze({ condition: 'snowy', code: 'F0598', protocolIcon: 'snowy', openDisplayIcon: 'weather-snowy' }),
+    Object.freeze({ condition: 'snowy-rainy', code: 'F067F', protocolIcon: 'snowy-rainy', openDisplayIcon: 'weather-snowy-rainy' }),
+    Object.freeze({ condition: 'sunny', code: 'F0599', protocolIcon: 'sun', openDisplayIcon: 'weather-sunny' }),
+    Object.freeze({ condition: 'windy', code: 'F059D', protocolIcon: 'wind', openDisplayIcon: 'weather-windy' }),
+    Object.freeze({ condition: 'windy-variant', code: 'F059E', protocolIcon: 'wind', openDisplayIcon: 'weather-windy-variant' })
 ]);
 
 export const WEATHER_ICON_CODES = Object.freeze([

@@ -39,7 +39,8 @@ describe('OpenDisplayAdapter details', () => {
             exportOpenDisplay: () => ([
                 {
                     type: 'multiline',
-                    value: 'Line 1\nLine: 2'
+                    value: 'Line 1\nLine: 2',
+                    anchor: 'ct'
                 },
                 {
                     type: 'plot',
@@ -74,6 +75,8 @@ describe('OpenDisplayAdapter details', () => {
         expect(yaml).not.toContain('payload: |-');
         expect((yaml.match(/# id: w_payload/g) || [])).toHaveLength(2);
         expect(yaml).toContain('value: "Line 1\\nLine: 2"');
+        expect(yaml).toContain('anchor: mt');
+        expect(yaml).not.toContain('anchor: ct');
         expect(yaml).toContain('data: [{"entity":"sensor.temperature","color":"black"}]');
         expect(yaml).toContain('meta: {"smooth":true}');
     });

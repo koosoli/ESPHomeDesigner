@@ -75,6 +75,58 @@ describe('shape_rect plugin', () => {
         expect(el.style.opacity).toBe('0.6');
     });
 
+    it('keeps theme-auto borders on the foreground color when the fill is white', () => {
+        const el = document.createElement('div');
+        const widget = {
+            id: 'rect_theme_auto_border',
+            type: 'shape_rect',
+            x: 4,
+            y: 6,
+            width: 80,
+            height: 40,
+            props: {
+                bg_color: 'white',
+                border_color: 'theme_auto',
+                border_width: 1
+            }
+        };
+
+        shapeRectPlugin.render(el, widget, {
+            getColorStyle: (value) => value === 'theme_auto' ? 'black' : value
+        });
+
+        expect(el.style.backgroundColor).toBe('white');
+        expect(el.style.border).toBe('1px solid black');
+
+        const openDisplay = shapeRectPlugin.exportOpenDisplay(widget, {
+            layout: { darkMode: false },
+            _page: {}
+        });
+        expect(openDisplay.fill).toBe('white');
+        expect(openDisplay.outline).toBe('black');
+
+        const lvgl = shapeRectPlugin.exportLVGL(widget, {
+            common: { id: 'rect_theme_auto_border' },
+            convertColor: (value) => `Color(${value})`,
+            formatOpacity: (value) => `opa(${value})`
+        });
+        expect(lvgl.obj.bg_color).toBe('Color(white)');
+        expect(lvgl.obj.border_color).toBe('Color(theme_auto)');
+
+        const lines = [];
+        shapeRectPlugin.export(widget, {
+            lines,
+            getColorConst: (value) => value === 'theme_auto' ? 'color_on' : `Color(${value})`,
+            addDitherMask: () => {},
+            getConditionCheck: () => '',
+            RECT_Y_OFFSET: 0,
+            isEpaper: false
+        });
+        const output = lines.join('\n');
+        expect(output).toContain('it.filled_rectangle(4, 6, 80, 40, Color(white));');
+        expect(output).toContain('it.rectangle(4 + i, 6 + i, 80 - 2 * i, 40 - 2 * i, color_on);');
+    });
+
     it('falls back to legacy border_radius when radius is not set', () => {
         const el = document.createElement('div');
         const widget = {

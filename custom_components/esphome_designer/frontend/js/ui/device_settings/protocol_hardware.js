@@ -193,7 +193,7 @@ export class ProtocolHardwarePanel {
         }
 
         if (this.parent.deviceInvertedColorsField) {
-            const isESPHome = mode === 'lvgl' || mode === 'direct';
+            const isESPHome = mode === 'lvgl' || mode === 'direct' || mode === 'c';
             const profile = modelId ? DEVICE_PROFILES[modelId] : null;
             const isEpaper = !!(profile && profile.features && profile.features.epaper);
             this.parent.deviceInvertedColorsField.style.display = (isESPHome && isEpaper) ? 'block' : 'none';

@@ -100,7 +100,7 @@ export const DEFAULT_PREFERENCES = {
     dailyRefreshTime: "08:00",
     noRefreshStartHour: null,
     noRefreshEndHour: null,
-    renderingMode: "direct" as "direct" | "lvgl",
+    renderingMode: "direct" as "direct" | "lvgl" | "c" | "oepl" | "opendisplay",
     oeplEntityId: "",
     oeplDither: 2,
     opendisplayDeviceId: "",
@@ -143,7 +143,7 @@ export const DEFAULT_CANVAS_HEIGHT = 480;
 
 // Initialize global namespace
 (window as any).ESPHomeDesigner = (window as any).ESPHomeDesigner || {
-    version: "1.0.0-rc.12.14",
+    version: "1.0.0-rc.14",
     constants: {
         COLORS,
         UI_DEFAULTS,

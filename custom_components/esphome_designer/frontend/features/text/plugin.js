@@ -1,6 +1,7 @@
 import { AppState } from '@core/state';
 import { wordWrap, parseColorMarkup, evaluateTemplatePreview } from '../../js/utils/text_utils.js';
 import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js';
+import { openDisplayAnchorFromAlign } from '../../js/io/adapters/opendisplay_helpers.js';
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     el.innerHTML = "";
@@ -243,13 +244,7 @@ export default {
             color = layout?.darkMode ? "white" : "black";
         }
 
-        // Mapping for alignment to ODP anchor
-        const alignMap = {
-            "TOP_LEFT": "lt", "TOP_CENTER": "mt", "TOP_RIGHT": "rt",
-            "CENTER_LEFT": "lm", "CENTER": "mm", "CENTER_RIGHT": "rm",
-            "BOTTOM_LEFT": "lb", "BOTTOM_CENTER": "mb", "BOTTOM_RIGHT": "rb"
-        };
-        const anchor = alignMap[p.text_align] || "lt";
+        const anchor = openDisplayAnchorFromAlign(p.text_align, "lt");
 
         if (text.includes('\n') || text.includes('\r')) {
             return {
