@@ -14,6 +14,21 @@ export class AIService {
     }
 
     async fetchModels(provider, apiKey) {
+        // Providers with static model lists don't need an API key to enumerate
+        if (provider === 'minimax') {
+            return [
+                { id: 'MiniMax-M2.7-highspeed', name: 'MiniMax M2.7 Highspeed', context: 204800 },
+                { id: 'MiniMax-M2.7', name: 'MiniMax M2.7 (full quality)', context: 204800 }
+            ];
+        }
+        if (provider === 'glm') {
+            return [
+                { id: 'glm-4.6', name: 'GLM-4.6 (128K context)', context: 128000 },
+                { id: 'glm-5.1', name: 'GLM-5.1 Coding (coding-optimized)', context: 128000 },
+                { id: 'glm-5-turbo', name: 'GLM-5 Turbo (fast)', context: 128000 }
+            ];
+        }
+
         if (!apiKey) return [];
 
         try {
@@ -49,6 +64,7 @@ export class AIService {
 
                 return [];
             }
+            // minimax and glm are handled above the apiKey guard (static lists)
         } catch (e) {
             Logger.error(`Error fetching models for ${provider}:`, e);
             throw e;
@@ -116,6 +132,10 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
                 responseText = await this.callOpenAI(apiKey, model, systemPrompt, userPrompt);
             } else if (provider === 'openrouter') {
                 responseText = await this.callOpenRouter(apiKey, model, systemPrompt, userPrompt);
+            } else if (provider === 'minimax') {
+                responseText = await this.callMiniMax(apiKey, model, systemPrompt, userPrompt);
+            } else if (provider === 'glm') {
+                responseText = await this.callGLM(apiKey, model, systemPrompt, userPrompt);
             }
 
             // Improved JSON extraction
@@ -286,6 +306,52 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
         });
         const data = await response.json();
         if (data.error) throw new Error(data.error.message);
+        return data.choices[0].message.content;
+    }
+
+    async callMiniMax(apiKey, model, system, user) {
+        const response = await fetch('https://api.minimax.io/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: model,
+                messages: [
+                    { role: "system", content: system },
+                    { role: "user", content: user }
+                ],
+                temperature: 0.1,
+                max_tokens: 4096
+            })
+        });
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+        let content = data.choices[0].message.content;
+        content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+        return content;
+    }
+
+    async callGLM(apiKey, model, system, user) {
+        const response = await fetch('https://api.z.ai/api/paas/v4/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: model,
+                messages: [
+                    { role: "system", content: system },
+                    { role: "user", content: user }
+                ],
+                temperature: 0.1,
+                max_tokens: 4096
+            })
+        });
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
         return data.choices[0].message.content;
     }
 
