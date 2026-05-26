@@ -1,7 +1,7 @@
 import { AppState } from '@core/state';
 import { TemplateConverter } from '../../js/utils/template_converter.js';
 import { getNestedValue } from '../../js/utils/helpers.js';
-import { openDisplayAnchorFromAlign } from '../../js/io/adapters/opendisplay_helpers.js';
+import { openDisplayTextPosition } from '../../js/io/adapters/opendisplay_helpers.js';
 import { HA_TEXT_DOMAINS, hexToRgb, isColorDisplay, isStrictlyNumeric } from './shared.js';
 
 /** @typedef {Widget & { props?: Record<string, any>, entity_id?: string, entity_id_2?: string, title?: string }} SensorTextWidget */
@@ -242,7 +242,7 @@ export const exportOpenDisplay = (w, { layout, _page }) => {
             color = p.dynamic_color_low || color;
         }
 
-        const anchor = openDisplayAnchorFromAlign(p.text_align, "lt");
+        const position = openDisplayTextPosition(w, p.text_align, "lt");
 
         const val1 = TemplateConverter.toHATemplate(entityId, { precision, isNumeric: !p.is_text_sensor });
         const val2 = entityId2 ? TemplateConverter.toHATemplate(entityId2, { precision, isNumeric: !p.is_text_sensor }) : null;
@@ -283,12 +283,12 @@ export const exportOpenDisplay = (w, { layout, _page }) => {
         /** @type {Record<string, any>} */
         const result = {
             type: "text",
-            x: Math.round(w.x),
-            y: Math.round(w.y),
+            x: position.x,
+            y: position.y,
             value: text,
             size: fontSize,
             color: color,
-            anchor: anchor,
+            anchor: position.anchor,
             font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf",
             parse_colors: !!p.parse_colors
         };

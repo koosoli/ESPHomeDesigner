@@ -390,6 +390,7 @@ describe('sensor_text export variants', () => {
         expect(centeredOpenDisplay).toMatchObject({
             type: 'text',
             anchor: 'mm',
+            x: 58,
             max_width: 96
         });
 
@@ -508,8 +509,33 @@ describe('sensor_text export variants', () => {
         expect(openDisplay).toMatchObject({
             type: 'text',
             anchor: 'rb',
+            x: 124,
             value: 'TPL(sensor.voltage|0|true) V! Voltage',
             max_width: 120
+        });
+
+        const topCenterOpenDisplay = exportOpenDisplay({
+            id: 'sensor_odp_top_center',
+            entity_id: 'sensor.power',
+            x: 10,
+            y: 20,
+            width: 100,
+            height: 30,
+            props: {
+                value_format: 'value_only',
+                text_align: 'TOP_CENTER',
+                color: 'black'
+            }
+        }, {
+            layout: { darkMode: false },
+            _page: {}
+        });
+        expect(topCenterOpenDisplay).toMatchObject({
+            type: 'text',
+            x: 60,
+            y: 20,
+            anchor: 'mt',
+            max_width: 100
         });
     });
 });

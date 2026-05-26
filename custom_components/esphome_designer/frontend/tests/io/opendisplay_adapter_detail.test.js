@@ -81,6 +81,46 @@ describe('OpenDisplayAdapter details', () => {
         expect(yaml).toContain('meta: {"smooth":true}');
     });
 
+    it('serializes centered text with a matching Pillow anchor and reference coordinate', async () => {
+        const { default: textPlugin } = await import('../../features/text/plugin.js');
+        mockRegistry.get.mockReturnValue(textPlugin);
+
+        const adapter = new OpenDisplayAdapter();
+        const yaml = await adapter.generate({
+            orientation: 'landscape',
+            darkMode: false,
+            currentPageIndex: 0,
+            settings: {
+                opendisplayDeviceId: '95b2d0433f2c26d08088d6296a00a70d'
+            },
+            pages: [{
+                dark_mode: 'light',
+                widgets: [
+                    {
+                        id: 'w_text_center',
+                        type: 'text',
+                        x: 10,
+                        y: 20,
+                        width: 100,
+                        height: 30,
+                        props: {
+                            text: 'Title',
+                            font_size: 14,
+                            text_align: 'TOP_CENTER',
+                            color: 'black'
+                        }
+                    }
+                ]
+            }]
+        });
+
+        expect(yaml).toContain('# id: w_text_center');
+        expect(yaml).toContain('x: 60');
+        expect(yaml).toContain('y: 20');
+        expect(yaml).toContain('anchor: mt');
+        expect(yaml).not.toMatch(/anchor:\s*(?:ct|cm|cb|tc|cc|bc)\b/);
+    });
+
     it('warns once per unsupported widget type and skips those widgets', async () => {
         mockRegistry.get.mockReturnValue(null);
 

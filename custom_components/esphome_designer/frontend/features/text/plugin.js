@@ -1,7 +1,7 @@
 import { AppState } from '@core/state';
 import { wordWrap, parseColorMarkup, evaluateTemplatePreview } from '../../js/utils/text_utils.js';
 import { getWeightsForFont, clampFontWeight } from '../../js/core/font_weights.js';
-import { openDisplayAnchorFromAlign } from '../../js/io/adapters/opendisplay_helpers.js';
+import { openDisplayTextPosition } from '../../js/io/adapters/opendisplay_helpers.js';
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
     el.innerHTML = "";
@@ -244,7 +244,7 @@ export default {
             color = layout?.darkMode ? "white" : "black";
         }
 
-        const anchor = openDisplayAnchorFromAlign(p.text_align, "lt");
+        const position = openDisplayTextPosition(w, p.text_align, "lt");
 
         if (text.includes('\n') || text.includes('\r')) {
             return {
@@ -281,12 +281,12 @@ export default {
         // Single line - use text
         const result = {
             type: "text",
-            x: Math.round(w.x),
-            y: Math.round(w.y),
+            x: position.x,
+            y: position.y,
             value: text,
             size: fontSize,
             color: color,
-            anchor: anchor,
+            anchor: position.anchor,
             font: fontFamily?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf",
             parse_colors: !!p.parse_colors
         };

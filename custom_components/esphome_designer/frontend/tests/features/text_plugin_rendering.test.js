@@ -324,7 +324,37 @@ describe('text plugin rendering and export variants', () => {
         expect(openDisplay).toMatchObject({
             type: 'text',
             anchor: 'mm',
+            x: 46,
+            y: 27,
             max_width: 72
+        });
+    });
+
+    it('moves OpenDisplay text coordinates to match the selected Pillow anchor', () => {
+        const openDisplay = plugin.exportOpenDisplay({
+            id: 'text_top_center',
+            type: 'text',
+            x: 10,
+            y: 20,
+            width: 100,
+            height: 30,
+            props: {
+                text: 'Title',
+                font_size: 14,
+                text_align: 'TOP_CENTER',
+                color: 'black'
+            }
+        }, {
+            layout: { darkMode: false },
+            _page: {}
+        });
+
+        expect(openDisplay).toMatchObject({
+            type: 'text',
+            x: 60,
+            y: 20,
+            anchor: 'mt',
+            max_width: 100
         });
     });
 
