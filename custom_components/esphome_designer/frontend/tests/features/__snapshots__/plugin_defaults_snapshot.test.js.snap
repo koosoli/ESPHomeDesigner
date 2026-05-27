@@ -640,6 +640,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of odp_p
     },
   ],
   "duration": 36400,
+  "entity_id": "sensor.temperature",
   "height": 100,
   "outline": "#ccc",
   "width": 200,

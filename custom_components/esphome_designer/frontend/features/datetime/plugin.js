@@ -330,12 +330,16 @@ export default {
             };
         }
 
+        const singleLineFontSize = (format === "date_only" || format === "weekday_day_month")
+            ? (p.date_font_size || 16)
+            : (p.time_font_size || 28);
+
         return {
             type: "text",
             x: position.x,
             y: position.y,
             value: template,
-            size: p.time_font_size || 28,
+            size: singleLineFontSize,
             color: color,
             anchor: position.anchor,
             font: p.font_family?.includes("Mono") ? "mononoki.ttf" : "ppb.ttf"

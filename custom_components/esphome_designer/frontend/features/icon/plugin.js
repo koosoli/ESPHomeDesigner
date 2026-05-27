@@ -151,10 +151,11 @@ export default {
         return {
             type: "icon",
             value: name,
-            x: Math.round(w.x),
-            y: Math.round(w.y),
+            x: Math.round(w.x + (w.width || 0) / 2),
+            y: Math.round(w.y + (w.height || 0) / 2),
             size: p.size || 48,
-            fill: (p.color === "theme_auto") ? (layout?.darkMode ? "white" : "black") : (p.color || "black")
+            fill: (p.color === "theme_auto") ? (layout?.darkMode ? "white" : "black") : (p.color || "black"),
+            anchor: "mm"
         };
     },
     exportOEPL: (w, { _layout, _page }) => {

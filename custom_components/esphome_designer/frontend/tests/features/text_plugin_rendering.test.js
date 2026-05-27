@@ -353,7 +353,7 @@ describe('text plugin rendering and export variants', () => {
             type: 'text',
             x: 60,
             y: 20,
-            anchor: 'mt',
+            anchor: 'ma',
             max_width: 100
         });
     });

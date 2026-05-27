@@ -75,6 +75,7 @@ export default {
     defaults: {
         width: 200,
         height: 100,
+        entity_id: "sensor.temperature",
         duration: 36400,
         data: [{ entity: "sensor.temperature", color: "black", width: 1, smooth: true, show_points: true }],
         background: "white",
@@ -85,6 +86,7 @@ export default {
         {
             section: "Data Source",
             fields: [
+                { key: "entity_id", target: "root", label: "Entity ID", type: "entity_picker", default: "sensor.temperature" },
                 { key: "duration", label: "Duration (Seconds)", type: "number", default: 36400 }
             ]
         },
@@ -101,8 +103,9 @@ export default {
     render,
     exportOpenDisplay: (w, { _layout, _page }) => {
         const p = w.props || {};
+        const entityId = String(w.entity_id || p.entity_id || "").trim();
         const exportData = (Array.isArray(p.data) ? p.data : [p.data]).map(item => ({
-            entity: item.entity || "",
+            entity: entityId || item.entity || "",
             color: item.color || "black",
             width: item.width || 1,
             smooth: item.smooth !== false,
@@ -127,8 +130,9 @@ export default {
     },
     exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
+        const entityId = String(w.entity_id || p.entity_id || "").trim();
         const exportData = (Array.isArray(p.data) ? p.data : [p.data]).map(item => ({
-            entity: item.entity || "",
+            entity: entityId || item.entity || "",
             color: item.color || "black",
             width: item.width || 1,
             smooth: item.smooth !== false,

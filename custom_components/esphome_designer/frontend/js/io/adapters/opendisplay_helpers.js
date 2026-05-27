@@ -1,31 +1,31 @@
 const ODP_ANCHOR_ALIASES = Object.freeze({
-    lt: 'lt',
+    lt: 'la',
     lm: 'lm',
     lb: 'lb',
-    mt: 'mt',
+    mt: 'ma',
     mm: 'mm',
     mb: 'mb',
-    rt: 'rt',
+    rt: 'ra',
     rm: 'rm',
     rb: 'rb',
-    tl: 'lt',
-    tc: 'mt',
-    tr: 'rt',
+    tl: 'la',
+    tc: 'ma',
+    tr: 'ra',
     cl: 'lm',
     cc: 'mm',
     cr: 'rm',
     bl: 'lb',
     bc: 'mb',
     br: 'rb',
-    ct: 'mt',
+    ct: 'ma',
     cm: 'mm',
     cb: 'mb'
 });
 
 export const OPEN_DISPLAY_ALIGN_ANCHORS = Object.freeze({
-    TOP_LEFT: 'lt',
-    TOP_CENTER: 'mt',
-    TOP_RIGHT: 'rt',
+    TOP_LEFT: 'la',
+    TOP_CENTER: 'ma',
+    TOP_RIGHT: 'ra',
     CENTER_LEFT: 'lm',
     CENTER: 'mm',
     CENTER_RIGHT: 'rm',
@@ -36,7 +36,7 @@ export const OPEN_DISPLAY_ALIGN_ANCHORS = Object.freeze({
 
 /**
  * Normalize legacy center/top anchors (for example `ct`) to Pillow-style
- * OpenDisplay anchors (for example `mt`).
+ * OpenDisplay anchors (for example `ma`).
  *
  * @param {unknown} value
  * @param {string} [fallback='lt']

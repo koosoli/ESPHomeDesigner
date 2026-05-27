@@ -1233,12 +1233,13 @@ exports[`Plugin Export Smoke Tests > Export for icon > should export OEPL with s
 
 exports[`Plugin Export Smoke Tests > Export for icon > should export OpenDisplay with stable output 1`] = `
 {
+  "anchor": "mm",
   "fill": "black",
   "size": 48,
   "type": "icon",
   "value": "home-assistant",
-  "x": 10,
-  "y": 10,
+  "x": 60,
+  "y": 60,
 }
 `;
 
@@ -2819,7 +2820,7 @@ exports[`Plugin Export Smoke Tests > Export for sensor_text > should export OEPL
 
 exports[`Plugin Export Smoke Tests > Export for sensor_text > should export OpenDisplay with stable output 1`] = `
 {
-  "anchor": "lt",
+  "anchor": "la",
   "color": "black",
   "font": "ppb.ttf",
   "max_width": 100,
@@ -3725,7 +3726,7 @@ exports[`Plugin Export Smoke Tests > Export for text > should export OEPL with s
 
 exports[`Plugin Export Smoke Tests > Export for text > should export OpenDisplay with stable output 1`] = `
 {
-  "anchor": "lt",
+  "anchor": "la",
   "color": "black",
   "font": "ppb.ttf",
   "max_width": 100,

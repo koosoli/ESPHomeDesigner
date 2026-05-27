@@ -1,7 +1,7 @@
 ESPHome Designer release upload checklist
-Generated: 2026-05-26T08:30:35.357Z
-Version: 1.0.0-rc.14.1
-GUI label: v1.0.0 RC14.1
+Generated: 2026-05-27T09:25:05.653Z
+Version: 1.0.0-rc.15
+GUI label: v1.0.0 RC15
 
 Required upload set for a version/frontend release:
 - custom_components/esphome_designer/manifest.json
@@ -27,3 +27,82 @@ Upload these too if you changed them locally:
 - tsconfig.strict.json
 - strict-shims.d.ts
 - jsconfig.json
+
+dist files refreshed during preflight:
+- removed assets/app-shell-XO4cOWgR.js
+- added assets/app-shell-sroKi2NP.js
+- added assets/deferred-ui-Bg7pgRZx.js
+- removed assets/deferred-ui-C70_8iVV.js
+- added assets/fillable_shape-BUpacHl1.js
+- removed assets/fillable_shape-BgzHWYzR.js
+- removed assets/main-CalqQLyG.js
+- added assets/main-WhaUV0jN.js
+- removed assets/plugin-1JH5WIQu.js
+- added assets/plugin-5CrvTnGO.js
+- added assets/plugin-B97TN5cD.js
+- added assets/plugin-BBstPPFd.js
+- added assets/plugin-BCTZW4V9.js
+- removed assets/plugin-BEzIul8l.js
+- removed assets/plugin-BI0Rm0vh.js
+- added assets/plugin-BIzNIDrU.js
+- added assets/plugin-BP7LSrUO.js
+- removed assets/plugin-BaS34fAQ.js
+- added assets/plugin-BipoFB1W.js
+- removed assets/plugin-Bm6nAS3G.js
+- added assets/plugin-Bs9mFNND.js
+- removed assets/plugin-Bv5g4-ZS.js
+- removed assets/plugin-C4Z1514m.js
+- removed assets/plugin-C6z5yL3n.js
+- removed assets/plugin-C76tuPoJ.js
+- added assets/plugin-C7GEOHLZ.js
+- added assets/plugin-C9YDFVTP.js
+- removed assets/plugin-CI_sUke1.js
+- removed assets/plugin-CLI8-Hhd.js
+- removed assets/plugin-COzd3-vK.js
+- removed assets/plugin-Cn7RYeMR.js
+- removed assets/plugin-Cq818oDy.js
+- removed assets/plugin-Cqrumsov.js
+- removed assets/plugin-CvreonVw.js
+- removed assets/plugin-Cx5IC3GE.js
+- removed assets/plugin-CyYwvVrH.js
+- added assets/plugin-D0E-vVAK.js
+- added assets/plugin-D7ZmlagW.js
+- removed assets/plugin-DEANg_Gc.js
+- removed assets/plugin-DEMaUB-O.js
+- added assets/plugin-DH6bFIJj.js
+- removed assets/plugin-DNc_h5Pk.js
+- removed assets/plugin-DNees53n.js
+- added assets/plugin-DSNWMRoR.js
+- added assets/plugin-DSSa4FrW.js
+- removed assets/plugin-Dd9tDk3X.js
+- removed assets/plugin-DdDsUxPK.js
+- added assets/plugin-Dds_JBN5.js
+- added assets/plugin-DeraYlh8.js
+- removed assets/plugin-Dj4FAnhK.js
+- added assets/plugin-DkQts-kL.js
+- added assets/plugin-DlE2ibqv.js
+- removed assets/plugin-DqUVTta2.js
+- added assets/plugin-DswvdOWw.js
+- removed assets/plugin-DtTcDhRX.js
+- added assets/plugin-FjhxWliS.js
+- removed assets/plugin-JEZ7RRJo.js
+- added assets/plugin-LKeNeuHR.js
+- removed assets/plugin-LjhzMnHy.js
+- added assets/plugin-OUyiKcac.js
+- removed assets/plugin-RhNnm7g6.js
+- added assets/plugin-SayN9c7Q.js
+- added assets/plugin-ZbGnkVYY.js
+- added assets/plugin-ZwUHayP8.js
+- added assets/plugin-a6ZFD679.js
+- added assets/plugin-bEzf9-RV.js
+- added assets/plugin-cwJlABrd.js
+- removed assets/plugin-fnjFHNEV.js
+- removed assets/plugin-mhC-wrj5.js
+- added assets/plugin-t16Wctsp.js
+- added assets/plugin-tbbYAHeu.js
+- added assets/plugin-wgbLqMXG.js
+- removed assets/yaml-engine-Ch6r4zla.js
+- added assets/yaml-engine-DKrg-X3H.js
+- changed build-meta.json
+- changed index.html
+- changed vite-assets.json

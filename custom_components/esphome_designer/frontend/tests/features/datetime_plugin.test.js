@@ -126,7 +126,7 @@ describe('datetime plugin', () => {
             type: 'text',
             x: 60,
             y: 20,
-            anchor: 'mt'
+            anchor: 'ma'
         });
 
         const centerRight = plugin.exportOpenDisplay({
@@ -273,6 +273,7 @@ describe('datetime plugin', () => {
                 format: 'date_only',
                 text_align: 'TOP_LEFT',
                 time_font_size: 22,
+                date_font_size: 17,
                 color: 'theme_auto'
             }
         }, {
@@ -285,9 +286,9 @@ describe('datetime plugin', () => {
             x: 10,
             y: 20,
             value: "{{ now().strftime('%d.%m.%Y') }}",
-            size: 22,
+            size: 17,
             color: 'black',
-            anchor: 'lt',
+            anchor: 'la',
             font: 'ppb.ttf'
         });
 

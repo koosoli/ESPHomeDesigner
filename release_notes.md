@@ -1,3 +1,20 @@
+## v1.0.0 RC15 - OpenDisplay Payload Polish
+**Release Date:** May 27, 2026
+
+This RC15 release folds in TuTuc0's latest OpenDisplay feedback from issues #401 and #403 through #406, focusing on matching what the editor shows to what OpenDisplay receives.
+
+### Stability & Verification
+- **OpenDisplay Top Text Anchors (Issue #401):** Top-aligned text, sensor text, and date/time payloads now use Pillow ascender anchors (`la`, `ma`, `ra`) instead of top bounding-box anchors, which better matches OpenDisplay's rendered baseline while keeping the corrected `x`/`y` anchor coordinates.
+- **OpenDisplay Weather Icons Verified (Issue #403):** Rechecked Weather Icon exports and locked the OpenDisplay mapping to MDI names such as `weather-sunny`, `weather-partly-cloudy`, and `weather-cloudy`, while OEPL keeps its shorter aliases.
+- **MDI Icon OpenDisplay Anchors (Issue #404):** MDI Icon widgets now export centered `x`/`y` coordinates plus `anchor: mm`, avoiding the OpenDisplay default `la` offset that placed icons away from the editor preview.
+- **Date Only Font Size (Issue #405):** Date & Time widgets in Date Only or Weekday Day Month OpenDisplay modes now export `date_font_size`; Time Only and Time & Date continue using `time_font_size`.
+- **Sensor Plot Entity Picker (Issue #406):** Sensor Plot now exposes an Entity ID picker in its Data Source section and uses that root entity in OpenDisplay/OEPL plot series export.
+- **Regression Coverage Expansion:** Updated focused tests, snapshots, and schema baselines for the OpenDisplay anchor, icon, date/time, weather icon, and Sensor Plot contracts.
+- **Release Metadata Refresh:** Updated package metadata, package lock metadata, Home Assistant manifest version, runtime version string, visible header label, release notes, and rebuilt frontend assets for the RC15 release line.
+
+
+---
+
 ## v1.0.0 RC14.1 - OpenDisplay Anchor Follow-up
 **Release Date:** May 26, 2026
 

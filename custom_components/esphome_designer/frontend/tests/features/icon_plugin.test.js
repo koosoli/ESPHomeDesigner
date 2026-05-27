@@ -268,6 +268,8 @@ describe('Icon Plugin', () => {
         expect(iconPlugin.exportOpenDisplay({
             x: 5,
             y: 6,
+            width: 40,
+            height: 30,
             props: {
                 code: 'UNKNOWN',
                 size: 20,
@@ -279,10 +281,11 @@ describe('Icon Plugin', () => {
         })).toEqual({
             type: 'icon',
             value: 'information',
-            x: 5,
-            y: 6,
+            x: 25,
+            y: 21,
             size: 20,
-            fill: 'white'
+            fill: 'white',
+            anchor: 'mm'
         });
 
         expect(iconPlugin.exportOEPL({

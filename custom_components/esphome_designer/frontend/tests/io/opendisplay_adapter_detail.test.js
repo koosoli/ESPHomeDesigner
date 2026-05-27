@@ -79,7 +79,7 @@ describe('OpenDisplayAdapter details', () => {
         expect(yaml).not.toContain('payload: |-');
         expect((yaml.match(/# id: w_payload/g) || [])).toHaveLength(2);
         expect(yaml).toContain('value: "Line 1\\nLine: 2"');
-        expect(yaml).toContain('anchor: mt');
+        expect(yaml).toContain('anchor: ma');
         expect(yaml).not.toContain('anchor: ct');
         expect(yaml).toContain('data: [{"entity":"sensor.temperature","color":"black"}]');
         expect(yaml).toContain('meta: {"smooth":true}');
@@ -121,16 +121,16 @@ describe('OpenDisplayAdapter details', () => {
         expect(yaml).toContain('# id: w_text_center');
         expect(yaml).toContain('x: 60');
         expect(yaml).toContain('y: 20');
-        expect(yaml).toContain('anchor: mt');
+        expect(yaml).toContain('anchor: ma');
         expect(yaml).not.toMatch(/anchor:\s*(?:ct|cm|cb|tc|cc|bc)\b/);
     });
 
     it('maps designer text alignments to Pillow-compatible anchors and coordinates', () => {
         const widget = { x: 10, y: 20, width: 100, height: 30 };
 
-        expect(openDisplayTextPosition(widget, 'TOP_LEFT')).toEqual({ anchor: 'lt', x: 10, y: 20 });
-        expect(openDisplayTextPosition(widget, 'TOP_CENTER')).toEqual({ anchor: 'mt', x: 60, y: 20 });
-        expect(openDisplayTextPosition(widget, 'TOP_RIGHT')).toEqual({ anchor: 'rt', x: 110, y: 20 });
+        expect(openDisplayTextPosition(widget, 'TOP_LEFT')).toEqual({ anchor: 'la', x: 10, y: 20 });
+        expect(openDisplayTextPosition(widget, 'TOP_CENTER')).toEqual({ anchor: 'ma', x: 60, y: 20 });
+        expect(openDisplayTextPosition(widget, 'TOP_RIGHT')).toEqual({ anchor: 'ra', x: 110, y: 20 });
         expect(openDisplayTextPosition(widget, 'CENTER_LEFT')).toEqual({ anchor: 'lm', x: 10, y: 35 });
         expect(openDisplayTextPosition(widget, 'CENTER')).toEqual({ anchor: 'mm', x: 60, y: 35 });
         expect(openDisplayTextPosition(widget, 'CENTER_RIGHT')).toEqual({ anchor: 'rm', x: 110, y: 35 });
@@ -138,7 +138,8 @@ describe('OpenDisplayAdapter details', () => {
         expect(openDisplayTextPosition(widget, 'BOTTOM_CENTER')).toEqual({ anchor: 'mb', x: 60, y: 50 });
         expect(openDisplayTextPosition(widget, 'BOTTOM_RIGHT')).toEqual({ anchor: 'rb', x: 110, y: 50 });
 
-        expect(normalizeOpenDisplayAnchor('ct')).toBe('mt');
+        expect(normalizeOpenDisplayAnchor('ct')).toBe('ma');
+        expect(normalizeOpenDisplayAnchor('lt')).toBe('la');
         expect(normalizeOpenDisplayAnchor('bc')).toBe('mb');
     });
 
