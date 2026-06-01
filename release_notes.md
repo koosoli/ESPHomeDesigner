@@ -1,3 +1,20 @@
+## v1.0.0 RC16 - OpenDisplay Icon & Astronomy Follow-up
+**Release Date:** June 1, 2026
+
+This RC16 release verifies TuTuc0's latest OpenDisplay reports from issues #407 and #408, the follow-up weather condition request in issue #403, and native LVGL import feedback from issue #409.
+
+### Stability & Verification
+- **MDI Hex Icon Names (Issue #407):** MDI Icon widgets now resolve manual hex codes against the bundled Material Design Icons font metadata before exporting OpenDisplay/OEPL payloads, so examples such as `F072A` and `F011C` export `washing-machine` and `cellphone` instead of falling back to `information`.
+- **Full MDI Icon Browser:** The full icon browser now exposes the complete bundled Pictogrammers Material Design Icons 7.4.47 catalog while keeping the compact property-panel dropdown curated and lazy-loading the larger catalog in its own frontend chunk.
+- **Sunrise / Sunset OpenDisplay Alignment (Issue #408):** Sunrise/Sunset OpenDisplay rows now use font-independent left-middle anchors (`lm`) for both icon and text entries, avoiding ascender-baseline differences between the MDI icon font and the text font.
+- **Partly Cloudy Night Weather Mapping (Issue #403):** Weather Icon exports now include Home Assistant's `partlycloudy-night` condition and map it to OpenDisplay's `weather-night-partly-cloudy` MDI icon.
+- **Native LVGL Button Import (Issue #409):** Importing handwritten LVGL buttons with nested label widgets now restores the label as button text instead of creating extra canvas widgets, recovers Home Assistant service entities from `on_click`, infers checked-state sync from common `state.checked` lambdas, and warns when root hardware/system sections may still be commented in generated YAML.
+- **Regression Coverage Expansion:** Added focused tests for custom MDI hex resolution, full-browser MDI filtering, OpenDisplay sunrise/sunset anchors, the new partly-cloudy night weather lookup, and handwritten LVGL button import.
+- **Release Metadata Refresh:** Updated package metadata, package lock metadata, Home Assistant manifest version, runtime version string, visible header label, release notes, and rebuilt frontend assets for the RC16 release line.
+
+
+---
+
 ## v1.0.0 RC15 - OpenDisplay Payload Polish
 **Release Date:** May 27, 2026
 

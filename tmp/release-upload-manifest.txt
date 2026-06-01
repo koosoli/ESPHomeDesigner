@@ -1,7 +1,7 @@
 ESPHome Designer release upload checklist
-Generated: 2026-05-27T09:25:05.653Z
-Version: 1.0.0-rc.15
-GUI label: v1.0.0 RC15
+Generated: 2026-05-31T17:10:00.000Z
+Version: 1.0.0-rc.16
+GUI label: v1.0.0 RC16
 
 Required upload set for a version/frontend release:
 - custom_components/esphome_designer/manifest.json

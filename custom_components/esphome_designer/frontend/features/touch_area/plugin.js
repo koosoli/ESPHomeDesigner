@@ -3,7 +3,7 @@ import { getTouchDebounceMs } from '../../js/io/navigation_debounce.js';
 /**
  * Touch Area Plugin
  */
-import { iconPickerData } from '../../js/core/constants_icons.js';
+import { mdiIconCodesByName } from '../../js/core/mdi_icon_names.js';
 
 const render = (el, widget, { getColorStyle }) => {
     const props = widget.props || {};
@@ -26,13 +26,11 @@ const render = (el, widget, { getColorStyle }) => {
                 const cp = 0xf0000 + parseInt(c.slice(1), 16);
                 return String.fromCodePoint(cp);
             }
-            if (iconPickerData) {
-                const iconName = (code || "").trim().replace("mdi:", "").toLowerCase();
-                const iconData = iconPickerData.find(idx => idx.name === iconName);
-                if (iconData) {
-                    const cp = 0xf0000 + parseInt(iconData.code.slice(1), 16);
-                    return String.fromCodePoint(cp);
-                }
+            const iconName = (code || "").trim().replace("mdi:", "").toLowerCase();
+            const iconCode = mdiIconCodesByName[iconName];
+            if (iconCode) {
+                const cp = 0xf0000 + parseInt(iconCode.slice(1), 16);
+                return String.fromCodePoint(cp);
             }
             return null;
         };

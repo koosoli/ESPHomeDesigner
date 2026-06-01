@@ -59,6 +59,14 @@ interface RawTriggerBlock {
     widgetId: string | null;
 }
 
+const SYSTEM_ROOT_KEYS = [
+    'esphome:', 'esp32:', 'esp8266:', 'psram:', 'wifi:', 'api:', 'ota:',
+    'logger:', 'web_server:', 'captive_portal:', 'preferences:',
+    'platformio_options:', 'deep_sleep:'
+];
+
+const SYSTEM_SECTION_IMPORT_WARNING = 'Imported root hardware/system YAML for context; generated output may still comment those sections to avoid duplicate ESPHome definitions.';
+
 const SNAKE_CASE_SETTING_MAP: Record<string, string> = {
     dark_mode: 'darkMode',
     inverted_colors: 'invertedColors',
@@ -224,6 +232,24 @@ function getLineIndent(line: string): number {
     return (line.match(/^\s*/) || [''])[0].length;
 }
 
+function hasUncommentedSystemRootSections(rawLines: string[]): boolean {
+    return rawLines.some((line) => {
+        if (getLineIndent(line) !== 0) return false;
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) return false;
+        return SYSTEM_ROOT_KEYS.includes(trimmed);
+    });
+}
+
+function appendImportWarning(layout: ParsedLayout | null, warning: string): ParsedLayout | null {
+    if (!layout) return layout;
+    const warnings = Array.isArray(layout.importWarnings) ? layout.importWarnings : [];
+    if (!warnings.includes(warning)) {
+        layout.importWarnings = [...warnings, warning];
+    }
+    return layout;
+}
+
 function extractMarkedWidgetId(actionLines: string[]): string | null {
     const markerLine = actionLines.find((line) => line.trim().startsWith(DESIGNER_STATE_TRIGGER_MARKER));
     if (!markerLine) {
@@ -249,7 +275,7 @@ function isKnownGeneratedStateTrigger(actionsText: string): boolean {
 }
 
 function extractRawTriggerBlocks(rawLines: string[]): RawTriggerBlock[] {
-    const sections = ['sensor:', 'text_sensor:', 'binary_sensor:'];
+    const sections = ['sensor:', 'text_sensor:', 'binary_sensor:', 'switch:'];
     /** @type {RawTriggerBlock[]} */
     const blocks: RawTriggerBlock[] = [];
 
@@ -476,8 +502,13 @@ export function parseSnippetYamlOffline(yamlText: string): ParsedLayout | null {
 
     const deviceSettings = parseSettings(rawLines, doc);
     const layout = parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESPHomeSchema, yaml);
+    const recovered = recoverDesignerStateTriggers(layout, rawLines);
 
-    return recoverDesignerStateTriggers(layout, rawLines);
+    if (hasUncommentedSystemRootSections(rawLines)) {
+        return appendImportWarning(recovered, SYSTEM_SECTION_IMPORT_WARNING);
+    }
+
+    return recovered;
 }
 
 /**

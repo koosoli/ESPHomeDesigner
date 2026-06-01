@@ -108,7 +108,7 @@ describe('weather_forecast export_sensors', () => {
         expect(addFont).toHaveBeenCalledWith('Montserrat', 700, 13);
         expect(addFont).toHaveBeenCalledWith('Montserrat', 400, 16);
         expect(addFont).toHaveBeenCalledWith('Material Design Icons', 400, 48);
-        expect(trackIcon).toHaveBeenCalledTimes(16);
+        expect(trackIcon).toHaveBeenCalledTimes(17);
     });
 
     it('deduplicates repeated daily condition sensors across matching widgets', () => {

@@ -141,8 +141,8 @@ function buildProtocolRows(widget, props, useFillColor = false, darkMode = false
         if (useFillColor) {
             iconBase.fill = color;
             return [
-                { ...iconBase, anchor: 'lt' },
-                { ...textBase, color, anchor: 'lt' }
+                { ...iconBase, anchor: 'lm' },
+                { ...textBase, color, anchor: 'lm' }
             ];
         }
 

@@ -245,4 +245,30 @@ describe('astronomy widgets', () => {
             '- lvgl.widget.refresh: sun_1_sunset_text'
         ]);
     });
+
+    it('uses font-independent middle anchors for OpenDisplay sunrise and sunset rows', () => {
+        const rows = sunTimesPlugin.exportOpenDisplay({
+            id: 'sun_anchor',
+            x: 30,
+            y: 300,
+            width: 180,
+            height: 40,
+            props: {
+                sunrise_entity: 'sensor.sun_next_rising',
+                sunset_entity: 'sensor.sun_next_setting',
+                show_sunrise: true,
+                show_sunset: false,
+                icon_size: 32,
+                font_size: 32,
+                icon_gap: 8,
+                padding: 0
+            }
+        }, {
+            layout: { darkMode: false }
+        });
+
+        expect(rows).toHaveLength(2);
+        expect(rows[0]).toMatchObject({ type: 'icon', value: 'weather-sunset-up', anchor: 'lm', y: 306 });
+        expect(rows[1]).toMatchObject({ type: 'text', anchor: 'lm', y: 306 });
+    });
 });

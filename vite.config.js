@@ -58,6 +58,13 @@ function getManualChunk(id) {
         return 'vendor';
     }
 
+    if (
+        normalizedId.endsWith('/frontend/js/core/mdi_icon_catalog.js') ||
+        normalizedId.endsWith('/frontend/js/core/mdi_icon_names.js')
+    ) {
+        return 'mdi-icons';
+    }
+
     // Preserve async boundaries for UI that only loads on demand.
     if (
         normalizedId.includes('/frontend/js/ui/device_settings/') ||

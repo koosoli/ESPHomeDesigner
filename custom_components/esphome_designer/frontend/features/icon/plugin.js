@@ -1,5 +1,5 @@
 import { AppState } from '@core/state';
-import { iconPickerData } from '../../js/core/constants_icons.js';
+import { mdiIconCodesByName, mdiIconNamesByCode } from '../../js/core/mdi_icon_names.js';
 import { evaluateTemplatePreview } from '../../js/utils/text_utils.js';
 
 const resolveIconForegroundColor = (colorProp, getColorConst) => {
@@ -17,6 +17,27 @@ const resolveIconBackgroundColor = (colorProp, getColorConst) => {
     if (colorProp === "white") return "color_off";
     if (colorProp === "black") return "color_on";
     return getColorConst(colorProp);
+};
+
+const normalizeMdiIconCode = (value, fallback = "F0595") => {
+    const raw = String(value || "").trim();
+    const withoutPrefix = raw.replace(/^0x/i, "").replace(/^mdi:/i, "").toUpperCase();
+    if (/^F[0-9A-F]{4,5}$/.test(withoutPrefix)) return withoutPrefix;
+
+    const name = raw.replace(/^mdi:/i, "").trim().toLowerCase();
+    return mdiIconCodesByName[name] || fallback;
+};
+
+const resolveMdiIconName = (value, fallback = "information") => {
+    const raw = String(value || "").trim();
+    const name = raw.replace(/^mdi:/i, "").trim().toLowerCase();
+    if (/^mdi:/i.test(raw) && /^[a-z0-9][a-z0-9-]*$/i.test(name)) return name;
+    if (name && !/^F[0-9A-F]{4,5}$/i.test(name) && mdiIconCodesByName[name]) return name;
+
+    const code = normalizeMdiIconCode(raw, "");
+    if (!code) return fallback;
+
+    return mdiIconNamesByCode[code] || fallback;
 };
 
 const render = (el, widget, { getColorStyle }) => {
@@ -50,8 +71,9 @@ const render = (el, widget, { getColorStyle }) => {
         return;
     }
 
-    if (code && code.match(/^F[0-9A-F]{4}$/i)) {
-        iconCode = code;
+    const normalizedCode = normalizeMdiIconCode(code, "");
+    if (normalizedCode) {
+        iconCode = normalizedCode;
     }
 
     if (props.fit_icon_to_frame) {
@@ -144,9 +166,7 @@ export default {
     render,
     exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
-        const code = (p.code || "F0595").toUpperCase().replace(/^0X/, "");
-        const entry = iconPickerData.find(d => d.code.toUpperCase() === code);
-        const name = entry ? entry.name : "information";
+        const name = resolveMdiIconName(p.code || "F0595");
 
         return {
             type: "icon",
@@ -160,9 +180,7 @@ export default {
     },
     exportOEPL: (w, { _layout, _page }) => {
         const p = w.props || {};
-        const code = (p.code || "F0595").toUpperCase().replace(/^0X/, "");
-        const entry = iconPickerData.find(d => d.code.toUpperCase() === code);
-        const name = entry ? entry.name : "information"; // Default fallback
+        const name = resolveMdiIconName(p.code || "F0595"); // Default fallback
 
         return {
             type: "icon",
@@ -176,7 +194,7 @@ export default {
     },
     exportLVGL: (w, { common, convertColor, getLVGLFont }) => {
         const p = w.props || {};
-        const code = (p.code || "F0595").replace(/^0x/i, "");
+        const code = normalizeMdiIconCode(p.code || "F0595");
         const size = parseInt(p.size || 48, 10);
         const color = convertColor(p.color || "theme_auto");
 
@@ -196,7 +214,7 @@ export default {
         } = context;
 
         const p = w.props || {};
-        const code = (p.code || "F0595").replace(/^0x/i, "");
+        const code = normalizeMdiIconCode(p.code || "F0595");
         const size = parseInt(p.size || 48, 10);
         const colorProp = p.color || "theme_auto";
 

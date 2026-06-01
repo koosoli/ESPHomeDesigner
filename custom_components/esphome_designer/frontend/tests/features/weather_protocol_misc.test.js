@@ -115,6 +115,7 @@ describe('weather protocol misc coverage', () => {
 
         expect(openDisplay.value).toContain("'sunny': 'weather-sunny'");
         expect(openDisplay.value).toContain("'partlycloudy': 'weather-partly-cloudy'");
+        expect(openDisplay.value).toContain("'partlycloudy-night': 'weather-night-partly-cloudy'");
         expect(openDisplay.value).toContain("'cloudy': 'weather-cloudy'");
         expect(openDisplay.value).not.toContain("'sunny': 'sun'");
         expect(openDisplay.color).toBe('black');

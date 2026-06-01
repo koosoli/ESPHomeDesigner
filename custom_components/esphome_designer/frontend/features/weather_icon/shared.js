@@ -13,6 +13,7 @@ export const WEATHER_ICON_OPTIONS = Object.freeze([
     Object.freeze({ condition: 'hail', code: 'F0592', protocolIcon: 'hail', openDisplayIcon: 'weather-hail' }),
     Object.freeze({ condition: 'lightning', code: 'F0593', protocolIcon: 'lightning', openDisplayIcon: 'weather-lightning' }),
     Object.freeze({ condition: 'lightning-rainy', code: 'F067E', protocolIcon: 'lightning-rainy', openDisplayIcon: 'weather-lightning-rainy' }),
+    Object.freeze({ condition: 'partlycloudy-night', code: 'F0F31', protocolIcon: 'weather-night-partly-cloudy', openDisplayIcon: 'weather-night-partly-cloudy' }),
     Object.freeze({ condition: 'partlycloudy', code: 'F0595', protocolIcon: 'partly-cloudy', openDisplayIcon: 'weather-partly-cloudy' }),
     Object.freeze({ condition: 'pouring', code: 'F0596', protocolIcon: 'pouring', openDisplayIcon: 'weather-pouring' }),
     Object.freeze({ condition: 'rainy', code: 'F0597', protocolIcon: 'rainy', openDisplayIcon: 'weather-rainy' }),

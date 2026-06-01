@@ -1,12 +1,12 @@
 // Icon Picker UI - ES Module
 import { AppState } from '../core/state';
-import { iconPickerData } from '../core/constants_icons.js';
 import { appendToDesignerOverlayRoot } from '../utils/runtime_root.js';
 
 /**
  * @typedef {{
  *   code: string,
- *   name: string
+ *   name: string,
+ *   aliases?: string[]
  * }} IconPickerIcon
  */
 
@@ -29,6 +29,26 @@ let pickerClose = null;
 let currentWidget = null;
 /** @type {HTMLInputElement | null} */
 let currentInput = null;
+/** @type {readonly IconPickerIcon[] | null} */
+let mdiIconCatalogCache = null;
+/** @type {Promise<readonly IconPickerIcon[]> | null} */
+let mdiIconCatalogPromise = null;
+let currentQuery = '';
+
+/**
+ * Loads the full MDI catalog only when the icon browser is opened.
+ * @returns {Promise<readonly IconPickerIcon[]>}
+ */
+function loadMdiIconCatalog() {
+    if (mdiIconCatalogCache) return Promise.resolve(mdiIconCatalogCache);
+    if (!mdiIconCatalogPromise) {
+        mdiIconCatalogPromise = import('../core/mdi_icon_catalog.js').then((module) => {
+            mdiIconCatalogCache = module.mdiIconCatalog || [];
+            return mdiIconCatalogCache;
+        });
+    }
+    return mdiIconCatalogPromise;
+}
 
 /**
  * Initializes the icon picker modal elements.
@@ -49,10 +69,10 @@ function initPicker() {
         pickerModal.className = 'modal-backdrop hidden';
         pickerModal.style.zIndex = "2000";
         pickerModal.innerHTML = `
-            <div class="modal" style="max-width: 500px; height: 80vh; display: flex; flex-direction: column;">
+            <div class="modal" style="max-width: 560px; height: 80vh; display: flex; flex-direction: column;">
                 <div class="modal-header">
                     <div>Select Icon</div>
-                    <button id="iconPickerClose" class="btn btn-secondary">×</button>
+                    <button id="iconPickerClose" class="btn btn-secondary">&times;</button>
                 </div>
                 <div class="modal-body" style="flex: 1; overflow: hidden; display: flex; flex-direction: column; padding: 15px;">
                     <input type="text" id="iconPickerFilter" class="prop-input" placeholder="Filter icons..." style="width: 100%; margin-bottom: 12px;">
@@ -106,7 +126,13 @@ export function openIconPickerForWidget(widget, inputElement) {
         pickerFilter.focus();
     }
 
-    renderIconList(iconPickerData || []);
+    currentQuery = '';
+    renderIconList([]);
+    loadMdiIconCatalog().then((icons) => {
+        if (pickerModal && !pickerModal.classList.contains('hidden')) {
+            renderIconList(icons);
+        }
+    });
 }
 
 /**
@@ -123,7 +149,7 @@ export function closeIconPicker() {
 
 /**
  * Renders the list of icons.
- * @param {IconPickerIcon[]} icons
+ * @param {readonly IconPickerIcon[]} icons
  */
 function renderIconList(icons) {
     if (!pickerList) return;
@@ -149,6 +175,8 @@ function renderIconList(icons) {
         item.style.justifyContent = 'center';
         item.style.textAlign = 'center';
         item.style.background = 'var(--bg)';
+        item.style.contentVisibility = 'auto';
+        item.style.containIntrinsicSize = '64px 64px';
         item.title = icon.name;
 
         const iconPreview = document.createElement('div');
@@ -189,7 +217,13 @@ function renderIconList(icons) {
  * @param {string} query
  */
 function filterIcons(query) {
-    const data = /** @type {IconPickerIcon[]} */ (iconPickerData || []);
+    currentQuery = query;
+    const data = mdiIconCatalogCache;
+    if (!data) {
+        loadMdiIconCatalog().then(() => filterIcons(currentQuery));
+        return;
+    }
+
     if (!query) {
         renderIconList(data);
         return;
@@ -198,6 +232,7 @@ function filterIcons(query) {
     const lowerQuery = query.toLowerCase();
     const filtered = data.filter(icon =>
         icon.name.toLowerCase().includes(lowerQuery) ||
+        (icon.aliases || []).some(alias => alias.toLowerCase().includes(lowerQuery)) ||
         icon.code.toLowerCase().includes(lowerQuery)
     );
     renderIconList(filtered);

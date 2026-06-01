@@ -25,7 +25,10 @@ export function buildLvglWidgetProps(widgetType, p, widget, props) {
             font_size: parseInt(p.font_size || 14, 10),
             border_width: parseInt(p.border_width || p.border || 2, 10),
             radius: parseInt(p.radius || 5, 10),
-            checkable: (p.checkable === "true")
+            checkable: (p.checkable === true || p.checkable === "true"),
+            entity_id: p.entity_id || "",
+            service: p.service || "auto",
+            sync_state: (p.sync_state === true || p.sync_state === "true")
         };
     }
 

@@ -27,11 +27,14 @@ export function normalizeMappedColor(c, fallback) {
 export function applyCommonLvglProps(widgetType, p, props) {
     if (!widgetType.startsWith("lvgl_")) return;
 
+    const isTrue = (value) => value === true || value === "true";
+    const isFalse = (value) => value === false || value === "false";
+
     Object.entries(p).forEach(([key, val]) => {
         if (["id", "type", "x", "y", "w", "h", "width", "height"].includes(key)) return;
 
-        if (val === "true") props[key] = true;
-        else if (val === "false") props[key] = false;
+        if (isTrue(val)) props[key] = true;
+        else if (isFalse(val)) props[key] = false;
         else if (key.includes("color") || key.includes("bg_") || key.startsWith("line_color")) {
             props[key] = normalizeMappedColor(val, val);
         }
@@ -39,12 +42,12 @@ export function applyCommonLvglProps(widgetType, p, props) {
         else props[key] = val;
     });
 
-    props.hidden = (p.hidden === "true");
-    props.clickable = (p.clickable !== "false");
-    props.checkable = (p.checkable === "true");
-    props.scrollable = (p.scrollable !== "false");
-    props.floating = (p.floating === "true");
-    props.ignore_layout = (p.ignore_layout === "true");
+    props.hidden = isTrue(p.hidden);
+    props.clickable = !isFalse(p.clickable);
+    props.checkable = isTrue(p.checkable);
+    props.scrollable = !isFalse(p.scrollable);
+    props.floating = isTrue(p.floating);
+    props.ignore_layout = isTrue(p.ignore_layout);
     props.scrollbar_mode = p.scrollbar_mode || "AUTO";
     props.opa = parseInt(p.opa || 255, 10);
 

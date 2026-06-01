@@ -99,6 +99,98 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
         "buttonmatrix": "lvgl_buttonmatrix", "icon": "icon"
     });
 
+    const unquoteText = (/** @type {unknown} */ value) => {
+        if (value === undefined || value === null) return "";
+        return String(value).trim().replace(/^["']|["']$/g, "");
+    };
+
+    const makeSafeEntityId = (/** @type {string} */ entityId) => entityId.replace(/[^a-zA-Z0-9_]/g, "_");
+
+    const collectHomeAssistantServiceCalls = (/** @type {unknown} */ value, /** @type {Array<{ service: string, entityId: string }>} */ calls = []) => {
+        if (Array.isArray(value)) {
+            value.forEach((item) => collectHomeAssistantServiceCalls(item, calls));
+            return calls;
+        }
+
+        if (!value || typeof value !== "object") return calls;
+
+        const record = /** @type {Record<string, any>} */ (value);
+        const servicePayload = record["homeassistant.service"];
+        if (servicePayload && typeof servicePayload === "object") {
+            const payload = /** @type {Record<string, any>} */ (servicePayload);
+            const service = String(payload.service || "").trim();
+            const entityId = String(
+                payload.entity_id
+                || payload.data?.entity_id
+                || payload.target?.entity_id
+                || ""
+            ).trim();
+
+            if (service && entityId) calls.push({ service, entityId });
+        }
+
+        Object.values(record).forEach((item) => collectHomeAssistantServiceCalls(item, calls));
+        return calls;
+    };
+
+    const inferActionEntity = (/** @type {NativeWidgetProps} */ nativeProps) => {
+        const calls = collectHomeAssistantServiceCalls(nativeProps.on_click);
+        if (calls.length === 0) return null;
+
+        const entityCounts = new Map();
+        calls.forEach((call) => {
+            entityCounts.set(call.entityId, (entityCounts.get(call.entityId) || 0) + 1);
+        });
+
+        const entityId = Array.from(entityCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0];
+        if (!entityId) return null;
+
+        const servicesForEntity = calls.filter((call) => call.entityId === entityId).map((call) => call.service);
+        const uniqueServices = Array.from(new Set(servicesForEntity));
+        const turnPair = uniqueServices.length === 2
+            && uniqueServices.some((service) => service.endsWith(".turn_on"))
+            && uniqueServices.some((service) => service.endsWith(".turn_off"));
+
+        return {
+            entityId,
+            service: turnPair ? "auto" : (uniqueServices[0] || "auto")
+        };
+    };
+
+    const extractCheckedStateExpression = (/** @type {NativeWidgetProps} */ nativeProps) => {
+        const checked = nativeProps.state?.checked ?? nativeProps.checked?.state?.checked;
+        return checked === undefined || checked === null ? "" : String(checked);
+    };
+
+    const isCheckedStateBoundToEntity = (/** @type {NativeWidgetProps} */ nativeProps, /** @type {string} */ entityId) => {
+        const expression = extractCheckedStateExpression(nativeProps);
+        if (!expression || !entityId) return false;
+        return expression.includes(`id(${makeSafeEntityId(entityId)})`) && expression.includes(".state");
+    };
+
+    const applyLvglButtonImportHints = (/** @type {NativeWidgetProps} */ nativeProps) => {
+        if (nativeProps.text === undefined && Array.isArray(nativeProps.widgets)) {
+            const labelChild = nativeProps.widgets
+                .map((entry) => entry?.label)
+                .find((label) => label && typeof label === "object" && label.text !== undefined);
+            if (labelChild) nativeProps.text = unquoteText(labelChild.text);
+        }
+
+        if (!nativeProps.entity_id) {
+            const inferred = inferActionEntity(nativeProps);
+            if (inferred) {
+                nativeProps.entity_id = inferred.entityId;
+                if (!nativeProps.service && inferred.service !== "auto") nativeProps.service = inferred.service;
+            }
+        }
+
+        const hasCheckedState = !!extractCheckedStateExpression(nativeProps);
+        if (hasCheckedState) nativeProps.checkable = true;
+        if (nativeProps.entity_id && isCheckedStateBoundToEntity(nativeProps, String(nativeProps.entity_id))) {
+            nativeProps.sync_state = true;
+        }
+    };
+
     // First pass: Page Metadata
     for (let i = 0; i < lambdaLines.length; i++) {
         const line = lambdaLines[i];
@@ -286,6 +378,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
             const res = parseYamlSubBlock(lambdaLines, i + 1, indent + 2);
             Object.assign(nativeProps, res.value || {});
             i = res.nextJ - 1;
+            if (widgetType === "lvgl_button") applyLvglButtonImportHints(nativeProps);
 
             const widget = {
                 id: nativeProps.id || `lv_${nativeTag}_${widgets.length}`,
@@ -307,6 +400,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
                 nativeProps.widgets.forEach((/** @type {Record<string, Record<string, any>>} */ nw) => {
                     const tag = Object.keys(nw)[0];
                     const nwProps = tag ? nw[tag] : null;
+                    if (nativeTag === "button" && tag === "label") return;
                     if (tag && nwProps && typeof nwProps === 'object') {
                         const nwType = TAG_MAP[tag] || `lvgl_${tag}`;
                         const nestedWidget = {

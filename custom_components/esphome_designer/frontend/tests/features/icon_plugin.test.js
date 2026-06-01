@@ -288,6 +288,40 @@ describe('Icon Plugin', () => {
             anchor: 'mm'
         });
 
+        expect(iconPlugin.exportOpenDisplay({
+            x: 5,
+            y: 6,
+            width: 40,
+            height: 30,
+            props: {
+                code: 'F072A',
+                size: 20,
+                color: 'theme_auto'
+            }
+        }, {
+            layout: { darkMode: false },
+            _page: {}
+        })).toMatchObject({
+            value: 'washing-machine'
+        });
+
+        expect(iconPlugin.exportOpenDisplay({
+            x: 5,
+            y: 6,
+            width: 40,
+            height: 30,
+            props: {
+                code: 'F011C',
+                size: 20,
+                color: 'theme_auto'
+            }
+        }, {
+            layout: { darkMode: false },
+            _page: {}
+        })).toMatchObject({
+            value: 'cellphone'
+        });
+
         expect(iconPlugin.exportOEPL({
             x: 7,
             y: 8,

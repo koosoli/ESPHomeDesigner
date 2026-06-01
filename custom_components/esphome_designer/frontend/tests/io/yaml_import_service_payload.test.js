@@ -107,4 +107,107 @@ data:
             'Imported visual layout; unsupported custom automations remain raw YAML only.'
         ]);
     });
+
+    it('imports native LVGL buttons as single widgets with label text and action entities restored', () => {
+        const yamlText = `esphome:
+  name: esp32-4inch-display-01
+
+esp32:
+  variant: esp32s3
+
+lvgl:
+  id: my_lvgl
+  pages:
+    - id: page_0
+      widgets:
+        - button:
+            id: w_water_koud_btn
+            bg_color: "0xADD8E6"
+            checked:
+              bg_color: "0x0000FF"
+            checkable: true
+            height: 55
+            on_click:
+              - if:
+                  condition:
+                    lambda: 'return id(switch_overkapping_water_koud_1057).state;'
+                  then:
+                    - homeassistant.service:
+                        service: switch.turn_off
+                        data:
+                          entity_id: switch.overkapping_water_koud_1057
+                  else:
+                    - homeassistant.service:
+                        service: switch.turn_on
+                        data:
+                          entity_id: switch.overkapping_water_koud_1057
+            state:
+              checked: !lambda return id(switch_overkapping_water_koud_1057).state;
+            widgets:
+              - label:
+                  align: center
+                  text: "Water Koud"
+                  text_font: font_roboto_400_20
+            width: 103
+            x: 356
+            y: 22
+        - button:
+            id: w_water_warm_btn
+            bg_color: "0xFFCCCC"
+            checked:
+              bg_color: "0xFF0000"
+            checkable: true
+            height: 56
+            on_click:
+              - homeassistant.service:
+                  service: switch.toggle
+                  data:
+                    entity_id: switch.overkapping_water_warm_1058
+            state:
+              checked: !lambda return id(switch_overkapping_water_warm_1058).state;
+            widgets:
+              - label:
+                  align: center
+                  text: "Water Warm"
+                  text_font: font_roboto_400_20
+            width: 103
+            x: 356
+            y: 117`;
+
+        const layout = parseSnippetYamlOffline(yamlText);
+        const widgets = layout?.pages?.[0]?.widgets || [];
+
+        expect(widgets).toHaveLength(2);
+        expect(widgets[0]).toMatchObject({
+            id: 'w_water_koud_btn',
+            type: 'lvgl_button',
+            x: 356,
+            y: 22,
+            width: 103,
+            height: 55,
+            entity_id: 'switch.overkapping_water_koud_1057',
+            props: {
+                text: 'Water Koud',
+                entity_id: 'switch.overkapping_water_koud_1057',
+                checkable: true,
+                sync_state: true,
+                service: 'auto'
+            }
+        });
+        expect(widgets[1]).toMatchObject({
+            id: 'w_water_warm_btn',
+            type: 'lvgl_button',
+            entity_id: 'switch.overkapping_water_warm_1058',
+            props: {
+                text: 'Water Warm',
+                entity_id: 'switch.overkapping_water_warm_1058',
+                checkable: true,
+                sync_state: true,
+                service: 'switch.toggle'
+            }
+        });
+        expect(layout?.importWarnings).toContain(
+            'Imported root hardware/system YAML for context; generated output may still comment those sections to avoid duplicate ESPHome definitions.'
+        );
+    });
 });
