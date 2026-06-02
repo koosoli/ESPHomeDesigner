@@ -15,10 +15,19 @@ export function buildLvglWidgetProps(widgetType, p, widget, props) {
     if (widgetType === "lvgl_button") {
         if (p.title) widget.title = p.title;
         const color = normalizeMappedColor(p.color || p.text_color, "theme_auto");
+        const checked = (p.checked && typeof p.checked === 'object')
+            ? {
+                ...p.checked,
+                ...(p.checked.bg_color !== undefined ? { bg_color: normalizeMappedColor(p.checked.bg_color, p.checked.bg_color) } : {}),
+                ...(p.checked.text_color !== undefined ? { text_color: normalizeMappedColor(p.checked.text_color, p.checked.text_color) } : {}),
+                ...(p.checked.border_color !== undefined ? { border_color: normalizeMappedColor(p.checked.border_color, p.checked.border_color) } : {})
+            }
+            : p.checked;
         delete props.color;
         delete props.text_color;
         return {
             ...props,
+            ...(checked !== undefined ? { checked } : {}),
             text: p.text || "Button",
             bg_color: normalizeMappedColor(p.bg_color, "theme_auto_inverse"),
             color,

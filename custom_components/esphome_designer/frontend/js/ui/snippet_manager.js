@@ -9,7 +9,7 @@ import { Logger } from '../utils/logger.js';
 import { showToast } from '../utils/dom.js';
 import { highlightWidgetInSnippet } from '../io/yaml_export.js';
 import { YamlHighlighter } from './yaml_highlighter.js';
-import { copyText, extractDisplayLambda, formatOEPLServiceYaml, setTemporaryButtonLabel } from './snippet_manager_clipboard.js';
+import { copyText, extractDisplayLambda, extractUiOnlyYaml, formatOEPLServiceYaml, setTemporaryButtonLabel } from './snippet_manager_clipboard.js';
 import { syncSnippetModeUi } from './snippet_manager_ui.js';
 import { openSnippetModalEditor, handleImportSnippetEditor, handleUpdateLayoutFromSnippetBoxEditor } from './snippet_manager_editing.js';
 import { addBrowserEventListener, dispatchBrowserEvent } from '../utils/browser_runtime.js';
@@ -539,6 +539,13 @@ export class SnippetManager {
             });
         }
 
+        const copyUiYamlBtn = getButton('copyUiYamlBtn');
+        if (copyUiYamlBtn) {
+            copyUiYamlBtn.addEventListener('click', async () => {
+                this.copyUiYamlToClipboard(copyUiYamlBtn);
+            });
+        }
+
         // Copy Lambda Only Button
         const copyLambdaBtn = getButton('copyLambdaBtn');
         if (copyLambdaBtn) {
@@ -793,6 +800,24 @@ export class SnippetManager {
     }
 
     /**
+     * @param {HTMLButtonElement} btnElement
+     */
+    async copyUiYamlToClipboard(btnElement) {
+        const snippetBox = getTextarea('snippetBox');
+        if (!snippetBox) return;
+
+        try {
+            const uiYaml = extractUiOnlyYaml(snippetBox.value || "");
+            await copyText(uiYaml);
+            showToast("UI YAML copied to clipboard", "success");
+            setTemporaryButtonLabel(btnElement, "Copied!");
+        } catch (err) {
+            Logger.error("Copy UI YAML failed:", err);
+            showToast(getErrorMessage(err) || "Unable to copy UI YAML", "error");
+        }
+    }
+
+    /**
      * Copies only the display lambda (C++ code) to clipboard.
      * Useful for users who want to paste just the drawing code into their existing config.
      */
@@ -837,4 +862,3 @@ export class SnippetManager {
         }
     }
 }
-

@@ -6,7 +6,7 @@ import sliderPlugin from '../../features/lvgl_slider/plugin.js';
 import switchPlugin from '../../features/lvgl_switch/plugin.js';
 import { registry } from '../../js/core/plugin_registry';
 import { generateLVGLSnippet } from '../../js/io/yaml_export_lvgl.js';
-import { processPendingTriggers } from '../../js/io/adapters/esphome_adapter_sections.ts';
+import { buildSensorSections, processPendingTriggers } from '../../js/io/adapters/esphome_adapter_sections.ts';
 import { collectCustomStateTriggerActions } from '../../js/io/adapters/entity_dedup.js';
 
 const lvglContext = {
@@ -152,6 +152,53 @@ describe('LVGL binary state sync export', () => {
             '            checked: !lambda return x;',
             '  internal: true'
         ]);
+    });
+
+    it('routes switch-backed LVGL button sync through ESPHome switch imports', () => {
+        registry.register(buttonPlugin);
+        const lines = [];
+        const pendingTriggers = new Map();
+        const context = {
+            widgets: [{
+                id: 'w_water_koud_btn',
+                type: 'lvgl_button',
+                entity_id: 'switch.overkapping_water_koud_1057',
+                props: { sync_state: true }
+            }],
+            layout: {
+                pages: [{
+                    widgets: [{
+                        id: 'w_water_koud_btn',
+                        type: 'lvgl_button',
+                        entity_id: 'switch.overkapping_water_koud_1057',
+                        props: { sync_state: true }
+                    }]
+                }]
+            },
+            profile: { isPackageBased: false, features: {} },
+            isLvgl: true,
+            displayId: 'my_display',
+            pendingTriggers,
+            seenEntityIds: new Set(),
+            seenSensorIds: new Set()
+        };
+
+        buildSensorSections({
+            context,
+            lines,
+            yaml: {
+                generateStayAwakeSection: () => []
+            },
+            setPendingTouchSensors: () => {}
+        });
+
+        const output = lines.join('\n');
+        expect(output).toContain('switch:\n  - platform: homeassistant');
+        expect(output).toContain('entity_id: switch.overkapping_water_koud_1057');
+        expect(output).toContain('on_state:');
+        expect(output).toContain('checked: !lambda return x;');
+        expect(output).not.toContain('binary_sensor:\n  - platform: homeassistant\n    id: switch_overkapping_water_koud_1057');
+        expect(output).not.toContain('trigger_on_initial_state: true');
     });
 
     it('injects marked custom state-trigger actions into binary_sensor on_state blocks', () => {

@@ -246,7 +246,7 @@ describe('astronomy widgets', () => {
         ]);
     });
 
-    it('uses font-independent middle anchors for OpenDisplay sunrise and sunset rows', () => {
+    it('uses font-independent middle anchors and coordinates for OpenDisplay sunrise and sunset rows', () => {
         const rows = sunTimesPlugin.exportOpenDisplay({
             id: 'sun_anchor',
             x: 30,
@@ -268,7 +268,32 @@ describe('astronomy widgets', () => {
         });
 
         expect(rows).toHaveLength(2);
-        expect(rows[0]).toMatchObject({ type: 'icon', value: 'weather-sunset-up', anchor: 'lm', y: 306 });
-        expect(rows[1]).toMatchObject({ type: 'text', anchor: 'lm', y: 306 });
+        expect(rows[0]).toMatchObject({ type: 'icon', value: 'weather-sunset-up', anchor: 'lm', y: 322 });
+        expect(rows[1]).toMatchObject({ type: 'text', anchor: 'lm', y: 322 });
+    });
+
+    it('centers OpenDisplay sun rows inside taller widget boxes', () => {
+        const rows = sunTimesPlugin.exportOpenDisplay({
+            id: 'sun_tall',
+            x: 10,
+            y: 100,
+            width: 180,
+            height: 96,
+            props: {
+                sunrise_entity: 'sensor.sun_next_rising',
+                show_sunrise: true,
+                show_sunset: false,
+                icon_size: 24,
+                font_size: 16,
+                row_gap: 6,
+                icon_gap: 8
+            }
+        }, {
+            layout: { darkMode: false }
+        });
+
+        expect(rows).toHaveLength(2);
+        expect(rows[0]).toMatchObject({ type: 'icon', anchor: 'lm', y: 148 });
+        expect(rows[1]).toMatchObject({ type: 'text', anchor: 'lm', y: 148 });
     });
 });

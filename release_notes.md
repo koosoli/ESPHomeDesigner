@@ -1,3 +1,21 @@
+## v1.0.0 RC17 - Minimal YAML Copy & LVGL Import Follow-up
+**Release Date:** June 1, 2026
+
+This RC17 release adds a focused copy path for users who want to merge generated display UI into an existing ESPHome file without re-copying the hardware/system scaffold.
+
+### Stability & Verification
+- **Minimal UI YAML Copy:** Added a dedicated UI copy action for ESPHome YAML output that removes root hardware/system sections such as `esphome`, board, Wi-Fi, API, OTA, logger, and platform settings while preserving display, LVGL, fonts, sensors, and other UI-related sections.
+- **Auto-commented Scaffold Cleanup:** The UI copy action also strips matching auto-commented hardware/system root blocks, so users who already merged the scaffold can copy only the useful layout YAML on later iterations.
+- **Issue #409 Follow-up:** Keeps the full YAML copy unchanged while giving issue #409 users a lower-friction way to reuse imported/generated LVGL display content inside their own maintained ESPHome configs.
+- **LVGL Switch Sync Export Repair:** Switch, light, fan, and input-boolean backed LVGL button state sync now emits ESPHome `switch:` Home Assistant imports instead of invalid `binary_sensor:` entries for `switch.*` entities.
+- **Package Rotation Placement Repair:** Package/custom hardware rotation injection is now scoped to the `display:` block, preventing `rotation:` from being inserted under unrelated platform blocks such as `output.ledc`.
+- **Imported LVGL Color Preservation:** Native LVGL button import now normalizes nested checked-state colors alongside base colors, so dark-mode changes do not collapse imported custom button colors back to theme defaults.
+- **OpenDisplay Sunrise/Sunset Vertical Alignment (Issue #408):** OpenDisplay sunrise/sunset rows now pair their `lm` middle anchors with middle Y coordinates, matching the editor preview when the widget box is taller than the icon or text.
+- **Release Metadata Refresh:** Updated package metadata, package lock metadata, Home Assistant manifest version, runtime version string, visible header label, release notes, and rebuilt frontend assets for the RC17 release line.
+
+
+---
+
 ## v1.0.0 RC16 - OpenDisplay Icon & Astronomy Follow-up
 **Release Date:** June 1, 2026
 

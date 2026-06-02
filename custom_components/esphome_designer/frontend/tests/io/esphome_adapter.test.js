@@ -400,7 +400,7 @@ text_sensor:
             expect(yaml).toContain('ha_time');
 
             // Entity registration
-            expect(yaml).toContain('binary_sensor:');
+            expect(yaml).toContain('switch:');
             expect(yaml).toContain('light_living_room'); // Expected sanitized ID
 
             // Display & Lambda correctness

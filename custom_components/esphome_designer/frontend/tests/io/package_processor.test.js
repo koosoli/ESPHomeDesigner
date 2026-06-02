@@ -106,6 +106,47 @@ binary_sensor:
       const result = processPackageContent(packageYaml, [], [], mockProfile, mockLayout, false, mockLines);
       expect(result).not.toContain('__TOUCH_SENSORS_PLACEHOLDER__');
     });
+
+    it('inserts missing rotation inside display instead of the first platform block', () => {
+      const packageYaml = `
+output:
+  - platform: ledc
+    pin: GPIO38
+    id: gpio_backlight_pwm
+    frequency: 100Hz
+
+display:
+  - platform: st7701s
+    id: my_display
+    update_interval: never
+            `.trim();
+
+      const result = processPackageContent(
+        packageYaml,
+        [],
+        [],
+        { isPackageBased: true, resolution: { width: 480, height: 480 } },
+        { orientation: 'portrait' },
+        true,
+        []
+      );
+
+      expect(result).toContain([
+        'display:',
+        '  - platform: st7701s',
+        '    id: my_display',
+        '    update_interval: never',
+        '    rotation: 90'
+      ].join('\n'));
+      expect(result).toContain([
+        'output:',
+        '  - platform: ledc',
+        '    pin: GPIO38',
+        '    id: gpio_backlight_pwm',
+        '    frequency: 100Hz'
+      ].join('\n'));
+      expect(result).not.toContain('frequency: 100Hz\n    rotation: 90');
+    });
   });
 
 });

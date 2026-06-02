@@ -1,13 +1,23 @@
 import { isSecureBrowserContext } from '../utils/browser_runtime.js';
 
+const SYSTEM_SECTION_KEYS = new Set([
+    "esphome", "esp32", "esp8266", "psram", "wifi", "api", "ota",
+    "logger", "web_server", "captive_portal", "preferences",
+    "platformio_options", "deep_sleep", "substitutions"
+]);
+
 /**
  * @param {string} text
  * @returns {Promise<void>}
  */
 export async function copyText(text) {
     if (navigator.clipboard && isSecureBrowserContext()) {
-        await navigator.clipboard.writeText(text);
-        return;
+        try {
+            await navigator.clipboard.writeText(text);
+            return;
+        } catch {
+            // Fall through to the legacy path when browser permissions deny async clipboard writes.
+        }
     }
 
     const textarea = document.createElement("textarea");
@@ -35,13 +45,13 @@ export async function copyText(text) {
  * @returns {void}
  */
 export function setTemporaryButtonLabel(btnElement, label, duration = 2000) {
-    const originalText = btnElement.textContent;
+    const originalHtml = btnElement.innerHTML;
     const originalMinWidth = btnElement.style.minWidth;
     btnElement.style.minWidth = btnElement.offsetWidth + "px";
     btnElement.textContent = label;
 
     globalThis.setTimeout(() => {
-        btnElement.textContent = originalText;
+        btnElement.innerHTML = originalHtml;
         btnElement.style.minWidth = originalMinWidth;
     }, duration);
 }
@@ -82,6 +92,46 @@ export function extractDisplayLambda(yaml) {
         .map((line) => line.length >= minIndent ? line.substring(minIndent) : line)
         .join('\n')
         .trim();
+}
+
+/**
+ * @param {string} line
+ * @returns {string | null}
+ */
+function getRootSectionKey(line) {
+    const match = line.match(/^(?:# ?)?([A-Za-z0-9_]+):(?:\s+#.*)?\s*$/);
+    return match ? match[1] : null;
+}
+
+/**
+ * @param {string} yaml
+ * @returns {string}
+ */
+export function extractUiOnlyYaml(yaml) {
+    const lines = String(yaml || "").replace(/\r\n/g, "\n").split("\n");
+    const kept = [];
+    let skipSection = false;
+
+    for (const line of lines) {
+        const key = getRootSectionKey(line);
+        if (key) {
+            skipSection = SYSTEM_SECTION_KEYS.has(key);
+            if (skipSection) continue;
+        }
+
+        if (!skipSection) kept.push(line);
+    }
+
+    const cleaned = kept
+        .join("\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+
+    if (!cleaned) {
+        throw new Error("No UI YAML remains after removing hardware/system sections");
+    }
+
+    return cleaned;
 }
 
 /**

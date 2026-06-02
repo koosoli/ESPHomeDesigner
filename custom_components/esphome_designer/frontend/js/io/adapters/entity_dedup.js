@@ -7,6 +7,7 @@ export const HA_TEXT_DOMAINS = ["text_sensor.", "weather.", "calendar.", "person
 export const HA_BINARY_DOMAINS = ["binary_sensor.", "switch.", "light.", "input_boolean.", "fan.", "cover.", "vacuum.", "lock."];
 export const DESIGNER_STATE_TRIGGER_MARKER = "# esphome-designer-state-trigger:";
 export const MODE_AWARE_PENDING_TRIGGER_SEPARATOR = "::";
+const HA_SWITCH_ENTITY_RE = /^(automation|fan|humidifier|input_boolean|light|remote|siren|switch)\./;
 
 import { isEntityStateNonNumeric, makeSafeId } from '../../utils/export_helpers.js';
 import { getSensorPlatformLines } from './mqtt_helpers.js';
@@ -14,6 +15,7 @@ import { getSensorPlatformLines } from './mqtt_helpers.js';
 export { isEntityStateNonNumeric };
 
 const isBinaryStateTriggerEntity = (entityId) => HA_BINARY_DOMAINS.some(d => entityId.startsWith(d));
+const isHomeAssistantSwitchEntity = (entityId) => HA_SWITCH_ENTITY_RE.test(entityId);
 
 const normalizeStateTriggerMode = (entityId, requestedMode = "auto") => {
     const normalized = String(requestedMode || "auto").trim().toLowerCase();
@@ -293,8 +295,10 @@ export const collectBinarySensors = (pages, context) => {
         [condEnt, primaryEnt].forEach((ent) => {
             if (!ent) return;
             const isBinaryHa = HA_BINARY_DOMAINS.some(d => ent.startsWith(d)) || ent.toLowerCase().startsWith("mqtt:");
+            const hasMqttSource = ent.toLowerCase().startsWith("mqtt:") || !!(w.props?.mqtt_topic || "").trim();
+            const isSwitchHa = isHomeAssistantSwitchEntity(ent) && !hasMqttSource;
 
-            if (isBinaryHa && !seenEntityIds.has(ent)) {
+            if (isBinaryHa && !isSwitchHa && !seenEntityIds.has(ent)) {
                 const safeId = makeSafeId(ent);
                 if (!seenSensorIds.has(safeId)) {
                     seenEntityIds.add(ent);
@@ -306,7 +310,7 @@ export const collectBinarySensors = (pages, context) => {
 
         if (stateTriggerSpec && stateTriggerSpec.mode === "on_state") {
             const ent = stateTriggerSpec.entityId;
-            if (!seenEntityIds.has(ent)) {
+            if (!isHomeAssistantSwitchEntity(ent) && !seenEntityIds.has(ent)) {
                 const safeId = makeSafeId(ent);
                 if (!seenSensorIds.has(safeId)) {
                     seenEntityIds.add(ent);
@@ -320,4 +324,41 @@ export const collectBinarySensors = (pages, context) => {
     });
 
     return binarySensorLinesExtra;
+};
+
+/**
+ * @param {DedupPage[]} pages
+ * @param {DedupContext} context
+ * @returns {string[]}
+ */
+export const collectHomeAssistantSwitches = (pages, context) => {
+    const { seenEntityIds, seenSensorIds } = context;
+    /** @type {DedupWidget[]} */
+    const allWidgets = pages.flatMap((p) => (p.widgets || []).filter((w) => !w.hidden));
+    /** @type {string[]} */
+    const switchLines = [];
+
+    allWidgets.forEach((w) => {
+        const primaryEnt = (w.entity_id || "").trim();
+        const stateTriggerSpec = getCustomStateTriggerSpec(w);
+        const entities = [primaryEnt];
+
+        if (stateTriggerSpec && stateTriggerSpec.mode === "on_state") {
+            entities.push(stateTriggerSpec.entityId);
+        }
+
+        entities.forEach((ent) => {
+            const hasMqttSource = ent.toLowerCase().startsWith("mqtt:") || !!(w.props?.mqtt_topic || "").trim();
+            if (!ent || hasMqttSource || !isHomeAssistantSwitchEntity(ent) || seenEntityIds.has(ent)) return;
+
+            const safeId = makeSafeId(ent);
+            if (seenSensorIds.has(safeId)) return;
+
+            seenEntityIds.add(ent);
+            seenSensorIds.add(safeId);
+            switchLines.push(...getSensorPlatformLines(w, ent, safeId, ""));
+        });
+    });
+
+    return switchLines;
 };

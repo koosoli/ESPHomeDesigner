@@ -189,6 +189,10 @@ lvgl:
             props: {
                 text: 'Water Koud',
                 entity_id: 'switch.overkapping_water_koud_1057',
+                bg_color: '#add8e6',
+                checked: {
+                    bg_color: '#0000ff'
+                },
                 checkable: true,
                 sync_state: true,
                 service: 'auto'
@@ -201,6 +205,10 @@ lvgl:
             props: {
                 text: 'Water Warm',
                 entity_id: 'switch.overkapping_water_warm_1058',
+                bg_color: '#ffcccc',
+                checked: {
+                    bg_color: '#ff0000'
+                },
                 checkable: true,
                 sync_state: true,
                 service: 'switch.toggle'

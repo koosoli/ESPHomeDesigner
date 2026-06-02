@@ -3,6 +3,7 @@ import {
     collectNumericSensors,
     collectTextSensors,
     collectBinarySensors,
+    collectHomeAssistantSwitches,
     collectCustomStateTriggerActions,
     buildPendingTriggerLookupKey
 } from './entity_dedup.js';
@@ -121,7 +122,8 @@ export function processPendingTriggers(
     sensorLines: string[],
     pendingTriggers: Map<string, Set<string>>,
     isLvgl: boolean,
-    triggerName: string = "on_value"
+    triggerName: string = "on_value",
+    includeInitialStateTrigger: boolean = true
 ): string[] {
     if (!isLvgl || !pendingTriggers || pendingTriggers.size === 0) return sensorLines;
 
@@ -150,11 +152,24 @@ export function processPendingTriggers(
         ));
         const actions = getPendingActionsForItem(pendingTriggers, triggerName, matchedKeys);
 
-        mergedLines.push(...mergePendingActionsIntoItem(itemLines, triggerName, actions));
+        const nextItemLines = includeInitialStateTrigger
+            ? mergePendingActionsIntoItem(itemLines, triggerName, actions)
+            : mergePendingActionsIntoItemWithoutInitialState(itemLines, triggerName, actions);
+        mergedLines.push(...nextItemLines);
         index = itemEnd - 1;
     }
 
     return mergedLines;
+}
+
+function mergePendingActionsIntoItemWithoutInitialState(
+    itemLines: string[],
+    triggerName: string,
+    actions: string[]
+): string[] {
+    const merged = mergePendingActionsIntoItem(itemLines, triggerName, actions);
+    if (triggerName !== "on_state") return merged;
+    return merged.filter((line) => line.trim() !== "trigger_on_initial_state: true");
 }
 
 export function buildInfrastructureLines(
@@ -319,6 +334,14 @@ export function buildSensorSections({
 
         const mergedBinaryExtraLines = processPendingTriggers(binarySensorLinesExtra, pendingTriggers, isLvgl, "on_state");
         lines.push(...mergedBinaryExtraLines.flatMap(line => line.split('\n').map(sub => "  " + sub)));
+    }
+
+    const switchLines = collectHomeAssistantSwitches(pages, context);
+    if (switchLines.length > 0) {
+        if (!lines.some(line => line === "switch:")) lines.push("switch:");
+
+        const mergedSwitchLines = processPendingTriggers(switchLines, pendingTriggers, isLvgl, "on_state", false);
+        lines.push(...mergedSwitchLines.flatMap(line => line.split('\n').map(sub => "  " + sub)));
     }
 
     if (!profile.isPackageBased && Generators.generateButtonSection) {

@@ -121,6 +121,7 @@ function buildProtocolRows(widget, props, useFillColor = false, darkMode = false
         const row = getSunEventRow(key);
         const source = resolveSunEntitySource(props, key);
         const y = Math.round(top + index * (Math.max(iconSize, fontSize) + rowGap));
+        const middleY = Math.round(y + Math.max(iconSize, fontSize) / 2);
         const timeValue = buildTemplateValue(source, placeholder);
         const iconBase = {
             type: 'icon',
@@ -141,8 +142,8 @@ function buildProtocolRows(widget, props, useFillColor = false, darkMode = false
         if (useFillColor) {
             iconBase.fill = color;
             return [
-                { ...iconBase, anchor: 'lm' },
-                { ...textBase, color, anchor: 'lm' }
+                { ...iconBase, y: middleY, anchor: 'lm' },
+                { ...textBase, y: middleY, color, anchor: 'lm' }
             ];
         }
 

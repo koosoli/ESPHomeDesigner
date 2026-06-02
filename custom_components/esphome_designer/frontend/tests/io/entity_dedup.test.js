@@ -4,6 +4,7 @@ import {
     collectNumericSensors,
     collectTextSensors,
     collectBinarySensors,
+    collectHomeAssistantSwitches,
     HA_TEXT_DOMAINS, // eslint-disable-line no-unused-vars
     collectCustomStateTriggerActions,
     buildPendingTriggerLookupKey
@@ -270,7 +271,7 @@ describe('Entity Deduplication & Registration', () => {
             };
         });
 
-        it('generates configs for binary domains', () => {
+        it('generates configs for binary domains without treating HA switches as binary sensors', () => {
             const pages = [{
                 widgets: [
                     { type: 'button', entity_id: 'switch.relay' },
@@ -279,8 +280,40 @@ describe('Entity Deduplication & Registration', () => {
             }];
             const result = collectBinarySensors(pages, context);
 
-            expect(result).toContain('  entity_id: switch.relay');
+            expect(result).not.toContain('  entity_id: switch.relay');
             expect(result).toContain('  entity_id: binary_sensor.door');
+        });
+
+        it('generates switch imports for Home Assistant switch-compatible domains', () => {
+            const pages = [{
+                widgets: [
+                    { type: 'button', entity_id: 'switch.relay' },
+                    { type: 'button', entity_id: 'light.living_room' }
+                ]
+            }];
+            const result = collectHomeAssistantSwitches(pages, context);
+
+            expect(result).toContain('  entity_id: switch.relay');
+            expect(result).toContain('  entity_id: light.living_room');
+        });
+
+        it('registers standalone custom on_state trigger switch entities as switches', () => {
+            const pages = [{
+                widgets: [{
+                    id: 'label_1',
+                    type: 'text',
+                    props: {
+                        state_trigger_entity: 'switch.water_pump',
+                        state_trigger_mode: 'on_state',
+                        state_trigger_actions: '- script.execute: refresh_layout'
+                    }
+                }]
+            }];
+
+            const result = collectHomeAssistantSwitches(pages, context);
+
+            expect(result).toContain('  entity_id: switch.water_pump');
+            expect(result).toContain('  id: switch_water_pump');
         });
 
         it('skips numeric sensors', () => {

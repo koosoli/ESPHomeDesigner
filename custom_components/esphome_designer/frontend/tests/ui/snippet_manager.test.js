@@ -16,6 +16,7 @@ const {
     mockHasHaBackend,
     mockCopyText,
     mockExtractDisplayLambda,
+    mockExtractUiOnlyYaml,
     mockFormatOEPLServiceYaml,
     mockSetTemporaryButtonLabel,
     mockSyncSnippetModeUi,
@@ -36,6 +37,7 @@ const {
     mockHasHaBackend: vi.fn(() => false),
     mockCopyText: vi.fn(),
     mockExtractDisplayLambda: vi.fn((yaml) => yaml),
+    mockExtractUiOnlyYaml: vi.fn((yaml) => yaml),
     mockFormatOEPLServiceYaml: vi.fn((payload) => JSON.stringify(payload)),
     mockSetTemporaryButtonLabel: vi.fn(),
     mockSyncSnippetModeUi: vi.fn(),
@@ -91,6 +93,7 @@ vi.mock('../../js/utils/env.js', () => ({ hasHaBackend: mockHasHaBackend }));
 vi.mock('../../js/ui/snippet_manager_clipboard.js', () => ({
     copyText: mockCopyText,
     extractDisplayLambda: mockExtractDisplayLambda,
+    extractUiOnlyYaml: mockExtractUiOnlyYaml,
     formatOEPLServiceYaml: mockFormatOEPLServiceYaml,
     setTemporaryButtonLabel: mockSetTemporaryButtonLabel
 }));
@@ -131,6 +134,7 @@ describe('SnippetManager', () => {
             <button id="fullscreenSnippetBtn"></button>
             <button id="snippetFullscreenClose"></button>
             <button id="copySnippetBtn">Copy</button>
+            <button id="copyUiYamlBtn">UI</button>
             <button id="copyLambdaBtn">Lambda</button>
             <button id="copyOEPLServiceBtn">OEPL</button>
             <button id="copyODPServiceBtn">ODP</button>
@@ -378,7 +382,7 @@ describe('SnippetManager', () => {
         expect(manager.lastGeneratedYaml).toContain('it.print(66,66,id(font),"fresh");');
     });
 
-    it('copies snippet and lambda to clipboard', async () => {
+    it('copies snippet, UI YAML, and lambda to clipboard', async () => {
         const snippetBox = document.getElementById('snippetBox');
         snippetBox.value = [
             'display:',
@@ -389,9 +393,11 @@ describe('SnippetManager', () => {
         ].join('\n');
 
         await manager.copySnippetToClipboard(document.getElementById('copySnippetBtn'));
+        await manager.copyUiYamlToClipboard(document.getElementById('copyUiYamlBtn'));
         await manager.copyLambdaToClipboard(document.getElementById('copyLambdaBtn'));
 
-        expect(mockCopyText).toHaveBeenCalledTimes(2);
+        expect(mockExtractUiOnlyYaml).toHaveBeenCalledWith(snippetBox.value);
+        expect(mockCopyText).toHaveBeenCalledTimes(3);
         expect(mockSetTemporaryButtonLabel).toHaveBeenCalled();
     });
 
@@ -402,12 +408,17 @@ describe('SnippetManager', () => {
         mockExtractDisplayLambda.mockImplementationOnce(() => {
             throw new Error('no lambda');
         });
+        mockExtractUiOnlyYaml.mockImplementationOnce(() => {
+            throw new Error('no ui yaml');
+        });
 
         await manager.copySnippetToClipboard(document.getElementById('copySnippetBtn'));
+        await manager.copyUiYamlToClipboard(document.getElementById('copyUiYamlBtn'));
         await manager.copyLambdaToClipboard(document.getElementById('copyLambdaBtn'));
         await manager.copyOEPLServiceToClipboard(document.getElementById('copyOEPLServiceBtn'));
 
         expect(mockShowToast).toHaveBeenCalledWith('Unable to copy snippet', 'error');
+        expect(mockShowToast).toHaveBeenCalledWith('no ui yaml', 'error');
         expect(mockShowToast).toHaveBeenCalledWith('no lambda', 'error');
         expect(mockShowToast).toHaveBeenCalledWith('Failed to format service call', 'error');
     });
@@ -764,14 +775,17 @@ describe('SnippetManager', () => {
         await vi.runAllTimersAsync();
 
         const copySnippetSpy = vi.spyOn(manager, 'copySnippetToClipboard').mockResolvedValue(undefined);
+        const copyUiYamlSpy = vi.spyOn(manager, 'copyUiYamlToClipboard').mockResolvedValue(undefined);
         const copyLambdaSpy = vi.spyOn(manager, 'copyLambdaToClipboard').mockResolvedValue(undefined);
         const copyOEPLSpy = vi.spyOn(manager, 'copyOEPLServiceToClipboard').mockResolvedValue(undefined);
 
         document.getElementById('copySnippetBtn')?.click();
+        document.getElementById('copyUiYamlBtn')?.click();
         document.getElementById('copyLambdaBtn')?.click();
         document.getElementById('copyOEPLServiceBtn')?.click();
 
         expect(copySnippetSpy).toHaveBeenCalled();
+        expect(copyUiYamlSpy).toHaveBeenCalled();
         expect(copyLambdaSpy).toHaveBeenCalled();
         expect(copyOEPLSpy).toHaveBeenCalled();
 

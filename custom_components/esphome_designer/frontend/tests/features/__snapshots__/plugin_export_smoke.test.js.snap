@@ -3170,7 +3170,7 @@ exports[`Plugin Export Smoke Tests > Export for sun_times > should export OpenDi
     "type": "icon",
     "value": "weather-sunset-up",
     "x": 16,
-    "y": 39,
+    "y": 48,
   },
   {
     "align": "left",
@@ -3180,7 +3180,7 @@ exports[`Plugin Export Smoke Tests > Export for sun_times > should export OpenDi
     "type": "text",
     "value": "{% set raw = states('sensor.sun_next_rising') %}{% set parsed = as_datetime(raw, none) %}{{ (parsed | as_local).strftime('%H:%M') if raw not in [none, '', 'unknown', 'unavailable', 'none'] and parsed is not none else 'n.d.' }}",
     "x": 42,
-    "y": 40,
+    "y": 48,
   },
   {
     "anchor": "lm",
@@ -3189,7 +3189,7 @@ exports[`Plugin Export Smoke Tests > Export for sun_times > should export OpenDi
     "type": "icon",
     "value": "weather-sunset-down",
     "x": 16,
-    "y": 63,
+    "y": 72,
   },
   {
     "align": "left",
@@ -3199,7 +3199,7 @@ exports[`Plugin Export Smoke Tests > Export for sun_times > should export OpenDi
     "type": "text",
     "value": "{% set raw = states('sensor.sun_next_setting') %}{% set parsed = as_datetime(raw, none) %}{{ (parsed | as_local).strftime('%H:%M') if raw not in [none, '', 'unknown', 'unavailable', 'none'] and parsed is not none else 'n.d.' }}",
     "x": 42,
-    "y": 64,
+    "y": 72,
   },
 ]
 `;

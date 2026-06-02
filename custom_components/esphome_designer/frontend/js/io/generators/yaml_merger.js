@@ -16,14 +16,21 @@ function setDisplayRotation(yaml, rotation) {
         return yaml.replace(rotationRegex, `$1${rotation}`);
     }
 
-    const displayItemMatch = yaml.match(/^(?<indent>\s*)-\s+platform:\s+[^\n]+\n(?<body>(?:\k<indent> {2,}.*\n?)*)/m);
+    const displayMatch = yaml.match(/^display:\s*\n(?<body>(?:[ \t]+.*\n?)*)/m);
+    if (!displayMatch?.groups?.body || displayMatch.index === undefined) {
+        return yaml;
+    }
+
+    const displayBodyStart = displayMatch.index + displayMatch[0].indexOf(displayMatch.groups.body);
+    const displayItemMatch = displayMatch.groups.body.match(/^(?<indent>\s*)-\s+platform:\s+[^\n]+\n(?<body>(?:\k<indent> {2,}.*\n?)*)/m);
     if (!displayItemMatch?.groups) {
         return yaml;
     }
 
-    const insertAt = displayItemMatch.index + displayItemMatch[0].length;
+    const insertAt = displayBodyStart + displayItemMatch.index + displayItemMatch[0].length;
     const propIndent = `${displayItemMatch.groups.indent}  `;
-    return `${yaml.slice(0, insertAt)}${propIndent}rotation: ${rotation}\n${yaml.slice(insertAt)}`;
+    const separator = insertAt > 0 && yaml[insertAt - 1] !== '\n' ? '\n' : '';
+    return `${yaml.slice(0, insertAt)}${separator}${propIndent}rotation: ${rotation}\n${yaml.slice(insertAt)}`;
 }
 
 /**
