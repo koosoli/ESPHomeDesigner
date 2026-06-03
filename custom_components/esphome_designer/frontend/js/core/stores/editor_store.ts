@@ -89,6 +89,12 @@ export class EditorStore {
         emit(EVENTS.HISTORY_CHANGED, { canUndo: this.canUndo(), canRedo: this.canRedo() });
     }
 
+    replaceHistory(currentProjectState: any): void {
+        this.historyStack = [deepClone(currentProjectState)];
+        this.historyIndex = 0;
+        emit(EVENTS.HISTORY_CHANGED, { canUndo: this.canUndo(), canRedo: this.canRedo() });
+    }
+
     undo(): any | null {
         if (this.canUndo()) {
             this.historyIndex--;

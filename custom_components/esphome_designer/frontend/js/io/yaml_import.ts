@@ -616,6 +616,10 @@ export function loadLayoutIntoState(layout: ParsedLayout | null | undefined): vo
         AppState.setCurrentPageIndex(parsedCurrentPageIndex, { forceFocus: true });
     }
 
+    if (typeof AppState.replaceHistoryBaseline === 'function') {
+        AppState.replaceHistoryBaseline();
+    }
+
     Logger.log("[loadLayoutIntoState] Finished loading state.");
 }
 

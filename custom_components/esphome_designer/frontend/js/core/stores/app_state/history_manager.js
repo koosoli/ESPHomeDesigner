@@ -20,6 +20,13 @@ export class HistoryManager {
         });
     }
 
+    replaceHistoryBaseline() {
+        this.app.editor.replaceHistory({
+            pages: this.app.project.pages,
+            deviceName: this.app.project.deviceName
+        });
+    }
+
     undo() {
         const s = this.app.editor.undo();
         if (s) {

@@ -1,3 +1,16 @@
+## v1.0.0 RC18.1 - Undo History Hotfix
+**Release Date:** June 3, 2026
+
+This RC18.1 hotfix keeps the undo stack aligned with the loaded layout after the editor reloads.
+
+### Stability & Verification
+- **Reload Undo Safety (Issue #412):** Loading a saved layout now replaces the initial startup history baseline, preventing the first undo after reload from restoring the blank default page and dropping loaded pages.
+- **Regression Coverage Expansion:** Added focused undo-history coverage for the startup/load/edit/undo sequence that previously exposed the stale blank-page snapshot.
+- **Release Metadata Refresh:** Updated package metadata, package lock metadata, Home Assistant manifest version, visible header label, release notes, and rebuilt frontend assets for the RC18.1 release line.
+
+
+---
+
 ## v1.0.0 RC18 - Precision Editing & Hardware Profiles
 **Release Date:** June 3, 2026
 

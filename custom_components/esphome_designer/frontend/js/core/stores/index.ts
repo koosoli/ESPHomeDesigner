@@ -469,6 +469,10 @@ export class AppStateFacade {
         this.historyManager.recordHistory();
     }
 
+    replaceHistoryBaseline(): void {
+        this.historyManager.replaceHistoryBaseline();
+    }
+
     undo(): void {
         this.historyManager.undo();
     }
