@@ -221,7 +221,7 @@
     "custom_components/esphome_designer/frontend/js/utils/helpers.js": 100,
     "custom_components/esphome_designer/frontend/js/utils/text_utils.js": 100
   },
-  "bundleSizeMax": 3073024,
+  "bundleSizeMax": 3073637,
   "testFiles": 200,
-  "schemaHash": "66645af797997d0bb6b70cac6cd0f41bf868656339fcffbee164a9c73aebc4a0"
+  "schemaHash": "50e439c6593e1b07d89511972afbac2303224d9491d1ca4209127fc1c2841ecc"
 }

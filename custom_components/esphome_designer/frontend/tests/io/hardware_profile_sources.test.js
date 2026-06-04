@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { parseHardwareRecipeClientSide } from '../../js/io/hardware_profile_sources.js';
 import geekMagicMiniYaml from '../../hardware/geekmagic-mini-esp8266.yaml?raw';
 import m5stackTab5Yaml from '../../hardware/m5stack-tab5.yaml?raw';
+import sunton2432s028Yaml from '../../hardware/sunton-esp32-2432s028.yaml?raw';
+import sunton2432s028RYaml from '../../hardware/sunton-esp32-2432s028R.yaml?raw';
 
 describe('hardware_profile_sources', () => {
     it('parses the ViewDisplay round TFT knob recipe metadata and features', () => {
@@ -100,5 +102,14 @@ display:
         expect(profile.features.psram).toBe(true);
         expect(profile.features.touch).toBe(true);
         expect(profile.features.lcd).toBe(true);
+    });
+
+    it('keeps Sunton 2432S028 package dimensions aligned with the landscape transform', () => {
+        for (const yaml of [sunton2432s028Yaml, sunton2432s028RYaml]) {
+            expect(yaml).toContain('swap_xy: true');
+            expect(yaml).toContain(`dimensions:
+      height: 240
+      width: 320`);
+        }
     });
 });

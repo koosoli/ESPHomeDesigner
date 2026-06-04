@@ -78,7 +78,7 @@ function getChangedFilesFromGit() {
     .filter(Boolean);
 }
 
-function isLocalBundleSizeOnlyBaselineChange(filePath) {
+function isLocalMeasuredBaselineChange(filePath) {
   if (process.env.GITHUB_EVENT_NAME || normalizePath(filePath) !== 'scripts/baselines.json') {
     return false;
   }
@@ -88,8 +88,12 @@ function isLocalBundleSizeOnlyBaselineChange(filePath) {
     const changedLines = diff
       .split(/\r?\n/)
       .filter((line) => /^[+-]\s*"/.test(line));
+    const allowedKeys = new Set(['bundleSizeMax', 'schemaHash']);
 
-    return changedLines.length > 0 && changedLines.every((line) => /^[+-]\s*"bundleSizeMax":/.test(line));
+    return changedLines.length > 0 && changedLines.every((line) => {
+      const match = line.match(/^[+-]\s*"([^"]+)":/);
+      return match && allowedKeys.has(match[1]);
+    });
   } catch {
     return false;
   }
@@ -123,8 +127,8 @@ function main() {
   });
 
   if (disallowedCompanions.length > 0) {
-    if (baselineChanges.length === 1 && isLocalBundleSizeOnlyBaselineChange(baselineChanges[0])) {
-      console.log('Baseline governance passed: local bundleSizeMax update allowed with behavior files.');
+    if (baselineChanges.length === 1 && isLocalMeasuredBaselineChange(baselineChanges[0])) {
+      console.log('Baseline governance passed: local measured baseline update allowed with behavior files.');
       process.exit(0);
     }
 

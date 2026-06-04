@@ -1,3 +1,17 @@
+## v1.0.0 RC18.2 - Sunton Display & Weather Helper Hotfix
+**Release Date:** June 4, 2026
+
+This RC18.2 hotfix addresses the Sunton/Guition 2432S028R rendering report from issue #413 and tightens the weather helper YAML discussed in discussion #325.
+
+### Stability & Verification
+- **Sunton 2432S028 Landscape Dimensions (Issue #413):** Corrected the Sunton 2432S028 and 2432S028R hardware packages so the ILI9341 `dimensions` match the existing landscape `swap_xy` transform, preventing LVGL output from being initialized with portrait-sized display bounds.
+- **Weather Helper Entity IDs (Discussion #325):** Generated Home Assistant weather template helpers now include `default_entity_id` entries that match the ESPHome `sensor.weather_forecast_*` subscriptions, avoiding name-derived entity IDs such as `sensor.weather_forecast_plus_1h` when the unique ID includes `_high`.
+- **Regression Coverage Expansion:** Added focused coverage for the Sunton package dimension contract and copied weather helper YAML entity IDs.
+- **Release Metadata Refresh:** Updated package metadata, package lock metadata, Home Assistant manifest version, visible header label, release notes, and rebuilt frontend assets for the RC18.2 release line.
+
+
+---
+
 ## v1.0.0 RC18.1 - Undo History Hotfix
 **Release Date:** June 3, 2026
 

@@ -105,6 +105,7 @@ template:
                     yaml += `
       - name: 'Weather Forecast Plus ${index}h'
         unique_id: weather_forecast_plus_${index}h_high
+        default_entity_id: sensor.weather_forecast_plus_${index}h_high
         unit_of_measurement: '${unitSymbol}'
         state: >
           {% set fc = hourly['${weatherEntity}'].forecast %}
@@ -113,6 +114,7 @@ template:
           {{ hit.temperature if hit else 'N/A' }}
       - name: 'Weather Forecast Plus ${index}h Condition'
         unique_id: weather_forecast_plus_${index}h_condition
+        default_entity_id: sensor.weather_forecast_plus_${index}h_condition
         state: >
           {% set fc = hourly['${weatherEntity}'].forecast %}
           {% set target = (now() + timedelta(hours=${index})).strftime('%Y-%m-%dT%H:00:00') %}
@@ -131,6 +133,7 @@ template:
                     yaml += `
       - name: 'Weather Forecast Hour ${slot}00 High'
         unique_id: weather_forecast_hour_${slot}00_high
+        default_entity_id: sensor.weather_forecast_hour_${slot}00_high
         unit_of_measurement: '${unitSymbol}'
         state: >
           {% set fc = hourly['${weatherEntity}'].forecast %}
@@ -138,6 +141,7 @@ template:
           {{ hit.temperature if hit else 'N/A' }}
       - name: 'Weather Forecast Hour ${slot}00 Condition'
         unique_id: weather_forecast_hour_${slot}00_condition
+        default_entity_id: sensor.weather_forecast_hour_${slot}00_condition
         state: >
           {% set fc = hourly['${weatherEntity}'].forecast %}
           {% set hit = fc | selectattr('datetime','search','T${slot}:') | list | first %}
@@ -167,14 +171,17 @@ template:
                 yaml += `
       - name: 'Weather Forecast Day ${index} High'
         unique_id: weather_forecast_day_${index}_high
+        default_entity_id: sensor.weather_forecast_day_${index}_high
         unit_of_measurement: '${unitSymbol}'
         state: '{{ forecast_data["${weatherEntity}"].forecast[${index}].temperature | default("N/A") }}'
       - name: 'Weather Forecast Day ${index} Low'
         unique_id: weather_forecast_day_${index}_low
+        default_entity_id: sensor.weather_forecast_day_${index}_low
         unit_of_measurement: '${unitSymbol}'
         state: '{{ forecast_data["${weatherEntity}"].forecast[${index}].templow | default("N/A") }}'
       - name: 'Weather Forecast Day ${index} Condition'
         unique_id: weather_forecast_day_${index}_condition
+        default_entity_id: sensor.weather_forecast_day_${index}_condition
         state: '{{ forecast_data["${weatherEntity}"].forecast[${index}].condition | default("cloudy") }}'`;
             }
         }

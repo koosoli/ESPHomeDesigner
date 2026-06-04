@@ -166,6 +166,8 @@ describe('weather_forecast render and properties', () => {
         expect(navigator.clipboard.writeText).toHaveBeenCalled();
         const copiedText = navigator.clipboard.writeText.mock.calls[0][0];
         expect(copiedText).toContain('weather_forecast_plus_1h_high');
+        expect(copiedText).toContain('default_entity_id: sensor.weather_forecast_plus_1h_high');
+        expect(copiedText).toContain('default_entity_id: sensor.weather_forecast_plus_1h_condition');
         expect(copiedText).toContain('timedelta(hours=1)');
     });
 
@@ -189,6 +191,8 @@ describe('weather_forecast render and properties', () => {
 
         const copiedText = navigator.clipboard.writeText.mock.calls[0][0];
         expect(copiedText).toContain('weather_forecast_hour_0900_high');
+        expect(copiedText).toContain('default_entity_id: sensor.weather_forecast_hour_0900_high');
+        expect(copiedText).toContain('default_entity_id: sensor.weather_forecast_hour_0900_condition');
         expect(copiedText).toContain('weather_forecast_hour_1200_high');
         expect(copiedText).not.toContain('weather_forecast_hour_0600_high');
     });

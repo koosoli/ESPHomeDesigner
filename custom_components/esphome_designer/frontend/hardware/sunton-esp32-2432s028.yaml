@@ -141,6 +141,6 @@ display:
       swap_xy: true
       mirror_x: false
     dimensions:
-      height: 320
-      width: 240
+      height: 240
+      width: 320
     # __LAMBDA_PLACEHOLDER__

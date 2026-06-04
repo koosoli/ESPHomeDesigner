@@ -263,6 +263,7 @@ export const onExportTextSensors = (context) => {
                 if (isRelative) {
                     lines.push(`#       - name: 'Weather Forecast Plus ${slot}h'`);
                     lines.push(`#         unique_id: weather_forecast_plus_${slot}h_high`);
+                    lines.push(`#         default_entity_id: sensor.weather_forecast_plus_${slot}h_high`);
                     lines.push(`#         unit_of_measurement: '${unitSymbol}'`);
                     lines.push(`#         state: >`);
                     lines.push(`#           {% set fc = hourly['${config.entity}'].forecast %}`);
@@ -271,6 +272,7 @@ export const onExportTextSensors = (context) => {
                     lines.push(`#           {{ hit.temperature if hit else 'N/A' }}`);
                     lines.push(`#       - name: 'Weather Forecast Plus ${slot}h Condition'`);
                     lines.push(`#         unique_id: weather_forecast_plus_${slot}h_condition`);
+                    lines.push(`#         default_entity_id: sensor.weather_forecast_plus_${slot}h_condition`);
                     lines.push(`#         state: >`);
                     lines.push(`#           {% set fc = hourly['${config.entity}'].forecast %}`);
                     lines.push(`#           {% set target = (now() + timedelta(hours=${slot})).strftime('%Y-%m-%dT%H:00:00') %}`);
@@ -279,6 +281,7 @@ export const onExportTextSensors = (context) => {
                 } else {
                     lines.push(`#       - name: 'Weather Forecast Hour ${slot}00 High'`);
                     lines.push(`#         unique_id: weather_forecast_hour_${slot}00_high`);
+                    lines.push(`#         default_entity_id: sensor.weather_forecast_hour_${slot}00_high`);
                     lines.push(`#         unit_of_measurement: '${unitSymbol}'`);
                     lines.push(`#         state: >`);
                     lines.push(`#           {% set fc = hourly['${config.entity}'].forecast %}`);
@@ -286,6 +289,7 @@ export const onExportTextSensors = (context) => {
                     lines.push(`#           {{ hit.temperature if hit else 'N/A' }}`);
                     lines.push(`#       - name: 'Weather Forecast Hour ${slot}00 Condition'`);
                     lines.push(`#         unique_id: weather_forecast_hour_${slot}00_condition`);
+                    lines.push(`#         default_entity_id: sensor.weather_forecast_hour_${slot}00_condition`);
                     lines.push(`#         state: >`);
                     lines.push(`#           {% set fc = hourly['${config.entity}'].forecast %}`);
                     lines.push(`#           {% set hit = fc | selectattr('datetime','search','T${slot}:') | list | first %}`);
@@ -310,14 +314,17 @@ export const onExportTextSensors = (context) => {
             sortedSlots.forEach(dayIdx => {
                 lines.push(`#       - name: 'Weather Forecast Day ${dayIdx} High'`);
                 lines.push(`#         unique_id: weather_forecast_day_${dayIdx}_high`);
+                lines.push(`#         default_entity_id: sensor.weather_forecast_day_${dayIdx}_high`);
                 lines.push(`#         unit_of_measurement: '${unitSymbol}'`);
                 lines.push(`#         state: '{{ forecast_data["${config.entity}"].forecast[${dayIdx}].temperature | default("N/A") }}'`);
                 lines.push(`#       - name: 'Weather Forecast Day ${dayIdx} Low'`);
                 lines.push(`#         unique_id: weather_forecast_day_${dayIdx}_low`);
+                lines.push(`#         default_entity_id: sensor.weather_forecast_day_${dayIdx}_low`);
                 lines.push(`#         unit_of_measurement: '${unitSymbol}'`);
                 lines.push(`#         state: '{{ forecast_data["${config.entity}"].forecast[${dayIdx}].templow | default("N/A") }}'`);
                 lines.push(`#       - name: 'Weather Forecast Day ${dayIdx} Condition'`);
                 lines.push(`#         unique_id: weather_forecast_day_${dayIdx}_condition`);
+                lines.push(`#         default_entity_id: sensor.weather_forecast_day_${dayIdx}_condition`);
                 lines.push(`#         state: '{{ forecast_data["${config.entity}"].forecast[${dayIdx}].condition | default("unknown") }}'`);
             });
         }
