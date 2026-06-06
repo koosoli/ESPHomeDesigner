@@ -56,8 +56,9 @@ describe('built-in device profiles', async () => {
         expect(devices.SUPPORTED_DEVICE_IDS).not.toContain('guition_esp32_jc8048w535');
     });
 
-    it('includes the M5Stack Tab5 and GeekMagic Mini package profiles as supported built-ins', () => {
+    it('includes the M5Stack Tab5, Guition JC4880P443, and GeekMagic Mini package profiles as supported built-ins', () => {
         const tab5 = devices.DEVICE_PROFILES.m5stack_tab5;
+        const guitionP4 = devices.DEVICE_PROFILES.guition_esp32_p4_jc4880p443;
         const geekMagic = devices.DEVICE_PROFILES.geekmagic_mini_esp8266;
 
         expect(tab5).toMatchObject({
@@ -70,6 +71,18 @@ describe('built-in device profiles', async () => {
         });
         expect(tab5.features.touch).toBe(true);
         expect(devices.SUPPORTED_DEVICE_IDS).toContain('m5stack_tab5');
+
+        expect(guitionP4).toMatchObject({
+            name: 'Guition JC4880P443 4.3" 480x800',
+            chip: 'esp32-p4',
+            board: 'esp32-p4-evboard',
+            displayPlatform: 'mipi_dsi',
+            displayModel: 'JC4880P443',
+            hardwarePackage: 'hardware/guition-esp32-p4-jc4880p443.yaml',
+            resolution: { width: 480, height: 800 }
+        });
+        expect(guitionP4.features.touch).toBe(true);
+        expect(devices.SUPPORTED_DEVICE_IDS).toContain('guition_esp32_p4_jc4880p443');
 
         expect(geekMagic).toMatchObject({
             name: 'GeekMagic Mini (ESP8266)',

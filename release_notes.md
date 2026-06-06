@@ -1,3 +1,16 @@
+## v1.0.0 RC19.2 - Guition JC4880P443 Profile Hotfix
+**Release Date:** June 6, 2026
+
+This RC19.2 hotfix follows up on [Issue #416](https://github.com/koosoli/ESPHomeDesigner/issues/416) after field testing on the Guition JC4880P443 ESP32-P4 MIPI-DSI panel.
+
+### Stability & Verification
+- **Built-in JC4880P443 Profile:** Added Guition JC4880P443 as a supported built-in hardware package profile with the required ESP32-P4 `esp_ldo`, `esp32_hosted`, `psram`, GT911 touch, MIPI-DSI display, and GPIO23 backlight blocks.
+- **Bundled Profile Parsing Fix:** Hardware recipe metadata now reads the display platform/model from the `display:` block instead of the first `platform:` in the file, preventing output or touchscreen sections from being mistaken for the display.
+- **Regression Coverage:** Added tests for the new built-in profile metadata and required boot/connect/backlight YAML blocks.
+- **Release Metadata Refresh:** Updated package metadata, package lock metadata, Home Assistant manifest version, runtime version string, visible header label, release notes, and rebuilt frontend assets for the RC19.2 hotfix line.
+
+---
+
 ## v1.0.0 RC19.1 - Hourly Weather Forecast Hotfix
 **Release Date:** June 6, 2026
 

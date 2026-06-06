@@ -287,6 +287,19 @@ export const DEVICE_PROFILES = {
     features: { psram: true, buzzer: false, buttons: false, lcd: true, lvgl: true, touch: true },
     touch: { platform: "st7123" }
   },
+  guition_esp32_p4_jc4880p443: {
+    name: "Guition JC4880P443 4.3\" 480x800",
+    displayType: "color",
+    chip: "esp32-p4",
+    board: "esp32-p4-evboard",
+    displayPlatform: "mipi_dsi",
+    displayModel: "JC4880P443",
+    isPackageBased: true,
+    hardwarePackage: "hardware/guition-esp32-p4-jc4880p443.yaml",
+    resolution: { width: 480, height: 800 },
+    features: { psram: true, buzzer: false, buttons: false, lcd: true, lvgl: true, touch: true },
+    touch: { platform: "gt911" }
+  },
   geekmagic_mini_esp8266: {
     name: "GeekMagic Mini (ESP8266)",
     displayType: "color",

@@ -20,6 +20,25 @@ try {
 }
 /* v8 ignore stop */
 
+/**
+ * @param {string} yaml
+ * @param {string} key
+ * @returns {string}
+ */
+function extractTopLevelYamlBlock(yaml, key) {
+    const pattern = new RegExp(`^${key}:\\s*$`, 'm');
+    const match = pattern.exec(yaml);
+    if (!match) return '';
+
+    const start = match.index;
+    const afterHeader = yaml.indexOf('\n', start);
+    const bodyStart = afterHeader === -1 ? yaml.length : afterHeader + 1;
+    const nextTopLevel = yaml.slice(bodyStart).search(/^(?!\s)([A-Za-z0-9_]+):/m);
+    const end = nextTopLevel === -1 ? yaml.length : bodyStart + nextTopLevel;
+
+    return yaml.slice(start, end);
+}
+
 export const hardwareProfileRuntime = {
     /** @returns {any} */
     getGlob() {
@@ -141,10 +160,11 @@ export function parseHardwareRecipeClientSide(yaml, filename) {
     const invertedMatch = yaml.match(/#\s*Inverted:\s*(true|yes|1)/i);
     const isInverted = !!invertedMatch;
 
-    const platformMatch = yaml.match(/^\s*-\s*platform:\s*([a-z0-9_]+)/m) || yaml.match(/^\s*platform:\s*([a-z0-9_]+)/m);
+    const displayBlock = extractTopLevelYamlBlock(yaml, 'display') || yaml;
+    const platformMatch = displayBlock.match(/^\s*-\s*platform:\s*([a-z0-9_]+)/m) || displayBlock.match(/^\s*platform:\s*([a-z0-9_]+)/m);
     const displayPlatform = platformMatch ? platformMatch[1].trim() : undefined;
 
-    const modelMatch = yaml.match(/^\s*model:\s*"?([^"\n]+)"?/m);
+    const modelMatch = displayBlock.match(/^\s*model:\s*"?([^"\n]+)"?/m);
     const displayModel = modelMatch ? modelMatch[1].trim() : undefined;
 
     let chip = 'esp32-s3';
@@ -181,16 +201,16 @@ export function parseHardwareRecipeClientSide(yaml, filename) {
     const boardCommentMatch = yaml.match(/#\s*Board:\s*(.*)/i);
     if (boardCommentMatch) board = boardCommentMatch[1].trim();
 
-    const colorPaletteMatch = yaml.match(/^\s*color_palette:\s*(\S+)/m);
+    const colorPaletteMatch = displayBlock.match(/^\s*color_palette:\s*(\S+)/m);
     const colorPalette = colorPaletteMatch ? colorPaletteMatch[1].trim() : undefined;
 
-    const colorOrderMatch = yaml.match(/^\s*color_order:\s*(\S+)/m);
+    const colorOrderMatch = displayBlock.match(/^\s*color_order:\s*(\S+)/m);
     const colorOrder = colorOrderMatch ? colorOrderMatch[1].trim() : undefined;
 
-    const updateIntervalMatch = yaml.match(/^\s*update_interval:\s*(\S+)/m);
+    const updateIntervalMatch = displayBlock.match(/^\s*update_interval:\s*(\S+)/m);
     const updateInterval = updateIntervalMatch ? updateIntervalMatch[1].trim() : undefined;
 
-    const invertColorsMatch = yaml.match(/^\s*invert_colors:\s*(true|false)/mi);
+    const invertColorsMatch = displayBlock.match(/^\s*invert_colors:\s*(true|false)/mi);
     const invertColors = invertColorsMatch ? invertColorsMatch[1].toLowerCase() === 'true' : undefined;
 
     return {

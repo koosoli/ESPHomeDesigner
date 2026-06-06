@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { parseHardwareRecipeClientSide } from '../../js/io/hardware_profile_sources.js';
 import geekMagicMiniYaml from '../../hardware/geekmagic-mini-esp8266.yaml?raw';
+import guitionP4Yaml from '../../hardware/guition-esp32-p4-jc4880p443.yaml?raw';
 import m5stackTab5Yaml from '../../hardware/m5stack-tab5.yaml?raw';
 import sunton2432s028Yaml from '../../hardware/sunton-esp32-2432s028.yaml?raw';
 import sunton2432s028RYaml from '../../hardware/sunton-esp32-2432s028R.yaml?raw';
@@ -99,6 +100,25 @@ display:
         expect(profile.board).toBe('esp32-p4-evboard');
         expect(profile.displayPlatform).toBe('mipi_dsi');
         expect(profile.displayModel).toBe('M5STACK-TAB5-V2');
+        expect(profile.features.psram).toBe(true);
+        expect(profile.features.touch).toBe(true);
+        expect(profile.features.lcd).toBe(true);
+    });
+
+    it('parses the Guition JC4880P443 bundled recipe with required ESP32-P4 support blocks', () => {
+        expect(guitionP4Yaml).toContain('esp_ldo:');
+        expect(guitionP4Yaml).toContain('esp32_hosted:');
+        expect(guitionP4Yaml).toContain('mode: hex');
+        expect(guitionP4Yaml).toContain('pin: GPIO23');
+
+        const profile = parseHardwareRecipeClientSide(guitionP4Yaml, 'guition-esp32-p4-jc4880p443.yaml');
+
+        expect(profile.name).toBe('Guition ESP32-P4 JC4880P443');
+        expect(profile.resolution).toEqual({ width: 480, height: 800 });
+        expect(profile.chip).toBe('esp32-p4');
+        expect(profile.board).toBe('esp32-p4-evboard');
+        expect(profile.displayPlatform).toBe('mipi_dsi');
+        expect(profile.displayModel).toBe('JC4880P443');
         expect(profile.features.psram).toBe(true);
         expect(profile.features.touch).toBe(true);
         expect(profile.features.lcd).toBe(true);
