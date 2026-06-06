@@ -56,9 +56,10 @@ describe('built-in device profiles', async () => {
         expect(devices.SUPPORTED_DEVICE_IDS).not.toContain('guition_esp32_jc8048w535');
     });
 
-    it('includes the M5Stack Tab5, Guition JC4880P443, and GeekMagic Mini package profiles as supported built-ins', () => {
+    it('includes the M5Stack Tab5, Guition P4, and GeekMagic Mini package profiles as supported built-ins', () => {
         const tab5 = devices.DEVICE_PROFILES.m5stack_tab5;
         const guitionP4 = devices.DEVICE_PROFILES.guition_esp32_p4_jc4880p443;
+        const guitionP4Large = devices.DEVICE_PROFILES.guition_esp32_p4_jc8012p4a1c;
         const geekMagic = devices.DEVICE_PROFILES.geekmagic_mini_esp8266;
 
         expect(tab5).toMatchObject({
@@ -78,11 +79,29 @@ describe('built-in device profiles', async () => {
             board: 'esp32-p4-evboard',
             displayPlatform: 'mipi_dsi',
             displayModel: 'JC4880P443',
+            displayId: 'main_display',
+            touchscreenId: 'device_touchscreen',
             hardwarePackage: 'hardware/guition-esp32-p4-jc4880p443.yaml',
             resolution: { width: 480, height: 800 }
         });
         expect(guitionP4.features.touch).toBe(true);
+        expect(guitionP4.touch.id).toBe('device_touchscreen');
         expect(devices.SUPPORTED_DEVICE_IDS).toContain('guition_esp32_p4_jc4880p443');
+
+        expect(guitionP4Large).toMatchObject({
+            name: 'Guition JC8012P4A1C 10.1" 800x1280',
+            chip: 'esp32-p4',
+            board: 'esp32-p4-evboard',
+            displayPlatform: 'mipi_dsi',
+            displayModel: 'JC8012P4A1',
+            displayId: 'main_display',
+            touchscreenId: 'device_touchscreen',
+            hardwarePackage: 'hardware/guition-esp32-p4-jc8012p4a1c.yaml',
+            resolution: { width: 800, height: 1280 }
+        });
+        expect(guitionP4Large.features.touch).toBe(true);
+        expect(guitionP4Large.touch.id).toBe('device_touchscreen');
+        expect(devices.SUPPORTED_DEVICE_IDS).toContain('guition_esp32_p4_jc8012p4a1c');
 
         expect(geekMagic).toMatchObject({
             name: 'GeekMagic Mini (ESP8266)',

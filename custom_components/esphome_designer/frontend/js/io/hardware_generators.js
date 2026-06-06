@@ -8,6 +8,7 @@ import {
     generateBinarySensorSection as generateBinarySensorSectionHelper,
     generateButtonSection as generateButtonSectionHelper
 } from './hardware_generators_sections.js';
+import { resolveDisplayId } from './display_ids.js';
 
 /** @typedef {Record<string, any>} ProfileLike */
 /** @typedef {{ orientation?: string, refreshInterval?: number, lcdEcoStrategy?: string }} LayoutLike */
@@ -202,8 +203,7 @@ export function generateDisplaySection(profile, layout = {}, isLvgl = false) {
         lines.push(...configLines);
 
         // Fix #330: Ensure display ID is always present in display_config profiles
-        const isLcd = !!(profile.features && (profile.features.lcd || profile.features.oled));
-        const expectedId = isLcd ? 'my_display' : 'epaper_display';
+        const expectedId = resolveDisplayId(profile);
         const hasId = configLines.some(l => l.trim().startsWith('id:'));
         if (!hasId) {
             lines.push(`    id: ${expectedId}`);
@@ -223,9 +223,10 @@ export function generateDisplaySection(profile, layout = {}, isLvgl = false) {
         lines.push("");
     } else {
         const isLcd = !!(profile.features && (profile.features.lcd || profile.features.oled));
+        const displayId = resolveDisplayId(profile);
         lines.push("display:");
         lines.push(`  - platform: ${profile.displayPlatform}`);
-        lines.push(`    id: ${isLcd ? 'my_display' : 'epaper_display'}`);
+        lines.push(`    id: ${displayId}`);
         if (isLvgl) lines.push("    auto_clear_enabled: false");
 
         const p = (profile.pins && profile.pins.display) ? profile.pins.display : null;
@@ -281,9 +282,7 @@ export function generateDisplaySection(profile, layout = {}, isLvgl = false) {
         lines.push("");
     }
 
-    const linkedDisplayId = (profile.display_config || (profile.features && (profile.features.lcd || profile.features.oled)))
-        ? "my_display"
-        : "epaper_display";
+    const linkedDisplayId = resolveDisplayId(profile);
     lines.push(...generateTouchscreenSectionHelper(profile, linkedDisplayId, displayRotation, layout, isLvgl));
 
     return lines;

@@ -11,7 +11,7 @@ import { registry } from '../../core/plugin_registry.js';
 import { Utils } from '../../core/utils';
 import { DEVICE_PROFILES } from '../devices.js';
 import * as Generators from '../hardware_generators.js';
-import { generateLVGLSnippet, serializeWidget } from '../yaml_export_lvgl.js';
+import { generateLVGLSnippet, resolveDisplayId, serializeWidget } from '../yaml_export_lvgl.js';
 import { COLORS, ALIGNMENT } from '../../core/constants';
 import { FontRegistry } from './font_registry.js';
 import { YamlGenerator } from './yaml_generator.js';
@@ -58,7 +58,7 @@ export class ESPHomeAdapter extends BaseAdapter {
         const lines: string[] = [];
 
         // 1. Preparation
-        const displayId = profile.features?.lcd ? "my_display" : "epaper_display";
+        const displayId = resolveDisplayId(profile);
 
         this.preProcessWidgetsPromise = this.preProcessWidgets(pages);
         await this.preProcessWidgetsPromise;

@@ -1,3 +1,5 @@
+import { resolveTouchscreenId } from './display_ids.js';
+
 /**
  * @typedef {Record<string, any>} HardwareProfileLike
  */
@@ -39,7 +41,7 @@ export function generateTouchscreenSection(profile, displayId = "my_display", _d
     /** @type {string[]} */
     const lines = ["touchscreen:"];
     lines.push(`  - platform: ${t.platform}`);
-    lines.push("    id: my_touchscreen");
+    lines.push(`    id: ${resolveTouchscreenId(profile)}`);
     lines.push(`    display: ${displayId}`);
 
     if (t.i2c_id) lines.push(`    i2c_id: ${t.i2c_id}`);

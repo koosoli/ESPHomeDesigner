@@ -90,6 +90,36 @@ describe('YAML Parsers', () => {
                 }
             });
         });
+
+        it('should parse ESPHome it.print calls into text widgets', () => {
+            const lambdaLines = [
+                'it.print(100, 140, id(montserrat_28), Color(0,255,0), TextAlign::LEFT, "Hello World1");',
+                'it.print(100, 240, id(montserrat_28), Color::WHITE, TextAlign::LEFT, "Hello World2");'
+            ];
+            const deviceSettings = { renderingMode: 'direct' };
+            const getESPHomeSchema = () => ({});
+            const mockYaml = { load: vi.fn() };
+
+            const result = parseDisplayBlocks(lambdaLines, [], deviceSettings, getESPHomeSchema, mockYaml);
+
+            expect(result.pages[0].widgets).toHaveLength(2);
+            expect(result.pages[0].widgets[0]).toMatchObject({
+                type: 'text',
+                x: 100,
+                y: 140,
+                props: {
+                    text: 'Hello World1',
+                    font_family: 'Montserrat',
+                    font_size: 28,
+                    color: '#00FF00',
+                    text_align: 'TOP_LEFT'
+                }
+            });
+            expect(result.pages[0].widgets[1].props).toMatchObject({
+                text: 'Hello World2',
+                color: 'white'
+            });
+        });
     });
 
     describe('oepl_parser', () => {

@@ -294,11 +294,28 @@ export const DEVICE_PROFILES = {
     board: "esp32-p4-evboard",
     displayPlatform: "mipi_dsi",
     displayModel: "JC4880P443",
+    displayId: "main_display",
+    touchscreenId: "device_touchscreen",
     isPackageBased: true,
     hardwarePackage: "hardware/guition-esp32-p4-jc4880p443.yaml",
     resolution: { width: 480, height: 800 },
     features: { psram: true, buzzer: false, buttons: false, lcd: true, lvgl: true, touch: true },
-    touch: { platform: "gt911" }
+    touch: { platform: "gt911", id: "device_touchscreen" }
+  },
+  guition_esp32_p4_jc8012p4a1c: {
+    name: "Guition JC8012P4A1C 10.1\" 800x1280",
+    displayType: "color",
+    chip: "esp32-p4",
+    board: "esp32-p4-evboard",
+    displayPlatform: "mipi_dsi",
+    displayModel: "JC8012P4A1",
+    displayId: "main_display",
+    touchscreenId: "device_touchscreen",
+    isPackageBased: true,
+    hardwarePackage: "hardware/guition-esp32-p4-jc8012p4a1c.yaml",
+    resolution: { width: 800, height: 1280 },
+    features: { psram: true, buzzer: false, buttons: false, lcd: true, lvgl: true, touch: true },
+    touch: { platform: "gt911", id: "device_touchscreen" }
   },
   geekmagic_mini_esp8266: {
     name: "GeekMagic Mini (ESP8266)",

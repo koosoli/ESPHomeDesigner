@@ -98,6 +98,27 @@ const SNAKE_CASE_SETTING_MAP: Record<string, string> = {
 };
 
 /**
+ * Users often paste snippets copied from GitHub discussions, including
+ * surrounding Markdown code fences or single inline backticks. Strip those
+ * wrappers before handing the text to the YAML parser.
+ *
+ * @param {string} yamlText
+ * @returns {string}
+ */
+function normalizePastedYamlSnippet(yamlText: string): string {
+    let text = String(yamlText || '').trim();
+
+    const fenced = text.match(/^```[a-zA-Z0-9_-]*\s*\r?\n([\s\S]*?)\r?\n```$/);
+    if (fenced) return fenced[1].trim();
+
+    if (text.startsWith('`') && text.endsWith('`') && !text.startsWith('```')) {
+        text = text.slice(1, -1).trim();
+    }
+
+    return text;
+}
+
+/**
  * Normalize mixed camelCase/snake_case layout settings into the frontend's camelCase shape.
  * @param {Record<string, any>} settings
  * @returns {Record<string, any>}
@@ -442,16 +463,17 @@ export function recoverDesignerStateTriggers(layout: ParsedLayout | null, rawLin
  */
 export function parseSnippetYamlOffline(yamlText: string): ParsedLayout | null {
     Logger.log("[parseSnippetYamlOffline] Start parsing...");
-    const rawLines = yamlText.split(/\r?\n/);
+    const normalizedYamlText = normalizePastedYamlSnippet(yamlText);
+    const rawLines = normalizedYamlText.split(/\r?\n/);
 
     let doc: any = {};
     let payloadFallback: any[] | null = null;
     try {
         const schema = getESPHomeSchema();
-        doc = yaml.load(yamlText, schema ? { schema } : {}) || {};
+        doc = yaml.load(normalizedYamlText, schema ? { schema } : {}) || {};
     } catch (e) {
         Logger.error("[parseSnippetYamlOffline] YAML parse error:", e);
-        payloadFallback = extractServicePayloadArray(yamlText);
+        payloadFallback = extractServicePayloadArray(normalizedYamlText);
     }
 
     // --- Specialized Format Detection (OEPL / ODP) ---
@@ -460,7 +482,7 @@ export function parseSnippetYamlOffline(yamlText: string): ParsedLayout | null {
         return parseOEPLArrayToLayout(payloadFallback);
     }
 
-    if (isBareOEPLArray(yamlText) && Array.isArray(doc)) {
+    if (isBareOEPLArray(normalizedYamlText) && Array.isArray(doc)) {
         Logger.log("[parseSnippetYamlOffline] Detected bare OEPL/ODP array format");
         return parseOEPLArrayToLayout(doc);
     }
@@ -495,8 +517,8 @@ export function parseSnippetYamlOffline(yamlText: string): ParsedLayout | null {
     }
 
     // Fallback to specialized scanning if lines are missing or block is manual
-    if (lambdaLines.length === 0 || yamlText.includes("lvgl:")) {
-        const extracted = extractLambdaLines(rawLines, yamlText);
+    if (lambdaLines.length === 0 || normalizedYamlText.includes("lvgl:")) {
+        const extracted = extractLambdaLines(rawLines, normalizedYamlText);
         lambdaLines.push(...extracted);
     }
 

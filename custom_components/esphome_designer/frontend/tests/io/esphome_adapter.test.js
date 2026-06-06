@@ -326,6 +326,48 @@ text_sensor:
         expect(yaml).toContain('// page:name "Empty"');
     });
 
+    it('uses package profile display and touchscreen ids in generated LVGL blocks', async () => {
+        Object.assign(mockDeviceProfiles, {
+            guition_esp32_p4_jc4880p443: {
+                name: 'Guition JC4880P443 4.3" 480x800',
+                features: { lcd: true, lvgl: true, touch: true },
+                displayId: 'main_display',
+                touchscreenId: 'device_touchscreen',
+                touch: { platform: 'gt911', id: 'device_touchscreen' },
+                isPackageBased: true,
+                hardwarePackage: 'hardware/guition-esp32-p4-jc4880p443.yaml'
+            }
+        });
+        mockHaFetch.mockResolvedValue({
+            ok: true,
+            text: vi.fn().mockResolvedValue(`display:
+  - platform: mipi_dsi
+    id: main_display
+    model: JC4880P443
+    # __LAMBDA_PLACEHOLDER__
+touchscreen:
+  - platform: gt911
+    id: device_touchscreen`)
+        });
+        Object.defineProperty(globalThis, 'location', {
+            configurable: true,
+            value: { pathname: '/esphome-designer/editor' }
+        });
+
+        const yaml = await adapter.generate({
+            deviceModel: 'guition_esp32_p4_jc4880p443',
+            renderingMode: 'lvgl',
+            pages: [{ name: 'Main', widgets: [] }]
+        });
+
+        expect(yaml).toContain('id: main_display');
+        expect(yaml).toContain('id: device_touchscreen');
+        expect(yaml).toContain('  displays:\n    - main_display');
+        expect(yaml).toContain('  touchscreens:\n    - device_touchscreen');
+        expect(yaml).not.toContain('    - my_display');
+        expect(yaml).not.toContain('    - my_touchscreen');
+    });
+
     it('should generate correct condition properties for state comparison', () => {
         const widget = {
             condition_entity: 'switch.test',

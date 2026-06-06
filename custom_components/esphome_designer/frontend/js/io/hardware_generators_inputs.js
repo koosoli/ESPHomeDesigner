@@ -1,4 +1,5 @@
 import { getTouchDebounceMs } from './navigation_debounce.js';
+import { resolveTouchscreenId } from './display_ids.js';
 
 /** @typedef {Record<string, any>} ProfileLike */
 /** @typedef {Record<string, any>} WidgetLike */
@@ -91,6 +92,7 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
         lines.push("  # Touch Area Binary Sensors");
         const totalPages = touchAreaWidgets.reduce((max, widget) => Math.max(max, (widget._pageIndex ?? 0) + 1), 0) || 1;
         const touchDebounceMs = getTouchDebounceMs(profile);
+        const touchscreenId = resolveTouchscreenId(profile);
 
         touchAreaWidgets.forEach((widget) => {
             const type = (widget.type || "").toLowerCase();
@@ -120,7 +122,7 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
 
                     lines.push("  - platform: touchscreen");
                     lines.push(`    id: nav_${action}_${widget.id}`);
-                    lines.push("    touchscreen_id: my_touchscreen");
+                    lines.push(`    touchscreen_id: ${touchscreenId}`);
                     lines.push(`    x_min: ${xMin}`);
                     lines.push(`    x_max: ${xMax}`);
                     lines.push(`    y_min: ${yMin}`);
@@ -172,7 +174,7 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
 
             lines.push("  - platform: touchscreen");
             lines.push(`    id: ${safeId}`);
-            lines.push("    touchscreen_id: my_touchscreen");
+            lines.push(`    touchscreen_id: ${touchscreenId}`);
             lines.push(`    x_min: ${xMin}`);
             lines.push(`    x_max: ${xMax}`);
             lines.push(`    y_min: ${yMin}`);

@@ -1,3 +1,16 @@
+## v1.0.0 RC19.3 - Guition P4 LVGL Follow-up Hotfix
+**Release Date:** June 6, 2026
+
+This RC19.3 hotfix follows the latest field feedback on [Issue #416](https://github.com/koosoli/ESPHomeDesigner/issues/416) and keeps the Guition ESP32-P4 MIPI-DSI profiles aligned with the generated LVGL YAML.
+
+### Stability & Verification
+- **Profile-aware LVGL IDs (Issue #416):** LVGL export now uses hardware profile display and touchscreen IDs instead of always emitting `my_display` and `my_touchscreen`, so Guition P4 package exports reference `main_display` and `device_touchscreen` consistently.
+- **Guition P4 Profile Updates (Issue #416):** The JC4880P443 profile now uses the expected component IDs, includes PSRAM speed and ES8311 audio scaffolding, and the new JC8012P4A1C 10.1" 800x1280 MIPI-DSI profile is available as a supported built-in package profile.
+- **Snippet Import Robustness (Discussion #254):** Pasted ESPHome snippets wrapped in Markdown backticks are normalized before parsing, and display lambdas using `it.print(...)` are imported as text widgets where possible.
+- **Release Metadata Refresh:** Updated package metadata, package lock metadata, Home Assistant manifest version, runtime version string, visible header label, release notes, and rebuilt frontend assets for the RC19.3 hotfix line.
+
+---
+
 ## v1.0.0 RC19.2 - Guition JC4880P443 Profile Hotfix
 **Release Date:** June 6, 2026
 

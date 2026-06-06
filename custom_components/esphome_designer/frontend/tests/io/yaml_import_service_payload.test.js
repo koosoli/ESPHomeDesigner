@@ -64,6 +64,85 @@ data:
         });
     });
 
+    it('imports GitHub discussion YAML wrapped in single Markdown backticks and restores print text widgets', () => {
+        const yamlText = `\`esphome:
+  name: "dp-gast-og"
+  friendly_name: dp-gast-og
+
+logger:
+  level: DEBUG
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+font:
+  - file: "gfonts://Montserrat"
+    id: montserrat_28
+    size: 28
+
+display:
+  - platform: mipi_dsi
+    id: device_display
+    model: JC4880P443
+    byte_order: little_endian
+    rotation: 0
+    lambda: |-
+      it.fill(Color::BLACK);
+      it.print(100, 140, id(montserrat_28), Color(0,255,0), TextAlign::LEFT, "Hello World1");
+      it.print(100, 240, id(montserrat_28), Color::WHITE, TextAlign::LEFT, "Hello World2");
+      it.print(100, 340, id(montserrat_28), Color(255,0,0), TextAlign::LEFT, "Hello World3");
+
+touchscreen:
+  platform: gt911
+  i2c_id: i2c_bus
+  id: device_touchscreen
+
+esp_ldo:
+  - channel: 3
+    voltage: 2.5V
+
+psram:
+  mode: hex
+  speed: 200MHz
+
+esp32:
+  board: esp32-p4-evboard
+  framework:
+    type: esp-idf
+
+i2c:
+  id: i2c_bus
+  sda: 7
+  scl: 8
+  scan: false\``;
+
+        const layout = parseSnippetYamlOffline(yamlText);
+        const widgets = layout?.pages?.[0]?.widgets || [];
+
+        expect(widgets).toHaveLength(3);
+        expect(widgets.map((widget) => widget.props?.text)).toEqual([
+            'Hello World1',
+            'Hello World2',
+            'Hello World3'
+        ]);
+        expect(widgets[0]).toMatchObject({
+            type: 'text',
+            x: 100,
+            y: 140,
+            props: {
+                font_family: 'Montserrat',
+                font_size: 28,
+                color: '#00FF00'
+            }
+        });
+        expect(widgets[1].props.color).toBe('white');
+        expect(widgets[2].props.color).toBe('#FF0000');
+        expect(layout?.importWarnings).toContain(
+            'Imported root hardware/system YAML for context; generated output may still comment those sections to avoid duplicate ESPHome definitions.'
+        );
+    });
+
     it('recovers marked state-trigger imports and flags unsupported custom automations', () => {
         const layout = {
             pages: [{

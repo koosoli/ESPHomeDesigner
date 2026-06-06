@@ -4,10 +4,12 @@
  */
 
 import { DEVICE_PROFILES } from './devices.js';
+import { resolveDisplayId, resolveTouchscreenId } from './display_ids.js';
 import { serializeWidget, serializeYamlObject } from './yaml_export_lvgl_serialization.js';
 import { transpilePageWidget } from './yaml_export_lvgl_transpile.js';
 
 export { convertAlign, convertColor, formatOpacity, getLVGLFont } from './yaml_export_lvgl_core.js';
+export { resolveDisplayId, resolveTouchscreenId } from './display_ids.js';
 export { serializeWidget } from './yaml_export_lvgl_serialization.js';
 export { hasLVGLWidgets, stripDefaults } from './yaml_export_lvgl_transpile.js';
 
@@ -38,12 +40,12 @@ export function generateLVGLSnippet(pages, deviceModel, profileOverride = null, 
     lines.push(`  bg_color: ${bgColor}`);
     lines.push("  displays:");
 
-    const displayId = profile.features?.lcd ? "my_display" : "epaper_display";
+    const displayId = resolveDisplayId(profile);
     lines.push(`    - ${displayId}`);
 
     if (profile.touch) {
         lines.push("  touchscreens:");
-        lines.push("    - my_touchscreen");
+        lines.push(`    - ${resolveTouchscreenId(profile)}`);
     }
 
     if (layout.lcdEcoStrategy === 'dim_after_timeout') {

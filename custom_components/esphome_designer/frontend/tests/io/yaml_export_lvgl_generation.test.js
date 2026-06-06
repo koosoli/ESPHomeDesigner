@@ -55,7 +55,9 @@ describe('yaml_export_lvgl generation details', () => {
 
         const output = lines.join('\n');
         expect(output).toContain('bg_color: "0x000000"');
+        expect(output).toContain('    - my_display');
         expect(output).toContain('touchscreens:');
+        expect(output).toContain('    - my_touchscreen');
         expect(output).toContain('timeout: 12s');
         expect(output).toContain('# widget:lvgl_obj id:obj_visible');
         expect(output).toContain('border_width: 2');
@@ -86,5 +88,24 @@ describe('yaml_export_lvgl generation details', () => {
         const output = lines.join('\n');
         expect(output).toContain('- epaper_display');
         expect(output.match(/ {8}\[\]/g) || []).toHaveLength(2);
+    });
+
+    it('uses profile-defined display and touchscreen ids when available', () => {
+        const lines = generateLVGLSnippet(
+            [{ id: 'page_0', widgets: [] }],
+            'guition_profile',
+            {
+                features: { lcd: true },
+                displayId: 'main_display',
+                touch: { platform: 'gt911', id: 'device_touchscreen' }
+            },
+            {}
+        );
+
+        const output = lines.join('\n');
+        expect(output).toContain('  displays:\n    - main_display');
+        expect(output).toContain('  touchscreens:\n    - device_touchscreen');
+        expect(output).not.toContain('my_display');
+        expect(output).not.toContain('my_touchscreen');
     });
 });

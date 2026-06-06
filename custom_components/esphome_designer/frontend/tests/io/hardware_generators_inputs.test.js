@@ -18,7 +18,7 @@ describe('hardware_generators_inputs', () => {
                     home: 'GPIO4'
                 }
             },
-            touch: { platform: 'gt911' }
+            touch: { platform: 'gt911', id: 'device_touchscreen' }
         }, 3, 'my_display', [
             {
                 id: 'nav_main',
@@ -64,6 +64,8 @@ describe('hardware_generators_inputs', () => {
         expect(joined).toContain('id: button_enter');
         expect(joined).toContain('id: button_home');
         expect(joined).toContain('id: nav_prev_nav_main');
+        expect(joined).toContain('touchscreen_id: device_touchscreen');
+        expect(joined).not.toContain('touchscreen_id: my_touchscreen');
         expect(joined).toContain('id: nav_home_nav_main');
         expect(joined).toContain('id: nav_next_nav_main');
         expect(joined).toContain("lambda: 'return id(display_page) == 1 && (millis() - id(last_touch_time) > 2000);'");

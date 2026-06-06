@@ -18,6 +18,7 @@
 #           ESP32-C6 companion over SDIO, configured below via esp32_hosted.
 #         - esp_ldo channel 3 powers the MIPI display rail.
 #         - GPIO23 drives the display backlight PWM.
+#         - ES8311 audio codec is wired on the shared I2C bus and I2S pins.
 #
 # SETUP INSTRUCTIONS:
 #
@@ -57,6 +58,7 @@ esp_ldo:
 
 psram:
   mode: hex
+  speed: 200MHz
 
 preferences:
   flash_write_interval: 5min
@@ -93,7 +95,7 @@ light:
 
 touchscreen:
   - platform: gt911
-    id: my_touchscreen
+    id: device_touchscreen
     i2c_id: i2c_bus
     reset_pin: GPIO3
     update_interval: 16ms
@@ -107,10 +109,39 @@ touchscreen:
 
 display:
   - platform: mipi_dsi
-    id: my_display
+    id: main_display
     model: JC4880P443
     byte_order: little_endian
     rotation: 0
     update_interval: never
     auto_clear_enabled: false
     # __LAMBDA_PLACEHOLDER__
+
+audio_dac:
+  - platform: es8311
+    id: es8311_dac
+    address: 0x18
+    i2c_id: i2c_bus
+
+i2s_audio:
+  - id: i2s_bus
+    i2s_lrclk_pin: GPIO10
+    i2s_bclk_pin: GPIO12
+    i2s_mclk_pin: GPIO13
+
+microphone:
+  - platform: i2s_audio
+    id: es8311_mic
+    i2s_audio_id: i2s_bus
+    i2s_din_pin: GPIO48
+    adc_type: external
+    pdm: false
+    channel: left
+
+speaker:
+  - platform: i2s_audio
+    id: es8311_hardware_out
+    i2s_audio_id: i2s_bus
+    i2s_dout_pin: GPIO9
+    dac_type: external
+    audio_dac: es8311_dac

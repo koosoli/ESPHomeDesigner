@@ -1,4 +1,5 @@
 import { getPageSwitchDebounceMs } from '../navigation_debounce.js';
+import { resolveDisplayId } from '../display_ids.js';
 import { buildLayoutDiagnostics } from './yaml_generation_diagnostics.js';
 
 /**
@@ -10,7 +11,7 @@ import { buildLayoutDiagnostics } from './yaml_generation_diagnostics.js';
 export function generateScriptSection(payload, pages, profile) {
     const lines = [];
     const diagnostics = buildLayoutDiagnostics(payload, pages);
-    const displayId = profile.features?.lcd ? "my_display" : "epaper_display";
+    const displayId = resolveDisplayId(profile);
     const hasMultiplePages = pages.length > 1;
     const autoCycleEnabled = payload.autoCycleEnabled && pages.length > 1;
     const hasAnyVisibility = pages.some((p) => p.visible_from || p.visible_to);

@@ -89,7 +89,89 @@ describe('cpp_drawing_parser', () => {
         });
     });
 
+    it('parses print commands into text widgets', () => {
+        expect(parseCppDrawingCommand('it.print(100, 140, id(montserrat_28), Color(0,255,0), TextAlign::LEFT, "Hello World1");', 9)).toMatchObject({
+            id: 'w_text_9',
+            type: 'text',
+            x: 100,
+            y: 140,
+            props: {
+                text: 'Hello World1',
+                font_family: 'Montserrat',
+                font_size: 28,
+                color: '#00FF00',
+                text_align: 'TOP_LEFT'
+            }
+        });
+
+        expect(parseCppDrawingCommand('it.print(4, 5, id(font_18), Color::RED, "Plain color");', 10)).toMatchObject({
+            props: {
+                text: 'Plain color',
+                font_family: 'Font',
+                font_size: 18,
+                color: 'red',
+                text_align: 'TOP_LEFT'
+            }
+        });
+
+        expect(parseCppDrawingCommand('it.print(6, 7, id(label_font), "No color");', 11)).toMatchObject({
+            props: {
+                text: 'No color',
+                font_family: 'Label Font',
+                font_size: 20,
+                color: 'black'
+            }
+        });
+
+        expect(parseCppDrawingCommand('it.print(8, 9, id(font_12), Color::BLUE, TextAlign::BOTTOM_RIGHT, "Escaped \\"quote\\"");', 12)).toMatchObject({
+            props: {
+                text: 'Escaped \\"quote\\"',
+                color: 'blue',
+                text_align: 'BOTTOM_RIGHT'
+            }
+        });
+
+        expect(parseCppDrawingCommand('it.print(10, 11, id(font_12), Color::MAGENTA, TextAlign::RIGHT, "Fallback color");', 13)).toMatchObject({
+            props: {
+                color: 'black',
+                text_align: 'TOP_RIGHT'
+            }
+        });
+
+        expect(parseCppDrawingCommand('it.print(12, 13, id(font_12), Color::GREEN, TextAlign::CENTER, "Center");', 14)).toMatchObject({
+            props: {
+                color: 'green',
+                text_align: 'TOP_CENTER'
+            }
+        });
+
+        expect(parseCppDrawingCommand('it.print(12, 13, id(font_12), Color::YELLOW, TextAlign::CENTER_RIGHT, "Center right");', 15)).toMatchObject({
+            props: {
+                color: 'yellow',
+                text_align: 'CENTER_RIGHT'
+            }
+        });
+
+        expect(parseCppDrawingCommand('it.print(12, 13, id(font_12), Color::BLACK, TextAlign::BOTTOM_LEFT, "Bottom left");', 16)).toMatchObject({
+            props: {
+                color: 'black',
+                text_align: 'BOTTOM_LEFT'
+            }
+        });
+
+        expect(parseCppDrawingCommand('it.print(12, 13, id(font_12), Color::WHITE, TextAlign::TOP_RIGHT, "Top right");', 17)).toMatchObject({
+            props: {
+                color: 'white',
+                text_align: 'TOP_RIGHT'
+            }
+        });
+
+        expect(parseCppDrawingCommand('it.print(x, y, id(font), Color::WHITE, TextAlign::LEFT, "Bad position");', 18)).toBeNull();
+        expect(parseCppDrawingCommand('it.print(1, 2, id(font), Color::WHITE, TextAlign::LEFT, "");', 19)).toBeNull();
+        expect(parseCppDrawingCommand('it.print(1, 2, id(font));', 20)).toBeNull();
+    });
+
     it('returns null for unsupported drawing statements', () => {
-        expect(parseCppDrawingCommand('it.print(0, 0, id(font), "Hello");', 9)).toBeNull();
+        expect(parseCppDrawingCommand('it.start_clipping(0, 0, 10, 10);', 9)).toBeNull();
     });
 });
