@@ -68,7 +68,6 @@ describe('lvgl slider plugin', () => {
         const domains = {
             'fan.ceiling': 'fan.set_percentage',
             'cover.shade': 'cover.set_cover_position',
-            'media_player.speaker': 'media_player.volume_set',
             'climate.room': 'climate.set_temperature',
             'number.manual': 'number.set_value'
         };
@@ -100,6 +99,29 @@ describe('lvgl slider plugin', () => {
             expect(exported.slider.knob.bg_color).toBe('0xGREEN');
             expect(exported.slider.on_value[0]['homeassistant.service'].service).toBe(service);
         }
+
+        const mediaPlayer = plugin.exportLVGL({
+            id: 'slider_media_player_speaker',
+            type: 'lvgl_slider',
+            entity_id: 'media_player.speaker',
+            props: {
+                min: 0,
+                max: 100,
+                value: 30,
+                color: 'green',
+                bg_color: 'gray'
+            }
+        }, {
+            common: { id: 'base' },
+            convertColor: (value) => `0x${String(value).toUpperCase()}`,
+            profile: { touch: true }
+        });
+
+        expect(mediaPlayer.slider.on_value[0]['homeassistant.action'].action).toBe('media_player.volume_set');
+        expect(mediaPlayer.slider.on_value[0]['homeassistant.action'].data).toEqual({
+            entity_id: 'media_player.speaker',
+            volume_level: "!lambda 'return x / 100.0;'"
+        });
 
         const defaultLight = plugin.exportLVGL({
             id: 'slider_light_default',

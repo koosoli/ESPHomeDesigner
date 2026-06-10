@@ -208,6 +208,65 @@ describe('online_image plugin', () => {
             profile: { features: {}, name: 'Mono Panel' },
             isLvgl: true
         });
-        expect(lvglLines.join('\n')).toContain('lvgl.widget.refresh: image-1');
+        expect(lvglLines.join('\n')).toContain('online_image:');
+        expect(lvglLines.join('\n')).not.toContain('lvgl.widget.refresh: image-1');
+    });
+
+    it('keeps direct display refresh callbacks for non-LVGL online images', () => {
+        const widget = {
+            id: 'image-epaper',
+            type: 'puppet',
+            width: 80,
+            height: 40,
+            props: {
+                url: 'https://example.com/epaper.png',
+                format: 'PNG',
+                render_mode: 'Grayscale',
+                interval_s: 0,
+                update_interval: '10min'
+            }
+        };
+
+        const lines = [];
+        plugin.onExportComponents({
+            lines,
+            widgets: [widget],
+            profile: { features: {}, name: 'Mono Panel' },
+            isLvgl: false
+        });
+
+        const yaml = lines.join('\n');
+        expect(yaml).toContain('type: GRAYSCALE');
+        expect(yaml).toContain('resize: 80x40');
+        expect(yaml).toContain('update_interval: 10min');
+        expect(yaml).toContain('component.update: epaper_display');
+    });
+
+    it('exports conditional direct-display image drawing', () => {
+        const lines = [];
+        plugin.export({
+            id: 'image-condition',
+            type: 'online_image',
+            x: 1,
+            y: 2,
+            width: 30,
+            height: 20,
+            props: {
+                url: 'https://example.com/asset.png',
+                render_mode: 'Color (RGB565)',
+                border_width: 0
+            }
+        }, {
+            lines,
+            getConditionCheck: () => 'if (id(show_image).state) {',
+            getColorConst: (value) => `Color(${value})`,
+            profile: { features: {}, name: 'Mono Panel' }
+        });
+
+        expect(lines).toEqual([
+            '        if (id(show_image).state) {',
+            '        it.image(1, 2, id(online_img_image_condition));',
+            '        }'
+        ]);
     });
 });

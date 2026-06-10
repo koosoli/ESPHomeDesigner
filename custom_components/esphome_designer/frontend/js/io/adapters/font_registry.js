@@ -1,6 +1,24 @@
 import { clampFontWeight } from '../../core/font_weights.js';
 import { Utils } from '../../core/utils';
 
+const LOCAL_FONT_FILE_RE = /\.(?:ttf|otf|pcf|bdf)$/i;
+
+/**
+ * @param {string} value
+ * @returns {boolean}
+ */
+function isLocalFontFile(value) {
+    return LOCAL_FONT_FILE_RE.test(value.trim()) || value.includes("/") || value.includes("\\");
+}
+
+/**
+ * @param {string} value
+ * @returns {string}
+ */
+function normalizeLocalFontPath(value) {
+    return value.trim().replace(/\\/g, "/");
+}
+
 /**
  * Modular font and glyph registry for ESPHome.
  */
@@ -8,7 +26,7 @@ export class FontRegistry {
     constructor() {
         /** @type {Set<string>} */
         this.definedFontIds = new Set();
-        /** @type {Array<{ id: string, file: { type: string, family: string, weight: number, italic: boolean }, size: number, glyphs: string[] }>} */
+        /** @type {Array<{ id: string, file: string | { type: string, family: string, weight: number, italic: boolean }, size: number, glyphs: string[], local?: boolean }>} */
         this.fontLines = [];
         /** @type {Map<number, Set<string>>} */
         this.iconCodesBySize = new Map();
@@ -38,11 +56,18 @@ export class FontRegistry {
      * @returns {string} 
      */
     addFont(family, weight, size, italic = false) {
-        const safeFamily = family.replace(/\s+/g, "_").toLowerCase();
+        const isLocalFile = isLocalFontFile(family);
+        const normalizedFamily = isLocalFile ? normalizeLocalFontPath(family) : family;
+        const safeFamily = normalizedFamily
+            .replace(/^.*\//, "")
+            .replace(/\.[^.]+$/, "")
+            .replace(/[^a-zA-Z0-9]+/g, "_")
+            .replace(/^_+|_+$/g, "")
+            .toLowerCase() || "custom_font";
         let weightNum = parseInt(String(weight), 10) || 400;
 
         // Guard against invalid Google Font weights (Issue #317)
-        if (family !== "Material Design Icons") {
+        if (family !== "Material Design Icons" && !isLocalFile) {
             weightNum = clampFontWeight(family, weightNum);
         }
 
@@ -55,6 +80,15 @@ export class FontRegistry {
 
         if (family === "Material Design Icons") {
             // We just register the ID, glyphs are handled in getLines()
+        } else if (isLocalFile) {
+            const fontDef = {
+                id,
+                file: normalizeLocalFontPath(family),
+                size: size,
+                glyphs: [...this.EXTENDED_GLYPHS],
+                local: true
+            };
+            this.fontLines.push(fontDef);
         } else {
             const fontDef = {
                 id,
@@ -117,11 +151,15 @@ export class FontRegistry {
 
         // 1. Regular Fonts
         this.fontLines.forEach((f) => {
-            lines.push(`  - file:`);
-            lines.push(`      type: ${f.file.type}`);
-            lines.push(`      family: "${f.file.family}"`);
-            lines.push(`      weight: ${f.file.weight}`);
-            lines.push(`      italic: ${f.file.italic ? 'true' : 'false'}`);
+            if (typeof f.file === "string") {
+                lines.push(`  - file: "${f.file}"`);
+            } else {
+                lines.push(`  - file:`);
+                lines.push(`      type: ${f.file.type}`);
+                lines.push(`      family: "${f.file.family}"`);
+                lines.push(`      weight: ${f.file.weight}`);
+                lines.push(`      italic: ${f.file.italic ? 'true' : 'false'}`);
+            }
             lines.push(`    id: ${f.id}`);
             lines.push(`    size: ${Math.round(f.size)}`);
             if (glyphsets && glyphsets.length > 0) {

@@ -111,6 +111,7 @@ display:
   - platform: mipi_dsi
     id: main_display
     model: JC4880P443
+    reset_pin: GPIO27
     byte_order: little_endian
     rotation: 0
     update_interval: never

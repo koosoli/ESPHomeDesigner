@@ -328,6 +328,30 @@ describe('DeviceSettings', () => {
         expect(fileInput.value).toBe('');
     });
 
+    it('selects and loads an imported hardware recipe after upload', async () => {
+        ds.init();
+        mockUploadHardwareTemplate.mockResolvedValueOnce({ id: 'custom_user', name: 'My Imported' });
+        mockLoadExternalProfiles.mockResolvedValue(undefined);
+
+        const fileInput = /** @type {HTMLInputElement} */ (document.getElementById('hardwareFileInput'));
+        const testFile = new File(['# Name: My Imported'], 'my-imported.yaml', { type: 'text/yaml' });
+        Object.defineProperty(fileInput, 'files', {
+            configurable: true,
+            value: [testFile]
+        });
+
+        fileInput.dispatchEvent(new Event('change'));
+        for (let i = 0; i < 20; i += 1) {
+            await Promise.resolve();
+        }
+
+        expect(mockLoadExternalProfiles).toHaveBeenCalledWith(true);
+        expect(mockAppState.setDeviceModel).toHaveBeenCalledWith('custom_user');
+        expect(mockAppState.updateSettings).toHaveBeenCalledWith({ device_model: 'custom_user' });
+        expect(mockCustomPanel.loadFromProfile).toHaveBeenCalledWith('custom_user');
+        expect(fileInput.value).toBe('');
+    });
+
     it('delegates custom profile save handler', async () => {
         await ds.handleSaveCustomProfile();
         expect(mockCustomPanel.handleSaveCustomProfile).toHaveBeenCalled();

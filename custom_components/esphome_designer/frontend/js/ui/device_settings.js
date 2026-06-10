@@ -1,6 +1,7 @@
 import { AppState } from '../core/state';
 import { Logger } from '../utils/logger.js';
 import { emit, EVENTS, on } from '../core/events.js';
+import { DEVICE_PROFILES } from '../io/devices.js';
 import { uploadHardwareTemplate } from '../io/hardware_import.js';
 import { saveLayoutToBackend } from '../io/ha_api.js';
 import { CustomHardwarePanel } from './device_settings/custom_hardware.js';
@@ -15,6 +16,31 @@ import {
 
 /** @typedef {ReturnType<typeof setTimeout>} TimerHandle */
 /** @typedef {Record<string, any>} DeviceProfileMap */
+
+/**
+ * @param {File} file
+ * @param {Record<string, any>} imported
+ * @returns {string}
+ */
+function resolveImportedProfileId(file, imported) {
+    const explicitId = imported?.id || imported?.profile?.id || imported?.template?.id || "";
+    if (explicitId) return explicitId;
+
+    const name = imported?.name || imported?.profile?.name || imported?.template?.name || "";
+    const filenameBase = file.name.replace(/\.ya?ml$/i, '').toLowerCase();
+    const normalizedFilename = filenameBase.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    const offlineId = `dynamic_offline_${file.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
+
+    return Object.keys(DEVICE_PROFILES).find((id) => {
+        const profile = DEVICE_PROFILES[id];
+        const profileName = String(profile?.name || "").trim();
+        const normalizedId = id.toLowerCase();
+        return id === offlineId
+            || normalizedId === `custom_${normalizedFilename}`
+            || normalizedId === normalizedFilename
+            || (name && profileName === name);
+    }) || explicitId;
+}
 
 export class DeviceSettings {
     constructor() {
@@ -133,7 +159,16 @@ export class DeviceSettings {
                 if (files && files.length > 0) {
                     const file = files[0];
                     try {
-                        await uploadHardwareTemplate(file);
+                        const imported = await uploadHardwareTemplate(file);
+                        await this.reloadHardwareProfiles();
+                        const importedId = resolveImportedProfileId(file, imported);
+                        if (importedId && this.modelInput) {
+                            this.modelInput.value = importedId;
+                            AppState.setDeviceModel(importedId);
+                            AppState.updateSettings({ device_model: importedId });
+                            this.updateVisibility();
+                            maybeLoadCustomHardwareProfile(this, importedId);
+                        }
                     } catch {
                         // Silently ignore hardware import errors (user likely canceled or invalid file)
                     }

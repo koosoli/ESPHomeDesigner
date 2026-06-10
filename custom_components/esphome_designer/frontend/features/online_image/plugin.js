@@ -199,14 +199,7 @@ const onExportComponents = (context) => {
 
 
             const displayId = profile.features?.lcd ? "my_display" : "epaper_display";
-            if (context.isLvgl) {
-                lines.push(`    on_download_finished:`);
-                lines.push(`      then:`);
-                lines.push(`        - lvgl.widget.refresh: ${w.id}`);
-                lines.push(`    on_error:`);
-                lines.push(`      then:`);
-                lines.push(`        - lvgl.widget.refresh: ${w.id}`);
-            } else {
+            if (!context.isLvgl) {
                 lines.push(`    on_download_finished:`);
                 lines.push(`      then:`);
                 lines.push(`        - component.update: ${displayId}`);
@@ -302,4 +295,3 @@ export default {
     export: exportDoc,
     onExportComponents
 };
-

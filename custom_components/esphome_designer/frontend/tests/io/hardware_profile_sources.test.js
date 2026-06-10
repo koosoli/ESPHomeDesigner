@@ -113,6 +113,7 @@ display:
         expect(guitionP4Yaml).toContain('speed: 200MHz');
         expect(guitionP4Yaml).toContain('pin: GPIO23');
         expect(guitionP4Yaml).toContain('id: main_display');
+        expect(guitionP4Yaml).toContain('reset_pin: GPIO27');
         expect(guitionP4Yaml).toContain('id: device_touchscreen');
         expect(guitionP4Yaml).toContain('audio_dac:');
 

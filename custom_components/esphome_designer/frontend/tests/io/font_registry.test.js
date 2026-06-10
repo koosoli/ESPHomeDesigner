@@ -59,4 +59,17 @@ describe('FontRegistry', () => {
         expect(yaml).toContain('weight: 600');
         expect(yaml).toContain('id: font_roboto_600_18');
     });
+
+    it('should export local font file paths without Google Fonts metadata', () => {
+        const registry = new FontRegistry();
+        registry.addFont('fonts/ter-powerline-v16n.pcf', 400, 16, false);
+
+        const lines = registry.getLines();
+        const yaml = lines.join('\n');
+
+        expect(yaml).toContain('file: "fonts/ter-powerline-v16n.pcf"');
+        expect(yaml).toContain('id: font_ter_powerline_v16n_400_16');
+        expect(yaml).not.toContain('type: gfonts');
+        expect(yaml).not.toContain('family: "fonts/ter-powerline-v16n.pcf"');
+    });
 });

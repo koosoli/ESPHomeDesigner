@@ -185,7 +185,7 @@ const exportLVGL = (w, { common, convertColor, profile }) => {
         } else if (normalizedEntityId.startsWith("cover.")) {
             serviceCall = { "homeassistant.service": { service: "cover.set_cover_position", data: { entity_id: entityId, position: "!lambda 'return x;'" } } };
         } else if (normalizedEntityId.startsWith("media_player.")) {
-            serviceCall = { "homeassistant.service": { service: "media_player.volume_set", data: { entity_id: entityId, volume_level: "!lambda 'return x / 100.0;'" } } };
+            serviceCall = { "homeassistant.action": { action: "media_player.volume_set", data: { entity_id: entityId, volume_level: "!lambda 'return x / 100.0;'" } } };
         } else if (normalizedEntityId.startsWith("climate.")) {
             serviceCall = { "homeassistant.service": { service: "climate.set_temperature", data: { entity_id: entityId, temperature: "!lambda 'return x;'" } } };
         } else {

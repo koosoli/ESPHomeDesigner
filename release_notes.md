@@ -1,3 +1,18 @@
+## v1.0.0 RC20 - Hardware Import, LVGL Images & Font Paths
+**Release Date:** June 10, 2026
+
+This RC20 release follows up on the latest reports in issues #417 and #418 plus discussions #419 and #420, while rechecking the recent #416, #414, and #409 feedback against the current generator.
+
+### Stability & Verification
+- **Imported Hardware Profile Selection (Issue #418):** Importing a hardware recipe now refreshes the profile registry, selects the imported profile when it can be identified, and loads the custom hardware editor fields immediately instead of leaving users on stale/default custom settings.
+- **Saved Custom Profile State Sync (Issue #418 / #416 follow-up):** Selecting an imported or saved custom profile now also refreshes the persisted custom-hardware state from that profile, keeping generated YAML, canvas dimensions, and visible form fields aligned.
+- **LVGL Online Image Export Fix (Issue #417):** LVGL online-image exports no longer attach invalid `lvgl.widget.refresh` callbacks to image widgets after download/error events.
+- **Local Font File Export (Discussion #420):** Custom font values that point at local `.ttf`, `.otf`, `.pcf`, or `.bdf` files now export as ESPHome local font files instead of being treated as Google Font family names.
+- **Media Player Slider Action (Discussion #419):** LVGL sliders bound to `media_player.*` entities now emit a modern `homeassistant.action` volume-set action with a 0-100 slider mapped to Home Assistant's 0.0-1.0 volume level.
+- **Release Metadata Refresh:** Updated package metadata, package lock metadata, Home Assistant manifest version, runtime version string, visible header label, release notes, and rebuilt frontend assets for the RC20 release line.
+
+---
+
 ## v1.0.0 RC19.3 - Guition P4 LVGL Follow-up Hotfix
 **Release Date:** June 6, 2026
 

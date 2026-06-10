@@ -88,6 +88,42 @@ export function readCustomHardwareConfig(panel) {
 }
 
 /**
+ * @param {any} profile
+ * @returns {Record<string, any>}
+ */
+export function profileToCustomHardwareConfig(profile) {
+    const pins = extractProfilePins(profile?.content || "");
+    const resolution = profile?.resolution || {};
+    return {
+        name: profile?.name || "",
+        chip: profile?.chip || "esp32-s3",
+        tech: profile?.features?.epaper ? "epaper" : "lcd",
+        resWidth: resolution.width || 800,
+        resHeight: resolution.height || 480,
+        shape: profile?.shape || "rect",
+        psram: !!profile?.features?.psram,
+        displayDriver: resolveProfileDisplayDriver(profile || {}),
+        displayModel: profile?.displayModel || "",
+        touchTech: extractTouchPlatform(profile?.content || ""),
+        pins: {
+            cs: pins.pin_cs || "",
+            dc: pins.pin_dc || "",
+            rst: pins.pin_rst || "",
+            busy: pins.pin_busy || "",
+            clk: pins.pin_clk || "",
+            mosi: pins.pin_mosi || "",
+            backlight: pins.pin_backlight || "",
+            sda: pins.pin_sda || "",
+            scl: pins.pin_scl || "",
+            touch_int: pins.pin_touch_int || "",
+            touch_rst: pins.pin_touch_rst || "",
+            batteryAdc: pins.pin_battery_adc || "",
+            batteryEnable: pins.pin_battery_enable || ""
+        }
+    };
+}
+
+/**
  * @param {string} id
  * @param {string} value
  * @returns {void}
@@ -192,4 +228,5 @@ export function loadPanelFromProfile(panel, profile) {
     Object.values(panel.pinInputs).forEach(id => setInputValue(id, ""));
     const pins = extractProfilePins(yaml);
     Object.entries(pins).forEach(([id, value]) => setInputValue(id, value));
+    updatePinDatalist(panel);
 }

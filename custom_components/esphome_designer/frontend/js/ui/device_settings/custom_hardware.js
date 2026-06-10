@@ -8,6 +8,7 @@ import {
     readCustomHardwareConfig,
     populateCustomHardwareFields,
     loadPanelFromProfile,
+    profileToCustomHardwareConfig,
     updateDisplayModelVisibility,
     updatePinDatalist
 } from './custom_hardware_form.js';
@@ -327,6 +328,10 @@ export class CustomHardwarePanel {
      */
     loadFromProfile(profileId) {
         const deviceProfiles = /** @type {Record<string, any>} */ (DEVICE_PROFILES);
-        loadPanelFromProfile(this, deviceProfiles[profileId]);
+        const profile = deviceProfiles[profileId];
+        loadPanelFromProfile(this, profile);
+        if (profile) {
+            AppState.setCustomHardware(profileToCustomHardwareConfig(profile));
+        }
     }
 }
