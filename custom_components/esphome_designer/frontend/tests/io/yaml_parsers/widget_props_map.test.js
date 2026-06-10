@@ -84,7 +84,8 @@ describe('buildWidgetProps', () => {
             weight: '700',
             italic: 'true',
             color: 'red',
-            align: 'BOTTOM_RIGHT'
+            align: 'BOTTOM_RIGHT',
+            truncate: 'true'
         }, textWidget)).toEqual({
             text: 'Hello',
             font_size: 18,
@@ -93,7 +94,8 @@ describe('buildWidgetProps', () => {
             italic: true,
             bpp: 1,
             color: 'red',
-            text_align: 'BOTTOM_RIGHT'
+            text_align: 'BOTTOM_RIGHT',
+            truncate: true
         });
 
         const sensorWidget = { title: '', width: 100, height: 20 };
@@ -111,7 +113,8 @@ describe('buildWidgetProps', () => {
             precision: '1',
             local: 'true',
             text_sensor: 'true',
-            separator: ' / '
+            separator: ' / ',
+            truncate: 'true'
         }, sensorWidget)).toMatchObject({
             label_font_size: 12,
             value_font_size: 24,
@@ -125,7 +128,8 @@ describe('buildWidgetProps', () => {
             precision: 1,
             is_local_sensor: true,
             is_text_sensor: true,
-            separator: ' / '
+            separator: ' / ',
+            truncate: true
         });
         expect(sensorWidget.entity_id_2).toBe('sensor.outdoor');
 

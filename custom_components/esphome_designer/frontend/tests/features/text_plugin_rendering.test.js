@@ -314,7 +314,8 @@ describe('text plugin rendering and export variants', () => {
                 font_size: 14,
                 font_family: 'Roboto',
                 color: 'black',
-                text_align: 'CENTER'
+                text_align: 'CENTER',
+                truncate: true
             }
         }, {
             layout: { darkMode: false },
@@ -326,7 +327,8 @@ describe('text plugin rendering and export variants', () => {
             anchor: 'mm',
             x: 46,
             y: 27,
-            max_width: 72
+            max_width: 72,
+            truncate: true
         });
     });
 

@@ -7,6 +7,8 @@ This RC20.1 hotfix follows up on [Discussion #420](https://github.com/koosoli/ES
 - **LVGL Touchscreen Schema Fix (Discussion #420):** LVGL export now emits touchscreen references in ESPHome's current object form, `touchscreen_id: ...`, and omits the `touchscreens` block entirely when the profile has no concrete touchscreen component instead of producing `touchscreens: []`.
 - **LVGL Image Widget Compatibility (Discussion #420):** LVGL image widgets now export with ESPHome's current `image:` widget key instead of the legacy `img:` key, preventing `Unknown widget type: img` compile failures.
 - **LVGL Image Import Compatibility:** Native LVGL import accepts both current `image:` and legacy `img:` widget tags so older snippets can still round-trip into the designer.
+- **Weather Hourly Helper YAML Follow-up (Issue #414):** The weather widget's Copy HA YAML action now uses the same robust timestamp matching as the export comments for hourly forecasts, including relative `+Nh` slots and fixed-hour slots that roll forward to tomorrow after the slot has passed.
+- **OpenDisplay Text Truncation Option (Issue #421):** Text and Sensor Text widgets now expose a `Truncate Overflow` option and emit `truncate: true` for OpenDisplay text exports when enabled, so users can match the clipped editor preview on-device.
 - **Release Metadata Refresh:** Updated package metadata, package lock metadata, Home Assistant manifest version, runtime version string, visible header label, release notes, and rebuilt frontend assets for the RC20.1 hotfix line.
 
 ---

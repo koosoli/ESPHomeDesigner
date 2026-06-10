@@ -159,7 +159,8 @@ export default {
         opa: 255,
         border_width: 0,
         border_color: "black",
-        border_radius: 0
+        border_radius: 0,
+        truncate: false
     },
     renderProperties: (panel, widget) => {
         const props = widget.props || {};
@@ -206,6 +207,7 @@ export default {
         panel.addCheckbox("Italic", !!props.italic, (v) => updateProp("italic", v));
         panel.addSelect("Alignment", props.text_align || "TOP_LEFT", ["TOP_LEFT", "TOP_CENTER", "TOP_RIGHT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "BOTTOM_LEFT", "BOTTOM_CENTER", "BOTTOM_RIGHT"], (v) => updateProp("text_align", v));
         panel.addCheckbox("Parse Color Tags", !!props.parse_colors, (v) => updateProp("parse_colors", v));
+        panel.addCheckbox("Truncate Overflow", !!props.truncate, (v) => updateProp("truncate", v));
         if (props.parse_colors) {
             panel.addHint("Usage: [red]Text[/red] or [#FF00AA]Colors[/#]");
         }
@@ -294,6 +296,9 @@ export default {
         if (w.width > 0) {
             result.max_width = Math.round(w.width);
             result.spacing = 5;
+            if (p.truncate) {
+                result.truncate = true;
+            }
         }
 
         return result;

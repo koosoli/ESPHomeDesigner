@@ -4,6 +4,83 @@ import { DAY_LANGUAGE_OPTIONS, DEFAULT_DAY_LANGUAGE } from './day_labels.js';
 /** @typedef {Widget & { props?: Record<string, any>, entity_id?: string }} WeatherForecastWidget */
 
 /**
+ * @param {string} weatherEntity
+ * @param {string | number} slot
+ * @param {string} unitSymbol
+ * @returns {string}
+ */
+const buildRelativeHourlyHelperYaml = (weatherEntity, slot, unitSymbol) => `
+      - name: 'Weather Forecast Plus ${slot}h High'
+        unique_id: weather_forecast_plus_${slot}h_high
+        default_entity_id: sensor.weather_forecast_plus_${slot}h_high
+        unit_of_measurement: '${unitSymbol}'
+        state: >
+          {% set fc = hourly['${weatherEntity}'].forecast %}
+          {% set target = as_timestamp((now() + timedelta(hours=${slot})).replace(minute=0, second=0, microsecond=0)) %}
+          {% set ns = namespace(hit=none) %}
+          {% for f in fc if ns.hit is none %}
+            {% if as_timestamp(f.datetime) == target %}
+              {% set ns.hit = f %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.hit.temperature if ns.hit else 'N/A' }}
+      - name: 'Weather Forecast Plus ${slot}h Condition'
+        unique_id: weather_forecast_plus_${slot}h_condition
+        default_entity_id: sensor.weather_forecast_plus_${slot}h_condition
+        state: >
+          {% set fc = hourly['${weatherEntity}'].forecast %}
+          {% set target = as_timestamp((now() + timedelta(hours=${slot})).replace(minute=0, second=0, microsecond=0)) %}
+          {% set ns = namespace(hit=none) %}
+          {% for f in fc if ns.hit is none %}
+            {% if as_timestamp(f.datetime) == target %}
+              {% set ns.hit = f %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.hit.condition if ns.hit else 'unknown' }}`;
+
+/**
+ * @param {string} weatherEntity
+ * @param {string} slot
+ * @param {string} unitSymbol
+ * @returns {string}
+ */
+const buildFixedHourlyHelperYaml = (weatherEntity, slot, unitSymbol) => {
+    const paddedSlot = String(slot).padStart(2, '0');
+    return `
+      - name: 'Weather Forecast Hour ${slot}00 High'
+        unique_id: weather_forecast_hour_${slot}00_high
+        default_entity_id: sensor.weather_forecast_hour_${slot}00_high
+        unit_of_measurement: '${unitSymbol}'
+        state: >
+          {% set fc = hourly['${weatherEntity}'].forecast %}
+          {% set target = today_at('${paddedSlot}:00') %}
+          {% set target = target + timedelta(days=1) if now() > target + timedelta(hours=1) else target %}
+          {% set target_ts = as_timestamp(target) %}
+          {% set ns = namespace(hit=none) %}
+          {% for f in fc if ns.hit is none %}
+            {% if as_timestamp(f.datetime) == target_ts %}
+              {% set ns.hit = f %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.hit.temperature if ns.hit else 'N/A' }}
+      - name: 'Weather Forecast Hour ${slot}00 Condition'
+        unique_id: weather_forecast_hour_${slot}00_condition
+        default_entity_id: sensor.weather_forecast_hour_${slot}00_condition
+        state: >
+          {% set fc = hourly['${weatherEntity}'].forecast %}
+          {% set target = today_at('${paddedSlot}:00') %}
+          {% set target = target + timedelta(days=1) if now() > target + timedelta(hours=1) else target %}
+          {% set target_ts = as_timestamp(target) %}
+          {% set ns = namespace(hit=none) %}
+          {% for f in fc if ns.hit is none %}
+            {% if as_timestamp(f.datetime) == target_ts %}
+              {% set ns.hit = f %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.hit.condition if ns.hit else 'unknown' }}`;
+};
+
+/**
  * @param {Record<string, any>} panel
  * @param {WeatherForecastWidget} widget
  */
@@ -102,24 +179,7 @@ template:
             if (activeHourlyMode === "relative") {
                 const relativeCount = parseInt(String(props.relative_count || 5), 10);
                 for (let index = 1; index <= relativeCount; index += 1) {
-                    yaml += `
-      - name: 'Weather Forecast Plus ${index}h High'
-        unique_id: weather_forecast_plus_${index}h_high
-        default_entity_id: sensor.weather_forecast_plus_${index}h_high
-        unit_of_measurement: '${unitSymbol}'
-        state: >
-          {% set fc = hourly['${weatherEntity}'].forecast %}
-          {% set target = (now() + timedelta(hours=${index})).strftime('%Y-%m-%dT%H:00:00') %}
-          {% set hit = fc | selectattr('datetime','search',target) | list | first %}
-          {{ hit.temperature if hit else 'N/A' }}
-      - name: 'Weather Forecast Plus ${index}h Condition'
-        unique_id: weather_forecast_plus_${index}h_condition
-        default_entity_id: sensor.weather_forecast_plus_${index}h_condition
-        state: >
-          {% set fc = hourly['${weatherEntity}'].forecast %}
-          {% set target = (now() + timedelta(hours=${index})).strftime('%Y-%m-%dT%H:00:00') %}
-          {% set hit = fc | selectattr('datetime','search',target) | list | first %}
-          {{ hit.condition if hit else 'cloudy' }}`;
+                    yaml += buildRelativeHourlyHelperYaml(weatherEntity, index, unitSymbol);
                 }
             } else {
                 const hourlySlots = (props.hourly_slots || "06,09,12,15,18,21")
@@ -130,22 +190,7 @@ template:
                 const slots = hourlySlots.slice(startOff);
 
                 slots.forEach((/** @type {string} */ slot) => {
-                    yaml += `
-      - name: 'Weather Forecast Hour ${slot}00 High'
-        unique_id: weather_forecast_hour_${slot}00_high
-        default_entity_id: sensor.weather_forecast_hour_${slot}00_high
-        unit_of_measurement: '${unitSymbol}'
-        state: >
-          {% set fc = hourly['${weatherEntity}'].forecast %}
-          {% set hit = fc | selectattr('datetime','search','T${slot}:') | list | first %}
-          {{ hit.temperature if hit else 'N/A' }}
-      - name: 'Weather Forecast Hour ${slot}00 Condition'
-        unique_id: weather_forecast_hour_${slot}00_condition
-        default_entity_id: sensor.weather_forecast_hour_${slot}00_condition
-        state: >
-          {% set fc = hourly['${weatherEntity}'].forecast %}
-          {% set hit = fc | selectattr('datetime','search','T${slot}:') | list | first %}
-          {{ hit.condition if hit else 'cloudy' }}`;
+                    yaml += buildFixedHourlyHelperYaml(weatherEntity, slot, unitSymbol);
                 });
             }
         } else {

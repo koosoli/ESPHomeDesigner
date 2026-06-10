@@ -151,7 +151,8 @@ describe('oepl_parser', () => {
                 max_width: 144,
                 anchor: 'mm',
                 font: 'Roboto.ttf',
-                color: 'black'
+                color: 'black',
+                truncate: true
             },
             {
                 type: 'text',
@@ -160,7 +161,8 @@ describe('oepl_parser', () => {
                 max_width: 132,
                 anchor: 'mm',
                 font: 'Roboto.ttf',
-                color: 'black'
+                color: 'black',
+                truncate: true
             }
         ]);
 
@@ -168,14 +170,16 @@ describe('oepl_parser', () => {
             type: 'text',
             width: 144,
             props: {
-                text_align: 'CENTER'
+                text_align: 'CENTER',
+                truncate: true
             }
         });
         expect(layout.pages[0].widgets[1]).toMatchObject({
             type: 'sensor_text',
             width: 132,
             props: {
-                text_align: 'CENTER'
+                text_align: 'CENTER',
+                truncate: true
             }
         });
     });

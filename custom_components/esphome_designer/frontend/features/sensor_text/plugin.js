@@ -47,7 +47,8 @@ export default {
         hide_unit: false,
         is_local_sensor: false,
         is_text_sensor: false,
-        separator: " ~ "
+        separator: " ~ ",
+        truncate: false
     },
     render: previewRender,
     exportLVGL,

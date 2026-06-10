@@ -113,6 +113,7 @@ export const renderProperties = (panel, widget) => {
         updateProp("value_align", value);
     });
     panel.addCheckbox("Parse Color Tags", !!props.parse_colors, setBoolProp("parse_colors"));
+    panel.addCheckbox("Truncate Overflow", !!props.truncate, setBoolProp("truncate"));
     panel.addHint("Enable to use [color]text[/color] markup, also supports HA templates.");
     panel.endSection();
 

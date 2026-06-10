@@ -58,7 +58,8 @@ export function buildBasicWidgetProps(widgetType, p, widget) {
             italic: (p.italic === "true" || p.italic === true),
             bpp: parseInt(p.bpp || 1, 10),
             color: p.color || "theme_auto",
-            text_align: p.align || p.text_align || "TOP_LEFT"
+            text_align: p.align || p.text_align || "TOP_LEFT",
+            truncate: (p.truncate === "true" || p.truncate === true)
         };
     }
 
@@ -82,7 +83,8 @@ export function buildBasicWidgetProps(widgetType, p, widget) {
             value_align: p.value_align || p.align || p.text_align || "TOP_LEFT",
             is_local_sensor: (p.is_local_sensor === "true" || p.local === "true"),
             is_text_sensor: (p.is_text_sensor === "true" || p.text_sensor === "true"),
-            separator: p.separator || " ~ "
+            separator: p.separator || " ~ ",
+            truncate: (p.truncate === "true" || p.truncate === true)
         };
     }
 

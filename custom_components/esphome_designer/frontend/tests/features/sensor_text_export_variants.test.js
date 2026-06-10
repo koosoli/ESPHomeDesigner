@@ -191,6 +191,31 @@ describe('sensor_text export variants', () => {
         expect(openDisplay.value).toContain('Power');
         expect(openDisplay.value).toContain('TPL(sensor.power|1|true) / TPL(sensor.energy|1|true) W');
 
+        const truncatedOpenDisplay = exportOpenDisplay({
+            id: 'sensor_truncate',
+            entity_id: 'sensor.long_name',
+            title: 'Long',
+            x: 5,
+            y: 6,
+            width: 80,
+            props: {
+                value_format: 'label_value',
+                precision: 1,
+                value_font_size: 14,
+                color: 'black',
+                text_align: 'TOP_LEFT',
+                truncate: true
+            }
+        }, {
+            layout: { darkMode: false },
+            _page: {}
+        });
+        expect(truncatedOpenDisplay).toMatchObject({
+            type: 'text',
+            max_width: 80,
+            truncate: true
+        });
+
         const oepl = exportOEPL({
             id: 'sensor_oepl',
             entity_id: 'sensor.power',

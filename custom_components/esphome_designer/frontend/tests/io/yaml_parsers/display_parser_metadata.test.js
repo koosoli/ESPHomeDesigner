@@ -54,6 +54,8 @@ describe('display_parser integration', () => {
             'bg_opa: 50%',
             '// widget:text id:text_1 x:10 y:12 w:100 h:24 text:"Hello" font:"Inter" color:"#112233"',
             '  it.print(10, 12, id(font), "skip rendered block");',
+            '// widget:weather_forecast id:weather_1 x:20 y:30 w:370 h:90 entity:weather.home forecast_mode:"hourly" hourly_mode:"relative" relative_count:3 hourly_slots:"06,09" start_offset:1',
+            '  it.printf(20, 30, id(font), "skip weather block");',
             'case 0: interval = 45;',
             '  - id: page_1',
             '    layout: 2x2',
@@ -139,6 +141,18 @@ describe('display_parser integration', () => {
                 text: 'Hello',
                 font_family: 'Inter',
                 color: '#112233'
+            }
+        });
+        expect(layout.pages[0].widgets[1]).toMatchObject({
+            id: 'weather_1',
+            type: 'weather_forecast',
+            entity_id: 'weather.home',
+            props: {
+                forecast_mode: 'hourly',
+                hourly_mode: 'relative',
+                relative_count: 3,
+                hourly_slots: '06,09',
+                start_offset: 1
             }
         });
 

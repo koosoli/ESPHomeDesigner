@@ -170,6 +170,9 @@ describe('weather_forecast render and properties', () => {
         expect(copiedText).toContain('default_entity_id: sensor.weather_forecast_plus_1h_high');
         expect(copiedText).toContain('default_entity_id: sensor.weather_forecast_plus_1h_condition');
         expect(copiedText).toContain('timedelta(hours=1)');
+        expect(copiedText).toContain("as_timestamp((now() + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0))");
+        expect(copiedText).toContain('{% set ns = namespace(hit=none) %}');
+        expect(copiedText).not.toContain("selectattr('datetime','search'");
     });
 
     it('copies fixed hourly YAML using the configured slot offset', async () => {
@@ -195,7 +198,10 @@ describe('weather_forecast render and properties', () => {
         expect(copiedText).toContain('default_entity_id: sensor.weather_forecast_hour_0900_high');
         expect(copiedText).toContain('default_entity_id: sensor.weather_forecast_hour_0900_condition');
         expect(copiedText).toContain('weather_forecast_hour_1200_high');
+        expect(copiedText).toContain("{% set target = today_at('09:00') %}");
+        expect(copiedText).toContain("{% set target_ts = as_timestamp(target) %}");
         expect(copiedText).not.toContain('weather_forecast_hour_0600_high');
+        expect(copiedText).not.toContain("selectattr('datetime','search'");
     });
 
     it('falls back to execCommand copy when the clipboard API is unavailable', () => {

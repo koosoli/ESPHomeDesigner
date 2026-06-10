@@ -296,6 +296,9 @@ export const exportOpenDisplay = (w, { layout, _page }) => {
         if (w.width > 0) {
             result.max_width = Math.round(w.width);
             result.spacing = 5;
+            if (p.truncate) {
+                result.truncate = true;
+            }
         }
 
         return result;

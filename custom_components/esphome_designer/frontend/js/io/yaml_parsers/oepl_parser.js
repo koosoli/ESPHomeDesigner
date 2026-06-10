@@ -102,7 +102,8 @@ export function parseOEPLArrayToLayout(oeplArray) {
                         postfix: templateInfo.postfix,
                         value_format: "value_only",
                         hide_unit: true,
-                        text_align: reverseAnchorMap[item.anchor] || "TOP_LEFT"
+                        text_align: reverseAnchorMap[item.anchor] || "TOP_LEFT",
+                        truncate: item.truncate === true
                     };
                 } else {
                     widget.width = item.max_width || size * 6;
@@ -112,7 +113,8 @@ export function parseOEPLArrayToLayout(oeplArray) {
                         font_size: size,
                         font_family: item.font ? item.font.replace('.ttf', '') : 'Roboto',
                         color: item.fill || item.color || 'black',
-                        text_align: reverseAnchorMap[item.anchor] || "TOP_LEFT"
+                        text_align: reverseAnchorMap[item.anchor] || "TOP_LEFT",
+                        truncate: item.truncate === true
                     };
                 }
                 break;

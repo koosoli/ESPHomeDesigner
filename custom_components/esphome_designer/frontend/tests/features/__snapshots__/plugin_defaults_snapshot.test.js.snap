@@ -852,6 +852,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of senso
   "separator": " ~ ",
   "text_align": "TOP_LEFT",
   "title": "",
+  "truncate": false,
   "unit": "",
   "value_align": "TOP_LEFT",
   "value_font_size": 20,
@@ -982,6 +983,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of text 
   "opa": 255,
   "text": "Text",
   "text_align": "TOP_LEFT",
+  "truncate": false,
 }
 `;
 
