@@ -363,7 +363,7 @@ touchscreen:
         expect(yaml).toContain('id: main_display');
         expect(yaml).toContain('id: device_touchscreen');
         expect(yaml).toContain('  displays:\n    - main_display');
-        expect(yaml).toContain('  touchscreens:\n    - device_touchscreen');
+        expect(yaml).toContain('  touchscreens:\n    - touchscreen_id: device_touchscreen');
         expect(yaml).not.toContain('    - my_display');
         expect(yaml).not.toContain('    - my_touchscreen');
     });

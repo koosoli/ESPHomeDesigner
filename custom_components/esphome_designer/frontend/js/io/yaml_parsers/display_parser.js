@@ -83,7 +83,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
 
     const WIDGET_TAGS = [
         "label", "button", "arc", "bar", "slider", "chart", "dropdown",
-        "roller", "spinbox", "switch", "textarea", "obj", "img",
+        "roller", "spinbox", "switch", "textarea", "obj", "img", "image",
         "qrcode", "led", "spinner", "line", "meter", "tabview",
         "tileview", "checkbox", "keyboard", "buttonmatrix", "list", "icon"
     ];
@@ -92,7 +92,7 @@ export function parseDisplayBlocks(lambdaLines, rawLines, deviceSettings, getESP
         "label": "lvgl_label", "button": "lvgl_button", "arc": "lvgl_arc", "bar": "lvgl_bar",
         "slider": "lvgl_slider", "chart": "lvgl_chart", "dropdown": "lvgl_dropdown",
         "roller": "lvgl_roller", "spinbox": "lvgl_spinbox", "switch": "lvgl_switch",
-        "textarea": "lvgl_textarea", "obj": "lvgl_obj", "img": "lvgl_img",
+        "textarea": "lvgl_textarea", "obj": "lvgl_obj", "img": "lvgl_img", "image": "lvgl_img",
         "qrcode": "lvgl_qrcode", "led": "lvgl_led", "spinner": "lvgl_spinner",
         "line": "lvgl_line", "meter": "lvgl_meter", "tabview": "lvgl_tabview",
         "tileview": "lvgl_tileview", "checkbox": "lvgl_checkbox", "keyboard": "lvgl_keyboard",

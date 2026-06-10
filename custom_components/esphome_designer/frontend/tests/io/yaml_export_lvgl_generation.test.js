@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 
+import lvglImgPlugin from '../../features/lvgl_img/plugin.js';
 import lvglObjPlugin from '../../features/lvgl_obj/plugin.js';
 import { registry } from '../../js/core/plugin_registry';
 import { generateLVGLSnippet } from '../../js/io/yaml_export_lvgl.js';
@@ -57,7 +58,7 @@ describe('yaml_export_lvgl generation details', () => {
         expect(output).toContain('bg_color: "0x000000"');
         expect(output).toContain('    - my_display');
         expect(output).toContain('touchscreens:');
-        expect(output).toContain('    - my_touchscreen');
+        expect(output).toContain('    - touchscreen_id: my_touchscreen');
         expect(output).toContain('timeout: 12s');
         expect(output).toContain('# widget:lvgl_obj id:obj_visible');
         expect(output).toContain('border_width: 2');
@@ -104,8 +105,39 @@ describe('yaml_export_lvgl generation details', () => {
 
         const output = lines.join('\n');
         expect(output).toContain('  displays:\n    - main_display');
-        expect(output).toContain('  touchscreens:\n    - device_touchscreen');
+        expect(output).toContain('  touchscreens:\n    - touchscreen_id: device_touchscreen');
         expect(output).not.toContain('my_display');
         expect(output).not.toContain('my_touchscreen');
+    });
+
+    it('omits empty touchscreen configs and emits ESPHome image widgets', () => {
+        registry.register(lvglImgPlugin);
+
+        const lines = generateLVGLSnippet(
+            [{
+                id: 'page_0',
+                widgets: [{
+                    id: 'logo_image',
+                    type: 'lvgl_img',
+                    x: 117,
+                    y: 199,
+                    width: 80,
+                    height: 80,
+                    props: {
+                        src: 'images/logo.png'
+                    }
+                }]
+            }],
+            'test_device',
+            { features: { lcd: true }, touch: [] },
+            {}
+        );
+
+        const output = lines.join('\n');
+        expect(output).not.toContain('touchscreens:');
+        expect(output).not.toContain('touchscreens: []');
+        expect(output).toContain('        - image:');
+        expect(output).not.toContain('        - img:');
+        expect(output).toContain('src: img_images_logo_png_80x80');
     });
 });

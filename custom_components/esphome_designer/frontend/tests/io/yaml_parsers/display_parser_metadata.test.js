@@ -215,4 +215,68 @@ describe('display_parser integration', () => {
             height: 4
         });
     });
+
+    it('imports current and legacy LVGL image widget tags', () => {
+        const yaml = {
+            load: vi.fn((yamlStr) => {
+                if (yamlStr.includes('id: logo_image')) {
+                    return {
+                        id: 'logo_image',
+                        x: 117,
+                        y: 199,
+                        width: 80,
+                        height: 80,
+                        src: 'logo_asset'
+                    };
+                }
+                if (yamlStr.includes('id: old_logo')) {
+                    return {
+                        id: 'old_logo',
+                        x: 1,
+                        y: 2,
+                        width: 10,
+                        height: 12,
+                        src: 'old_logo_asset'
+                    };
+                }
+                return {};
+            })
+        };
+
+        const layout = parseDisplayBlocks([
+            '  - image:',
+            '      id: logo_image',
+            '      x: 117',
+            '      y: 199',
+            '      width: 80',
+            '      height: 80',
+            '      src: logo_asset',
+            '  - img:',
+            '      id: old_logo',
+            '      x: 1',
+            '      y: 2',
+            '      width: 10',
+            '      height: 12',
+            '      src: old_logo_asset'
+        ], [], { device_name: 'Image Import', renderingMode: 'lvgl' }, () => ({}), yaml);
+
+        expect(layout.pages[0].widgets[0]).toMatchObject({
+            id: 'logo_image',
+            type: 'lvgl_img',
+            x: 117,
+            y: 199,
+            width: 80,
+            height: 80,
+            props: {
+                src: 'logo_asset'
+            }
+        });
+        expect(layout.pages[0].widgets[1]).toMatchObject({
+            id: 'old_logo',
+            type: 'lvgl_img',
+            props: {
+                src: 'old_logo_asset'
+            }
+        });
+    });
 });

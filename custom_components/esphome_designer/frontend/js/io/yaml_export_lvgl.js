@@ -14,6 +14,19 @@ export { serializeWidget } from './yaml_export_lvgl_serialization.js';
 export { hasLVGLWidgets, stripDefaults } from './yaml_export_lvgl_transpile.js';
 
 /**
+ * @param {Record<string, any>} profile
+ * @returns {string | null}
+ */
+function getTouchscreenIdForLVGL(profile) {
+    if (!profile.touch || Array.isArray(profile.touch)) return null;
+
+    const touchscreenId = resolveTouchscreenId(profile);
+    return typeof touchscreenId === 'string' && touchscreenId.trim()
+        ? touchscreenId.trim()
+        : null;
+}
+
+/**
  * @param {Page[]} pages
  * @param {string} deviceModel
  * @param {Record<string, any> | null} [profileOverride]
@@ -43,9 +56,10 @@ export function generateLVGLSnippet(pages, deviceModel, profileOverride = null, 
     const displayId = resolveDisplayId(profile);
     lines.push(`    - ${displayId}`);
 
-    if (profile.touch) {
+    const touchscreenId = getTouchscreenIdForLVGL(profile);
+    if (touchscreenId) {
         lines.push("  touchscreens:");
-        lines.push(`    - ${resolveTouchscreenId(profile)}`);
+        lines.push(`    - touchscreen_id: ${touchscreenId}`);
     }
 
     if (layout.lcdEcoStrategy === 'dim_after_timeout') {

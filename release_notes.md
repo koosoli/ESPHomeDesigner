@@ -1,3 +1,16 @@
+## v1.0.0 RC20.1 - LVGL Touchscreen & Image Hotfix
+**Release Date:** June 10, 2026
+
+This RC20.1 hotfix follows up on [Discussion #420](https://github.com/koosoli/ESPHomeDesigner/discussions/420#discussioncomment-17252247), where ESPHome 2026.5.3 still rejected generated LVGL YAML after the RC20 media-player slider fix.
+
+### Stability & Verification
+- **LVGL Touchscreen Schema Fix (Discussion #420):** LVGL export now emits touchscreen references in ESPHome's current object form, `touchscreen_id: ...`, and omits the `touchscreens` block entirely when the profile has no concrete touchscreen component instead of producing `touchscreens: []`.
+- **LVGL Image Widget Compatibility (Discussion #420):** LVGL image widgets now export with ESPHome's current `image:` widget key instead of the legacy `img:` key, preventing `Unknown widget type: img` compile failures.
+- **LVGL Image Import Compatibility:** Native LVGL import accepts both current `image:` and legacy `img:` widget tags so older snippets can still round-trip into the designer.
+- **Release Metadata Refresh:** Updated package metadata, package lock metadata, Home Assistant manifest version, runtime version string, visible header label, release notes, and rebuilt frontend assets for the RC20.1 hotfix line.
+
+---
+
 ## v1.0.0 RC20 - Hardware Import, LVGL Images & Font Paths
 **Release Date:** June 10, 2026
 
