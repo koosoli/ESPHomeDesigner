@@ -95,7 +95,7 @@ export class DeviceSettings {
         this.deepSleepOptionsRow = getElement('deep-sleep-options-row');
         this.refreshIntervalRow = getElement('global-refresh-row');
         this.dimTimeoutRow = getElement('dim-timeout-row');
-        this.autoCycleRow = getElement('auto-cycle-row');
+        this.autoCycleRow = getElement('field-auto-cycle-interval') || getElement('auto-cycle-row');
         this.deepSleepStayAwakeEntityRow = getElement('deep-sleep-stay-awake-entity-row');
 
         // Sections

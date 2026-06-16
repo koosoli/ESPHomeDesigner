@@ -114,7 +114,7 @@ describe('DeviceSettings', () => {
             <div id="deep-sleep-options-row"></div>
             <div id="global-refresh-row"></div>
             <div id="dim-timeout-row"></div>
-            <div id="auto-cycle-row"></div>
+            <div id="field-auto-cycle-interval"></div>
             <div id="deep-sleep-stay-awake-entity-row"></div>
 
             <div id="powerStrategySection"></div>
@@ -252,6 +252,7 @@ describe('DeviceSettings', () => {
         ds.autoCycleEnabled.checked = true;
         ds.autoCycleEnabled.dispatchEvent(new Event('change'));
         expect(mockAppState.updateSettings).toHaveBeenCalledWith({ autoCycleEnabled: true });
+        expect(document.getElementById('field-auto-cycle-interval').style.display).toBe('flex');
     });
 
     it('handles delegated button clicks and interval synchronization flows', async () => {
