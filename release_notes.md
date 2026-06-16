@@ -1,3 +1,14 @@
+## v1.0.0-rc20.4 - MIPI/Parallel RGB Display Wizard Support
+**Release Date:** June 16, 2026
+
+This RC20.4 hotfix adds support for MIPI and parallel RGB displays in the custom hardware profile wizard, fixing issues where SPI bus and pin options were generated incorrectly.
+
+### Stability & Verification
+- **MIPI/Parallel RGB display support in wizard (Issue #416):** Added parallel RGB `rpi_dpi_rgb` platform support in the custom hardware profile wizard dropdown, and updated the YAML generator to correctly identify non-SPI display platforms (including `mipi_dsi`, `mipi_rgb`, and `rpi_dpi_rgb`) to omit SPI configurations.
+- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, runtime version string, visible header label, release notes, and rebuilt frontend assets for the RC20.4 hotfix line.
+
+---
+
 ## v1.0.0-rc20.3 - Online Image LVGL Recolor Fix
 **Release Date:** June 16, 2026
 

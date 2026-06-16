@@ -218,4 +218,35 @@ describe('hardware_generator', () => {
         expect(yaml).toContain('i2c:');
         expect(yaml).toContain('platform: gt911');
     });
+
+    it('handles parallel RGB platform rpi_dpi_rgb without generating SPI blocks', () => {
+        const yaml = generateCustomHardwareYaml({
+            name: 'Parallel RGB Panel',
+            chip: 'esp32-s3',
+            tech: 'lcd',
+            resWidth: 800,
+            resHeight: 480,
+            shape: 'rect',
+            psram: true,
+            displayDriver: 'rpi_dpi_rgb',
+            touchTech: 'none',
+            pins: {
+                clk: 'GPIO1',
+                mosi: 'GPIO2',
+                cs: 'GPIO3',
+                dc: 'GPIO4',
+                rst: 'GPIO5'
+            }
+        });
+
+        expect(yaml).toContain('platform: rpi_dpi_rgb');
+        expect(yaml).toContain('dimensions:');
+        expect(yaml).toContain('width: 800');
+        expect(yaml).toContain('height: 480');
+        expect(yaml).toContain('reset_pin: GPIO5');
+        expect(yaml).toContain('panel-specific de_pin');
+        expect(yaml).not.toContain('spi:');
+        expect(yaml).not.toContain('cs_pin: GPIO3');
+        expect(yaml).not.toContain('dc_pin: GPIO4');
+    });
 });

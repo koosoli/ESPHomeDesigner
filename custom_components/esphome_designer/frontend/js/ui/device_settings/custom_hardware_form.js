@@ -1,7 +1,7 @@
 import { AppState } from '../../core/state';
 import { extractProfilePins, extractTouchPlatform, resolveProfileDisplayDriver } from './custom_hardware_yaml.js';
 
-const MIPI_DISPLAY_DRIVERS = new Set(['mipi_dsi', 'mipi_spi', 'mipi_rgb']);
+const MIPI_DISPLAY_DRIVERS = new Set(['mipi_dsi', 'mipi_spi', 'mipi_rgb', 'rpi_dpi_rgb']);
 
 /**
  * @param {any} panel

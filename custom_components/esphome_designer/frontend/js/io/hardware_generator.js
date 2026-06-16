@@ -21,8 +21,8 @@ export function generateCustomHardwareYaml(config) {
 
     const lines = [];
     const driver = displayDriver || "st7789v";
-    const isMipiDsi = driver === "mipi_dsi";
-    const usesDimensionsBlock = driver === "mipi_dsi" || driver === "mipi_spi" || driver === "mipi_rgb" || driver === "st7701s";
+    const noSpiDisplay = driver === "mipi_dsi" || driver === "mipi_rgb" || driver === "rpi_dpi_rgb";
+    const usesDimensionsBlock = driver === "mipi_dsi" || driver === "mipi_spi" || driver === "mipi_rgb" || driver === "rpi_dpi_rgb" || driver === "st7701s";
 
     // Metadata Header
     lines.push("# ============================================================================");
@@ -125,7 +125,7 @@ export function generateCustomHardwareYaml(config) {
     }
 
     // SPI Bus (Common for most displays)
-    if (!isMipiDsi && pins.clk && pins.mosi) {
+    if (!noSpiDisplay && pins.clk && pins.mosi) {
         lines.push("spi:");
         lines.push(`  clk_pin: ${pins.clk}`);
         lines.push(`  mosi_pin: ${pins.mosi}`);
@@ -149,10 +149,10 @@ export function generateCustomHardwareYaml(config) {
     lines.push("display:");
     lines.push(`  - platform: ${driver}`);
     lines.push(`    id: ${displayIdValue}`);
-    if (!isMipiDsi && pins.cs) lines.push(`    cs_pin: ${pins.cs}`);
-    if (!isMipiDsi && pins.dc) lines.push(`    dc_pin: ${pins.dc}`);
+    if (!noSpiDisplay && pins.cs) lines.push(`    cs_pin: ${pins.cs}`);
+    if (!noSpiDisplay && pins.dc) lines.push(`    dc_pin: ${pins.dc}`);
     if (pins.rst) lines.push(`    reset_pin: ${pins.rst}`);
-    if (!isMipiDsi && pins.busy) lines.push(`    busy_pin: ${pins.busy}`);
+    if (!noSpiDisplay && pins.busy) lines.push(`    busy_pin: ${pins.busy}`);
 
     // Model specific configuration
     if (config.displayModel) {
@@ -183,7 +183,7 @@ export function generateCustomHardwareYaml(config) {
         lines.push(`    height: ${resHeight}`);
     }
 
-    if (driver === "mipi_rgb" || driver === "st7701s") {
+    if (driver === "mipi_rgb" || driver === "rpi_dpi_rgb" || driver === "st7701s") {
         lines.push("    # TODO: Add panel-specific de_pin, hsync_pin, vsync_pin, pclk_pin, timings, and data_pins.");
     }
 
