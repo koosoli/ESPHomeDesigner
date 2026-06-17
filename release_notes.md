@@ -1,3 +1,15 @@
+## v1.0.0-rc.21 - USB CDC Logger Conflict Resolution & Device Settings Fix
+**Release Date:** June 17, 2026
+
+This RC21 release fixes a pin conflict on reTerminal E1001/E1002 and other devices using GPIO19/GPIO20 for hardware peripherals, and resolves a Device Settings modal bug where the auto-cycle interval field failed to appear.
+
+### Stability & Verification
+- **Avoid USB CDC Logger Conflict (Issue #422):** Detects if the hardware profile uses native USB pins (GPIO19/20) for device peripherals like I2C. If in use, the YAML generator now prints a warning, disables the suggestion to use `USB_CDC` logging, and suggests `UART0` instead to prevent conflicts.
+- **Device Settings Auto-Cycle Visibility Fix (Issue #423):** The "Cycle every N seconds" interval field now correctly appears when the "Enable Automatic Page Cycling" checkbox is checked. The `updateDeviceSettingsVisibility()` function was refactored into isolated try-catch sections so that an error in any one visibility group (power modes, dim timeout, rendering mode) no longer prevents subsequent groups (including the auto-cycle toggle) from executing. Defensive null checks and optional chaining were also added to `CustomHardwarePanel.updateVisibility()` and `ProtocolHardwarePanel.updateStrategyDisplay()`.
+- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, runtime version string, visible header label, release notes, and rebuilt frontend assets for the RC21 release line.
+
+---
+
 ## v1.0.0-rc20.4 - MIPI/Parallel RGB Display Wizard Support
 **Release Date:** June 16, 2026
 

@@ -28,9 +28,10 @@ exports[`ESPHomeAdapter & YamlImport Round-Trip > round-trips a layout with mock
 #         - Search for its name in your WiFi settings.
 #         - Connect and go to http://192.168.4.1 to configure WiFi.
 #
-# TIP: For reTerminal / S3 devices, if you cannot see logs via USB,
-#      add this to your base 'logger:' section:
-#      hardware_uart: USB_CDC
+# WARNING: GPIO19/GPIO20 are used by this device's hardware (e.g. I2C/Display).
+#          Do NOT enable USB_CDC logging (hardware_uart: USB_CDC), as it
+#          will conflict and cause hardware communication failures.
+#          Use UART0 (hardware_uart: UART0) or default hardware UART instead.
 #
 # ============================================================================
 
@@ -70,7 +71,8 @@ exports[`ESPHomeAdapter & YamlImport Round-Trip > round-trips a layout with mock
 #       CONFIG_ESP32S3_DATA_CACHE_64KB: y
 #
 # logger:
-#   hardware_uart: USB_CDC # Enable for USB debugging on S3
+#   # NOTE: GPIO19/20 in use. USB_CDC logging disabled to prevent conflicts.
+#   hardware_uart: UART0 # Use UART0 instead of USB_CDC
 #   level: DEBUG
 #
 # api:

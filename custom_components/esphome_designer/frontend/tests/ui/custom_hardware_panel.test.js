@@ -382,4 +382,20 @@ describe('CustomHardwarePanel behavior', () => {
         expect(/** @type {HTMLInputElement} */ (document.getElementById('pin_battery_adc')).value).toBe('GPIO4');
         expect(document.getElementById('pin_cs')?.getAttribute('list')).toBe('gpio-pins-esp32s3');
     });
+
+    it('handles errors gracefully in updateVisibility', async () => {
+        const { CustomHardwarePanel } = await import('../../js/ui/device_settings/custom_hardware.js');
+        const faultyParent = {
+            get renderingModeInput() {
+                throw new Error('Faulty parent renderingModeInput');
+            },
+            modelInput: { value: 'custom' }
+        };
+        const panel = new CustomHardwarePanel(faultyParent);
+        panel.customHardwareSection = document.createElement('div');
+
+        expect(() => panel.updateVisibility()).not.toThrow();
+        expect(mockLogger.error).toHaveBeenCalled();
+        expect(mockLogger.error.mock.calls.some(call => call[0].includes("Error in updateVisibility:"))).toBe(true);
+    });
 });

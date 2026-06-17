@@ -90,10 +90,18 @@ export function generateInstructionHeader(profile, layout, requiresMaterialIcons
     lines.push("#         - Connect and go to http://192.168.4.1 to configure WiFi.");
     lines.push("#");
     if (chip.includes('s3')) {
-        lines.push("# TIP: For reTerminal / S3 devices, if you cannot see logs via USB,");
-        lines.push("#      add this to your base 'logger:' section:");
-        lines.push("#      hardware_uart: USB_CDC");
-        lines.push("#");
+        if (usesUsbPins(profile?.pins)) {
+            lines.push("# WARNING: GPIO19/GPIO20 are used by this device's hardware (e.g. I2C/Display).");
+            lines.push("#          Do NOT enable USB_CDC logging (hardware_uart: USB_CDC), as it");
+            lines.push("#          will conflict and cause hardware communication failures.");
+            lines.push("#          Use UART0 (hardware_uart: UART0) or default hardware UART instead.");
+            lines.push("#");
+        } else {
+            lines.push("# TIP: For reTerminal / S3 devices, if you cannot see logs via USB,");
+            lines.push("#      add this to your base 'logger:' section:");
+            lines.push("#      hardware_uart: USB_CDC");
+            lines.push("#");
+        }
     }
     lines.push("# ============================================================================");
     lines.push("");
@@ -245,7 +253,12 @@ export function generateSystemSections(profile, layout) {
     lines.push("#");
     lines.push("# logger:");
     if (chip.includes("s3")) {
-        lines.push("#   hardware_uart: USB_CDC # Enable for USB debugging on S3");
+        if (usesUsbPins(profile?.pins)) {
+            lines.push("#   # NOTE: GPIO19/20 in use. USB_CDC logging disabled to prevent conflicts.");
+            lines.push("#   hardware_uart: UART0 # Use UART0 instead of USB_CDC");
+        } else {
+            lines.push("#   hardware_uart: USB_CDC # Enable for USB debugging on S3");
+        }
     }
     lines.push("#   level: DEBUG");
     lines.push("#");
@@ -334,4 +347,25 @@ export function generateFirmwareGuardGlobals(payload) {
         "    restore_value: false",
         "    initial_value: 'false'"
     ];
+}
+
+/**
+ * Checks if the configuration uses GPIO19 or GPIO20.
+ * These pins map to the native USB interface on ESP32-S3 and conflict with USB_CDC logging.
+ * @param {any} obj
+ * @returns {boolean}
+ */
+function usesUsbPins(obj) {
+    if (!obj) return false;
+    if (typeof obj === 'string') {
+        return obj === 'GPIO19' || obj === 'GPIO20';
+    }
+    if (typeof obj === 'object') {
+        for (const key in obj) {
+            if (usesUsbPins(obj[key])) {
+                return true;
+            }
+        }
+    }
+    return false;
 }

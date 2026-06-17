@@ -70,7 +70,13 @@ export function populateDeviceSelectView(instance) {
     if (currentVal && (Object.prototype.hasOwnProperty.call(DEVICE_PROFILES, currentVal) || currentVal === 'custom')) instance.modelInput.value = currentVal;
     else if (!instance.modelInput.value) instance.modelInput.value = 'reterminal_e1001';
 
-    instance.customHardwarePanel.updateVisibility();
+    try {
+        if (instance.customHardwarePanel && typeof instance.customHardwarePanel.updateVisibility === "function") {
+            instance.customHardwarePanel.updateVisibility();
+        }
+    } catch (err) {
+        Logger.error("[DeviceSettingsView] Error in customHardwarePanel.updateVisibility:", err);
+    }
 }
 
 /**
@@ -78,36 +84,80 @@ export function populateDeviceSelectView(instance) {
  * @returns {void}
  */
 export function updateDeviceSettingsVisibility(instance) {
-    const isSleep = instance.modeSleep?.checked;
-    const isDaily = instance.modeDaily?.checked;
-    const isDeepSleep = instance.modeDeepSleep?.checked;
-    const isManual = instance.modeManual?.checked;
+    if (!instance) return;
 
-    if (instance.sleepRow) instance.sleepRow.style.display = (isSleep || isDeepSleep) ? 'flex' : 'none';
-    if (instance.dailyRefreshRow) instance.dailyRefreshRow.style.display = isDaily ? 'flex' : 'none';
-    if (instance.deepSleepRow) instance.deepSleepRow.style.display = isDeepSleep ? 'block' : 'none';
-    if (instance.deepSleepOptionsRow) instance.deepSleepOptionsRow.style.display = isDeepSleep ? 'flex' : 'none';
+    // 1. Sleep/Daily/DeepSleep/Manual row visibility
+    try {
+        const isSleep = instance.modeSleep?.checked;
+        const isDaily = instance.modeDaily?.checked;
+        const isDeepSleep = instance.modeDeepSleep?.checked;
 
-    const lcdStrategy = AppState.settings.lcdEcoStrategy || 'backlight_off';
-    if (instance.dimTimeoutRow) instance.dimTimeoutRow.style.display = (lcdStrategy === 'dim_after_timeout') ? 'flex' : 'none';
-
-    const mode = instance.renderingModeInput?.value || AppState.settings.renderingMode || 'direct';
-    const isESPHome = mode === 'lvgl' || mode === 'direct' || mode === 'c';
-    const isProtocol = mode === 'oepl' || mode === 'opendisplay';
-
-    if (instance.powerStrategySection) instance.powerStrategySection.style.display = isESPHome ? 'block' : 'none';
-    if (instance.protocolHardwareSection) instance.protocolHardwareSection.style.display = isProtocol ? 'block' : 'none';
-    if (instance.deviceModelField) instance.deviceModelField.style.display = isProtocol ? 'none' : 'block';
-
-    const needsRefreshInterval = !isDaily && !isManual;
-    if (instance.refreshIntervalRow) instance.refreshIntervalRow.style.display = needsRefreshInterval ? 'block' : 'none';
-    if (instance.autoCycleRow) instance.autoCycleRow.style.display = instance.autoCycleEnabled?.checked ? 'flex' : 'none';
-
-    if (instance.deepSleepStayAwakeEntityRow) {
-        const stayAwakeEnabled = /** @type {HTMLInputElement | null} */ (document.getElementById('setting-deep-sleep-stay-awake'));
-        instance.deepSleepStayAwakeEntityRow.style.display = stayAwakeEnabled?.checked ? 'flex' : 'none';
+        if (instance.sleepRow) instance.sleepRow.style.display = (isSleep || isDeepSleep) ? 'flex' : 'none';
+        if (instance.dailyRefreshRow) instance.dailyRefreshRow.style.display = isDaily ? 'flex' : 'none';
+        if (instance.deepSleepRow) instance.deepSleepRow.style.display = isDeepSleep ? 'block' : 'none';
+        if (instance.deepSleepOptionsRow) instance.deepSleepOptionsRow.style.display = isDeepSleep ? 'flex' : 'none';
+    } catch (err) {
+        Logger.error("[DeviceSettingsView] Error in power mode visibility:", err);
     }
 
-    instance.customHardwarePanel.updateVisibility();
-    instance.protocolHardwarePanel.updateStrategyDisplay();
+    // 2. Dim timeout row visibility
+    try {
+        const lcdStrategy = AppState?.settings?.lcdEcoStrategy || 'backlight_off';
+        if (instance.dimTimeoutRow) instance.dimTimeoutRow.style.display = (lcdStrategy === 'dim_after_timeout') ? 'flex' : 'none';
+    } catch (err) {
+        Logger.error("[DeviceSettingsView] Error in dim timeout visibility:", err);
+    }
+
+    // 3. Power strategy section, protocol hardware section, device model field visibility
+    try {
+        const mode = instance.renderingModeInput?.value || AppState?.settings?.renderingMode || 'direct';
+        const isESPHome = mode === 'lvgl' || mode === 'direct' || mode === 'c';
+        const isProtocol = mode === 'oepl' || mode === 'opendisplay';
+
+        if (instance.powerStrategySection) instance.powerStrategySection.style.display = isESPHome ? 'block' : 'none';
+        if (instance.protocolHardwareSection) instance.protocolHardwareSection.style.display = isProtocol ? 'block' : 'none';
+        if (instance.deviceModelField) instance.deviceModelField.style.display = isProtocol ? 'none' : 'block';
+    } catch (err) {
+        Logger.error("[DeviceSettingsView] Error in section visibility:", err);
+    }
+
+    // 4. Refresh interval row and auto-cycle row visibility
+    try {
+        const isDaily = instance.modeDaily?.checked;
+        const isManual = instance.modeManual?.checked;
+        const needsRefreshInterval = !isDaily && !isManual;
+        if (instance.refreshIntervalRow) instance.refreshIntervalRow.style.display = needsRefreshInterval ? 'block' : 'none';
+        if (instance.autoCycleRow) {
+            instance.autoCycleRow.style.display = instance.autoCycleEnabled?.checked ? 'flex' : 'none';
+        }
+    } catch (err) {
+        Logger.error("[DeviceSettingsView] Error in refresh/cycle visibility:", err);
+    }
+
+    // 5. Deep sleep stay awake entity row visibility
+    try {
+        if (instance.deepSleepStayAwakeEntityRow) {
+            const stayAwakeEnabled = /** @type {HTMLInputElement | null} */ (document.getElementById('setting-deep-sleep-stay-awake'));
+            instance.deepSleepStayAwakeEntityRow.style.display = stayAwakeEnabled?.checked ? 'flex' : 'none';
+        }
+    } catch (err) {
+        Logger.error("[DeviceSettingsView] Error in deep sleep stay awake visibility:", err);
+    }
+
+    // 6. Custom hardware panel and protocol hardware panel updates
+    try {
+        if (instance.customHardwarePanel && typeof instance.customHardwarePanel.updateVisibility === "function") {
+            instance.customHardwarePanel.updateVisibility();
+        }
+    } catch (err) {
+        Logger.error("[DeviceSettingsView] Error in customHardwarePanel.updateVisibility:", err);
+    }
+
+    try {
+        if (instance.protocolHardwarePanel && typeof instance.protocolHardwarePanel.updateStrategyDisplay === "function") {
+            instance.protocolHardwarePanel.updateStrategyDisplay();
+        }
+    } catch (err) {
+        Logger.error("[DeviceSettingsView] Error in protocolHardwarePanel.updateStrategyDisplay:", err);
+    }
 }

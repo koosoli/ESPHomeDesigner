@@ -149,54 +149,58 @@ export class ProtocolHardwarePanel {
      * Updates visibility of strategy groups based on display technology.
      */
     updateStrategyDisplay() {
-        const modelId = this.parent.modelInput ? this.parent.modelInput.value : 'reterminal_e1001';
-        let isLcd = false;
+        try {
+            const modelId = this.parent.modelInput ? this.parent.modelInput.value : 'reterminal_e1001';
+            let isLcd = false;
 
-        if (modelId === 'custom') {
-            const ch = (AppState.project && AppState.project.state && AppState.project.state.customHardware) || {};
-            isLcd = ch.tech === 'lcd';
-        } else {
-            const profile = DEVICE_PROFILES[modelId];
-            isLcd = !!(profile && profile.features && (profile.features.lcd || profile.features.oled));
-        }
-
-        if (this.parent.strategyEpaperGroup) {
-            this.parent.strategyEpaperGroup.style.display = isLcd ? 'none' : 'flex';
-        }
-        if (this.parent.strategyLcdGroup) {
-            this.parent.strategyLcdGroup.style.display = isLcd ? 'flex' : 'none';
-            if (isLcd) {
-                const currentStrategy = AppState.settings.lcdEcoStrategy || 'backlight_off';
-                const radioToSelect = /** @type {HTMLInputElement | null} */ (document.querySelector(`input[name="lcdEcoStrategy"][value="${currentStrategy}"]`));
-                if (radioToSelect) radioToSelect.checked = true;
+            if (modelId === 'custom') {
+                const ch = (AppState?.project?.state?.customHardware) || {};
+                isLcd = ch.tech === 'lcd';
+            } else {
+                const profile = DEVICE_PROFILES[modelId];
+                isLcd = !!(profile && profile.features && (profile.features.lcd || profile.features.oled));
             }
 
-            const currentMode = this.parent.renderingModeInput ? this.parent.renderingModeInput.value : (AppState.settings.renderingMode || 'direct');
-            const dimRow = /** @type {HTMLElement | null} */ (document.getElementById('lcd-strategy-dim-row'));
-            if (dimRow) {
-                dimRow.style.display = currentMode === 'lvgl' ? 'block' : 'none';
-                if (currentMode !== 'lvgl' && AppState.settings.lcdEcoStrategy === 'dim_after_timeout') {
-                    AppState.updateSettings({ lcdEcoStrategy: 'backlight_off' });
-                    const fallbackRadio = /** @type {HTMLInputElement | null} */ (document.querySelector('input[name="lcdEcoStrategy"][value="backlight_off"]'));
-                    if (fallbackRadio) fallbackRadio.checked = true;
-                    this.parent.updateVisibility();
+            if (this.parent.strategyEpaperGroup) {
+                this.parent.strategyEpaperGroup.style.display = isLcd ? 'none' : 'flex';
+            }
+            if (this.parent.strategyLcdGroup) {
+                this.parent.strategyLcdGroup.style.display = isLcd ? 'flex' : 'none';
+                if (isLcd) {
+                    const currentStrategy = AppState?.settings?.lcdEcoStrategy || 'backlight_off';
+                    const radioToSelect = /** @type {HTMLInputElement | null} */ (document.querySelector(`input[name="lcdEcoStrategy"][value="${currentStrategy}"]`));
+                    if (radioToSelect) radioToSelect.checked = true;
+                }
+
+                const currentMode = this.parent.renderingModeInput ? this.parent.renderingModeInput.value : (AppState?.settings?.renderingMode || 'direct');
+                const dimRow = /** @type {HTMLElement | null} */ (document.getElementById('lcd-strategy-dim-row'));
+                if (dimRow) {
+                    dimRow.style.display = currentMode === 'lvgl' ? 'block' : 'none';
+                    if (currentMode !== 'lvgl' && AppState?.settings?.lcdEcoStrategy === 'dim_after_timeout') {
+                        AppState.updateSettings({ lcdEcoStrategy: 'backlight_off' });
+                        const fallbackRadio = /** @type {HTMLInputElement | null} */ (document.querySelector('input[name="lcdEcoStrategy"][value="backlight_off"]'));
+                        if (fallbackRadio) fallbackRadio.checked = true;
+                        this.parent.updateVisibility();
+                    }
                 }
             }
-        }
 
-        const mode = this.parent.renderingModeInput?.value || AppState.settings.renderingMode || 'direct';
-        if (this.parent.oeplSettingsSection) {
-            this.parent.oeplSettingsSection.style.display = mode === 'oepl' ? 'block' : 'none';
-        }
-        if (this.parent.odpSettingsSection) {
-            this.parent.odpSettingsSection.style.display = mode === 'opendisplay' ? 'block' : 'none';
-        }
+            const mode = this.parent.renderingModeInput?.value || AppState?.settings?.renderingMode || 'direct';
+            if (this.parent.oeplSettingsSection) {
+                this.parent.oeplSettingsSection.style.display = mode === 'oepl' ? 'block' : 'none';
+            }
+            if (this.parent.odpSettingsSection) {
+                this.parent.odpSettingsSection.style.display = mode === 'opendisplay' ? 'block' : 'none';
+            }
 
-        if (this.parent.deviceInvertedColorsField) {
-            const isESPHome = mode === 'lvgl' || mode === 'direct' || mode === 'c';
-            const profile = modelId ? DEVICE_PROFILES[modelId] : null;
-            const isEpaper = !!(profile && profile.features && profile.features.epaper);
-            this.parent.deviceInvertedColorsField.style.display = (isESPHome && isEpaper) ? 'block' : 'none';
+            if (this.parent.deviceInvertedColorsField) {
+                const isESPHome = mode === 'lvgl' || mode === 'direct' || mode === 'c';
+                const profile = modelId ? DEVICE_PROFILES[modelId] : null;
+                const isEpaper = !!(profile && profile.features && profile.features.epaper);
+                this.parent.deviceInvertedColorsField.style.display = (isESPHome && isEpaper) ? 'block' : 'none';
+            }
+        } catch (err) {
+            Logger.error("[ProtocolHardwarePanel] Error in updateStrategyDisplay:", err);
         }
     }
 }

@@ -114,4 +114,39 @@ describe('yaml_generator_sections', () => {
         expect(system).toContain('#     advanced:');
         expect(system).toContain('#       enable_idf_experimental_features: true');
     });
+
+    it('warns about USB conflict and suggests UART0 when GPIO19/20 are in use', () => {
+        const header = generateInstructionHeader({
+            id: 'reterminal_e1001',
+            name: 'reTerminal E1001',
+            chip: 'esp32-s3',
+            pins: {
+                i2c: { sda: 'GPIO19', scl: 'GPIO20' }
+            },
+            features: { epaper: true }
+        }, {
+            orientation: 'landscape',
+            darkMode: false,
+            refreshInterval: 60,
+            manualRefreshOnly: false,
+            deepSleepEnabled: false,
+            deepSleepStayAwakeSwitch: false,
+            deepSleepFirmwareGuard: false
+        }).join('\n');
+
+        const system = generateSystemSections({
+            chip: 'esp32-s3',
+            pins: {
+                i2c: { sda: 'GPIO19', scl: 'GPIO20' }
+            }
+        }, {}).join('\n');
+
+        expect(header).toContain('WARNING: GPIO19/GPIO20 are used by this device\'s hardware');
+        expect(header).toContain('Do NOT enable USB_CDC logging');
+        expect(header).not.toContain('#      hardware_uart: USB_CDC');
+
+        expect(system).toContain('NOTE: GPIO19/20 in use. USB_CDC logging disabled to prevent conflicts');
+        expect(system).toContain('hardware_uart: UART0 # Use UART0 instead of USB_CDC');
+        expect(system).not.toContain('hardware_uart: USB_CDC # Enable for USB debugging on S3');
+    });
 });

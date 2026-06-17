@@ -207,27 +207,31 @@ export class CustomHardwarePanel {
     }
 
     updateVisibility() {
-        if (!this.customHardwareSection) return;
+        try {
+            if (!this.customHardwareSection) return;
 
-        const mode = this.parent.renderingModeInput?.value || AppState.settings.renderingMode || 'direct';
-        const isProtocol = mode === 'oepl' || mode === 'opendisplay';
-        const currentModel = this.parent.modelInput?.value;
-        const isCustom = currentModel === 'custom';
-        const deviceProfiles = /** @type {Record<string, any>} */ (DEVICE_PROFILES);
-        const isSavedCustom = !!(currentModel && deviceProfiles[currentModel] && (deviceProfiles[currentModel].isCustomProfile || deviceProfiles[currentModel].isOfflineImport));
+            const mode = this.parent.renderingModeInput?.value || AppState?.settings?.renderingMode || 'direct';
+            const isProtocol = mode === 'oepl' || mode === 'opendisplay';
+            const currentModel = this.parent.modelInput?.value;
+            const isCustom = currentModel === 'custom';
+            const deviceProfiles = /** @type {Record<string, any>} */ (DEVICE_PROFILES);
+            const isSavedCustom = !!(currentModel && deviceProfiles[currentModel] && (deviceProfiles[currentModel].isCustomProfile || deviceProfiles[currentModel].isOfflineImport));
 
-        this.customHardwareSection.style.display = (!isProtocol && (isCustom || isSavedCustom)) ? 'block' : 'none';
-        this.updateDisplayModelVisibility();
+            this.customHardwareSection.style.display = (!isProtocol && (isCustom || isSavedCustom)) ? 'block' : 'none';
+            this.updateDisplayModelVisibility();
 
-        if (isSavedCustom) {
-            if (this.customProfileEditIndicator) this.customProfileEditIndicator.style.display = 'block';
-            if (this.saveCustomProfileBtn) this.saveCustomProfileBtn.textContent = getProfileButtonLabel(true);
-            // Disable name editing since ID is tied to it
-            if (this.customProfileNameInput) this.customProfileNameInput.disabled = true;
-        } else {
-            if (this.customProfileEditIndicator) this.customProfileEditIndicator.style.display = 'none';
-            if (this.saveCustomProfileBtn) this.saveCustomProfileBtn.textContent = getProfileButtonLabel(false);
-            if (this.customProfileNameInput) this.customProfileNameInput.disabled = false;
+            if (isSavedCustom) {
+                if (this.customProfileEditIndicator) this.customProfileEditIndicator.style.display = 'block';
+                if (this.saveCustomProfileBtn) this.saveCustomProfileBtn.textContent = getProfileButtonLabel(true);
+                // Disable name editing since ID is tied to it
+                if (this.customProfileNameInput) this.customProfileNameInput.disabled = true;
+            } else {
+                if (this.customProfileEditIndicator) this.customProfileEditIndicator.style.display = 'none';
+                if (this.saveCustomProfileBtn) this.saveCustomProfileBtn.textContent = getProfileButtonLabel(false);
+                if (this.customProfileNameInput) this.customProfileNameInput.disabled = false;
+            }
+        } catch (err) {
+            Logger.error("[CustomHardwarePanel] Error in updateVisibility:", err);
         }
     }
 

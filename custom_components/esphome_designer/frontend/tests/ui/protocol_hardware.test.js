@@ -252,4 +252,18 @@ describe('ProtocolHardwarePanel', () => {
         panel.updateStrategyDisplay();
         expect(parent.deviceInvertedColorsField.style.display).toBe('block');
     });
+
+    it('handles errors gracefully in updateStrategyDisplay', async () => {
+        const { ProtocolHardwarePanel } = await import('../../js/ui/device_settings/protocol_hardware.js');
+        const faultyParent = {
+            get modelInput() {
+                throw new Error('Faulty parent modelInput');
+            }
+        };
+        const panel = new ProtocolHardwarePanel(faultyParent);
+
+        expect(() => panel.updateStrategyDisplay()).not.toThrow();
+        expect(mockLogger.error).toHaveBeenCalled();
+        expect(mockLogger.error.mock.calls.some(call => call[0].includes("Error in updateStrategyDisplay:"))).toBe(true);
+    });
 });
