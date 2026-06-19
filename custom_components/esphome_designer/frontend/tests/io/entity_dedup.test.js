@@ -7,6 +7,7 @@ import {
     collectHomeAssistantSwitches,
     HA_TEXT_DOMAINS, // eslint-disable-line no-unused-vars
     collectCustomStateTriggerActions,
+    collectVisibilityTriggers,
     buildPendingTriggerLookupKey
 } from '../../js/io/adapters/entity_dedup.js';
 
@@ -432,6 +433,44 @@ describe('Entity Deduplication & Registration', () => {
         it('falls back to the trimmed entity id when a lookup key is missing a trigger name', () => {
             expect(buildPendingTriggerLookupKey(' sensor.energy_usage ', '')).toBe('sensor.energy_usage');
             expect(buildPendingTriggerLookupKey('', 'on_value')).toBe('');
+        });
+    });
+
+    describe('collectVisibilityTriggers', () => {
+        it('adds pending triggers for visibility entities (binary sensor/on_state)', () => {
+            const pendingTriggers = new Map();
+            const widgets = [
+                {
+                    id: 'widget_1',
+                    condition_entity: 'binary_sensor.motion_detected'
+                }
+            ];
+
+            collectVisibilityTriggers(widgets, pendingTriggers, 'display_1', false);
+
+            const lookupKey = buildPendingTriggerLookupKey('binary_sensor.motion_detected', 'on_state');
+            expect(pendingTriggers.has(lookupKey)).toBe(true);
+            const actions = Array.from(pendingTriggers.get(lookupKey));
+            expect(actions).toContain('- component.update: display_1');
+        });
+
+        it('adds pending triggers for non-binary sensor visibility entities (on_value)', () => {
+            const pendingTriggers = new Map();
+            const widgets = [
+                {
+                    id: 'widget_2',
+                    props: {
+                        condition_entity: 'sensor.lux_level'
+                    }
+                }
+            ];
+
+            collectVisibilityTriggers(widgets, pendingTriggers, 'display_1', true);
+
+            const lookupKey = buildPendingTriggerLookupKey('sensor.lux_level', 'on_value');
+            expect(pendingTriggers.has(lookupKey)).toBe(true);
+            const actions = Array.from(pendingTriggers.get(lookupKey));
+            expect(actions).toContain('- lvgl.widget.refresh: widget_2');
         });
     });
 

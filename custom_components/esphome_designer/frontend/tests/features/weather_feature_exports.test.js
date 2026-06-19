@@ -136,4 +136,39 @@ describe('weather feature exports', () => {
         expect(noEntity.textContent).toContain('No Entity');
         expect(noEntity.innerText.codePointAt(0)).toBe(0xf0625);
     });
+
+    it('exports direct forecasts with rectangular borders when border_radius is zero', () => {
+        const lines = [];
+
+        exportWeatherDoc({
+            id: 'weather_rect_border',
+            x: 10,
+            y: 20,
+            width: 150,
+            height: 80,
+            props: {
+                layout: 'horizontal',
+                days: 2,
+                background_color: 'white',
+                border_width: 2,
+                border_color: 'black',
+                border_radius: 0,
+                color: 'blue',
+                day_language: 'en',
+                precision: 0
+            }
+        }, {
+            lines,
+            addFont: vi.fn(() => 'weather_font'),
+            getColorConst: (value) => `Color(${value})`,
+            addDitherMask: vi.fn(),
+            getConditionCheck: () => '',
+            isEpaper: false
+        });
+
+        const output = lines.join('\n');
+        expect(output).toContain('it.filled_rectangle(10, 20, 150, 80, Color(white));');
+        expect(output).toContain('it.rectangle(10 + 0, 20 + 0, 150 - 2 * 0, 80 - 2 * 0, Color(black));');
+        expect(output).toContain('it.rectangle(10 + 1, 20 + 1, 150 - 2 * 1, 80 - 2 * 1, Color(black));');
+    });
 });

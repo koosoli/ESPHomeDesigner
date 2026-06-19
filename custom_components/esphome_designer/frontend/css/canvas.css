@@ -276,11 +276,12 @@
 }
 
 .active-page .artboard {
-    /* Active artboard strong glow without shifting the coordinate plane */
+    /* Active artboard strong glow and lift */
     box-shadow:
         0 0 0 2px var(--accent),
         0 35px 80px rgba(0, 0, 0, 0.45),
         0 70px 140px rgba(0, 0, 0, 0.55);
+    transform: translateY(-6px);
 }
 
 .artboard.dark {

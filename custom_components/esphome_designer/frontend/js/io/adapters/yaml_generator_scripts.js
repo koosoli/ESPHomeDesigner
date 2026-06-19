@@ -206,7 +206,13 @@ export function generateScriptSection(payload, pages, profile) {
     lines.push("            - delay: 5s");
     lines.push(`            - lambda: 'id(initial_sensor_sync_pending) = false;'`);
 
-    if (autoCycleEnabled) lines.push("      - script.execute: auto_cycle_timer");
+    if (autoCycleEnabled) {
+        lines.push("      - if:");
+        lines.push("          condition:");
+        lines.push("            lambda: 'return !id(auto_cycle_timer).is_running();'");
+        lines.push("          then:");
+        lines.push("            - script.execute: auto_cycle_timer");
+    }
 
     const hasPageRefreshRuntimeOverrides = !isDeepSleep && hasPageRefreshOverrides;
     /** @type {string[]} */

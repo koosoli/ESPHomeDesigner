@@ -103,11 +103,17 @@ export const exportDoc = (w, context) => {
         const borderColorProp = p.border_color || colorProp;
         const borderColorConst = getColorConst(borderColorProp);
         for (let i = 0; i < borderWidth; i++) {
-            lines.push(`          it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColorConst});`);
+            if (radius > 0) {
+                const r = Math.max(0, radius - i);
+                lines.push(`          it.rounded_rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${r}, ${borderColorConst});`);
+            } else {
+                lines.push(`          it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColorConst});`);
+            }
         }
     }
 
     const isHorizontal = layout === "horizontal";
+
     const xInc = isHorizontal ? Math.floor(w.width / count) : 0;
     const yInc = isHorizontal ? 0 : Math.floor(w.height / count);
     const centerOffset = isHorizontal ? Math.floor(xInc / 2) : Math.floor(w.width / 2);

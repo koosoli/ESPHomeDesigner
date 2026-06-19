@@ -83,6 +83,30 @@ export const collectCustomStateTriggerActions = (widgets, pendingTriggers) => {
     });
 };
 
+export const collectVisibilityTriggers = (widgets, pendingTriggers, displayId, isLvgl) => {
+    if (!widgets || !pendingTriggers) return;
+
+    widgets.forEach((widget) => {
+        const entityId = (widget.condition_entity || widget.props?.condition_entity || "").trim();
+        if (!entityId) return;
+
+        // If it looks like a binary_sensor, use on_state, otherwise on_value
+        const isBinary = entityId.startsWith("binary_sensor.") || entityId.includes("_on_off");
+        const triggerMode = isBinary ? "on_state" : "on_value";
+        const lookupKey = buildPendingTriggerLookupKey(entityId, triggerMode);
+
+        if (!pendingTriggers.has(lookupKey)) {
+            pendingTriggers.set(lookupKey, new Set());
+        }
+
+        const action = isLvgl
+            ? `- lvgl.widget.refresh: ${widget.id}`
+            : `- component.update: ${displayId}`;
+
+        pendingTriggers.get(lookupKey).add(action);
+    });
+};
+
 /**
  * @typedef {{
  *   type?: string,

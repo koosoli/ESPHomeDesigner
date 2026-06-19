@@ -88,7 +88,7 @@ const exportDoc = (w, context) => {
 
 const onExportTextSensors = (context) => {
     // REGRESSION PROOF: Always destructure 'lines' from context to allow sensor generation
-    const { lines, widgets, isLvgl, pendingTriggers } = context;
+    const { lines, widgets, isLvgl, pendingTriggers, displayId } = context;
     if (!widgets || widgets.length === 0) return;
 
     const weatherEntities = new Set();
@@ -117,6 +117,9 @@ const onExportTextSensors = (context) => {
         if (isLvgl && pendingTriggers) {
             if (!pendingTriggers.has(safeId)) pendingTriggers.set(safeId, new Set());
             pendingTriggers.get(safeId).add(`- lvgl.widget.refresh: ${id}`);
+        } else if (!isLvgl && pendingTriggers && displayId) {
+            if (!pendingTriggers.has(safeId)) pendingTriggers.set(safeId, new Set());
+            pendingTriggers.get(safeId).add(`- component.update: ${displayId}`);
         }
 
         // Explicitly export the Home Assistant sensor block

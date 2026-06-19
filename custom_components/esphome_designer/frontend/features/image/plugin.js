@@ -536,6 +536,8 @@ export default {
         panel.addLabeledInput("Corner Radius", "number", props.border_radius || 0, (v) => updateProp("border_radius", parseInt(v, 10)));
         panel.addDropShadowButton(panel.getContainer(), widget.id);
         panel.endSection();
+
+        panel.addVisibilityConditions(widget);
     },
     render,
     exportOpenDisplay: (w) => {

@@ -1,3 +1,18 @@
+## v1.0.0 RC22 - Auto-cycle Logic & Visibility Refresh Fix
+**Release Date:** June 19, 2026
+
+This RC22 release resolves an auto-cycle timer bug and improves the responsiveness of widget visibility updates.
+
+### Stability & Verification
+- **Auto-cycle Interval Logic Fix (Issue #423):** The `auto_cycle_timer` script now includes an `id(auto_cycle_timer).is_running()` check. This prevents the timer from being reset on every loop, allowing the user-configured interval to correctly elapse before switching pages.
+- **Widget Visibility Refresh Trigger (Issue #426):** Implemented `collectVisibilityTriggers` in the entity deduplication infrastructure. The generator now automatically attaches refresh triggers to widgets that rely on condition entities, ensuring they appear or disappear instantly when the Home Assistant entity state changes.
+- **Image Widget Visibility Export (Issue #426):** The image widget now calls `addVisibilityConditions()` during export, ensuring visibility conditions on image widgets are correctly declared as binary sensors and emitted in the generated YAML — previously they were silently dropped.
+- **Weather Widget Corner Radius Export (Issue #426):** The weather forecast widget's OpenDisplay export now correctly uses `it.filled_rounded_rectangle()` and `it.rounded_rectangle()` when a non-zero corner radius is set. Previously, plain `it.filled_rectangle()` / `it.rectangle()` were always used, causing the rounded corner setting to be silently ignored in the generated code.
+- **Progress Bar Shape Fix (Issue #426):** Removed a hardcoded `borderRadius: "2px"` from the progress bar renderer that was overriding the widget's configured shape, causing the bar to always appear rounded regardless of user settings.
+- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, runtime version string, visible header label, release notes, and rebuilt frontend assets for the RC22 release line.
+
+---
+
 ## v1.0.0-rc.21 - USB CDC Logger Conflict Resolution & Device Settings Fix
 **Release Date:** June 17, 2026
 

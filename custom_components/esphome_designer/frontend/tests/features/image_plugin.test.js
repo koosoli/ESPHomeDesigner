@@ -448,6 +448,13 @@ describe('image plugin', () => {
             addColorSelector: vi.fn((label, _value, _unused, callback) => {
                 callbacks[label] = callback;
             }),
+            addLabeledInputWithPicker: vi.fn((label, _type, _value, callback) => {
+                callbacks[label] = callback;
+            }),
+            addLabeledInputWithDataList: vi.fn((label, _type, _value, _list, callback) => {
+                callbacks[label] = callback;
+            }),
+            addVisibilityConditions: vi.fn(),
             addDropShadowButton: vi.fn(),
             getContainer: () => container
         };

@@ -110,9 +110,9 @@ export const renderProgressBar = (el, widget, tools) => {
         barContainer.style.height = `${barHeight}px`;
     }
     barContainer.style.border = `${borderWidth}px solid ${renderColor}`;
-    barContainer.style.borderRadius = "2px";
     barContainer.style.position = "relative";
     barContainer.style.overflow = "hidden";
+
 
     /** @param {string} c */
     const isRenderColorLight = (c) => c === "#ffffff" || c === "white" || c === "#fff";

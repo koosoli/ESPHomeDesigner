@@ -5,6 +5,7 @@ import {
     collectBinarySensors,
     collectHomeAssistantSwitches,
     collectCustomStateTriggerActions,
+    collectVisibilityTriggers,
     buildPendingTriggerLookupKey
 } from './entity_dedup.js';
 import { registry } from '../../core/plugin_registry.js';
@@ -247,6 +248,7 @@ export function buildSensorSections({
     const pages = context.layout.pages || [];
 
     collectCustomStateTriggerActions(allWidgets, pendingTriggers);
+    collectVisibilityTriggers(allWidgets, pendingTriggers, displayId, isLvgl);
 
     if (Generators.generateSensorSection) {
         lines.push(...Generators.generateSensorSection(profile, [], displayId, allWidgets));
