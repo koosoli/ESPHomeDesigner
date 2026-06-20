@@ -35,7 +35,15 @@ export function populateDeviceSettingsForm(deviceSettings) {
     if (deviceSettings.renderingModeInput) deviceSettings.renderingModeInput.value = settings.renderingMode || 'direct';
     if (deviceSettings.orientationInput) deviceSettings.orientationInput.value = settings.orientation || "landscape";
     if (deviceSettings.darkModeInput) deviceSettings.darkModeInput.checked = !!settings.darkMode;
-    if (deviceSettings.invertedColorsInput) deviceSettings.invertedColorsInput.checked = !!settings.invertedColors;
+    if (deviceSettings.invertedColorsInput) {
+        const modelId = settings.device_model;
+        const profile = modelId ? DEVICE_PROFILES[modelId] : null;
+        const isEpaper = !!(profile && profile.features && (profile.features.epaper || profile.features.epd));
+        const resolvedInversion = (settings.invertedColors !== null && settings.invertedColors !== undefined)
+            ? !!settings.invertedColors
+            : !!(profile?.features?.inverted_colors ?? isEpaper);
+        deviceSettings.invertedColorsInput.checked = resolvedInversion;
+    }
 
     const isSleep = !!settings.sleepEnabled;
     const isManual = !!settings.manualRefreshOnly;

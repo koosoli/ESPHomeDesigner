@@ -196,8 +196,16 @@ export class ProtocolHardwarePanel {
             if (this.parent.deviceInvertedColorsField) {
                 const isESPHome = mode === 'lvgl' || mode === 'direct' || mode === 'c';
                 const profile = modelId ? DEVICE_PROFILES[modelId] : null;
-                const isEpaper = !!(profile && profile.features && profile.features.epaper);
+                const isEpaper = !!(profile && profile.features && (profile.features.epaper || profile.features.epd));
                 this.parent.deviceInvertedColorsField.style.display = (isESPHome && isEpaper) ? 'block' : 'none';
+
+                if (isESPHome && isEpaper && this.parent.invertedColorsInput) {
+                    const settings = AppState.settings;
+                    const resolvedInversion = (settings.invertedColors !== null && settings.invertedColors !== undefined)
+                        ? !!settings.invertedColors
+                        : !!(profile?.features?.inverted_colors ?? isEpaper);
+                    this.parent.invertedColorsInput.checked = resolvedInversion;
+                }
             }
         } catch (err) {
             Logger.error("[ProtocolHardwarePanel] Error in updateStrategyDisplay:", err);

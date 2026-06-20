@@ -311,7 +311,7 @@ export const collectBinarySensors = (pages, context) => {
 
     allWidgetsForBinary.forEach((w) => {
         // Check condition entity
-        const condEnt = (w.condition_entity || "").trim();
+        const condEnt = (w.condition_entity || w.props?.condition_entity || "").trim();
         // Check primary entity (for buttons, switches, etc.)
         const primaryEnt = (w.entity_id || "").trim();
         const stateTriggerSpec = getCustomStateTriggerSpec(w);
@@ -363,9 +363,14 @@ export const collectHomeAssistantSwitches = (pages, context) => {
     const switchLines = [];
 
     allWidgets.forEach((w) => {
+        const condEnt = (w.condition_entity || w.props?.condition_entity || "").trim();
         const primaryEnt = (w.entity_id || "").trim();
         const stateTriggerSpec = getCustomStateTriggerSpec(w);
         const entities = [primaryEnt];
+
+        if (condEnt) {
+            entities.push(condEnt);
+        }
 
         if (stateTriggerSpec && stateTriggerSpec.mode === "on_state") {
             entities.push(stateTriggerSpec.entityId);

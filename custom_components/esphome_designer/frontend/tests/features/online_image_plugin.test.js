@@ -209,6 +209,9 @@ describe('online_image plugin', () => {
         });
         expect(lvglLines.join('\n')).toContain('online_image:');
         expect(lvglLines.join('\n')).not.toContain('lvgl.widget.refresh: image-1');
+        expect(lvglLines.join('\n')).toContain('lvgl.image.update:');
+        expect(lvglLines.join('\n')).toContain('id: image-1');
+        expect(lvglLines.join('\n')).toContain('src: online_img_image_1');
     });
 
     it('keeps direct display refresh callbacks for non-LVGL online images', () => {

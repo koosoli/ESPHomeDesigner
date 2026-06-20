@@ -70,6 +70,7 @@ describe('ProtocolHardwarePanel', () => {
         mockAppState.settings.opendisplayTtl = 60;
         mockAppState.settings.lcdEcoStrategy = 'backlight_off';
         mockAppState.settings.renderingMode = 'direct';
+        mockAppState.settings.invertedColors = null;
         mockAppState.project.protocolHardware = { width: 400, height: 300, colorMode: 'bw' };
         mockAppState.project.state.customHardware = { tech: 'lcd' };
 
@@ -251,6 +252,32 @@ describe('ProtocolHardwarePanel', () => {
         parent.renderingModeInput.value = 'direct';
         panel.updateStrategyDisplay();
         expect(parent.deviceInvertedColorsField.style.display).toBe('block');
+    });
+
+    it('updates invertedColorsInput checked state based on profile features if setting is null', async () => {
+        const { ProtocolHardwarePanel } = await import('../../js/ui/device_settings/protocol_hardware.js');
+        const panel = new ProtocolHardwarePanel(parent);
+        
+        parent.invertedColorsInput = document.createElement('input');
+        parent.invertedColorsInput.type = 'checkbox';
+        
+        // Scenario 1: layout settings has invertedColors: null, profile has inverted_colors: undefined (falls back to isEpaper = true)
+        mockAppState.settings.invertedColors = null;
+        parent.modelInput.value = 'reterminal_e1001';
+        parent.renderingModeInput.value = 'direct';
+        
+        panel.updateStrategyDisplay();
+        expect(parent.invertedColorsInput.checked).toBe(true);
+
+        // Scenario 2: layout settings has invertedColors: false
+        mockAppState.settings.invertedColors = false;
+        panel.updateStrategyDisplay();
+        expect(parent.invertedColorsInput.checked).toBe(false);
+
+        // Scenario 3: layout settings has invertedColors: true
+        mockAppState.settings.invertedColors = true;
+        panel.updateStrategyDisplay();
+        expect(parent.invertedColorsInput.checked).toBe(true);
     });
 
     it('handles errors gracefully in updateStrategyDisplay', async () => {

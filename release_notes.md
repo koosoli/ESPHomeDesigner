@@ -1,3 +1,16 @@
+## v1.0.0 RC23 - E-Paper Color Inversion & Widget Import Stability Fixes
+**Release Date:** June 20, 2026
+
+This RC23 release resolves default color inversion settings on e-paper screens, parser crashes during YAML imports of dropdown/roller lists, and ensures Home Assistant entity bindings for visibility conditions are correctly declared.
+
+### Stability & Verification
+- **Default E-Paper Color Inversion (Issue #428):** Layout default for `invertedColors` is now `null` (representing deferred-to-profile), allowing e-paper screens like `reterminal_e1001` to correctly default to inverted colors (black background, white text) without manual overrides.
+- **Dropdown & Roller List YAML Import (Issue #427):** Resolves a parsing crash (`TypeError: replace is not a function`) when importing layout YAML where `options` is formatted as a YAML sequence/array.
+- **Visibility Condition Entity Declarations (Issue #426):** Automatically generates the required `binary_sensor` and sensor scaffolding for condition entities when used in visibility expressions.
+- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, runtime version string, visible header label, release notes, and rebuilt frontend assets for the RC23 release line.
+
+---
+
 ## v1.0.0 RC22 - Auto-cycle Logic & Visibility Refresh Fix
 **Release Date:** June 19, 2026
 

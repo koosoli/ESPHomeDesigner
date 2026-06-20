@@ -172,7 +172,9 @@ export function buildLvglWidgetProps(widgetType, p, widget, props) {
     if (widgetType === "lvgl_dropdown") {
         return {
             ...props,
-            options: (p.options || "Option 1\nOption 2\nOption 3").replace(/\\n/g, "\n"),
+            options: Array.isArray(p.options)
+                ? p.options.map(String).join("\n")
+                : String(p.options || "Option 1\nOption 2\nOption 3").replace(/\\n/g, "\n"),
             selected_index: parseInt(p.selected_index || 0, 10),
             color: p.color || "black",
             direction: p.direction || "DOWN",
@@ -191,7 +193,9 @@ export function buildLvglWidgetProps(widgetType, p, widget, props) {
     if (widgetType === "lvgl_roller") {
         return {
             ...props,
-            options: (p.options || "Option A\nOption B\nOption C").replace(/\\n/g, "\n"),
+            options: Array.isArray(p.options)
+                ? p.options.map(String).join("\n")
+                : String(p.options || "Option A\nOption B\nOption C").replace(/\\n/g, "\n"),
             visible_row_count: parseInt(p.visible_row_count || 3, 10),
             color: p.color || "black",
             bg_color: p.bg_color || "white",

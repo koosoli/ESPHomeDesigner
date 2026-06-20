@@ -268,6 +268,46 @@ describe('buildWidgetProps', () => {
         expect(props).not.toHaveProperty('w');
     });
 
+    it('maps dropdown and roller widgets with array or string options correctly', () => {
+        const dropdownWidget = { title: '', width: 100, height: 20 };
+        const dropdownPropsArray = buildWidgetProps('lvgl_dropdown', {
+            options: ['Option A', 'Option B', 'Option C'],
+            selected_index: '1'
+        }, dropdownWidget);
+        expect(dropdownPropsArray).toMatchObject({
+            options: 'Option A\nOption B\nOption C',
+            selected_index: 1
+        });
+
+        const dropdownPropsString = buildWidgetProps('lvgl_dropdown', {
+            options: 'First\\nSecond\\nThird',
+            selected_index: '2'
+        }, dropdownWidget);
+        expect(dropdownPropsString).toMatchObject({
+            options: 'First\nSecond\nThird',
+            selected_index: 2
+        });
+
+        const rollerWidget = { title: '', width: 100, height: 20 };
+        const rollerPropsArray = buildWidgetProps('lvgl_roller', {
+            options: ['X', 'Y', 'Z'],
+            visible_row_count: '5'
+        }, rollerWidget);
+        expect(rollerPropsArray).toMatchObject({
+            options: 'X\nY\nZ',
+            visible_row_count: 5
+        });
+
+        const rollerPropsString = buildWidgetProps('lvgl_roller', {
+            options: 'A\\nB\\nC',
+            visible_row_count: '4'
+        }, rollerWidget);
+        expect(rollerPropsString).toMatchObject({
+            options: 'A\nB\nC',
+            visible_row_count: 4
+        });
+    });
+
     it('returns empty props for unknown non-LVGL widgets', () => {
         expect(buildWidgetProps('mystery_widget', { foo: 'bar' }, { title: '' })).toEqual({});
     });

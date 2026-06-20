@@ -135,6 +135,16 @@ describe('Native Generator', () => {
             expect(output).not.toContain('const auto COLOR_WHITE = Color(0, 0, 0); // Inverted for e-ink');
         });
 
+        it('should default to inverted colors for e-paper when layout invertedColors is null', () => {
+            const epaperProfile = { id: 'epaper', features: { epaper: true, inverted_colors: true } };
+            const layoutOverride = { ...mockLayout, invertedColors: null };
+            const lines = generateDisplayLambda(mockPages, layoutOverride, epaperProfile, mockContext, mockAdapter);
+            const output = lines.join('\n');
+
+            expect(output).toContain('const auto COLOR_WHITE = Color(0, 0, 0); // Inverted for e-ink');
+            expect(output).toContain('const auto COLOR_BLACK = Color(255, 255, 255); // Inverted for e-ink');
+        });
+
         it('should generate color palette for PhotoPainter', () => {
             const painterProfile = { id: 'esp32_s3_photopainter' };
             const lines = generateDisplayLambda(mockPages, mockLayout, painterProfile, mockContext, mockAdapter);

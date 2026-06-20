@@ -205,6 +205,17 @@ const onExportComponents = (context) => {
                 lines.push(`    on_error:`);
                 lines.push(`      then:`);
                 lines.push(`        - component.update: ${displayId}`);
+            } else {
+                lines.push(`    on_download_finished:`);
+                lines.push(`      then:`);
+                lines.push(`        - lvgl.image.update:`);
+                lines.push(`            id: ${w.id}`);
+                lines.push(`            src: ${safeId}`);
+                lines.push(`    on_error:`);
+                lines.push(`      then:`);
+                lines.push(`        - lvgl.image.update:`);
+                lines.push(`            id: ${w.id}`);
+                lines.push(`            src: ${safeId}`);
             }
         });
         lines.push("");

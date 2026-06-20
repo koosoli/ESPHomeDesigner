@@ -86,7 +86,7 @@ export const DEFAULT_PREFERENCES = {
     refreshInterval: 600,
     manualRefreshOnly: false,
     darkMode: false,
-    invertedColors: false,
+    invertedColors: null as boolean | null,
     lcdEcoStrategy: "backlight_off",
     dimTimeout: 10,
     sleepEnabled: false,
@@ -144,7 +144,7 @@ export const DEFAULT_CANVAS_HEIGHT = 480;
 
 // Initialize global namespace
 (window as any).ESPHomeDesigner = (window as any).ESPHomeDesigner || {
-    version: "1.0.0-rc20.4",
+    version: "1.0.0-rc23",
     constants: {
         COLORS,
         UI_DEFAULTS,

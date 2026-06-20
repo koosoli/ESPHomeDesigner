@@ -351,6 +351,22 @@ describe('Entity Deduplication & Registration', () => {
             expect(result).toContain('  id: switch_water_pump');
         });
 
+        it('registers switch condition entities as switches', () => {
+            const pages = [{
+                widgets: [{
+                    id: 'image_1',
+                    type: 'image',
+                    condition_entity: 'switch.prise_piscine',
+                    props: {}
+                }]
+            }];
+
+            const result = collectHomeAssistantSwitches(pages, context);
+
+            expect(result).toContain('  entity_id: switch.prise_piscine');
+            expect(result).toContain('  id: switch_prise_piscine');
+        });
+
         it('skips numeric sensors', () => {
             const pages = [{ widgets: [{ type: 'button', entity_id: 'sensor.temperature' }] }];
             const result = collectBinarySensors(pages, context);

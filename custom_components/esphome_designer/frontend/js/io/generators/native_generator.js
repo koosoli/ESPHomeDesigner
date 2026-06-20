@@ -228,7 +228,7 @@ function generateWidget(widget, context) {
 export function generateDisplayLambda(pages, layout, profile, context, adapter) {
     const lines = [];
     const isEpaper = !!(profile.features && (profile.features.epaper || profile.features.epd));
-    const layoutDefinesInversion = Object.prototype.hasOwnProperty.call(layout || {}, 'invertedColors');
+    const layoutDefinesInversion = layout && layout.invertedColors !== undefined && layout.invertedColors !== null;
     const useInvertedColors = layoutDefinesInversion
         ? !!layout.invertedColors
         : (profile.features?.inverted_colors ?? isEpaper);
