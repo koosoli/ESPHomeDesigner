@@ -38,6 +38,17 @@ def _coerce_bool(value: Any, default: bool = False) -> bool:
     return default
 
 
+def _coerce_bool_or_none(value: Any) -> Optional[bool]:
+    """Coerce persisted/frontend values into Optional[bool].
+
+    Returns None when the value is absent (None) so that the frontend profile
+    default for inverted_colors is respected instead of being overwritten.
+    """
+    if value is None:
+        return None
+    return _coerce_bool(value, False)
+
+
 def _coerce_optional_float(value: Any) -> Optional[float]:
     """Parse optional numeric bounds from persisted/frontend values."""
     try:
@@ -179,7 +190,9 @@ _DEVICE_BOOL_FIELD_SPECS = (
     ("daily_refresh_enabled", "dailyRefreshEnabled", False),
     ("extended_latin_glyphs", "extendedLatinGlyphs", False),
     ("auto_cycle_enabled", "autoCycleEnabled", False),
-    ("inverted_colors", "invertedColors", False),
+    # Note: inverted_colors is handled separately below because it is Optional[bool].
+    # A stored False must survive the round-trip so it is not confused with
+    # "never been set" (None), which tells the frontend to use the profile default.
 )
 
 _DEVICE_INT_FIELD_SPECS = (
@@ -235,6 +248,11 @@ def _deserialize_device_settings(data: Dict[str, Any]) -> Dict[str, Any]:
     settings["glyphsets"] = _get_compat_value(
         data, "glyphsets", "glyphsets", ["GF_Latin_Kernel"]
     )
+    # inverted_colors is Optional[bool]: preserve None so the frontend can fall
+    # back to the hardware-profile default instead of treating False as "user
+    # explicitly disabled inversion".
+    raw_inverted = _get_compat_value(data, "inverted_colors", "invertedColors", None)
+    settings["inverted_colors"] = _coerce_bool_or_none(raw_inverted)
     return settings
 
 
@@ -515,7 +533,7 @@ class DeviceConfig:
     auto_cycle_enabled: bool = False
     auto_cycle_interval_s: int = 30
     refresh_interval: int = 600
-    inverted_colors: bool = False
+    inverted_colors: Optional[bool] = None
     width: int = 800
     height: int = 480
     shape: str = "rect"

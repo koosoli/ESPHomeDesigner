@@ -228,10 +228,16 @@ function generateWidget(widget, context) {
 export function generateDisplayLambda(pages, layout, profile, context, adapter) {
     const lines = [];
     const isEpaper = !!(profile.features && (profile.features.epaper || profile.features.epd));
+    // Color e-papers (6-color, 7-color) must NOT have inverted colors by default.
+    // Only monochrome / binary / grayscale e-papers need the inversion.
+    const isColorEpaper = isEpaper && (
+        profile.displayType === 'color' ||
+        (profile.name && (profile.name.includes('Color') || profile.name.includes('color')))
+    );
     const layoutDefinesInversion = layout && layout.invertedColors !== undefined && layout.invertedColors !== null;
     const useInvertedColors = layoutDefinesInversion
         ? !!layout.invertedColors
-        : (profile.features?.inverted_colors ?? isEpaper);
+        : (profile.features?.inverted_colors ?? (isEpaper && !isColorEpaper));
 
     if (useInvertedColors) {
         lines.push("const auto COLOR_WHITE = Color(0, 0, 0); // Inverted for e-ink");
@@ -240,6 +246,7 @@ export function generateDisplayLambda(pages, layout, profile, context, adapter) 
         lines.push("const auto COLOR_WHITE = Color(255, 255, 255);");
         lines.push("const auto COLOR_BLACK = Color(0, 0, 0);");
     }
+
 
     // Special Color Mapping for Waveshare PhotoPainter (6-color palette quirk)
     // Note: Orange is NOT supported on the 6-color model. Mapped to Red as fallback.

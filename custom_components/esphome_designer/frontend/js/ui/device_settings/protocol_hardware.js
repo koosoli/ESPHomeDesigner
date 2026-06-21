@@ -197,13 +197,18 @@ export class ProtocolHardwarePanel {
                 const isESPHome = mode === 'lvgl' || mode === 'direct' || mode === 'c';
                 const profile = modelId ? DEVICE_PROFILES[modelId] : null;
                 const isEpaper = !!(profile && profile.features && (profile.features.epaper || profile.features.epd));
+                // Color e-papers must not default to inverted; only monochrome/binary/grayscale do.
+                const isColorEpaper = isEpaper && (
+                    profile.displayType === 'color' ||
+                    (profile.name && (profile.name.includes('Color') || profile.name.includes('color')))
+                );
                 this.parent.deviceInvertedColorsField.style.display = (isESPHome && isEpaper) ? 'block' : 'none';
 
                 if (isESPHome && isEpaper && this.parent.invertedColorsInput) {
                     const settings = AppState.settings;
                     const resolvedInversion = (settings.invertedColors !== null && settings.invertedColors !== undefined)
                         ? !!settings.invertedColors
-                        : !!(profile?.features?.inverted_colors ?? isEpaper);
+                        : !!(profile?.features?.inverted_colors ?? (isEpaper && !isColorEpaper));
                     this.parent.invertedColorsInput.checked = resolvedInversion;
                 }
             }

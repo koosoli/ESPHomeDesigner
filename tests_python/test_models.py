@@ -129,7 +129,29 @@ class ModelParsingTests(unittest.TestCase):
         self.assertFalse(device.deep_sleep_stay_awake_switch)
         self.assertTrue(device.daily_refresh_enabled)
         self.assertTrue(device.auto_cycle_enabled)
-        self.assertFalse(device.inverted_colors)
+        # Explicitly "no" must coerce to False (not None).
+        self.assertEqual(device.inverted_colors, False)
+
+    def test_device_config_inverted_colors_is_none_when_absent(self):
+        """When invertedColors is not included in the payload, inverted_colors
+        must be None so the frontend can fall back to the hardware-profile
+        default (True for monochrome e-papers, False for color e-papers)."""
+        device = self.models.DeviceConfig.from_dict({
+            "device_id": "layout_no_invert_key",
+            "pages": [],
+        })
+        self.assertIsNone(device.inverted_colors)
+
+    def test_device_config_inverted_colors_true_is_preserved(self):
+        """Explicitly True must survive the round-trip unchanged."""
+        device = self.models.DeviceConfig.from_dict({
+            "device_id": "layout_invert_true",
+            "invertedColors": True,
+            "pages": [],
+        })
+        self.assertTrue(device.inverted_colors)
+        serialized = device.to_dict()
+        self.assertTrue(serialized["inverted_colors"])
 
     def test_device_config_from_dict_sanitizes_optional_int_and_mapping_fields(self):
         device = self.models.DeviceConfig.from_dict({

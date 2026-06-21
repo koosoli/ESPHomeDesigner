@@ -39,9 +39,14 @@ export function populateDeviceSettingsForm(deviceSettings) {
         const modelId = settings.device_model;
         const profile = modelId ? DEVICE_PROFILES[modelId] : null;
         const isEpaper = !!(profile && profile.features && (profile.features.epaper || profile.features.epd));
+        // Color e-papers must not default to inverted; only monochrome/binary/grayscale do.
+        const isColorEpaper = isEpaper && (
+            profile.displayType === 'color' ||
+            (profile.name && (profile.name.includes('Color') || profile.name.includes('color')))
+        );
         const resolvedInversion = (settings.invertedColors !== null && settings.invertedColors !== undefined)
             ? !!settings.invertedColors
-            : !!(profile?.features?.inverted_colors ?? isEpaper);
+            : !!(profile?.features?.inverted_colors ?? (isEpaper && !isColorEpaper));
         deviceSettings.invertedColorsInput.checked = resolvedInversion;
     }
 

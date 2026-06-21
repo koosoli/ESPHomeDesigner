@@ -1,3 +1,15 @@
+## v1.0.0 RC24.1 - E-Paper Color Inversion Defaults Hotfix
+**Release Date:** June 21, 2026
+
+This RC24.1 hotfix addresses default color inversion settings on e-paper screens.
+
+### Stability & Verification
+- **E-Paper Color Inversion Fix:** Corrects color inversion defaults on monochrome e-paper devices (such as Seeedstudio reTerminal E1001 and TRMNL) so they default to inverted colors (black background, white text) without manual overrides. Color e-paper screens (such as E1002 and PhotoPainter) do not default to inverted colors.
+- **Migration Action Required:** Existing layouts saved under previous versions may have the incorrect default explicitly saved. Users should open the **Device Settings** modal for their layouts once and save to apply the corrected defaults.
+- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, runtime version string, visible header label, release notes, and rebuilt frontend assets for the RC24.1 hotfix line.
+
+---
+
 ## v1.0.0 RC24 - Long Entity ID Collision Fix
 **Release Date:** June 20, 2026
 
