@@ -37,6 +37,9 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
                 lines.push(`      number: ${buttonConfig.number}`);
                 lines.push(`      mode: ${buttonConfig.mode || "INPUT_PULLUP"}`);
                 lines.push(`      inverted: ${buttonConfig.inverted !== undefined ? buttonConfig.inverted : true}`);
+                if (buttonConfig.allow_other_uses !== undefined) {
+                    lines.push(`      allow_other_uses: ${buttonConfig.allow_other_uses}`);
+                }
             } else {
                 lines.push(`      number: ${buttonConfig}`);
                 lines.push("      mode: INPUT_PULLUP");
@@ -48,6 +51,7 @@ export function generateBinarySensorSection(profile, numPages, displayId = "my_d
             lines.push("      then:");
             lines.push(...onPressLines);
         };
+
 
         if (buttons.left && numPages > 1) {
             addButton(buttons.left, "button_left", "Left Button", [

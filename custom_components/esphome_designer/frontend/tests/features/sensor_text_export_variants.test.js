@@ -620,4 +620,111 @@ describe('sensor_text export variants', () => {
             max_width: 100
         });
     });
+    it('exports value and unit as separate printf calls when unit_font_size differs (BOTTOM align)', () => {
+        mockAppState.entityStates = {
+            'sensor.power': { state: '42.5', attributes: { unit_of_measurement: 'W' } }
+        };
+
+        const lines = [];
+        const addFontMock = vi.fn((family, weight, size) => `font_${size}`);
+        exportDirect({
+            id: 'sensor_unit_split_bottom',
+            x: 10,
+            y: 20,
+            width: 150,
+            height: 60,
+            entity_id: 'sensor.power',
+            props: {
+                value_format: 'value_only',
+                value_font_size: 40,
+                unit_font_size: 14,
+                unit_align: 'BOTTOM',
+                precision: 1,
+                text_align: 'TOP_LEFT'
+            }
+        }, {
+            lines,
+            addFont: addFontMock,
+            getColorConst: (v) => `Color(${v})`,
+            getConditionCheck: () => '',
+            profile: {}
+        });
+
+        const joined = lines.join('\n');
+        // Should use measure + two printf calls
+        expect(joined).toContain('measure(val_buf');
+        expect(joined).toContain('id(font_40)');
+        expect(joined).toContain('id(font_14)');
+        // Unit should be placed with TOP_LEFT alignment
+        expect(joined).toContain('TextAlign::TOP_LEFT');
+        expect(joined).toContain('"W"');
+    });
+
+    it('exports unit with TOP y-offset when unit_align is TOP', () => {
+        mockAppState.entityStates = {
+            'sensor.temp': { state: '23', attributes: { unit_of_measurement: '°C' } }
+        };
+
+        const lines = [];
+        exportDirect({
+            id: 'sensor_unit_top',
+            x: 0,
+            y: 10,
+            width: 150,
+            height: 60,
+            entity_id: 'sensor.temp',
+            props: {
+                value_format: 'value_only',
+                value_font_size: 36,
+                unit_font_size: 12,
+                unit_align: 'TOP',
+                precision: 0,
+                text_align: 'TOP_LEFT'
+            }
+        }, {
+            lines,
+            addFont: (family, weight, size) => `f${size}`,
+            getColorConst: (v) => `Color(${v})`,
+            getConditionCheck: () => '',
+            profile: {}
+        });
+
+        const joined = lines.join('\n');
+        // For TOP align, y offset is just the raw yVal (10)
+        expect(joined).toMatch(/printf\(0\s*\+\s*wv\s*\+\s*2,\s*10,/);
+    });
+
+    it('does not split value and unit when unit_font_size equals value_font_size', () => {
+        mockAppState.entityStates = {
+            'sensor.humidity': { state: '65', attributes: { unit_of_measurement: '%' } }
+        };
+
+        const lines = [];
+        exportDirect({
+            id: 'sensor_no_split',
+            x: 5,
+            y: 5,
+            width: 100,
+            height: 40,
+            entity_id: 'sensor.humidity',
+            props: {
+                value_format: 'value_only',
+                value_font_size: 20,
+                // unit_font_size not set - no split expected
+                precision: 0,
+                text_align: 'TOP_LEFT'
+            }
+        }, {
+            lines,
+            addFont: (family, weight, size) => `f${size}`,
+            getColorConst: (v) => `Color(${v})`,
+            getConditionCheck: () => '',
+            profile: {}
+        });
+
+        const joined = lines.join('\n');
+        // No split: no measure() call, unit is inline in the format string
+        expect(joined).not.toContain('measure(val_buf');
+        expect(joined).toContain('%');
+    });
 });

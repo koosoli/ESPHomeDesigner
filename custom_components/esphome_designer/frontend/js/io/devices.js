@@ -80,17 +80,40 @@ export const DEVICE_PROFILES = {
   },
   reterminal_e1004: {
     name: "Seeedstudio reTerminal E1004 13.3\" (Spectra 6)",
-    isComingSoon: true,
-    unavailableReason: "Coming soon - ESPHome support for the Seeed reTerminal E1004 display driver/model is not upstream yet.",
     displayType: "color",
     chip: "esp32-s3",
     board: "esp32-s3-devkitc-1",
-    displayModel: "Seeed-reTerminal-E1004",
+    displayModel: "seeed-reterminal-e1004",
     displayPlatform: "epaper_spi",
     resolution: { width: 1200, height: 1600 },
     shape: "rect",
     psram_mode: "octal",
-    frameworkHint: "ESPHome E1004 firmware/model support is not upstream yet.",
+    // GPIO2 is shared between the display cs1_pin and the Home button (allow_other_uses required on both)
+    display_config: [
+      "  - platform: epaper_spi",
+      "    model: seeed-reterminal-e1004",
+      "    cs1_pin:",
+      "      number: GPIO2",
+      "      allow_other_uses: true",
+      "    update_interval: never"
+    ],
+    external_components: [
+      "  - source:",
+      "      type: git",
+      "      url: https://github.com/esphome/esphome",
+      "      ref: pull/16706/head",
+      "    components: [ epaper_spi ]"
+    ],
+    system_section_overrides: {
+      esp32: [
+        "  framework:",
+        "    type: esp-idf",
+        "    sdkconfig_options:",
+        "      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: y",
+        "      CONFIG_ESP32S3_DATA_CACHE_64KB: y",
+        "      CONFIG_SPIRAM_MODE_OCT: y"
+      ]
+    },
     pins: {
       display: { cs: null, dc: null, reset: null, busy: null },
       i2c: { sda: "GPIO19", scl: "GPIO20" },
@@ -98,7 +121,12 @@ export const DEVICE_PROFILES = {
       batteryEnable: "GPIO21",
       batteryAdc: "GPIO1",
       buzzer: "GPIO45",
-      buttons: { left: "GPIO5", right: "GPIO4", refresh: "GPIO3", home: "GPIO2" }
+      buttons: {
+        left: "GPIO5",
+        right: "GPIO4",
+        refresh: "GPIO3",
+        home: { number: "GPIO2", mode: "INPUT_PULLUP", inverted: true, allow_other_uses: true }
+      }
     },
     battery: {
       attenuation: "12db",

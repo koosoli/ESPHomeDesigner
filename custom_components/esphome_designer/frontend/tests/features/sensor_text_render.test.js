@@ -265,4 +265,126 @@ describe('sensor_text render', () => {
         expect(numericBody.textContent).toBe('12.3');
         expect(numericBody.style.textAlign).toBe('right');
     });
+
+    it('renders value and unit as separate spans when unit_font_size differs from value_font_size', () => {
+        mockAppState.entityStates = {
+            'sensor.power': {
+                state: '42.5',
+                attributes: { unit_of_measurement: 'W' }
+            }
+        };
+
+        const el = document.createElement('div');
+        render(el, {
+            id: 'sensor_unit_size',
+            width: 180,
+            height: 60,
+            entity_id: 'sensor.power',
+            props: {
+                value_format: 'value_only',
+                value_font_size: 40,
+                unit_font_size: 14,
+                unit_align: 'BOTTOM',
+                precision: 1
+            }
+        }, {
+            getColorStyle: (value) => value === 'theme_auto' ? '#000000' : value
+        });
+
+        const body = /** @type {HTMLElement} */ (el.firstElementChild);
+        // Should be inline-flex with two separate child spans
+        expect(body.style.display).toBe('inline-flex');
+        const spans = body.querySelectorAll('span');
+        expect(spans.length).toBeGreaterThanOrEqual(2);
+        // First span is the value, second is the unit
+        const valueSpan = /** @type {HTMLElement} */ (spans[0]);
+        const unitSpan = /** @type {HTMLElement} */ (spans[1]);
+        expect(valueSpan.style.fontSize).toBe('40px');
+        expect(unitSpan.style.fontSize).toBe('14px');
+        expect(unitSpan.textContent).toBe('W');
+    });
+
+    it('applies TOP unit alignment (flex-start self) when unit_align is TOP', () => {
+        mockAppState.entityStates = {
+            'sensor.power': { state: '100', attributes: { unit_of_measurement: 'W' } }
+        };
+
+        const el = document.createElement('div');
+        render(el, {
+            id: 'sensor_unit_top',
+            width: 150,
+            height: 60,
+            entity_id: 'sensor.power',
+            props: {
+                value_format: 'value_only',
+                value_font_size: 36,
+                unit_font_size: 12,
+                unit_align: 'TOP',
+                precision: 0
+            }
+        }, {
+            getColorStyle: () => '#000000'
+        });
+
+        const body = el.firstElementChild;
+        const spans = body.querySelectorAll('span');
+        const unitSpan = /** @type {HTMLElement} */ (spans[spans.length - 1]);
+        expect(unitSpan.style.alignSelf).toBe('flex-start');
+    });
+
+    it('applies CENTER unit alignment when unit_align is CENTER', () => {
+        mockAppState.entityStates = {
+            'sensor.power': { state: '100', attributes: { unit_of_measurement: 'kW' } }
+        };
+
+        const el = document.createElement('div');
+        render(el, {
+            id: 'sensor_unit_center',
+            width: 150,
+            height: 60,
+            entity_id: 'sensor.power',
+            props: {
+                value_format: 'value_only',
+                value_font_size: 36,
+                unit_font_size: 12,
+                unit_align: 'CENTER',
+                precision: 0
+            }
+        }, {
+            getColorStyle: () => '#000000'
+        });
+
+        const body = el.firstElementChild;
+        const spans = body.querySelectorAll('span');
+        const unitSpan = /** @type {HTMLElement} */ (spans[spans.length - 1]);
+        expect(unitSpan.style.alignSelf).toBe('center');
+    });
+
+    it('falls back to standard rendering when unit_font_size matches value_font_size and no explicit prop', () => {
+        mockAppState.entityStates = {
+            'sensor.humidity': { state: '65', attributes: { unit_of_measurement: '%' } }
+        };
+
+        const el = document.createElement('div');
+        render(el, {
+            id: 'sensor_no_split',
+            width: 120,
+            height: 40,
+            entity_id: 'sensor.humidity',
+            props: {
+                value_format: 'value_only',
+                value_font_size: 20,
+                // unit_font_size not set -> should not split
+                precision: 0
+            }
+        }, {
+            getColorStyle: () => '#000000'
+        });
+
+        const body = /** @type {HTMLElement} */ (el.firstElementChild);
+        // Without split, display should NOT be inline-flex
+        expect(body.style.display).not.toBe('inline-flex');
+        expect(body.textContent).toContain('%');
+    });
 });
+

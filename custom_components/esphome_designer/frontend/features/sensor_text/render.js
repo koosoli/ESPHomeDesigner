@@ -23,6 +23,9 @@ export const render = (el, widget, { getColorStyle }) => {
     const unitProp = props.unit || "";
     const labelFontSize = props.label_font_size || 14;
     const valueFontSize = props.value_font_size || 20;
+    const unitFontSize = props.unit_font_size || valueFontSize;
+    const unitAlign = props.unit_align || "BOTTOM";
+    const hasCustomUnitStyle = unitFontSize !== valueFontSize || props.unit_font_size !== undefined;
     const fontFamily = (props.font_family || "Roboto") + ", sans-serif";
     const fontWeight = String(props.font_weight || 400);
     const fontStyle = props.italic ? "italic" : "normal";
@@ -101,7 +104,7 @@ export const render = (el, widget, { getColorStyle }) => {
             const value = parseFloat(match[1].replace(',', '.'));
             const extractedUnit = match[2] ? match[2].trim() : "";
             if (targetEntityId === entityId && (unitProp === undefined || unitProp === "") && !props.hide_unit && !isNoUnit) {
-                displayUnit = extractedUnit;
+                displayUnit = extractedUnit || entityObj.attributes?.unit_of_measurement || "";
             }
             if (!isNaN(value)) {
                 if (!isNaN(precision) && precision >= 0) {
@@ -149,7 +152,23 @@ export const render = (el, widget, { getColorStyle }) => {
 
     const prefix = evaluateTemplatePreview(props.prefix || "", entityStates);
     const postfix = evaluateTemplatePreview(props.postfix || "", entityStates);
+    // valueOnly = value without unit (used when unit is rendered separately)
+    const valueOnly = `${prefix}${displayValue}${postfix}`.trim();
     const fullValue = `${prefix}${displayValue}${displayUnit ? ` ${displayUnit}` : ""}${postfix}`.trim();
+
+    /** Helper: create an inline-flex unit span with custom font size and vertical align */
+    const makeUnitSpan = () => {
+        const unitSpan = document.createElement("span");
+        unitSpan.style.fontSize = `${unitFontSize}px`;
+        unitSpan.style.marginLeft = "2px";
+        if (unitAlign === "TOP") unitSpan.style.alignSelf = "flex-start";
+        else if (unitAlign === "CENTER") unitSpan.style.alignSelf = "center";
+        else unitSpan.style.alignSelf = "flex-end"; // BOTTOM = baseline
+        unitSpan.textContent = displayUnit;
+        return unitSpan;
+    };
+    /** Whether to render unit as a separate styled span */
+    const splitUnit = !!(displayUnit && hasCustomUnitStyle);
 
     let effectiveTitleRaw = title;
     if (!effectiveTitleRaw && (format.startsWith("label_") || format === "value_label")) {
@@ -286,15 +305,32 @@ export const render = (el, widget, { getColorStyle }) => {
         }
         applyAlign(props.text_align || "TOP_LEFT", body);
     } else {
-        body.style.fontSize = `${valueFontSize}px`;
-        if (props.parse_colors) {
-            const wrappedLines = wordWrap(fullValue, widget.width || 200, valueFontSize, fontFamily);
-            wrappedLines.forEach((/** @type {string} */ line, /** @type {number} */ index) => {
-                if (index > 0) body.appendChild(document.createElement("br"));
-                body.appendChild(parseColorMarkup(line, colorStyle, getColorStyle));
-            });
+        if (splitUnit) {
+            // Render value and unit as separate inline-flex spans
+            body.style.display = "inline-flex";
+            body.style.alignItems = "baseline";
+            body.style.gap = "0";
+
+            const valueSpan = document.createElement("span");
+            valueSpan.style.fontSize = `${valueFontSize}px`;
+            if (props.parse_colors) {
+                valueSpan.appendChild(parseColorMarkup(valueOnly, colorStyle, getColorStyle));
+            } else {
+                valueSpan.textContent = valueOnly;
+            }
+            body.appendChild(valueSpan);
+            body.appendChild(makeUnitSpan());
         } else {
-            body.textContent = fullValue;
+            body.style.fontSize = `${valueFontSize}px`;
+            if (props.parse_colors) {
+                const wrappedLines = wordWrap(fullValue, widget.width || 200, valueFontSize, fontFamily);
+                wrappedLines.forEach((/** @type {string} */ line, /** @type {number} */ index) => {
+                    if (index > 0) body.appendChild(document.createElement("br"));
+                    body.appendChild(parseColorMarkup(line, colorStyle, getColorStyle));
+                });
+            } else {
+                body.textContent = fullValue;
+            }
         }
         applyAlign(props.value_align || props.text_align || "TOP_LEFT", body);
     }

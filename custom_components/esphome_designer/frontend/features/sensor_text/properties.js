@@ -77,6 +77,15 @@ export const renderProperties = (panel, widget) => {
         panel.addLabeledInput("Label Size", "number", props.label_font_size || 14, setIntProp("label_font_size"));
         panel.addLabeledInput("Value Size", "number", props.value_font_size || 20, setIntProp("value_font_size"));
     });
+    panel.addCompactPropertyRow(() => {
+        panel.addLabeledInput("Unit Size", "number", props.unit_font_size || props.value_font_size || 20, setIntProp("unit_font_size"));
+        panel.addSelect("Unit Align", props.unit_align || "BOTTOM", [
+            { value: "TOP", label: "Top" },
+            { value: "CENTER", label: "Center" },
+            { value: "BOTTOM", label: "Bottom" }
+        ], setTextProp("unit_align"));
+    });
+
     panel.addColorSelector("Color", props.color || "theme_auto", null, setTextProp("color"));
 
     const fontOptions = ["Roboto", "Inter", "Open Sans", "Lato", "Montserrat", "Poppins", "Raleway", "Roboto Mono", "Ubuntu", "Nunito", "Playfair Display", "Merriweather", "Work Sans", "Source Sans Pro", "Quicksand", "Custom..."];

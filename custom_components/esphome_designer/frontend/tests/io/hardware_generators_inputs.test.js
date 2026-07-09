@@ -74,6 +74,40 @@ describe('hardware_generators_inputs', () => {
         expect(joined).toContain('entity_id: light.kitchen');
     });
 
+    it('emits allow_other_uses in the pin block when the button config object has it set', () => {
+        // This models the E1004 home button which shares GPIO2 with the display cs1_pin
+        const lines = generateBinarySensorSection({
+            name: 'reTerminal E1004',
+            features: { buttons: true },
+            pins: {
+                buttons: {
+                    home: { number: 'GPIO2', mode: 'INPUT_PULLUP', inverted: true, allow_other_uses: true }
+                }
+            }
+        }, 1, 'epaper_display', []);
+
+        const joined = lines.join('\n');
+        expect(joined).toContain('number: GPIO2');
+        expect(joined).toContain('allow_other_uses: true');
+        expect(joined).toContain('id: button_home');
+    });
+
+    it('does not emit allow_other_uses when the property is absent from the button config', () => {
+        const lines = generateBinarySensorSection({
+            name: 'reTerminal E1001',
+            features: { buttons: true },
+            pins: {
+                buttons: {
+                    home: { number: 'GPIO2', mode: 'INPUT_PULLUP', inverted: true }
+                }
+            }
+        }, 1, 'epaper_display', []);
+
+        const joined = lines.join('\n');
+        expect(joined).toContain('number: GPIO2');
+        expect(joined).not.toContain('allow_other_uses');
+    });
+
     it('adds template page buttons and buzzer helpers when multiple pages exist', () => {
         const lines = generateButtonSection({
             features: { buzzer: true }

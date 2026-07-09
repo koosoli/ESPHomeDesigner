@@ -125,15 +125,23 @@ describe('built-in device profiles', async () => {
             chip: 'esp32-s3',
             board: 'esp32-s3-devkitc-1',
             displayPlatform: 'epaper_spi',
-            displayModel: 'Seeed-reTerminal-E1004',
+            displayModel: 'seeed-reterminal-e1004',
             resolution: { width: 1200, height: 1600 }
         });
         expect(profile.features.epaper).toBe(true);
         expect(profile.features.psram).toBe(true);
-        expect(profile.frameworkHint).toContain('E1004');
-        expect(profile.isComingSoon).toBe(true);
-        expect(profile.unavailableReason).toContain('not upstream yet');
-        expect(devices.SUPPORTED_DEVICE_IDS).not.toContain('reterminal_e1004');
+        // Profile is now active - no longer coming soon
+        expect(profile.isComingSoon).toBeUndefined();
+        expect(profile.unavailableReason).toBeUndefined();
+        // Has display_config with allow_other_uses on shared GPIO2 pin
+        expect(Array.isArray(profile.display_config)).toBe(true);
+        expect(profile.display_config.some((/** @type {string} */ l) => l.includes('allow_other_uses'))).toBe(true);
+        // Has external_components for PR #16706
+        expect(Array.isArray(profile.external_components)).toBe(true);
+        expect(profile.external_components.some((/** @type {string} */ l) => l.includes('16706'))).toBe(true);
+        // Home button has allow_other_uses due to GPIO2 sharing
+        expect(profile.pins.buttons.home).toMatchObject({ number: 'GPIO2', allow_other_uses: true });
+        expect(devices.SUPPORTED_DEVICE_IDS).toContain('reterminal_e1004');
     });
 
     it('recomputes supported ids after loading external profiles', async () => {

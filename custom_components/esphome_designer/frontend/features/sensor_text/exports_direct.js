@@ -59,6 +59,9 @@ export const exportDirect = (w, context) => {
 
         const labelFS = p.label_font_size || 14;
         const valueFS = p.value_font_size || 20;
+        const unitFS = p.unit_font_size || valueFS;
+        const unitAlign = p.unit_align || "BOTTOM"; // TOP | CENTER | BOTTOM
+        const splitUnitExport = !!(unitFS !== valueFS || p.unit_font_size !== undefined);
         const family = p.font_family || "Roboto";
         const weight = p.font_weight || 400;
         const italic = !!p.italic;
@@ -99,6 +102,7 @@ export const exportDirect = (w, context) => {
 
         const labelFontId = addFont(family, weight, labelFS, italic);
         const valueFontId = addFont(family, weight, valueFS, italic);
+        const unitFontId = (splitUnitExport && unit) ? addFont(family, weight, unitFS, italic) : valueFontId;
 
         const cond = getConditionCheck(w);
         if (cond) lines.push(`        ${cond}`);
@@ -194,7 +198,10 @@ export const exportDirect = (w, context) => {
         else if (!textAlign.includes("TOP")) yVal = Math.round(w.y + w.height / 2); // Middle
 
         // Determine format string for values
-        const finalValFmt = `${prefixEsc}${valFmt1}${v2 ? separatorEsc + valFmt2 : ""}${displayUnitStr ? " " + displayUnitStr : ""}${postfixEsc}`;
+        // When unit is exported separately (different font/align), omit it from the main format string
+        const useUnitSplit = splitUnitExport && !!displayUnitStr && !v2;
+        const finalValFmt = `${prefixEsc}${valFmt1}${v2 ? separatorEsc + valFmt2 : ""}${!useUnitSplit && displayUnitStr ? " " + displayUnitStr : ""}${postfixEsc}`;
+        const finalValFmtNoUnit = useUnitSplit ? `${prefixEsc}${valFmt1}${postfixEsc}` : finalValFmt;
 
         const arg1 = isText1 ? `${v1}.state.c_str()` : `${v1}.state`;
         const arg2 = v2 ? (isText2 ? `${v2}.state.c_str()` : `${v2}.state`) : null;
@@ -225,8 +232,27 @@ export const exportDirect = (w, context) => {
             lines.push(`        it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${colorVar}, ${labelAlign}, "${title}");`);
         } else if (format === "value_only" || format === "value_only_no_unit" || !title) {
             // Use runtime word-wrap if widget has meaningful width
-            const useWrapping = w.width && w.width > 50;
-            if (useWrapping) {
+            const useWrapping = w.width && w.width > 50 && !useUnitSplit;
+            if (useUnitSplit) {
+                // Split value and unit into separate printf calls
+                if (!useDynamicColor) lines.push(`        {`);
+                lines.push(`          char val_buf[256];`);
+                lines.push(`          sprintf(val_buf, "${finalValFmtNoUnit}", ${args});`);
+                lines.push(`          int wv, hv, xoffv, blv;`);
+                lines.push(`          id(${valueFontId})->measure(val_buf, &wv, &xoffv, &blv, &hv);`);
+                // Determine y-offset for the unit based on unit_align
+                // unitAlign TOP => unit top aligns with value top => y_unit = yVal
+                // unitAlign CENTER => unit center aligns with value center => y_unit = yVal + (blv - blU)/2 approx
+                // unitAlign BOTTOM => unit baseline aligns with value baseline (default)
+                const unitYExpr = unitAlign === "TOP"
+                    ? yVal.toString()
+                    : unitAlign === "CENTER"
+                        ? `${yVal} + blv / 2 - ${Math.round(unitFS * 0.5)}`
+                        : `${yVal} + (blv - ${Math.round(unitFS * 0.8)})`; // BOTTOM: align baseline
+                lines.push(`          it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${colorVar}, ${valueAlign}, "%s", val_buf);`);
+                lines.push(`          it.printf(${xVal} + wv + 2, ${unitYExpr}, id(${unitFontId}), ${colorVar}, TextAlign::TOP_LEFT, "${displayUnitStr}");`);
+                if (!useDynamicColor) lines.push(`        }`);
+            } else if (useWrapping) {
                 const lineHeight = valueFS + 4;
                 if (!useDynamicColor) lines.push(`        {`);
                 lines.push(`          char wrap_buf[512];`);

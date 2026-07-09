@@ -1,4 +1,18 @@
+## v1.0.0 RC26 - E1004 Profile Activation & Sensor Unit Size/Alignment
+**Release Date:** July 9, 2026
+
+This RC26 release activates the Seeed reTerminal E1004 hardware profile with the correct ESPHome driver configuration, and adds independent unit font size and alignment controls to the Sensor widget as requested in Issue #440.
+
+### New Features & Fixes
+- **Seeed reTerminal E1004 Profile Activated (hardware):** The E1004 13.3" Spectra 6 hardware profile is now fully active and correctly configured based on a user-tested working YAML. The `isComingSoon` flag has been removed. The profile now uses the correct lowercase display model name (`seeed-reterminal-e1004`), injects the required `external_components` reference to ESPHome PR #16706 (the `epaper_spi` driver), emits `display_config` with `cs1_pin` + `allow_other_uses: true` for the shared GPIO2 pin, and sets the Home button as an object with `allow_other_uses: true` to prevent ESPHome pin-conflict errors.
+- **Button Generator `allow_other_uses` Support:** The GPIO binary sensor generator now outputs `allow_other_uses: true/false` in the pin definition when a button configuration object includes the property. This resolves pin-sharing conflicts for devices like the E1004 where a pin is shared between a button and a display CS line.
+- **Sensor Widget: Independent Unit Size & Alignment (Issue #440):** The Sensor widget now exposes two new controls in the Appearance panel — **Unit Size** (number input) and **Unit Align** (Top/Center/Bottom). When `Unit Size` differs from `Value Size`, the unit is rendered as a separate element with its own font and vertical alignment both in the canvas preview and in the generated ESPHome C++ display lambda, using `measure()` to position the unit immediately after the value text.
+- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, runtime version string, visible header label, release notes, schema hash, and rebuilt frontend assets for the RC26 release line.
+
+---
+
 ## v1.0.0 RC25 - LVGL Import, Calendar, Controls, and E1004 Profile
+
 **Release Date:** July 3, 2026
 
 This RC25 release addresses recent LVGL export/import reports, adds localization and bar-label controls, and refreshes the supported device/profile list.
