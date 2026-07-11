@@ -386,5 +386,102 @@ describe('sensor_text render', () => {
         expect(body.style.display).not.toBe('inline-flex');
         expect(body.textContent).toContain('%');
     });
-});
 
+    it('renders unit as a separate span in label_value format when unit_font_size differs (issue: unit size not updating in preview)', () => {
+        mockAppState.entityStates = {
+            'sensor.power': { state: '88', attributes: { unit_of_measurement: 'W' } }
+        };
+
+        const el = document.createElement('div');
+        render(el, {
+            id: 'sensor_label_value_split',
+            width: 200,
+            height: 60,
+            entity_id: 'sensor.power',
+            title: 'Power',
+            props: {
+                value_format: 'label_value',
+                value_font_size: 36,
+                unit_font_size: 14,
+                unit_align: 'TOP',
+                precision: 0
+            }
+        }, {
+            getColorStyle: () => '#000000'
+        });
+
+        expect(el.textContent).toContain('Power');
+        expect(el.textContent).toContain('88');
+        // Unit 'W' must be in its own span at unitFontSize, not concatenated into the value span
+        const spans = Array.from(el.querySelectorAll('span'));
+        const unitSpan = spans.find((s) => s.textContent === 'W');
+        expect(unitSpan).toBeTruthy();
+        expect(/** @type {HTMLElement} */ (unitSpan).style.fontSize).toBe('14px');
+        const valueSpan = spans.find((s) => s.textContent === '88');
+        expect(valueSpan).toBeTruthy();
+    });
+
+    it('renders unit as a separate span in label_newline_value format when unit_font_size differs', () => {
+        mockAppState.entityStates = {
+            'sensor.temp': { state: '21', attributes: { unit_of_measurement: '°C' } }
+        };
+
+        const el = document.createElement('div');
+        render(el, {
+            id: 'sensor_label_newline_split',
+            width: 180,
+            height: 70,
+            entity_id: 'sensor.temp',
+            title: 'Temp',
+            props: {
+                value_format: 'label_newline_value',
+                value_font_size: 40,
+                unit_font_size: 16,
+                unit_align: 'BOTTOM',
+                precision: 0
+            }
+        }, {
+            getColorStyle: () => '#000000'
+        });
+
+        expect(el.textContent).toContain('Temp');
+        expect(el.textContent).toContain('21');
+        const spans = Array.from(el.querySelectorAll('span'));
+        const unitSpan = spans.find((s) => s.textContent === '°C');
+        expect(unitSpan).toBeTruthy();
+        expect(/** @type {HTMLElement} */ (unitSpan).style.fontSize).toBe('16px');
+    });
+
+    it('renders unit as a separate span in value_label format when unit_font_size differs', () => {
+        mockAppState.entityStates = {
+            'sensor.humidity': { state: '65', attributes: { unit_of_measurement: '%' } }
+        };
+
+        const el = document.createElement('div');
+        render(el, {
+            id: 'sensor_value_label_split',
+            width: 180,
+            height: 60,
+            entity_id: 'sensor.humidity',
+            title: 'Humidity',
+            props: {
+                value_format: 'value_label',
+                value_font_size: 36,
+                unit_font_size: 14,
+                unit_align: 'CENTER',
+                precision: 0
+            }
+        }, {
+            getColorStyle: () => '#000000'
+        });
+
+        expect(el.textContent).toContain('Humidity');
+        expect(el.textContent).toContain('65');
+        const spans = Array.from(el.querySelectorAll('span'));
+        const unitSpan = spans.find((s) => s.textContent === '%');
+        expect(unitSpan).toBeTruthy();
+        expect(/** @type {HTMLElement} */ (unitSpan).style.fontSize).toBe('14px');
+        const valueSpan = spans.find((s) => s.textContent === '65');
+        expect(valueSpan).toBeTruthy();
+    });
+});

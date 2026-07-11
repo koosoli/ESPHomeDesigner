@@ -234,23 +234,48 @@ export const exportDirect = (w, context) => {
             // Use runtime word-wrap if widget has meaningful width
             const useWrapping = w.width && w.width > 50 && !useUnitSplit;
             if (useUnitSplit) {
-                // Split value and unit into separate printf calls
+                // Split value and unit into separate printf calls.
+                // We must measure widths at runtime so we can compute the correct x
+                // positions for each alignment mode:
+                //   LEFT:   value at xVal (TOP_LEFT), unit at xVal + wv + gap
+                //   CENTER: combined block (wv + gap + wu) centred on xVal,
+                //           so value TOP_LEFT at xVal - (wv + gap + wu)/2,
+                //           unit TOP_LEFT at same_x + wv + gap
+                //   RIGHT:  unit TOP_LEFT at xVal - wu,
+                //           value TOP_LEFT at xVal - wu - gap - wv
                 if (!useDynamicColor) lines.push(`        {`);
                 lines.push(`          char val_buf[256];`);
                 lines.push(`          sprintf(val_buf, "${finalValFmtNoUnit}", ${args});`);
                 lines.push(`          int wv, hv, xoffv, blv;`);
                 lines.push(`          id(${valueFontId})->measure(val_buf, &wv, &xoffv, &blv, &hv);`);
                 // Determine y-offset for the unit based on unit_align
-                // unitAlign TOP => unit top aligns with value top => y_unit = yVal
-                // unitAlign CENTER => unit center aligns with value center => y_unit = yVal + (blv - blU)/2 approx
+                // unitAlign TOP    => unit top aligns with value top     => y_unit = yVal
+                // unitAlign CENTER => unit centre aligns with value centre
                 // unitAlign BOTTOM => unit baseline aligns with value baseline (default)
                 const unitYExpr = unitAlign === "TOP"
                     ? yVal.toString()
                     : unitAlign === "CENTER"
                         ? `${yVal} + blv / 2 - ${Math.round(unitFS * 0.5)}`
                         : `${yVal} + (blv - ${Math.round(unitFS * 0.8)})`; // BOTTOM: align baseline
-                lines.push(`          it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${colorVar}, ${valueAlign}, "%s", val_buf);`);
-                lines.push(`          it.printf(${xVal} + wv + 2, ${unitYExpr}, id(${unitFontId}), ${colorVar}, TextAlign::TOP_LEFT, "${displayUnitStr}");`);
+
+                if (isLeft) {
+                    // LEFT: value at xVal, unit immediately to its right
+                    lines.push(`          it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${colorVar}, TextAlign::TOP_LEFT, "%s", val_buf);`);
+                    lines.push(`          it.printf(${xVal} + wv + 2, ${unitYExpr}, id(${unitFontId}), ${colorVar}, TextAlign::TOP_LEFT, "${displayUnitStr}");`);
+                } else if (isRight) {
+                    // RIGHT: measure unit width, place unit flush at xVal, value to its left
+                    lines.push(`          int wu, hu, xoffu, blu;`);
+                    lines.push(`          id(${unitFontId})->measure("${displayUnitStr}", &wu, &xoffu, &blu, &hu);`);
+                    lines.push(`          it.printf(${xVal} - wu - 2 - wv, ${yVal}, id(${valueFontId}), ${colorVar}, TextAlign::TOP_LEFT, "%s", val_buf);`);
+                    lines.push(`          it.printf(${xVal} - wu, ${unitYExpr}, id(${unitFontId}), ${colorVar}, TextAlign::TOP_LEFT, "${displayUnitStr}");`);
+                } else {
+                    // CENTER: measure unit width, offset whole block so it is centred on xVal
+                    lines.push(`          int wu, hu, xoffu, blu;`);
+                    lines.push(`          id(${unitFontId})->measure("${displayUnitStr}", &wu, &xoffu, &blu, &hu);`);
+                    lines.push(`          int x_block = ${xVal} - (wv + 2 + wu) / 2;`);
+                    lines.push(`          it.printf(x_block, ${yVal}, id(${valueFontId}), ${colorVar}, TextAlign::TOP_LEFT, "%s", val_buf);`);
+                    lines.push(`          it.printf(x_block + wv + 2, ${unitYExpr}, id(${unitFontId}), ${colorVar}, TextAlign::TOP_LEFT, "${displayUnitStr}");`);
+                }
                 if (!useDynamicColor) lines.push(`        }`);
             } else if (useWrapping) {
                 const lineHeight = valueFS + 4;

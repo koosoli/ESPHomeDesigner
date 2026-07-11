@@ -1,3 +1,16 @@
+## v1.0.0 RC27 - RSS Proxy Auth Fix, Sensor Unit Alignment & Preview Fix
+**Release Date:** July 11, 2026
+
+This RC27 release resolves three bugs introduced or exposed in recent releases: the RSS quote widget returning 401 errors for unauthenticated ESPHome devices, the sensor unit text being misaligned when center- or right-aligned widgets use a separate unit font size, and the unit font size not updating visually in the canvas preview for label-format sensor widgets.
+
+### Fixes
+- **RSS Quote Widget Authentication Fix (Issue #446):** The RSS proxy endpoint (`/api/esphome_designer/rss_proxy`) was rejecting requests from ESPHome devices with a 401 Unauthorized error after RC25. ESPHome devices call this endpoint directly via HTTP without a Home Assistant auth token. The endpoint now correctly opts out of HA authentication (`requires_auth = False`), matching the pattern used by other device-facing endpoints.
+- **Sensor Widget Unit Alignment in Generated C++ (Issue #445):** When a Sensor widget used a separate unit font size and was center- or right-aligned, the generated ESPHome C++ display lambda placed the unit text incorrectly — always at `xVal + wv + 2` regardless of alignment mode. The code generator now computes alignment-aware x positions: for LEFT the behaviour is unchanged; for RIGHT the unit is placed flush at the right anchor and the value immediately to its left; for CENTER both value and unit are measured at runtime and the combined block is centred on the widget anchor point.
+- **Sensor Unit Font Size Not Updating in Canvas Preview:** When using label-bearing formats (`Label: Value`, `Label [newline] Value`, `Value Label`) with a custom unit font size, the unit text was always rendered inline at the value's font size — the separate unit span with its own `font-size` was only created in the `Value & Unit` (value_only) format path. All label format branches now split the unit into a dedicated styled span when `unit_font_size` is explicitly set, making the canvas preview match the generated output.
+- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, visible header label, release notes, and rebuilt frontend assets for the RC27 release line.
+
+---
+
 ## v1.0.0 RC26 - E1004 Profile Activation & Sensor Unit Size/Alignment
 **Release Date:** July 9, 2026
 

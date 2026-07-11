@@ -727,4 +727,88 @@ describe('sensor_text export variants', () => {
         expect(joined).not.toContain('measure(val_buf');
         expect(joined).toContain('%');
     });
+    it('positions value+unit block correctly when text_align is CENTER (issue #445)', () => {
+        mockAppState.entityStates = {
+            'sensor.temp': { state: '21.5', attributes: { unit_of_measurement: '°C' } }
+        };
+
+        const lines = [];
+        exportDirect({
+            id: 'sensor_unit_split_center',
+            x: 50,
+            y: 10,
+            width: 140,
+            height: 60,
+            entity_id: 'sensor.temp',
+            props: {
+                value_format: 'value_only',
+                value_font_size: 36,
+                unit_font_size: 14,
+                unit_align: 'TOP',
+                precision: 1,
+                text_align: 'CENTER'
+            }
+        }, {
+            lines,
+            addFont: (family, weight, size) => `f${size}`,
+            getColorConst: (v) => `Color(${v})`,
+            getConditionCheck: () => '',
+            profile: {}
+        });
+
+        const joined = lines.join('\n');
+        // Must measure both value and unit widths
+        expect(joined).toContain('measure(val_buf');
+        expect(joined).toContain('measure("°C"');
+        // Must compute a centred x_block
+        expect(joined).toContain('x_block');
+        // Both printf calls use the computed x_block variable, not a raw integer offset
+        expect(joined).toContain('printf(x_block,');
+        expect(joined).toContain('printf(x_block + wv + 2,');
+        // No raw `xVal + wv + 2` expression — that would only be correct for LEFT align
+        // xVal for CENTER with x=50, width=140 => 50 + 70 = 120
+        expect(joined).not.toContain('printf(120 + wv + 2,');
+    });
+
+    it('positions value+unit block correctly when text_align is TOP_RIGHT (issue #445)', () => {
+        mockAppState.entityStates = {
+            'sensor.power': { state: '99', attributes: { unit_of_measurement: 'W' } }
+        };
+
+        const lines = [];
+        exportDirect({
+            id: 'sensor_unit_split_right',
+            x: 0,
+            y: 10,
+            width: 200,
+            height: 60,
+            entity_id: 'sensor.power',
+            props: {
+                value_format: 'value_only',
+                value_font_size: 40,
+                unit_font_size: 14,
+                unit_align: 'BOTTOM',
+                precision: 0,
+                text_align: 'TOP_RIGHT'
+            }
+        }, {
+            lines,
+            addFont: (family, weight, size) => `f${size}`,
+            getColorConst: (v) => `Color(${v})`,
+            getConditionCheck: () => '',
+            profile: {}
+        });
+
+        const joined = lines.join('\n');
+        // Must measure both value and unit widths
+        expect(joined).toContain('measure(val_buf');
+        expect(joined).toContain('measure("W"');
+        // xVal for TOP_RIGHT: x=0 + width=200 => 200
+        // Unit flush at xVal: printf(200 - wu, ...)
+        expect(joined).toContain('printf(200 - wu,');
+        // Value to the left of the unit: printf(200 - wu - 2 - wv, ...)
+        expect(joined).toContain('printf(200 - wu - 2 - wv,');
+        // No raw `xVal + wv + 2` — that would be wrong for RIGHT align
+        expect(joined).not.toContain('printf(200 + wv + 2,');
+    });
 });

@@ -269,6 +269,9 @@ class ReTerminalRssProxyView(DesignerBaseView):
 
     url = f"{API_BASE_PATH}/rss_proxy"
     name = "api:esphome_designer_rss_proxy"
+    # ESPHome devices call this endpoint without a HA auth token, so
+    # authentication must be disabled here (see also: panel.py device views).
+    requires_auth = False
 
     def __init__(self, hass: HomeAssistant) -> None:
         self.hass = hass

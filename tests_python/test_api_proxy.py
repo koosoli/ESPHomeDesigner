@@ -196,3 +196,18 @@ class ProxyApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(content, "<rss />")
         self.assertEqual(dns_calls, [("example.com", 443)])
         self.assertEqual(FakeClientSession.request_log[0][0]["host"], "93.184.216.34")
+
+    def test_rss_proxy_view_does_not_require_auth(self):
+        """ESPHome devices call the RSS proxy without a HA auth token.
+
+        Regression test for issue #446: ReTerminalRssProxyView must opt out of
+        Home Assistant authentication so that unauthenticated HTTP requests from
+        ESPHome hardware are accepted instead of rejected with 401.
+        """
+        hass = FakeHass()
+        view = self.proxy_module.ReTerminalRssProxyView(hass)
+        self.assertFalse(
+            view.requires_auth,
+            "ReTerminalRssProxyView.requires_auth must be False so ESPHome devices "
+            "can fetch RSS feeds without a HA long-lived access token.",
+        )

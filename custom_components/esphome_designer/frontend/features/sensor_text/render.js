@@ -235,9 +235,9 @@ export const render = (el, widget, { getColorStyle }) => {
         const valueSpan = document.createElement("span");
         valueSpan.style.fontSize = `${valueFontSize}px`;
         if (props.parse_colors) {
-            valueSpan.appendChild(parseColorMarkup(fullValue, colorStyle, getColorStyle));
+            valueSpan.appendChild(parseColorMarkup(splitUnit ? valueOnly : fullValue, colorStyle, getColorStyle));
         } else {
-            valueSpan.textContent = fullValue;
+            valueSpan.textContent = splitUnit ? valueOnly : fullValue;
         }
 
         const align = props.label_align || props.text_align || "TOP_LEFT";
@@ -247,6 +247,7 @@ export const render = (el, widget, { getColorStyle }) => {
 
         body.appendChild(labelSpan);
         body.appendChild(valueSpan);
+        if (splitUnit) body.appendChild(makeUnitSpan());
     } else if ((format === "label_newline_value" || format === "label_newline_value_no_unit") && effectiveTitle) {
         body.style.display = "flex";
         body.style.flexDirection = "column";
@@ -262,17 +263,36 @@ export const render = (el, widget, { getColorStyle }) => {
         }
         applyAlign(props.label_align || props.text_align || "TOP_LEFT", labelDiv);
 
-        const valueDiv = document.createElement("div");
-        valueDiv.style.fontSize = `${valueFontSize}px`;
-        if (props.parse_colors) {
-            valueDiv.appendChild(parseColorMarkup(fullValue, colorStyle, getColorStyle));
+        // When unit has a custom size, render value and unit as an inner inline-flex row
+        let valueContainer;
+        if (splitUnit) {
+            valueContainer = document.createElement("div");
+            valueContainer.style.display = "inline-flex";
+            valueContainer.style.alignItems = "baseline";
+            valueContainer.style.gap = "0";
+            applyAlign(props.value_align || props.text_align || "TOP_LEFT", valueContainer);
+            const valueDiv = document.createElement("span");
+            valueDiv.style.fontSize = `${valueFontSize}px`;
+            if (props.parse_colors) {
+                valueDiv.appendChild(parseColorMarkup(valueOnly, colorStyle, getColorStyle));
+            } else {
+                valueDiv.textContent = valueOnly;
+            }
+            valueContainer.appendChild(valueDiv);
+            valueContainer.appendChild(makeUnitSpan());
         } else {
-            valueDiv.textContent = fullValue;
+            valueContainer = document.createElement("div");
+            valueContainer.style.fontSize = `${valueFontSize}px`;
+            if (props.parse_colors) {
+                valueContainer.appendChild(parseColorMarkup(fullValue, colorStyle, getColorStyle));
+            } else {
+                valueContainer.textContent = fullValue;
+            }
+            applyAlign(props.value_align || props.text_align || "TOP_LEFT", valueContainer);
         }
-        applyAlign(props.value_align || props.text_align || "TOP_LEFT", valueDiv);
 
         body.appendChild(labelDiv);
-        body.appendChild(valueDiv);
+        body.appendChild(valueContainer);
     } else if (format === "value_label" && effectiveTitle) {
         body.style.display = "flex";
         body.style.alignItems = "baseline";
@@ -281,9 +301,9 @@ export const render = (el, widget, { getColorStyle }) => {
         const valueSpan = document.createElement("span");
         valueSpan.style.fontSize = `${valueFontSize}px`;
         if (props.parse_colors) {
-            valueSpan.appendChild(parseColorMarkup(fullValue, colorStyle, getColorStyle));
+            valueSpan.appendChild(parseColorMarkup(splitUnit ? valueOnly : fullValue, colorStyle, getColorStyle));
         } else {
-            valueSpan.textContent = fullValue;
+            valueSpan.textContent = splitUnit ? valueOnly : fullValue;
         }
 
         const labelSpan = document.createElement("span");
@@ -295,6 +315,7 @@ export const render = (el, widget, { getColorStyle }) => {
         }
 
         body.appendChild(valueSpan);
+        if (splitUnit) body.appendChild(makeUnitSpan());
         body.appendChild(labelSpan);
     } else if (format === "label_only") {
         body.style.fontSize = `${labelFontSize}px`;
