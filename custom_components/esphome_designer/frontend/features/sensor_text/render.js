@@ -66,6 +66,7 @@ export const render = (el, widget, { getColorStyle }) => {
     let displayValue = "--";
     const isNoUnit = format.endsWith("_no_unit");
     let displayUnit = (props.hide_unit || isNoUnit) ? "" : unitProp;
+    let displayUnit2 = "";
 
     /** @param {string} targetEntityId @param {string | null} [attrPathOverride=null] */
     const formatValue = (targetEntityId, attrPathOverride = null) => {
@@ -83,14 +84,12 @@ export const render = (el, widget, { getColorStyle }) => {
                 const attrStr = String(attrVal).trim();
                 const numVal = Number(attrStr);
                 if (attrStr !== "" && !isNaN(numVal)) {
-                    if (
-                        targetEntityId === entityId &&
-                        (unitProp === undefined || unitProp === "") &&
-                        entityObj.attributes?.unit_of_measurement &&
-                        !props.hide_unit &&
-                        !isNoUnit
-                    ) {
-                        displayUnit = entityObj.attributes.unit_of_measurement;
+                    if (!props.hide_unit && !isNoUnit && entityObj.attributes?.unit_of_measurement) {
+                        if (targetEntityId === entityId && (unitProp === undefined || unitProp === "")) {
+                            displayUnit = entityObj.attributes.unit_of_measurement;
+                        } else if (targetEntityId !== entityId) {
+                            displayUnit2 = entityObj.attributes.unit_of_measurement;
+                        }
                     }
                     return (!isNaN(precision) && precision >= 0) ? numVal.toFixed(precision) : numVal.toString();
                 }
@@ -105,6 +104,8 @@ export const render = (el, widget, { getColorStyle }) => {
             const extractedUnit = match[2] ? match[2].trim() : "";
             if (targetEntityId === entityId && (unitProp === undefined || unitProp === "") && !props.hide_unit && !isNoUnit) {
                 displayUnit = extractedUnit || entityObj.attributes?.unit_of_measurement || "";
+            } else if (targetEntityId !== entityId && !props.hide_unit && !isNoUnit) {
+                displayUnit2 = extractedUnit || entityObj.attributes?.unit_of_measurement || "";
             }
             if (!isNaN(value)) {
                 if (!isNaN(precision) && precision >= 0) {
@@ -141,10 +142,11 @@ export const render = (el, widget, { getColorStyle }) => {
         val2 = formatValue(entityId2, props.attribute2);
     }
 
-    displayValue = val1;
-    if (val2 !== null) {
-        displayValue = `${val1}${separator}${val2}`;
-    }
+        displayValue = val1;
+        if (val2 !== null) {
+            displayValue = `${val1}${displayUnit ? ` ${displayUnit}` : ""}${separator}${val2}${displayUnit2 ? ` ${displayUnit2}` : ""}`;
+            displayUnit = "";
+        }
 
     if (displayUnit && displayValue.endsWith(displayUnit)) {
         displayUnit = "";

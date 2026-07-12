@@ -8,8 +8,12 @@ import { AppState } from '../core/state';
  * @param {Object} widget - The widget object.
  * @param {HTMLInputElement} inputEl - The input element to update.
  * @param {Function} callback - Success callback.
+ * @param {{ skipAutoUpdate?: boolean }} [options] - Optional flags.
+ *   Set `skipAutoUpdate: true` when the caller's callback already handles
+ *   the widget update (e.g. when picking a secondary entity) so the picker
+ *   does not additionally overwrite `entity_id` or `props.unit`.
  */
-export function openEntityPickerForWidget(widget, inputEl, callback) {
+export function openEntityPickerForWidget(widget, inputEl, callback, options = {}) {
     if (!hasHaBackend()) {
         Logger.warn("Entity Picker: No HA backend detected.");
         return;
@@ -120,8 +124,8 @@ export function openEntityPickerForWidget(widget, inputEl, callback) {
                     inputEl.value = e.entity_id;
                 }
 
-                // Update widget if provided
-                if (widget && AppState) {
+                // Update widget if provided and auto-update is not suppressed
+                if (widget && AppState && !options.skipAutoUpdate) {
                     // Update entity_id and title
                     AppState.updateWidget(widget.id, {
                         entity_id: e.entity_id,

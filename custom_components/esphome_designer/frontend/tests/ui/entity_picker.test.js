@@ -78,4 +78,20 @@ describe('entity_picker', () => {
             props: expect.objectContaining({ min_value: '0', max_value: '100' })
         }));
     });
+
+    it('leaves the primary sensor unchanged when selecting a secondary entity', async () => {
+        mockFetchEntityStates.mockResolvedValueOnce([
+            { entity_id: 'sensor.humidity', name: 'Humidity', state: '55', attributes: { unit_of_measurement: '%' } }
+        ]);
+        const callback = vi.fn();
+        const widget = { id: 'sensor_1', type: 'sensor_text', entity_id: 'sensor.temperature', props: { unit: '°C' } };
+
+        openEntityPickerForWidget(widget, document.createElement('input'), callback, { skipAutoUpdate: true });
+        await flushAsync();
+        await flushAsync();
+        document.querySelector('.entity-picker-row').click();
+
+        expect(callback).toHaveBeenCalledWith('sensor.humidity');
+        expect(mockUpdateWidget).not.toHaveBeenCalled();
+    });
 });

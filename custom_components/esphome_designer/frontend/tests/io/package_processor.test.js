@@ -77,6 +77,21 @@ display:
       expect(result).not.toContain('it.print');
     });
 
+    it('removes a template lambda header when LVGL consumes its placeholder', () => {
+      const packageYaml = `
+display:
+  - platform: mipi_spi
+    lambda: |-
+      # __LAMBDA_PLACEHOLDER__
+    id: my_display
+            `.trim();
+
+      const result = processPackageContent(packageYaml, [], [], mockProfile, mockLayout, true, mockLines);
+
+      expect(result).not.toContain('lambda: |-');
+      expect(result).toContain('id: my_display');
+    });
+
     it('injects touch sensors at the placeholder', () => {
       const packageYaml = `
 binary_sensor:

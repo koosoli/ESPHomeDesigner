@@ -57,6 +57,17 @@ export const exportDirect = (w, context) => {
             else if (eid.includes("_percent") || eid.includes("_pct")) unit = "%";
         }
 
+        let unit2 = "";
+        if (entityId2 && !p.hide_unit && !format.endsWith("_no_unit") && AppState?.entityStates?.[entityId2]) {
+            const secondaryEntity = AppState.entityStates[entityId2];
+            if (secondaryEntity.attributes?.unit_of_measurement) {
+                unit2 = secondaryEntity.attributes.unit_of_measurement;
+            } else if (secondaryEntity.formatted) {
+                const match = secondaryEntity.formatted.match(/^([-+]?\d*[.,]?\d+)\s*(.*)$/);
+                if (match?.[2]) unit2 = match[2].trim();
+            }
+        }
+
         const labelFS = p.label_font_size || 14;
         const valueFS = p.value_font_size || 20;
         const unitFS = p.unit_font_size || valueFS;
@@ -168,6 +179,7 @@ export const exportDirect = (w, context) => {
         }
 
         const displayUnitStr = (p.hide_unit || format.endsWith("_no_unit")) ? "" : escapeFmt(unit);
+        const displayUnit2Str = (p.hide_unit || format.endsWith("_no_unit")) ? "" : escapeFmt(unit2);
         const prefixEsc = escapeFmt(prefix);
         const postfixEsc = escapeFmt(postfix);
         const separatorEsc = escapeFmt(separator);
@@ -200,7 +212,9 @@ export const exportDirect = (w, context) => {
         // Determine format string for values
         // When unit is exported separately (different font/align), omit it from the main format string
         const useUnitSplit = splitUnitExport && !!displayUnitStr && !v2;
-        const finalValFmt = `${prefixEsc}${valFmt1}${v2 ? separatorEsc + valFmt2 : ""}${!useUnitSplit && displayUnitStr ? " " + displayUnitStr : ""}${postfixEsc}`;
+        const primaryUnitSuffix = !useUnitSplit && displayUnitStr ? " " + displayUnitStr : "";
+        const secondaryValue = v2 ? `${separatorEsc}${valFmt2}${displayUnit2Str ? " " + displayUnit2Str : ""}` : "";
+        const finalValFmt = `${prefixEsc}${valFmt1}${primaryUnitSuffix}${secondaryValue}${postfixEsc}`;
         const finalValFmtNoUnit = useUnitSplit ? `${prefixEsc}${valFmt1}${postfixEsc}` : finalValFmt;
 
         const arg1 = isText1 ? `${v1}.state.c_str()` : `${v1}.state`;
@@ -248,33 +262,36 @@ export const exportDirect = (w, context) => {
                 lines.push(`          sprintf(val_buf, "${finalValFmtNoUnit}", ${args});`);
                 lines.push(`          int wv, hv, xoffv, blv;`);
                 lines.push(`          id(${valueFontId})->measure(val_buf, &wv, &xoffv, &blv, &hv);`);
-                // Determine y-offset for the unit based on unit_align
-                // unitAlign TOP    => unit top aligns with value top     => y_unit = yVal
-                // unitAlign CENTER => unit centre aligns with value centre
-                // unitAlign BOTTOM => unit baseline aligns with value baseline (default)
+                lines.push(`          int wu, hu, xoffu, blu;`);
+                lines.push(`          id(${unitFontId})->measure("${displayUnitStr}", &wu, &xoffu, &blu, &hu);`);
+                // The split calls use TOP_LEFT, so translate the widget's vertical
+                // anchor into the value's top edge before aligning the unit to it.
+                const valueYExpr = textAlign.includes("BOTTOM")
+                    ? `${yVal} - hv`
+                    : textAlign.includes("TOP")
+                        ? yVal.toString()
+                        : `${yVal} - hv / 2`;
                 const unitYExpr = unitAlign === "TOP"
-                    ? yVal.toString()
+                    ? "value_y"
                     : unitAlign === "CENTER"
-                        ? `${yVal} + blv / 2 - ${Math.round(unitFS * 0.5)}`
-                        : `${yVal} + (blv - ${Math.round(unitFS * 0.8)})`; // BOTTOM: align baseline
+                        ? "value_y + (hv - hu) / 2"
+                        : "value_y + blv - blu";
+                lines.push(`          int value_y = ${valueYExpr};`);
+                lines.push(`          int unit_y = ${unitYExpr};`);
 
                 if (isLeft) {
                     // LEFT: value at xVal, unit immediately to its right
-                    lines.push(`          it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${colorVar}, TextAlign::TOP_LEFT, "%s", val_buf);`);
-                    lines.push(`          it.printf(${xVal} + wv + 2, ${unitYExpr}, id(${unitFontId}), ${colorVar}, TextAlign::TOP_LEFT, "${displayUnitStr}");`);
+                    lines.push(`          it.printf(${xVal}, value_y, id(${valueFontId}), ${colorVar}, TextAlign::TOP_LEFT, "%s", val_buf);`);
+                    lines.push(`          it.printf(${xVal} + wv + 2, unit_y, id(${unitFontId}), ${colorVar}, TextAlign::TOP_LEFT, "${displayUnitStr}");`);
                 } else if (isRight) {
                     // RIGHT: measure unit width, place unit flush at xVal, value to its left
-                    lines.push(`          int wu, hu, xoffu, blu;`);
-                    lines.push(`          id(${unitFontId})->measure("${displayUnitStr}", &wu, &xoffu, &blu, &hu);`);
-                    lines.push(`          it.printf(${xVal} - wu - 2 - wv, ${yVal}, id(${valueFontId}), ${colorVar}, TextAlign::TOP_LEFT, "%s", val_buf);`);
-                    lines.push(`          it.printf(${xVal} - wu, ${unitYExpr}, id(${unitFontId}), ${colorVar}, TextAlign::TOP_LEFT, "${displayUnitStr}");`);
+                    lines.push(`          it.printf(${xVal} - wu - 2 - wv, value_y, id(${valueFontId}), ${colorVar}, TextAlign::TOP_LEFT, "%s", val_buf);`);
+                    lines.push(`          it.printf(${xVal} - wu, unit_y, id(${unitFontId}), ${colorVar}, TextAlign::TOP_LEFT, "${displayUnitStr}");`);
                 } else {
                     // CENTER: measure unit width, offset whole block so it is centred on xVal
-                    lines.push(`          int wu, hu, xoffu, blu;`);
-                    lines.push(`          id(${unitFontId})->measure("${displayUnitStr}", &wu, &xoffu, &blu, &hu);`);
                     lines.push(`          int x_block = ${xVal} - (wv + 2 + wu) / 2;`);
-                    lines.push(`          it.printf(x_block, ${yVal}, id(${valueFontId}), ${colorVar}, TextAlign::TOP_LEFT, "%s", val_buf);`);
-                    lines.push(`          it.printf(x_block + wv + 2, ${unitYExpr}, id(${unitFontId}), ${colorVar}, TextAlign::TOP_LEFT, "${displayUnitStr}");`);
+                    lines.push(`          it.printf(x_block, value_y, id(${valueFontId}), ${colorVar}, TextAlign::TOP_LEFT, "%s", val_buf);`);
+                    lines.push(`          it.printf(x_block + wv + 2, unit_y, id(${unitFontId}), ${colorVar}, TextAlign::TOP_LEFT, "${displayUnitStr}");`);
                 }
                 if (!useDynamicColor) lines.push(`        }`);
             } else if (useWrapping) {

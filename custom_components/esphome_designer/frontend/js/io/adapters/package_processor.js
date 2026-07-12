@@ -86,6 +86,12 @@ export const processPackageContent = (packageContent, lambdaContent, touchSensor
 
         // Fix #129: Skip lambda injection if LVGL is handling the display
         if (hasLvgl) {
+            // Custom hardware templates can include an empty lambda header before
+            // the placeholder. LVGL forbids any display lambda, including empty.
+            packageContent = packageContent.replace(
+                /^[ \t]*lambda:[ \t]*\|-\s*\r?\n[ \t]*# __LAMBDA_PLACEHOLDER__\s*\r?\n?/m,
+                ""
+            );
             packageContent = packageContent.replace(placeholderRegex, "");
         } else {
             const replacement = (hasHeader ? "" : indent + "lambda: |-\n") + lambdaContent.map((l) => l.trim() ? indent + "  " + l : "").join("\n");

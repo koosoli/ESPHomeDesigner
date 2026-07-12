@@ -83,6 +83,38 @@ describe('Entity Deduplication & Registration', () => {
             expect(result).toContain('  id: sensor_cpu_usage');
         });
 
+        it('registers a sensor_text secondary numeric entity independently', () => {
+            const pages = [{ widgets: [{
+                type: 'sensor_text',
+                entity_id: 'sensor.temperature',
+                entity_id_2: 'humidity'
+            }] }];
+            const result = collectNumericSensors(pages, context);
+
+            expect(result).toContain('  entity_id: sensor.temperature');
+            expect(result).toContain('  entity_id: sensor.humidity');
+            expect(result).toContain('  id: sensor_temperature');
+            expect(result).toContain('  id: sensor_humidity');
+        });
+
+        it('leaves a secondary text attribute for the text-sensor collector', () => {
+            context.appState = {
+                entityStates: {
+                    'sensor.status': { state: '0', attributes: { label: 'Online' } }
+                }
+            };
+            const pages = [{ widgets: [{
+                type: 'sensor_text',
+                entity_id: 'sensor.temperature',
+                entity_id_2: 'sensor.status',
+                props: { attribute2: 'label' }
+            }] }];
+            const result = collectNumericSensors(pages, context);
+
+            expect(result).toContain('  entity_id: sensor.temperature');
+            expect(result).not.toContain('  entity_id: sensor.status');
+        });
+
         it('skips entities with is_local_sensor prop', () => {
             const pages = [{ widgets: [{ type: 'sensor_text', entity_id: 'sensor.local', props: { is_local_sensor: true } }] }];
             const result = collectNumericSensors(pages, context);

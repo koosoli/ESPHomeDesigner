@@ -203,6 +203,33 @@ export const collectNumericSensors = (pages, context) => {
             }
         }
 
+        // Register entity_id_2 (secondary entity) for numeric sensor platform declaration
+        let entityId2 = (w.entity_id_2 || "").trim();
+        if (entityId2 && !p.is_local_sensor && w.type === "sensor_text" && !p.is_text_sensor) {
+            if (!entityId2.includes(".") && !entityId2.toLowerCase().startsWith("mqtt:")) {
+                entityId2 = `sensor.${entityId2}`;
+            }
+            if (p.attribute2 && isEntityStateNonNumeric(entityId2, appState, p.attribute2)) {
+                // secondary attribute is non-numeric – handled by collectTextSensors
+            } else {
+                const isHaSensor2 = (entityId2.includes(".") || entityId2.toLowerCase().startsWith("mqtt:")) &&
+                    !HA_TEXT_DOMAINS.some(d => entityId2.startsWith(d));
+                const isBinaryDomain2 = HA_BINARY_DOMAINS.some(d => entityId2.startsWith(d));
+                if (isHaSensor2 && !isBinaryDomain2) {
+                    const attribute2 = (p.attribute2 || "").trim();
+                    const entityKey2 = attribute2 ? `${entityId2}__attr__${attribute2}` : entityId2;
+                    if (!seenEntityIds.has(entityKey2)) {
+                        const safeId2 = makeSafeId(entityId2, attribute2);
+                        if (!seenSensorIds.has(safeId2)) {
+                            seenEntityIds.add(entityKey2);
+                            seenSensorIds.add(safeId2);
+                            numericSensorLinesExtra.push(...getSensorPlatformLines(w, entityId2, safeId2, attribute2));
+                        }
+                    }
+                }
+            }
+        }
+
         if (
             stateTriggerSpec &&
             stateTriggerSpec.mode === "on_value" &&

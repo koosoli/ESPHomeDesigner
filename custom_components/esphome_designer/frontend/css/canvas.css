@@ -505,7 +505,8 @@
     border-radius: 10px;
     padding: 4px;
     box-shadow: var(--glass-shadow);
-    z-index: 2000;
+    /* Keep toolbar buttons above the equally elevated Add Page target. */
+    z-index: 2001;
     pointer-events: none;
 }
 

@@ -1,3 +1,15 @@
+## v1.0.0 RC28 - Sensor Pairing, LVGL Export & Canvas Toolbar Fixes
+**Release Date:** July 12, 2026
+
+### Fixes
+- **Sensor Widget: Secondary Entity Selection and Export (Issue #439):** Selecting a secondary entity no longer overwrites the primary entity or its unit. Secondary numeric sensors are now included in generated Home Assistant sensor declarations, and each paired value retains its own detected unit.
+- **Sensor Widget: Split Unit Vertical Alignment (Issue #445):** Split value/unit rendering now converts TOP/CENTER/BOTTOM anchors into top-left draw positions before printing each fragment, preventing centered or bottom-aligned values from being shifted below their widget.
+- **Canvas Grouping Toolbar (Issue #441):** The selection toolbar now stacks above the Add Page target, so Group Selection remains clickable when selected widgets are near the right edge of a page.
+- **Custom Hardware LVGL Export (Issue #433):** LVGL exports now remove empty display lambda headers left by custom hardware templates. ESPHome no longer rejects these outputs for combining LVGL with `lambda:`.
+- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, visible header label, release notes, and rebuilt frontend assets for RC28.
+
+---
+
 ## v1.0.0 RC27 - RSS Proxy Auth Fix, Sensor Unit Alignment & Preview Fix
 **Release Date:** July 11, 2026
 
@@ -8,6 +20,7 @@ This RC27 release resolves three bugs introduced or exposed in recent releases: 
 - **Sensor Widget Unit Alignment in Generated C++ (Issue #445):** When a Sensor widget used a separate unit font size and was center- or right-aligned, the generated ESPHome C++ display lambda placed the unit text incorrectly — always at `xVal + wv + 2` regardless of alignment mode. The code generator now computes alignment-aware x positions: for LEFT the behaviour is unchanged; for RIGHT the unit is placed flush at the right anchor and the value immediately to its left; for CENTER both value and unit are measured at runtime and the combined block is centred on the widget anchor point.
 - **Sensor Unit Font Size Not Updating in Canvas Preview:** When using label-bearing formats (`Label: Value`, `Label [newline] Value`, `Value Label`) with a custom unit font size, the unit text was always rendered inline at the value's font size — the separate unit span with its own `font-size` was only created in the `Value & Unit` (value_only) format path. All label format branches now split the unit into a dedicated styled span when `unit_font_size` is explicitly set, making the canvas preview match the generated output.
 - **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, visible header label, release notes, and rebuilt frontend assets for the RC27 release line.
+
 
 ---
 

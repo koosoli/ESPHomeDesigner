@@ -31,7 +31,7 @@ import { iconPickerData } from '../../core/constants_icons.js';
  * @param {(value: string) => void} onChange
  * @param {PickerWidget} widget
  */
-export function addLabeledInputWithPickerControl(controls, label, type, value, onChange, widget) {
+export function addLabeledInputWithPickerControl(controls, label, type, value, onChange, widget, options = {}) {
     const container = controls.getContainer();
     if (!container) return;
 
@@ -73,7 +73,7 @@ export function addLabeledInputWithPickerControl(controls, label, type, value, o
         openEntityPickerForWidget(widget, input, (/** @type {string} */ selectedEntityId) => {
             input.value = selectedEntityId;
             onChange(selectedEntityId);
-        });
+        }, options);
     });
     inputRow.appendChild(input);
     inputRow.appendChild(pickerBtn);

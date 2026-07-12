@@ -46,7 +46,7 @@ export const renderProperties = (panel, widget) => {
 
     panel.addLabeledInputWithPicker("Secondary Entity ID", "text", widget.entity_id_2 || "", (/** @type {string} */ value) => {
         AppState.updateWidget(widget.id, { entity_id_2: value });
-    }, widget);
+    }, widget, { skipAutoUpdate: true });
     panel.addLabeledInput("Secondary Attribute", "text", props.attribute2 || "", setTrimmedTextProp("attribute2"));
     panel.addHint("Optional attribute for the secondary entity.");
 

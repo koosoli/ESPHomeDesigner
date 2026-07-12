@@ -155,7 +155,7 @@ describe('sensor_text render', () => {
         });
 
         expect(el.textContent).toContain('Inside');
-        expect(el.textContent).toContain('(21.5 / 40.0 C)');
+        expect(el.textContent).toContain('(21.5 C / 40.0 %)');
         const spans = Array.from(el.querySelectorAll('span'));
         expect(spans.length).toBeGreaterThan(3);
         expect(spans.some((span) => /** @type {HTMLSpanElement} */ (span).style.color === 'red')).toBe(true);
@@ -483,5 +483,24 @@ describe('sensor_text render', () => {
         expect(/** @type {HTMLElement} */ (unitSpan).style.fontSize).toBe('14px');
         const valueSpan = spans.find((s) => s.textContent === '65');
         expect(valueSpan).toBeTruthy();
+    });
+
+    it('keeps each entity unit when rendering primary and secondary values', () => {
+        mockAppState.entityStates = {
+            'sensor.temperature': { state: '21', attributes: { unit_of_measurement: '°C' } },
+            'sensor.humidity': { state: '55', attributes: { unit_of_measurement: '%' } }
+        };
+
+        const el = document.createElement('div');
+        render(el, {
+            id: 'two_sensor_values',
+            width: 200,
+            height: 60,
+            entity_id: 'sensor.temperature',
+            entity_id_2: 'sensor.humidity',
+            props: { value_format: 'value_only', precision: 0 }
+        }, { getColorStyle: () => '#000000' });
+
+        expect(el.textContent).toContain('21 °C ~ 55 %');
     });
 });

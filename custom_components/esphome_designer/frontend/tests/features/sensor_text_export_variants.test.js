@@ -690,8 +690,10 @@ describe('sensor_text export variants', () => {
         });
 
         const joined = lines.join('\n');
-        // For TOP align, y offset is just the raw yVal (10)
-        expect(joined).toMatch(/printf\(0\s*\+\s*wv\s*\+\s*2,\s*10,/);
+        // For TOP align, unit_y resolves to the raw yVal (10).
+        expect(joined).toContain('int value_y = 10;');
+        expect(joined).toContain('int unit_y = value_y;');
+        expect(joined).toMatch(/printf\(0\s*\+\s*wv\s*\+\s*2,\s*unit_y,/);
     });
 
     it('does not split value and unit when unit_font_size equals value_font_size', () => {
@@ -765,6 +767,10 @@ describe('sensor_text export variants', () => {
         // Both printf calls use the computed x_block variable, not a raw integer offset
         expect(joined).toContain('printf(x_block,');
         expect(joined).toContain('printf(x_block + wv + 2,');
+        // CENTER is a vertical anchor too. TOP_LEFT split calls must shift to
+        // the value's actual top edge instead of drawing from the centre down.
+        expect(joined).toContain('int value_y = 40 - hv / 2;');
+        expect(joined).toContain('int unit_y = value_y;');
         // No raw `xVal + wv + 2` expression — that would only be correct for LEFT align
         // xVal for CENTER with x=50, width=140 => 50 + 70 = 120
         expect(joined).not.toContain('printf(120 + wv + 2,');
@@ -810,5 +816,31 @@ describe('sensor_text export variants', () => {
         expect(joined).toContain('printf(200 - wu - 2 - wv,');
         // No raw `xVal + wv + 2` — that would be wrong for RIGHT align
         expect(joined).not.toContain('printf(200 + wv + 2,');
+    });
+
+    it('keeps primary and secondary units with their respective values', () => {
+        mockAppState.entityStates = {
+            'sensor.temperature': { state: '21', attributes: { unit_of_measurement: '°C' } },
+            'sensor.humidity': { state: '55', attributes: { unit_of_measurement: '%' } }
+        };
+        const lines = [];
+        exportDirect({
+            id: 'two_sensor_values',
+            x: 0,
+            y: 0,
+            width: 200,
+            height: 60,
+            entity_id: 'sensor.temperature',
+            entity_id_2: 'sensor.humidity',
+            props: { value_format: 'value_only', precision: 0 }
+        }, {
+            lines,
+            addFont: (_family, _weight, size) => `f${size}`,
+            getColorConst: (value) => `Color(${value})`,
+            getConditionCheck: () => '',
+            profile: {}
+        });
+
+        expect(lines.join('\n')).toContain('%.0f °C ~ %.0f %%');
     });
 });

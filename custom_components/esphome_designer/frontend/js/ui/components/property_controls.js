@@ -172,8 +172,8 @@ export class PropertyControls {
         this.getContainer().appendChild(hint);
     }
 
-    addLabeledInputWithPicker(label, type, value, onChange, widget) {
-        addLabeledInputWithPickerControl(this, label, type, value, onChange, widget);
+    addLabeledInputWithPicker(label, type, value, onChange, widget, options = {}) {
+        addLabeledInputWithPickerControl(this, label, type, value, onChange, widget, options);
     }
 
     addIconPicker(label, currentValue, onSelect, widget) {
