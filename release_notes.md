@@ -1,3 +1,13 @@
+## v1.0.0 RC29 - GeekMagic Pro Hardware Profile
+**Release Date:** July 14, 2026
+
+### Fixes
+- **GeekMagic Pro MIPI-SPI Profile (Issue #433):** Added a first-class 240x240 GeekMagic Pro ESP32 hardware recipe using the reporter's verified ST7789V MIPI-SPI configuration. Generated YAML now includes the required named SPI bus, MODE3, 40 MHz data rate, display inversion, LVGL-compatible clearing, and active-low backlight.
+- **Issue Verification:** Confirmed the existing fixes for RSS proxy authentication (#446), sensor secondary-entity handling (#439), selection-toolbar stacking (#441), and E1001 explicit inversion output (#428). Issue #436 remains unverified because the report does not include a reproducible layout or generated YAML.
+- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, visible header label, release notes, and rebuilt frontend assets for RC29.
+
+---
+
 ## v1.0.0 RC28 - Sensor Pairing, LVGL Export & Canvas Toolbar Fixes
 **Release Date:** July 12, 2026
 

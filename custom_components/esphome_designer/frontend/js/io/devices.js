@@ -392,6 +392,18 @@ export const DEVICE_PROFILES = {
     resolution: { width: 240, height: 240 },
     features: { psram: false, buzzer: false, buttons: false, lcd: true, lvgl: true, touch: false, inverted_colors: false }
   },
+  geekmagic_pro_esp32: {
+    name: "GeekMagic Pro (ESP32)",
+    displayType: "color",
+    chip: "esp32",
+    board: "esp32dev",
+    displayPlatform: "mipi_spi",
+    displayModel: "st7789v",
+    isPackageBased: true,
+    hardwarePackage: "hardware/geekmagic-pro-esp32.yaml",
+    resolution: { width: 240, height: 240 },
+    features: { psram: false, buzzer: false, buttons: false, lcd: true, lvgl: true, touch: false, inverted_colors: false }
+  },
 
   // ========================================================================
   // OTHER DEVICES

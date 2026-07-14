@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { parseHardwareRecipeClientSide } from '../../js/io/hardware_profile_sources.js';
 import geekMagicMiniYaml from '../../hardware/geekmagic-mini-esp8266.yaml?raw';
+import geekMagicProYaml from '../../hardware/geekmagic-pro-esp32.yaml?raw';
 import guitionP4Yaml from '../../hardware/guition-esp32-p4-jc4880p443.yaml?raw';
 import guitionP4LargeYaml from '../../hardware/guition-esp32-p4-jc8012p4a1c.yaml?raw';
 import m5stackTab5Yaml from '../../hardware/m5stack-tab5.yaml?raw';
@@ -86,6 +87,23 @@ display:
         expect(profile.updateInterval).toBe('60s');
         expect(profile.invertColors).toBe(true);
         expect(profile.features.touch).toBe(false);
+    });
+
+    it('parses the GeekMagic Pro ESP32 recipe with its required MIPI-SPI settings', () => {
+        expect(geekMagicProYaml).toContain('spi_id: spihwd');
+        expect(geekMagicProYaml).toContain('data_rate: 40MHz');
+        expect(geekMagicProYaml).toContain('spi_mode: MODE3');
+        expect(geekMagicProYaml).toContain('invert_colors: true');
+        expect(geekMagicProYaml).toContain('auto_clear_enabled: false');
+
+        const profile = parseHardwareRecipeClientSide(geekMagicProYaml, 'geekmagic-pro-esp32.yaml');
+
+        expect(profile.name).toBe('GeekMagic Pro (ESP32)');
+        expect(profile.resolution).toEqual({ width: 240, height: 240 });
+        expect(profile.board).toBe('esp32dev');
+        expect(profile.displayPlatform).toBe('mipi_spi');
+        expect(profile.displayModel).toBe('st7789v');
+        expect(profile.invertColors).toBe(true);
     });
 
     it('parses the M5Stack Tab5 bundled recipe', () => {

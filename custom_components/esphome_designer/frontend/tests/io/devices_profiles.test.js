@@ -56,11 +56,12 @@ describe('built-in device profiles', async () => {
         expect(devices.SUPPORTED_DEVICE_IDS).not.toContain('guition_esp32_jc8048w535');
     });
 
-    it('includes the M5Stack Tab5, Guition P4, and GeekMagic Mini package profiles as supported built-ins', () => {
+    it('includes the M5Stack Tab5, Guition P4, and GeekMagic package profiles as supported built-ins', () => {
         const tab5 = devices.DEVICE_PROFILES.m5stack_tab5;
         const guitionP4 = devices.DEVICE_PROFILES.guition_esp32_p4_jc4880p443;
         const guitionP4Large = devices.DEVICE_PROFILES.guition_esp32_p4_jc8012p4a1c;
         const geekMagic = devices.DEVICE_PROFILES.geekmagic_mini_esp8266;
+        const geekMagicPro = devices.DEVICE_PROFILES.geekmagic_pro_esp32;
 
         expect(tab5).toMatchObject({
             name: 'M5Stack Tab5',
@@ -114,6 +115,18 @@ describe('built-in device profiles', async () => {
         });
         expect(geekMagic.features.touch).toBe(false);
         expect(devices.SUPPORTED_DEVICE_IDS).toContain('geekmagic_mini_esp8266');
+
+        expect(geekMagicPro).toMatchObject({
+            name: 'GeekMagic Pro (ESP32)',
+            chip: 'esp32',
+            board: 'esp32dev',
+            displayPlatform: 'mipi_spi',
+            displayModel: 'st7789v',
+            hardwarePackage: 'hardware/geekmagic-pro-esp32.yaml',
+            resolution: { width: 240, height: 240 }
+        });
+        expect(geekMagicPro.features.lvgl).toBe(true);
+        expect(devices.SUPPORTED_DEVICE_IDS).toContain('geekmagic_pro_esp32');
     });
 
     it('includes the Seeed reTerminal E1004 large color e-paper profile', () => {
