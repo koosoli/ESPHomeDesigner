@@ -191,7 +191,7 @@ export class AppStateFacade {
         if (mode === 'oepl' || mode === 'opendisplay') {
             const protocolHardware = this.project.protocolHardware as { width: number; height: number };
             const orientation = this.preferences.state.orientation;
-            if (orientation === 'portrait') {
+            if (orientation === 'portrait' || orientation === 'portrait_inverted') {
                 return {
                     width: Math.min(protocolHardware.width, protocolHardware.height),
                     height: Math.max(protocolHardware.width, protocolHardware.height)

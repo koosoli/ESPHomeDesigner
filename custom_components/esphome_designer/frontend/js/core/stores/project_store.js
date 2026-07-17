@@ -386,7 +386,7 @@ export class ProjectStore {
             }
         }
 
-        if (orientation === ORIENTATIONS.PORTRAIT) {
+        if (orientation === ORIENTATIONS.PORTRAIT || orientation === ORIENTATIONS.PORTRAIT_INVERTED) {
             return { width: Math.min(width, height), height: Math.max(width, height) };
         } else {
             return { width: Math.max(width, height), height: Math.min(width, height) };

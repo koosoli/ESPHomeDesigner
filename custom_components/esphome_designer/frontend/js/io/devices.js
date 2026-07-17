@@ -102,7 +102,6 @@ export const DEVICE_PROFILES = {
     pins: {
       i2c: { sda: "GPIO19", scl: "GPIO20" },
       spi: { clk: "GPIO7", mosi: "GPIO9", miso: "GPIO8" },
-      batteryEnable: "GPIO21",
       batteryAdc: "GPIO1",
       buzzer: "GPIO45",
       buttons: { left: "GPIO5", right: "GPIO4", refresh: "GPIO3", home: "GPIO2" }

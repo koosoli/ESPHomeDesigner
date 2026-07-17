@@ -358,6 +358,7 @@ describe('ProjectStore', () => {
                 store.setDeviceSettings('My-Device', 'custom');
 
                 expect(store.getCanvasDimensions(ORIENTATIONS.PORTRAIT)).toEqual({ width: 448, height: 600 });
+                expect(store.getCanvasDimensions(ORIENTATIONS.PORTRAIT_INVERTED)).toEqual({ width: 448, height: 600 });
                 expect(store.getCanvasShape()).toBe('round');
             } finally {
                 DEVICE_PROFILES.custom = originalCustomProfile;

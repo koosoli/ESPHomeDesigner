@@ -235,9 +235,13 @@ export function generateDisplayLambda(pages, layout, profile, context, adapter) 
         (profile.name && (profile.name.includes('Color') || profile.name.includes('color')))
     );
     const layoutDefinesInversion = layout && layout.invertedColors !== undefined && layout.invertedColors !== null;
-    const useInvertedColors = layoutDefinesInversion
-        ? !!layout.invertedColors
-        : (profile.features?.inverted_colors ?? (isEpaper && !isColorEpaper));
+    // The E1001 panel itself requires the inverted palette to render semantic
+    // black and white correctly. Dark Mode controls its foreground/background.
+    const useInvertedColors = profile.id === 'reterminal_e1001'
+        ? true
+        : (layoutDefinesInversion
+            ? !!layout.invertedColors
+            : (profile.features?.inverted_colors ?? (isEpaper && !isColorEpaper)));
 
     if (useInvertedColors) {
         lines.push("const auto COLOR_WHITE = Color(0, 0, 0); // Inverted for e-ink");
@@ -376,11 +380,8 @@ export function generateDisplayLambda(pages, layout, profile, context, adapter) 
         // Clear screen for this page
         const pageDarkMode = page.dark_mode || 'inherit';
         const isDarkMode = pageDarkMode === 'dark' || (pageDarkMode === 'inherit' && layout.darkMode);
-        // The E1001 controller maps its monochrome palette levels inversely.
-        const reverseDarkModePalette = profile.id === 'reterminal_e1001' && useInvertedColors;
-        const useDarkPalette = isDarkMode !== reverseDarkModePalette;
-        const backgroundColor = useDarkPalette ? 'COLOR_BLACK' : 'COLOR_WHITE';
-        const foregroundColor = useDarkPalette ? 'COLOR_WHITE' : 'COLOR_BLACK';
+        const backgroundColor = isDarkMode ? 'COLOR_BLACK' : 'COLOR_WHITE';
+        const foregroundColor = isDarkMode ? 'COLOR_WHITE' : 'COLOR_BLACK';
         lines.push(`  // Clear screen for this page`);
         // For LCD displays: use filled_rectangle only on page change to avoid artifacts
         // For e-paper: always use it.fill() (works correctly)

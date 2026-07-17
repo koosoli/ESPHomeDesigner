@@ -47,7 +47,7 @@ export function parseSettings(lines, doc) {
         m = line.match(/Inverted:\s*(true|false)/i);
         if (m) deviceSettings.inverted_colors = (m[1].toLowerCase() === "true");
 
-        m = line.match(/Orientation:\s*(landscape|portrait)/i);
+        m = line.match(/Orientation:\s*(landscape_inverted|portrait_inverted|landscape|portrait)/i);
         if (m) {
             deviceSettings.orientation = m[1].toLowerCase();
             hasExplicitOrientation = true;
@@ -127,9 +127,12 @@ export function parseSettings(lines, doc) {
 
             if (inferredRotation !== null) {
                 const normalizedRotation = ((inferredRotation % 360) + 360) % 360;
-                deviceSettings.orientation = (normalizedRotation === 90 || normalizedRotation === 270)
-                    ? "portrait"
-                    : "landscape";
+                deviceSettings.orientation = {
+                    0: "landscape",
+                    90: "portrait",
+                    180: "landscape_inverted",
+                    270: "portrait_inverted"
+                }[normalizedRotation] || "landscape";
             }
         }
     }

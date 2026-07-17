@@ -145,7 +145,7 @@ describe('Native Generator', () => {
         expect(output).toContain('const auto COLOR_BLACK = Color(255, 255, 255); // Inverted for e-ink');
     });
 
-    it('uses the E1001 profile inversion default unless the layout explicitly overrides it', () => {
+    it('uses the E1001 profile hardware palette regardless of the layout override', () => {
         const e1001Profile = {
             id: 'reterminal_e1001',
             displayType: 'binary',
@@ -155,10 +155,10 @@ describe('Native Generator', () => {
         const overriddenOutput = generateDisplayLambda(mockPages, { ...mockLayout, invertedColors: false }, e1001Profile, mockContext, mockAdapter).join('\n');
 
         expect(defaultOutput).toContain('const auto COLOR_WHITE = Color(0, 0, 0); // Inverted for e-ink');
-        expect(overriddenOutput).toContain('const auto COLOR_WHITE = Color(255, 255, 255);');
+        expect(overriddenOutput).toContain('const auto COLOR_WHITE = Color(0, 0, 0); // Inverted for e-ink');
     });
 
-    it('keeps E1001 dark mode semantics correct with its inverted hardware palette', () => {
+    it('keeps the E1001 hardware palette fixed while dark mode selects semantic colors', () => {
         const e1001Profile = {
             id: 'reterminal_e1001',
             displayType: 'binary',
@@ -167,10 +167,11 @@ describe('Native Generator', () => {
         const lightOutput = generateDisplayLambda(mockPages, { ...mockLayout, darkMode: false, invertedColors: null }, e1001Profile, mockContext, mockAdapter).join('\n');
         const darkOutput = generateDisplayLambda(mockPages, { ...mockLayout, darkMode: true, invertedColors: null }, e1001Profile, mockContext, mockAdapter).join('\n');
 
-        expect(lightOutput).toContain('it.fill(COLOR_BLACK);');
-        expect(lightOutput).toContain('color_on = COLOR_WHITE;');
-        expect(darkOutput).toContain('it.fill(COLOR_WHITE);');
-        expect(darkOutput).toContain('color_on = COLOR_BLACK;');
+        expect(lightOutput).toContain('const auto COLOR_WHITE = Color(0, 0, 0); // Inverted for e-ink');
+        expect(lightOutput).toContain('it.fill(COLOR_WHITE);');
+        expect(lightOutput).toContain('color_on = COLOR_BLACK;');
+        expect(darkOutput).toContain('it.fill(COLOR_BLACK);');
+        expect(darkOutput).toContain('color_on = COLOR_WHITE;');
     });
 
         it('should generate color palette for PhotoPainter', () => {

@@ -64,7 +64,9 @@ export const ALIGNMENT = {
 
 export const ORIENTATIONS = {
     LANDSCAPE: "landscape",
-    PORTRAIT: "portrait"
+    PORTRAIT: "portrait",
+    LANDSCAPE_INVERTED: "landscape_inverted",
+    PORTRAIT_INVERTED: "portrait_inverted"
 } as const;
 
 export const DEFAULT_PREFERENCES = {

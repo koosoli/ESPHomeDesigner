@@ -1,4 +1,4 @@
-## v1.0.0 RC30 - Hardware Profile and Deep Sleep Fixes
+## v1.0.0 RC31 - Hardware Profile and Sensor Text Fixes
 **Release Date:** July 17, 2026
 
 ### Fixes
@@ -7,8 +7,13 @@
 - **Pico E-Paper Profiles (Issue #442):** Added Raspberry Pi Pico W and Pico 2 W presets for the Waveshare Pico e-Paper 2.13-inch V3, including RP2 setup guidance and no unsupported deep-sleep output.
 - **Elecrow P4 V1.2 Profile (Issue #438):** Added the Elecrow ESP32-P4 9-inch HMI V1.2 hardware recipe with the vendor's display, touch, backlight, and ESP32-C6 hosted Wi-Fi wiring.
 - **Regression Coverage (Issue #428):** Added coverage confirming the E1001 profile retains its required inverted e-paper palette.
-- **E1001 Dark Mode Semantics:** Corrected E1001's dark-mode palette selection so the profile's inverted controller mapping does not reverse the user's dark-mode choice.
-- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, visible header label, release notes, and rebuilt frontend assets for RC30.
+- **E1001 Palette and Dark Mode (Issue #428):** Preserve the E1001 panel's required `7.50inv2p` hardware palette while Dark Mode selects the semantic foreground and background colors.
+- **E1003 IT8951 GPIO Conflict (Issue #449):** Removed the GPIO21 battery-enable output, which conflicts with the official IT8951 driver.
+- **LVGL Tabview Compile Workaround (Issue #452):** Tabviews now include a hidden label so ESPHome enables LVGL's required label component when a layout contains only tabs.
+- **Screen Rotation (Issue #451):** Added 180-degree landscape and 270-degree portrait orientations, including YAML/protocol import preservation and correctly sized canvases.
+- **Missing Sensor Values (Issue #446):** Sensor Bars now default to available local SHT and battery sensors; narrow Sensor Text widgets no longer omit values when automatic labels consume their width.
+- **Sensor Text Auto Label (Issue #448):** Replacing an entity now refreshes a title previously generated from the old entity's friendly name, without overwriting custom labels.
+- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, visible header label, release notes, and rebuilt frontend assets for RC31.
 
 ---
 

@@ -75,6 +75,35 @@ describe('template_sensor_bar exports', () => {
         expect(context.addDitherMask).toHaveBeenCalled();
     });
 
+    it('uses available local sensors when no Sensor Bar sources are configured', () => {
+        const context = createDocContext({
+            profile: { features: { sht4x: true }, pins: { batteryAdc: true } }
+        });
+
+        exportDoc({
+            id: 'bar_defaults', x: 0, y: 0, width: 200, height: 40,
+            props: { show_wifi: false, show_temperature: true, show_humidity: true, show_battery: true }
+        }, context);
+
+        const output = context.lines.join('\n');
+        expect(output).toContain('id(sht4x_temperature).has_state()');
+        expect(output).toContain('id(sht4x_humidity).has_state()');
+        expect(output).toContain('id(battery_level).has_state()');
+
+        const lvgl = exportLVGL({
+            id: 'bar_defaults',
+            props: { show_wifi: false, show_temperature: true, show_humidity: true, show_battery: true }
+        }, {
+            common: { id: 'bar_defaults' },
+            convertColor: (value) => `COLOR_${value}`,
+            getLVGLFont: (family, size, weight) => `${family}-${size}-${weight}`,
+            profile: { features: { sht4x: true }, pins: { batteryAdc: true } }
+        });
+        expect(JSON.stringify(lvgl)).toContain('id(sht4x_temperature).has_state()');
+        expect(JSON.stringify(lvgl)).toContain('id(sht4x_humidity).has_state()');
+        expect(JSON.stringify(lvgl)).toContain('id(battery_level).has_state()');
+    });
+
     it('avoids invalid LVGL sensor lambdas when external sources are not configured', () => {
         const result = exportLVGL({
             id: 'bar_missing',

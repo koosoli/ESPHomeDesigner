@@ -34,4 +34,12 @@ describe('settings modal markup', () => {
         expect(openrouterKey?.getAttribute('autocomplete')).toBe('new-password');
         expect(aiModelFilter?.getAttribute('autocomplete')).toBe('off');
     });
+
+    it('offers all four screen rotations', () => {
+        const container = document.createElement('div');
+        container.innerHTML = modalsHtml;
+
+        const orientations = Array.from(container.querySelectorAll('#deviceOrientation option')).map((option) => option.getAttribute('value'));
+        expect(orientations).toEqual(['landscape', 'portrait', 'landscape_inverted', 'portrait_inverted']);
+    });
 });

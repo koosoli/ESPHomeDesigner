@@ -324,12 +324,14 @@ export const exportDirect = (w, context) => {
                     lines.push(`          // Align baselines for first line: yVal + bl1 = yVal2 + bl2`);
                     lines.push(`          // Note: we can't easily align baselines perfectly without measuring the value's first line first,`);
                     lines.push(`          // but we can approximate or just use top-aligned reference.`);
-                    lines.push(`          // For wrapped text, we print the label, then wrap the rest.`);
-                    lines.push(`          it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${colorVar}, ${align}, "${labelStr}");`);
-                    lines.push(`          int val_max_w = ${w.width} - w1;`);
-                    lines.push(`          // Heuristic: if label is taller than value font, adjust y? mostly fine to align tops or just let baselines float.`);
-                    lines.push(`          // Let's assume top alignment is safer for multi-line flow.`);
-                    lines.push(`          print_wrapped_text(${xVal} + w1, ${yVal} + (bl1 - ${Math.round(valueFS * 0.8)}), val_max_w, ${lineHeight}, id(${valueFontId}), ${colorVar}, ${align}, value_buf);`);
+                    lines.push(`          // Omit an auto-generated label when it leaves no room for the value.`);
+                    lines.push(`          if (w1 >= ${w.width}) {`);
+                    lines.push(`            it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${colorVar}, ${valueAlign}, "%s", value_buf);`);
+                    lines.push(`          } else {`);
+                    lines.push(`            it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${colorVar}, ${align}, "${labelStr}");`);
+                    lines.push(`            int val_max_w = ${w.width} - w1;`);
+                    lines.push(`            print_wrapped_text(${xVal} + w1, ${yVal} + (bl1 - ${Math.round(valueFS * 0.8)}), val_max_w, ${lineHeight}, id(${valueFontId}), ${colorVar}, ${align}, value_buf);`);
+                    lines.push(`          }`);
                 } else {
                     lines.push(`          id(${valueFontId})->measure(value_buf, &w2, &xoff2, &bl2, &h2);`);
                     lines.push(`          // Align baselines: yVal + bl1 = yVal2 + bl2 => yVal2 = yVal + bl1 - bl2`);

@@ -244,7 +244,12 @@ function applyProtocolRotation(layout: ParsedLayout | null, rotate: unknown): Pa
     const normalizedRotate = ((numericRotate % 360) + 360) % 360;
     layout.settings = {
         ...(layout.settings || {}),
-        orientation: (normalizedRotate === 90 || normalizedRotate === 270) ? 'portrait' : 'landscape'
+        orientation: ({
+            0: 'landscape',
+            90: 'portrait',
+            180: 'landscape_inverted',
+            270: 'portrait_inverted'
+        } as Record<number, string>)[normalizedRotate] || 'landscape'
     };
     return layout;
 }

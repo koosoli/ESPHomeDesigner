@@ -17,12 +17,14 @@ exports[`Export Path Round-Trip Enforcement > Core Text Plugins > exports "senso
           // Align baselines for first line: yVal + bl1 = yVal2 + bl2
           // Note: we can't easily align baselines perfectly without measuring the value's first line first,
           // but we can approximate or just use top-aligned reference.
-          // For wrapped text, we print the label, then wrap the rest.
-          it.printf(5, 5, id(font_roboto_14), color_on, TextAlign::TOP_LEFT, "temperature: ");
-          int val_max_w = 80 - w1;
-          // Heuristic: if label is taller than value font, adjust y? mostly fine to align tops or just let baselines float.
-          // Let's assume top alignment is safer for multi-line flow.
-          print_wrapped_text(5 + w1, 5 + (bl1 - 14), val_max_w, 22, id(font_roboto_18), color_on, TextAlign::TOP_LEFT, value_buf);
+          // Omit an auto-generated label when it leaves no room for the value.
+          if (w1 >= 80) {
+            it.printf(5, 5, id(font_roboto_18), color_on, TextAlign::TOP_LEFT, "%s", value_buf);
+          } else {
+            it.printf(5, 5, id(font_roboto_14), color_on, TextAlign::TOP_LEFT, "temperature: ");
+            int val_max_w = 80 - w1;
+            print_wrapped_text(5 + w1, 5 + (bl1 - 14), val_max_w, 22, id(font_roboto_18), color_on, TextAlign::TOP_LEFT, value_buf);
+          }
         }"
 `;
 

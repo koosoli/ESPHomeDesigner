@@ -65,7 +65,9 @@ const exportLVGL = (w, { common }) => {
 
     const tabs = tabsRaw.map(name => ({
         name: String(name),
-        widgets: []
+        // ESPHome's tabview implementation creates labels internally. Keep a
+        // hidden label so its LVGL configuration enables that dependency.
+        widgets: [{ label: { text: '""', hidden: true } }]
     }));
 
     // Convert tab_size to percentage string if it's a number

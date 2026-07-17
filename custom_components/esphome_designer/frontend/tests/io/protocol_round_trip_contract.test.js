@@ -157,4 +157,21 @@ describe('Protocol adapter deep round-trip contracts', () => {
 
         expect(imported.settings.orientation).toBe('portrait');
     });
+
+    it('preserves OpenDisplay inverted rotations as imported layout orientation', async () => {
+        const adapter = new OpenDisplayAdapter();
+
+        for (const orientation of ['landscape_inverted', 'portrait_inverted']) {
+            const generated = await adapter.generate({
+                orientation,
+                darkMode: false,
+                currentPageIndex: 0,
+                settings: { opendisplayDeviceId: '95b2d0433f2c26d08088d6296a00a70d' },
+                pages: [{ dark_mode: 'inherit', widgets: [{ id: 'w_1', type: 'text', x: 5, y: 6, props: { text: 'Rotated ODP' } }] }]
+            });
+
+            const imported = await parseSnippetYamlOffline(generated);
+            expect(imported.settings.orientation).toBe(orientation);
+        }
+    });
 });

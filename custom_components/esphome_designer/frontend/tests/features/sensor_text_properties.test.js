@@ -301,6 +301,48 @@ describe('sensor_text properties', () => {
         }));
     });
 
+    it('updates a title previously generated from the replaced entity', () => {
+        mockAppState.entityStates = {
+            'sensor.old_temperature': {
+                attributes: { friendly_name: 'Old Temperature' }
+            }
+        };
+        panel = createPanel({
+            pickerValues: { 'Entity ID': 'sensor.new_temperature' },
+            inputValues: { 'Title/Label': 'Old Temperature' }
+        });
+
+        renderProperties(panel, {
+            id: 'sensor_text_1',
+            title: 'Old Temperature',
+            entity_id: 'sensor.old_temperature',
+            props: {}
+        });
+
+        expect(panel.autoPopulateTitleFromEntity).toHaveBeenCalledWith('sensor_text_1', 'sensor.new_temperature');
+    });
+
+    it('preserves a custom title when replacing the entity', () => {
+        mockAppState.entityStates = {
+            'sensor.old_temperature': {
+                attributes: { friendly_name: 'Old Temperature' }
+            }
+        };
+        panel = createPanel({
+            pickerValues: { 'Entity ID': 'sensor.new_temperature' },
+            inputValues: { 'Title/Label': 'Kitchen' }
+        });
+
+        renderProperties(panel, {
+            id: 'sensor_text_1',
+            title: 'Kitchen',
+            entity_id: 'sensor.old_temperature',
+            props: {}
+        });
+
+        expect(panel.autoPopulateTitleFromEntity).not.toHaveBeenCalled();
+    });
+
     it('skips dynamic color controls for monochrome or explicit text-sensor setups', () => {
         mockAppState.deviceModel = 'mono_device';
         panel = createPanel();

@@ -34,14 +34,22 @@ describe('Settings Parser (Issue #310 Roundtrip)', () => {
         expect(parseSettings(lines, {}).deep_sleep_stay_awake_entity_id).toBe('input_boolean.kitchen_dashboard_awake');
     });
 
-    it('infers portrait orientation from display or LVGL rotation when no generated header is present', () => {
+    it('preserves all four orientations from headers and display rotation', () => {
         expect(parseSettings([], {
             display: [{ platform: 'rpi_dpi_rgb', rotation: 90 }]
         }).orientation).toBe('portrait');
 
         expect(parseSettings([], {
             lvgl: { rotation: 270 }
-        }).orientation).toBe('portrait');
+        }).orientation).toBe('portrait_inverted');
+
+        expect(parseSettings([], {
+            display: [{ rotation: 180 }]
+        }).orientation).toBe('landscape_inverted');
+
+        expect(parseSettings(['# Orientation: portrait_inverted'], {
+            display: [{ rotation: 0 }]
+        }).orientation).toBe('portrait_inverted');
 
         expect(parseSettings(['# Orientation: landscape'], {
             display: [{ rotation: 90 }]

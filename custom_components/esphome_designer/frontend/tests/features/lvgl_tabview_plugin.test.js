@@ -57,8 +57,8 @@ describe('lvgl tabview plugin', () => {
             position: 'BOTTOM',
             size: '25%',
             tabs: [
-                { name: 'Overview', widgets: [] },
-                { name: 'Stats', widgets: [] }
+                { name: 'Overview', widgets: [{ label: { text: '""', hidden: true } }] },
+                { name: 'Stats', widgets: [{ label: { text: '""', hidden: true } }] }
             ]
         });
 

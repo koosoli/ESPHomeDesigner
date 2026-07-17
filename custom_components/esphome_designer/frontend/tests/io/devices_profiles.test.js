@@ -43,6 +43,11 @@ describe('built-in device profiles', async () => {
         expect(profile.id).toBe('reterminal_e1001');
     });
 
+    it('uses the vendor E1001 model and avoids the E1003 IT8951 GPIO21 conflict', () => {
+        expect(devices.DEVICE_PROFILES.reterminal_e1001.displayModel).toBe('7.50inv2p');
+        expect(devices.DEVICE_PROFILES.reterminal_e1003.pins.batteryEnable).toBeUndefined();
+    });
+
     it('excludes untested built-ins from the tested profile id list', () => {
         expect(devices.SUPPORTED_DEVICE_IDS).not.toContain('lilygo_t5_47');
         expect(devices.SUPPORTED_DEVICE_IDS).toContain('reterminal_e1001');

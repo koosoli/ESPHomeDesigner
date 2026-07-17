@@ -1834,15 +1834,36 @@ exports[`Plugin Export Smoke Tests > Export for lvgl_tabview > should export LVG
     "tabs": [
       {
         "name": "Page 1",
-        "widgets": [],
+        "widgets": [
+          {
+            "label": {
+              "hidden": true,
+              "text": """",
+            },
+          },
+        ],
       },
       {
         "name": "Page 2",
-        "widgets": [],
+        "widgets": [
+          {
+            "label": {
+              "hidden": true,
+              "text": """",
+            },
+          },
+        ],
       },
       {
         "name": "Page 3",
-        "widgets": [],
+        "widgets": [
+          {
+            "label": {
+              "hidden": true,
+              "text": """",
+            },
+          },
+        ],
       },
     ],
   },

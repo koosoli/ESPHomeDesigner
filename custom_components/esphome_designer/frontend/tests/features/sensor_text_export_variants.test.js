@@ -116,6 +116,26 @@ describe('sensor_text export variants', () => {
         expect(output).toContain('it.printf(10, 20, id(sensor_font),');
     });
 
+    it('keeps the value visible when an automatic label is wider than the widget', () => {
+        const lines = [];
+        exportDirect({
+            id: 'sensor_narrow', x: 10, y: 20, width: 147, height: 40,
+            entity_id: 'sensor.openweathermap_temperature',
+            props: { value_format: 'label_value', text_align: 'TOP_LEFT' }
+        }, {
+            lines,
+            addFont: vi.fn(() => 'sensor_font'),
+            getColorConst: (value) => `Color(${value})`,
+            getConditionCheck: () => '',
+            profile: { name: 'Color Display' }
+        });
+
+        const output = lines.join('\n');
+        expect(output).toContain('if (w1 >= 147) {');
+        expect(output).toContain('it.printf(10, 20, id(sensor_font),');
+        expect(output).toContain('print_wrapped_text(10 + w1, 20 +');
+    });
+
     it('exports direct-mode vertical layout with center/middle alignment', () => {
         const lines = [];
         exportDirect({
