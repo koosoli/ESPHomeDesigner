@@ -61,6 +61,30 @@ describe('hardware_generator', () => {
         expect(yaml).not.toContain('display_backlight');
     });
 
+    it('emits RP2 platform guidance for RP2040 and RP2350 custom hardware', () => {
+        const yaml = generateCustomHardwareYaml({
+            name: 'Pico Paper',
+            chip: 'rp2350',
+            tech: 'epaper',
+            resWidth: 250,
+            resHeight: 122,
+            shape: 'rect',
+            psram: true,
+            displayDriver: 'waveshare_epaper',
+            displayModel: '2.13inv3',
+            touchTech: 'none',
+            pins: {
+                clk: 'GPIO10', mosi: 'GPIO11', cs: 'GPIO9', dc: 'GPIO8', rst: 'GPIO12', busy: 'GPIO13'
+            }
+        });
+
+        expect(yaml).toContain('Select: Raspberry Pi Pico 2 W');
+        expect(yaml).toContain('# rp2: # (Auto-commented)');
+        expect(yaml).toContain('#   board: rpipico2w');
+        expect(yaml).not.toContain('# esp32: # (Auto-commented)');
+        expect(yaml).not.toContain('# psram: # (Auto-commented)');
+    });
+
     it('adds touch wake hooks and antiburn scripts for LVGL lcd profiles', () => {
         const yaml = generateCustomHardwareYaml({
             name: 'Desk Panel',

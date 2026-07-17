@@ -25,12 +25,13 @@ export function updatePinDatalist(panel) {
     if (chip === 'esp32') datalistId = 'gpio-pins-esp32';
     else if (chip === 'esp32-p4') datalistId = 'gpio-pins-esp32';
     else if (chip === 'esp8266') datalistId = 'gpio-pins-esp8266';
+    else if (chip === 'rp2040' || chip === 'rp2350') datalistId = 'gpio-pins-rp2';
 
     Object.values(panel.pinInputs).forEach(id => {
         document.getElementById(id)?.setAttribute('list', datalistId);
     });
 
-    const unsupportedPsram = ["esp32-c3", "esp32-c6", "esp8266"];
+    const unsupportedPsram = ["esp32-c3", "esp32-c6", "esp8266", "rp2040", "rp2350"];
     if (panel.customPsram) {
         const isUnsupported = unsupportedPsram.some(c => chip.toLowerCase().includes(c));
         panel.customPsram.checked = isUnsupported ? false : panel.customPsram.checked;

@@ -13,7 +13,7 @@ export const sanitizePackageContent = (yaml) => {
     if (!yaml) return "";
     // IMPORTANT: These keys are system-level and MUST be commented out in the final snippet.
     // This allows users to merge the generated YAML into their existing config without conflicts.
-    const systemKeys = ["esphome:", "esp32:", "psram:", "wifi:", "api:", "ota:", "logger:", "web_server:", "captive_portal:", "platformio_options:", "preferences:", "substitutions:", "deep_sleep:"];
+    const systemKeys = ["esphome:", "esp32:", "esp8266:", "rp2:", "psram:", "wifi:", "api:", "ota:", "logger:", "web_server:", "captive_portal:", "platformio_options:", "preferences:", "substitutions:", "deep_sleep:"];
     const lines = yaml.split('\n');
     const sanitized = [];
     let inSystemBlock = false;

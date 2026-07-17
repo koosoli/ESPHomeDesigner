@@ -84,6 +84,35 @@ describe('yaml_generator_scripts', () => {
         expect(lines).not.toContain('bool is_sleep_time = false;');
     });
 
+    it('waits for the E1002 color e-paper refresh before entering deep sleep', () => {
+        const lines = generateScriptSection({
+            deepSleepEnabled: true,
+            sleepEnabled: false
+        }, [{ refresh_s: '300' }], {
+            displayId: 'epaper_display',
+            deepSleepDisplayRefreshDelay: '35s',
+            features: { epaper: true }
+        }).join('\n');
+
+        expect(lines).toContain([
+            '      - component.update: epaper_display',
+            '      - delay: 35s',
+            '      - script.execute: deep_sleep_cycle'
+        ].join('\n'));
+    });
+
+    it('does not generate unsupported deep-sleep actions for RP2 profiles', () => {
+        const lines = generateScriptSection({
+            deepSleepEnabled: true
+        }, [{ refresh_s: '300' }], {
+            supportsDeepSleep: false,
+            features: { epaper: true }
+        }).join('\n');
+
+        expect(lines).not.toContain('id: deep_sleep_cycle');
+        expect(lines).not.toContain('deep_sleep.enter:');
+    });
+
     it('stops the automatic refresh loop in manual refresh mode', () => {
         const lines = generateScriptSection({
             manualRefreshOnly: true,

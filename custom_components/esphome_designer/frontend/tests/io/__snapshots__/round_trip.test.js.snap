@@ -367,9 +367,9 @@ display:
         // page:visible_from ""
         // page:visible_to ""
         // Clear screen for this page
-        it.fill(COLOR_WHITE);
-        color_off = COLOR_WHITE;
-        color_on = COLOR_BLACK;
+        it.fill(COLOR_BLACK);
+        color_off = COLOR_BLACK;
+        color_on = COLOR_WHITE;
         // widget:button id:w_btn type:button x:10 y:10 w:100 h:50
                 btn_draw();
       }"

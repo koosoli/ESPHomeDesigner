@@ -236,6 +236,26 @@ describe('hardware_generators core', () => {
         expect(reterminalLines).toContain('Please update your ESPHome version to 2025.11.1 above');
     });
 
+    it('generates the official E1003 IT8951 display with its SPI bus', () => {
+        const display = generateDisplaySection({
+            displayPlatform: 'it8951',
+            displayModel: 'Seeed-reTerminal-E1003',
+            resolution: { width: 1872, height: 1404 },
+            features: { epaper: true }
+        }).join('\n');
+        const spi = generateSPISection({
+            pins: { spi: { clk: 'GPIO7', mosi: 'GPIO9', miso: 'GPIO8' } }
+        }).join('\n');
+
+        expect(display).toContain('platform: it8951');
+        expect(display).toContain('model: "Seeed-reTerminal-E1003"');
+        expect(display).toContain('update_interval: never');
+        expect(display).not.toContain('dc_pin:');
+        expect(spi).toContain('clk_pin: GPIO7');
+        expect(spi).toContain('mosi_pin: GPIO9');
+        expect(spi).toContain('miso_pin: GPIO8');
+    });
+
     it('handles plain switch backlight pins and full-update epaper models', () => {
         const switchBacklight = generateBacklightSection({
             backlight: {

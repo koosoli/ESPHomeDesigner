@@ -4,6 +4,7 @@ import geekMagicMiniYaml from '../../hardware/geekmagic-mini-esp8266.yaml?raw';
 import geekMagicProYaml from '../../hardware/geekmagic-pro-esp32.yaml?raw';
 import guitionP4Yaml from '../../hardware/guition-esp32-p4-jc4880p443.yaml?raw';
 import guitionP4LargeYaml from '../../hardware/guition-esp32-p4-jc8012p4a1c.yaml?raw';
+import elecrowP4Yaml from '../../hardware/elecrow-esp32-p4-9inch-v1.2.yaml?raw';
 import m5stackTab5Yaml from '../../hardware/m5stack-tab5.yaml?raw';
 import sunton2432s028Yaml from '../../hardware/sunton-esp32-2432s028.yaml?raw';
 import sunton2432s028RYaml from '../../hardware/sunton-esp32-2432s028R.yaml?raw';
@@ -69,6 +70,34 @@ display:
         expect(profile.chip).toBe('esp32-p4');
         expect(profile.board).toBe('esp32-p4-evboard');
         expect(profile.displayPlatform).toBe('ili9xxx');
+    });
+
+    it('detects RP2 board variants and recognizes IT8951 as e-paper', () => {
+        const rp2Profile = parseHardwareRecipeClientSide(`
+# Name: Pico 2 W Paper
+# Resolution: 250x122
+rp2:
+  board: rpipico2w
+display:
+  - platform: waveshare_epaper
+    model: 2.13inv3
+`, 'pico-2-w-paper.yaml');
+        const e1003Profile = parseHardwareRecipeClientSide(`
+# Name: reTerminal E1003
+# Resolution: 1872x1404
+esp32:
+  board: esp32-s3-devkitc-1
+display:
+  - platform: it8951
+    model: Seeed-reTerminal-E1003
+`, 'reterminal-e1003.yaml');
+
+        expect(rp2Profile.chip).toBe('rp2350');
+        expect(rp2Profile.board).toBe('rpipico2w');
+        expect(rp2Profile.features.epaper).toBe(true);
+        expect(e1003Profile.displayPlatform).toBe('it8951');
+        expect(e1003Profile.features.epaper).toBe(true);
+        expect(e1003Profile.features.lcd).toBe(false);
     });
 
     it('parses the GeekMagic Mini ESP8266 bundled recipe', () => {
@@ -170,6 +199,24 @@ display:
         expect(profile.features.psram).toBe(true);
         expect(profile.features.touch).toBe(true);
         expect(profile.features.lcd).toBe(true);
+    });
+
+    it('parses the Elecrow 9-inch V1.2 recipe with its required P4 and C6 wiring', () => {
+        expect(elecrowP4Yaml).toContain('variant: esp32c6');
+        expect(elecrowP4Yaml).toContain('reset_pin: GPIO32');
+        expect(elecrowP4Yaml).toContain('model: WAVESHARE-ESP32-P4-WIFI6-TOUCH-LCD-7B');
+        expect(elecrowP4Yaml).toContain('pin: GPIO31');
+        expect(elecrowP4Yaml).toContain('pin: GPIO29');
+
+        const profile = parseHardwareRecipeClientSide(elecrowP4Yaml, 'elecrow-esp32-p4-9inch-v1.2.yaml');
+
+        expect(profile.name).toBe('Elecrow ESP32-P4 9" HMI 1024x600 (V1.2)');
+        expect(profile.resolution).toEqual({ width: 1024, height: 600 });
+        expect(profile.chip).toBe('esp32-p4');
+        expect(profile.board).toBe('esp32-p4-evboard');
+        expect(profile.displayPlatform).toBe('mipi_dsi');
+        expect(profile.features.psram).toBe(true);
+        expect(profile.features.touch).toBe(true);
     });
 
     it('keeps Sunton 2432S028 package dimensions aligned with the landscape transform', () => {

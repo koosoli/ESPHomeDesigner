@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { YamlGenerator } from '../../js/io/adapters/yaml_generator.js';
+import { resolveAdapterProfile } from '../../js/io/adapters/esphome_adapter_profile.js';
 import { generateBinarySensorSection, generatePSRAMSection } from '../../js/io/hardware_generators.js';
 
 const fetchDynamicHardwareProfilesMock = vi.fn(async () => []);
@@ -34,6 +35,12 @@ describe('built-in device profiles', async () => {
         expect(profile.isUntestedProfile).toBe(true);
         expect(profile.external_components?.join('\n')).toContain('cjb0001/esphome-components');
         expect(profile.system_section_overrides?.esp32?.join('\n')).toContain('type: arduino');
+    });
+
+    it('preserves the built-in profile key as its resolved id', () => {
+        const profile = resolveAdapterProfile('reterminal_e1001', {}, devices.DEVICE_PROFILES);
+
+        expect(profile.id).toBe('reterminal_e1001');
     });
 
     it('excludes untested built-ins from the tested profile id list', () => {
@@ -155,6 +162,38 @@ describe('built-in device profiles', async () => {
         // Home button has allow_other_uses due to GPIO2 sharing
         expect(profile.pins.buttons.home).toMatchObject({ number: 'GPIO2', allow_other_uses: true });
         expect(devices.SUPPORTED_DEVICE_IDS).toContain('reterminal_e1004');
+    });
+
+    it('includes verified E1003, Pico, and Elecrow P4 profiles', () => {
+        const e1003 = devices.DEVICE_PROFILES.reterminal_e1003;
+        const picoW = devices.DEVICE_PROFILES.raspberry_pi_pico_w_waveshare_2_13_v3;
+        const pico2W = devices.DEVICE_PROFILES.raspberry_pi_pico_2_w_waveshare_2_13_v3;
+        const elecrow = devices.DEVICE_PROFILES.elecrow_esp32_p4_9inch_v1_2;
+
+        expect(e1003).toMatchObject({
+            chip: 'esp32-s3',
+            displayPlatform: 'it8951',
+            displayModel: 'Seeed-reTerminal-E1003',
+            resolution: { width: 1872, height: 1404 }
+        });
+        expect(e1003.frameworkHint).toContain('ESP-IDF');
+        expect(e1003.pins.spi).toEqual({ clk: 'GPIO7', mosi: 'GPIO9', miso: 'GPIO8' });
+        expect(e1003.features.epaper).toBe(true);
+        expect(e1003.features.inverted_colors).toBe(false);
+
+        expect(picoW).toMatchObject({ chip: 'rp2040', board: 'rpipicow', displayModel: '2.13inv3' });
+        expect(pico2W).toMatchObject({ chip: 'rp2350', board: 'rpipico2w', displayModel: '2.13inv3' });
+        expect(pico2W.supportsDeepSleep).toBe(false);
+
+        expect(elecrow).toMatchObject({
+            chip: 'esp32-p4',
+            displayPlatform: 'mipi_dsi',
+            hardwarePackage: 'hardware/elecrow-esp32-p4-9inch-v1.2.yaml',
+            resolution: { width: 1024, height: 600 }
+        });
+        expect(devices.SUPPORTED_DEVICE_IDS).toContain('reterminal_e1003');
+        expect(devices.SUPPORTED_DEVICE_IDS).toContain('raspberry_pi_pico_2_w_waveshare_2_13_v3');
+        expect(devices.SUPPORTED_DEVICE_IDS).toContain('elecrow_esp32_p4_9inch_v1_2');
     });
 
     it('recomputes supported ids after loading external profiles', async () => {

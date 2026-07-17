@@ -35,6 +35,12 @@ font:
       expect(sanitized).toContain('# deep_sleep: # (Auto-commented)');
       expect(sanitized).toContain('#   run_duration: 10s');
     });
+
+    it('comments RP2 platform blocks in imported hardware recipes', () => {
+      const sanitized = sanitizePackageContent('rp2:\n  board: rpipico2w');
+      expect(sanitized).toContain('# rp2: # (Auto-commented)');
+      expect(sanitized).toContain('#   board: rpipico2w');
+    });
   });
 
   describe('processPackageContent', () => {

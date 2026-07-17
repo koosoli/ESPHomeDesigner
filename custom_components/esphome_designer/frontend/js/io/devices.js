@@ -53,6 +53,7 @@ export const DEVICE_PROFILES = {
     displayType: "color",
     displayModel: "Seeed-reTerminal-E1002",
     displayPlatform: "epaper_spi",
+    deepSleepDisplayRefreshDelay: "35s",
     resolution: { width: 800, height: 480 },
     shape: "rect",
     psram_mode: "octal",
@@ -76,6 +77,48 @@ export const DEVICE_PROFILES = {
       buttons: true,
       sht4x: true,
       epaper: true
+    }
+  },
+  reterminal_e1003: {
+    name: "Seeedstudio reTerminal E1003 (Monochrome)",
+    displayType: "grayscale",
+    chip: "esp32-s3",
+    board: "esp32-s3-devkitc-1",
+    displayModel: "Seeed-reTerminal-E1003",
+    displayPlatform: "it8951",
+    resolution: { width: 1872, height: 1404 },
+    shape: "rect",
+    psram_mode: "octal",
+    frameworkHint: "ESP-IDF (Required; ESPHome 2026.7.0+)",
+    system_section_overrides: {
+      esp32: [
+        "  framework:",
+        "    type: esp-idf",
+        "    sdkconfig_options:",
+        "      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: y",
+        "      CONFIG_ESP32S3_DATA_CACHE_64KB: y"
+      ]
+    },
+    pins: {
+      i2c: { sda: "GPIO19", scl: "GPIO20" },
+      spi: { clk: "GPIO7", mosi: "GPIO9", miso: "GPIO8" },
+      batteryEnable: "GPIO21",
+      batteryAdc: "GPIO1",
+      buzzer: "GPIO45",
+      buttons: { left: "GPIO5", right: "GPIO4", refresh: "GPIO3", home: "GPIO2" }
+    },
+    battery: {
+      attenuation: "12db",
+      multiplier: 2.0,
+      calibration: { min: 3.27, max: 4.15 }
+    },
+    features: {
+      psram: true,
+      buzzer: true,
+      buttons: true,
+      sht4x: true,
+      epaper: true,
+      inverted_colors: false
     }
   },
   reterminal_e1004: {
@@ -240,6 +283,53 @@ export const DEVICE_PROFILES = {
     }
   },
 
+  raspberry_pi_pico_w_waveshare_2_13_v3: {
+    name: "Raspberry Pi Pico W + Waveshare 2.13\" V3",
+    displayType: "binary",
+    chip: "rp2040",
+    board: "rpipicow",
+    displayModel: "2.13inv3",
+    displayPlatform: "waveshare_epaper",
+    resolution: { width: 250, height: 122 },
+    shape: "rect",
+    supportsDeepSleep: false,
+    frameworkHint: "ESPHome RP2",
+    pins: {
+      display: { cs: "GPIO9", dc: "GPIO8", reset: "GPIO12", busy: "GPIO13" },
+      spi: { clk: "GPIO10", mosi: "GPIO11" }
+    },
+    features: {
+      psram: false,
+      buzzer: false,
+      buttons: false,
+      epaper: true,
+      inverted_colors: true
+    }
+  },
+  raspberry_pi_pico_2_w_waveshare_2_13_v3: {
+    name: "Raspberry Pi Pico 2 W + Waveshare 2.13\" V3",
+    displayType: "binary",
+    chip: "rp2350",
+    board: "rpipico2w",
+    displayModel: "2.13inv3",
+    displayPlatform: "waveshare_epaper",
+    resolution: { width: 250, height: 122 },
+    shape: "rect",
+    supportsDeepSleep: false,
+    frameworkHint: "ESPHome RP2",
+    pins: {
+      display: { cs: "GPIO9", dc: "GPIO8", reset: "GPIO12", busy: "GPIO13" },
+      spi: { clk: "GPIO10", mosi: "GPIO11" }
+    },
+    features: {
+      psram: false,
+      buzzer: false,
+      buttons: false,
+      epaper: true,
+      inverted_colors: true
+    }
+  },
+
   // ========================================================================
   // WAVESHARE DEVICES
   // ========================================================================
@@ -379,6 +469,19 @@ export const DEVICE_PROFILES = {
     resolution: { width: 800, height: 1280 },
     features: { psram: true, buzzer: false, buttons: false, lcd: true, lvgl: true, touch: true },
     touch: { platform: "gt911", id: "device_touchscreen" }
+  },
+  elecrow_esp32_p4_9inch_v1_2: {
+    name: "Elecrow ESP32-P4 9\" HMI 1024x600 (V1.2)",
+    displayType: "color",
+    chip: "esp32-p4",
+    board: "esp32-p4-evboard",
+    displayPlatform: "mipi_dsi",
+    displayModel: "WAVESHARE-ESP32-P4-WIFI6-TOUCH-LCD-7B",
+    isPackageBased: true,
+    hardwarePackage: "hardware/elecrow-esp32-p4-9inch-v1.2.yaml",
+    resolution: { width: 1024, height: 600 },
+    features: { psram: true, buzzer: false, buttons: false, lcd: true, lvgl: true, touch: true },
+    touch: { platform: "gt911" }
   },
   geekmagic_mini_esp8266: {
     name: "GeekMagic Mini (ESP8266)",

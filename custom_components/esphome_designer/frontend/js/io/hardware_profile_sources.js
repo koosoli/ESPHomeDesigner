@@ -171,8 +171,11 @@ export function parseHardwareRecipeClientSide(yaml, filename) {
     let board = undefined;
 
     const esp8266Match = yaml.match(/^\s*esp8266:/m);
+    const rp2Match = yaml.match(/^\s*rp2:/m);
     if (esp8266Match) {
         chip = 'esp8266';
+    } else if (rp2Match) {
+        chip = 'rp2040';
     } else {
         const esp32Match = yaml.match(/^\s*esp32:/m);
         if (esp32Match) {
@@ -187,7 +190,9 @@ export function parseHardwareRecipeClientSide(yaml, filename) {
     const boardMatch = yaml.match(/^\s*board:\s*([^\n]+)/m);
     if (boardMatch) {
         board = boardMatch[1].trim();
-        if (!esp8266Match) {
+        if (rp2Match) {
+            chip = board.toLowerCase().includes('pico2') || board.toLowerCase().includes('rp2350') ? 'rp2350' : 'rp2040';
+        } else if (!esp8266Match) {
             if (board.toLowerCase().includes('s3')) chip = 'esp32-s3';
             else if (board.toLowerCase().includes('c3')) chip = 'esp32-c3';
             else if (board.toLowerCase().includes('c6')) chip = 'esp32-c6';
@@ -231,9 +236,9 @@ export function parseHardwareRecipeClientSide(yaml, filename) {
         content: yaml,
         features: {
             psram: yaml.includes('psram:'),
-            lcd: !yaml.includes('waveshare_epaper') && !yaml.includes('epaper_spi'),
-            lvgl: yaml.includes('lvgl:') || (!yaml.includes('waveshare_epaper') && !yaml.includes('epaper_spi')),
-            epaper: yaml.includes('waveshare_epaper') || yaml.includes('epaper_spi'),
+            lcd: !yaml.includes('waveshare_epaper') && !yaml.includes('epaper_spi') && !yaml.includes('it8951'),
+            lvgl: yaml.includes('lvgl:') || (!yaml.includes('waveshare_epaper') && !yaml.includes('epaper_spi') && !yaml.includes('it8951')),
+            epaper: yaml.includes('waveshare_epaper') || yaml.includes('epaper_spi') || yaml.includes('it8951'),
             touch: yaml.includes('touchscreen:'),
             inverted_colors: isInverted
         }

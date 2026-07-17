@@ -374,23 +374,29 @@ export function generateDisplayLambda(pages, layout, profile, context, adapter) 
         lines.push(`  // page:visible_to "${page.visible_to || ""}"`);
 
         // Clear screen for this page
-        const isDarkMode = page.dark_mode === 'dark' || (page.dark_mode === 'inherit' && layout.darkMode);
+        const pageDarkMode = page.dark_mode || 'inherit';
+        const isDarkMode = pageDarkMode === 'dark' || (pageDarkMode === 'inherit' && layout.darkMode);
+        // The E1001 controller maps its monochrome palette levels inversely.
+        const reverseDarkModePalette = profile.id === 'reterminal_e1001' && useInvertedColors;
+        const useDarkPalette = isDarkMode !== reverseDarkModePalette;
+        const backgroundColor = useDarkPalette ? 'COLOR_BLACK' : 'COLOR_WHITE';
+        const foregroundColor = useDarkPalette ? 'COLOR_WHITE' : 'COLOR_BLACK';
         lines.push(`  // Clear screen for this page`);
         // For LCD displays: use filled_rectangle only on page change to avoid artifacts
         // For e-paper: always use it.fill() (works correctly)
         if (!isEpaper) {
             lines.push(`  if (page_changed) {`);
             lines.push(`    // Full clear on page change (prevents black artifacts)`);
-            lines.push(`    it.filled_rectangle(0, 0, it.get_width(), it.get_height(), ${isDarkMode ? 'COLOR_BLACK' : 'COLOR_WHITE'});`);
+            lines.push(`    it.filled_rectangle(0, 0, it.get_width(), it.get_height(), ${backgroundColor});`);
             lines.push(`  } else {`);
             lines.push(`    // Fast clear for same-page updates`);
-            lines.push(`    it.fill(${isDarkMode ? 'COLOR_BLACK' : 'COLOR_WHITE'});`);
+            lines.push(`    it.fill(${backgroundColor});`);
             lines.push(`  }`);
         } else {
-            lines.push(`  it.fill(${isDarkMode ? 'COLOR_BLACK' : 'COLOR_WHITE'});`);
+            lines.push(`  it.fill(${backgroundColor});`);
         }
-        lines.push(`  color_off = ${isDarkMode ? 'COLOR_BLACK' : 'COLOR_WHITE'};`);
-        lines.push(`  color_on = ${isDarkMode ? 'COLOR_WHITE' : 'COLOR_BLACK'};`);
+        lines.push(`  color_off = ${backgroundColor};`);
+        lines.push(`  color_on = ${foregroundColor};`);
 
         if (page.widgets) {
             const visibleWidgets = page.widgets.filter((/** @type {Record<string, any>} */ w) => !w.hidden && w.type !== 'group');

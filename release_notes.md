@@ -1,3 +1,17 @@
+## v1.0.0 RC30 - Hardware Profile and Deep Sleep Fixes
+**Release Date:** July 17, 2026
+
+### Fixes
+- **E1002 Deep Sleep Timing (Issue #450):** The color e-paper profile now waits 35 seconds after a display refresh before entering deep sleep, allowing the panel refresh to finish.
+- **E1003 ESP-IDF Profile (Issue #449):** Added the Seeedstudio reTerminal E1003 IT8951 profile with its required ESP-IDF configuration and ESPHome 2026.7.0+ requirement.
+- **Pico E-Paper Profiles (Issue #442):** Added Raspberry Pi Pico W and Pico 2 W presets for the Waveshare Pico e-Paper 2.13-inch V3, including RP2 setup guidance and no unsupported deep-sleep output.
+- **Elecrow P4 V1.2 Profile (Issue #438):** Added the Elecrow ESP32-P4 9-inch HMI V1.2 hardware recipe with the vendor's display, touch, backlight, and ESP32-C6 hosted Wi-Fi wiring.
+- **Regression Coverage (Issue #428):** Added coverage confirming the E1001 profile retains its required inverted e-paper palette.
+- **E1001 Dark Mode Semantics:** Corrected E1001's dark-mode palette selection so the profile's inverted controller mapping does not reverse the user's dark-mode choice.
+- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, visible header label, release notes, and rebuilt frontend assets for RC30.
+
+---
+
 ## v1.0.0 RC29 - GeekMagic Pro Hardware Profile
 **Release Date:** July 14, 2026
 

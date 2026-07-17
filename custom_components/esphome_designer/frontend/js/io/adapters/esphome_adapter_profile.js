@@ -7,7 +7,8 @@ import { Logger } from '../../utils/logger.js';
  * @returns {any}
  */
 export function resolveAdapterProfile(model, layout, deviceProfiles) {
-    let profile = deviceProfiles[model] || {};
+    const builtInProfile = deviceProfiles[model];
+    let profile = builtInProfile ? { ...builtInProfile, id: builtInProfile.id || model } : {};
 
     if (model === 'custom' && layout.customHardware) {
         const ch = layout.customHardware;

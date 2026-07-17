@@ -27,7 +27,8 @@ export function generateInstructionHeader(profile, layout, requiresMaterialIcons
     const platform = profile.displayPlatform || (feats.lcd ? (profile.id === 'reterminal_e1001' ? 'reterminal_e1001' : 'LCD') : (feats.epaper ? "waveshare_epaper" : "Unknown"));
 
     const chip = profile.chip || "esp32-s3";
-    const unsupportedChips = ["esp32-c3", "esp32-c6", "esp8266"];
+    const isRp2 = chip === 'rp2040' || chip === 'rp2350';
+    const unsupportedChips = ["esp32-c3", "esp32-c6", "esp8266", "rp2040", "rp2350"];
     const isUnsupported = unsupportedChips.some(c => (chip || "").toLowerCase().includes(c));
     const effectivePsram = feats.psram && !isUnsupported;
 
@@ -36,7 +37,9 @@ export function generateInstructionHeader(profile, layout, requiresMaterialIcons
     lines.push(`#         - PSRAM: ${effectivePsram ? 'Yes' : 'No'}`);
 
     let frameworkHint = profile.frameworkHint || "esp-idf (Recommended)";
-    if (chip === 'esp8266') {
+    if (isRp2) {
+        frameworkHint = "ESPHome RP2";
+    } else if (chip === 'esp8266') {
         frameworkHint = "Arduino (Default)";
     } else if (!profile.frameworkHint && effectivePsram && (profile.chip?.includes("s3") || profile.id?.includes("s3"))) {
         frameworkHint = "ESP-IDF (Required for stable PSRAM/LVGL)";
@@ -57,7 +60,10 @@ export function generateInstructionHeader(profile, layout, requiresMaterialIcons
     }
     lines.push(`# STEP ${stepNumber}: Create a new device in ESPHome`);
     lines.push("#         - Click \"New Device\"");
-    if (chip === 'esp8266') {
+    if (isRp2) {
+        lines.push(`#         - Select: ${chip === 'rp2350' ? 'Raspberry Pi Pico 2 W' : 'Raspberry Pi Pico W'}`);
+        lines.push("#         - Framework: ESPHome RP2");
+    } else if (chip === 'esp8266') {
         lines.push("#         - Select: ESP8266");
         lines.push("#         - Framework: Arduino (Default)");
     } else if (chip === 'esp32') {
@@ -80,7 +86,7 @@ export function generateInstructionHeader(profile, layout, requiresMaterialIcons
     stepNumber += 1;
     lines.push(`# STEP ${stepNumber}: PASTE this snippet into your device YAML`);
     lines.push("#         - Paste this snippet at the end of your configuration.");
-    const sysLabel = chip === 'esp8266' ? 'esp8266' : 'esp32';
+    const sysLabel = isRp2 ? 'rp2' : (chip === 'esp8266' ? 'esp8266' : 'esp32');
     lines.push(`#         - System sections (esphome, ${sysLabel}) are auto-commented`);
     lines.push("#           to avoid conflicts with your existing base setup.");
     lines.push("#");
@@ -112,6 +118,7 @@ export function generateInstructionHeader(profile, layout, requiresMaterialIcons
     lines.push(`# Dark Mode: ${layout.darkMode ? "enabled" : "disabled"}`);
     lines.push(`# Refresh Interval: ${layout.refreshInterval || 600}`);
     const isLcd = !!(profile.features && (profile.features.lcd || profile.features.oled));
+    const deepSleepEnabled = !!layout.deepSleepEnabled && profile.supportsDeepSleep !== false;
     let strategy;
     if (layout.manualRefreshOnly) {
         strategy = "Manual Refresh Only";
@@ -127,14 +134,15 @@ export function generateInstructionHeader(profile, layout, requiresMaterialIcons
         };
         strategy = map[lcdStrategy] || lcdStrategy;
     } else {
-        strategy = layout.deepSleepEnabled ? "Ultra Eco (Deep Sleep)" : (layout.sleepEnabled ? "Eco (Light Sleep)" : "Always On");
+        strategy = deepSleepEnabled ? "Ultra Eco (Deep Sleep)" : (layout.sleepEnabled ? "Eco (Light Sleep)" : "Always On");
     }
     lines.push(`# Power Strategy: ${strategy}`);
-    lines.push(`# Deep Sleep: ${layout.deepSleepEnabled ? 'enabled' : 'disabled'}`);
+    lines.push(`# Deep Sleep: ${deepSleepEnabled ? 'enabled' : 'disabled'}`);
+    if (layout.deepSleepEnabled && !deepSleepEnabled) lines.push("# Deep Sleep is unavailable on this hardware platform.");
     lines.push(`# Deep Sleep Stay Awake Switch: ${layout.deepSleepStayAwakeSwitch ? 'enabled' : 'disabled'}`);
     lines.push(`# Deep Sleep Stay Awake Entity: ${getStayAwakeEntityId(layout)}`);
     lines.push(`# Deep Sleep Firmware Guard: ${layout.deepSleepFirmwareGuard ? 'enabled' : 'disabled'}`);
-    lines.push(`# Deep Sleep Interval: ${layout.deepSleepEnabled ? `${layout.deepSleepInterval || 600}s` : 'Disabled'}`);
+    lines.push(`# Deep Sleep Interval: ${deepSleepEnabled ? `${layout.deepSleepInterval || 600}s` : 'Disabled'}`);
     lines.push(`# ${diagnostics.headerLine}`);
     lines.push(`# ${diagnostics.summaryLine}`);
     lines.push("# Boot Log Hint: Compare the runtime build signature with this header to spot OTA rollbacks.");
@@ -151,7 +159,8 @@ export function generateInstructionHeader(profile, layout, requiresMaterialIcons
 export function generateSystemSections(profile, layout) {
     const lines = [];
     const chip = profile.chip || "esp32-s3";
-    const board = profile.board || (chip === 'esp8266' ? 'nodemcuv2' : (chip === 'esp32' ? 'esp32dev' : (chip.includes('c3') ? 'esp32-c3-devkitm-1' : (chip.includes('c6') ? 'esp32-c6-devkitc-1' : (chip.includes('p4') ? 'esp32-p4-evboard' : 'esp32-s3-devkitc-1')))));
+    const isRp2 = chip === 'rp2040' || chip === 'rp2350';
+    const board = profile.board || (chip === 'esp8266' ? 'nodemcuv2' : (isRp2 ? (chip === 'rp2350' ? 'rpipico2w' : 'rpipicow') : (chip === 'esp32' ? 'esp32dev' : (chip.includes('c3') ? 'esp32-c3-devkitm-1' : (chip.includes('c6') ? 'esp32-c6-devkitc-1' : (chip.includes('p4') ? 'esp32-p4-evboard' : 'esp32-s3-devkitc-1'))))));
     const overrides = profile.system_section_overrides || {};
     /** @param {string[]} [blockLines] */
     const pushCommentedBlock = (blockLines = []) => {
@@ -228,6 +237,10 @@ export function generateSystemSections(profile, layout) {
         lines.push("#");
         lines.push("# esp8266:");
         lines.push(`#   board: ${board || 'nodemcuv2'}`);
+    } else if (isRp2) {
+        lines.push("#");
+        lines.push("# rp2:");
+        lines.push(`#   board: ${board}`);
     } else {
         lines.push("#");
         lines.push("# esp32:");
@@ -267,7 +280,7 @@ export function generateSystemSections(profile, layout) {
     lines.push("# wifi:");
     lines.push("#   # ... your wifi config here");
 
-    if (isEpaper && layout.deepSleepEnabled) {
+    if (isEpaper && layout.deepSleepEnabled && profile.supportsDeepSleep !== false) {
         lines.push("");
         lines.push("deep_sleep:");
         lines.push("  id: deep_sleep_control");

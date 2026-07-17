@@ -115,6 +115,26 @@ describe('yaml_generator_sections', () => {
         expect(system).toContain('#       enable_idf_experimental_features: true');
     });
 
+    it('generates RP2 setup guidance and omits unsupported deep-sleep config', () => {
+        const profile = {
+            chip: 'rp2350',
+            board: 'rpipico2w',
+            supportsDeepSleep: false,
+            features: { epaper: true }
+        };
+        const layout = { deepSleepEnabled: true };
+        const header = generateInstructionHeader(profile, layout).join('\n');
+        const system = generateSystemSections(profile, layout).join('\n');
+
+        expect(header).toContain('Select: Raspberry Pi Pico 2 W');
+        expect(header).toContain('System sections (esphome, rp2) are auto-commented');
+        expect(header).toContain('Deep Sleep is unavailable on this hardware platform.');
+        expect(system).toContain('# rp2:');
+        expect(system).toContain('#   board: rpipico2w');
+        expect(system).not.toContain('# esp32:');
+        expect(system).not.toContain('\ndeep_sleep:');
+    });
+
     it('warns about USB conflict and suggests UART0 when GPIO19/20 are in use', () => {
         const header = generateInstructionHeader({
             id: 'reterminal_e1001',

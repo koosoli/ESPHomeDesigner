@@ -31,7 +31,7 @@ export function generateCustomHardwareYaml(config) {
     lines.push(`# Resolution: ${resWidth}x${resHeight}`);
     lines.push(`# Shape: ${shape}`);
     lines.push("#");
-    const unsupportedChips = ["esp32-c3", "esp32-c6", "esp8266"];
+    const unsupportedChips = ["esp32-c3", "esp32-c6", "esp8266", "rp2040", "rp2350"];
     const isUnsupported = unsupportedChips.some(c => (chip || "").toLowerCase().includes(c));
     const effectivePsram = psram && !isUnsupported;
 
@@ -51,7 +51,10 @@ export function generateCustomHardwareYaml(config) {
     lines.push("#         - Click \"New Device\"");
     lines.push("#         - Name: your-device-name");
 
-    if (chip === "esp32") {
+    if (chip === "rp2040" || chip === "rp2350") {
+        lines.push(`#         - Select: ${chip === 'rp2350' ? 'Raspberry Pi Pico 2 W' : 'Raspberry Pi Pico W'}`);
+        lines.push("#         - Framework: ESPHome RP2");
+    } else if (chip === "esp32") {
         lines.push("#         - Select: ESP32");
         lines.push("#         - Board: esp32dev (or specific board)");
         lines.push("#         - Framework: esp-idf (Recommended) or arduino");
@@ -86,8 +89,11 @@ export function generateCustomHardwareYaml(config) {
     lines.push("# esphome: # (Auto-commented)");
     lines.push(`#   name: ${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`);
     lines.push("#");
+    const isRp2 = chip === "rp2040" || chip === "rp2350";
     if (chip === "esp8266") {
         lines.push("# esp8266: # (Auto-commented)");
+    } else if (isRp2) {
+        lines.push("# rp2: # (Auto-commented)");
     } else {
         lines.push("# esp32: # (Auto-commented)");
     }
@@ -96,7 +102,7 @@ export function generateCustomHardwareYaml(config) {
         lines.push("#   variant: esp32p4");
     }
 
-    if (chip !== "esp8266") {
+    if (chip !== "esp8266" && !isRp2) {
         lines.push("#   framework:");
         lines.push("#     type: esp-idf");
     }
@@ -317,6 +323,8 @@ function getBoardForChip(chip) {
         case 'esp32-p4': return 'esp32-p4-evboard';
         case 'esp32-c3': return 'esp32-c3-devkitm-1';
         case 'esp32-c6': return 'esp32-c6-devkitc-1';
+        case 'rp2040': return 'rpipicow';
+        case 'rp2350': return 'rpipico2w';
         case 'esp32': return 'esp32dev';
         case 'esp8266': return 'nodemcuv2';
         default: return 'esp32-s3-devkitc-1';

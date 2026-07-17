@@ -330,7 +330,7 @@ export function generatePSRAMSection(profile) {
 
     // Chip check: Ensure chip supports PSRAM
     const chip = (profile.chip || "").toLowerCase();
-    const unsupportedChips = ["esp32-c3", "esp32-c6", "esp8266"];
+    const unsupportedChips = ["esp32-c3", "esp32-c6", "esp8266", "rp2040", "rp2350"];
     if (unsupportedChips.some(c => chip.includes(c))) return [];
 
     const lines = ["psram:"];

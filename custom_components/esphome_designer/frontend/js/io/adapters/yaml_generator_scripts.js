@@ -28,7 +28,10 @@ export function generateScriptSection(payload, pages, profile) {
     const backlightPin = profile.backlight?.pin || profile.pins?.backlight || null;
     const lcdStrategy = payload.lcdEcoStrategy || 'backlight_off';
     const isBacklightStrategy = isLcd && lcdStrategy === 'backlight_off' && backlightPin;
-    const isDeepSleep = isEpaper && payload.deepSleepEnabled;
+    const isDeepSleep = isEpaper && payload.deepSleepEnabled && profile.supportsDeepSleep !== false;
+    const deepSleepDisplayRefreshDelay = typeof profile.deepSleepDisplayRefreshDelay === 'string'
+        ? profile.deepSleepDisplayRefreshDelay.trim()
+        : '';
 
     /** @param {string} baseIndent */
     const appendFirmwareGuardDelay = (baseIndent) => {
@@ -340,12 +343,15 @@ export function generateScriptSection(payload, pages, profile) {
         lines.push("              }");
         lines.push("              return true; // Not sleep time, update display");
         lines.push("          then:");
-        if (!isLcd) lines.push(`            - component.update: ${displayId}`);
-        else lines.push('            - logger.log: "Display update managed by hardware timer."');
+        if (!isLcd) {
+            lines.push(`            - component.update: ${displayId}`);
+            if (deepSleepDisplayRefreshDelay) lines.push(`            - delay: ${deepSleepDisplayRefreshDelay}`);
+        } else lines.push('            - logger.log: "Display update managed by hardware timer."');
         lines.push("          else:");
         lines.push('            - logger.log: "Night-time sleep active, skipping display update."');
     } else if (!isLcd) {
         lines.push(`      - component.update: ${displayId}`);
+        if (isDeepSleep && deepSleepDisplayRefreshDelay) lines.push(`      - delay: ${deepSleepDisplayRefreshDelay}`);
     }
 
     const isManualRefresh = !!payload.manualRefreshOnly;
