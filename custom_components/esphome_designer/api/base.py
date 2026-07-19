@@ -24,10 +24,13 @@ class DesignerBaseView(HomeAssistantView):
         "The request client is not a secure context and the resource 
         is in more-private address space `local`."
         """
-        origin = request.headers.get("Origin", "*")
-        # Critical: This header opts-in to Private Network Access
+        origin = request.headers.get("Origin")
+        if origin is None:
+            return response
 
-        response.headers["Access-Control-Allow-Private-Network"] = "true"
+        hass = request.app["hass"]
+        if hass.http.cors_allowed_origins and origin in hass.http.cors_allowed_origins:
+            response.headers["Access-Control-Allow-Private-Network"] = "true"
         return response
 
     def json(self, data: Any, status_code: int = HTTPStatus.OK, request: web.Request = None) -> web.Response:
