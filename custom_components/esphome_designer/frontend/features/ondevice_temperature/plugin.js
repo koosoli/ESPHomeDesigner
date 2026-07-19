@@ -147,6 +147,9 @@ export default {
         const fontSize = parseInt(p.font_size || 16, 10);
         const labelSize = parseInt(p.label_font_size || 10, 10);
         const unit = p.unit || "°C";
+        const safeWidgetId = String(w.id || '').replace(/[^a-zA-Z0-9_]/g, '_');
+        const iconLabelId = `${safeWidgetId}_icon`;
+        const textLabelId = `${safeWidgetId}_text`;
 
         // Strict validation: Local sensor is only valid if hardware actually supports it
         const supportsOnboard = profile.features && (profile.features.sht4x || profile.features.sht3x || profile.features.shtc3);
@@ -162,6 +165,7 @@ export default {
                     widgets: [
                         {
                             label: {
+                                id: iconLabelId,
                                 width: parseInt(p.size || 32, 10) + 10,
                                 height: parseInt(p.size || 32, 10) + 4,
                                 align: "top_mid",
@@ -172,6 +176,7 @@ export default {
                         },
                         {
                             label: {
+                                id: textLabelId,
                                 width: "100%",
                                 height: parseInt(p.font_size || 16, 10) + 6,
                                 align: "top_mid",
@@ -224,6 +229,7 @@ export default {
         const widgets = [
             {
                 label: {
+                    id: iconLabelId,
                     width: iconSize + 10,
                     height: iconSize + 4,
                     align: "top_mid",
@@ -234,6 +240,7 @@ export default {
             },
             {
                 label: {
+                    id: textLabelId,
                     width: "100%",
                     height: fontSize + 6,
                     align: "top_mid",
@@ -391,7 +398,9 @@ export default {
                 if (!pendingTriggers.has(eid)) {
                     pendingTriggers.set(eid, new Set());
                 }
-                pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
+                const safeWidgetId = String(w.id || '').replace(/[^a-zA-Z0-9_]/g, '_');
+                pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${safeWidgetId}_icon`);
+                pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${safeWidgetId}_text`);
             }
 
             // Explicitly export the Home Assistant sensor block if it's not a local sensor
@@ -448,4 +457,3 @@ export default {
         }
     }
 };
-

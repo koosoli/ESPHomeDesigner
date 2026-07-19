@@ -211,6 +211,9 @@ export default {
         const iconSize = parseInt(p.size || 24, 10);
         const fontSize = parseInt(p.font_size || 12, 10);
         const showDbm = p.show_dbm !== false;
+        const safeWidgetId = String(w.id || '').replace(/[^a-zA-Z0-9_]/g, '_');
+        const iconLabelId = `${safeWidgetId}_icon`;
+        const textLabelId = `${safeWidgetId}_text`;
 
         let iconLambda = '!lambda |-\n';
         iconLambda += `          if (id(${sensorId}).has_state()) {\n`;
@@ -227,6 +230,7 @@ export default {
         const widgets = [
             {
                 label: {
+                    id: iconLabelId,
                     width: iconSize + 10,
                     height: iconSize + 4,
                     align: "top_mid",
@@ -246,6 +250,7 @@ export default {
 
             widgets.push({
                 label: {
+                    id: textLabelId,
                     width: "100%",
                     height: fontSize + 4,
                     align: "bottom_mid",
@@ -309,7 +314,10 @@ export default {
                 if (!pendingTriggers.has(eid)) {
                     pendingTriggers.set(eid, new Set());
                 }
-                pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${w.id}`);
+                pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${String(w.id || '').replace(/[^a-zA-Z0-9_]/g, '_')}_icon`);
+                if (p.show_dbm !== false) {
+                    pendingTriggers.get(eid).add(`- lvgl.widget.refresh: ${String(w.id || '').replace(/[^a-zA-Z0-9_]/g, '_')}_text`);
+                }
             }
 
             // Explicitly export the Home Assistant sensor block if it's not a local sensor
@@ -336,7 +344,6 @@ export default {
         }
     }
 };
-
 
 
 

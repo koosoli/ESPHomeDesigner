@@ -233,12 +233,15 @@ export const exportDirect = (w, context) => {
 
             lines.push(`        {`);
             lines.push(`          float val = ${arg1};`);
-            lines.push(`          float t = (val - (${low})) / (float)(${high} - (${low}));`);
+            lines.push(`          float range = (float)((${high}) - (${low}));`);
+            lines.push(`          float t = range == 0.0f ? 0.0f : (val - (${low})) / range;`);
             lines.push(`          if (t < 0.0f) t = 0.0f;`);
             lines.push(`          if (t > 1.0f) t = 1.0f;`);
-            lines.push(`          uint8_t r = ${hexL.r} + (uint8_t)(t * (${hexH.r} - ${hexL.r}));`);
-            lines.push(`          uint8_t g = ${hexL.g} + (uint8_t)(t * (${hexH.g} - ${hexL.g}));`);
-            lines.push(`          uint8_t b = ${hexL.b} + (uint8_t)(t * (${hexH.b} - ${hexL.b}));`);
+            lines.push(`          auto to_linear = [](float c) { return c <= 0.04045f ? c / 12.92f : powf((c + 0.055f) / 1.055f, 2.4f); };`);
+            lines.push(`          auto to_srgb = [](float c) { return c <= 0.0031308f ? c * 12.92f : 1.055f * powf(c, 1.0f / 2.4f) - 0.055f; };`);
+            lines.push(`          uint8_t r = (uint8_t)roundf(to_srgb(to_linear(${hexL.r} / 255.0f) + t * (to_linear(${hexH.r} / 255.0f) - to_linear(${hexL.r} / 255.0f))) * 255.0f);`);
+            lines.push(`          uint8_t g = (uint8_t)roundf(to_srgb(to_linear(${hexL.g} / 255.0f) + t * (to_linear(${hexH.g} / 255.0f) - to_linear(${hexL.g} / 255.0f))) * 255.0f);`);
+            lines.push(`          uint8_t b = (uint8_t)roundf(to_srgb(to_linear(${hexL.b} / 255.0f) + t * (to_linear(${hexH.b} / 255.0f) - to_linear(${hexL.b} / 255.0f))) * 255.0f);`);
             lines.push(`          Color dyn_color(r, g, b);`);
         }
 

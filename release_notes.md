@@ -1,3 +1,15 @@
+## v1.0.0 RC32 - Generated YAML and Color Rendering Fixes
+**Release Date:** July 19, 2026
+
+### Fixes
+- **LVGL Dynamic Widget Refresh:** Wi-Fi signal, on-device temperature, and on-device humidity widgets now refresh their dynamic child labels instead of their static container, preventing ESPHome refresh errors.
+- **LVGL Page Navigation:** Page-change scripts now show the requested LVGL page, and navbar home actions return to the first page when paging is enabled.
+- **LVGL Navigation Colors:** Explicit navigation-icon text colors are retained during LVGL export so dark themes remain legible on the navigation bar.
+- **Sensor Text Dynamic Colors:** Preview and generated ESPHome color ramps now use gamma-correct sRGB interpolation for perceptually accurate intermediate colors.
+- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, visible header label, release notes, and rebuilt frontend assets for RC32.
+
+---
+
 ## v1.0.0 RC31 - Hardware Profile and Sensor Text Fixes
 **Release Date:** July 17, 2026
 

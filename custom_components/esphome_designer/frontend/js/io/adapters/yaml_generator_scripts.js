@@ -24,6 +24,7 @@ export function generateScriptSection(payload, pages, profile) {
     const isLcd = !!(profile.features && (profile.features.lcd || profile.features.oled));
     const isEpaper = !!(profile.features && (profile.features.epaper || profile.features.epd));
     const isOled = !!(profile.features && profile.features.oled);
+    const isLvgl = payload.renderingMode === 'lvgl' || !!(profile.features && (profile.features.lvgl || profile.features.lv_display));
     const debounceMs = getPageSwitchDebounceMs(profile);
     const backlightPin = profile.backlight?.pin || profile.pins?.backlight || null;
     const lcdStrategy = payload.lcdEcoStrategy || 'backlight_off';
@@ -133,15 +134,24 @@ export function generateScriptSection(payload, pages, profile) {
         lines.push("");
         lines.push("          if (id(display_page) != target) {");
         lines.push("            // Set debounce time BEFORE display update (update takes ~1.6s)");
-        lines.push("            id(last_page_switch_time) = now;");
-        lines.push("            id(display_page) = target;");
-        lines.push(`            id(${displayId}).update();`);
-        lines.push(`            ESP_LOGI("display", "Switched to page %d", target);`);
+            lines.push("            id(last_page_switch_time) = now;");
+            lines.push("            id(display_page) = target;");
+            if (!isLvgl) lines.push(`            id(${displayId}).update();`);
+            lines.push(`            ESP_LOGI("display", "Switched to page %d", target);`);
         if (isBacklightStrategy) {
             lines.push(`            // LCD Strategy: Wake up backlight on interaction/page change`);
             lines.push(`            id(backlight_pwm).set_level(0.8); // Restore brightness`);
         }
         lines.push("          }");
+        if (isLvgl) {
+            pages.forEach((_page, index) => {
+                lines.push("      - if:");
+                lines.push("          condition:");
+                lines.push(`            lambda: 'return id(display_page) == ${index};'`);
+                lines.push("          then:");
+                lines.push(`            - lvgl.page.show: page_${index}`);
+            });
+        }
     }
 
     if (isDeepSleep) {

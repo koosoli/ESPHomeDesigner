@@ -23,6 +23,8 @@ const NEVER_STRIP = new Set([
  * @returns {boolean}
  */
 function isDefaultMatch(val, defaults, key) {
+    if (key === 'text_color') return false;
+
     let defaultVal = defaults[key];
 
     if (defaultVal === undefined) {

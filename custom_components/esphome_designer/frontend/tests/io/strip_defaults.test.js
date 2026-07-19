@@ -83,7 +83,7 @@ describe('stripDefaults', () => {
 
         expect(result.text).toBe('"Label"');
         expect(result.text_font).toBe('font_roboto_400_20');
-        expect(result.text_color).toBeUndefined();
+        expect(result.text_color).toBe('"0xFFFFFF"');
     });
 
     it('returns object untouched if plugin not found', () => {
@@ -128,8 +128,8 @@ describe('stripDefaults', () => {
         expect(childLabel.text_font).toBe('font_roboto_400_14');
         expect(childLabel.align).toBe('center');
 
-        // Defaults stripped from child!
-        expect(childLabel.text_color).toBeUndefined();
+        // Explicit text colors are needed because LVGL's theme controls omitted text_color.
+        expect(childLabel.text_color).toBe('"0x000000"');
         expect(childLabel.hidden).toBeUndefined();
     });
 

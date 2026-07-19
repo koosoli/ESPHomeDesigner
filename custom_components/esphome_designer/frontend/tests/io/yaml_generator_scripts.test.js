@@ -20,7 +20,9 @@ describe('yaml_generator_scripts', () => {
 
         expect(lines).toContain('id: change_page_to');
         expect(lines).toContain('Page change ignored (debounce)');
-        expect(lines).toContain('id(my_display).update();');
+        expect(lines).not.toContain('id(my_display).update();');
+        expect(lines).toContain('lvgl.page.show: page_0');
+        expect(lines).toContain('lvgl.page.show: page_1');
         expect(lines).toContain('id(backlight_pwm).set_level(0.8);');
         expect(lines).toContain('id(last_page_switch_time) = now;');
         expect(lines).not.toContain('id(last_page_switch_time) = millis();');

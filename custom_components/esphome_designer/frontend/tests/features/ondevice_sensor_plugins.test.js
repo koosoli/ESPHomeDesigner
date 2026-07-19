@@ -137,6 +137,8 @@ describe('ondevice sensor plugins', () => {
 
         expect(JSON.stringify(tempLvgl)).toContain('(id(sensor_temp_hot).state * 9.0 / 5.0) + 32.0');
         expect(tempLvgl.obj.widgets).toHaveLength(2);
+        expect(tempLvgl.obj.widgets[0].label.id).toBe('temp_widget_icon');
+        expect(tempLvgl.obj.widgets[1].label.id).toBe('temp_widget_text');
 
         const humidityLvgl = humidityPlugin.exportLVGL({
             id: 'hum_widget',
@@ -153,6 +155,8 @@ describe('ondevice sensor plugins', () => {
         });
         expect(humidityLvgl.obj.widgets[1].label.text).toContain('--%');
         expect(humidityLvgl.obj.widgets[2].label.text).toBe('"Humidity"');
+        expect(humidityLvgl.obj.widgets[0].label.id).toBe('hum_widget_icon');
+        expect(humidityLvgl.obj.widgets[1].label.id).toBe('hum_widget_text');
     });
 
     it('collects fonts/icons and exports direct sensor code for fallback and external paths', () => {
@@ -264,7 +268,8 @@ describe('ondevice sensor plugins', () => {
         expect(tempOutput).toContain('id: sht3x_temperature');
         expect(tempOutput).toContain('address: 0x44');
         expect(Array.from(tempContext.pendingTriggers.get('sensor.garage_temp') || [])).toEqual([
-            '- lvgl.widget.refresh: temp_ext'
+            '- lvgl.widget.refresh: temp_ext_icon',
+            '- lvgl.widget.refresh: temp_ext_text'
         ]);
 
         const humidityContext = {
@@ -300,7 +305,8 @@ describe('ondevice sensor plugins', () => {
         expect(humidityOutput).toContain('id: sht3x_humidity');
         expect(humidityOutput).toContain('address: 0x44');
         expect(Array.from(humidityContext.pendingTriggers.get('sensor.basement_humidity') || [])).toEqual([
-            '- lvgl.widget.refresh: hum_ext'
+            '- lvgl.widget.refresh: hum_ext_icon',
+            '- lvgl.widget.refresh: hum_ext_text'
         ]);
     });
 });

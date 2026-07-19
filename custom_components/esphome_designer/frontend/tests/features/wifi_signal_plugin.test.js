@@ -99,6 +99,8 @@ describe('Wifi Signal Plugin', () => {
         const serialized = JSON.stringify(lvgl);
         expect(serialized).toContain('id(sensor_router_wifi).state');
         expect(serialized).toContain('---dB');
+        expect(serialized).toContain('wifi_1_icon');
+        expect(serialized).toContain('wifi_1_text');
     });
 
     it('exports local and external numeric sensors without duplicates and tracks requirements', () => {
@@ -123,10 +125,15 @@ describe('Wifi Signal Plugin', () => {
         expect(output).toContain('id: sensor_office_wifi');
         expect(output).toContain('- platform: wifi_signal');
         expect(output.match(/id: sensor_office_wifi/g)).toHaveLength(1);
-        expect([...pendingTriggers.get('wifi_signal_dbm')]).toContain('- lvgl.widget.refresh: wifi-local');
+        expect([...pendingTriggers.get('wifi_signal_dbm')]).toEqual([
+            '- lvgl.widget.refresh: wifi_local_icon',
+            '- lvgl.widget.refresh: wifi_local_text'
+        ]);
         expect([...pendingTriggers.get('sensor.office_wifi')]).toEqual([
-            '- lvgl.widget.refresh: wifi-external-a',
-            '- lvgl.widget.refresh: wifi-external-b'
+            '- lvgl.widget.refresh: wifi_external_a_icon',
+            '- lvgl.widget.refresh: wifi_external_a_text',
+            '- lvgl.widget.refresh: wifi_external_b_icon',
+            '- lvgl.widget.refresh: wifi_external_b_text'
         ]);
 
         const trackIcon = vi.fn();

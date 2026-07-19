@@ -143,6 +143,7 @@ describe('touch and shape plugin cluster', () => {
         const joined = exportContext.lines.join('\n');
         expect(joined).toContain('id(mdi_font)');
         expect(joined).toContain('target_page: !lambda \'return id(display_page) + 1;\'');
+        expect(joined).toContain('id: change_page_to');
         expect(joined).toContain('script.execute: manage_run_and_sleep');
         expect(joined).toContain('service: homeassistant.toggle');
     });
@@ -273,7 +274,7 @@ describe('touch and shape plugin cluster', () => {
             { 'script.execute': { id: 'change_page_to', target_page: '2' } }
         ]);
         expect(lvgl.obj.widgets[1].button.on_click).toEqual([
-            { 'script.execute': 'manage_run_and_sleep' }
+            { 'script.execute': { id: 'change_page_to', target_page: 0 } }
         ]);
         expect(lvgl.obj.bg_opa).toBe('transp');
         expect(lvgl.obj.bg_color).toBeUndefined();
@@ -312,7 +313,8 @@ describe('touch and shape plugin cluster', () => {
         expect(joined).toContain('id: nav_prev_nav_bar');
         expect(joined).toContain('id: nav_home_nav_bar');
         expect(joined).toContain('id: nav_next_nav_bar');
-        expect(joined).toContain('script.execute: manage_run_and_sleep');
+        expect(joined).toContain('id: change_page_to');
+        expect(joined).toContain('target_page: 0');
         expect(joined).toContain('target_page: 3');
     });
 });

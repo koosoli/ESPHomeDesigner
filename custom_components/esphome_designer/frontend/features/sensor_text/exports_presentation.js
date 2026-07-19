@@ -190,10 +190,17 @@ export const exportLVGL = (w, { common, convertColor, _convertAlign, getLVGLFont
 
             textColorVal = `!lambda |-
               float val = ${arg};
-              float t = (val - (${low})) / (float)(${high} - (${low}));
+              float range = (float)((${high}) - (${low}));
+              float t = range == 0.0f ? 0.0f : (val - (${low})) / range;
               if (t < 0.0f) t = 0.0f;
               if (t > 1.0f) t = 1.0f;
-              return lv_color_make(${hexL.r} + (uint8_t)(t * (${hexH.r} - ${hexL.r})), ${hexL.g} + (uint8_t)(t * (${hexH.g} - ${hexL.g})), ${hexL.b} + (uint8_t)(t * (${hexH.b} - ${hexL.b})));`;
+              auto to_linear = [](float c) { return c <= 0.04045f ? c / 12.92f : powf((c + 0.055f) / 1.055f, 2.4f); };
+              auto to_srgb = [](float c) { return c <= 0.0031308f ? c * 12.92f : 1.055f * powf(c, 1.0f / 2.4f) - 0.055f; };
+              return lv_color_make(
+                (uint8_t)roundf(to_srgb(to_linear(${hexL.r} / 255.0f) + t * (to_linear(${hexH.r} / 255.0f) - to_linear(${hexL.r} / 255.0f))) * 255.0f),
+                (uint8_t)roundf(to_srgb(to_linear(${hexL.g} / 255.0f) + t * (to_linear(${hexH.g} / 255.0f) - to_linear(${hexL.g} / 255.0f))) * 255.0f),
+                (uint8_t)roundf(to_srgb(to_linear(${hexL.b} / 255.0f) + t * (to_linear(${hexH.b} / 255.0f) - to_linear(${hexL.b} / 255.0f))) * 255.0f)
+              );`;
         }
 
         return {

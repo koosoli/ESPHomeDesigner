@@ -31,9 +31,18 @@ export const lerpColor = (hexLow, hexHigh, t) => {
     const low = hexToRgb(hexLow);
     const high = hexToRgb(hexHigh);
     const clamp = Math.max(0, Math.min(1, t));
-    const r = Math.round(low.r + clamp * (high.r - low.r));
-    const g = Math.round(low.g + clamp * (high.g - low.g));
-    const b = Math.round(low.b + clamp * (high.b - low.b));
+    const toLinear = (channel) => channel <= 0.04045
+        ? channel / 12.92
+        : Math.pow((channel + 0.055) / 1.055, 2.4);
+    const toSrgb = (channel) => channel <= 0.0031308
+        ? channel * 12.92
+        : 1.055 * Math.pow(channel, 1 / 2.4) - 0.055;
+    const blend = (start, end) => Math.round(toSrgb(
+        toLinear(start / 255) + clamp * (toLinear(end / 255) - toLinear(start / 255))
+    ) * 255);
+    const r = blend(low.r, high.r);
+    const g = blend(low.g, high.g);
+    const b = blend(low.b, high.b);
     return `rgb(${r}, ${g}, ${b})`;
 };
 

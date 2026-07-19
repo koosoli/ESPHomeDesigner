@@ -2247,6 +2247,7 @@ exports[`Plugin Export Smoke Tests > Export for ondevice_humidity > should expor
         "label": {
           "align": "top_mid",
           "height": 36,
+          "id": "w_test_icon",
           "text": "\\U000F058E",
           "text_color": "Color(black)",
           "text_font": "font_ptr",
@@ -2257,6 +2258,7 @@ exports[`Plugin Export Smoke Tests > Export for ondevice_humidity > should expor
         "label": {
           "align": "top_mid",
           "height": 22,
+          "id": "w_test_text",
           "text": "--%",
           "text_align": "center",
           "text_color": "Color(black)",
@@ -2349,6 +2351,7 @@ exports[`Plugin Export Smoke Tests > Export for ondevice_temperature > should ex
         "label": {
           "align": "top_mid",
           "height": 36,
+          "id": "w_test_icon",
           "text": "\\U000F050F",
           "text_color": "Color(black)",
           "text_font": "font_ptr",
@@ -2359,6 +2362,7 @@ exports[`Plugin Export Smoke Tests > Export for ondevice_temperature > should ex
         "label": {
           "align": "top_mid",
           "height": 22,
+          "id": "w_test_text",
           "text": "--°C",
           "text_align": "center",
           "text_color": "Color(black)",
@@ -3443,7 +3447,10 @@ exports[`Plugin Export Smoke Tests > Export for template_nav_bar > should export
           },
           "on_click": [
             {
-              "script.execute": "manage_run_and_sleep",
+              "script.execute": {
+                "id": "change_page_to",
+                "target_page": 0,
+              },
             },
           ],
           "pad_all": 0,
@@ -4626,6 +4633,7 @@ exports[`Plugin Export Smoke Tests > Export for wifi_signal > should export LVGL
         "label": {
           "align": "top_mid",
           "height": 28,
+          "id": "w_test_icon",
           "text": "!lambda |-
           if (id(wifi_signal_dbm).has_state()) {
             float sig = id(wifi_signal_dbm).state;
@@ -4645,6 +4653,7 @@ exports[`Plugin Export Smoke Tests > Export for wifi_signal > should export LVGL
         "label": {
           "align": "bottom_mid",
           "height": 16,
+          "id": "w_test_text",
           "text": "!lambda |-
           if (id(wifi_signal_dbm).has_state()) {
             return str_sprintf("%.0fdB", id(wifi_signal_dbm).state).c_str();

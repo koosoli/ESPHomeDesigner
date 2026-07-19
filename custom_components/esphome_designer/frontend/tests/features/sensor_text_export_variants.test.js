@@ -539,7 +539,7 @@ describe('sensor_text export variants', () => {
         expect(isStrictlyNumeric(' 12.5 ')).toBe(true);
         expect(isStrictlyNumeric('12abc')).toBe(false);
         expect(hexToRgb('#123456')).toEqual({ r: 18, g: 52, b: 86 });
-        expect(lerpColor('#000000', '#ffffff', 0.5)).toBe('rgb(128, 128, 128)');
+        expect(lerpColor('#000000', '#ffffff', 0.5)).toBe('rgb(188, 188, 188)');
         expect(HA_TEXT_DOMAINS).toContain('weather.');
         expect(isColorDisplay({ features: { lcd: true } })).toBe(true);
         expect(isColorDisplay({ name: '6-Color Panel' })).toBe(true);

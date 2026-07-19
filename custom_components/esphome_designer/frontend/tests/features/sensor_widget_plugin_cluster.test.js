@@ -220,7 +220,8 @@ describe('sensor widget plugin cluster', () => {
         expect(tempSensorContext.lines.join('\n')).toContain('# External Temperature Sensors');
         expect(tempSensorContext.lines.join('\n')).toContain('entity_id: sensor.outdoor_temp');
         expect(Array.from(tempSensorContext.pendingTriggers.get('sensor.outdoor_temp') || [])).toEqual([
-            '- lvgl.widget.refresh: temp_sensor'
+            '- lvgl.widget.refresh: temp_sensor_icon',
+            '- lvgl.widget.refresh: temp_sensor_text'
         ]);
 
         const humidityLvgl = humidityPlugin.exportLVGL({
