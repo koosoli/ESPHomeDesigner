@@ -177,6 +177,19 @@ describe('ESPHomeAdapter', () => {
         expect(result).toContain('# ERROR LOADING PROFILE: boom');
     });
 
+    it('falls back to bundled GeekMagic hardware when the HA package endpoint returns 404', async () => {
+        mockHaFetch.mockResolvedValue({ ok: false, status: 404 });
+        Object.defineProperty(globalThis, 'location', {
+            configurable: true,
+            value: { pathname: '/esphome-designer/editor' }
+        });
+
+        const result = await adapter.fetchHardwarePackage('hardware/geekmagic-mini-esp8266.yaml');
+
+        expect(result).toContain('TARGET DEVICE: GeekMagic Mini');
+        expect(result).not.toContain('# ERROR LOADING PROFILE');
+    });
+
     // Fix #218: Test that mergeYamlSections correctly merges duplicate sections
     describe('mergeYamlSections', () => {
         it('should merge duplicate sensor sections', () => {

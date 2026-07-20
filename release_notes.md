@@ -9,6 +9,7 @@
 - **AI Providers (PR #402):** Added MiniMax and GLM/Z.AI provider selection, model lists, API-key storage, and request support.
 - **PNA Header Hardening (PR #457):** PNA response headers are emitted only for requests carrying an Origin header.
 - **Issue #442 Verification:** Raspberry Pi Pico W and Pico 2 W Waveshare 2.13-inch V3 presets were already shipped in RC31.
+- **GeekMagic Package Fallback (Issue #461):** GeekMagic Mini and Pro profiles now use bundled hardware YAML when the Home Assistant package endpoint cannot serve the profile, preventing 404 generation failures.
 - **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, visible header label, release notes, and rebuilt frontend assets for RC33.
 
 ---

@@ -18,6 +18,7 @@ import { YamlGenerator } from './yaml_generator.js';
 import { applyPackageOverrides } from '../generators/yaml_merger.js';
 import { generateDisplayLambda } from '../generators/native_generator.js';
 import { processPackageContent } from './package_processor.js';
+import { hardwareProfileRuntime } from '../hardware_profile_sources.js';
 import { collectRenderableWidgets, createExportContext } from './esphome_adapter_context.js';
 import { buildGlobalExportSections, appendMqttSection, sortExportPlugins } from './esphome_adapter_generate_sections.js';
 import { detectRenderingMode, resolveAdapterProfile } from './esphome_adapter_profile.js';
@@ -211,6 +212,12 @@ export class ESPHomeAdapter extends BaseAdapter {
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             return await response.text();
         } catch (e: any) {
+            const filename = url.startsWith('hardware/') ? url.slice('hardware/'.length) : '';
+            const bundled = hardwareProfileRuntime.getGlob()?.()[`../../hardware/${filename}`];
+            if (typeof bundled === 'string') {
+                Logger.warn(`Using bundled hardware fallback for ${url}`);
+                return bundled;
+            }
             Logger.error("Failed to fetch hardware package:", e);
             return `# ERROR LOADING PROFILE: ${e.message}`;
         }
