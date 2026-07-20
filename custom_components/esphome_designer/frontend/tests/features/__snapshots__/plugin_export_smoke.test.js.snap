@@ -2569,7 +2569,7 @@ exports[`Plugin Export Smoke Tests > Export for qr_code > should export OpenDisp
   "bgcolor": "white",
   "border": 1,
   "boxsize": 2,
-  "color": "theme_auto",
+  "color": "black",
   "data": "https://github.com/koosoli/ESPHomeDesigner/",
   "type": "qrcode",
   "x": 10,

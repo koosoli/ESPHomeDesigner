@@ -125,6 +125,69 @@ describe('OpenDisplayAdapter details', () => {
         expect(yaml).not.toMatch(/anchor:\s*(?:ct|cm|cb|tc|cc|bc)\b/);
     });
 
+    it('uses page dark mode for theme_auto exports', async () => {
+        const { default: textPlugin } = await import('../../features/text/plugin.js');
+        mockRegistry.get.mockReturnValue(textPlugin);
+
+        const yaml = await new OpenDisplayAdapter().generate({
+            darkMode: false,
+            settings: {},
+            pages: [{
+                dark_mode: 'dark',
+                widgets: [{
+                    id: 'dark_text',
+                    type: 'text',
+                    x: 0,
+                    y: 0,
+                    width: 100,
+                    height: 20,
+                    props: { text: 'Visible', color: 'theme_auto' }
+                }]
+            }]
+        });
+
+        expect(yaml).toContain('background: black');
+        expect(yaml).toContain('color: white');
+    });
+
+    it('inherits global dark mode when a legacy page has no dark mode setting', async () => {
+        const yaml = await new OpenDisplayAdapter().generate({
+            darkMode: true,
+            settings: {},
+            pages: [{ widgets: [] }]
+        });
+
+        expect(yaml).toContain('background: black');
+    });
+
+    it('preserves zero TTL and falls back from invalid numeric settings', async () => {
+        const yaml = await new OpenDisplayAdapter().generate({
+            settings: { opendisplayDither: Number.NaN, opendisplayTtl: 0 },
+            pages: [{ widgets: [] }]
+        });
+
+        expect(yaml).toContain('dither: 2');
+        expect(yaml).toContain('ttl: 0');
+    });
+
+    it('uses flattened project settings over legacy nested settings', async () => {
+        const yaml = await new OpenDisplayAdapter().generate({
+            opendisplayDeviceId: 'current_device_id',
+            opendisplayDither: 4,
+            opendisplayTtl: 120,
+            settings: {
+                opendisplayDeviceId: 'stale_device_id',
+                opendisplayDither: 2,
+                opendisplayTtl: 60
+            },
+            pages: [{ widgets: [] }]
+        });
+
+        expect(yaml).toContain('device_id: current_device_id');
+        expect(yaml).toContain('dither: 4');
+        expect(yaml).toContain('ttl: 120');
+    });
+
     it('maps designer text alignments to Pillow-compatible anchors and coordinates', () => {
         const widget = { x: 10, y: 20, width: 100, height: 30 };
 

@@ -27,6 +27,20 @@ function coerceString(value) {
 }
 
 /**
+ * @param {unknown} value
+ * @param {number} fallback
+ * @param {number} minimum
+ * @param {number} [maximum]
+ * @returns {number}
+ */
+function normalizeIntegerSetting(value, fallback, minimum, maximum = Infinity) {
+    const number = typeof value === 'number' ? value : Number(value);
+    return Number.isInteger(number) && number >= minimum && number <= maximum
+        ? number
+        : fallback;
+}
+
+/**
  * Legacy ODP settings used entity IDs. Only carry old values forward if they already
  * look like device IDs, otherwise force the user onto the new explicit device field.
  *
@@ -45,6 +59,24 @@ function resolveOpenDisplayDeviceId(settings) {
     }
 
     return legacyValue;
+}
+
+/**
+ * Project exports flatten current settings at the payload root, while imported
+ * and legacy layouts retain them under `settings`.
+ *
+ * @param {Record<string, any>} layout
+ * @returns {Record<string, any>}
+ */
+function getOpenDisplaySettings(layout) {
+    const nestedSettings = layout.settings || {};
+    return {
+        ...nestedSettings,
+        opendisplayDeviceId: layout.opendisplayDeviceId ?? nestedSettings.opendisplayDeviceId,
+        opendisplayEntityId: layout.opendisplayEntityId ?? nestedSettings.opendisplayEntityId,
+        opendisplayDither: layout.opendisplayDither ?? nestedSettings.opendisplayDither,
+        opendisplayTtl: layout.opendisplayTtl ?? nestedSettings.opendisplayTtl
+    };
 }
 
 /**
@@ -109,13 +141,15 @@ export class OpenDisplayAdapter extends BaseAdapter {
 
         // Color Mode & Theme considerations
         const _ph = layout.protocolHardware || {};
-        const isDark = page.dark_mode === 'dark' || (page.dark_mode === 'inherit' && layout.darkMode);
+        const isDark = page.dark_mode === 'dark' || (page.dark_mode !== 'light' && !!layout.darkMode);
         const background = isDark ? "black" : "white";
+        // Exporters resolve theme_auto from layout.darkMode, so reflect the active page override.
+        const exportLayout = { ...layout, darkMode: isDark };
 
         /** @type {Widget[]} */ (page.widgets).forEach((widget) => {
             if (widget.hidden || widget.type === 'group') return;
 
-            const element = this.generateWidget(widget, { layout, page });
+            const element = this.generateWidget(widget, { layout: exportLayout, page });
             if (element) {
                 const elements = Array.isArray(element) ? element : [element];
                 elements.forEach((el) => {
@@ -132,8 +166,10 @@ export class OpenDisplayAdapter extends BaseAdapter {
         const rotate = getRotateForOrientation(orientation);
 
         // Get device ID from settings, with backwards-compatible legacy fallback
-        const settings = layout.settings || {};
+        const settings = getOpenDisplaySettings(layout);
         const deviceId = resolveOpenDisplayDeviceId(settings);
+        const dither = normalizeIntegerSetting(settings.opendisplayDither, 2, 0, 7);
+        const ttl = normalizeIntegerSetting(settings.opendisplayTtl, 60, 0);
 
         // Build the YAML structure
         const lines = [
@@ -143,8 +179,8 @@ export class OpenDisplayAdapter extends BaseAdapter {
             'data:',
             `  background: ${formatYamlValue(background)}`,
             `  rotate: ${rotate}`,
-            `  dither: ${settings.opendisplayDither ?? 2}`,
-            `  ttl: ${settings.opendisplayTtl || 60}`,
+            `  dither: ${dither}`,
+            `  ttl: ${ttl}`,
             `  refresh_type: ${JSON.stringify(DEFAULT_ODP_REFRESH_TYPE)}`,
             '  dry-run: false'
         ];

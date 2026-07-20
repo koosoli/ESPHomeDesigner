@@ -243,18 +243,21 @@ export default {
         panel.endSection();
     },
     render,
-    exportOpenDisplay: (w, { _layout, _page }) => {
+    exportOpenDisplay: (w, { layout, _page }) => {
         const p = w.props || {};
         const value = p.value || "https://github.com/koosoli/ESPHomeDesigner/";
+        const color = p.color === "theme_auto"
+            ? (layout?.darkMode ? "white" : "black")
+            : (p.color || "black");
 
         return {
             type: "qrcode",
             data: value,
             x: Math.round(w.x),
             y: Math.round(w.y),
-            boxsize: p.boxsize || 2,
+            boxsize: p.boxsize || p.scale || 2,
             border: p.border !== undefined ? p.border : 1,
-            color: p.color || "black",
+            color,
             bgcolor: p.bg_color || "white"
         };
     },
@@ -279,4 +282,3 @@ export default {
     export: exportDoc,
     onExportComponents
 };
-

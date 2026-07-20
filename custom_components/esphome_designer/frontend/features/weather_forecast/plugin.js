@@ -6,7 +6,7 @@ export default {
     id: "weather_forecast",
     name: "Weather Forecast",
     category: "Sensors",
-    supportedModes: ['lvgl', 'direct'],
+    supportedModes: ['lvgl', 'direct', 'oepl', 'opendisplay'],
 defaults: {
         weather_entity: "weather.forecast_home",
         forecast_mode: "daily",

@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import plugin from '../../features/weather_forecast/plugin.js';
 
 describe('weather_forecast widget relative hourly mode', () => {
+    it('is available in OpenDisplay mode', () => {
+        expect(plugin.supportedModes).toContain('opendisplay');
+    });
+
     let mockContext;
 
     beforeEach(() => {

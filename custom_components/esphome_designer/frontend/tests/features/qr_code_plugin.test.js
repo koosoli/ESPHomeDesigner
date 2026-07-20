@@ -132,7 +132,7 @@ describe('qr_code plugin', () => {
             })
         });
 
-        expect(plugin.exportOpenDisplay(widget, { _layout: {}, _page: {} })).toEqual({
+        expect(plugin.exportOpenDisplay(widget, { layout: {}, _page: {} })).toEqual({
             type: 'qrcode',
             data: 'https://github.com/koosoli/ESPHomeDesigner/',
             x: 4,
@@ -141,6 +141,14 @@ describe('qr_code plugin', () => {
             border: 1,
             color: 'black',
             bgcolor: 'white'
+        });
+
+        expect(plugin.exportOpenDisplay({
+            ...widget,
+            props: { scale: 4, color: 'theme_auto' }
+        }, { layout: { darkMode: true }, _page: {} })).toMatchObject({
+            boxsize: 4,
+            color: 'white'
         });
 
         expect(plugin.exportLVGL(widget, {
