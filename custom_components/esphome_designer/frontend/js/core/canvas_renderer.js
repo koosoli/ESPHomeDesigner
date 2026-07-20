@@ -13,9 +13,74 @@ import {
     renderLvglGridOverlayToElement
 } from './canvas_renderer_ui.js';
 import { getPageEffectiveDarkMode, getEffectiveDarkMode } from './canvas_renderer_navigation.js';
+import { HA_BINARY_DOMAINS } from '../io/adapters/entity_dedup.js';
 
 export { renderContextToolbar } from './canvas_renderer_ui.js';
 export { applyZoom, focusPage, zoomToFitAll, calculateZoomToFit, updateWidgetDOM } from './canvas_renderer_navigation.js';
+
+const TRUE_BINARY_STATES = new Set(['1', 'true', 'on', 'open', 'locked', 'home', 'active', 'occupied', 'detected', 'online']);
+const FALSE_BINARY_STATES = new Set(['0', 'false', 'off', 'closed', 'unlocked', 'not_home', 'inactive', 'clear', 'offline']);
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+function normalizeBinaryState(value) {
+    const normalized = String(value ?? '').trim().toLowerCase();
+    if (TRUE_BINARY_STATES.has(normalized)) return 'true';
+    if (FALSE_BINARY_STATES.has(normalized)) return 'false';
+    return normalized;
+}
+
+/**
+ * @param {Record<string, any>} widget
+ * @param {Record<string, any>} entityStates
+ * @returns {boolean}
+ */
+export function isWidgetVisibleInPreview(widget, entityStates) {
+    const entityId = String(widget.condition_entity || '').trim();
+    if (!entityId) return true;
+
+    const entity = entityStates?.[entityId];
+    if (entity == null || entity.state == null) return true;
+
+    const isBinaryEntity = HA_BINARY_DOMAINS.some((domain) => entityId.startsWith(domain));
+    const state = isBinaryEntity ? normalizeBinaryState(entity.state) : String(entity.state);
+    const min = Number(widget.condition_min);
+    const max = Number(widget.condition_max);
+    const hasMin = String(widget.condition_min || '').trim() !== '' && Number.isFinite(min);
+    const hasMax = String(widget.condition_max || '').trim() !== '' && Number.isFinite(max);
+
+    if (hasMin || hasMax) {
+        const numericState = Number(state);
+        return Number.isFinite(numericState)
+            && (!hasMin || numericState >= min)
+            && (!hasMax || numericState <= max);
+    }
+
+    let expected = widget.condition_state ?? widget.condition_value;
+    if (expected == null || String(expected).trim() === '') return true;
+
+    if (isBinaryEntity) {
+        expected = normalizeBinaryState(expected);
+        if (widget.condition_invert) expected = expected === 'true' ? 'false' : 'true';
+    }
+
+    const operator = widget.condition_operator || '==';
+    const numericState = Number(state);
+    const numericExpected = Number(expected);
+    const isNumeric = Number.isFinite(numericState) && Number.isFinite(numericExpected);
+
+    if (operator === '==') return isNumeric ? numericState === numericExpected : state === String(expected);
+    if (operator === '!=') return isNumeric ? numericState !== numericExpected : state !== String(expected);
+    if (!isNumeric) return false;
+    if (operator === '<') return numericState < numericExpected;
+    if (operator === '>') return numericState > numericExpected;
+    if (operator === '<=') return numericState <= numericExpected;
+    if (operator === '>=') return numericState >= numericExpected;
+
+    return true;
+}
 
 /**
  * @param {import('./canvas').Canvas} canvasInstance
@@ -187,6 +252,8 @@ export function render(canvasInstance) {
 
         // Render widgets
         for (const widget of page.widgets) {
+            if (!isWidgetVisibleInPreview(widget, AppState.entityStates || {})) continue;
+
             /** @type {HTMLElement} */
             const el = document.createElement("div");
             el.className = "widget";

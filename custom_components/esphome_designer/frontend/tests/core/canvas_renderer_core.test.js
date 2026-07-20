@@ -94,7 +94,7 @@ vi.mock('../../js/core/canvas_renderer_navigation.js', () => ({
     updateWidgetDOM: vi.fn()
 }));
 
-import { render } from '../../js/core/canvas_renderer.js';
+import { isWidgetVisibleInPreview, render } from '../../js/core/canvas_renderer.js';
 
 describe('canvas_renderer core', () => {
     beforeEach(() => {
@@ -109,6 +109,7 @@ describe('canvas_renderer core', () => {
             editor_light_mode: false,
             device_model: 'demo_model'
         };
+        mockAppState.entityStates = {};
         mockAppState.getCanvasShape.mockReturnValue('rect');
         mockAppState.addPage.mockImplementation((index) => {
             const page = { name: `Page ${mockAppState.pages.length + 1}`, widgets: [] };
@@ -215,6 +216,136 @@ describe('canvas_renderer core', () => {
         expect(canvas.querySelector('.widget[data-id="missing_1"]')?.innerText).toBe('Missing: unknown');
         expect(canvas.querySelector('.lasso-selection')).toBeTruthy();
         expect(mockRenderContextToolbar).toHaveBeenCalledWith(canvasInstance);
+    });
+
+    it('matches widget visibility conditions against cached entity states', () => {
+        const binaryWidget = {
+            condition_entity: 'binary_sensor.door',
+            condition_operator: '==',
+            condition_state: 'on'
+        };
+
+        expect(isWidgetVisibleInPreview(binaryWidget, {
+            'binary_sensor.door': { state: 'on' }
+        })).toBe(true);
+        expect(isWidgetVisibleInPreview(binaryWidget, {
+            'binary_sensor.door': { state: 'off' }
+        })).toBe(false);
+        expect(isWidgetVisibleInPreview({ condition_entity: '' }, {})).toBe(true);
+        expect(isWidgetVisibleInPreview(binaryWidget, {
+            'binary_sensor.door': { state: null }
+        })).toBe(true);
+        expect(isWidgetVisibleInPreview({
+            condition_entity: 'input_boolean.night_mode',
+            condition_operator: '==',
+            condition_state: 'true'
+        }, {
+            'input_boolean.night_mode': { state: 'on' }
+        })).toBe(true);
+        expect(isWidgetVisibleInPreview({
+            condition_entity: 'binary_sensor.connection',
+            condition_operator: '==',
+            condition_state: 'unavailable'
+        }, {
+            'binary_sensor.connection': { state: 'unavailable' }
+        })).toBe(true);
+        expect(isWidgetVisibleInPreview({
+            condition_entity: 'input_boolean.night_mode',
+            condition_operator: '==',
+            condition_state: 'true',
+            condition_invert: true
+        }, {
+            'input_boolean.night_mode': { state: 'off' }
+        })).toBe(true);
+        expect(isWidgetVisibleInPreview({
+            condition_entity: 'sensor.temperature',
+            condition_min: '18',
+            condition_max: '24'
+        }, {
+            'sensor.temperature': { state: '21.5' }
+        })).toBe(true);
+        expect(isWidgetVisibleInPreview({
+            condition_entity: 'sensor.temperature',
+            condition_min: '18',
+            condition_max: '24'
+        }, {
+            'sensor.temperature': { state: '25' }
+        })).toBe(false);
+        expect(isWidgetVisibleInPreview(binaryWidget, {})).toBe(true);
+        expect(isWidgetVisibleInPreview({
+            condition_entity: 'sensor.temperature',
+            condition_operator: '==',
+            condition_state: '21'
+        }, {
+            'sensor.temperature': { state: '21.0' }
+        })).toBe(true);
+        expect(isWidgetVisibleInPreview({
+            condition_entity: 'sensor.mode',
+            condition_operator: '!=',
+            condition_state: 'away'
+        }, {
+            'sensor.mode': { state: 'home' }
+        })).toBe(true);
+        expect(isWidgetVisibleInPreview({
+            condition_entity: 'sensor.temperature',
+            condition_operator: '<',
+            condition_state: '22'
+        }, {
+            'sensor.temperature': { state: '21' }
+        })).toBe(true);
+        expect(isWidgetVisibleInPreview({
+            condition_entity: 'sensor.temperature',
+            condition_operator: '>',
+            condition_state: '20'
+        }, {
+            'sensor.temperature': { state: '21' }
+        })).toBe(true);
+        expect(isWidgetVisibleInPreview({
+            condition_entity: 'sensor.temperature',
+            condition_operator: '<=',
+            condition_state: '21'
+        }, {
+            'sensor.temperature': { state: '21' }
+        })).toBe(true);
+        expect(isWidgetVisibleInPreview({
+            condition_entity: 'sensor.temperature',
+            condition_operator: '>=',
+            condition_state: '21'
+        }, {
+            'sensor.temperature': { state: '21' }
+        })).toBe(true);
+        expect(isWidgetVisibleInPreview({
+            condition_entity: 'sensor.temperature',
+            condition_operator: '>',
+            condition_state: 'high'
+        }, {
+            'sensor.temperature': { state: 'unknown' }
+        })).toBe(false);
+        expect(isWidgetVisibleInPreview({
+            condition_entity: 'sensor.temperature',
+            condition_min: '18'
+        }, {
+            'sensor.temperature': { state: 'unknown' }
+        })).toBe(false);
+        expect(isWidgetVisibleInPreview({
+            condition_entity: 'sensor.temperature',
+            condition_max: '24'
+        }, {
+            'sensor.temperature': { state: '21' }
+        })).toBe(true);
+        expect(isWidgetVisibleInPreview({
+            condition_entity: 'sensor.temperature',
+            condition_operator: 'unsupported',
+            condition_state: '21'
+        }, {
+            'sensor.temperature': { state: '21' }
+        })).toBe(true);
+        expect(isWidgetVisibleInPreview({
+            condition_entity: 'sensor.temperature',
+            condition_state: ''
+        }, {
+            'sensor.temperature': { state: '21' }
+        })).toBe(true);
     });
 
     it('wires header action buttons to page operations', () => {

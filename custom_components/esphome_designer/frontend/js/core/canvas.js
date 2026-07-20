@@ -90,6 +90,7 @@ export class Canvas {
     init() {
         // Subscribe to events
         on(EVENTS.STATE_CHANGED, () => this.render());
+        on(EVENTS.ENTITIES_LOADED, () => this.render());
         on(EVENTS.PAGE_CHANGED, (/** @type {any} */ e) => {
             this.render();
 

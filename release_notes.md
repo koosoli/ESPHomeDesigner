@@ -1,3 +1,14 @@
+## v1.0.0 RC34 - OpenDisplay Completion and Visibility Preview Fix
+**Release Date:** July 20, 2026
+
+### Fixes and Features
+- **OpenDisplay Completion:** OpenDisplay exports now use the current persisted device, dither, and TTL settings; correctly resolve page-level dark mode and QR scale/color; expose Weather Forecast; and cover every OpenDisplay-compatible palette widget and supported payload type.
+- **OpenDisplay Delivery Reliability:** Rebuilt and committed the complete frontend distribution bundle and build metadata so the shipped Home Assistant package matches the OpenDisplay source changes and passes CI freshness verification.
+- **Visibility Condition Preview (Issue #462):** The canvas now evaluates entity-state visibility conditions, including Home Assistant binary-state aliases such as `on`/`off` and `true`/`false`, numeric comparisons, and numeric ranges. It rerenders when entity states load so conditional widgets reflect the current preview state.
+- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, visible header label, release notes, and rebuilt frontend assets for RC34.
+
+---
+
 ## v1.0.0 RC33 - Controls, Hardware, AI, and Sensor Improvements
 **Release Date:** July 20, 2026
 
