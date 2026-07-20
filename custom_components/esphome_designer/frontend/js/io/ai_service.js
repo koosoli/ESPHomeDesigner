@@ -9,11 +9,28 @@ export class AIService {
         };
     }
 
+    static get STATIC_MODELS() {
+        return {
+            minimax: [
+                { id: 'MiniMax-M2.7-highspeed', name: 'MiniMax M2.7 Highspeed (204K, fast)' },
+                { id: 'MiniMax-M2.7', name: 'MiniMax M2.7 (204K, full quality)' }
+            ],
+            glm: [
+                { id: 'glm-4.6', name: 'GLM-4.6 (128K)' },
+                { id: 'glm-5.1', name: 'GLM-5.1 (coding optimized)' },
+                { id: 'glm-5-turbo', name: 'GLM-5 Turbo (fast)' }
+            ]
+        };
+    }
+
     getSettings() {
         return AppState.settings;
     }
 
     async fetchModels(provider, apiKey) {
+        if (provider === 'minimax' || provider === 'glm') {
+            return AIService.STATIC_MODELS[provider] || [];
+        }
         if (!apiKey) return [];
 
         try {
@@ -63,6 +80,13 @@ export class AIService {
         let model = settings[`ai_model_${provider}`];
 
         // Dynamic auto-detection if no model is selected
+        if (!model && (provider === 'minimax' || provider === 'glm')) {
+            const staticModels = AIService.STATIC_MODELS[provider] || [];
+            if (staticModels.length > 0) {
+                model = staticModels[0].id;
+                AppState.updateSettings({ [`ai_model_${provider}`]: model });
+            }
+        }
         if (!model && provider === 'gemini') {
             Logger.log("No model selected, attempting to auto-detect...");
             try {
@@ -116,6 +140,10 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
                 responseText = await this.callOpenAI(apiKey, model, systemPrompt, userPrompt);
             } else if (provider === 'openrouter') {
                 responseText = await this.callOpenRouter(apiKey, model, systemPrompt, userPrompt);
+            } else if (provider === 'minimax') {
+                responseText = await this.callMiniMax(apiKey, model, systemPrompt, userPrompt);
+            } else if (provider === 'glm') {
+                responseText = await this.callGLM(apiKey, model, systemPrompt, userPrompt);
             }
 
             // Improved JSON extraction
@@ -287,6 +315,42 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
         const data = await response.json();
         if (data.error) throw new Error(data.error.message);
         return data.choices[0].message.content;
+    }
+
+    async callOpenAICompatible(url, apiKey, model, system, user) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: model,
+                messages: [
+                    { role: "system", content: system },
+                    { role: "user", content: user }
+                ],
+                temperature: 0.1,
+                max_tokens: 8192
+            })
+        });
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+        if (data.base_resp && data.base_resp.status_code !== 0) {
+            throw new Error(data.base_resp.status_msg || "MiniMax API error");
+        }
+        return data.choices[0].message.content;
+    }
+
+    async callMiniMax(apiKey, model, system, user) {
+        const content = await this.callOpenAICompatible(
+            'https://api.minimax.io/v1/chat/completions', apiKey, model, system, user);
+        return typeof content === 'string' ? content.replace(/<think>[\s\S]*?(<\/think>|$)/g, '').trim() : content;
+    }
+
+    async callGLM(apiKey, model, system, user) {
+        return this.callOpenAICompatible(
+            'https://api.z.ai/api/paas/v4/chat/completions', apiKey, model, system, user);
     }
 
     getSystemPrompt() {

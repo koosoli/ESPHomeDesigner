@@ -50,6 +50,38 @@ describe('LVGL binary state sync export', () => {
         expect(output.button.checkable).toBe(true);
     });
 
+    it('guards the switch toggle against state-sync feedback loops', () => {
+        const output = switchPlugin.exportLVGL({
+            id: 'sw_1',
+            type: 'lvgl_switch',
+            entity_id: 'switch.kitchen_light',
+            props: { ...switchPlugin.defaults }
+        }, lvglContext);
+
+        expect(output.switch.on_value).toEqual([{
+            if: {
+                condition: { lambda: 'return x != id(switch_kitchen_light).state;' },
+                then: [{ "homeassistant.service": { service: "homeassistant.toggle", data: { entity_id: 'switch.kitchen_light' } } }]
+            }
+        }]);
+    });
+
+    it('guards the checkbox toggle against state-sync feedback loops', () => {
+        const output = checkboxPlugin.exportLVGL({
+            id: 'cb_1',
+            type: 'lvgl_checkbox',
+            entity_id: 'input_boolean.night_mode',
+            props: { ...checkboxPlugin.defaults }
+        }, lvglContext);
+
+        expect(output.checkbox.on_value).toEqual([{
+            if: {
+                condition: { lambda: 'return x != id(input_boolean_night_mode).state;' },
+                then: [{ "homeassistant.service": { service: "homeassistant.toggle", data: { entity_id: 'input_boolean.night_mode' } } }]
+            }
+        }]);
+    });
+
     it('serializes the lambda without quoting it in generated YAML', () => {
         registry.register(switchPlugin);
 

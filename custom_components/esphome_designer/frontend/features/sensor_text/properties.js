@@ -67,6 +67,7 @@ export const renderProperties = (panel, widget) => {
         { value: "value_only_no_unit", label: "Value Only" }
     ], setTextProp("value_format"));
     panel.addLabeledInput("Precision", "number", props.precision !== undefined ? props.precision : 2, setIntProp("precision"));
+    panel.addLabeledInput("Datetime Format (strftime, optional)", "text", props.datetime_format || "", setTextProp("datetime_format"));
     panel.addLabeledInputWithDataList("Prefix", "text", props.prefix || "", ["â‚¬", "$", "Â£", "Â¥", "CHF", "kr"], setTextProp("prefix"));
     panel.addLabeledInputWithDataList("Postfix", "text", props.postfix || "", [" kWh", " W", " V", " A", " Â°C", " %", " ppm", " lx"], setTextProp("postfix"));
     panel.addLabeledInput("Unit (Manual helper)", "text", props.unit || "", setTextProp("unit"));
@@ -137,6 +138,11 @@ export const renderProperties = (panel, widget) => {
             panel.addColorSelector("Color Low", props.dynamic_color_low || "#3498db", null, setTextProp("dynamic_color_low"));
             panel.addLabeledInput("Value Low", "number", props.dynamic_value_low !== undefined ? props.dynamic_value_low : 0, setFloatProp("dynamic_value_low"));
             panel.addColorSelector("Color High", props.dynamic_color_high || "#e74c3c", null, setTextProp("dynamic_color_high"));
+            panel.addCheckbox("Enable Midpoint Color", !!props.dynamic_mid_enabled, setBoolProp("dynamic_mid_enabled"));
+            if (props.dynamic_mid_enabled) {
+                panel.addColorSelector("Color Mid", props.dynamic_color_mid || "#f1c40f", null, setTextProp("dynamic_color_mid"));
+                panel.addLabeledInput("Value Mid", "number", props.dynamic_value_mid !== undefined ? props.dynamic_value_mid : 50, setFloatProp("dynamic_value_mid"));
+            }
             panel.addLabeledInput("Value High", "number", props.dynamic_value_high !== undefined ? props.dynamic_value_high : 100, setFloatProp("dynamic_value_high"));
             panel.addHint("Text color interpolates linearly between Color Low and Color High based on the sensor's numeric value.");
         }

@@ -4,6 +4,15 @@
 
 import { makeSafeId } from '../../js/utils/export_helpers.js';
 
+const buildLoopGuardedToggleAction = (entityId) => ({
+    if: {
+        condition: {
+            lambda: `return x != id(${makeSafeId(entityId)}).state;`
+        },
+        then: [{ "homeassistant.service": { service: "homeassistant.toggle", data: { entity_id: entityId } } }]
+    }
+});
+
 const buildCheckedStateUpdateAction = (widgetId) => `- lvgl.widget.update:
     id: ${widgetId}
     state:
@@ -71,7 +80,7 @@ const exportLVGL = (w, { common, convertColor, formatOpacity, _profile }) => {
         }
     };
     if (entityId) {
-        switchObj.switch.on_value = [{ "homeassistant.service": { service: "homeassistant.toggle", data: { entity_id: entityId } } }];
+        switchObj.switch.on_value = [buildLoopGuardedToggleAction(entityId)];
     }
     return switchObj;
 };

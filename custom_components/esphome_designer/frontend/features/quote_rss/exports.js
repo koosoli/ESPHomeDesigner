@@ -207,13 +207,16 @@ export function onExportGlobals(context) {
 }
 
 export function onExportComponents(context) {
-    const { lines, widgets, displayId } = context;
+    const { lines, widgets, displayId, profile } = context;
     const targets = widgets.filter((w) => w.type === "quote_rss");
     if (targets.length === 0) return;
 
     const hasHttpRequest = lines.some((line) => line.trim().startsWith("http_request:"));
     if (!hasHttpRequest) {
-        lines.push("", "http_request:", "  verify_ssl: false", "  timeout: 20s", "  buffer_size_rx: 4096");
+        lines.push("", "http_request:", "  verify_ssl: false", "  timeout: 20s");
+        if (profile?.chip !== "rp2040" && profile?.chip !== "rp2350") {
+            lines.push("  buffer_size_rx: 4096");
+        }
     }
 
     const intervalEntries = [];

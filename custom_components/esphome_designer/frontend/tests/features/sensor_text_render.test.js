@@ -77,7 +77,7 @@ describe('sensor_text render', () => {
         const body = /** @type {HTMLElement} */ (el.firstElementChild);
         expect(el.textContent).toContain('Outdoor Temp');
         expect(el.textContent).toContain('50.0 °C');
-        expect(body.style.color).toBe('rgb(188, 0, 188)');
+        expect(body.style.color).toBe('rgb(140, 83, 162)');
         expect(body.style.border).toContain('1px solid');
     });
 

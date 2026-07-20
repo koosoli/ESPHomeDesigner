@@ -186,8 +186,8 @@ describe('built-in device profiles', async () => {
         expect(e1003.features.epaper).toBe(true);
         expect(e1003.features.inverted_colors).toBe(false);
 
-        expect(picoW).toMatchObject({ chip: 'rp2040', board: 'rpipicow', displayModel: '2.13inv3' });
-        expect(pico2W).toMatchObject({ chip: 'rp2350', board: 'rpipico2w', displayModel: '2.13inv3' });
+        expect(picoW).toMatchObject({ chip: 'rp2040', board: 'rpipicow', displayModel: '2.13inv3', rotation_offset: 90 });
+        expect(pico2W).toMatchObject({ chip: 'rp2350', board: 'rpipico2w', displayModel: '2.13inv3', rotation_offset: 90 });
         expect(pico2W.supportsDeepSleep).toBe(false);
 
         expect(elecrow).toMatchObject({

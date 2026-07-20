@@ -89,6 +89,21 @@ describe('sensor_text properties', () => {
         panel = createPanel();
     });
 
+    it('shows midpoint dynamic-color controls when enabled', () => {
+        panel = createPanel({
+            checkboxValues: { 'Enable Dynamic Color': true, 'Enable Midpoint Color': true }
+        });
+
+        renderProperties(panel, {
+            id: 'sensor_text_midpoint',
+            props: { dynamic_color_enabled: true, dynamic_mid_enabled: true }
+        });
+
+        expect(panel.labels).toContain('Color Mid');
+        expect(panel.labels).toContain('Value Mid');
+        expect(panel.labels).toContain('Datetime Format (strftime, optional)');
+    });
+
     it('renders full color-display controls, trims attributes, and keeps align fields in sync', () => {
         panel = createPanel({
             pickerValues: {
@@ -119,7 +134,8 @@ describe('sensor_text properties', () => {
                 'Hide default unit': true,
                 Italic: true,
                 'Parse Color Tags': true,
-                'Enable Dynamic Color': true
+                'Enable Dynamic Color': true,
+                'Enable Midpoint Color': true
             },
             selectValues: {
                 'Display Format': 'value_only',
@@ -134,6 +150,7 @@ describe('sensor_text properties', () => {
                 Color: '#ff0000',
                 'Color Low': '#0000ff',
                 'Color High': '#00ff00',
+                'Color Mid': '#ffff00',
                 'Border Color': '#111111',
                 Background: '#ffffff'
             }

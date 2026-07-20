@@ -43,7 +43,9 @@ describe('SecretsStore', () => {
         expect(JSON.parse(localStorage.getItem('esphome-designer-ai-keys') || '{}')).toEqual({
             ai_api_key_gemini: '',
             ai_api_key_openai: '',
-            ai_api_key_openrouter: 'router-key'
+            ai_api_key_openrouter: 'router-key',
+            ai_api_key_minimax: '',
+            ai_api_key_glm: ''
         });
     });
 

@@ -41,6 +41,8 @@ class ReTerminalEntitiesView(DesignerBaseView):
                 "domain": state.domain,
                 "unit": state.attributes.get("unit_of_measurement"),
                 "icon": state.attributes.get("icon"),
+                "last_changed": state.last_changed.isoformat(),
+                "last_updated": state.last_updated.isoformat(),
                 "attributes": dict(state.attributes)  # Include full attributes for preview
             })
 

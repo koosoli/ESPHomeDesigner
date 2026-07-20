@@ -77,6 +77,9 @@ const resolveHumiditySource = (props = {}, profile = {}) => {
 const resolveBatterySource = (props = {}, profile = {}) => {
     const useLocalSensor = props.bat_is_local || (!props.bat_entity && !!profile.pins?.batteryAdc);
     if (useLocalSensor) {
+        if (!profile.pins?.batteryAdc) {
+            return { sensorId: '', registerEntityId: '', isLocal: false };
+        }
         return { sensorId: 'battery_level', registerEntityId: '', isLocal: true };
     }
 

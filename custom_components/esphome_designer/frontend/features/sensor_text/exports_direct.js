@@ -228,20 +228,35 @@ export const exportDirect = (w, context) => {
             colorVar = "dyn_color";
             const hexL = hexToRgb(p.dynamic_color_low || "#3498db");
             const hexH = hexToRgb(p.dynamic_color_high || "#e74c3c");
+            const hexM = hexToRgb(p.dynamic_color_mid || "#f1c40f");
             const low = p.dynamic_value_low !== undefined ? p.dynamic_value_low : 0;
             const high = p.dynamic_value_high !== undefined ? p.dynamic_value_high : 100;
+            const mid = p.dynamic_value_mid !== undefined ? p.dynamic_value_mid : (Number(low) + Number(high)) / 2;
+            const useMid = !!p.dynamic_mid_enabled && mid > low && mid < high;
 
             lines.push(`        {`);
             lines.push(`          float val = ${arg1};`);
             lines.push(`          float range = (float)((${high}) - (${low}));`);
-            lines.push(`          float t = range == 0.0f ? 0.0f : (val - (${low})) / range;`);
+            if (useMid) {
+                lines.push(`          bool low_segment = val <= (${mid});`);
+                lines.push(`          range = low_segment ? (float)((${mid}) - (${low})) : (float)((${high}) - (${mid}));`);
+                lines.push(`          float t = range == 0.0f ? 0.0f : (val - (low_segment ? (${low}) : (${mid}))) / range;`);
+            } else {
+                lines.push(`          float t = range == 0.0f ? 0.0f : (val - (${low})) / range;`);
+            }
             lines.push(`          if (t < 0.0f) t = 0.0f;`);
             lines.push(`          if (t > 1.0f) t = 1.0f;`);
             lines.push(`          auto to_linear = [](float c) { return c <= 0.04045f ? c / 12.92f : powf((c + 0.055f) / 1.055f, 2.4f); };`);
             lines.push(`          auto to_srgb = [](float c) { return c <= 0.0031308f ? c * 12.92f : 1.055f * powf(c, 1.0f / 2.4f) - 0.055f; };`);
-            lines.push(`          uint8_t r = (uint8_t)roundf(to_srgb(to_linear(${hexL.r} / 255.0f) + t * (to_linear(${hexH.r} / 255.0f) - to_linear(${hexL.r} / 255.0f))) * 255.0f);`);
-            lines.push(`          uint8_t g = (uint8_t)roundf(to_srgb(to_linear(${hexL.g} / 255.0f) + t * (to_linear(${hexH.g} / 255.0f) - to_linear(${hexL.g} / 255.0f))) * 255.0f);`);
-            lines.push(`          uint8_t b = (uint8_t)roundf(to_srgb(to_linear(${hexL.b} / 255.0f) + t * (to_linear(${hexH.b} / 255.0f) - to_linear(${hexL.b} / 255.0f))) * 255.0f);`);
+            lines.push(`          float r0 = ${hexL.r} / 255.0f, g0 = ${hexL.g} / 255.0f, b0 = ${hexL.b} / 255.0f;`);
+            lines.push(`          float r1 = ${hexH.r} / 255.0f, g1 = ${hexH.g} / 255.0f, b1 = ${hexH.b} / 255.0f;`);
+            if (useMid) lines.push(`          if (low_segment) { r1 = ${hexM.r} / 255.0f; g1 = ${hexM.g} / 255.0f; b1 = ${hexM.b} / 255.0f; } else { r0 = ${hexM.r} / 255.0f; g0 = ${hexM.g} / 255.0f; b0 = ${hexM.b} / 255.0f; }`);
+            lines.push(`          auto oklab = [&](float r, float g, float b, float *L, float *a, float *bb) { float l = cbrtf(0.4122214708f * to_linear(r) + 0.5363325363f * to_linear(g) + 0.0514459929f * to_linear(b)); float m = cbrtf(0.2119034982f * to_linear(r) + 0.6806995451f * to_linear(g) + 0.1073969566f * to_linear(b)); float s = cbrtf(0.0883024619f * to_linear(r) + 0.2817188376f * to_linear(g) + 0.6299787005f * to_linear(b)); *L = 0.2104542553f*l + 0.7936177850f*m - 0.0040720468f*s; *a = 1.9779984951f*l - 2.4285922050f*m + 0.4505937099f*s; *bb = 0.0259040371f*l + 0.7827717662f*m - 0.8086757660f*s; };`);
+            lines.push(`          float L0,a0,b0l,L1,a1,b1l; oklab(r0,g0,b0,&L0,&a0,&b0l); oklab(r1,g1,b1,&L1,&a1,&b1l);`);
+            lines.push(`          float L=L0+t*(L1-L0), a=a0+t*(a1-a0), bb=b0l+t*(b1l-b0l); float l=L+0.3963377774f*a+0.2158037573f*bb, m=L-0.1055613458f*a-0.0638541728f*bb, s=L-0.0894841775f*a-1.2914855480f*bb; l*=l*l; m*=m*m*m; s*=s*s*s;`);
+            lines.push(`          uint8_t r = (uint8_t)roundf(fminf(1.0f, fmaxf(0.0f, to_srgb(4.0767416621f*l - 3.3077115913f*m + 0.2309699292f*s))) * 255.0f);`);
+            lines.push(`          uint8_t g = (uint8_t)roundf(fminf(1.0f, fmaxf(0.0f, to_srgb(-1.2684380046f*l + 2.6097574011f*m - 0.3413193965f*s))) * 255.0f);`);
+            lines.push(`          uint8_t b = (uint8_t)roundf(fminf(1.0f, fmaxf(0.0f, to_srgb(-0.0041960863f*l - 0.7034186147f*m + 1.7076147010f*s))) * 255.0f);`);
             lines.push(`          Color dyn_color(r, g, b);`);
         }
 

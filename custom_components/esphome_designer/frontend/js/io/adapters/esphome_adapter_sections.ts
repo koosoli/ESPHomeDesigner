@@ -186,7 +186,10 @@ export function buildInfrastructureLines(
     }
 
     if (!profile.isPackageBased && !layout.isSelectionSnippet) {
-        lines.push("http_request:", "  verify_ssl: false", "  timeout: 20s", "  buffer_size_rx: 4096");
+        lines.push("http_request:", "  verify_ssl: false", "  timeout: 20s");
+        if (profile.chip !== "rp2040" && profile.chip !== "rp2350") {
+            lines.push("  buffer_size_rx: 4096");
+        }
 
         if (Generators.generateI2CSection) lines.push(...Generators.generateI2CSection(profile));
         if (Generators.generateSPISection) lines.push(...Generators.generateSPISection(profile));

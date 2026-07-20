@@ -47,12 +47,18 @@ export const render = (el, widget, { getColorStyle }) => {
                 if (!isNaN(numVal)) {
                     const lowVal = props.dynamic_value_low !== undefined ? props.dynamic_value_low : 0;
                     const highVal = props.dynamic_value_high !== undefined ? props.dynamic_value_high : 100;
-                    const diff = highVal - lowVal;
+                    const midVal = props.dynamic_value_mid !== undefined ? props.dynamic_value_mid : (lowVal + highVal) / 2;
+                    const useMid = !!props.dynamic_mid_enabled && midVal > lowVal && midVal < highVal;
+                    const startColor = useMid && numVal <= midVal ? (props.dynamic_color_low || "#3498db") : (useMid ? (props.dynamic_color_mid || "#f1c40f") : (props.dynamic_color_low || "#3498db"));
+                    const endColor = useMid && numVal <= midVal ? (props.dynamic_color_mid || "#f1c40f") : (props.dynamic_color_high || "#e74c3c");
+                    const startValue = useMid && numVal <= midVal ? lowVal : (useMid ? midVal : lowVal);
+                    const endValue = useMid && numVal <= midVal ? midVal : highVal;
+                    const diff = endValue - startValue;
                     if (diff !== 0) {
                         colorStyle = lerpColor(
-                            props.dynamic_color_low || "#3498db",
-                            props.dynamic_color_high || "#e74c3c",
-                            (numVal - lowVal) / diff
+                            startColor,
+                            endColor,
+                            (numVal - startValue) / diff
                         );
                     }
                 }
@@ -67,6 +73,15 @@ export const render = (el, widget, { getColorStyle }) => {
     const isNoUnit = format.endsWith("_no_unit");
     let displayUnit = (props.hide_unit || isNoUnit) ? "" : unitProp;
     let displayUnit2 = "";
+
+    const formatDatetimePreview = (value) => {
+        const pattern = String(props.datetime_format || "").trim();
+        const date = new Date(String(value));
+        if (!pattern || Number.isNaN(date.getTime())) return String(value);
+        const pad = (n) => String(n).padStart(2, "0");
+        const names = { a: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], A: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], b: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], B: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] };
+        return pattern.replace(/%([aAbBdHmMyY%])/g, (_match, token) => ({ H: pad(date.getHours()), M: pad(date.getMinutes()), d: pad(date.getDate()), m: pad(date.getMonth() + 1), y: pad(date.getFullYear() % 100), Y: String(date.getFullYear()), a: names.a[date.getDay()], A: names.A[date.getDay()], b: names.b[date.getMonth()], B: names.B[date.getMonth()], '%': '%' })[token] || `%${token}`);
+    };
 
     /** @param {string} targetEntityId @param {string | null} [attrPathOverride=null] */
     const formatValue = (targetEntityId, attrPathOverride = null) => {
@@ -93,7 +108,7 @@ export const render = (el, widget, { getColorStyle }) => {
                     }
                     return (!isNaN(precision) && precision >= 0) ? numVal.toFixed(precision) : numVal.toString();
                 }
-                return String(attrVal);
+                return formatDatetimePreview(attrVal);
             }
         }
 
@@ -133,7 +148,7 @@ export const render = (el, widget, { getColorStyle }) => {
             return strState.replace(/\s*[\u00B0%]?[A-Za-z/\u00B2\u00B3]+\s*$/, '').trim() || strState;
         }
 
-        return strState;
+        return formatDatetimePreview(strState);
     };
 
     const val1 = formatValue(entityId);

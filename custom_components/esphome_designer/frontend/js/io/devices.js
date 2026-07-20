@@ -290,6 +290,7 @@ export const DEVICE_PROFILES = {
     displayModel: "2.13inv3",
     displayPlatform: "waveshare_epaper",
     resolution: { width: 250, height: 122 },
+    rotation_offset: 90,
     shape: "rect",
     supportsDeepSleep: false,
     frameworkHint: "ESPHome RP2",
@@ -313,6 +314,7 @@ export const DEVICE_PROFILES = {
     displayModel: "2.13inv3",
     displayPlatform: "waveshare_epaper",
     resolution: { width: 250, height: 122 },
+    rotation_offset: 90,
     shape: "rect",
     supportsDeepSleep: false,
     frameworkHint: "ESPHome RP2",
@@ -481,6 +483,21 @@ export const DEVICE_PROFILES = {
     resolution: { width: 1024, height: 600 },
     features: { psram: true, buzzer: false, buttons: false, lcd: true, lvgl: true, touch: true },
     touch: { platform: "gt911" }
+  },
+  elecrow_esp32_7inch: {
+    name: "Elecrow CrowPanel 7\" HMI 800x480",
+    displayType: "color",
+    chip: "esp32-s3",
+    board: "esp32-s3-devkitc-1",
+    displayPlatform: "rpi_dpi_rgb",
+    displayModel: "ELECROW-ESP32-7INCH",
+    displayId: "my_display",
+    touchscreenId: "my_touchscreen",
+    isPackageBased: true,
+    hardwarePackage: "hardware/elecrow-esp32-7inch.yaml",
+    resolution: { width: 800, height: 480 },
+    features: { psram: true, buzzer: false, buttons: false, lcd: true, lvgl: true, touch: true },
+    touch: { platform: "gt911", id: "my_touchscreen" }
   },
   geekmagic_mini_esp8266: {
     name: "GeekMagic Mini (ESP8266)",

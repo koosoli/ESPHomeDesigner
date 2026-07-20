@@ -143,6 +143,18 @@ describe('quote_rss exports', () => {
         expect(componentLines.join('\n')).toContain('quotes.example%2Fb');
     });
 
+    it('omits the ESP32-only HTTP receive buffer for RP2 devices', () => {
+        const lines = [];
+        onExportComponents({
+            lines,
+            widgets: [{ id: 'quote-rp2', type: 'quote_rss', props: {} }],
+            displayId: 'display_main',
+            profile: { chip: 'rp2350' }
+        });
+
+        expect(lines.join('\n')).not.toContain('buffer_size_rx');
+    });
+
     it('reuses an existing interval section when another widget already created one', () => {
         const widgets = [
             {

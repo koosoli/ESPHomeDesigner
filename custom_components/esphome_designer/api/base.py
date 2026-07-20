@@ -19,14 +19,18 @@ class DesignerBaseView(HomeAssistantView):
 
     def _add_pna_headers(self, response: web.Response, request: web.Request) -> web.Response:
         """Add Private Network Access (PNA) headers for CORS.
-        
-        This fixes the Chrome error:
-        "The request client is not a secure context and the resource 
-        is in more-private address space `local`."
-        """
-        origin = request.headers.get("Origin", "*")
-        # Critical: This header opts-in to Private Network Access
 
+        This fixes the Chrome error:
+        "The request client is not a secure context and the resource
+        is in more-private address space `local`."
+
+        The header is only sent for genuine cross-origin browser requests
+        (i.e. when an Origin header is present). All endpoints still require
+        authentication via ``requires_auth``, so this does not widen access;
+        it only avoids opting non-browser clients into PNA needlessly.
+        """
+        if "Origin" not in request.headers:
+            return response
         response.headers["Access-Control-Allow-Private-Network"] = "true"
         return response
 

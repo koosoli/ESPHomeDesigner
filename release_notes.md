@@ -1,3 +1,18 @@
+## v1.0.0 RC33 - Controls, Hardware, AI, and Sensor Improvements
+**Release Date:** July 20, 2026
+
+### Fixes and Features
+- **LVGL Switch Feedback (Issue #459):** HA-backed LVGL switches and checkboxes now suppress state-sync events before calling `homeassistant.toggle`, preventing toggle feedback loops.
+- **CrowPanel 7 Hardware (Issue #458):** Added the Elecrow CrowPanel 7-inch package profile and prevent sensor bars from referencing a local battery sensor when the hardware has no battery ADC.
+- **Sensor Text Colors (Issue #453):** Dynamic color interpolation now uses Oklab and supports an optional midpoint color stop.
+- **Datetime Entity Metadata (Issue #460):** Entity responses now include `last_changed` and `last_updated`; Sensor Text adds a datetime format preview field.
+- **AI Providers (PR #402):** Added MiniMax and GLM/Z.AI provider selection, model lists, API-key storage, and request support.
+- **PNA Header Hardening (PR #457):** PNA response headers are emitted only for requests carrying an Origin header.
+- **Issue #442 Verification:** Raspberry Pi Pico W and Pico 2 W Waveshare 2.13-inch V3 presets were already shipped in RC31.
+- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, visible header label, release notes, and rebuilt frontend assets for RC33.
+
+---
+
 ## v1.0.0 RC32 - Generated YAML and Color Rendering Fixes
 **Release Date:** July 19, 2026
 

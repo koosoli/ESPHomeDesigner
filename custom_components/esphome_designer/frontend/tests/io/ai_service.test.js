@@ -135,6 +135,82 @@ describe('ai_service', () => {
         expect(routerBody.model).toBe('openrouter/model');
     });
 
+    it('returns static model lists for MiniMax and GLM without requiring an API key', async () => {
+        const service = new AIService();
+
+        const minimax = await service.fetchModels('minimax', '');
+        expect(minimax.length).toBeGreaterThan(0);
+        expect(minimax[0].id).toContain('MiniMax');
+
+        const glm = await service.fetchModels('glm', '');
+        expect(glm.length).toBeGreaterThan(0);
+        expect(glm[0].id).toContain('glm');
+        expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('builds provider-specific request payloads for MiniMax and GLM', async () => {
+        const service = new AIService();
+
+        fetch
+            .mockResolvedValueOnce({
+                json: vi.fn().mockResolvedValue({
+                    choices: [{ message: { content: '<think>reasoning</think>{"widgets":[]}' } }]
+                })
+            })
+            .mockResolvedValueOnce({
+                json: vi.fn().mockResolvedValue({
+                    choices: [{ message: { content: '{"widgets":[]}' } }]
+                })
+            });
+
+        await expect(service.callMiniMax('minimax-key', 'MiniMax-M2.7-highspeed', 'system', 'user')).resolves.toBe('{"widgets":[]}');
+        expect(fetch.mock.calls[0][0]).toBe('https://api.minimax.io/v1/chat/completions');
+        const minimaxBody = JSON.parse(fetch.mock.calls[0][1].body);
+        expect(minimaxBody.model).toBe('MiniMax-M2.7-highspeed');
+        expect(fetch.mock.calls[0][1].headers.Authorization).toBe('Bearer minimax-key');
+
+        await expect(service.callGLM('glm-key', 'glm-4.6', 'system', 'user')).resolves.toBe('{"widgets":[]}');
+        expect(fetch.mock.calls[1][0]).toBe('https://api.z.ai/api/paas/v4/chat/completions');
+        const glmBody = JSON.parse(fetch.mock.calls[1][1].body);
+        expect(glmBody.model).toBe('glm-4.6');
+    });
+
+    it('surfaces MiniMax base_resp errors', async () => {
+        const service = new AIService();
+
+        fetch.mockResolvedValueOnce({
+            json: vi.fn().mockResolvedValue({
+                base_resp: { status_code: 1004, status_msg: 'invalid api key' }
+            })
+        });
+
+        await expect(service.callMiniMax('bad-key', 'MiniMax-M2.7', 'system', 'user')).rejects.toThrow('invalid api key');
+    });
+
+    it('dispatches GLM prompts with a default model when none is selected', async () => {
+        const service = new AIService();
+        mockAppState.settings = {
+            ai_provider: 'glm',
+            ai_api_key_glm: 'glm-key',
+            ai_model_glm: ''
+        };
+        mockAIValidator.validateResponse.mockReturnValue({
+            valid: true,
+            errors: [],
+            sanitized: [{ id: 'w_1', type: 'text' }]
+        });
+        service.callGLM = vi.fn().mockResolvedValue('{"widgets":[{"id":"w_1","type":"text"}]}');
+
+        const result = await service.processPrompt('Add a label', {
+            display_type: 'color_lcd',
+            widgets: []
+        });
+
+        expect(service.callGLM).toHaveBeenCalledWith('glm-key', 'glm-4.6', expect.any(String), expect.any(String));
+        expect(mockAppState.updateSettings).toHaveBeenCalledWith({ ai_model_glm: 'glm-4.6' });
+        expect(result).toEqual([{ id: 'w_1', type: 'text' }]);
+    });
+
     it('throws a specific Gemini rate-limit error when the API returns 429', async () => {
         const service = new AIService();
 
