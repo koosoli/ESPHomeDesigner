@@ -133,7 +133,8 @@ describe('touch and shape plugin cluster', () => {
                 }
             ],
             profile: {
-                features: { lcd: true }
+                features: { lcd: true },
+                touch: { platform: 'gt911' }
             }
         };
 

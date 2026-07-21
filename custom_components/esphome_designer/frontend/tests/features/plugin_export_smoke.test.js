@@ -50,7 +50,7 @@ describe('Plugin Export Smoke Tests', () => {
             widgets: [widget],
             isLvgl: true,
             pendingTriggers: new Map(),
-            profile: { features: {}, pins: {} }
+            profile: { features: {}, pins: {}, touch: { platform: 'gt911' } }
         };
 
         describe(`Export for ${plugin.id}`, () => {

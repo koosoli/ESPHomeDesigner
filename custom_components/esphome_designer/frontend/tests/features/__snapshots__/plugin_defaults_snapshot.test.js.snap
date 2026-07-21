@@ -56,6 +56,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of datet
   "border_width": 0,
   "clock_mode": "24h",
   "color": "black",
+  "custom_format": "",
   "date_font_size": 16,
   "font_family": "Roboto",
   "format": "time_date",

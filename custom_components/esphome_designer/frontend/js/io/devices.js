@@ -104,7 +104,7 @@ export const DEVICE_PROFILES = {
       spi: { clk: "GPIO7", mosi: "GPIO9", miso: "GPIO8" },
       batteryAdc: "GPIO1",
       buzzer: "GPIO45",
-      buttons: { left: "GPIO5", right: "GPIO4", refresh: "GPIO3", home: "GPIO2" }
+      buttons: { left: "GPIO5", right: "GPIO4", refresh: "GPIO3" }
     },
     battery: {
       attenuation: "12db",
@@ -117,8 +117,10 @@ export const DEVICE_PROFILES = {
       buttons: true,
       sht4x: true,
       epaper: true,
+      touch: true,
       inverted_colors: false
-    }
+    },
+    touch: { platform: "gt911" }
   },
   reterminal_e1004: {
     name: "Seeedstudio reTerminal E1004 13.3\" (Spectra 6)",

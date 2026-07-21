@@ -315,13 +315,8 @@ export function buildSensorSections({
         }, pages.length, displayId, touchWidgets);
         if (touchBinary.length > 0) {
             const startIdx = touchBinary[0]?.trim() === "binary_sensor:" ? 1 : 0;
-            if (touchBinary.length > startIdx) {
-                if (profile.isPackageBased) {
-                    touchSensorContent = touchBinary.slice(startIdx);
-                } else {
-                    binarySensorLinesOrig.push(`# Touch Area Binary Sensors`);
-                    binarySensorLinesOrig.push(...touchBinary.slice(startIdx).map((line: string) => line.startsWith("  ") ? line.slice(2) : line));
-                }
+            if (touchBinary.length > startIdx && profile.isPackageBased) {
+                touchSensorContent = touchBinary.slice(startIdx);
             }
         }
     }

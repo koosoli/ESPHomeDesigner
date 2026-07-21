@@ -3526,7 +3526,24 @@ exports[`Plugin Export Smoke Tests > Export for template_nav_bar > should export
 ]
 `;
 
-exports[`Plugin Export Smoke Tests > Export for template_nav_bar > should handle onExportBinarySensors with stable output 1`] = `[]`;
+exports[`Plugin Export Smoke Tests > Export for template_nav_bar > should handle onExportBinarySensors with stable output 1`] = `
+[
+  "- platform: touchscreen",
+  "  id: nav_home_w_test",
+  "  touchscreen_id: my_touchscreen",
+  "  x_min: 10",
+  "  x_max: 110",
+  "  y_min: 10",
+  "  y_max: 110",
+  "  on_press:",
+  "    - if:",
+  "        condition:",
+  "          lambda: 'return id(display_page) == 0 && (millis() - id(last_touch_time) > 250);'",
+  "        then:",
+  "          - lambda: 'id(last_touch_time) = millis();'",
+  "          - script.execute: manage_run_and_sleep",
+]
+`;
 
 exports[`Plugin Export Smoke Tests > Export for template_sensor_bar > should export LVGL with stable output 1`] = `
 {

@@ -338,7 +338,7 @@ The workflow is safe and deterministic - same layout always produces the same YA
 - **Waveshare**: [PhotoPainter](https://www.waveshare.com/esp32-s3-photopainter.htm?&aff_id=136175) (7-Color)
 - **Raspberry Pi**: Pico W and Pico 2 W with Waveshare Pico e-Paper 2.13" V3
 - **Elecrow**: ESP32-P4 9" HMI 1024x600 (V1.2)
-- **M5Stack**: [M5Paper](https://shop.m5stack.com/products/m5paper-esp32-development-kit-v1-1-960x540-4-7-eink-display-235-ppi?ref=qcwynykf&srsltid=AfmBOopfcra6VDlyNoA8jSlBq8CLjnDIqCT8peRIUqGMq_4DVDSAMGCV&variant=39966887903404) (Touch), [M5Stack M5Core Ink](https://shop.m5stack.com/products/m5stack-esp32-core-ink-development-kit1-54-elnk-display?ref=qcwynykf)
+- **M5Stack**: [M5Paper](https://shop.m5stack.com/products/m5paper-esp32-development-kit-v1-1-960x540-4-7-eink-display-235-ppi?ref=qcwynykf) (Touch), [M5Core Ink](https://shop.m5stack.com/products/m5stack-esp32-core-ink-development-kit1-54-elnk-display?ref=qcwynykf), [M5Stack Tab5](https://shop.m5stack.com/products/m5stack-tab5-iot-development-kit-esp32-p4?ref=qcwynykf) (ESP32-P4)
 - **TRMNL**: Original [ESP32-C3 e-paper device](https://shop.usetrmnl.com/collections/devices/products/trmnl)
 
 > [!IMPORTANT]

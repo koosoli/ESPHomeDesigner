@@ -1,5 +1,19 @@
+## v1.0.0 RC35 - Touch Fixes, Custom Date Format, and Hardware Updates
+**Release Date:** July 21, 2026
+
+### Fixes and Features
+- **E1003 GT911 Touchscreen (Issue #449):** Added GT911 capacitive touchscreen configuration to the reTerminal E1003 hardware profile and removed the conflicting `home: GPIO2` button that blocked the touch driver initialisation.
+- **Duplicate Touch Sensor YAML (Issue #463):** Fixed a regression that emitted a duplicate `binary_sensor` touch registration block when generating YAML for non-package-based configurations.
+- **Touch Area Touchscreen ID Resolution:** `touch_area` and `template_nav_bar` plugins now resolve the active touchscreen ID from the device profile via `resolveTouchscreenId` instead of assuming a hardcoded `my_touchscreen` identifier, which fixes export on devices that declare a custom `touchscreenId`.
+- **Datetime Custom strftime Format (Issue #20):** Added a "Custom Format (strftime)" option to the Date & Time widget with live preview (supporting `%S`, `%I`, `%p` and standard tokens), direct C++ export, OpenDisplay export, OEPL export, and LVGL lambda support.
+- **Sensor Text Time-String Parsing Fix:** The Sensor Text renderer no longer misinterprets time-formatted strings (e.g. `5:44`) as floating-point numbers, preventing a silent value truncation in the canvas preview.
+- **M5Stack Referral Links:** Added referral parameters (`?ref=qcwynykf`) for M5Stack hardware products in the README (M5Paper, M5Core Ink, M5Stack Tab5).
+- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, visible header label, release notes, and rebuilt frontend assets for RC35.
+
+---
+
 ## v1.0.0 RC34 - OpenDisplay Completion and Visibility Preview Fix
-**Release Date:** July 20, 2026
+**Release Date:** July 21, 2026
 
 ### Fixes and Features
 - **OpenDisplay Completion:** OpenDisplay exports now use the current persisted device, dither, and TTL settings; correctly resolve page-level dark mode and QR scale/color; expose Weather Forecast; and cover every OpenDisplay-compatible palette widget and supported payload type.

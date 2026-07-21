@@ -1,4 +1,5 @@
 import { getTouchDebounceMs } from '../../js/io/navigation_debounce.js';
+import { resolveTouchscreenId } from '../../js/io/display_ids.js';
 
 /**
  * Touch Area Plugin
@@ -114,12 +115,14 @@ const exportDoc = (w, context) => {
 
 const onExportBinarySensors = (context) => {
     const { lines, widgets, profile } = context;
+    if (!profile || !profile.touch) return;
 
     const targets = widgets.filter(w => w.type === 'touch_area' || w.type === 'nav_next_page' || w.type === 'nav_previous_page' || w.type === 'nav_reload_page');
     if (targets.length === 0) return;
 
     const totalPages = widgets.reduce((max, widget) => Math.max(max, (widget._pageIndex ?? 0) + 1), 0) || 1;
     const touchDebounceMs = getTouchDebounceMs(profile);
+    const touchscreenId = resolveTouchscreenId(profile);
 
     lines.push("# Touch Area Binary Sensors");
     targets.forEach(w => {
@@ -128,7 +131,7 @@ const onExportBinarySensors = (context) => {
 
         lines.push(`- platform: touchscreen`);
         lines.push(`  id: ${safeId}`);
-        lines.push(`  touchscreen_id: my_touchscreen`);
+        lines.push(`  touchscreen_id: ${touchscreenId}`);
         lines.push(`  x_min: ${w.x}`);
         lines.push(`  x_max: ${w.x + w.width}`);
         lines.push(`  y_min: ${w.y}`);

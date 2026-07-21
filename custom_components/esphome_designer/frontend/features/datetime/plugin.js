@@ -47,8 +47,16 @@ function insertTopLevelSectionEntries(lines, sectionName, entryLines, commentLin
     lines.splice(insertIndex, 0, ...linesToInsert);
 }
 
-const getTemplateConfig = (format, clockMode) => {
+const getTemplateConfig = (format, clockMode, customFormat = "") => {
     const timeFormat = getTimeStrftime(clockMode);
+    if (format === 'custom') {
+        const fmt = customFormat || '%d-%m-%Y';
+        return {
+            template: `{{ now().strftime('${fmt}') }}`,
+            timeFormat: fmt
+        };
+    }
+
     if (format === 'time_only') {
         return {
             template: `{{ now().strftime('${timeFormat}') }}`,
@@ -85,6 +93,33 @@ const formatPreviewTime = (now, clockMode) => {
     }
 
     return `${now.getHours().toString().padStart(2, '0')}:${minutes}`;
+};
+
+const formatPreviewCustom = (now, fmtPattern) => {
+    const pattern = fmtPattern || "%d-%m-%Y";
+    const pad = (n) => String(n).padStart(2, "0");
+    const names = {
+        a: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+        A: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+        b: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+        B: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    };
+    return pattern.replace(/%([aAbBdHImMpSyY%])/g, (_match, token) => ({
+        H: pad(now.getHours()),
+        I: pad(now.getHours() % 12 || 12),
+        M: pad(now.getMinutes()),
+        S: pad(now.getSeconds()),
+        p: now.getHours() >= 12 ? 'PM' : 'AM',
+        d: pad(now.getDate()),
+        m: pad(now.getMonth() + 1),
+        y: pad(now.getFullYear() % 100),
+        Y: String(now.getFullYear()),
+        a: names.a[now.getDay()],
+        A: names.A[now.getDay()],
+        b: names.b[now.getMonth()],
+        B: names.B[now.getMonth()],
+        '%': '%'
+    })[token] || `%${token}`);
 };
 
 const render = (el, widget, { getColorStyle }) => {
@@ -190,6 +225,9 @@ const render = (el, widget, { getColorStyle }) => {
     } else if (format === "weekday_day_month") {
         dateDiv.textContent = dateStrFull;
         body.appendChild(dateDiv);
+    } else if (format === "custom") {
+        dateDiv.textContent = formatPreviewCustom(now, props.custom_format);
+        body.appendChild(dateDiv);
     } else {
         dateDiv.textContent = dateStrShort;
         body.appendChild(timeDiv);
@@ -206,6 +244,7 @@ export default {
     supportedModes: ['lvgl', 'direct', 'oepl', 'opendisplay'],
     defaults: {
         format: "time_date",
+        custom_format: "",
         time_font_size: 28,
         date_font_size: 16,
         color: "black",
@@ -235,8 +274,13 @@ export default {
             { value: "time_date", label: "Time & Date" },
             { value: "time_only", label: "Time Only" },
             { value: "date_only", label: "Date Only" },
-            { value: "weekday_day_month", label: "Weekday Day Month" }
+            { value: "weekday_day_month", label: "Weekday Day Month" },
+            { value: "custom", label: "Custom Format (strftime)" }
         ], (v) => updateProp("format", v));
+        if (props.format === "custom") {
+            panel.addLabeledInput("Custom Format", "text", props.custom_format || "%d-%m-%Y", (v) => updateProp("custom_format", v));
+            panel.addHint('ESPHome strftime pattern (e.g. %d-%m-%Y, %d/%m/%Y, %H:%M:%S)');
+        }
         panel.addSelect("Clock Mode", getClockMode(props), [
             { value: "24h", label: "24 Hour" },
             { value: "12h", label: "12 Hour (AM/PM)" }
@@ -306,7 +350,7 @@ export default {
         const p = w.props || {};
         const format = p.format || "time_date";
         const textAlign = (p.text_align || "CENTER").toUpperCase();
-        const { template } = getTemplateConfig(format, getClockMode(p));
+        const { template } = getTemplateConfig(format, getClockMode(p), p.custom_format);
 
         // Convert theme_auto to actual color
         let color = p.color || "black";
@@ -349,7 +393,7 @@ export default {
         const p = w.props || {};
         const format = p.format || "time_date";
         const textAlign = (p.text_align || "CENTER").toUpperCase();
-        const { template } = getTemplateConfig(format, getClockMode(p));
+        const { template } = getTemplateConfig(format, getClockMode(p), p.custom_format);
 
         // Convert theme_auto to actual color
         let color = p.color || "black";
@@ -394,7 +438,9 @@ export default {
         const { timeFormat } = getTemplateConfig(format, getClockMode(p));
 
         let fmt = timeFormat; // Default time_only or fallback
-        if (format === "date_only") {
+        if (format === "custom") {
+            fmt = p.custom_format || "%d-%m-%Y";
+        } else if (format === "date_only") {
             fmt = "%d.%m.%Y";
         } else if (format === "weekday_day_month") {
             fmt = "%A %d %B"; // International: Monday 01 January
@@ -575,6 +621,9 @@ export default {
 
         if (format === "time_only") {
             lines.push(`          it.strftime(${xVal}, ${yVal}, id(${timeFontId}), ${color}, ${espAlign}, "${timeFormat}", now);`);
+        } else if (format === "custom") {
+            const fmt = p.custom_format || "%d-%m-%Y";
+            lines.push(`          it.strftime(${xVal}, ${yVal}, id(${dateFontId}), ${color}, ${espAlign}, "${fmt}", now);`);
         } else if (format === "date_only") {
             lines.push(`          it.strftime(${xVal}, ${yVal}, id(${dateFontId}), ${color}, ${espAlign}, "%d.%m.%Y", now);`);
         } else if (format === "weekday_day_month") {

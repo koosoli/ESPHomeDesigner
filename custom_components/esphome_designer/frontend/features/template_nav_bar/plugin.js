@@ -1,4 +1,5 @@
 import { getTouchDebounceMs } from '../../js/io/navigation_debounce.js';
+import { resolveTouchscreenId } from '../../js/io/display_ids.js';
 
 /**
  * Template Navigation Bar Plugin
@@ -195,7 +196,7 @@ const onExportBinarySensors = (context) => {
 
                 lines.push(`- platform: touchscreen`);
                 lines.push(`  id: nav_${action}_${w.id.replace(/-/g, '_')}`);
-                lines.push(`  touchscreen_id: my_touchscreen`);
+                lines.push(`  touchscreen_id: ${resolveTouchscreenId(profile)}`);
                 lines.push(`  x_min: ${xMin}`);
                 lines.push(`  x_max: ${xMax}`);
                 lines.push(`  y_min: ${yMin}`);

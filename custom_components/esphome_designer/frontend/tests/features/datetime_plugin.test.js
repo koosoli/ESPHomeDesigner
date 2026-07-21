@@ -461,4 +461,148 @@ describe('datetime plugin', () => {
             vi.useRealTimers();
         }
     });
+
+    it('supports custom strftime format in render preview, properties, LVGL, and direct export', () => {
+        // --- render: format === "custom" branch ---
+        const host = document.createElement('div');
+        plugin.render(host, {
+            id: 'datetime_custom_render',
+            width: 140,
+            height: 60,
+            props: {
+                ...plugin.defaults,
+                format: 'custom',
+                custom_format: '%Y/%m/%d'
+            }
+        }, {
+            getColorStyle: (value) => value || 'black'
+        });
+        // Should render some date-like text (formatPreviewCustom returns a string)
+        expect(host.textContent).toBeTruthy();
+
+        // --- renderProperties: custom format input shown when format === "custom" ---
+        const callbacks = {};
+        const panel = {
+            createSection: vi.fn(),
+            addSelect: vi.fn((label, _value, _options, cb) => { callbacks[label] = cb; }),
+            addHint: vi.fn(),
+            addLabeledInput: vi.fn((label, _type, _value, cb) => { callbacks[label] = cb; }),
+            addCheckbox: vi.fn((label, _value, cb) => { callbacks[label] = cb; }),
+            addColorSelector: vi.fn((label, _value, _preset, cb) => { callbacks[label] = cb; }),
+            addNumberWithSlider: vi.fn((label, _value, _min, _max, cb) => { callbacks[label] = cb; }),
+            addDropShadowButton: vi.fn(),
+            getContainer: vi.fn(() => document.body),
+            endSection: vi.fn()
+        };
+
+        plugin.renderProperties(panel, {
+            id: 'datetime_custom_props',
+            props: {
+                ...plugin.defaults,
+                format: 'custom',
+                custom_format: '%Y/%m/%d'
+            }
+        });
+
+        // The "Custom Format" input should be registered
+        expect(callbacks['Custom Format']).toBeDefined();
+        // Trigger it to exercise updateProp("custom_format", v)
+        callbacks['Custom Format']('%d-%m-%Y');
+        expect(mockAppState.updateWidget.mock.calls.some(([id, payload]) =>
+            id === 'datetime_custom_props' && payload.props?.custom_format === '%d-%m-%Y'
+        )).toBe(true);
+
+        // --- exportLVGL: format === "custom" branch ---
+        const lvgl = plugin.exportLVGL({
+            props: {
+                format: 'custom',
+                custom_format: '%Y/%m/%d',
+                text_align: 'CENTER'
+            }
+        }, {
+            common: { id: 'dt_custom' },
+            convertColor: (value) => `Color(${value})`,
+            convertAlign: () => 'center',
+            getLVGLFont: (_family, size, weight) => `font_${size}_${weight}`,
+            formatOpacity: (value) => `opa(${value})`
+        });
+
+        // Should use the custom_format pattern in the lambda
+        expect(JSON.stringify(lvgl)).toContain('%Y/%m/%d');
+
+        // --- direct export: format === "custom" branch ---
+        const lines = [];
+        plugin.export({
+            x: 10,
+            y: 20,
+            width: 100,
+            height: 50,
+            props: {
+                ...plugin.defaults,
+                format: 'custom',
+                custom_format: '%H:%M:%S'
+            }
+        }, {
+            lines,
+            getColorConst: (value) => `Color(${value})`,
+            addFont: vi.fn((family, weight, size) => `${family}_${weight}_${size}`),
+            getCondProps: () => ({}),
+            getConditionCheck: () => '',
+            getAlignY: () => 0
+        });
+
+        expect(lines.join('\n')).toContain('%H:%M:%S');
+    });
+
+    it('propagates custom_format to OpenDisplay and OEPL exports instead of falling back', () => {
+        const odp = plugin.exportOpenDisplay({
+            x: 0, y: 0, width: 100, height: 50,
+            props: {
+                format: 'custom',
+                custom_format: '%d/%m/%Y %H:%M',
+                text_align: 'TOP_LEFT'
+            }
+        }, { layout: { darkMode: false }, _page: {} });
+
+        // Must contain the user's custom pattern, not the hardcoded fallback %d-%m-%Y
+        expect(odp.value).toContain('%d/%m/%Y %H:%M');
+        expect(odp.value).not.toContain('%d-%m-%Y');
+
+        const oepl = plugin.exportOEPL({
+            x: 0, y: 0, width: 100, height: 50,
+            props: {
+                format: 'custom',
+                custom_format: '%Y-%m-%d',
+                text_align: 'CENTER'
+            }
+        }, { layout: { darkMode: false }, _page: {} });
+
+        expect(oepl.value).toContain('%Y-%m-%d');
+    });
+
+    it('renders %S, %I, and %p tokens in the custom format canvas preview', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-07-21T15:30:45'));
+
+        try {
+            const host = document.createElement('div');
+            plugin.render(host, {
+                id: 'datetime_custom_sip',
+                width: 200,
+                height: 40,
+                props: {
+                    ...plugin.defaults,
+                    format: 'custom',
+                    custom_format: '%I:%M:%S %p'
+                }
+            }, {
+                getColorStyle: (v) => v || 'black'
+            });
+
+            // 15:30:45 → 03:30:45 PM
+            expect(host.textContent).toContain('03:30:45 PM');
+        } finally {
+            vi.useRealTimers();
+        }
+    });
 });

@@ -113,20 +113,24 @@ export const render = (el, widget, { getColorStyle }) => {
         }
 
         const strState = entityObj.formatted || String(entityObj.state);
-        const match = strState.match(/^([-+]?\d*[.,]?\d+)(.*)$/);
-        if (match) {
-            const value = parseFloat(match[1].replace(',', '.'));
-            const extractedUnit = match[2] ? match[2].trim() : "";
-            if (targetEntityId === entityId && (unitProp === undefined || unitProp === "") && !props.hide_unit && !isNoUnit) {
-                displayUnit = extractedUnit || entityObj.attributes?.unit_of_measurement || "";
-            } else if (targetEntityId !== entityId && !props.hide_unit && !isNoUnit) {
-                displayUnit2 = extractedUnit || entityObj.attributes?.unit_of_measurement || "";
-            }
-            if (!isNaN(value)) {
-                if (!isNaN(precision) && precision >= 0) {
-                    return value.toFixed(precision);
+        const isTimeOrDatetime = props.is_text_sensor || /^[-+]?\d{1,2}:\d{2}(:\d{2})?$/.test(strState.trim()) || /^\d{4}-\d{2}-\d{2}/.test(strState.trim());
+
+        if (!isTimeOrDatetime) {
+            const match = strState.match(/^([-+]?\d*[.,]?\d+)(.*)$/);
+            if (match && (!match[2] || !match[2].trim().startsWith(':'))) {
+                const value = parseFloat(match[1].replace(',', '.'));
+                const extractedUnit = match[2] ? match[2].trim() : "";
+                if (targetEntityId === entityId && (unitProp === undefined || unitProp === "") && !props.hide_unit && !isNoUnit) {
+                    displayUnit = extractedUnit || entityObj.attributes?.unit_of_measurement || "";
+                } else if (targetEntityId !== entityId && !props.hide_unit && !isNoUnit) {
+                    displayUnit2 = extractedUnit || entityObj.attributes?.unit_of_measurement || "";
                 }
-                return value.toString();
+                if (!isNaN(value)) {
+                    if (!isNaN(precision) && precision >= 0) {
+                        return value.toFixed(precision);
+                    }
+                    return value.toString();
+                }
             }
         }
 
