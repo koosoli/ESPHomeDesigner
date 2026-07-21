@@ -19,6 +19,7 @@ import { applyPackageOverrides } from '../generators/yaml_merger.js';
 import { generateDisplayLambda } from '../generators/native_generator.js';
 import { processPackageContent } from './package_processor.js';
 import { hardwareProfileRuntime } from '../hardware_profile_sources.js';
+import { hasHaBackend, HA_API_BASE } from '../../utils/env.js';
 import { collectRenderableWidgets, createExportContext } from './esphome_adapter_context.js';
 import { buildGlobalExportSections, appendMqttSection, sortExportPlugins } from './esphome_adapter_generate_sections.js';
 import { detectRenderingMode, resolveAdapterProfile } from './esphome_adapter_profile.js';
@@ -192,13 +193,8 @@ export class ESPHomeAdapter extends BaseAdapter {
 
     async fetchHardwarePackage(url: string): Promise<string> {
         let fetchUrl = url;
-        const currentPathname = typeof globalThis.location?.pathname === 'string'
-            ? globalThis.location.pathname
-            : '';
-        if (currentPathname.includes("/esphome-designer/editor")) {
-            if (!url.startsWith("http") && !url.startsWith("/")) {
-                fetchUrl = `/api/esphome_designer/hardware/package?path=${encodeURIComponent(url)}`;
-            }
+        if (!url.startsWith("http") && !url.startsWith("/") && hasHaBackend() && HA_API_BASE) {
+            fetchUrl = `${HA_API_BASE}/hardware/package?path=${encodeURIComponent(url)}`;
         }
 
         try {

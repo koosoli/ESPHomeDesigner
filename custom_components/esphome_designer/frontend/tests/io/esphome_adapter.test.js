@@ -3,7 +3,7 @@ import { ESPHomeAdapter } from '../../js/io/adapters/esphome_adapter';
 import { getCondProps } from '../../js/io/generators/native_generator.js';
 import { mergeYamlSections } from '../../js/io/generators/yaml_merger.js';
 
-const { mockRegistry, mockDeviceProfiles, mockHaFetch, mockGetHaHeaders } = vi.hoisted(() => ({
+const { mockRegistry, mockDeviceProfiles, mockHaFetch, mockGetHaHeaders, mockHasHaBackend, mockHaApiBase } = vi.hoisted(() => ({
     mockRegistry: {
         get: vi.fn(),
         getAll: vi.fn(() => []),
@@ -18,7 +18,9 @@ const { mockRegistry, mockDeviceProfiles, mockHaFetch, mockGetHaHeaders } = vi.h
     },
     mockDeviceProfiles: {},
     mockHaFetch: vi.fn(),
-    mockGetHaHeaders: vi.fn(() => ({ Authorization: 'Bearer test-token' }))
+    mockGetHaHeaders: vi.fn(() => ({ Authorization: 'Bearer test-token' })),
+    mockHasHaBackend: vi.fn(() => false),
+    mockHaApiBase: vi.fn(() => null)
 }));
 
 // Top-level mocks for dependencies
@@ -77,6 +79,13 @@ vi.mock('../../js/io/ha_api.js', () => ({
     getHaHeaders: mockGetHaHeaders
 }));
 
+vi.mock('../../js/utils/env.js', () => ({
+    hasHaBackend: mockHasHaBackend,
+    get HA_API_BASE() {
+        return mockHaApiBase();
+    }
+}));
+
 vi.mock('../../js/io/adapters/base_adapter.js', () => ({
     BaseAdapter: class {
         constructor() { }
@@ -111,6 +120,8 @@ describe('ESPHomeAdapter', () => {
         adapter = new ESPHomeAdapter();
         mockHaFetch.mockReset();
         mockGetHaHeaders.mockClear();
+        mockHasHaBackend.mockReturnValue(false);
+        mockHaApiBase.mockReturnValue(null);
         // Use real plugins for rendering in tests
         mockRegistry.get.mockImplementation((type) => {
             if (type === 'text') return textPlugin;
@@ -143,14 +154,16 @@ describe('ESPHomeAdapter', () => {
         expect(adapter).toBeDefined();
     });
 
-    it('resolves bundled hardware packages through the authenticated HA package endpoint', async () => {
+    it('resolves bundled hardware packages through the authenticated HA package endpoint whenever HA is available', async () => {
         mockHaFetch.mockResolvedValue({
             ok: true,
             text: vi.fn().mockResolvedValue('package: test')
         });
+        mockHasHaBackend.mockReturnValue(true);
+        mockHaApiBase.mockReturnValue('/api/esphome_designer');
         Object.defineProperty(globalThis, 'location', {
             configurable: true,
-            value: { pathname: '/esphome-designer/editor' }
+            value: { pathname: '/' }
         });
 
         const result = await adapter.fetchHardwarePackage('hardware/demo.yaml');
