@@ -181,12 +181,14 @@ export const collectNumericSensors = (pages, context) => {
             // Fix #240: Skip calendar widgets as they are complex text sensors (json) handled by the plugin
             if (w.type === "calendar") return;
 
+            const attribute = (p.attribute || "").trim();
+            const isNumericBinaryAttribute = w.type === "sensor_text" && !!attribute &&
+                !isEntityStateNonNumeric(entityId, appState, attribute);
             const isHaSensor = (entityId.includes(".") || entityId.toLowerCase().startsWith("mqtt:")) &&
                 !HA_TEXT_DOMAINS.some(d => entityId.startsWith(d));
             const isBinaryDomain = HA_BINARY_DOMAINS.some(d => entityId.startsWith(d));
 
-            if (isHaSensor && !isBinaryDomain) {
-                const attribute = (p.attribute || "").trim();
+            if (isHaSensor && (!isBinaryDomain || isNumericBinaryAttribute)) {
                 // Build a unique key: entity + attribute combination
                 const entityKey = attribute ? `${entityId}__attr__${attribute}` : entityId;
 
@@ -212,11 +214,13 @@ export const collectNumericSensors = (pages, context) => {
             if (p.attribute2 && isEntityStateNonNumeric(entityId2, appState, p.attribute2)) {
                 // secondary attribute is non-numeric – handled by collectTextSensors
             } else {
+                const attribute2 = (p.attribute2 || "").trim();
+                const isNumericBinaryAttribute2 = !!attribute2 &&
+                    !isEntityStateNonNumeric(entityId2, appState, attribute2);
                 const isHaSensor2 = (entityId2.includes(".") || entityId2.toLowerCase().startsWith("mqtt:")) &&
                     !HA_TEXT_DOMAINS.some(d => entityId2.startsWith(d));
                 const isBinaryDomain2 = HA_BINARY_DOMAINS.some(d => entityId2.startsWith(d));
-                if (isHaSensor2 && !isBinaryDomain2) {
-                    const attribute2 = (p.attribute2 || "").trim();
+                if (isHaSensor2 && (!isBinaryDomain2 || isNumericBinaryAttribute2)) {
                     const entityKey2 = attribute2 ? `${entityId2}__attr__${attribute2}` : entityId2;
                     if (!seenEntityIds.has(entityKey2)) {
                         const safeId2 = makeSafeId(entityId2, attribute2);
@@ -361,6 +365,9 @@ export const collectBinarySensors = (pages, context) => {
 
         [condEnt, primaryEnt].forEach((ent) => {
             if (!ent) return;
+            // A Sensor Text attribute has its own typed HA sensor declaration;
+            // do not also register the parent binary entity.
+            if (w.type === "sensor_text" && ent === primaryEnt && w.props?.attribute) return;
             const isBinaryHa = HA_BINARY_DOMAINS.some(d => ent.startsWith(d)) || ent.toLowerCase().startsWith("mqtt:");
             const hasMqttSource = ent.toLowerCase().startsWith("mqtt:") || !!(w.props?.mqtt_topic || "").trim();
             const isSwitchHa = isHomeAssistantSwitchEntity(ent) && !hasMqttSource;

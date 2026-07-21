@@ -173,6 +173,19 @@ describe('hardware_generators_display', () => {
         expect(output).toContain('    id: battery_power');
         expect(output).toContain('    id: buzzer_output');
 
+        const alwaysOnBattery = generateOutputSection({
+            batteryEnableAlwaysOn: true,
+            pins: {
+                batteryEnable: 'GPIO40',
+                buzzer: 'GPIO45'
+            }
+        });
+        expect(alwaysOnBattery).toContain('switch:');
+        expect(alwaysOnBattery).toContain('    pin: GPIO40');
+        expect(alwaysOnBattery).toContain('    restore_mode: ALWAYS_ON');
+        expect(alwaysOnBattery).toContain('output:');
+        expect(alwaysOnBattery).toContain('    id: buzzer_output');
+
         expect(generateRTTTLSection({ features: { buzzer: true } })).toContain('rtttl:');
 
         const audio = generateAudioSection({

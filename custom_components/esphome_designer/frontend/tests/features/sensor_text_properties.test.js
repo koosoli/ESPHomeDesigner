@@ -171,6 +171,7 @@ describe('sensor_text properties', () => {
         expect(panel.autoPopulateTitleFromEntity).toHaveBeenCalledWith('sensor_text_1', 'sensor.energy');
         expect(panel.addDropShadowButton).toHaveBeenCalledWith(panel.getContainer(), 'sensor_text_1');
         expect(panel.labels).toContain('Enable Dynamic Color');
+        expect(panel.labels).toContain('Custom Text Lambda (ESPHome C++)');
         expect(mockAppState.updateWidget).toHaveBeenCalledWith('sensor_text_1', { entity_id: 'sensor.energy' });
         expect(mockAppState.updateWidget).toHaveBeenCalledWith('sensor_text_1', { entity_id_2: 'sensor.energy_total' });
         expect(mockAppState.updateWidget).toHaveBeenCalledWith('sensor_text_1', { title: 'Battery' });

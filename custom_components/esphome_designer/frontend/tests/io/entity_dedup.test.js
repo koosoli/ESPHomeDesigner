@@ -132,6 +132,28 @@ describe('Entity Deduplication & Registration', () => {
             expect(result.length).toBe(0); // Handled by text/binary collectors
         });
 
+        it('registers a numeric binary-sensor attribute as a numeric sensor', () => {
+            context.appState = {
+                entityStates: {
+                    'binary_sensor.knmi_sun': { state: 'off', attributes: { chance: 42 } }
+                }
+            };
+            const pages = [{ widgets: [{
+                type: 'sensor_text',
+                entity_id: 'binary_sensor.knmi_sun',
+                props: { attribute: 'chance' }
+            }] }];
+
+            const numericResult = collectNumericSensors(pages, context);
+            const textResult = collectTextSensors(pages, context);
+            const binaryResult = collectBinarySensors(pages, context);
+
+            expect(numericResult).toContain('  id: binary_sensor_knmi_sun_chance');
+            expect(numericResult).toContain('  attribute: chance');
+            expect(textResult).toEqual([]);
+            expect(binaryResult).toEqual([]);
+        });
+
         it('does not import action-only LVGL button entities as sensors', () => {
             const pages = [{
                 widgets: [

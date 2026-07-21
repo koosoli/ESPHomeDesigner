@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { YamlGenerator } from '../../js/io/adapters/yaml_generator.js';
 import { resolveAdapterProfile } from '../../js/io/adapters/esphome_adapter_profile.js';
-import { generateBinarySensorSection, generatePSRAMSection } from '../../js/io/hardware_generators.js';
+import { generateBinarySensorSection, generateOutputSection, generatePSRAMSection } from '../../js/io/hardware_generators.js';
 
 const fetchDynamicHardwareProfilesMock = vi.fn(async () => []);
 const getOfflineProfilesFromStorageMock = vi.fn(() => ({}));
@@ -43,9 +43,18 @@ describe('built-in device profiles', async () => {
         expect(profile.id).toBe('reterminal_e1001');
     });
 
-    it('uses the vendor E1001 model and avoids the E1003 IT8951 GPIO21 conflict', () => {
+    it('uses the vendor E1001 model and configures E1003 battery and touch hardware without GPIO21 conflicts', () => {
         expect(devices.DEVICE_PROFILES.reterminal_e1001.displayModel).toBe('7.50inv2p');
-        expect(devices.DEVICE_PROFILES.reterminal_e1003.pins.batteryEnable).toBeUndefined();
+        const e1003 = devices.DEVICE_PROFILES.reterminal_e1003;
+        expect(e1003.pins.batteryEnable).toBe('GPIO40');
+        expect(e1003.touch).toMatchObject({
+            platform: 'gt911',
+            i2c_id: 'bus_a',
+            address: '0x5D',
+            interrupt_pin: 'GPIO2',
+            reset_pin: 'GPIO48'
+        });
+        expect(generateOutputSection(e1003).join('\n')).toContain('pin: GPIO40\n    id: bsp_battery_enable\n    restore_mode: ALWAYS_ON');
     });
 
     it('excludes untested built-ins from the tested profile id list', () => {

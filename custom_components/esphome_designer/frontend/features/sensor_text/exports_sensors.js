@@ -1,7 +1,8 @@
 import { AppState } from '@core/state';
 import { getSensorPlatformLines } from '../../js/io/adapters/mqtt_helpers.js';
 import { makeSafeId } from '../../js/utils/export_helpers.js';
-import { HA_TEXT_DOMAINS } from './shared.js';
+import { getNestedValue } from '../../js/utils/helpers.js';
+import { HA_TEXT_DOMAINS, isStrictlyNumeric } from './shared.js';
 
 /** @typedef {Widget & { props?: Record<string, any>, entity_id?: string, entity_id_2?: string }} SensorTextWidget */
 
@@ -12,14 +13,16 @@ export const onExportTextSensors = (context) => {
         const { lines, widgets, isLvgl, pendingTriggers } = context;
         if (!widgets) return;
 
-        // Helper to check if an entity's current state is non-numeric
-        /** @param {string} eid */
-        const isEntityStateNonNumeric = (eid) => {
+        // Classify the selected value, rather than the parent entity state.
+        /** @param {string} eid @param {string} attribute */
+        const isEntityValueNonNumeric = (eid, attribute) => {
             if (!eid || !AppState?.entityStates) return false;
             const entityObj = AppState.entityStates[eid];
-            if (!entityObj || entityObj.state === undefined) return false;
-            const stateStr = String(entityObj.state);
-            return isNaN(parseFloat(stateStr)) || !isFinite(parseFloat(stateStr));
+            if (!entityObj) return false;
+            const attributeValue = attribute ? getNestedValue(entityObj.attributes, attribute) : undefined;
+            // Preserve the previous state-based fallback until HA supplies the attribute.
+            const value = attributeValue === undefined ? entityObj.state : attributeValue;
+            return value !== undefined && !isStrictlyNumeric(value);
         };
 
 
@@ -55,9 +58,8 @@ export const onExportTextSensors = (context) => {
             const entityId = (w.entity_id || "").trim();
             const mqttTopic = (p.mqtt_topic || "").trim();
 
-            // Auto-detect: check if entity has non-numeric state (like "pm25")
-            const isAutoText = !p.is_local_sensor && isEntityStateNonNumeric(entityId);
             const attribute = (p.attribute || "").trim();
+            const isAutoText = !p.is_local_sensor && isEntityValueNonNumeric(entityId, attribute);
 
             // For MQTT overrides, we register them as text sensors directly if there's no entityId,
             // or we piggypack on the normal HA text sensor flow if there is an entityId.
@@ -74,8 +76,8 @@ export const onExportTextSensors = (context) => {
 
             const entityId2 = (w.entity_id_2 || p.entity_id_2 || "").trim();
             if (entityId2) {
-                const isAutoText2 = !p.is_local_sensor && isEntityStateNonNumeric(entityId2);
                 const attribute2 = (p.attribute2 || "").trim();
+                const isAutoText2 = !p.is_local_sensor && isEntityValueNonNumeric(entityId2, attribute2);
                 // We don't have a secondary MQTT topic field for now, just entity ID. So mqtt_topic is empty.
                 if (entityId2.startsWith("weather.")) {
                     weatherEntities.add(JSON.stringify({ entity_id: entityId2, attribute: attribute2 }));
@@ -158,14 +160,14 @@ export const onExportNumericSensors = (context) => {
         const { widgets, isLvgl, pendingTriggers } = context;
         if (!widgets) return;
 
-        // Helper to check if an entity's current state is non-numeric
-        /** @param {string} eid */
-        const isEntityStateNonNumeric = (eid) => {
+        /** @param {string} eid @param {string} attribute */
+        const isEntityValueNonNumeric = (eid, attribute) => {
             if (!eid || !AppState?.entityStates) return false;
             const entityObj = AppState.entityStates[eid];
-            if (!entityObj || entityObj.state === undefined) return false;
-            const stateStr = String(entityObj.state);
-            return isNaN(parseFloat(stateStr)) || !isFinite(parseFloat(stateStr));
+            if (!entityObj) return false;
+            const attributeValue = attribute ? getNestedValue(entityObj.attributes, attribute) : undefined;
+            const value = attributeValue === undefined ? entityObj.state : attributeValue;
+            return value !== undefined && !isStrictlyNumeric(value);
         };
 
         for (const w of /** @type {SensorTextWidget[]} */ (widgets)) {
@@ -174,14 +176,17 @@ export const onExportNumericSensors = (context) => {
             const p = w.props || {};
             if (p.is_local_sensor) continue;
 
-            const entities = /** @type {string[]} */ ([w.entity_id, w.entity_id_2].filter((/** @type {string | undefined} */ id) => !!id && !!id.trim()));
+            const entities = [
+                { id: w.entity_id, attribute: (p.attribute || "").trim() },
+                { id: w.entity_id_2, attribute: (p.attribute2 || "").trim() }
+            ].filter((source) => !!source.id && !!source.id.trim());
 
-            for (let eid of entities) {
-                eid = eid.trim();
+            for (const source of entities) {
+                let eid = source.id.trim();
 
                 // Skip if explicitly a text sensor, weather entity, or auto-detected as text
                 if (p.is_text_sensor || eid.startsWith("weather.") || eid.startsWith("text_sensor.")) continue;
-                if (isEntityStateNonNumeric(eid)) continue; // Skip auto-detected text sensors
+                if (isEntityValueNonNumeric(eid, source.attribute)) continue;
 
                 // Ensure sensor. prefix if missing
                 if (!eid.includes(".")) {

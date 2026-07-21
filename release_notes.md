@@ -1,3 +1,14 @@
+## v1.0.0 RC36 - Sensor Text and E1003 Hardware Completion
+**Release Date:** July 21, 2026
+
+### Fixes and Features
+- **Numeric Binary-Sensor Attributes (Issue #464):** Sensor Text now identifies the selected attribute type rather than the parent entity state. Numeric attributes on binary entities generate matching Home Assistant `sensor:` declarations instead of an unused text sensor.
+- **Custom Sensor Text Lambdas:** Sensor Text now provides a multiline custom C++ lambda field for Direct and LVGL ESPHome exports. The lambda returns the complete rendered text, enabling custom formatting and conditional output.
+- **E1003 Battery and Touch Profile (Issue #449):** The reTerminal E1003 profile now enables its battery divider on GPIO40 and includes the GT911 I2C, address, interrupt, and reset configuration required by the device.
+- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, visible header label, release notes, schema baseline, and rebuilt frontend assets for RC36.
+
+---
+
 ## v1.0.0 RC35 - Touch Fixes, Custom Date Format, and Hardware Updates
 **Release Date:** July 21, 2026
 

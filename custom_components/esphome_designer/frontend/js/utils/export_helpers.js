@@ -64,7 +64,15 @@ export function isEntityStateNonNumeric(eid, appState = null, attr = null) {
     const entityObj = state.entityStates[eid];
     if (!entityObj) return false;
 
-    const val = attr ? entityObj.attributes?.[attr] : entityObj.state;
+    let val = entityObj.state;
+    if (attr) {
+        // Attributes may be nested (for example, forecast.daily[0].chance).
+        val = String(attr)
+            .replace(/\[(\d+)\]/g, '.$1')
+            .split('.')
+            .filter(Boolean)
+            .reduce((current, key) => current?.[key], entityObj.attributes);
+    }
     if (val === undefined || val === null) return false;
 
     const str = String(val).trim();

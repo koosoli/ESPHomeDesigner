@@ -51,6 +51,7 @@ export default {
         hide_unit: false,
         is_local_sensor: false,
         is_text_sensor: false,
+        custom_text_lambda: "",
         separator: " ~ ",
         truncate: false
     },

@@ -202,7 +202,7 @@ export function generateSystemSections(profile, layout) {
         }
 
         if (profile.battery && profile.pins && profile.pins.batteryEnable) {
-            lines.push("#       - output.turn_on: bsp_battery_enable");
+            lines.push(`#       - ${profile.batteryEnableAlwaysOn ? "switch.turn_on" : "output.turn_on"}: bsp_battery_enable`);
         }
         if (profile.m5paper?.main_power_pin || profile.pins?.main_power_pin) {
             lines.push("#       - output.turn_on: main_power");

@@ -390,8 +390,21 @@ export function generateOutputSection(profile) {
     const hasM5Power = !!(profile?.m5paper?.main_power_pin || profile?.pins?.main_power_pin || profile?.m5paper?.battery_power_pin || profile?.pins?.battery_power_pin);
     if (!profile || !profile.pins || (!profile.pins.batteryEnable && !profile.pins.buzzer && !hasM5Power)) return lines;
 
-    lines.push("output:");
-    if (profile.pins.batteryEnable) {
+    const batteryEnableAlwaysOn = !!profile.batteryEnableAlwaysOn;
+    const needsOutput = (!batteryEnableAlwaysOn && profile.pins.batteryEnable) || profile.pins.buzzer || hasM5Power;
+
+    if (batteryEnableAlwaysOn && profile.pins.batteryEnable) {
+        lines.push("switch:");
+        lines.push("  - platform: gpio");
+        lines.push(`    pin: ${profile.pins.batteryEnable}`);
+        lines.push("    id: bsp_battery_enable");
+        lines.push("    restore_mode: ALWAYS_ON");
+        lines.push("    internal: true");
+        lines.push("");
+    }
+
+    if (needsOutput) lines.push("output:");
+    if (!batteryEnableAlwaysOn && profile.pins.batteryEnable) {
         lines.push("  - platform: gpio"); // Use standard gpio output
         if (typeof profile.pins.batteryEnable === 'object') {
             lines.push("    pin:");
@@ -410,21 +423,21 @@ export function generateOutputSection(profile) {
 
     // M5Paper / Device-specific main power pins
     if (profile.m5paper?.main_power_pin || profile.pins?.main_power_pin) {
-        if (profile.pins.batteryEnable) lines.push("");
+        if (!batteryEnableAlwaysOn && profile.pins.batteryEnable) lines.push("");
         lines.push("  - platform: gpio");
         lines.push(`    pin: ${profile.m5paper?.main_power_pin || profile.pins.main_power_pin}`);
         lines.push("    id: main_power");
     }
 
     if (profile.m5paper?.battery_power_pin || profile.pins?.battery_power_pin) {
-        if (profile.pins.batteryEnable || profile.m5paper?.main_power_pin) lines.push("");
+        if ((!batteryEnableAlwaysOn && profile.pins.batteryEnable) || profile.m5paper?.main_power_pin) lines.push("");
         lines.push("  - platform: gpio");
         lines.push(`    pin: ${profile.m5paper?.battery_power_pin || profile.pins.battery_power_pin}`);
         lines.push("    id: battery_power");
     }
 
     if (profile.pins.buzzer) {
-        if (profile.pins.batteryEnable) lines.push("");
+        if ((!batteryEnableAlwaysOn && profile.pins.batteryEnable) || hasM5Power) lines.push("");
         lines.push("  - platform: ledc");
         lines.push(`    pin: ${profile.pins.buzzer}`);
         lines.push("    id: buzzer_output");

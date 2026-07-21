@@ -102,6 +102,7 @@ export const DEVICE_PROFILES = {
     pins: {
       i2c: { sda: "GPIO19", scl: "GPIO20" },
       spi: { clk: "GPIO7", mosi: "GPIO9", miso: "GPIO8" },
+      batteryEnable: "GPIO40",
       batteryAdc: "GPIO1",
       buzzer: "GPIO45",
       buttons: { left: "GPIO5", right: "GPIO4", refresh: "GPIO3" }
@@ -111,6 +112,7 @@ export const DEVICE_PROFILES = {
       multiplier: 2.0,
       calibration: { min: 3.27, max: 4.15 }
     },
+    batteryEnableAlwaysOn: true,
     features: {
       psram: true,
       buzzer: true,
@@ -120,7 +122,13 @@ export const DEVICE_PROFILES = {
       touch: true,
       inverted_colors: false
     },
-    touch: { platform: "gt911" }
+    touch: {
+      platform: "gt911",
+      i2c_id: "bus_a",
+      address: "0x5D",
+      interrupt_pin: "GPIO2",
+      reset_pin: "GPIO48"
+    }
   },
   reterminal_e1004: {
     name: "Seeedstudio reTerminal E1004 13.3\" (Spectra 6)",

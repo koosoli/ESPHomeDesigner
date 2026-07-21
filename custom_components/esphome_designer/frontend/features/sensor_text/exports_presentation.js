@@ -13,6 +13,7 @@ import { HA_TEXT_DOMAINS, hexToRgb, isColorDisplay, isStrictlyNumeric } from './
  */
 export const exportLVGL = (w, { common, convertColor, _convertAlign, getLVGLFont, formatOpacity, profile }) => {
         const p = w.props || {};
+        const customTextLambda = String(p.custom_text_lambda || "").trim();
         const format = p.value_format || "label_value";
         let entityId = (w.entity_id || "").trim();
         let entityId2 = (w.entity_id_2 || "").trim();
@@ -157,7 +158,9 @@ export const exportLVGL = (w, { common, convertColor, _convertAlign, getLVGLFont
 
         // Generate Lambda
         let textLambda;
-        if (!entityId && !p.is_local_sensor) {
+        if (customTextLambda) {
+            textLambda = `!lambda |-\n${customTextLambda.split(/\r?\n/).map((line) => `          ${line}`).join('\n')}`;
+        } else if (!entityId && !p.is_local_sensor) {
             textLambda = `"${titleEsc}"`;
         } else if (args) {
             // Use floating point buffer size safety if needed, but return string directly via str_sprintf provided by ESPHome

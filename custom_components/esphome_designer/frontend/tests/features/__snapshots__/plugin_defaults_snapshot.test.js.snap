@@ -837,6 +837,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of senso
   "bpp": 1,
   "color": "theme_auto",
   "custom_font_family": "",
+  "custom_text_lambda": "",
   "datetime_format": "",
   "dynamic_color_enabled": false,
   "dynamic_color_high": "#e74c3c",

@@ -15,6 +15,7 @@ export const exportDirect = (w, context) => {
         } = context;
 
         const p = w.props || {};
+        const customTextLambda = String(p.custom_text_lambda || "").trim();
         let entityId = (w.entity_id || "").trim();
         let entityId2 = (w.entity_id_2 || "").trim();
 
@@ -106,7 +107,7 @@ export const exportDirect = (w, context) => {
             }
         }
 
-        if (!entityId && !p.is_local_sensor) {
+        if (!entityId && !p.is_local_sensor && !customTextLambda) {
             lines.push(`        // Sensor ID missing for this widget`);
             return;
         }
@@ -208,6 +209,21 @@ export const exportDirect = (w, context) => {
 
         if (textAlign.includes("BOTTOM")) yVal = Math.round(w.y + w.height);
         else if (!textAlign.includes("TOP")) yVal = Math.round(w.y + w.height / 2); // Middle
+
+        if (customTextLambda) {
+            lines.push(`        {`);
+            lines.push(`          const std::string custom_text = [&]() -> std::string {`);
+            customTextLambda.split(/\r?\n/).forEach((line) => lines.push(`            ${line}`));
+            lines.push(`          }();`);
+            if (w.width && w.width > 50) {
+                lines.push(`          print_wrapped_text(${xVal}, ${yVal}, ${w.width}, ${valueFS + 4}, id(${valueFontId}), ${color}, ${valueAlign}, custom_text.c_str());`);
+            } else {
+                lines.push(`          it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${color}, ${valueAlign}, "%s", custom_text.c_str());`);
+            }
+            lines.push(`        }`);
+            if (cond) lines.push(`        }`);
+            return;
+        }
 
         // Determine format string for values
         // When unit is exported separately (different font/align), omit it from the main format string

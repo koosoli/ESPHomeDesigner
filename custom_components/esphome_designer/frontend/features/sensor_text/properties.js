@@ -72,6 +72,8 @@ export const renderProperties = (panel, widget) => {
     panel.addLabeledInputWithDataList("Postfix", "text", props.postfix || "", [" kWh", " W", " V", " A", " Â°C", " %", " ppm", " lx"], setTextProp("postfix"));
     panel.addLabeledInput("Unit (Manual helper)", "text", props.unit || "", setTextProp("unit"));
     panel.addCheckbox("Hide default unit", !!props.hide_unit, setBoolProp("hide_unit"));
+    panel.addLabeledInput("Custom Text Lambda (ESPHome C++)", "textarea", props.custom_text_lambda || "", setTextProp("custom_text_lambda"));
+    panel.addHint("Optional Direct/LVGL lambda body. Return the complete text as std::string; it overrides entity and format settings.");
     panel.endSection();
 
     panel.createSection("Appearance", true);
