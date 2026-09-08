@@ -19,7 +19,10 @@ try:
         ESPHomeDesignerStaticView,
         get_panel_module_url,
     )
-    from custom_components.esphome_designer.api.hardware import ReTerminalHardwarePackageView
+    from custom_components.esphome_designer.api.hardware import (
+        ReTerminalHardwareListView,
+        ReTerminalHardwarePackageView,
+    )
     HAS_HTTP_PANEL_TEST_DEPS = True
 except ModuleNotFoundError:
     HAS_HTTP_PANEL_TEST_DEPS = False
@@ -152,3 +155,34 @@ class HttpPanelFlowTests(unittest.IsolatedAsyncioTestCase):
         auth = await client.get(url, headers={"X-Test-Auth": "1"})
         self.assertEqual(auth.status, 200)
         self.assertEqual(await auth.text(), "display:\n  - platform: ili9xxx\n")
+
+    async def test_hardware_templates_api_detects_touchscreen(self):
+        custom_profiles_dir = Path(self.hass.config.path("esphomedesigner_custom_profiles"))
+        custom_profiles_dir.mkdir(parents=True, exist_ok=True)
+        profile_path = custom_profiles_dir / "touch_profile.yaml"
+        profile_path.write_text(
+            "# Name: Test Custom Touch Device\n"
+            "display:\n"
+            "  - platform: ili9xxx\n"
+            "touchscreen:\n"
+            "  - platform: gt911\n"
+            "    id: custom_touch\n"
+            "    interrupt_pin: GPIO47\n",
+            encoding="utf-8",
+        )
+
+        client = await self._make_client(ReTerminalHardwareListView(self.hass))
+        url = "/api/esphome_designer/hardware/templates"
+
+        auth = await client.get(url, headers={"X-Test-Auth": "1"})
+        self.assertEqual(auth.status, 200)
+        data = await auth.json()
+        matching = [t for t in data.get("templates", []) if t.get("id") == "custom_touch_profile"]
+        self.assertEqual(len(matching), 1)
+        tmpl = matching[0]
+        self.assertTrue(tmpl["features"]["touch"])
+        self.assertEqual(tmpl["touch"], {
+            "platform": "gt911",
+            "id": "custom_touch",
+            "interrupt_pin": "GPIO47",
+        })

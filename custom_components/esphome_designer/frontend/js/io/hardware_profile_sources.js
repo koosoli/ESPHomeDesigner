@@ -218,7 +218,31 @@ export function parseHardwareRecipeClientSide(yaml, filename) {
     const invertColorsMatch = displayBlock.match(/^\s*invert_colors:\s*(true|false)/mi);
     const invertColors = invertColorsMatch ? invertColorsMatch[1].toLowerCase() === 'true' : undefined;
 
-    return {
+    const touchBlock = extractTopLevelYamlBlock(yaml, 'touchscreen');
+    let touch = undefined;
+    if (touchBlock) {
+        const touchPlatformMatch = touchBlock.match(/^\s*-\s*platform:\s*([a-z0-9_]+)/m) || touchBlock.match(/^\s*platform:\s*([a-z0-9_]+)/m);
+        const touchIdMatch = touchBlock.match(/^\s*id:\s*([a-z0-9_]+)/m);
+        const touchI2cMatch = touchBlock.match(/^\s*i2c_id:\s*([a-z0-9_]+)/m);
+        const touchAddrMatch = touchBlock.match(/^\s*address:\s*(0x[0-9a-fA-F]+|\d+)/m);
+        const touchIntMatch = touchBlock.match(/^\s*interrupt_pin:\s*(\S+)/m);
+        const touchResetMatch = touchBlock.match(/^\s*reset_pin:\s*(\S+)/m);
+
+        const touchCfg = {};
+        if (touchPlatformMatch) touchCfg.platform = touchPlatformMatch[1].trim();
+        if (touchIdMatch) touchCfg.id = touchIdMatch[1].trim();
+        if (touchI2cMatch) touchCfg.i2c_id = touchI2cMatch[1].trim();
+        if (touchAddrMatch) touchCfg.address = touchAddrMatch[1].trim();
+        if (touchIntMatch) touchCfg.interrupt_pin = touchIntMatch[1].trim();
+        if (touchResetMatch) touchCfg.reset_pin = touchResetMatch[1].trim();
+
+        if (Object.keys(touchCfg).length > 0) {
+            touch = touchCfg;
+        }
+    }
+
+    /** @type {HardwareProfileLike & { touch?: Record<string, any> }} */
+    const profile = {
         id,
         name,
         resolution: { width, height },
@@ -239,10 +263,16 @@ export function parseHardwareRecipeClientSide(yaml, filename) {
             lcd: !yaml.includes('waveshare_epaper') && !yaml.includes('epaper_spi') && !yaml.includes('it8951'),
             lvgl: yaml.includes('lvgl:') || (!yaml.includes('waveshare_epaper') && !yaml.includes('epaper_spi') && !yaml.includes('it8951')),
             epaper: yaml.includes('waveshare_epaper') || yaml.includes('epaper_spi') || yaml.includes('it8951'),
-            touch: yaml.includes('touchscreen:'),
+            touch: !!touch || yaml.includes('touchscreen:'),
             inverted_colors: isInverted
         }
     };
+
+    if (touch) {
+        profile.touch = touch;
+    }
+
+    return profile;
 }
 
 /**

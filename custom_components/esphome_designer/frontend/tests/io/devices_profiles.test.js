@@ -178,6 +178,30 @@ describe('built-in device profiles', async () => {
         expect(devices.SUPPORTED_DEVICE_IDS).toContain('reterminal_e1004');
     });
 
+    it('includes the Seeed Studio reTerminal Sticky touch e-paper profile', () => {
+        const profile = devices.DEVICE_PROFILES.seeedstudio_reterminal_sticky;
+
+        expect(profile).toMatchObject({
+            name: 'Seeed Studio reTerminal Sticky',
+            displayType: 'grayscale',
+            chip: 'esp32-s3',
+            board: 'esp32-s3-devkitc-1',
+            displayPlatform: 'epaper_spi',
+            displayModel: 'seeed-reterminal-sticky',
+            hardwarePackage: 'hardware/seeedstudio-reterminal-sticky.yaml',
+            resolution: { width: 800, height: 480 }
+        });
+        expect(profile.features.epaper).toBe(true);
+        expect(profile.features.touch).toBe(true);
+        expect(profile.features.psram).toBe(true);
+        expect(profile.touch).toMatchObject({
+            platform: 'gt911',
+            interrupt_pin: 'GPIO21',
+            reset_pin: 'GPIO41'
+        });
+        expect(devices.SUPPORTED_DEVICE_IDS).toContain('seeedstudio_reterminal_sticky');
+    });
+
     it('includes verified E1003, Pico, and Elecrow P4 profiles', () => {
         const e1003 = devices.DEVICE_PROFILES.reterminal_e1003;
         const picoW = devices.DEVICE_PROFILES.raspberry_pi_pico_w_waveshare_2_13_v3;
@@ -302,5 +326,21 @@ describe('built-in device profiles', async () => {
         expect(scriptLines.join('\n')).not.toContain('bool is_sleep_time = false;');
         expect(scriptLines.join('\n')).not.toContain('int start = 0;');
         expect(scriptLines.join('\n')).not.toContain('int end = 0;');
+    });
+
+    it('registers the Waveshare ESP32-S3 Touch Round LCD 1.28 profile with round shape and touch', () => {
+        const profile = devices.DEVICE_PROFILES.waveshare_esp32_s3_touch_round_lcd_1_28;
+        expect(profile).toBeDefined();
+        expect(profile.name).toBe('Waveshare Touch Round LCD 1.28" 240x240');
+        expect(profile.shape).toBe('round');
+        expect(profile.resolution).toEqual({ width: 240, height: 240 });
+        expect(profile.displayPlatform).toBe('ili9xxx');
+        expect(profile.displayModel).toBe('GC9A01A');
+        expect(profile.touch).toEqual({
+            platform: 'cst816',
+            id: 'my_touchscreen'
+        });
+        expect(profile.features.touch).toBe(true);
+        expect(devices.SUPPORTED_DEVICE_IDS).toContain('waveshare_esp32_s3_touch_round_lcd_1_28');
     });
 });

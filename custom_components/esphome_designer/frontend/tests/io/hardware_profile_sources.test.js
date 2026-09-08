@@ -1,14 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { parseHardwareRecipeClientSide } from '../../js/io/hardware_profile_sources.js';
+import touchAreaPlugin from '../../features/touch_area/plugin.js';
 import geekMagicMiniYaml from '../../hardware/geekmagic-mini-esp8266.yaml?raw';
 import geekMagicProYaml from '../../hardware/geekmagic-pro-esp32.yaml?raw';
 import guitionP4Yaml from '../../hardware/guition-esp32-p4-jc4880p443.yaml?raw';
 import guitionP4LargeYaml from '../../hardware/guition-esp32-p4-jc8012p4a1c.yaml?raw';
 import elecrowP4Yaml from '../../hardware/elecrow-esp32-p4-9inch-v1.2.yaml?raw';
 import reterminalD1001Yaml from '../../hardware/seeedstudio-reterminal-d1001.yaml?raw';
+import reterminalStickyYaml from '../../hardware/seeedstudio-reterminal-sticky.yaml?raw';
 import m5stackTab5Yaml from '../../hardware/m5stack-tab5.yaml?raw';
 import sunton2432s028Yaml from '../../hardware/sunton-esp32-2432s028.yaml?raw';
 import sunton2432s028RYaml from '../../hardware/sunton-esp32-2432s028R.yaml?raw';
+import waveshareRound128Yaml from '../../hardware/waveshare-esp32-s3-touch-round-lcd-1.28.yaml?raw';
 
 describe('hardware_profile_sources', () => {
     it('parses the ViewDisplay round TFT knob recipe metadata and features', () => {
@@ -47,6 +50,7 @@ touchscreen:
         expect(profile.features.psram).toBe(true);
         expect(profile.features.lcd).toBe(true);
         expect(profile.features.touch).toBe(true);
+        expect(profile.touch).toEqual({ platform: 'cst816', id: 'my_touchscreen' });
         expect(profile.features.epaper).toBe(false);
         expect(profile.hardwarePackage).toBeUndefined();
     });
@@ -254,5 +258,111 @@ display:
       height: 240
       width: 320`);
         }
+    });
+
+    it('parses the Seeed Studio reTerminal Sticky bundled recipe', () => {
+        expect(reterminalStickyYaml).toContain('model: seeed-reterminal-sticky');
+        expect(reterminalStickyYaml).toContain('platform: epaper_spi');
+        expect(reterminalStickyYaml).toContain('platform: gt911');
+        expect(reterminalStickyYaml).toContain('pin: GPIO45');
+        expect(reterminalStickyYaml).toContain('pin: GPIO46');
+
+        const profile = parseHardwareRecipeClientSide(reterminalStickyYaml, 'seeedstudio-reterminal-sticky.yaml');
+
+        expect(profile.name).toBe('Seeed Studio reTerminal Sticky');
+        expect(profile.resolution).toEqual({ width: 800, height: 480 });
+        expect(profile.chip).toBe('esp32-s3');
+        expect(profile.board).toBe('esp32-s3-devkitc-1');
+        expect(profile.displayPlatform).toBe('epaper_spi');
+        expect(profile.displayModel).toBe('seeed-reterminal-sticky');
+        expect(profile.features.psram).toBe(true);
+        expect(profile.features.touch).toBe(true);
+        expect(profile.features.epaper).toBe(true);
+        expect(profile.features.lcd).toBe(false);
+        expect(profile.touch).toEqual({
+            platform: 'gt911',
+            id: 'device_touchscreen',
+            i2c_id: 'i2c_touch',
+            interrupt_pin: 'GPIO21',
+            reset_pin: 'GPIO41'
+        });
+    });
+
+    it('populates profile.touch for custom hardware recipes and enables touch_area export (Issue #502)', () => {
+        const customYaml = `
+# Name: LILYGO T5 4.7
+# Resolution: 960x540
+display:
+  - platform: t547
+    id: epaper_display
+touchscreen:
+  - platform: gt911
+    id: my_touchscreen
+    i2c_id: bus_a
+    interrupt_pin: GPIO47
+`;
+        const profile = parseHardwareRecipeClientSide(customYaml, 'lilygo-t5.yaml');
+        expect(profile.features.touch).toBe(true);
+        expect(profile.touch).toEqual({
+            platform: 'gt911',
+            id: 'my_touchscreen',
+            i2c_id: 'bus_a',
+            interrupt_pin: 'GPIO47'
+        });
+
+        const exportContext = {
+            lines: [],
+            widgets: [
+                {
+                    id: 'touch_1',
+                    type: 'touch_area',
+                    x: 10,
+                    y: 20,
+                    width: 50,
+                    height: 50,
+                    props: { nav_action: 'next_page' }
+                },
+                {
+                    id: 'touch_2',
+                    type: 'touch_area',
+                    _pageIndex: 1,
+                    x: 10,
+                    y: 20,
+                    width: 50,
+                    height: 50,
+                    props: { nav_action: 'previous_page' }
+                }
+            ],
+            profile
+        };
+        touchAreaPlugin.onExportBinarySensors(exportContext);
+        expect(exportContext.lines.length).toBeGreaterThan(0);
+        expect(exportContext.lines).toContain('- platform: touchscreen');
+        expect(exportContext.lines).toContain('  touchscreen_id: my_touchscreen');
+    });
+
+    it('parses the Waveshare Touch Round LCD 1.28 bundled recipe', () => {
+        expect(waveshareRound128Yaml).toContain('model: GC9A01A');
+        expect(waveshareRound128Yaml).toContain('platform: ili9xxx');
+        expect(waveshareRound128Yaml).toContain('platform: cst816');
+
+        const profile = parseHardwareRecipeClientSide(waveshareRound128Yaml, 'waveshare-esp32-s3-touch-round-lcd-1.28.yaml');
+
+        expect(profile.name).toBe('Waveshare Touch Round LCD 1.28"');
+        expect(profile.resolution).toEqual({ width: 240, height: 240 });
+        expect(profile.shape).toBe('round');
+        expect(profile.chip).toBe('esp32-s3');
+        expect(profile.board).toBe('waveshare_esp32s3_touch_lcd_128');
+        expect(profile.displayPlatform).toBe('ili9xxx');
+        expect(profile.displayModel).toBe('GC9A01A');
+        expect(profile.features.psram).toBe(true);
+        expect(profile.features.touch).toBe(true);
+        expect(profile.features.lcd).toBe(true);
+        expect(profile.touch).toEqual({
+            platform: 'cst816',
+            id: 'my_touchscreen',
+            interrupt_pin: '$tpintpin',
+            reset_pin: '$tprstpin'
+        });
     });
 });
