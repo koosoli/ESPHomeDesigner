@@ -40,6 +40,9 @@ export function syncSnippetModeUi(adapterName) {
     const copyODPBtn = document.getElementById('copyODPServiceBtn');
     if (copyODPBtn) copyODPBtn.style.display = isODP ? 'inline-block' : 'none';
 
+    const copyODPPayloadBtn = document.getElementById('copyODPPayloadBtn');
+    if (copyODPPayloadBtn) copyODPPayloadBtn.style.display = (isODP || isOEPL) ? 'inline-block' : 'none';
+
     const copyUiYamlBtn = document.getElementById('copyUiYamlBtn');
     if (copyUiYamlBtn) copyUiYamlBtn.style.display = (isOEPL || isODP || isC) ? 'none' : 'inline-block';
 

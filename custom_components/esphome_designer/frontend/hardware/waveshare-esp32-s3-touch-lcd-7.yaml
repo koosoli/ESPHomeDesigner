@@ -43,8 +43,6 @@ esphome:
   project:
     name: "Waveshare.ESP32-S3-touch-lcd-7"
     version: "1.0"
-  platformio_options:
-    board_upload.maximum_ram_size: 524288
   # Fix Issue #80: Call display refresh script on boot to prevent black screen
   on_boot:
     priority: 600

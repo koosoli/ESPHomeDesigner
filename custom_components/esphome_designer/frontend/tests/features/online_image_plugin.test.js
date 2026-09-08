@@ -165,7 +165,7 @@ describe('online_image plugin', () => {
             image: {
                 id: 'base',
                 src: 'online_img_image_1',
-                angle: 90,
+                rotation: 90,
                 pivot_x: 0,
                 pivot_y: 0,
                 image_recolor_opa: 'transp'

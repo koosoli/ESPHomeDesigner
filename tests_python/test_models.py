@@ -222,3 +222,36 @@ class ModelParsingTests(unittest.TestCase):
             serialized["pages"][0]["widgets"][0]["props"],
             {"text": "Hello"},
         )
+
+    def test_opendisplay_settings_roundtrip_and_aliases(self):
+        source = {
+            "device_id": "test_odp",
+            "api_token": "token123",
+            "rendering_mode": "opendisplay",
+            "opendisplayDeviceId": "95b2d0433f2c26d08088d6296a00a70d",
+            "opendisplayDither": 4,
+            "opendisplayTtl": 120,
+        }
+
+        device = self.models.DeviceConfig.from_dict(source)
+        serialized = device.to_dict()
+
+        self.assertEqual(serialized["opendisplay_device_id"], "95b2d0433f2c26d08088d6296a00a70d")
+        self.assertEqual(serialized["opendisplay_entity_id"], "95b2d0433f2c26d08088d6296a00a70d")
+        self.assertEqual(serialized["opendisplay_dither"], 4)
+        self.assertEqual(serialized["opendisplay_ttl"], 120)
+
+        # Also verify alias fallback (odp_device_id / odpDither / odpTtl)
+        alias_source = {
+            "device_id": "test_alias",
+            "api_token": "token123",
+            "odp_device_id": "alias_device_42",
+            "odpDither": 3,
+            "odpTtl": 45,
+        }
+        device_alias = self.models.DeviceConfig.from_dict(alias_source)
+        serialized_alias = device_alias.to_dict()
+
+        self.assertEqual(serialized_alias["opendisplay_device_id"], "alias_device_42")
+        self.assertEqual(serialized_alias["opendisplay_dither"], 3)
+        self.assertEqual(serialized_alias["opendisplay_ttl"], 45)

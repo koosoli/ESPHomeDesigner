@@ -29,9 +29,15 @@ type AppSettingsSnapshot = UnknownRecord & {
     oeplEntityId?: string;
     oeplDither?: number;
     opendisplayDeviceId?: string;
+    opendisplay_device_id?: string;
+    odpDeviceId?: string;
+    odp_device_id?: string;
     opendisplayEntityId?: string;
+    opendisplay_entity_id?: string;
     opendisplayDither?: number;
+    opendisplay_dither?: number;
     opendisplayTtl?: number;
+    opendisplay_ttl?: number;
 };
 type ManualYamlOverrideOptions = {
     emitStateChange?: boolean;
@@ -224,6 +230,25 @@ export class AppStateFacade {
         payload.device_model = this.project.deviceModel || undefined;
         payload.custom_hardware = this.project.customHardware as HardwareSettings | undefined;
         payload.protocol_hardware = this.project.protocolHardware as Record<string, any> | undefined;
+
+        const odpDeviceId = this.settings.opendisplayDeviceId || this.settings.odpDeviceId || this.settings.opendisplay_device_id || this.settings.odp_device_id || '';
+        (payload as any).opendisplayDeviceId = odpDeviceId;
+        (payload as any).opendisplay_device_id = odpDeviceId;
+        (payload as any).odpDeviceId = odpDeviceId;
+        (payload as any).odp_device_id = odpDeviceId;
+
+        const odpEntityId = this.settings.opendisplayEntityId || odpDeviceId;
+        (payload as any).opendisplayEntityId = odpEntityId;
+        (payload as any).opendisplay_entity_id = odpEntityId;
+
+        const odpDither = this.settings.opendisplayDither ?? this.settings.opendisplay_dither ?? 2;
+        (payload as any).opendisplayDither = odpDither;
+        (payload as any).opendisplay_dither = odpDither;
+
+        const odpTtl = this.settings.opendisplayTtl ?? this.settings.opendisplay_ttl ?? 60;
+        (payload as any).opendisplayTtl = odpTtl;
+        (payload as any).opendisplay_ttl = odpTtl;
+
         return payload;
     }
 

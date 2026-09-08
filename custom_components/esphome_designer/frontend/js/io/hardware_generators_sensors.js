@@ -47,7 +47,7 @@ export function generateSensorSection(profile, widgetSensorLines = [], _displayI
         lines.push("    update_interval: 60s");
     }
 
-    if (profile.features.sht3xd || profile.displayModel === "M5Paper" || (profile.name && profile.name.includes("M5Paper"))) {
+    if (profile.features.sht3xd || profile.displayModel === "M5Paper" || profile.displayModel === "m5stack-m5paper" || (profile.name && profile.name.includes("M5Paper"))) {
         lines.push("  - platform: sht3xd");
         lines.push("    address: 0x44");
         lines.push("    temperature:");

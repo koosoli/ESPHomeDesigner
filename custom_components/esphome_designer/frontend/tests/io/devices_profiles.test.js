@@ -239,6 +239,22 @@ describe('built-in device profiles', async () => {
         expect(devices.SUPPORTED_DEVICE_IDS).toContain('elecrow_esp32_p4_9inch_v1_2');
     });
 
+    it('configures M5Paper with official it8951 platform and no external components', () => {
+        const m5paper = devices.DEVICE_PROFILES.m5stack_paper;
+        expect(m5paper).toBeTruthy();
+        expect(m5paper).toMatchObject({
+            chip: 'esp32',
+            displayPlatform: 'it8951',
+            displayModel: 'm5stack-m5paper',
+            resolution: { width: 960, height: 540 }
+        });
+        expect(m5paper.external_components).toBeUndefined();
+        expect(m5paper.features.epaper).toBe(true);
+        expect(m5paper.features.touch).toBe(true);
+        expect(m5paper.touch).toMatchObject({ platform: 'gt911' });
+        expect(devices.SUPPORTED_DEVICE_IDS).toContain('m5stack_paper');
+    });
+
     it('includes the Seeed reTerminal D1001 P4 profile as an untested built-in', () => {
         const profile = devices.DEVICE_PROFILES.seeedstudio_reterminal_d1001;
 

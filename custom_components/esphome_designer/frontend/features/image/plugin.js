@@ -430,7 +430,7 @@ const exportLVGL = (w, { common }) => {
         image: {
             ...common,
             src,
-            angle: (p.rotation || 0),
+            rotation: (p.rotation || 0),
             image_recolor_opa: "transp"
         }
     };
@@ -457,7 +457,8 @@ const onExportComponents = (context) => {
             const transparency = resolveTransparency(props, imgType);
             const dither = normalizeString(props.dither) || "FLOYDSTEINBERG";
 
-            imageLines.push(`  - file: "${path}"`);
+            imageLines.push('  - platform: file');
+            imageLines.push(`    file: "${path}"`);
             imageLines.push(`    id: ${safeId}`);
             imageLines.push(`    type: ${imgType}`);
             imageLines.push(`    resize: ${w.width}x${w.height}`);

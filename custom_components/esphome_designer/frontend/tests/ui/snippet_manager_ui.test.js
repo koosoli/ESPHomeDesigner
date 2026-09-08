@@ -9,6 +9,7 @@ function seedDom() {
         <div class="code-panel-title"><button id="title-btn">X</button> Old</div>
         <button id="copyOEPLServiceBtn"></button>
         <button id="copyODPServiceBtn"></button>
+        <button id="copyODPPayloadBtn"></button>
         <button id="copyUiYamlBtn"></button>
         <button id="copyLambdaBtn"></button>
         <button id="updateLayoutBtn"></button>
@@ -26,6 +27,7 @@ describe('snippet_manager_ui', () => {
         expect(result).toEqual({ isOEPL: true, isODP: false, isC: false });
         expect(document.getElementById('oeplNotice')?.classList.contains('hidden')).toBe(false);
         expect(document.getElementById('copyOEPLServiceBtn')?.style.display).toBe('inline-block');
+        expect(document.getElementById('copyODPPayloadBtn')?.style.display).toBe('inline-block');
         expect(document.getElementById('copyUiYamlBtn')?.style.display).toBe('none');
         expect(document.getElementById('copyLambdaBtn')?.style.display).toBe('none');
         expect(document.querySelector('.code-panel-title')?.textContent).toContain('OpenEpaperLink JSON');
@@ -37,6 +39,7 @@ describe('snippet_manager_ui', () => {
         expect(result).toEqual({ isOEPL: false, isODP: true, isC: false });
         expect(document.getElementById('odpNotice')?.classList.contains('hidden')).toBe(false);
         expect(document.getElementById('copyODPServiceBtn')?.style.display).toBe('inline-block');
+        expect(document.getElementById('copyODPPayloadBtn')?.style.display).toBe('inline-block');
         expect(document.getElementById('copyUiYamlBtn')?.style.display).toBe('none');
         expect(document.querySelector('#odpNotice div')?.innerHTML).toContain('opendisplay.drawcustom');
         expect(document.querySelector('#odpNotice div')?.textContent).toContain('Developer Tools > Actions');

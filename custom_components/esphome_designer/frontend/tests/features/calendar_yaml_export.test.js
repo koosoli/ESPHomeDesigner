@@ -116,4 +116,24 @@ describe('calendar yaml export', () => {
         expect(output).toContain('auto draw_filled_rrect');
         expect(output).toContain('draw_filled_rrect(x, y, w, h, 10, COLOR_BLACK);');
     });
+
+    it('generates snippet lambda with weekday day prefix when event_day_format is weekday', () => {
+        const result = generateSnippet({
+            id: 'calendar_wk',
+            x: 0,
+            y: 0,
+            w: 320,
+            h: 240,
+            properties: {
+                show_header: false,
+                show_grid: false,
+                show_events: true,
+                event_day_format: 'weekday'
+            }
+        });
+
+        expect(result.lambda).toContain('const bool use_weekday = true;');
+        expect(result.lambda).toContain('dayEntry["day_name"]');
+        expect(result.lambda).toContain('it.printf(0 + 20, y_cursor, id(font_event_day), color_content, TextAlign::TOP_LEFT, "%s", day_name);');
+    });
 });

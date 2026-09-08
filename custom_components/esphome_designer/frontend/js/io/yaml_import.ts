@@ -95,7 +95,15 @@ const SNAKE_CASE_SETTING_MAP: Record<string, string> = {
     opendisplay_device_id: 'opendisplayDeviceId',
     opendisplay_entity_id: 'opendisplayEntityId',
     opendisplay_dither: 'opendisplayDither',
-    opendisplay_ttl: 'opendisplayTtl'
+    opendisplay_ttl: 'opendisplayTtl',
+    odp_device_id: 'opendisplayDeviceId',
+    odpDeviceId: 'opendisplayDeviceId',
+    odp_entity_id: 'opendisplayEntityId',
+    odpEntityId: 'opendisplayEntityId',
+    odp_dither: 'opendisplayDither',
+    odpDither: 'opendisplayDither',
+    odp_ttl: 'opendisplayTtl',
+    odpTtl: 'opendisplayTtl'
 };
 
 /**
@@ -577,7 +585,7 @@ export function loadLayoutIntoState(layout: ParsedLayout | null | undefined): vo
         'deepSleepEnabled', 'deepSleepInterval', 'deepSleepStayAwakeSwitch', 'deepSleepStayAwakeEntityId', 'deepSleepFirmwareGuard',
         'dailyRefreshEnabled', 'dailyRefreshTime',
         'noRefreshStartHour', 'noRefreshEndHour', 'oeplEntityId', 'oeplDither',
-        'opendisplayDeviceId',
+        'opendisplayDeviceId', 'opendisplay_device_id', 'odpDeviceId', 'odp_device_id',
         'opendisplayEntityId', 'opendisplayDither', 'opendisplayTtl', 'glyphsets',
         'extendedLatinGlyphs', 'editor_light_mode', 'snapEnabled', 'showGrid',
         'showDebugGrid', 'showRulers', 'gridOpacity',

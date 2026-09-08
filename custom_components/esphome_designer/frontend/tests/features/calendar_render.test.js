@@ -103,6 +103,35 @@ describe('calendar render', () => {
         expect(el.textContent).not.toContain('Later');
     });
 
+    it('renders live events from unstringified object entries', () => {
+        mockAppState.entityStates = {
+            'sensor.calendar_obj': {
+                attributes: {
+                    entries: {
+                        days: [
+                            {
+                                day: 17,
+                                other: [{ summary: 'Direct Obj Event', start: '2026-03-17T11:00:00', end: '2026-03-17T12:00:00' }]
+                            }
+                        ]
+                    }
+                }
+            }
+        };
+
+        const el = document.createElement('div');
+        render(el, {
+            entity_id: 'sensor.calendar_obj',
+            props: {
+                show_header: false,
+                show_grid: false
+            }
+        }, createContext());
+
+        expect(el.textContent).toContain('Direct Obj Event');
+        expect(el.textContent).toContain('11:00');
+    });
+
     it('can group event rows so repeated day numbers are only shown once per day', () => {
         mockAppState.entityStates = {
             'sensor.calendar_grouped': {
@@ -204,5 +233,69 @@ describe('calendar render', () => {
         expect(console.warn).toHaveBeenCalled();
         expect(el.innerHTML).toContain('Meeting with Team');
         expect(el.innerHTML).toContain('Dentist Appointment');
+    });
+
+    it('renders weekday prefix when event_day_format is set to weekday', () => {
+        mockAppState.entityStates = {
+            'sensor.calendar_weekday': {
+                attributes: {
+                    entries: JSON.stringify([
+                        {
+                            day: 17,
+                            day_name: 'Tue',
+                            all_day: [{ summary: 'Meeting', start: '', end: '' }],
+                            other: [{ summary: 'Call', start: '2026-03-17T14:00:00', end: '2026-03-17T15:00:00' }]
+                        },
+                        {
+                            day: 18,
+                            // day_name intentionally omitted to test fallback to dayNum
+                            other: [{ summary: 'Standup', start: '2026-03-18T10:00:00', end: '2026-03-18T10:30:00' }]
+                        }
+                    ])
+                }
+            }
+        };
+
+        const el = document.createElement('div');
+        render(el, {
+            entity_id: 'sensor.calendar_weekday',
+            props: {
+                show_header: false,
+                show_grid: false,
+                group_events_by_day: true,
+                event_day_format: 'weekday'
+            }
+        }, createContext());
+
+        const eventsPanel = /** @type {HTMLDivElement} */ (el.firstElementChild);
+        const rows = Array.from(eventsPanel.children);
+
+        expect(rows).toHaveLength(3);
+        // First row has Tue
+        expect(rows[0]?.textContent).toContain('Tue');
+        expect(rows[0]?.textContent).toContain('Meeting');
+        // Second row is grouped same day, so no prefix
+        expect(rows[1]?.textContent).not.toContain('Tue');
+        expect(rows[1]?.textContent).toContain('Call');
+        // Third row has no day_name, falls back to day 18
+        expect(rows[2]?.textContent).toContain('18');
+        expect(rows[2]?.textContent).toContain('Standup');
+    });
+
+    it('renders weekday prefix in fallback events when event_day_format is weekday', () => {
+        const el = document.createElement('div');
+        render(el, {
+            props: {
+                show_header: false,
+                show_grid: false,
+                event_day_format: 'weekday',
+                locale: 'en'
+            }
+        }, createContext());
+
+        expect(el.innerHTML).toContain('Meeting with Team');
+        expect(el.innerHTML).toContain('Dentist Appointment');
+        // System time is 2026-03-17 (Tuesday) -> Tue
+        expect(el.innerHTML).toContain('Tue');
     });
 });

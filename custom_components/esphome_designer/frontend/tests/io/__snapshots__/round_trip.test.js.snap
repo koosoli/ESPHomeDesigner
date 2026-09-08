@@ -286,54 +286,62 @@ display:
       auto color_off = COLOR_WHITE;
       auto color_on = COLOR_BLACK;
 
-      // Helper to print text with word-wrap at widget boundary
-      auto print_wrapped_text = [&](int x, int y, int max_w, int line_h, esphome::font::Font *font, Color color, TextAlign align, const char* text) {
+      // Helper to split text into wrapped lines at widget boundary
+      auto wrap_text_lines = [&](int max_w, esphome::font::Font *font, const char* text, std::vector<std::string> &lines) {
+        lines.clear();
         if (!text || max_w <= 0) return;
-        int cx = x;
-        int cy = y;
         std::string line;
         std::string word;
         const char* p = text;
+        auto commit_word = [&]() {
+          if (word.empty()) return;
+          std::string cand = line.empty() ? word : (line + " " + word);
+          int cw = 0, cx_b = 0, cbl = 0, ch = 0;
+          font->measure(cand.c_str(), &cw, &cx_b, &cbl, &ch);
+          if (cw > max_w && !line.empty()) {
+            lines.push_back(line);
+            line = word;
+          } else {
+            line = cand;
+          }
+          word.clear();
+        };
         while (*p) {
-          // SANITIZATION: Treat newlines, carriage returns, and tabs as spaces for flow
-          bool is_space = (*p == ' ' || *p == '\\n' || *p == '\\r' || *p == '\\t');
-          if (is_space) {
-            if (!word.empty()) {
-              int ww, wh, wbl, wx;
-              font->measure(word.c_str(), &ww, &wx, &wbl, &wh);
-              int lw = 0, lx;
-              if (!line.empty()) { font->measure(line.c_str(), &lw, &lx, &wbl, &wh); int sw, sx, sbl, sh; font->measure(" ", &sw, &sx, &sbl, &sh); lw += sw; }
-              if (lw + ww > max_w && !line.empty()) {
-                it.print(cx, cy, font, color, align, line.c_str());
-                cy += line_h;
-                line = word;
-              } else {
-                if (!line.empty()) line += " ";
-                line += word;
-              }
-              word.clear();
-            }
+          if (*p == '\\r') {
+            p++;
+            continue;
+          }
+          if (*p == '\\n') {
+            commit_word();
+            lines.push_back(line);
+            line.clear();
+          } else if (*p == ' ' || *p == '\\t') {
+            commit_word();
           } else {
             word += *p;
           }
           p++;
         }
-        if (!word.empty()) {
-          int ww, wh, wbl, wx;
-          font->measure(word.c_str(), &ww, &wx, &wbl, &wh);
-          int lw = 0, lx;
-          if (!line.empty()) { font->measure(line.c_str(), &lw, &lx, &wbl, &wh); int sw, sx, sbl, sh; font->measure(" ", &sw, &sx, &sbl, &sh); lw += sw; }
-          if (lw + ww > max_w && !line.empty()) {
-            it.print(cx, cy, font, color, align, line.c_str());
-            cy += line_h;
-            line = word;
-          } else {
-            if (!line.empty()) line += " ";
-            line += word;
-          }
-        }
+        commit_word();
         if (!line.empty()) {
-          it.print(cx, cy, font, color, align, line.c_str());
+          lines.push_back(line);
+        }
+      };
+
+      // Helper to print text with word-wrap at widget boundary
+      auto print_wrapped_text = [&](int x, int y, int max_w, int line_h, esphome::font::Font *font, Color color, TextAlign align, const char* text) {
+        std::vector<std::string> lines;
+        wrap_text_lines(max_w, font, text, lines);
+        if (lines.empty()) return;
+        int cy = y;
+        if (align == TextAlign::CENTER || align == TextAlign::CENTER_LEFT || align == TextAlign::CENTER_RIGHT) {
+          cy = y - ((int)lines.size() - 1) * line_h / 2;
+        } else if (align == TextAlign::BOTTOM_LEFT || align == TextAlign::BOTTOM_CENTER || align == TextAlign::BOTTOM_RIGHT) {
+          cy = y - ((int)lines.size() - 1) * line_h;
+        }
+        for (const auto &l : lines) {
+          it.print(x, cy, font, color, align, l.c_str());
+          cy += line_h;
         }
       };
 

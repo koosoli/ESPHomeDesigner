@@ -277,7 +277,16 @@ export const exportDirect = (w, context) => {
         }
 
         if (format === "label_only") {
-            lines.push(`        it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${colorVar}, ${labelAlign}, "${title}");`);
+            const useWrapping = w.width && w.width > 50;
+            if (useWrapping) {
+                const safeTitle = (title || "").replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\r/g, "").replace(/\n/g, "\\n");
+                const lineHeight = labelFS + 4;
+                if (!useDynamicColor) lines.push(`        {`);
+                lines.push(`          print_wrapped_text(${xVal}, ${yVal}, ${w.width}, ${lineHeight}, id(${labelFontId}), ${colorVar}, ${labelAlign}, "${safeTitle}");`);
+                if (!useDynamicColor) lines.push(`        }`);
+            } else {
+                lines.push(`        it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${colorVar}, ${labelAlign}, "${title}");`);
+            }
         } else if (format === "value_only" || format === "value_only_no_unit" || !title) {
             // Use runtime word-wrap if widget has meaningful width
             const useWrapping = w.width && w.width > 50 && !useUnitSplit;
@@ -378,15 +387,53 @@ export const exportDirect = (w, context) => {
                 lines.push(`        it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${colorVar}, ${valueAlign}, "${labelStr}${finalValFmt}", ${args});`);
             }
         } else if (format === "label_newline_value" || format === "label_newline_value_no_unit") {
-            // Vertical layout: calculate offsets for centering
-            // lineDist is the distance between the center/baseline of line 1 and line 2
-            const lineDist = labelFS + 4;
-            let yOff = 0;
-            if (textAlign.includes("BOTTOM")) yOff = -lineDist;
-            else if (!textAlign.includes("TOP")) yOff = -lineDist / 2;
+            const useWrapping = w.width && w.width > 50;
+            if (useWrapping) {
+                const safeTitle = (title || "").replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\r/g, "").replace(/\n/g, "\\n");
+                if (!useDynamicColor) lines.push(`        {`);
+                lines.push(`          char val_buf[512];`);
+                lines.push(`          sprintf(val_buf, "${finalValFmt}", ${args});`);
+                lines.push(`          std::vector<std::string> title_lines;`);
+                lines.push(`          std::vector<std::string> val_lines;`);
+                lines.push(`          wrap_text_lines(${w.width}, id(${labelFontId}), "${safeTitle}", title_lines);`);
+                lines.push(`          wrap_text_lines(${w.width}, id(${valueFontId}), val_buf, val_lines);`);
+                lines.push(`          int nl = title_lines.size();`);
+                lines.push(`          int nv = val_lines.size();`);
+                lines.push(`          int lh = ${labelFS + 4};`);
+                lines.push(`          int vh = ${valueFS + 4};`);
+                lines.push(`          int total_h = (nl > 0 ? (nl - 1) * lh : 0) + (nl > 0 && nv > 0 ? (lh + vh) / 2 : 0) + (nv > 0 ? (nv - 1) * vh : 0);`);
+                const isBottom = textAlign.includes("BOTTOM");
+                const isTop = textAlign.includes("TOP");
+                if (isBottom) {
+                    lines.push(`          int cur_y = ${yVal} - total_h;`);
+                } else if (!isTop) {
+                    lines.push(`          int cur_y = ${yVal} - total_h / 2;`);
+                } else {
+                    lines.push(`          int cur_y = ${yVal};`);
+                }
+                lines.push(`          for (const auto &l : title_lines) {`);
+                lines.push(`            it.print(${xVal}, cur_y, id(${labelFontId}), ${colorVar}, ${labelAlign}, l.c_str());`);
+                lines.push(`            cur_y += lh;`);
+                lines.push(`          }`);
+                lines.push(`          if (nl > 0 && nv > 0) {`);
+                lines.push(`            cur_y += (vh - lh) / 2;`);
+                lines.push(`          }`);
+                lines.push(`          for (const auto &l : val_lines) {`);
+                lines.push(`            it.print(${xVal}, cur_y, id(${valueFontId}), ${colorVar}, ${valueAlign}, l.c_str());`);
+                lines.push(`            cur_y += vh;`);
+                lines.push(`          }`);
+                if (!useDynamicColor) lines.push(`        }`);
+            } else {
+                // Vertical layout: calculate offsets for centering
+                // lineDist is the distance between the center/baseline of line 1 and line 2
+                const lineDist = labelFS + 4;
+                let yOff = 0;
+                if (textAlign.includes("BOTTOM")) yOff = -lineDist;
+                else if (!textAlign.includes("TOP")) yOff = -lineDist / 2;
 
-            lines.push(`        it.printf(${xVal}, ${yVal} + ${yOff}, id(${labelFontId}), ${colorVar}, ${labelAlign}, "${title}");`);
-            lines.push(`        it.printf(${xVal}, ${yVal} + ${yOff} + ${lineDist}, id(${valueFontId}), ${colorVar}, ${valueAlign}, "${finalValFmt}", ${args});`);
+                lines.push(`        it.printf(${xVal}, ${yVal} + ${yOff}, id(${labelFontId}), ${colorVar}, ${labelAlign}, "${title}");`);
+                lines.push(`        it.printf(${xVal}, ${yVal} + ${yOff} + ${lineDist}, id(${valueFontId}), ${colorVar}, ${valueAlign}, "${finalValFmt}", ${args});`);
+            }
         } else if (format === "value_label") {
             lines.push(`        it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${colorVar}, ${valueAlign}, "${finalValFmt}", ${args});`);
 

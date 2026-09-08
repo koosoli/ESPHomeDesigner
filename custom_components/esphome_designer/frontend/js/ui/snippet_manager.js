@@ -9,7 +9,7 @@ import { Logger } from '../utils/logger.js';
 import { showToast } from '../utils/dom.js';
 import { highlightWidgetInSnippet } from '../io/yaml_export.js';
 import { YamlHighlighter } from './yaml_highlighter.js';
-import { copyText, extractDisplayLambda, extractUiOnlyYaml, formatOEPLServiceYaml, setTemporaryButtonLabel } from './snippet_manager_clipboard.js';
+import { copyText, extractDisplayLambda, extractOpenDisplayPayload, extractUiOnlyYaml, formatOEPLServiceYaml, setTemporaryButtonLabel } from './snippet_manager_clipboard.js';
 import { syncSnippetModeUi } from './snippet_manager_ui.js';
 import { openSnippetModalEditor, handleImportSnippetEditor, handleUpdateLayoutFromSnippetBoxEditor } from './snippet_manager_editing.js';
 import { addBrowserEventListener, dispatchBrowserEvent } from '../utils/browser_runtime.js';
@@ -571,6 +571,14 @@ export class SnippetManager {
             });
         }
 
+        // Copy ODP/OEPL Payload Only Button
+        const copyODPPayloadBtn = getButton('copyODPPayloadBtn');
+        if (copyODPPayloadBtn) {
+            copyODPPayloadBtn.addEventListener('click', async () => {
+                await this.copyODPPayloadToClipboard(copyODPPayloadBtn);
+            });
+        }
+
         // Toggle YAML Panel
         const toggleYamlBtn = getButton('toggleYamlBtn');
         const codePanel = document.querySelector('.code-panel');
@@ -859,6 +867,27 @@ export class SnippetManager {
         } catch (err) {
             Logger.error("Failed to format/copy OEPL service:", err);
             showToast("Failed to format service call", "error");
+        }
+    }
+
+    /**
+     * Copies only the payload block (e.g. payload: list) to clipboard for ODP and OEPL.
+     * @param {HTMLButtonElement} btnElement
+     */
+    async copyODPPayloadToClipboard(btnElement) {
+        const snippetBox = getTextarea('snippetBox');
+        if (!snippetBox) return;
+
+        const text = snippetBox.value || "";
+
+        try {
+            const payloadText = extractOpenDisplayPayload(text);
+            await copyText(payloadText);
+            showToast("Payload copied to clipboard", "success");
+            setTemporaryButtonLabel(btnElement, "Copied!");
+        } catch (err) {
+            Logger.error("Copy payload failed:", err);
+            showToast(getErrorMessage(err) || "Unable to copy payload", "error");
         }
     }
 }

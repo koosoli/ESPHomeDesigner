@@ -212,6 +212,7 @@ export const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
         events.innerHTML = "";
         const limit = parseInt(String(props.max_events || props.event_limit || 8), 10);
         const groupEventsByDay = props.group_events_by_day === true;
+        const eventDayFormat = props.event_day_format || "day";
         let count = 0;
         let lastDrawnDay = null;
         for (const dayEntry of liveEvents) {
@@ -219,9 +220,9 @@ export const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
             const dayNum = dayEntry.day;
 
             /**
-             * @param {Record<string, any>} event
-             * @param {boolean} isAllDay
-             */
+              * @param {Record<string, any>} event
+              * @param {boolean} isAllDay
+              */
             const drawRow = (event, isAllDay) => {
                 if (count >= limit) return;
                 const summary = event.summary || "No Title";
@@ -231,16 +232,20 @@ export const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
                     timeText = start.split("T")[1].substring(0, 5);
                 }
                 const shouldDrawDay = !groupEventsByDay || dayNum !== lastDrawnDay;
-                const dayLabel = shouldDrawDay ? String(dayNum) : "";
+                const dayValue = eventDayFormat === "weekday"
+                    ? (dayEntry.day_name || String(dayNum))
+                    : String(dayNum);
+                const dayLabel = shouldDrawDay ? dayValue : "";
                 if (shouldDrawDay) {
                     lastDrawnDay = dayNum;
                 }
 
+                const prefixWidth = eventDayFormat === "weekday" ? "36px" : "25px";
                 const row = document.createElement("div");
                 row.style.marginBottom = "4px";
                 row.style.display = "flex";
                 row.style.justifyContent = "space-between";
-                row.innerHTML = `<span style="flex-shrink:0;width:25px;"><b>${dayLabel}</b></span>` +
+                row.innerHTML = `<span style="flex-shrink:0;min-width:${prefixWidth};margin-right:4px;"><b>${dayLabel}</b></span>` +
                     `<span style="flex-grow:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px;">${summary}</span>` +
                     `<span style="flex-shrink:0;opacity:0.7;font-size:0.9em;">${timeText}</span>`;
                 events.appendChild(row);
@@ -258,9 +263,15 @@ export const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
             timedEvents.forEach((event) => drawRow(event, false));
         }
     } else {
+        const eventDayFormat = props.event_day_format || "day";
+        const fallbackDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const nextDate = new Date(now);
+        nextDate.setDate(now.getDate() + 2);
+        const d1 = eventDayFormat === "weekday" ? fallbackDays[now.getDay()] : date;
+        const d2 = eventDayFormat === "weekday" ? fallbackDays[nextDate.getDay()] : Math.min(date + 2, daysInMonth);
         events.innerHTML = `
-            <div style="margin-bottom:4px;"><b>${date}</b> Meeting with Team</div>
-            <div><b>${Math.min(date + 2, daysInMonth)}</b> Dentist Appointment</div>
+            <div style="margin-bottom:4px;"><b>${d1}</b> Meeting with Team</div>
+            <div><b>${d2}</b> Dentist Appointment</div>
         `;
     }
 

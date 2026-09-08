@@ -136,13 +136,43 @@ describe('sensor_text export variants', () => {
         expect(output).toContain('print_wrapped_text(10 + w1, 20 +');
     });
 
-    it('exports direct-mode vertical layout with center/middle alignment', () => {
+    it('exports direct-mode vertical layout with center/middle alignment and wrapping', () => {
         const lines = [];
         exportDirect({
             id: 'sensor_vertical_center',
             x: 10,
             y: 20,
             width: 100,
+            height: 60,
+            entity_id: 'room_power',
+            title: 'Power',
+            props: {
+                value_format: 'label_newline_value',
+                label_font_size: 12,
+                value_font_size: 14,
+                text_align: 'MIDDLE_CENTER'
+            }
+        }, {
+            lines,
+            addFont: vi.fn(() => 'sensor_font'),
+            getColorConst: (value) => `Color(${value})`,
+            getConditionCheck: () => '',
+            profile: { name: 'Color Display' }
+        });
+
+        const output = lines.join('\n');
+        expect(output).toContain('wrap_text_lines(100, id(sensor_font), "Power", title_lines);');
+        expect(output).toContain('wrap_text_lines(100, id(sensor_font), val_buf, val_lines);');
+        expect(output).toContain('int cur_y = 50 - total_h / 2;');
+    });
+
+    it('exports direct-mode vertical layout unwrapped when width <= 50', () => {
+        const lines = [];
+        exportDirect({
+            id: 'sensor_vertical_narrow',
+            x: 10,
+            y: 20,
+            width: 40,
             height: 60,
             entity_id: 'room_power',
             title: 'Power',
@@ -892,5 +922,69 @@ describe('sensor_text export variants', () => {
         });
 
         expect(lines.join('\n')).toContain('%.0f °C ~ %.0f %%');
+    });
+
+    it('exports direct-mode label_newline_value wrapping multi-word title and escaping newlines (issue #497)', () => {
+        mockAppState.entityStates = {
+            'sensor.weather_warning': { state: 'yellow' }
+        };
+        const lines = [];
+        exportDirect({
+            id: 'weather_warning_widget',
+            x: 10,
+            y: 20,
+            width: 100,
+            height: 60,
+            entity_id: 'sensor.weather_warning',
+            title: 'Wetter Warnung',
+            props: {
+                value_format: 'label_newline_value',
+                label_font_size: 14,
+                value_font_size: 16,
+                text_align: 'CENTER',
+                is_text_sensor: true
+            }
+        }, {
+            lines,
+            addFont: (_f, _w, size) => `font_${size}`,
+            getColorConst: (v) => `Color(${v})`,
+            getConditionCheck: () => '',
+            profile: {}
+        });
+
+        const output = lines.join('\n');
+        expect(output).toContain('wrap_text_lines(100, id(font_14), "Wetter Warnung", title_lines);');
+        expect(output).toContain('wrap_text_lines(100, id(font_16), val_buf, val_lines);');
+        expect(output).toContain('int total_h = (nl > 0 ? (nl - 1) * lh : 0) + (nl > 0 && nv > 0 ? (lh + vh) / 2 : 0) + (nv > 0 ? (nv - 1) * vh : 0);');
+        expect(output).toContain('int cur_y = 50 - total_h / 2;');
+        expect(output).toContain('it.print(60, cur_y, id(font_14), Color(theme_auto), TextAlign::CENTER, l.c_str());');
+        expect(output).toContain('it.print(60, cur_y, id(font_16), Color(theme_auto), TextAlign::CENTER, l.c_str());');
+    });
+
+    it('exports direct-mode label_only with wrapping when width > 50', () => {
+        const lines = [];
+        exportDirect({
+            id: 'label_only_wrapped',
+            x: 0,
+            y: 0,
+            width: 120,
+            height: 40,
+            entity_id: 'sensor.dummy',
+            title: 'Long Heading Title That Wraps',
+            props: {
+                value_format: 'label_only',
+                label_font_size: 16,
+                text_align: 'TOP_LEFT'
+            }
+        }, {
+            lines,
+            addFont: (_f, _w, size) => `font_${size}`,
+            getColorConst: (v) => `Color(${v})`,
+            getConditionCheck: () => '',
+            profile: {}
+        });
+
+        const output = lines.join('\n');
+        expect(output).toContain('print_wrapped_text(0, 0, 120, 20, id(font_16), Color(theme_auto), TextAlign::TOP_LEFT, "Long Heading Title That Wraps");');
     });
 });

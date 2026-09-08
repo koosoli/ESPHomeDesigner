@@ -74,7 +74,8 @@ const onExportComponents = (context) => {
             const isColor = profile.features?.lcd || (profile.name && (profile.name.includes("6-Color") || profile.name.includes("Color")));
             const imgType = isColor ? "RGB565" : "BINARY";
 
-            imageLines.push(`  - file: "${src}"`);
+            imageLines.push('  - platform: file');
+            imageLines.push(`    file: "${src}"`);
             imageLines.push(`    id: ${safeId}`);
             imageLines.push(`    type: ${imgType}`);
             imageLines.push(`    resize: ${w.width}x${w.height}`);
@@ -105,7 +106,7 @@ const exportLVGL = (w, { common, convertColor }) => {
         image: {
             ...common,
             src: src,
-            angle: (p.rotation || 0),
+            rotation: (p.rotation || 0),
             pivot_x: (p.pivot_x || 0),
             pivot_y: (p.pivot_y || 0),
             image_recolor: convertColor(p.color),

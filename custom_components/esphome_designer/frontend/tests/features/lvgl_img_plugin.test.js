@@ -105,7 +105,7 @@ describe('lvgl_img plugin', () => {
         }).image).toEqual({
             id: 'base',
             src: 'img_assets_icons_power_png_64x32',
-            angle: 30,
+            rotation: 30,
             pivot_x: 8,
             pivot_y: 4,
             image_recolor: 'Color(red)',

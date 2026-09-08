@@ -26,6 +26,7 @@ export default {
         prefix_separator: ": ",
         locale: "en",
         group_events_by_day: false,
+        event_day_format: "day",
         width: 335,
         height: 340,
         opa: 255,

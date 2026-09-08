@@ -35,9 +35,7 @@
 
 esphome:
   min_version: 2024.11.0
-  platformio_options:
-    build_unflags: -Werror=all
-    board_build.flash_mode: dio
+  build_unflags: -Werror=all
   # Fix Issue #80: Call display refresh script on boot to prevent black screen
   on_boot:
     priority: 600

@@ -168,3 +168,59 @@ export function formatOEPLServiceYaml(serviceData, settings = {}) {
 
     return finalYaml;
 }
+
+/**
+ * Extracts only the payload block (e.g. payload: list) from an OpenDisplay or OEPL action snippet.
+ * Strips wrapping action: / target: / data: boilerplate so the elements list can be pasted
+ * directly into an existing Home Assistant automation action or service call.
+ *
+ * @param {string} snippetText
+ * @returns {string}
+ */
+export function extractOpenDisplayPayload(snippetText) {
+    const text = String(snippetText || '').trim();
+    if (!text) return 'payload: []';
+
+    // Handle JSON payloads (e.g. OEPL or raw JSON export)
+    if (text.startsWith('{')) {
+        try {
+            const parsed = JSON.parse(text);
+            const payload = parsed.data?.payload ?? parsed.payload;
+            if (payload !== undefined) {
+                return JSON.stringify(payload, null, 2);
+            }
+        } catch {
+            // Not valid JSON, fall through to YAML parsing
+        }
+    }
+
+    const lines = snippetText.split(/\r?\n/);
+    const payloadIndex = lines.findIndex((line) => /^\s*payload:\s*(?:\[\])?\s*$/.test(line));
+    if (payloadIndex === -1) {
+        return 'payload: []';
+    }
+
+    if (lines[payloadIndex].includes('[]')) {
+        return 'payload: []';
+    }
+
+    const match = lines[payloadIndex].match(/^(\s*)payload:/);
+    const indent = match ? match[1].length : 0;
+
+    const extracted = ['payload:'];
+
+    for (let i = payloadIndex + 1; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.trim() === '') {
+            extracted.push('');
+            continue;
+        }
+        const lineIndent = (line.match(/^(\s*)/) || ['', ''])[1].length;
+        if (lineIndent <= indent) {
+            break;
+        }
+        extracted.push(line.slice(indent));
+    }
+
+    return extracted.join('\n');
+}

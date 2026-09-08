@@ -257,4 +257,28 @@ describe('calendar properties', () => {
 
         expect(yamlButton?.textContent).toBe('Error');
     });
+
+    it('configures event_day_format via the Event Day Prefix select', () => {
+        const panel = createPanel();
+        const widget = {
+            id: 'calendar_prefix',
+            entity_id: '',
+            props: {
+                event_day_format: 'day'
+            }
+        };
+
+        renderProperties(panel, widget);
+
+        const prefixSelect = panel.selects.find((s) => s.label === 'Event Day Prefix');
+        expect(prefixSelect).toBeDefined();
+        expect(prefixSelect?.value).toBe('day');
+        expect(prefixSelect?.options).toEqual([
+            { value: 'day', label: 'Day of Month (15)' },
+            { value: 'weekday', label: 'Weekday (Mon)' }
+        ]);
+        expect(mockAppState.updateWidget).toHaveBeenCalledWith('calendar_prefix', {
+            props: expect.objectContaining({ event_day_format: 'weekday' })
+        });
+    });
 });

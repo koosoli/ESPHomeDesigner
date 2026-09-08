@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     copyText,
     extractDisplayLambda,
+    extractOpenDisplayPayload,
     extractUiOnlyYaml,
     formatOEPLServiceYaml,
     setTemporaryButtonLabel
@@ -208,5 +209,90 @@ sensor:
         expect(formatted).toContain('entity_id: open_epaper_link.1234567890abcdef');
         expect(formatted).toContain('dither: 1');
         expect(formatted).toContain('"text":"Hello"');
+    });
+
+    it('extracts payload block from OpenDisplay YAML', () => {
+        const odpYaml = [
+            'action: opendisplay.drawcustom',
+            'target:',
+            '  device_id: "95b2d0433f2c26d08088d6296a00a70d"',
+            'data:',
+            '  background: "white"',
+            '  rotate: 0',
+            '  dither: 2',
+            '  ttl: 60',
+            '  refresh_type: "0"',
+            '  dry-run: false',
+            '  payload:',
+            '    # id: widget_0',
+            '    - type: "text"',
+            '      x: 10',
+            '      y: 20',
+            '      value: "hello"',
+            '    - type: "line"',
+            '      stroke_width: 1'
+        ].join('\n');
+
+        const result = extractOpenDisplayPayload(odpYaml);
+        expect(result).toBe([
+            'payload:',
+            '  # id: widget_0',
+            '  - type: "text"',
+            '    x: 10',
+            '    y: 20',
+            '    value: "hello"',
+            '  - type: "line"',
+            '    stroke_width: 1'
+        ].join('\n'));
+    });
+
+    it('handles empty or missing payload in extractOpenDisplayPayload', () => {
+        expect(extractOpenDisplayPayload('')).toBe('payload: []');
+        expect(extractOpenDisplayPayload('action: test\ndata:\n  payload: []')).toBe('payload: []');
+        expect(extractOpenDisplayPayload('action: test\nno_payload: true')).toBe('payload: []');
+    });
+
+    it('extracts payload from OEPL JSON in extractOpenDisplayPayload', () => {
+        const jsonText = JSON.stringify({
+            service: 'open_epaper_link.drawcustom',
+            target: { entity_id: 'sensor.test' },
+            data: {
+                payload: [{ type: 'text', value: 'hello' }]
+            }
+        });
+        const result = extractOpenDisplayPayload(jsonText);
+        expect(JSON.parse(result)).toEqual([{ type: 'text', value: 'hello' }]);
+
+        // Direct top-level payload in JSON
+        const directJson = JSON.stringify({
+            payload: [{ type: 'icon', value: 'mdi:home' }]
+        });
+        expect(JSON.parse(extractOpenDisplayPayload(directJson))).toEqual([{ type: 'icon', value: 'mdi:home' }]);
+
+        // JSON without payload fallback to YAML
+        expect(extractOpenDisplayPayload('{"other": 123}')).toBe('payload: []');
+
+        // Invalid JSON starting with { falls back to YAML
+        expect(extractOpenDisplayPayload('{ not valid json')).toBe('payload: []');
+    });
+
+    it('handles blank lines and following outer blocks when extracting payload', () => {
+        const yamlWithBlanksAndNextBlock = [
+            'action: opendisplay.drawcustom',
+            'data:',
+            '  payload:',
+            '    - type: text',
+            '',
+            '    - type: icon',
+            'following_key: value'
+        ].join('\n');
+
+        const extracted = extractOpenDisplayPayload(yamlWithBlanksAndNextBlock);
+        expect(extracted).toBe([
+            'payload:',
+            '  - type: text',
+            '',
+            '  - type: icon'
+        ].join('\n'));
     });
 });

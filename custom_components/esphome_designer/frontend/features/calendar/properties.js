@@ -135,6 +135,10 @@ template:
         panel.addCheckbox("Show Header", props.show_header !== false, (v) => updateProp("show_header", v));
         panel.addCheckbox("Show Grid", props.show_grid !== false, (v) => updateProp("show_grid", v));
         panel.addCheckbox("Show Events", props.show_events !== false, (v) => updateProp("show_events", v));
+        panel.addSelect("Event Day Prefix", props.event_day_format || "day", [
+            { value: "day", label: "Day of Month (15)" },
+            { value: "weekday", label: "Weekday (Mon)" }
+        ], (v) => updateProp("event_day_format", v));
         panel.addCheckbox("Group Events By Day", props.group_events_by_day === true, (v) => updateProp("group_events_by_day", v));
         panel.addLabeledInput("Max Events", "number", props.max_events || 8, (v) => updateProp("max_events", parseInt(v, 10)));
         panel.endSection();

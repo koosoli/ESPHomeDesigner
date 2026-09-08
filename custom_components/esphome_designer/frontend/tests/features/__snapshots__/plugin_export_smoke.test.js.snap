@@ -327,6 +327,7 @@ exports[`Plugin Export Smoke Tests > Export for calendar > should export standar
   "          int max_y = y + h - 5;",
   "          const int event_limit = 8;",
   "          const bool group_events_by_day = false;",
+  "          const bool use_weekday = false;",
   "          int last_drawn_day = -1;",
   "",
   "          if (id(calendar_data_sensor_esp_calendar_data).state.length() > 5 && id(calendar_data_sensor_esp_calendar_data).state != "unknown") {",
@@ -357,9 +358,18 @@ exports[`Plugin Export Smoke Tests > Export for calendar > should export standar
   "                             const char* summary = event["summary"] | "No Title";",
   "                             const char* start = event["start"] | "";",
   "",
-  "                             // Draw Day Number",
+  "                             // Draw Day Number or Weekday",
   "                             if (!group_events_by_day || currentDayNum != last_drawn_day) {",
-  "                                 it.printf(x + 10, eventY, id(font_id), Color(theme_auto), TextAlign::TOP_LEFT, "%d", currentDayNum);",
+  "                                 if (use_weekday) {",
+  "                                     const char* day_name = dayEntry["day_name"] | "";",
+  "                                     if (day_name && day_name[0] != '\\0') {",
+  "                                         it.printf(x + 10, eventY, id(font_id), Color(theme_auto), TextAlign::TOP_LEFT, "%s", day_name);",
+  "                                     } else {",
+  "                                         it.printf(x + 10, eventY, id(font_id), Color(theme_auto), TextAlign::TOP_LEFT, "%d", currentDayNum);",
+  "                                     }",
+  "                                 } else {",
+  "                                     it.printf(x + 10, eventY, id(font_id), Color(theme_auto), TextAlign::TOP_LEFT, "%d", currentDayNum);",
+  "                                 }",
   "                                 last_drawn_day = currentDayNum;",
   "                             }",
   "",
@@ -1269,8 +1279,8 @@ exports[`Plugin Export Smoke Tests > Export for icon > should export standard C+
 exports[`Plugin Export Smoke Tests > Export for image > should export LVGL with stable output 1`] = `
 {
   "image": {
-    "angle": 0,
     "image_recolor_opa": "transp",
+    "rotation": 0,
     "src": "img_config_esphome_images_logo_png_100x100",
   },
 }
@@ -1307,7 +1317,8 @@ exports[`Plugin Export Smoke Tests > Export for image > should export standard C
 exports[`Plugin Export Smoke Tests > Export for image > should handle onExportComponents with stable output 1`] = `
 [
   "image:",
-  "  - file: "/config/esphome/images/logo.png"",
+  "  - platform: file",
+  "    file: "/config/esphome/images/logo.png"",
   "    id: img_config_esphome_images_logo_png_100x100",
   "    type: BINARY",
   "    resize: 100x100",
@@ -1581,11 +1592,11 @@ exports[`Plugin Export Smoke Tests > Export for lvgl_dropdown > should handle on
 exports[`Plugin Export Smoke Tests > Export for lvgl_img > should export LVGL with stable output 1`] = `
 {
   "image": {
-    "angle": 0,
     "image_recolor": "Color(black)",
     "image_recolor_opa": "cover",
     "pivot_x": 0,
     "pivot_y": 0,
+    "rotation": 0,
     "src": "symbol_image",
   },
 }
@@ -2448,10 +2459,10 @@ exports[`Plugin Export Smoke Tests > Export for ondevice_temperature > should ha
 exports[`Plugin Export Smoke Tests > Export for online_image > should export LVGL with stable output 1`] = `
 {
   "image": {
-    "angle": 0,
     "image_recolor_opa": "transp",
     "pivot_x": 0,
     "pivot_y": 0,
+    "rotation": 0,
     "src": "online_img_w_test",
   },
 }

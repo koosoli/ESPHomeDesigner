@@ -562,7 +562,7 @@ describe('image plugin', () => {
             image: {
                 id: 'base',
                 src: 'img_config_esphome_images_logo_png_120x64',
-                angle: 15,
+                rotation: 15,
                 image_recolor_opa: 'transp'
             }
         });

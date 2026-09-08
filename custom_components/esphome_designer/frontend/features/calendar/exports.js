@@ -407,8 +407,10 @@ export const exportDirect = (w, context) => {
             lines.push(``);
             lines.push(`          int eventY = gridY + (r+1)*rowH + 10;`);
             lines.push(`          int max_y = y + h - 5;`);
+            const eventDayFormat = p.event_day_format || "day";
             lines.push(`          const int event_limit = ${p.max_events || p.event_limit || 8};`);
             lines.push(`          const bool group_events_by_day = ${p.group_events_by_day === true ? 'true' : 'false'};`);
+            lines.push(`          const bool use_weekday = ${eventDayFormat === 'weekday' ? 'true' : 'false'};`);
             lines.push(`          int last_drawn_day = -1;`);
             lines.push(``);
             // Use entity-based sensor ID to match onExportTextSensors
@@ -441,9 +443,18 @@ export const exportDirect = (w, context) => {
             lines.push(`                             const char* summary = event["summary"] | "No Title";`);
             lines.push(`                             const char* start = event["start"] | "";`);
             lines.push(``);
-            lines.push(`                             // Draw Day Number`);
+            lines.push(`                             // Draw Day Number or Weekday`);
             lines.push(`                             if (!group_events_by_day || currentDayNum != last_drawn_day) {`);
-            lines.push(`                                 it.printf(x + 10, eventY, id(${fontEventId}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
+            lines.push(`                                 if (use_weekday) {`);
+            lines.push(`                                     const char* day_name = dayEntry["day_name"] | "";`);
+            lines.push(`                                     if (day_name && day_name[0] != '\\0') {`);
+            lines.push(`                                         it.printf(x + 10, eventY, id(${fontEventId}), ${color}, TextAlign::TOP_LEFT, "%s", day_name);`);
+            lines.push(`                                     } else {`);
+            lines.push(`                                         it.printf(x + 10, eventY, id(${fontEventId}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
+            lines.push(`                                     }`);
+            lines.push(`                                 } else {`);
+            lines.push(`                                     it.printf(x + 10, eventY, id(${fontEventId}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
+            lines.push(`                                 }`);
             lines.push(`                                 last_drawn_day = currentDayNum;`);
             lines.push(`                             }`);
             lines.push(``);

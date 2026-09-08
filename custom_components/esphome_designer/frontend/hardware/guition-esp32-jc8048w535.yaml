@@ -38,11 +38,6 @@ esphome:
   project:
     name: "Guition.ESP32-jc4832w535-v3"
     version: "1.0"
-  platformio_options:
-    upload_speed: 921600
-    board_build.flash_mode: dio
-    board_build.f_flash: 80000000L
-    board_build.f_cpu: 240000000L
   # Fix Issue #80: Call display refresh script on boot to prevent black screen
   on_boot:
     priority: 600

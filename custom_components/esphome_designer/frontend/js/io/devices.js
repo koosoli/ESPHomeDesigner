@@ -609,7 +609,7 @@ export const DEVICE_PROFILES = {
     displayType: "color",
     chip: "esp32-s3",
     board: "esp32-s3-devkitc-1",
-    displayPlatform: "rpi_dpi_rgb",
+    displayPlatform: "mipi_rgb",
     displayModel: "ELECROW-ESP32-7INCH",
     displayId: "my_display",
     touchscreenId: "my_touchscreen",
@@ -688,9 +688,9 @@ export const DEVICE_PROFILES = {
   m5stack_paper: {
     name: "M5Paper (540x960)",
     displayType: "grayscale",
-    displayModel: "M5Paper",
-    displayPlatform: "it8951e",
-    // NOTE: The IT8951E external component (Passific/m5paper_esphome) 
+    displayModel: "m5stack-m5paper",
+    displayPlatform: "it8951",
+    // NOTE: The official IT8951 component (model: m5stack-m5paper)
     // internally uses 960x540 as its panel dimensions, treating the device
     // as landscape-native. We match this here so rotation calculations work correctly.
     resolution: { width: 960, height: 540 },
@@ -708,7 +708,7 @@ export const DEVICE_PROFILES = {
       sht3xd: true
     },
     pins: {
-      display: { cs: "GPIO15", dc: null, reset: "GPIO23", busy: "GPIO27" }, // DC not used for IT8951E
+      display: { cs: "GPIO15", dc: null, reset: "GPIO23", busy: "GPIO27" }, // Predefined in official it8951 model
       i2c: { sda: "GPIO21", scl: "GPIO22" }, // For GT911 and others
       spi: { clk: "GPIO14", mosi: "GPIO12", miso: "GPIO13" }, // M5Paper SPI
       batteryEnable: null,
@@ -739,12 +739,9 @@ export const DEVICE_PROFILES = {
       update_interval: "never", // Interrupt used
       // NOTE: User feedback indicates mirror_y: false and address 0x5D for M5Paper.
       transform: { mirror_x: false, mirror_y: false, swap_xy: true },
-      // Calibration matches the IT8951E component's 960x540 coordinate space
+      // Calibration matches the IT8951 component's 960x540 coordinate space
       calibration: { x_min: 0, x_max: 960, y_min: 0, y_max: 540 }
-    },
-    external_components: [
-      "  - source: github://Passific/m5paper_esphome"
-    ]
+    }
   },
   m5stack_paper_mono: {
     id: "m5stack_paper_mono",

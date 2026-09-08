@@ -213,4 +213,35 @@ describe('calendar exports', () => {
         expect(output).toContain('draw_rrect_border(1, 2, 100, 80, 8, 2, Color(red));');
         expect(output).not.toContain('it.rectangle(1 + 0, 2 + 0, 100 - 0, 80 - 0, Color(red));');
     });
+
+    it('exports direct calendar lambda with weekday prefix when event_day_format is weekday', () => {
+        const lines = [];
+
+        exportDirect({
+            x: 0,
+            y: 0,
+            width: 300,
+            height: 200,
+            entity_id: 'sensor.family_calendar',
+            props: {
+                show_header: false,
+                show_grid: false,
+                show_events: true,
+                event_day_format: 'weekday'
+            }
+        }, {
+            lines,
+            addFont: vi.fn(() => 'font_ref'),
+            getColorConst: (value) => `Color(${value})`,
+            addDitherMask: vi.fn(),
+            getCondProps: () => ({}),
+            getConditionCheck: () => '',
+            isEpaper: false
+        });
+
+        const output = lines.join('\n');
+        expect(output).toContain('const bool use_weekday = true;');
+        expect(output).toContain('dayEntry["day_name"]');
+        expect(output).toContain('it.printf(x + 10, eventY, id(font_ref), Color(theme_auto), TextAlign::TOP_LEFT, "%s", day_name);');
+    });
 });

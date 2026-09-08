@@ -1,3 +1,22 @@
+## v1.0.0 RC43 - Calendar Widget, Sensor Text Wrap, and ESPHome Modernization
+**Release Date:** September 8, 2026
+
+### Features
+- **Calendar Grid Widget (Issue #500):** Added a full-featured Calendar widget displaying a monthly calendar grid with customizable header formatting, day names, active date highlighting, custom month/year selection, and complete code generation for both Direct (drawing lambda) and LVGL modes.
+- **Sensor Text Auto-Wrapping (Issue #497):** Sensor Text widgets now properly auto-wrap within a constrained widget width, preventing long sensor states from overflowing or truncating abruptly.
+- **Hardware Profile Additions & Updates:** Added and updated device profiles including the Seeed Studio reTerminal Sticky and Waveshare 1.28" Round LCD.
+
+### Fixes
+- **ESPHome Deprecation Warnings (Issue #496):**
+  - **Image Platform Migration:** Updated image components to export with `platform: file` to comply with current ESPHome specifications.
+  - **LVGL Image Rotation:** Replaced the deprecated `angle` property with `rotation` across LVGL image widgets.
+  - **MIPI RGB Driver Migration:** Migrated parallel RGB display profiles (Sunton, Waveshare, Elecrow, Guition) from the deprecated `rpi_dpi_rgb` driver to `mipi_rgb`.
+  - **PlatformIO Options & Build Flags:** Moved `build_flags` and `build_unflags` directly under `esphome:` and cleaned up obsolete PlatformIO options that trigger warnings under native ESP-IDF toolchains.
+- **Touchscreen Detection (PR #503, thanks @Jbithell):** Only generate touch handling when a touchscreen is actually present in the active profile.
+- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, visible header label, release notes, and rebuilt frontend assets for RC43.
+
+---
+
 ## v1.0.0 RC42 - M5Stack PaperMono Support
 **Release Date:** August 26, 2026
 

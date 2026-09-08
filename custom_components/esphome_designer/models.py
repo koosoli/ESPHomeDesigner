@@ -87,11 +87,26 @@ def _coerce_int(value: Any, default: Optional[int]) -> Optional[int]:
     return default if parsed is None else parsed
 
 
+_FIELD_ALIASES: Dict[str, Tuple[str, ...]] = {
+    "opendisplay_device_id": ("opendisplayDeviceId", "odp_device_id", "odpDeviceId"),
+    "opendisplay_entity_id": ("opendisplayEntityId", "odp_entity_id", "odpEntityId"),
+    "opendisplay_dither": ("opendisplayDither", "odp_dither", "odpDither"),
+    "opendisplay_ttl": ("opendisplayTtl", "odp_ttl", "odpTtl"),
+}
+
+
 def _get_compat_value(
     data: Dict[str, Any], snake_key: str, camel_key: str, default: Any
 ) -> Any:
-    """Prefer frontend camelCase keys over stored snake_case keys."""
-    return data.get(camel_key, data.get(snake_key, default))
+    """Prefer frontend camelCase keys over stored snake_case keys, with alias fallbacks."""
+    if camel_key in data and data[camel_key] is not None:
+        return data[camel_key]
+    if snake_key in data and data[snake_key] is not None:
+        return data[snake_key]
+    for alias in _FIELD_ALIASES.get(snake_key, ()):
+        if alias in data and data[alias] is not None:
+            return data[alias]
+    return default
 
 
 def _get_compat_int(
@@ -151,6 +166,10 @@ _DEVICE_SERIALIZED_FIELDS = (
     "lcd_eco_strategy",
     "oepl_entity_id",
     "oepl_dither",
+    "opendisplay_device_id",
+    "opendisplay_entity_id",
+    "opendisplay_dither",
+    "opendisplay_ttl",
     "auto_cycle_enabled",
     "auto_cycle_interval_s",
     "refresh_interval",
@@ -177,6 +196,8 @@ _DEVICE_STRING_FIELD_SPECS = (
     ("rendering_mode", "renderingMode", "direct"),
     ("lcd_eco_strategy", "lcdEcoStrategy", "backlight_off"),
     ("oepl_entity_id", "oeplEntityId", ""),
+    ("opendisplay_device_id", "opendisplayDeviceId", ""),
+    ("opendisplay_entity_id", "opendisplayEntityId", ""),
     ("shape", "shape", "rect"),
 )
 
@@ -202,6 +223,8 @@ _DEVICE_INT_FIELD_SPECS = (
     ("no_refresh_start_hour", "noRefreshStartHour", None),
     ("no_refresh_end_hour", "noRefreshEndHour", None),
     ("oepl_dither", "oeplDither", 2),
+    ("opendisplay_dither", "opendisplayDither", 2),
+    ("opendisplay_ttl", "opendisplayTtl", 60),
     ("auto_cycle_interval_s", "autoCycleIntervalS", 30),
     ("refresh_interval", "refreshInterval", 600),
     ("width", "resWidth", 800),
@@ -253,6 +276,15 @@ def _deserialize_device_settings(data: Dict[str, Any]) -> Dict[str, Any]:
     # explicitly disabled inversion".
     raw_inverted = _get_compat_value(data, "inverted_colors", "invertedColors", None)
     settings["inverted_colors"] = _coerce_bool_or_none(raw_inverted)
+
+    # Cross-sync OpenDisplay device ID and entity ID for compatibility
+    odp_dev = settings.get("opendisplay_device_id", "").strip()
+    odp_ent = settings.get("opendisplay_entity_id", "").strip()
+    if not odp_ent and odp_dev:
+        settings["opendisplay_entity_id"] = odp_dev
+    if not odp_dev and odp_ent and "." not in odp_ent and " " not in odp_ent:
+        settings["opendisplay_device_id"] = odp_ent
+
     return settings
 
 
@@ -528,6 +560,10 @@ class DeviceConfig:
     lcd_eco_strategy: str = "backlight_off"
     oepl_entity_id: str = ""
     oepl_dither: int = 2
+    opendisplay_device_id: str = ""
+    opendisplay_entity_id: str = ""
+    opendisplay_dither: int = 2
+    opendisplay_ttl: int = 60
 
     # --- New Fields for Hardware Profile Persistence ---
     auto_cycle_enabled: bool = False

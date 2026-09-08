@@ -86,7 +86,7 @@ const exportLVGL = (w, { common }) => {
         image: {
             ...common,
             src: safeId,
-            angle: (p.rotation || 0),
+            rotation: (p.rotation || 0),
             pivot_x: (p.pivot_x || 0),
             pivot_y: (p.pivot_y || 0),
             image_recolor_opa: "transp"

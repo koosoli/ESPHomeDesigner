@@ -21,6 +21,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of calen
   "border_radius": 0,
   "border_width": 0,
   "entity_id": "sensor.esp_calendar_data",
+  "event_day_format": "day",
   "font_size_date": 100,
   "font_size_day": 24,
   "font_size_event": 18,

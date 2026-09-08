@@ -16,6 +16,7 @@ const {
     mockHasHaBackend,
     mockCopyText,
     mockExtractDisplayLambda,
+    mockExtractOpenDisplayPayload,
     mockExtractUiOnlyYaml,
     mockFormatOEPLServiceYaml,
     mockSetTemporaryButtonLabel,
@@ -37,6 +38,7 @@ const {
     mockHasHaBackend: vi.fn(() => false),
     mockCopyText: vi.fn(),
     mockExtractDisplayLambda: vi.fn((yaml) => yaml),
+    mockExtractOpenDisplayPayload: vi.fn((yaml) => yaml),
     mockExtractUiOnlyYaml: vi.fn((yaml) => yaml),
     mockFormatOEPLServiceYaml: vi.fn((payload) => JSON.stringify(payload)),
     mockSetTemporaryButtonLabel: vi.fn(),
@@ -93,6 +95,7 @@ vi.mock('../../js/utils/env.js', () => ({ hasHaBackend: mockHasHaBackend }));
 vi.mock('../../js/ui/snippet_manager_clipboard.js', () => ({
     copyText: mockCopyText,
     extractDisplayLambda: mockExtractDisplayLambda,
+    extractOpenDisplayPayload: mockExtractOpenDisplayPayload,
     extractUiOnlyYaml: mockExtractUiOnlyYaml,
     formatOEPLServiceYaml: mockFormatOEPLServiceYaml,
     setTemporaryButtonLabel: mockSetTemporaryButtonLabel
@@ -138,6 +141,7 @@ describe('SnippetManager', () => {
             <button id="copyLambdaBtn">Lambda</button>
             <button id="copyOEPLServiceBtn">OEPL</button>
             <button id="copyODPServiceBtn">ODP</button>
+            <button id="copyODPPayloadBtn">Payload</button>
             <button id="clearYamlOverrideBtn" style="display:none;">Auto</button>
             <button id="updateLayoutBtn"><span class="mdi mdi-refresh"></span></button>
             <button id="importSnippetConfirm">Import</button>
@@ -432,6 +436,14 @@ describe('SnippetManager', () => {
 
         expect(mockFormatOEPLServiceYaml).toHaveBeenCalledWith({ service: 'ok' }, mockAppState.settings);
         expect(mockCopyText).toHaveBeenCalledWith('{"service":"ok"}');
+
+        // Test copyODPPayloadBtn
+        mockExtractOpenDisplayPayload.mockReturnValueOnce('payload:\n  - type: "text"\n    value: "hi"');
+        snippetBox.value = 'action: opendisplay.drawcustom\ndata:\n  payload:\n    - type: "text"\n      value: "hi"';
+        const payloadBtn = /** @type {HTMLButtonElement} */ (document.getElementById('copyODPPayloadBtn'));
+        await manager.copyODPPayloadToClipboard(payloadBtn);
+        expect(mockExtractOpenDisplayPayload).toHaveBeenCalledWith(snippetBox.value);
+        expect(mockCopyText).toHaveBeenCalledWith('payload:\n  - type: "text"\n    value: "hi"');
     });
 
     it('updates fullscreen highlighting and reacts to input, state, and selection callbacks', async () => {

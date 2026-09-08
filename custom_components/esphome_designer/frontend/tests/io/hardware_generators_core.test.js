@@ -229,9 +229,16 @@ describe('hardware_generators core', () => {
             orientation: 'landscape'
         }, false).join('\n');
 
-        const m5paperLines = generateDisplaySection({
+        const legacyM5paperLines = generateDisplaySection({
             displayPlatform: 'it8951e',
             displayModel: 'M5Paper',
+            resolution: { width: 960, height: 540 },
+            features: { epaper: true }
+        }).join('\n');
+
+        const officialM5paperLines = generateDisplaySection({
+            displayPlatform: 'it8951',
+            displayModel: 'm5stack-m5paper',
             resolution: { width: 960, height: 540 },
             features: { epaper: true }
         }).join('\n');
@@ -248,8 +255,10 @@ describe('hardware_generators core', () => {
         // Issue #490: LVGL mode carries orientation via the lvgl component instead.
         expect(configLines).not.toContain('rotation:');
         expect(directConfigLines).toContain('rotation: 270');
-        expect(m5paperLines).toContain('reversed: false');
-        expect(m5paperLines).toContain('reset_duration: 200ms');
+        expect(legacyM5paperLines).toContain('reversed: false');
+        expect(legacyM5paperLines).toContain('reset_duration: 200ms');
+        expect(officialM5paperLines).toContain('platform: it8951');
+        expect(officialM5paperLines).toContain('model: "m5stack-m5paper"');
         expect(reterminalLines).toContain('Please update your ESPHome version to 2025.11.1 above');
     });
 

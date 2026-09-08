@@ -151,8 +151,9 @@ describe('Widget Restoration Verification', () => {
         expect(drawOccurrences).toBe(2);
 
         // Count occurrences in image: section (should be 1 due to deduplication of same path/size)
-        const componentOccurrences = (yaml.match(/- file: "test.png"/g) || []).length;
+        const componentOccurrences = (yaml.match(/file: "test\.png"/g) || []).length;
         expect(componentOccurrences).toBe(1);
+        expect(yaml).toContain('- platform: file');
 
         expect(yaml).toContain('id: img_test_png_100x100');
     });

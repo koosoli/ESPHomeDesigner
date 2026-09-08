@@ -33,6 +33,7 @@ export function generateSnippet(widget, _pages, _deviceModel) {
         : 3;
     const prefixSeparator = typeof props.prefix_separator === 'string' ? props.prefix_separator : ': ';
     const eventFontSize = parseInt(props.font_size_event || 18, 10);
+    const eventDayFormat = props.event_day_format || 'day';
     const eventSummaryCharLimit = getCalendarEventSummaryCharLimit(w, eventFontSize);
 
     // We need to fetch data from HA, so we assume the user has set up the python script.
@@ -271,6 +272,7 @@ text_sensor:
                           y_cursor = calendar_y_pos + 10; // Reset if grid hidden
                       }
                       bool group_events_by_day = ${props.group_events_by_day === true};
+                      const bool use_weekday = ${eventDayFormat === 'weekday'};
                       int last_drawn_day = -1;
                       
                       int max_y = ${y} + ${h} - 5;
@@ -290,7 +292,16 @@ text_sensor:
                               const char* start = event["start"] | "";
     
                               if (!group_events_by_day || currentDayNum != last_drawn_day) {
-                                  it.printf(${x} + 20, y_cursor, id(font_event_day), color_content, TextAlign::TOP_LEFT, "%d", currentDayNum);
+                                  if (use_weekday) {
+                                      const char* day_name = dayEntry["day_name"] | "";
+                                      if (day_name && day_name[0] != '\\0') {
+                                          it.printf(${x} + 20, y_cursor, id(font_event_day), color_content, TextAlign::TOP_LEFT, "%s", day_name);
+                                      } else {
+                                          it.printf(${x} + 20, y_cursor, id(font_event_day), color_content, TextAlign::TOP_LEFT, "%d", currentDayNum);
+                                      }
+                                  } else {
+                                      it.printf(${x} + 20, y_cursor, id(font_event_day), color_content, TextAlign::TOP_LEFT, "%d", currentDayNum);
+                                  }
                                   last_drawn_day = currentDayNum;
                               }
                               it.printf(${x} + 60, y_cursor + 4, id(font_event), color_content, TextAlign::TOP_LEFT, "%.${eventSummaryCharLimit}s", summary);
