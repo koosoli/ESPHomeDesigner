@@ -12,6 +12,8 @@ tmp/proof/
 *.swo
 /.agent
 /.grok/
+/.claude
+/.claude/
 
 # OS artifacts
 .DS_Store

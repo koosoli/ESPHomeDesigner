@@ -976,6 +976,27 @@
           </div>
         </div>
 
+        <!-- Multi-Page Navigation Info -->
+        <div id="page-navigation-info" style="border-top:1px solid var(--border-subtle); margin-top:8px; padding-top:12px;">
+          <div
+            style="display:flex; align-items:center; gap:8px; font-size:var(--fs-sm); font-weight: 600; color: var(--accent);">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+            Multi-Page Navigation
+          </div>
+          <div style="font-size:10px; opacity:0.75; margin-left:24px; margin-top:4px; line-height:1.4;">
+            When 2 or more pages exist in your design:
+            <ul style="margin:4px 0 0 14px; padding:0; list-style-type:disc; font-size:10px;">
+              <li><strong>Hardware Buttons:</strong> On devices with physical buttons (e.g. reTerminal, CoreInk), Left switches to previous page, Right switches to next page, and Refresh forces a display update.</li>
+              <li><strong>Home Assistant Controls:</strong> Template buttons ("Next Page", "Previous Page", "Go to Page X") are automatically created in Home Assistant.</li>
+              <li><strong>Touchscreens:</strong> Add a <em>Template Nav Bar</em> or <em>Touch Area</em> widget to your canvas for on-screen touch navigation.</li>
+            </ul>
+          </div>
+        </div>
+
         <!-- Page Auto-Cycling -->
         <div style="border-top:1px solid var(--border-subtle); margin-top:8px; padding-top:12px;">
           <div

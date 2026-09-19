@@ -288,6 +288,7 @@ export const exportDirect = (w, context) => {
         const wMonth = getW("font_weight_month", 400);
         const wGridHeader = getW("font_weight_grid_header", 700);
         const wDates = getW("font_weight_dates", 700);
+        const wEventDay = getW("font_weight_event_day", 700);
         const wEvents = getW("font_weight_events", 400);
 
         const fontHeaderDateId = addFont(fontFamily, wHeaderDate, dateFontSize);
@@ -295,6 +296,7 @@ export const exportDirect = (w, context) => {
         const fontMonthId = addFont(fontFamily, wMonth, gridFontSize);
         const fontGridHeaderId = addFont(fontFamily, wGridHeader, gridFontSize);
         const fontGridDatesId = addFont(fontFamily, wDates, gridFontSize);
+        const fontEventDayId = addFont(fontFamily, wEventDay, eventFontSize);
         const fontEventId = addFont(fontFamily, wEvents, eventFontSize);
 
 
@@ -405,7 +407,11 @@ export const exportDirect = (w, context) => {
             lines.push(`              return "";`);
             lines.push(`          };`);
             lines.push(``);
-            lines.push(`          int eventY = gridY + (r+1)*rowH + 10;`);
+            if (showGrid) {
+                lines.push(`          int eventY = gridY + (r+1)*rowH + 10;`);
+            } else {
+                lines.push(`          int eventY = y + headH + 8;`);
+            }
             lines.push(`          int max_y = y + h - 5;`);
             const eventDayFormat = p.event_day_format || "day";
             lines.push(`          const int event_limit = ${p.max_events || p.event_limit || 8};`);
@@ -431,9 +437,11 @@ export const exportDirect = (w, context) => {
             lines.push(``);
             lines.push(`                 if (!days.isNull() && days.size() > 0) {`);
             lines.push(`                     int event_count = 0;`);
-            lines.push(`                     // Separator line`);
-            lines.push(`                     it.filled_rectangle(x + 10, eventY - 5, w - 20, 2, ${color});`);
-            lines.push(``);
+            if (showGrid) {
+                lines.push(`                     // Separator line`);
+                lines.push(`                     it.filled_rectangle(x + 10, eventY - 5, w - 20, 2, ${color});`);
+                lines.push(``);
+            }
             lines.push(`                     for (JsonVariant dayEntry : days) {`);
             lines.push(`                         if (eventY > max_y || event_count >= event_limit) break;`);
             lines.push(`                         int currentDayNum = dayEntry["day"].as<int>();`);
@@ -448,12 +456,12 @@ export const exportDirect = (w, context) => {
             lines.push(`                                 if (use_weekday) {`);
             lines.push(`                                     const char* day_name = dayEntry["day_name"] | "";`);
             lines.push(`                                     if (day_name && day_name[0] != '\\0') {`);
-            lines.push(`                                         it.printf(x + 10, eventY, id(${fontEventId}), ${color}, TextAlign::TOP_LEFT, "%s", day_name);`);
+            lines.push(`                                         it.printf(x + 10, eventY, id(${fontEventDayId}), ${color}, TextAlign::TOP_LEFT, "%s", day_name);`);
             lines.push(`                                     } else {`);
-            lines.push(`                                         it.printf(x + 10, eventY, id(${fontEventId}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
+            lines.push(`                                         it.printf(x + 10, eventY, id(${fontEventDayId}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
             lines.push(`                                     }`);
             lines.push(`                                 } else {`);
-            lines.push(`                                     it.printf(x + 10, eventY, id(${fontEventId}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
+            lines.push(`                                     it.printf(x + 10, eventY, id(${fontEventDayId}), ${color}, TextAlign::TOP_LEFT, "%d", currentDayNum);`);
             lines.push(`                                 }`);
             lines.push(`                                 last_drawn_day = currentDayNum;`);
             lines.push(`                             }`);
@@ -544,6 +552,7 @@ export const collectRequirements = (w, { addFont }) => {
         addFont(fontFamily, getW("font_weight_month", 400), gridFontSize);
         addFont(fontFamily, getW("font_weight_grid_header", 700), gridFontSize);
         addFont(fontFamily, getW("font_weight_dates", 700), gridFontSize);
+        addFont(fontFamily, getW("font_weight_event_day", 700), eventFontSize);
         addFont(fontFamily, getW("font_weight_events", 400), eventFontSize);
         addFont("Material Design Icons", 400, 24);
     };

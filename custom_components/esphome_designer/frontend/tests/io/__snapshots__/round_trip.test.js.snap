@@ -60,6 +60,8 @@ exports[`ESPHomeAdapter & YamlImport Round-Trip > round-trips a layout with mock
 #     then:
 #       - output.turn_on: bsp_battery_enable
 #       - delay: 2s
+#       - component.update: battery_voltage
+#       - component.update: battery_level
 #       - script.execute: manage_run_and_sleep
 #
 # esp32:
@@ -145,6 +147,9 @@ sensor:
     attenuation: 12db
     filters:
       - multiply: 2
+    on_value:
+      then:
+        - component.update: battery_level
   - platform: sht4x
     id: sht4x_sensor
     temperature:
@@ -163,6 +168,7 @@ sensor:
     icon: "mdi:battery"
     device_class: battery
     state_class: measurement
+    update_interval: 60s
     lambda: |-
       if (id(battery_voltage).state > 4.15) return 100;
       if (id(battery_voltage).state < 3.27) return 0;
@@ -179,16 +185,6 @@ binary_sensor:
     on_press:
       then:
         - component.update: epaper_display
-  - platform: gpio
-    pin:
-      number: GPIO2
-      mode: INPUT_PULLUP
-      inverted: true
-    name: "Home Button"
-    id: button_home
-    on_press:
-      then:
-        - script.execute: manage_run_and_sleep
 
 button:
   - platform: template
@@ -235,6 +231,7 @@ script:
   - id: manage_run_and_sleep
     mode: restart
     then:
+      - output.turn_on: bsp_battery_enable
       - if:
           condition:
             lambda: 'return !(id(ha_time).now().is_valid() && api_is_connected());'
@@ -253,6 +250,8 @@ script:
             - logger.log: "Waiting 5s for initial sensor updates..."
             - delay: 5s
             - lambda: 'id(initial_sensor_sync_pending) = false;'
+      - component.update: battery_voltage
+      - component.update: battery_level
       - lambda: |-
           int interval = id(page_refresh_default_s);
           id(page_refresh_current_s) = interval;

@@ -180,4 +180,21 @@ describe('yaml_generator_sections', () => {
         expect(system).toContain('AXP2101 Configured');
         expect(system).not.toContain('#       - delay: 200ms\n#       - component.update: epaper_display');
     });
+
+    it('emits battery sensor component updates in on_boot when batteryAdc is present (#512)', () => {
+        const system = generateSystemSections({
+            pins: {
+                batteryEnable: 'GPIO6',
+                batteryAdc: 'GPIO1'
+            },
+            battery: { attenuation: '12db', multiplier: 2.0 },
+            features: { epaper: true }
+        }, {}).join('\n');
+
+        expect(system).toContain('#       - output.turn_on: bsp_battery_enable');
+        expect(system).toContain('#       - delay: 2s');
+        expect(system).toContain('#       - component.update: battery_voltage');
+        expect(system).toContain('#       - component.update: battery_level');
+        expect(system).toContain('#       - script.execute: manage_run_and_sleep');
+    });
 });

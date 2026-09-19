@@ -11,7 +11,7 @@ import { HA_TEXT_DOMAINS, hexToRgb, isColorDisplay, isStrictlyNumeric } from './
  */
 export const exportDirect = (w, context) => {
         const {
-            lines, getColorConst, addFont, getCondProps, getConditionCheck, Utils // eslint-disable-line no-unused-vars
+            lines, getColorConst, addFont, getCondProps, getConditionCheck, Utils, isEpaper, addDitherMask // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};
@@ -92,18 +92,51 @@ export const exportDirect = (w, context) => {
 
 
         // Background fill
+        const radius = Math.max(0, Math.min(parseInt(p.border_radius ?? p.radius ?? 0, 10) || 0, Math.floor((w.width || 0) / 2), Math.floor((w.height || 0) / 2)));
         const bgColorProp = p.bg_color || p.background_color || "transparent";
         if (bgColorProp && bgColorProp !== "transparent") {
             const bgColorConst = getColorConst(bgColorProp);
-            lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+            if (radius > 0) {
+                lines.push(`        it.filled_rounded_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${radius}, ${bgColorConst});`);
+            } else {
+                lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+            }
+            if (typeof addDitherMask === 'function') {
+                addDitherMask(lines, bgColorProp, isEpaper, w.x, w.y, w.width, w.height, radius);
+            }
         }
 
         // Draw Border if defined
-        const borderWidth = p.border_width || 0;
+        const borderWidth = parseInt(p.border_width || 0, 10);
         if (borderWidth > 0) {
             const borderColor = getColorConst(p.border_color || "theme_auto");
-            for (let i = 0; i < borderWidth; i++) {
-                lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColor});`);
+            if (radius > 0) {
+                lines.push("        {");
+                lines.push("          auto draw_rrect_border = [&](int x, int y, int w, int h, int r, int t, auto c) {");
+                lines.push("            int inner_r = r - t;");
+                lines.push("            if (inner_r < 0) inner_r = 0;");
+                lines.push("            it.filled_rectangle(x + r, y, w - 2 * r, t, c);");
+                lines.push("            it.filled_rectangle(x + r, y + h - t, w - 2 * r, t, c);");
+                lines.push("            it.filled_rectangle(x, y + r, t, h - 2 * r, c);");
+                lines.push("            it.filled_rectangle(x + w - t, y + r, t, h - 2 * r, c);");
+                lines.push("            for (int dx = 0; dx <= r; dx++) {");
+                lines.push("              for (int dy = 0; dy <= r; dy++) {");
+                lines.push("                int ds = dx*dx + dy*dy;");
+                lines.push("                if (ds <= r*r && ds > inner_r*inner_r) {");
+                lines.push("                  it.draw_pixel_at(x + r - dx, y + r - dy, c);");
+                lines.push("                  it.draw_pixel_at(x + w - r + dx - 1, y + r - dy, c);");
+                lines.push("                  it.draw_pixel_at(x + r - dx, y + h - r + dy - 1, c);");
+                lines.push("                  it.draw_pixel_at(x + w - r + dx - 1, y + h - r + dy - 1, c);");
+                lines.push("                }");
+                lines.push("              }");
+                lines.push("            }");
+                lines.push("          };");
+                lines.push(`          draw_rrect_border(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${radius}, ${borderWidth}, ${borderColor});`);
+                lines.push("        }");
+            } else {
+                for (let i = 0; i < borderWidth; i++) {
+                    lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColor});`);
+                }
             }
         }
 
@@ -362,7 +395,38 @@ export const exportDirect = (w, context) => {
                 lines.push(`          char value_buf[512];`);
                 lines.push(`          sprintf(value_buf, "${finalValFmt}", ${args});`);
                 lines.push(`          id(${labelFontId})->measure("${labelStr}", &w1, &xoff1, &bl1, &h1);`);
-                if (useWrapping) {
+                lines.push(`          id(${valueFontId})->measure(value_buf, &w2, &xoff2, &bl2, &h2);`);
+                if (isRight) {
+                    const lineHeight = valueFS + 4;
+                    lines.push(`          // Right alignment: value ends at xVal, label precedes it ending at xVal - w2`);
+                    lines.push(`          // Align baselines: yVal + bl1 = yVal2 + bl2 => yVal2 = yVal + bl1 - bl2`);
+                    lines.push(`          if (w1 + w2 > ${w.width}) {`);
+                    lines.push(`            if (w2 <= ${w.width}) {`);
+                    lines.push(`              it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${colorVar}, ${valueAlign}, "%s", value_buf);`);
+                    lines.push(`            } else {`);
+                    lines.push(`              print_wrapped_text(${xVal}, ${yVal}, ${w.width}, ${lineHeight}, id(${valueFontId}), ${colorVar}, ${valueAlign}, value_buf);`);
+                    lines.push(`            }`);
+                    lines.push(`          } else {`);
+                    lines.push(`            it.printf(${xVal} - w2, ${yVal}, id(${labelFontId}), ${colorVar}, ${align}, "${labelStr}");`);
+                    lines.push(`            it.printf(${xVal}, ${yVal} + (bl1 - bl2), id(${valueFontId}), ${colorVar}, ${align}, "%s", value_buf);`);
+                    lines.push(`          }`);
+                } else if (!isLeft) {
+                    const vAlign = textAlign.includes("BOTTOM") ? "BOTTOM" : (textAlign.includes("TOP") ? "TOP" : "CENTER");
+                    const leftAlign = `TextAlign::${vAlign}_LEFT`;
+                    const lineHeight = valueFS + 4;
+                    lines.push(`          // Center alignment: label and value centered together as a block`);
+                    lines.push(`          if (w1 + w2 > ${w.width}) {`);
+                    lines.push(`            if (w2 <= ${w.width}) {`);
+                    lines.push(`              it.printf(${xVal}, ${yVal}, id(${valueFontId}), ${colorVar}, ${valueAlign}, "%s", value_buf);`);
+                    lines.push(`            } else {`);
+                    lines.push(`              print_wrapped_text(${xVal}, ${yVal}, ${w.width}, ${lineHeight}, id(${valueFontId}), ${colorVar}, ${valueAlign}, value_buf);`);
+                    lines.push(`            }`);
+                    lines.push(`          } else {`);
+                    lines.push(`            int block_x = ${xVal} - (w1 + w2) / 2;`);
+                    lines.push(`            it.printf(block_x, ${yVal}, id(${labelFontId}), ${colorVar}, ${leftAlign}, "${labelStr}");`);
+                    lines.push(`            it.printf(block_x + w1, ${yVal} + (bl1 - bl2), id(${valueFontId}), ${colorVar}, ${leftAlign}, "%s", value_buf);`);
+                    lines.push(`          }`);
+                } else if (useWrapping) {
                     const lineHeight = valueFS + 4;
                     lines.push(`          // Align baselines for first line: yVal + bl1 = yVal2 + bl2`);
                     lines.push(`          // Note: we can't easily align baselines perfectly without measuring the value's first line first,`);
@@ -376,7 +440,6 @@ export const exportDirect = (w, context) => {
                     lines.push(`            print_wrapped_text(${xVal} + w1, ${yVal} + (bl1 - ${Math.round(valueFS * 0.8)}), val_max_w, ${lineHeight}, id(${valueFontId}), ${colorVar}, ${align}, value_buf);`);
                     lines.push(`          }`);
                 } else {
-                    lines.push(`          id(${valueFontId})->measure(value_buf, &w2, &xoff2, &bl2, &h2);`);
                     lines.push(`          // Align baselines: yVal + bl1 = yVal2 + bl2 => yVal2 = yVal + bl1 - bl2`);
                     lines.push(`          it.printf(${xVal}, ${yVal}, id(${labelFontId}), ${colorVar}, ${align}, "${labelStr}");`);
                     lines.push(`          it.printf(${xVal} + w1, ${yVal} + (bl1 - bl2), id(${valueFontId}), ${colorVar}, ${align}, "%s", value_buf);`);

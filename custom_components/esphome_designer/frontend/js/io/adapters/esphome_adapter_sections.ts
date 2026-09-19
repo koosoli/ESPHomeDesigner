@@ -254,7 +254,7 @@ export function buildSensorSections({
     collectVisibilityTriggers(allWidgets, pendingTriggers, displayId, isLvgl);
 
     if (Generators.generateSensorSection) {
-        lines.push(...Generators.generateSensorSection(profile, [], displayId, allWidgets));
+        lines.push(...Generators.generateSensorSection(profile, [], displayId, allWidgets, { layout: context.layout }));
     }
 
     const numericSensorLinesOrig: string[] = [];

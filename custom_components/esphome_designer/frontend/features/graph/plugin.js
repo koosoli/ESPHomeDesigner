@@ -132,7 +132,11 @@ const appendHistoryTemplateButtons = (panel, widget) => {
     panel.getContainer().appendChild(buttonRow);
 
     if (canGenerate) {
-        panel.addHint(`Starter package ready. After importing it into Home Assistant, set this graph's Entity ID to <code>${helperEntityId}</code>.`);
+        if (sourceEntity.toLowerCase() === helperEntityId.toLowerCase()) {
+            panel.addHint(`Starter package ready. Graph is pointed to helper entity <code>${helperEntityId}</code>. Ensure the package is imported into Home Assistant with the SQL integration enabled.`);
+        } else {
+            panel.addHint(`Starter package ready. After importing it into Home Assistant, set this graph's Entity ID to <code>${helperEntityId}</code>.`);
+        }
     } else {
         panel.addHint('Pick a Home Assistant entity first to generate a history helper package. MQTT topics are not supported for this helper.');
     }

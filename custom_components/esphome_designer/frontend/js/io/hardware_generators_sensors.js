@@ -5,7 +5,7 @@
  * @param {any[]} [_allWidgets]
  * @returns {string[]}
  */
-export function generateSensorSection(profile, widgetSensorLines = [], _displayId = "my_display", _allWidgets = []) {
+export function generateSensorSection(profile, widgetSensorLines = [], _displayId = "my_display", _allWidgets = [], options = {}) {
     /** @type {string[]} */
     const lines = [];
     if (!profile) return lines;
@@ -18,6 +18,14 @@ export function generateSensorSection(profile, widgetSensorLines = [], _displayI
 
     if (!hasBattery && !hasSht4x && !hasShtc3 && !hasWidgets) return lines;
 
+    const layout = options?.layout || (options?.deepSleepEnabled !== undefined ? options : null);
+    const isDeepSleep = options?.isDeepSleep ?? !!(
+        (profile?.features?.epaper || profile?.features?.epd) &&
+        layout?.deepSleepEnabled &&
+        profile?.supportsDeepSleep !== false
+    );
+    const batteryUpdateInterval = profile?.battery?.update_interval || options?.batteryUpdateInterval || (isDeepSleep ? "never" : "60s");
+
     lines.push("sensor:");
 
     if (hasBattery) {
@@ -28,10 +36,13 @@ export function generateSensorSection(profile, widgetSensorLines = [], _displayI
         lines.push("    device_class: voltage");
         lines.push("    state_class: measurement");
         lines.push("    id: battery_voltage");
-        lines.push("    update_interval: 60s");
+        lines.push(`    update_interval: ${batteryUpdateInterval}`);
         lines.push(`    attenuation: ${profile.battery.attenuation}`);
         lines.push("    filters:");
         lines.push(`      - multiply: ${profile.battery.multiplier}`);
+        lines.push("    on_value:");
+        lines.push("      then:");
+        lines.push("        - component.update: battery_level");
     }
 
     if (hasSht4x) {
@@ -86,10 +97,10 @@ export function generateSensorSection(profile, widgetSensorLines = [], _displayI
         lines.push("    icon: \"mdi:battery\"");
         lines.push("    device_class: battery");
         lines.push("    state_class: measurement");
+        lines.push(`    update_interval: ${batteryUpdateInterval}`);
 
         if (profile.battery.curve) {
             lines.push("    lambda: 'return id(battery_voltage).state;'");
-            lines.push("    update_interval: 60s");
             lines.push("    filters:");
             lines.push("      - calibrate_linear:");
             profile.battery.curve.forEach((/** @type {{ from: number, to: number }} */ pt) => {

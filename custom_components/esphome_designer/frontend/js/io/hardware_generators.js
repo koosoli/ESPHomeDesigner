@@ -298,8 +298,8 @@ export function generateDisplaySection(profile, layout = {}, isLvgl = false) {
  * @param {WidgetLike[]} [allWidgets]
  * @returns {string[]}
  */
-export function generateSensorSection(profile, widgetSensorLines = [], displayId = "my_display", allWidgets = []) {
-    return generateSensorSectionHelper(profile, widgetSensorLines, displayId, allWidgets);
+export function generateSensorSection(profile, widgetSensorLines = [], displayId = "my_display", allWidgets = [], options = {}) {
+    return generateSensorSectionHelper(profile, widgetSensorLines, displayId, allWidgets, options);
 }
 
 /**

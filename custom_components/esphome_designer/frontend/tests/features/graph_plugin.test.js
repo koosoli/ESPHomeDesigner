@@ -363,4 +363,18 @@ describe('graph plugin', () => {
         expect(disabledDownloadButton?.hasAttribute('disabled')).toBe(true);
         expect(disabledPanel.hints).toContain('Pick a Home Assistant entity first to generate a history helper package. MQTT topics are not supported for this helper.');
     });
+
+    it('shows confirmation hint when entity_id is already set to the helper entity', () => {
+        const panel = createPanel();
+        graphPlugin.renderProperties(panel, {
+            id: 'graph_helper_active',
+            entity_id: 'sensor.graph_history_sensor_energy',
+            title: '',
+            props: {
+                use_ha_history: true
+            }
+        });
+
+        expect(panel.hints.some((hint) => hint.includes('Graph is pointed to helper entity') && hint.includes('sensor.graph_history_sensor_energy'))).toBe(true);
+    });
 });

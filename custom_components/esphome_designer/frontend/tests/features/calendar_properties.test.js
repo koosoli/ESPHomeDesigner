@@ -86,6 +86,7 @@ describe('calendar properties', () => {
                 font_weight_month: 450,
                 font_weight_grid_header: 650,
                 font_weight_dates: 650,
+                font_weight_event_day: 750,
                 font_weight_events: 450
             }
         };
@@ -114,6 +115,7 @@ describe('calendar properties', () => {
         expect(weightValues['Month Weight']).toBe(400);
         expect(weightValues['Grid Header Weight']).toBe(600);
         expect(weightValues['Dates Weight']).toBe(600);
+        expect(weightValues['Event Day Weight']).toBe(700);
         expect(weightValues['Events Weight']).toBe(400);
 
         expect(panel.createSection).toHaveBeenCalledTimes(4);

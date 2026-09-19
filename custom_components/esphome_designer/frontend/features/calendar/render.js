@@ -215,6 +215,7 @@ export const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
         const eventDayFormat = props.event_day_format || "day";
         let count = 0;
         let lastDrawnDay = null;
+        const eventDayWeight = props.font_weight_event_day !== undefined ? props.font_weight_event_day : 700;
         for (const dayEntry of liveEvents) {
             if (count >= limit) break;
             const dayNum = dayEntry.day;
@@ -245,7 +246,7 @@ export const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
                 row.style.marginBottom = "4px";
                 row.style.display = "flex";
                 row.style.justifyContent = "space-between";
-                row.innerHTML = `<span style="flex-shrink:0;min-width:${prefixWidth};margin-right:4px;"><b>${dayLabel}</b></span>` +
+                row.innerHTML = `<span style="flex-shrink:0;min-width:${prefixWidth};margin-right:4px;"><b style="font-weight:${eventDayWeight};">${dayLabel}</b></span>` +
                     `<span style="flex-grow:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px;">${summary}</span>` +
                     `<span style="flex-shrink:0;opacity:0.7;font-size:0.9em;">${timeText}</span>`;
                 events.appendChild(row);
@@ -264,14 +265,15 @@ export const drawCalendarPreview = (el, widget, props, { getColorStyle }) => {
         }
     } else {
         const eventDayFormat = props.event_day_format || "day";
+        const eventDayWeight = props.font_weight_event_day !== undefined ? props.font_weight_event_day : 700;
         const fallbackDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         const nextDate = new Date(now);
         nextDate.setDate(now.getDate() + 2);
         const d1 = eventDayFormat === "weekday" ? fallbackDays[now.getDay()] : date;
         const d2 = eventDayFormat === "weekday" ? fallbackDays[nextDate.getDay()] : Math.min(date + 2, daysInMonth);
         events.innerHTML = `
-            <div style="margin-bottom:4px;"><b>${d1}</b> Meeting with Team</div>
-            <div><b>${d2}</b> Dentist Appointment</div>
+            <div style="margin-bottom:4px;"><b style="font-weight:${eventDayWeight};">${d1}</b> Meeting with Team</div>
+            <div><b style="font-weight:${eventDayWeight};">${d2}</b> Dentist Appointment</div>
         `;
     }
 

@@ -164,6 +164,7 @@ template:
         addWeightSelect("Month Weight", "font_weight_month", 400);
         addWeightSelect("Grid Header Weight", "font_weight_grid_header", 700);
         addWeightSelect("Dates Weight", "font_weight_dates", 700);
+        addWeightSelect("Event Day Weight", "font_weight_event_day", 700);
         addWeightSelect("Events Weight", "font_weight_events", 400);
 
         panel.endSection();

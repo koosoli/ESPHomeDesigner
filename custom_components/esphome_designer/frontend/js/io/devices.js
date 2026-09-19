@@ -32,7 +32,7 @@ export const DEVICE_PROFILES = {
       batteryEnable: "GPIO21",
       batteryAdc: "GPIO1",
       buzzer: "GPIO45",
-      buttons: { left: "GPIO5", right: "GPIO4", refresh: "GPIO3", home: "GPIO2" }
+      buttons: { left: "GPIO5", right: "GPIO4", refresh: "GPIO3" }
     },
     battery: {
       attenuation: "12db",
@@ -64,7 +64,7 @@ export const DEVICE_PROFILES = {
       batteryEnable: "GPIO21",
       batteryAdc: "GPIO1",
       buzzer: "GPIO45",
-      buttons: { left: "GPIO5", right: "GPIO4", refresh: "GPIO3", home: "GPIO2" }
+      buttons: { left: "GPIO5", right: "GPIO4", refresh: "GPIO3" }
     },
     battery: {
       attenuation: "12db",

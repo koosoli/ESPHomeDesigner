@@ -27,6 +27,7 @@ exports[`Plugin Defaults Snapshots > should match snapshot for defaults of calen
   "font_size_event": 18,
   "font_size_grid": 14,
   "font_weight_dates": 700,
+  "font_weight_event_day": 700,
   "font_weight_events": 400,
   "font_weight_grid_header": 700,
   "font_weight_header_date": 100,

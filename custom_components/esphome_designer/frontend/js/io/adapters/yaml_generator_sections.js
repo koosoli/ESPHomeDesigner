@@ -209,6 +209,10 @@ export function generateSystemSections(profile, layout) {
             lines.push("#       - output.turn_on: battery_power");
         }
         lines.push("#       - delay: 2s");
+        if (profile.pins?.batteryAdc) {
+            lines.push("#       - component.update: battery_voltage");
+            lines.push("#       - component.update: battery_level");
+        }
     }
 
     if (isCoreInk) {

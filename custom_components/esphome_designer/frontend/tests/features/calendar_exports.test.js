@@ -244,4 +244,73 @@ describe('calendar exports', () => {
         expect(output).toContain('dayEntry["day_name"]');
         expect(output).toContain('it.printf(x + 10, eventY, id(font_ref), Color(theme_auto), TextAlign::TOP_LEFT, "%s", day_name);');
     });
+
+    it('omits separator line and offsets eventY directly below header when show_grid is false', () => {
+        const lines = [];
+
+        exportDirect({
+            x: 0,
+            y: 0,
+            width: 300,
+            height: 200,
+            entity_id: 'sensor.family_calendar',
+            props: {
+                show_header: true,
+                show_grid: false,
+                show_events: true
+            }
+        }, {
+            lines,
+            addFont: vi.fn(() => 'font_ref'),
+            getColorConst: (value) => `Color(${value})`,
+            addDitherMask: vi.fn(),
+            getCondProps: () => ({}),
+            getConditionCheck: () => '',
+            isEpaper: false
+        });
+
+        const output = lines.join('\n');
+        // Header divider line is present
+        expect(output).toContain('it.line(x, y + headH, x + w, y + headH, Color(theme_auto));');
+        // eventY starts directly under header
+        expect(output).toContain('int eventY = y + headH + 8;');
+        // Separator line between grid and events must NOT be present
+        expect(output).not.toContain('eventY - 5');
+    });
+
+    it('uses distinct fonts for event day prefix and event summary/time', () => {
+        const lines = [];
+        const addFontMock = vi.fn((family, weight, size) => `font_${weight}_${size}`);
+
+        exportDirect({
+            x: 0,
+            y: 0,
+            width: 300,
+            height: 200,
+            entity_id: 'sensor.family_calendar',
+            props: {
+                show_header: false,
+                show_grid: false,
+                show_events: true,
+                font_weight_event_day: 700,
+                font_weight_events: 400,
+                font_size_event: 18,
+                event_day_format: 'weekday'
+            }
+        }, {
+            lines,
+            addFont: addFontMock,
+            getColorConst: (value) => `Color(${value})`,
+            addDitherMask: vi.fn(),
+            getCondProps: () => ({}),
+            getConditionCheck: () => '',
+            isEpaper: false
+        });
+
+        const output = lines.join('\n');
+        // Day prefix uses 700 weight font
+        expect(output).toContain('it.printf(x + 10, eventY, id(font_700_18), Color(theme_auto), TextAlign::TOP_LEFT, "%s", day_name);');
+        // Summary uses 400 weight font
+        expect(output).toContain('it.printf(x + 50, eventY, id(font_400_18), Color(theme_auto), TextAlign::TOP_LEFT,');
+    });
 });

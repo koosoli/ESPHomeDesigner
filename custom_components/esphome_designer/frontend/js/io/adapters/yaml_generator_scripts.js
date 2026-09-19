@@ -128,7 +128,7 @@ export function generateScriptSection(payload, pages, profile) {
         lines.push(`          // (adjusted for ${isLcd ? 'LCD' : 'e-paper'} display update time)`);
         lines.push("          uint32_t now = millis();");
         lines.push(`          if (now - id(last_page_switch_time) < ${debounceMs}) {`);
-        lines.push(`            ESP_LOGD("display", "Page change ignored (debounce), last switch was %d ms ago", now - id(last_page_switch_time));`);
+        lines.push(`            ESP_LOGD("display", "Page change ignored (debounce), last switch was %u ms ago", (unsigned int) (now - id(last_page_switch_time)));`);
         lines.push("            return;");
         lines.push("          }");
         lines.push("");
@@ -136,7 +136,7 @@ export function generateScriptSection(payload, pages, profile) {
         lines.push("            // Set debounce time BEFORE display update (update takes ~1.6s)");
             lines.push("            id(last_page_switch_time) = now;");
             lines.push("            id(display_page) = target;");
-            if (!isLvgl) lines.push(`            id(${displayId}).update();`);
+            if (!isLvgl) lines.push(`            id(${displayId})->update();`);
             lines.push(`            ESP_LOGI("display", "Switched to page %d", target);`);
         if (isBacklightStrategy) {
             lines.push(`            // LCD Strategy: Wake up backlight on interaction/page change`);
@@ -181,6 +181,9 @@ export function generateScriptSection(payload, pages, profile) {
     lines.push("");
     lines.push("  - id: manage_run_and_sleep", "    mode: restart", "    then:");
 
+    if (profile.pins?.batteryEnable) {
+        lines.push(`      - ${profile.batteryEnableAlwaysOn ? "switch.turn_on" : "output.turn_on"}: bsp_battery_enable`);
+    }
     if (profile.m5paper?.main_power_pin || profile.pins?.main_power_pin) lines.push("      - output.turn_on: main_power");
     if (profile.m5paper?.battery_power_pin || profile.pins?.battery_power_pin) lines.push("      - output.turn_on: battery_power");
 
@@ -192,7 +195,7 @@ export function generateScriptSection(payload, pages, profile) {
         lines.push("            current_hash = ((current_hash << 5) + current_hash) + c;");
         lines.push("          }");
         lines.push("          if (id(firmware_fingerprint) != current_hash) {");
-        lines.push('            ESP_LOGW("firmware", "New firmware detected! Hash: %u", current_hash);');
+        lines.push('            ESP_LOGW("firmware", "New firmware detected! Hash: %u", (unsigned int) current_hash);');
         lines.push("            id(is_new_flash) = true;");
         lines.push("            id(firmware_fingerprint) = current_hash;");
         lines.push("          } else {");
@@ -218,6 +221,11 @@ export function generateScriptSection(payload, pages, profile) {
     lines.push('            - logger.log: "Waiting 5s for initial sensor updates..."');
     lines.push("            - delay: 5s");
     lines.push(`            - lambda: 'id(initial_sensor_sync_pending) = false;'`);
+
+    if (profile.pins?.batteryAdc) {
+        lines.push("      - component.update: battery_voltage");
+        lines.push("      - component.update: battery_level");
+    }
 
     if (autoCycleEnabled) {
         lines.push("      - if:");

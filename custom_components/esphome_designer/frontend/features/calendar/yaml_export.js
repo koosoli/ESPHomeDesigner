@@ -280,7 +280,7 @@ text_sensor:
                       // Safety: Ensure we have enough space for at least one event
                       if (y_cursor >= max_y) { ESP_LOGW("calendar", "Widget too small for events"); return; }
     
-                      it.filled_rectangle(${x} + 20, y_cursor - 5, ${w} - 40, 2, color_content);
+                      ${props.show_grid !== false ? `it.filled_rectangle(${x} + 20, y_cursor - 5, ${w} - 40, 2, color_content);` : ''}
     
                       for (JsonVariant dayEntry : days) {
                           if (y_cursor > max_y) break;

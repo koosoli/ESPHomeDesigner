@@ -14,6 +14,7 @@ exports[`Export Path Round-Trip Enforcement > Core Text Plugins > exports "senso
           char value_buf[512];
           sprintf(value_buf, "Temp: %.2f °C", id(sensor_temperature).state);
           id(font_roboto_14)->measure("temperature: ", &w1, &xoff1, &bl1, &h1);
+          id(font_roboto_18)->measure(value_buf, &w2, &xoff2, &bl2, &h2);
           // Align baselines for first line: yVal + bl1 = yVal2 + bl2
           // Note: we can't easily align baselines perfectly without measuring the value's first line first,
           // but we can approximate or just use top-aligned reference.
@@ -28,10 +29,7 @@ exports[`Export Path Round-Trip Enforcement > Core Text Plugins > exports "senso
         }"
 `;
 
-exports[`Export Path Round-Trip Enforcement > Core Text Plugins > exports "text" plugin correctly 1`] = `
-"        it.printf(10, 20, id(font_roboto_24), color_on, TextAlign::TOP_LEFT, "Hello ");
-        it.printf(10, 48, id(font_roboto_24), color_on, TextAlign::TOP_LEFT, "World");"
-`;
+exports[`Export Path Round-Trip Enforcement > Core Text Plugins > exports "text" plugin correctly 1`] = `"        print_wrapped_text(10, 20, 100, 28, id(font_roboto_24), color_on, TextAlign::TOP_LEFT, "Hello World");"`;
 
 exports[`Export Path Round-Trip Enforcement > Data Plugins > exports "graph" plugin correctly 1`] = `
 "        it.graph(0, 0, id(graph_test_graph));

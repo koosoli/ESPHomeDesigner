@@ -35,6 +35,7 @@ export default {
         font_weight_month: 400,
         font_weight_grid_header: 700,
         font_weight_dates: 700,
+        font_weight_event_day: 700,
         font_weight_events: 400
     },
     renderProperties,

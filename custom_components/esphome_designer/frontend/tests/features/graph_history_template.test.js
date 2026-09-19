@@ -65,4 +65,32 @@ describe('graph history template helper', () => {
         expect(yaml).toContain("{{ graph_history_sensor_energy_usage.result | default([]) | map(attribute='value') | list | tojson }}");
         expect(yaml).toContain('window_seconds: 7200');
     });
+
+    it('idempotently handles entity_id when already pointed to the helper entity', () => {
+        const widget = {
+            entity_id: 'sensor.graph_history_sensor_room_temperature',
+            props: {
+                duration: '1h',
+                history_points: 60
+            }
+        };
+
+        expect(buildGraphHistoryTemplateEntityId(widget)).toBe('sensor.graph_history_sensor_room_temperature');
+        expect(buildGraphHistoryTemplateFilename(widget)).toBe('graph_history_sensor_room_temperature.yaml');
+
+        const yaml = buildGraphHistoryTemplateYaml(widget);
+        expect(yaml).toContain("WHERE states_meta.entity_id = 'sensor.room_temperature'");
+        expect(yaml).toContain('state: "{{ states(\\"sensor.room_temperature\\") }}"');
+        expect(yaml).toContain('Point the graph widget to sensor.graph_history_sensor_room_temperature.');
+    });
+
+    it('resolves source entity when helper entity has direct sensor prefix', () => {
+        const widget = {
+            entity_id: 'sensor.graph_history_humidity'
+        };
+
+        expect(buildGraphHistoryTemplateEntityId(widget)).toBe('sensor.graph_history_humidity');
+        const yaml = buildGraphHistoryTemplateYaml(widget);
+        expect(yaml).toContain("WHERE states_meta.entity_id = 'sensor.humidity'");
+    });
 });

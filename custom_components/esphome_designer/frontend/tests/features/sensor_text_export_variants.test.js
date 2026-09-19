@@ -136,6 +136,51 @@ describe('sensor_text export variants', () => {
         expect(output).toContain('print_wrapped_text(10 + w1, 20 +');
     });
 
+    it('correctly positions CENTER_RIGHT label_value so value ends at right edge and label precedes it', () => {
+        const lines = [];
+        exportDirect({
+            id: 'sensor_center_right', x: 381, y: 445, width: 221, height: 30,
+            entity_id: 'sensor.car_charge_cost',
+            title: 'Prise voiture cout total',
+            props: { value_format: 'label_value', text_align: 'CENTER_RIGHT' }
+        }, {
+            lines,
+            addFont: vi.fn(() => 'sensor_font'),
+            getColorConst: (value) => `Color(${value})`,
+            getConditionCheck: () => '',
+            profile: { name: 'Color Display' }
+        });
+
+        const output = lines.join('\n');
+        // Right edge is 381 + 221 = 602, center Y is 445 + 15 = 460
+        // Label should be at 602 - w2 (not 602), Value should be at 602 (not 602 + w1)
+        expect(output).toContain('it.printf(602 - w2, 460, id(sensor_font), Color(theme_auto), TextAlign::CENTER_RIGHT, "Prise voiture cout total: ");');
+        expect(output).toContain('it.printf(602, 460 + (bl1 - bl2), id(sensor_font), Color(theme_auto), TextAlign::CENTER_RIGHT, "%s", value_buf);');
+        expect(output).not.toContain('602 + w1');
+    });
+
+    it('correctly centers label and value as a single block for CENTER alignment', () => {
+        const lines = [];
+        exportDirect({
+            id: 'sensor_center', x: 100, y: 200, width: 200, height: 40,
+            entity_id: 'sensor.power',
+            title: 'Power',
+            props: { value_format: 'label_value', text_align: 'CENTER' }
+        }, {
+            lines,
+            addFont: vi.fn(() => 'sensor_font'),
+            getColorConst: (value) => `Color(${value})`,
+            getConditionCheck: () => '',
+            profile: { name: 'Color Display' }
+        });
+
+        const output = lines.join('\n');
+        // Center X is 100 + 100 = 200, center Y is 200 + 20 = 220
+        expect(output).toContain('int block_x = 200 - (w1 + w2) / 2;');
+        expect(output).toContain('it.printf(block_x, 220, id(sensor_font), Color(theme_auto), TextAlign::CENTER_LEFT, "Power: ");');
+        expect(output).toContain('it.printf(block_x + w1, 220 + (bl1 - bl2), id(sensor_font), Color(theme_auto), TextAlign::CENTER_LEFT, "%s", value_buf);');
+    });
+
     it('exports direct-mode vertical layout with center/middle alignment and wrapping', () => {
         const lines = [];
         exportDirect({
@@ -986,5 +1031,36 @@ describe('sensor_text export variants', () => {
 
         const output = lines.join('\n');
         expect(output).toContain('print_wrapped_text(0, 0, 120, 20, id(font_16), Color(theme_auto), TextAlign::TOP_LEFT, "Long Heading Title That Wraps");');
+    });
+
+    it('exports direct-mode filled_rounded_rectangle and draw_rrect_border when border_radius is set', () => {
+        const lines = [];
+        exportDirect({
+            id: 'sensor_rounded',
+            x: 5,
+            y: 10,
+            width: 100,
+            height: 50,
+            entity_id: 'sensor.dummy',
+            title: 'Rounded',
+            props: {
+                value_format: 'label_only',
+                bg_color: 'red',
+                border_width: 2,
+                border_color: 'white',
+                border_radius: 6
+            }
+        }, {
+            lines,
+            addFont: (_f, _w, size) => `font_${size}`,
+            getColorConst: (v) => `Color(${v})`,
+            getConditionCheck: () => '',
+            profile: {}
+        });
+
+        const output = lines.join('\n');
+        expect(output).toContain('it.filled_rounded_rectangle(5, 10, 100, 50, 6, Color(red));');
+        expect(output).toContain('auto draw_rrect_border = [&](int x, int y, int w, int h, int r, int t, auto c)');
+        expect(output).toContain('draw_rrect_border(5, 10, 100, 50, 6, 2, Color(white));');
     });
 });

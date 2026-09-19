@@ -55,6 +55,10 @@ describe('built-in device profiles', async () => {
             reset_pin: 'GPIO48'
         });
         expect(generateOutputSection(e1003).join('\n')).toContain('pin: GPIO40\n    id: bsp_battery_enable\n    restore_mode: ALWAYS_ON');
+        expect(devices.DEVICE_PROFILES.reterminal_e1001.pins.buttons).toEqual({ left: 'GPIO5', right: 'GPIO4', refresh: 'GPIO3' });
+        expect(devices.DEVICE_PROFILES.reterminal_e1001.pins.buttons.home).toBeUndefined();
+        expect(devices.DEVICE_PROFILES.reterminal_e1002.pins.buttons).toEqual({ left: 'GPIO5', right: 'GPIO4', refresh: 'GPIO3' });
+        expect(devices.DEVICE_PROFILES.reterminal_e1002.pins.buttons.home).toBeUndefined();
     });
 
     it('excludes untested built-ins from the tested profile id list', () => {

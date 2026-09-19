@@ -67,4 +67,53 @@ describe('hardware_generators_sensors', () => {
             pins: {}
         })).toEqual([]);
     });
+
+    it('sets update_interval: never for battery sensors when deep sleep is active and emits on_value sync', () => {
+        const profile = {
+            pins: { batteryAdc: 'GPIO1' },
+            battery: {
+                attenuation: '12db',
+                multiplier: 2.0,
+                curve: [{ from: 3.3, to: 0 }, { from: 4.2, to: 100 }]
+            },
+            features: { epaper: true }
+        };
+
+        const deepSleepLines = generateSensorSection(profile, [], 'my_display', [], {
+            layout: { deepSleepEnabled: true }
+        }).join('\n');
+
+        expect(deepSleepLines).toContain('id: battery_voltage\n    update_interval: never');
+        expect(deepSleepLines).toContain('id: battery_level');
+        expect(deepSleepLines).toContain('update_interval: never');
+        expect(deepSleepLines).toContain('on_value:\n      then:\n        - component.update: battery_level');
+
+        const normalLines = generateSensorSection(profile, [], 'my_display', [], {
+            layout: { deepSleepEnabled: false }
+        }).join('\n');
+
+        expect(normalLines).toContain('id: battery_voltage\n    update_interval: 60s');
+        expect(normalLines).toContain('id: battery_level');
+        expect(normalLines).toContain('update_interval: 60s');
+    });
+
+    it('respects profile-level battery.update_interval override', () => {
+        const profile = {
+            pins: { batteryAdc: 'GPIO1' },
+            battery: {
+                attenuation: '12db',
+                multiplier: 2.0,
+                update_interval: '120s',
+                calibration: { min: 3.3, max: 4.2 }
+            },
+            features: { epaper: true }
+        };
+
+        const lines = generateSensorSection(profile, [], 'my_display', [], {
+            layout: { deepSleepEnabled: true }
+        }).join('\n');
+
+        expect(lines).toContain('update_interval: 120s');
+    });
 });
+

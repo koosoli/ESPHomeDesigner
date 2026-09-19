@@ -341,7 +341,7 @@ export default {
     },
     export: (w, context) => {
         const {
-            lines, getColorConst, addFont, getAlignX, getAlignY, getCondProps, getConditionCheck, Utils, isEpaper // eslint-disable-line no-unused-vars
+            lines, getColorConst, addFont, getAlignX, getAlignY, getCondProps, getConditionCheck, Utils, isEpaper, addDitherMask // eslint-disable-line no-unused-vars
         } = context;
 
         const p = w.props || {};
@@ -364,10 +364,18 @@ export default {
         let y = w.y;
 
         // Background fill
+        const radius = Math.max(0, Math.min(parseInt(p.border_radius ?? p.radius ?? 0, 10) || 0, Math.floor((w.width || 0) / 2), Math.floor((w.height || 0) / 2)));
         const bgColorProp = p.bg_color || p.background_color || "transparent";
         if (bgColorProp && bgColorProp !== "transparent") {
             const bgColorConst = getColorConst(bgColorProp);
-            lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+            if (radius > 0) {
+                lines.push(`        it.filled_rounded_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${radius}, ${bgColorConst});`);
+            } else {
+                lines.push(`        it.filled_rectangle(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${bgColorConst});`);
+            }
+            if (typeof addDitherMask === 'function') {
+                addDitherMask(lines, bgColorProp, isEpaper, w.x, w.y, w.width, w.height, radius);
+            }
         }
 
         // Horizontal Component
@@ -398,15 +406,31 @@ export default {
 
         // Apply word-wrap based on widget width (skip for narrow widgets where wrapping is nonsensical)
         const effectiveWidth = w.width || 200;
-        const wrappedLines = effectiveWidth >= fontSize * 3 ? wordWrap(text, effectiveWidth, fontSize, fontFamily) : [text];
+        const wrappedLines = effectiveWidth >= fontSize * 3 ? wordWrap(text, effectiveWidth, fontSize, fontFamily) : text.split('\n');
         const lineHeight = fontSize + 4; // Font size plus line spacing
+        const hasExplicitNewlines = text.includes('\n');
 
-        // Output each wrapped line
-        let currentY = y;
-        for (const line of wrappedLines) {
-            const escapedLine = line.replace(/"/g, '\\"').replace(/%/g, '%%');
-            lines.push(`        it.printf(${x}, ${currentY}, id(${fontId}), ${color}, ${esphomeAlign}, "${escapedLine}");`);
-            currentY += lineHeight;
+        if (!hasExplicitNewlines && wrappedLines.length > 1) {
+            // Dynamic wrapping on device avoiding design-time font metric mismatch (Fix #510)
+            const escapedText = text.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+            lines.push(`        print_wrapped_text(${x}, ${y}, ${effectiveWidth}, ${lineHeight}, id(${fontId}), ${color}, ${esphomeAlign}, "${escapedText}");`);
+        } else {
+            // Multi-line vertical alignment calculation for explicit newlines or single-line text
+            const lineCount = wrappedLines.length;
+            let startY = y;
+            if (alignV === "CENTER") {
+                startY = Math.round(y - ((lineCount - 1) * lineHeight) / 2);
+            } else if (alignV === "BOTTOM") {
+                startY = Math.round(y - (lineCount - 1) * lineHeight);
+            }
+
+            // Output each line
+            let currentY = startY;
+            for (const line of wrappedLines) {
+                const escapedLine = line.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/%/g, '%%');
+                lines.push(`        it.printf(${x}, ${currentY}, id(${fontId}), ${color}, ${esphomeAlign}, "${escapedLine}");`);
+                currentY += lineHeight;
+            }
         }
 
         // Apply dithering for gray text on e-paper
@@ -415,11 +439,36 @@ export default {
         }
 
         // Draw Border if defined
-        const borderWidth = p.border_width || 0;
+        const borderWidth = parseInt(p.border_width || 0, 10);
         if (borderWidth > 0) {
             const borderColor = getColorConst(p.border_color || "black");
-            for (let i = 0; i < borderWidth; i++) {
-                lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColor});`);
+            if (radius > 0) {
+                lines.push("        {");
+                lines.push("          auto draw_rrect_border = [&](int x, int y, int w, int h, int r, int t, auto c) {");
+                lines.push("            int inner_r = r - t;");
+                lines.push("            if (inner_r < 0) inner_r = 0;");
+                lines.push("            it.filled_rectangle(x + r, y, w - 2 * r, t, c);");
+                lines.push("            it.filled_rectangle(x + r, y + h - t, w - 2 * r, t, c);");
+                lines.push("            it.filled_rectangle(x, y + r, t, h - 2 * r, c);");
+                lines.push("            it.filled_rectangle(x + w - t, y + r, t, h - 2 * r, c);");
+                lines.push("            for (int dx = 0; dx <= r; dx++) {");
+                lines.push("              for (int dy = 0; dy <= r; dy++) {");
+                lines.push("                int ds = dx*dx + dy*dy;");
+                lines.push("                if (ds <= r*r && ds > inner_r*inner_r) {");
+                lines.push("                  it.draw_pixel_at(x + r - dx, y + r - dy, c);");
+                lines.push("                  it.draw_pixel_at(x + w - r + dx - 1, y + r - dy, c);");
+                lines.push("                  it.draw_pixel_at(x + r - dx, y + h - r + dy - 1, c);");
+                lines.push("                  it.draw_pixel_at(x + w - r + dx - 1, y + h - r + dy - 1, c);");
+                lines.push("                }");
+                lines.push("              }");
+                lines.push("            }");
+                lines.push("          };");
+                lines.push(`          draw_rrect_border(${w.x}, ${w.y}, ${w.width}, ${w.height}, ${radius}, ${borderWidth}, ${borderColor});`);
+                lines.push("        }");
+            } else {
+                for (let i = 0; i < borderWidth; i++) {
+                    lines.push(`        it.rectangle(${w.x} + ${i}, ${w.y} + ${i}, ${w.width} - 2 * ${i}, ${w.height} - 2 * ${i}, ${borderColor});`);
+                }
             }
         }
 

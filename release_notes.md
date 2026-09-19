@@ -1,3 +1,21 @@
+## v1.0.0 RC44 - Deep Sleep Battery Sync, Direct-Mode Multi-Page Navigation, and Compiler Warning Fixes
+**Release Date:** September 19, 2026
+
+### Features & Guidance
+- **Multi-Page Direct-Mode Navigation Guidance (Issues #508, #509, #511):** Added interactive UI guidance modal documenting how to navigate multiple pages on non-touch e-paper devices using physical keypads, rotary encoders, and Home Assistant scripts/automations via `id(change_page_to).execute(target_page)`.
+
+### Fixes
+- **Battery Sensor Deep Sleep Conflict (Issue #512):**
+  - **Dynamic Sensor Polling:** Configured `update_interval: never` for ADC and template battery sensors when Deep Sleep is active, preventing uninitialized (`NaN`/`0%`/`100%`) readings during brief wake cycles.
+  - **Power Rail & Sensor Update Synchronization:** Automatically enables `bsp_battery_enable` on wake and triggers deterministic `component.update: battery_voltage` and `component.update: battery_level` calls following stabilization delays in both `on_boot` and `manage_run_and_sleep`.
+  - **Sensor Sync Trigger:** Added an `on_value` trigger on `battery_voltage` to immediately synchronize template battery calculations whenever voltage is updated.
+- **Direct-Mode Page Switching Pointer Call (Issue #511):** Fixed invalid method call `id(display_id).update()` by emitting pointer dereference `id(display_id)->update()` in direct-mode page switching lambdas.
+- **Hardware Profile Cleanup (Issue #511):** Removed invalid `home: "GPIO2"` button entry from `reterminal_e1001` and `reterminal_e1002` profiles to prevent invalid button component generation.
+- **Firmware Guard Compilation Warnings (Issue #513):** Explicitly cast `current_hash` and debounce delta to `(unsigned int)` to resolve GCC `-Wformat` warnings on 32-bit ESP-IDF and Arduino compilers.
+- **Release Metadata Refresh:** Updated package metadata, Home Assistant manifest version, visible header label, release notes, and rebuilt frontend production bundle for RC44.
+
+---
+
 ## v1.0.0 RC43 - Calendar Widget, Sensor Text Wrap, and ESPHome Modernization
 **Release Date:** September 8, 2026
 
