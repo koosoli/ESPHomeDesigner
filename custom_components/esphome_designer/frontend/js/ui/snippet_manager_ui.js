@@ -1,10 +1,21 @@
 /**
- * @param {string} adapterName
+ * @param {string | { mode?: string, name?: string, constructor?: { name?: string } } | null | undefined} adapterOrMode
  */
-export function syncSnippetModeUi(adapterName) {
-    const isOEPL = adapterName === 'OEPLAdapter';
-    const isODP = adapterName === 'OpenDisplayAdapter';
-    const isC = adapterName === 'CAdapter';
+export function syncSnippetModeUi(adapterOrMode) {
+    let mode = '';
+    let name = '';
+
+    if (typeof adapterOrMode === 'string') {
+        name = adapterOrMode;
+        mode = adapterOrMode.toLowerCase();
+    } else if (adapterOrMode && typeof adapterOrMode === 'object') {
+        mode = String(adapterOrMode.mode || '').toLowerCase();
+        name = String(adapterOrMode.name || adapterOrMode.constructor?.name || '');
+    }
+
+    const isOEPL = mode === 'oepl' || name === 'OEPLAdapter' || name === 'oepl';
+    const isODP = mode === 'opendisplay' || name === 'OpenDisplayAdapter' || name === 'opendisplay';
+    const isC = mode === 'c' || name === 'CAdapter' || name === 'c';
 
     const oeplNotice = document.getElementById('oeplNotice');
     if (oeplNotice) oeplNotice.classList.toggle('hidden', !isOEPL);

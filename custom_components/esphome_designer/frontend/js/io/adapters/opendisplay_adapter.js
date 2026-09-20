@@ -113,8 +113,12 @@ function formatYamlValue(value) {
  * Targets Home Assistant drawcustom actions for MQTT/HTTP based e-paper controllers.
  */
 export class OpenDisplayAdapter extends BaseAdapter {
+    static adapterName = 'OpenDisplayAdapter';
+
     constructor() {
         super();
+        this.mode = 'opendisplay';
+        this.name = 'OpenDisplayAdapter';
     }
 
     /**

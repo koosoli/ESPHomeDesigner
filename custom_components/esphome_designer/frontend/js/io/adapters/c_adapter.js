@@ -25,6 +25,14 @@ function stripCppComment(line) {
  * mature direct-mode widget exporters.
  */
 export class CAdapter extends ESPHomeAdapter {
+    static adapterName = 'CAdapter';
+
+    constructor() {
+        super();
+        this.mode = 'c';
+        this.name = 'CAdapter';
+    }
+
     async generate(layout) {
         if (!layout) {
             Logger.error("CAdapter: Missing layout");

@@ -64,4 +64,33 @@ describe('snippet_manager_ui', () => {
         expect(document.getElementById('copyOEPLServiceBtn')?.style.display).toBe('none');
         expect(document.querySelector('.code-panel-title')?.textContent).toContain('C/C++ Drawing Code');
     });
+
+    it('handles minified adapter instances via mode property', () => {
+        // Simulates production minification where constructor.name is mangled (e.g. 'Bn')
+        const minifiedODP = { mode: 'opendisplay', constructor: { name: 'Bn' } };
+        const odpResult = syncSnippetModeUi(minifiedODP);
+
+        expect(odpResult).toEqual({ isOEPL: false, isODP: true, isC: false });
+        expect(document.getElementById('copyODPPayloadBtn')?.style.display).toBe('inline-block');
+        expect(document.getElementById('copyODPServiceBtn')?.style.display).toBe('inline-block');
+        expect(document.querySelector('.code-panel-title')?.textContent).toContain('OpenDisplay YAML (ODP)');
+
+        seedDom();
+        const minifiedOEPL = { mode: 'oepl', constructor: { name: 'Nn' } };
+        const oeplResult = syncSnippetModeUi(minifiedOEPL);
+
+        expect(oeplResult).toEqual({ isOEPL: true, isODP: false, isC: false });
+        expect(document.getElementById('copyOEPLServiceBtn')?.style.display).toBe('inline-block');
+        expect(document.getElementById('copyODPPayloadBtn')?.style.display).toBe('inline-block');
+
+        seedDom();
+        const minifiedC = { mode: 'c', constructor: { name: 'Kn' } };
+        const cResult = syncSnippetModeUi(minifiedC);
+        expect(cResult).toEqual({ isOEPL: false, isODP: false, isC: true });
+
+        seedDom();
+        expect(syncSnippetModeUi('opendisplay')).toEqual({ isOEPL: false, isODP: true, isC: false });
+        expect(syncSnippetModeUi('oepl')).toEqual({ isOEPL: true, isODP: false, isC: false });
+        expect(syncSnippetModeUi('c')).toEqual({ isOEPL: false, isODP: false, isC: true });
+    });
 });

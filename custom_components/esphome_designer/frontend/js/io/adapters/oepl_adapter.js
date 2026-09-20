@@ -20,8 +20,12 @@ function getRotateForOrientation(orientation) {
  * OpenEpaperLink-specific adapter for generating JSON configuration.
  */
 export class OEPLAdapter extends BaseAdapter {
+    static adapterName = 'OEPLAdapter';
+
     constructor() {
         super();
+        this.mode = 'oepl';
+        this.name = 'OEPLAdapter';
     }
 
     /**

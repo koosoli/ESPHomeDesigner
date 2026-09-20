@@ -26,6 +26,10 @@ import { detectRenderingMode, resolveAdapterProfile } from './esphome_adapter_pr
 import { processPendingTriggers, buildInfrastructureLines, buildSensorSections } from './esphome_adapter_sections.js';
 
 export class ESPHomeAdapter extends BaseAdapter {
+    static adapterName = 'ESPHomeAdapter';
+
+    name: string = 'ESPHomeAdapter';
+    mode: string = 'direct';
     fonts!: FontRegistry;
     yaml!: YamlGenerator;
     usedPlugins: Set<any> = new Set();
@@ -34,6 +38,8 @@ export class ESPHomeAdapter extends BaseAdapter {
 
     constructor() {
         super();
+        this.mode = 'direct';
+        this.name = 'ESPHomeAdapter';
         this.fonts = new FontRegistry();
         this.yaml = new YamlGenerator();
         this.reset();

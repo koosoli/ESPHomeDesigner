@@ -5,7 +5,7 @@ import { CAdapter } from './adapters/c_adapter.js';
 
 /** @typedef {'direct' | 'lvgl' | 'c' | 'oepl' | 'opendisplay'} RenderingMode */
 /** @typedef {import('./adapters/esphome_adapter').ESPHomeAdapter | import('./adapters/c_adapter.js').CAdapter | import('./adapters/oepl_adapter.js').OEPLAdapter | import('./adapters/opendisplay_adapter.js').OpenDisplayAdapter} OutputAdapter */
-/** @typedef {OutputAdapter & { mode: RenderingMode }} TaggedAdapter */
+/** @typedef {OutputAdapter & { mode: RenderingMode, name?: string }} TaggedAdapter */
 
 /**
  * @param {string | null | undefined} mode
@@ -21,12 +21,16 @@ export function createAdapterForMode(mode) {
     let adapter;
     if (resolvedMode === 'oepl') {
         adapter = /** @type {TaggedAdapter} */ (new OEPLAdapter());
+        adapter.name = 'OEPLAdapter';
     } else if (resolvedMode === 'opendisplay') {
         adapter = /** @type {TaggedAdapter} */ (new OpenDisplayAdapter());
+        adapter.name = 'OpenDisplayAdapter';
     } else if (resolvedMode === 'c') {
         adapter = /** @type {TaggedAdapter} */ (new CAdapter());
+        adapter.name = 'CAdapter';
     } else {
         adapter = /** @type {TaggedAdapter} */ (new ESPHomeAdapter());
+        adapter.name = 'ESPHomeAdapter';
     }
 
     adapter.mode = resolvedMode;

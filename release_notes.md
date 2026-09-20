@@ -1,3 +1,12 @@
+## v1.0.0 RC45 - OpenDisplay & OEPL Production Code Panel Fix
+**Release Date:** September 20, 2026
+
+### Fixes
+- **OpenDisplay & OEPL Code Panel Controls (Issue #500):** Fixed a production minification issue where mangled adapter class names prevented the Code Panel from switching into OpenDisplay or OEPL mode, resolving the missing "Payload" (copy payload only) button, ODP/OEPL action buttons, and mode banners.
+- **Release Metadata Refresh:** Updated package metadata, package-lock metadata, Home Assistant manifest version, visible header label, release notes, and rebuilt frontend production bundle for RC45.
+
+---
+
 ## v1.0.0 RC44 - Deep Sleep Battery Sync, Direct-Mode Multi-Page Navigation, and Compiler Warning Fixes
 **Release Date:** September 19, 2026
 

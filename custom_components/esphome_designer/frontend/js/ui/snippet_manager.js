@@ -17,6 +17,8 @@ import { addBrowserEventListener, dispatchBrowserEvent } from '../utils/browser_
 /**
  * @typedef {{
  *   generate: (payload: any) => Promise<string>,
+ *   mode?: string,
+ *   name?: string,
  *   constructor?: { name?: string }
  * }} SnippetAdapter
  */
@@ -717,8 +719,8 @@ export class SnippetManager {
                     return;
                 }
 
-                const adapterName = this.adapter?.constructor?.name || '';
-                syncSnippetModeUi(adapterName);
+                const adapterName = this.adapter?.name || this.adapter?.constructor?.name || this.adapter?.mode || '';
+                syncSnippetModeUi(adapterName || this.adapter);
 
                 const manualYamlOverride = this.getPersistedManualYamlOverride();
 

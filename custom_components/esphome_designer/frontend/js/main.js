@@ -154,7 +154,7 @@ export class App {
             };
 
             this.adapter = createAdapterForMode(AppState.settings.renderingMode);
-            Logger.log('[App] Adapter initialized:', this.adapter.constructor.name);
+            Logger.log('[App] Adapter initialized:', this.adapter.name || this.adapter.mode || this.adapter.constructor.name);
 
             this.snippetManager = new SnippetManager(this.adapter);
             Logger.log('[App] SnippetManager initialized');
