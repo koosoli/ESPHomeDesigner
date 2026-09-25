@@ -1231,7 +1231,7 @@
           <span class="mdi mdi-chevron-down category-chevron"></span>
         </div>
         <div class="settings-category-content">
-          <div style="font-size:10px; opacity:0.6; margin-bottom:8px;">Configure Gemini, OpenAI or OpenRouter to use
+          <div style="font-size:10px; opacity:0.6; margin-bottom:8px;">Configure Gemini, OpenAI, OpenRouter or Requesty to use
             natural language prompts.</div>
           <form id="editorAiSettingsForm" class="field" style="display:flex; flex-direction:column; gap:8px;" onsubmit="return false;">
             <input type="text" name="aiProviderUser" autocomplete="username" tabindex="-1" aria-hidden="true"
@@ -1242,6 +1242,7 @@
                 <option value="gemini">Google Gemini</option>
                 <option value="openai">OpenAI</option>
                 <option value="openrouter">OpenRouter</option>
+                <option value="requesty">Requesty</option>
                 <option value="minimax">MiniMax</option>
                 <option value="glm">GLM (Z.AI / Zhipu)</option>
               </select>
@@ -1257,6 +1258,10 @@
             <div id="aiKeyOpenrouterRow" style="display:none;">
               <div class="prop-label" style="font-size: 10px;">OpenRouter API Key</div>
               <input type="password" id="aiApiKeyOpenrouter" class="prop-input" placeholder="Paste OpenRouter key..." autocomplete="new-password" />
+            </div>
+            <div id="aiKeyRequestyRow" style="display:none;">
+              <div class="prop-label" style="font-size: 10px;">Requesty API Key</div>
+              <input type="password" id="aiApiKeyRequesty" class="prop-input" placeholder="Paste Requesty key..." autocomplete="new-password" />
             </div>
             <div id="aiKeyMinimaxRow" style="display:none;">
               <div class="prop-label" style="font-size: 10px;">MiniMax API Key</div>

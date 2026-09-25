@@ -81,6 +81,16 @@ export class AIService {
                 });
                 const data = await response.json();
                 return data.data.map(m => ({ id: m.id, name: m.name, context: m.context_length }));
+            } else if (provider === 'requesty') {
+                const headers = { 'Authorization': `Bearer ${apiKey}` };
+                let response = await fetch('https://router.requesty.ai/v1/models/managed', { headers });
+                if (!response.ok) {
+                    response = await fetch('https://router.requesty.ai/v1/models', { headers });
+                }
+                const data = await response.json();
+                return data.data
+                    .filter(m => m.api === 'chat')
+                    .map(m => ({ id: m.id, name: m.id, context: m.context_window }));
             } else if (provider === 'openai') {
                 const response = await fetch('https://api.openai.com/v1/models', {
                     headers: { 'Authorization': `Bearer ${apiKey}` }
@@ -177,6 +187,8 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
                 responseText = await this.callOpenAI(apiKey, model, systemPrompt, userPrompt);
             } else if (provider === 'openrouter') {
                 responseText = await this.callOpenRouter(apiKey, model, systemPrompt, userPrompt);
+            } else if (provider === 'requesty') {
+                responseText = await this.callRequesty(apiKey, model, systemPrompt, userPrompt);
             } else if (provider === 'minimax') {
                 responseText = await this.callMiniMax(apiKey, model, systemPrompt, userPrompt);
             } else if (provider === 'glm') {
@@ -388,6 +400,11 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
     async callGLM(apiKey, model, system, user) {
         return this.callOpenAICompatible(
             'https://api.z.ai/api/paas/v4/chat/completions', apiKey, model, system, user);
+    }
+
+    async callRequesty(apiKey, model, system, user) {
+        return this.callOpenAICompatible(
+            'https://router.requesty.ai/v1/chat/completions', apiKey, model, system, user);
     }
 
     getSystemPrompt() {

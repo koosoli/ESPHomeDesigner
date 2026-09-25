@@ -1,6 +1,6 @@
 import { Logger } from '../../utils/logger.js';
 
-/** @typedef {'ai_api_key_gemini'|'ai_api_key_openai'|'ai_api_key_openrouter'|'ai_api_key_minimax'|'ai_api_key_glm'} SecretKey */
+/** @typedef {'ai_api_key_gemini'|'ai_api_key_openai'|'ai_api_key_openrouter'|'ai_api_key_requesty'|'ai_api_key_minimax'|'ai_api_key_glm'} SecretKey */
 
 /** Prefix identifying settings keys that hold credentials. */
 export const SECRET_KEY_PREFIX = 'ai_api_key_';
@@ -46,6 +46,7 @@ export class SecretsStore {
             ai_api_key_gemini: "",
             ai_api_key_openai: "",
             ai_api_key_openrouter: "",
+            ai_api_key_requesty: "",
             ai_api_key_minimax: "",
             ai_api_key_glm: ""
         };
