@@ -187,6 +187,69 @@ describe('ai_service', () => {
         await expect(service.callMiniMax('bad-key', 'MiniMax-M2.7', 'system', 'user')).rejects.toThrow('invalid api key');
     });
 
+    it('maps Requesty model lists from managed policies and falls back to the full catalog', async () => {
+        const service = new AIService();
+
+        fetch
+            .mockResolvedValueOnce({
+                ok: true,
+                json: vi.fn().mockResolvedValue({
+                    data: [
+                        { id: 'gpt-5.4-mini', api: 'chat', context_window: 400000 },
+                        { id: 'text-embedding-3-small', api: 'embedding', context_window: 8192 }
+                    ]
+                })
+            })
+            .mockResolvedValueOnce({ ok: false })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: vi.fn().mockResolvedValue({
+                    data: [{ id: 'openai/gpt-4o-mini', api: 'chat', context_window: 128000 }]
+                })
+            });
+
+        await expect(service.fetchModels('requesty', 'requesty-key')).resolves.toEqual([
+            { id: 'gpt-5.4-mini', name: 'gpt-5.4-mini', context: 400000 }
+        ]);
+        expect(fetch.mock.calls[0][0]).toBe('https://router.requesty.ai/v1/models/managed');
+        expect(fetch.mock.calls[0][1].headers.Authorization).toBe('Bearer requesty-key');
+
+        await expect(service.fetchModels('requesty', 'requesty-key')).resolves.toEqual([
+            { id: 'openai/gpt-4o-mini', name: 'openai/gpt-4o-mini', context: 128000 }
+        ]);
+        expect(fetch.mock.calls[2][0]).toBe('https://router.requesty.ai/v1/models');
+        await expect(service.fetchModels('requesty', '')).resolves.toEqual([]);
+    });
+
+    it('dispatches Requesty prompts to the Requesty chat completions endpoint', async () => {
+        const service = new AIService();
+        mockAppState.settings = {
+            ai_provider: 'requesty',
+            ai_api_key_requesty: 'requesty-key',
+            ai_model_requesty: 'openai/gpt-4o-mini'
+        };
+        mockAIValidator.validateResponse.mockReturnValue({
+            valid: true,
+            errors: [],
+            sanitized: [{ id: 'w_1', type: 'text' }]
+        });
+        fetch.mockResolvedValueOnce({
+            json: vi.fn().mockResolvedValue({
+                choices: [{ message: { content: '{"widgets":[{"id":"w_1","type":"text"}]}' } }]
+            })
+        });
+
+        const result = await service.processPrompt('Add a label', {
+            display_type: 'color_lcd',
+            widgets: []
+        });
+
+        expect(fetch.mock.calls[0][0]).toBe('https://router.requesty.ai/v1/chat/completions');
+        expect(fetch.mock.calls[0][1].headers.Authorization).toBe('Bearer requesty-key');
+        expect(JSON.parse(fetch.mock.calls[0][1].body).model).toBe('openai/gpt-4o-mini');
+        expect(result).toEqual([{ id: 'w_1', type: 'text' }]);
+    });
+
     it('dispatches GLM prompts with a default model when none is selected', async () => {
         const service = new AIService();
         mockAppState.settings = {

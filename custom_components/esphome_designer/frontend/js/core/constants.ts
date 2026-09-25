@@ -86,6 +86,7 @@ export const DEFAULT_PREFERENCES = {
     ai_model_gemini: "",
     ai_model_openai: "",
     ai_model_openrouter: "",
+    ai_model_requesty: "",
     ai_model_minimax: "",
     ai_model_glm: "",
     extendedLatinGlyphs: false,

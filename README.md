@@ -286,7 +286,7 @@ Most widgets (text, shapes, images, icons, QR codes) work on all platforms. Grap
 - Multi-page "World View" - see all pages as artboards on a unified stage
 - Hierarchy panel for layer management, z-index, and widget locking
 - Entity picker with real-time preview of your HA entities
-- AI assistant (Gemini, OpenAI, OpenRouter) for generating layouts from text prompts
+- AI assistant (Gemini, OpenAI, OpenRouter, Requesty) for generating layouts from text prompts
 - Round-trip editing - import existing ESPHome/OEPL/ODP code back into the editor
 - Per-page visibility windows for time-based content scheduling
 - Conditional widget visibility based on HA entity states

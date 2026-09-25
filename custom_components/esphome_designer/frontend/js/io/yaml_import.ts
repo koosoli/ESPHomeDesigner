@@ -590,7 +590,7 @@ export function loadLayoutIntoState(layout: ParsedLayout | null | undefined): vo
         'extendedLatinGlyphs', 'editor_light_mode', 'snapEnabled', 'showGrid',
         'showDebugGrid', 'showRulers', 'gridOpacity',
         'ai_provider', 'ai_model_filter', 'ai_model_gemini', 'ai_model_openai',
-        'ai_model_openrouter', 'ai_model_minimax', 'ai_model_glm'
+        'ai_model_openrouter', 'ai_model_requesty', 'ai_model_minimax', 'ai_model_glm'
     ];
 
     directSettingKeys.forEach((key) => {
