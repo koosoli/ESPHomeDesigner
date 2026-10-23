@@ -15,6 +15,7 @@ describe('settings modal markup', () => {
         const openaiKey = container.querySelector('#aiApiKeyOpenai');
         const openrouterKey = container.querySelector('#aiApiKeyOpenrouter');
         const requestyKey = container.querySelector('#aiApiKeyRequesty');
+        const opperKey = container.querySelector('#aiApiKeyOpper');
         const haManualUrl = container.querySelector('#haManualUrl');
         const aiModelFilter = container.querySelector('#aiModelFilter');
         const haUsername = container.querySelector('#editorHaSettingsForm input[autocomplete="username"]');
@@ -25,6 +26,7 @@ describe('settings modal markup', () => {
         expect(openaiKey?.closest('form')?.id).toBe('editorAiSettingsForm');
         expect(openrouterKey?.closest('form')?.id).toBe('editorAiSettingsForm');
         expect(requestyKey?.closest('form')?.id).toBe('editorAiSettingsForm');
+        expect(opperKey?.closest('form')?.id).toBe('editorAiSettingsForm');
         expect(haUsername).not.toBeNull();
         expect(aiUsername).not.toBeNull();
         expect(haToken?.closest('form')?.getAttribute('autocomplete')).toBeNull();
@@ -35,6 +37,7 @@ describe('settings modal markup', () => {
         expect(openaiKey?.getAttribute('autocomplete')).toBe('new-password');
         expect(openrouterKey?.getAttribute('autocomplete')).toBe('new-password');
         expect(requestyKey?.getAttribute('autocomplete')).toBe('new-password');
+        expect(opperKey?.getAttribute('autocomplete')).toBe('new-password');
         expect(aiModelFilter?.getAttribute('autocomplete')).toBe('off');
     });
 

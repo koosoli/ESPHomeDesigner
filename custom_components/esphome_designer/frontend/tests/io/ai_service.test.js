@@ -250,6 +250,56 @@ describe('ai_service', () => {
         expect(result).toEqual([{ id: 'w_1', type: 'text' }]);
     });
 
+    it('lists Opper chat models and skips other model types', async () => {
+        const service = new AIService();
+
+        fetch.mockResolvedValueOnce({
+            ok: true,
+            json: vi.fn().mockResolvedValue({
+                data: [
+                    { id: 'claude-sonnet-4-6', context_length: 1000000, opper: { type: 'llm', display_name: 'Claude Sonnet 4.6' } },
+                    { id: 'text-embedding-3-small', context_length: 8192, opper: { type: 'embedding' } }
+                ]
+            })
+        });
+
+        await expect(service.fetchModels('opper', 'opper-key')).resolves.toEqual([
+            { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', context: 1000000 }
+        ]);
+        expect(fetch.mock.calls[0][0]).toBe('https://api.opper.ai/v3/compat/models');
+        expect(fetch.mock.calls[0][1].headers.Authorization).toBe('Bearer opper-key');
+        await expect(service.fetchModels('opper', '')).resolves.toEqual([]);
+    });
+
+    it('dispatches Opper prompts to the Opper chat completions endpoint', async () => {
+        const service = new AIService();
+        mockAppState.settings = {
+            ai_provider: 'opper',
+            ai_api_key_opper: 'opper-key',
+            ai_model_opper: 'claude-sonnet-4-6'
+        };
+        mockAIValidator.validateResponse.mockReturnValue({
+            valid: true,
+            errors: [],
+            sanitized: [{ id: 'w_1', type: 'text' }]
+        });
+        fetch.mockResolvedValueOnce({
+            json: vi.fn().mockResolvedValue({
+                choices: [{ message: { content: '{"widgets":[{"id":"w_1","type":"text"}]}' } }]
+            })
+        });
+
+        const result = await service.processPrompt('Add a label', {
+            display_type: 'color_lcd',
+            widgets: []
+        });
+
+        expect(fetch.mock.calls[0][0]).toBe('https://api.opper.ai/v3/compat/chat/completions');
+        expect(fetch.mock.calls[0][1].headers.Authorization).toBe('Bearer opper-key');
+        expect(JSON.parse(fetch.mock.calls[0][1].body).model).toBe('claude-sonnet-4-6');
+        expect(result).toEqual([{ id: 'w_1', type: 'text' }]);
+    });
+
     it('dispatches GLM prompts with a default model when none is selected', async () => {
         const service = new AIService();
         mockAppState.settings = {

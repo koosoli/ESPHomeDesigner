@@ -69,6 +69,7 @@ export class EditorSettings {
         this.aiApiKeyOpenai = getInput('aiApiKeyOpenai');
         this.aiApiKeyOpenrouter = getInput('aiApiKeyOpenrouter');
         this.aiApiKeyRequesty = getInput('aiApiKeyRequesty');
+        this.aiApiKeyOpper = getInput('aiApiKeyOpper');
         this.aiApiKeyMinimax = getInput('aiApiKeyMinimax');
         this.aiApiKeyGlm = getInput('aiApiKeyGlm');
         this.aiModelFilter = getInput('aiModelFilter');
@@ -81,6 +82,7 @@ export class EditorSettings {
             openai: getElement('aiKeyOpenaiRow'),
             openrouter: getElement('aiKeyOpenrouterRow'),
             requesty: getElement('aiKeyRequestyRow'),
+            opper: getElement('aiKeyOpperRow'),
             minimax: getElement('aiKeyMinimaxRow'),
             glm: getElement('aiKeyGlmRow')
         };
@@ -129,6 +131,7 @@ export class EditorSettings {
         if (this.aiApiKeyOpenai) this.aiApiKeyOpenai.value = settings.ai_api_key_openai || "";
         if (this.aiApiKeyOpenrouter) this.aiApiKeyOpenrouter.value = settings.ai_api_key_openrouter || "";
         if (this.aiApiKeyRequesty) this.aiApiKeyRequesty.value = settings.ai_api_key_requesty || "";
+        if (this.aiApiKeyOpper) this.aiApiKeyOpper.value = settings.ai_api_key_opper || "";
         if (this.aiApiKeyMinimax) this.aiApiKeyMinimax.value = settings.ai_api_key_minimax || "";
         if (this.aiApiKeyGlm) this.aiApiKeyGlm.value = settings.ai_api_key_glm || "";
         if (this.aiModelFilter) this.aiModelFilter.value = settings.ai_model_filter || "";
@@ -343,6 +346,7 @@ export class EditorSettings {
         bindAIKey('aiApiKeyOpenai', 'ai_api_key_openai');
         bindAIKey('aiApiKeyOpenrouter', 'ai_api_key_openrouter');
         bindAIKey('aiApiKeyRequesty', 'ai_api_key_requesty');
+        bindAIKey('aiApiKeyOpper', 'ai_api_key_opper');
         bindAIKey('aiApiKeyMinimax', 'ai_api_key_minimax');
         bindAIKey('aiApiKeyGlm', 'ai_api_key_glm');
 
@@ -442,7 +446,7 @@ export class EditorSettings {
 
     updateAIKeyVisibility() {
         const provider = AppState.settings.ai_provider || "gemini";
-        const providers = /** @type {Array<'gemini' | 'openai' | 'openrouter' | 'requesty' | 'minimax' | 'glm'>} */ (Object.keys(this.aiKeyRows));
+        const providers = /** @type {Array<'gemini' | 'openai' | 'openrouter' | 'requesty' | 'opper' | 'minimax' | 'glm'>} */ (Object.keys(this.aiKeyRows));
         providers.forEach((p) => {
             if (this.aiKeyRows[p]) {
                 this.aiKeyRows[p].style.display = (p === provider) ? "block" : "none";

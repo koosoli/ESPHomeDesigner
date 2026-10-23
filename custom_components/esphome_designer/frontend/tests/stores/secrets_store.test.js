@@ -45,6 +45,7 @@ describe('SecretsStore', () => {
             ai_api_key_openai: '',
             ai_api_key_openrouter: 'router-key',
             ai_api_key_requesty: '',
+            ai_api_key_opper: '',
             ai_api_key_minimax: '',
             ai_api_key_glm: ''
         });
@@ -99,6 +100,7 @@ describe('omitSecretSettings', () => {
             ai_api_key_openai: 'another-secret',
             ai_api_key_openrouter: '',
             ai_api_key_requesty: 'requesty-secret',
+            ai_api_key_opper: 'opper-secret',
             ai_api_key_minimax: '',
             ai_api_key_glm: ''
         });
