@@ -103,10 +103,13 @@ describe('EditorSettings', () => {
                 <option value="gemini">Gemini</option>
                 <option value="openai">OpenAI</option>
                 <option value="openrouter">OpenRouter</option>
+                <option value="litellm">LiteLLM</option>
             </select>
             <input id="aiApiKeyGemini" />
             <input id="aiApiKeyOpenai" />
             <input id="aiApiKeyOpenrouter" />
+            <input id="aiApiKeyLitellm" />
+            <input id="aiBaseUrlLitellm" />
             <input id="aiModelFilter" />
             <select id="aiModelSelect"></select>
             <button id="aiRefreshModelsBtn">Refresh Models</button>
@@ -115,6 +118,7 @@ describe('EditorSettings', () => {
             <div id="aiKeyGeminiRow"></div>
             <div id="aiKeyOpenaiRow"></div>
             <div id="aiKeyOpenrouterRow"></div>
+            <div id="aiKeyLitellmRow"></div>
 
             <input class="glyphset-checkbox" type="checkbox" value="GF_Latin_Kernel" />
             <input class="glyphset-checkbox" type="checkbox" value="GF_Latin_Extras" />
@@ -135,6 +139,8 @@ describe('EditorSettings', () => {
         mockAppState.settings.ai_api_key_openrouter = 'router-key';
         mockAppState.settings.ai_model_gemini = 'gemini-pro';
         mockAppState.settings.ai_model_openai = 'gpt-4o-mini';
+        mockAppState.settings.ai_api_key_litellm = '';
+        mockAppState.settings.ai_base_url_litellm = '';
         seedDom();
 
         ({ EditorSettings } = await import('../../js/ui/editor_settings.js'));
@@ -330,6 +336,42 @@ describe('EditorSettings', () => {
         await flushAsync();
         await flushAsync();
         expect(document.getElementById('aiTestResult').textContent).toContain('Failed');
+    });
+
+    it('loads LiteLLM models with only a proxy URL and shows why a refresh failed', async () => {
+        mockAppState.settings.ai_provider = 'litellm';
+        editorSettings.init();
+
+        const refreshBtn = document.getElementById('aiRefreshModelsBtn');
+        const urlInput = /** @type {HTMLInputElement} */ (document.getElementById('aiBaseUrlLitellm'));
+
+        refreshBtn.click();
+        expect(mockShowToast).toHaveBeenCalledWith('Please enter your LiteLLM proxy URL first', 'error', 3000);
+        expect(mockAiService.fetchModels).not.toHaveBeenCalled();
+
+        mockAiService.cache.models.litellm = [{ id: 'stale', name: 'stale' }];
+        urlInput.value = ' http://proxy.local:4000 ';
+        urlInput.dispatchEvent(new Event('input'));
+        expect(mockAppState.updateSettings).toHaveBeenCalledWith({ ai_base_url_litellm: 'http://proxy.local:4000' });
+        expect(mockAiService.cache.models.litellm).toBeUndefined();
+
+        // A keyless proxy: no "enter an API key" toast once the URL is set.
+        mockAppState.settings.ai_base_url_litellm = 'http://proxy.local:4000';
+        mockShowToast.mockClear();
+        mockAiService.fetchModels.mockResolvedValueOnce([{ id: 'gpt-4.1-mini', name: 'gpt-4.1-mini' }]);
+        refreshBtn.click();
+        await flushAsync();
+        await flushAsync();
+        expect(mockShowToast).not.toHaveBeenCalled();
+        expect(mockAiService.fetchModels).toHaveBeenCalledWith('litellm', '');
+        expect(document.getElementById('aiTestResult').textContent).toContain('Found 1 models');
+
+        mockAiService.fetchModels.mockRejectedValueOnce(new Error('Could not reach the LiteLLM proxy at http://proxy.local:4000.'));
+        refreshBtn.click();
+        await flushAsync();
+        await flushAsync();
+        expect(document.getElementById('aiTestResult').textContent)
+            .toBe('Failed: Could not reach the LiteLLM proxy at http://proxy.local:4000.');
     });
 
     it('executes the real AI visibility/model/theme helpers with provider-specific keys', async () => {

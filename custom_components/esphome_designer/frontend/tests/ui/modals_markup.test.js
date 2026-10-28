@@ -15,6 +15,8 @@ describe('settings modal markup', () => {
         const openaiKey = container.querySelector('#aiApiKeyOpenai');
         const openrouterKey = container.querySelector('#aiApiKeyOpenrouter');
         const requestyKey = container.querySelector('#aiApiKeyRequesty');
+        const litellmKey = container.querySelector('#aiApiKeyLitellm');
+        const litellmUrl = container.querySelector('#aiBaseUrlLitellm');
         const haManualUrl = container.querySelector('#haManualUrl');
         const aiModelFilter = container.querySelector('#aiModelFilter');
         const haUsername = container.querySelector('#editorHaSettingsForm input[autocomplete="username"]');
@@ -25,6 +27,8 @@ describe('settings modal markup', () => {
         expect(openaiKey?.closest('form')?.id).toBe('editorAiSettingsForm');
         expect(openrouterKey?.closest('form')?.id).toBe('editorAiSettingsForm');
         expect(requestyKey?.closest('form')?.id).toBe('editorAiSettingsForm');
+        expect(litellmKey?.closest('form')?.id).toBe('editorAiSettingsForm');
+        expect(litellmUrl?.closest('form')?.id).toBe('editorAiSettingsForm');
         expect(haUsername).not.toBeNull();
         expect(aiUsername).not.toBeNull();
         expect(haToken?.closest('form')?.getAttribute('autocomplete')).toBeNull();
@@ -35,7 +39,18 @@ describe('settings modal markup', () => {
         expect(openaiKey?.getAttribute('autocomplete')).toBe('new-password');
         expect(openrouterKey?.getAttribute('autocomplete')).toBe('new-password');
         expect(requestyKey?.getAttribute('autocomplete')).toBe('new-password');
+        expect(litellmKey?.getAttribute('autocomplete')).toBe('new-password');
+        expect(litellmUrl?.getAttribute('autocomplete')).toBe('off');
         expect(aiModelFilter?.getAttribute('autocomplete')).toBe('off');
+    });
+
+    it('lists each AI provider once, including the LiteLLM proxy', () => {
+        const container = document.createElement('div');
+        container.innerHTML = modalsHtml;
+
+        const providers = Array.from(container.querySelectorAll('#aiProvider option')).map((option) => option.getAttribute('value'));
+        expect(providers).toContain('litellm');
+        expect(new Set(providers).size).toBe(providers.length);
     });
 
     it('offers all four screen rotations', () => {

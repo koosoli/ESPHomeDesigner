@@ -69,6 +69,8 @@ export class EditorSettings {
         this.aiApiKeyOpenai = getInput('aiApiKeyOpenai');
         this.aiApiKeyOpenrouter = getInput('aiApiKeyOpenrouter');
         this.aiApiKeyRequesty = getInput('aiApiKeyRequesty');
+        this.aiApiKeyLitellm = getInput('aiApiKeyLitellm');
+        this.aiBaseUrlLitellm = getInput('aiBaseUrlLitellm');
         this.aiApiKeyMinimax = getInput('aiApiKeyMinimax');
         this.aiApiKeyGlm = getInput('aiApiKeyGlm');
         this.aiModelFilter = getInput('aiModelFilter');
@@ -81,6 +83,7 @@ export class EditorSettings {
             openai: getElement('aiKeyOpenaiRow'),
             openrouter: getElement('aiKeyOpenrouterRow'),
             requesty: getElement('aiKeyRequestyRow'),
+            litellm: getElement('aiKeyLitellmRow'),
             minimax: getElement('aiKeyMinimaxRow'),
             glm: getElement('aiKeyGlmRow')
         };
@@ -129,6 +132,8 @@ export class EditorSettings {
         if (this.aiApiKeyOpenai) this.aiApiKeyOpenai.value = settings.ai_api_key_openai || "";
         if (this.aiApiKeyOpenrouter) this.aiApiKeyOpenrouter.value = settings.ai_api_key_openrouter || "";
         if (this.aiApiKeyRequesty) this.aiApiKeyRequesty.value = settings.ai_api_key_requesty || "";
+        if (this.aiApiKeyLitellm) this.aiApiKeyLitellm.value = settings.ai_api_key_litellm || "";
+        if (this.aiBaseUrlLitellm) this.aiBaseUrlLitellm.value = settings.ai_base_url_litellm || "";
         if (this.aiApiKeyMinimax) this.aiApiKeyMinimax.value = settings.ai_api_key_minimax || "";
         if (this.aiApiKeyGlm) this.aiApiKeyGlm.value = settings.ai_api_key_glm || "";
         if (this.aiModelFilter) this.aiModelFilter.value = settings.ai_model_filter || "";
@@ -343,8 +348,18 @@ export class EditorSettings {
         bindAIKey('aiApiKeyOpenai', 'ai_api_key_openai');
         bindAIKey('aiApiKeyOpenrouter', 'ai_api_key_openrouter');
         bindAIKey('aiApiKeyRequesty', 'ai_api_key_requesty');
+        bindAIKey('aiApiKeyLitellm', 'ai_api_key_litellm');
         bindAIKey('aiApiKeyMinimax', 'ai_api_key_minimax');
         bindAIKey('aiApiKeyGlm', 'ai_api_key_glm');
+
+        const aiBaseUrlLitellm = this.aiBaseUrlLitellm;
+        if (aiBaseUrlLitellm) {
+            aiBaseUrlLitellm.addEventListener('input', () => {
+                AppState.updateSettings({ ai_base_url_litellm: aiBaseUrlLitellm.value.trim() });
+                // Models listed for the previous URL don't belong to the new proxy.
+                delete aiService.cache.models.litellm;
+            });
+        }
 
         const aiModelFilter = this.aiModelFilter;
         if (aiModelFilter) {
@@ -375,7 +390,12 @@ export class EditorSettings {
                     AppState.updateSettings({ [`ai_api_key_${provider}`]: apiKey });
                 }
 
-                if (!apiKey) {
+                if (provider === 'litellm') {
+                    if (!AppState.settings.ai_base_url_litellm) {
+                        showToast("Please enter your LiteLLM proxy URL first", "error", 3000);
+                        return;
+                    }
+                } else if (!apiKey) {
                     showToast("Please enter an API key first", "error", 3000);
                     return;
                 }
@@ -396,8 +416,12 @@ export class EditorSettings {
                         aiTestResult.textContent = `âœ… Success! Found ${models.length} models.`;
                         aiTestResult.style.color = "var(--success)";
                     }
-                } catch {
-                    if (aiTestResult) {
+                } catch (e) {
+                    if (aiTestResult && provider === 'litellm') {
+                        // Unreachable proxy, CORS and auth failures each need a different fix.
+                        aiTestResult.textContent = `Failed: ${e instanceof Error ? e.message : String(e)}`;
+                        aiTestResult.style.color = "var(--danger)";
+                    } else if (aiTestResult) {
                         aiTestResult.textContent = "âŒ Failed. Check key/console.";
                         aiTestResult.style.color = "var(--danger)";
                     }
@@ -442,7 +466,7 @@ export class EditorSettings {
 
     updateAIKeyVisibility() {
         const provider = AppState.settings.ai_provider || "gemini";
-        const providers = /** @type {Array<'gemini' | 'openai' | 'openrouter' | 'requesty' | 'minimax' | 'glm'>} */ (Object.keys(this.aiKeyRows));
+        const providers = /** @type {Array<'gemini' | 'openai' | 'openrouter' | 'requesty' | 'litellm' | 'minimax' | 'glm'>} */ (Object.keys(this.aiKeyRows));
         providers.forEach((p) => {
             if (this.aiKeyRows[p]) {
                 this.aiKeyRows[p].style.display = (p === provider) ? "block" : "none";

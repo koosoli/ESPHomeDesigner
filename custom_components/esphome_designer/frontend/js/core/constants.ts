@@ -87,6 +87,9 @@ export const DEFAULT_PREFERENCES = {
     ai_model_openai: "",
     ai_model_openrouter: "",
     ai_model_requesty: "",
+    ai_model_litellm: "",
+    // URL of a self hosted LiteLLM proxy, e.g. http://homeassistant.local:4000.
+    ai_base_url_litellm: "",
     ai_model_minimax: "",
     ai_model_glm: "",
     extendedLatinGlyphs: false,

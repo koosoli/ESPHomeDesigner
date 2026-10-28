@@ -250,6 +250,153 @@ describe('ai_service', () => {
         expect(result).toEqual([{ id: 'w_1', type: 'text' }]);
     });
 
+    describe('LiteLLM proxy', () => {
+        const jsonResponse = (body, init = {}) => ({
+            ok: init.ok ?? true,
+            status: init.status ?? 200,
+            json: vi.fn().mockResolvedValue(body)
+        });
+        const validWidgets = () => mockAIValidator.validateResponse.mockReturnValue({
+            valid: true,
+            errors: [],
+            sanitized: [{ id: 'w_1', type: 'text' }]
+        });
+
+        it('discovers chat models from /model/info and skips other modes, wildcards and duplicates', async () => {
+            const service = new AIService();
+            mockAppState.settings = { ai_base_url_litellm: 'http://proxy.local:4000/v1/' };
+            fetch.mockResolvedValueOnce(jsonResponse({
+                data: [
+                    { model_name: 'gpt-4.1-mini', model_info: { mode: 'chat', max_input_tokens: 1047576 } },
+                    { model_name: 'gpt-4.1-mini', model_info: { mode: 'chat', max_input_tokens: 1047576 } },
+                    { model_name: 'claude-sonnet', model_info: { mode: 'chat', max_input_tokens: 200000 } },
+                    { model_name: 'my-vllm', model_info: { mode: null } },
+                    { model_name: 'emb-small', model_info: { mode: 'embedding' } },
+                    { model_name: 'gemini-2.5-flash-image', model_info: { mode: 'image_generation' } },
+                    { model_name: 'anthropic/*', model_info: { mode: 'chat' } }
+                ]
+            }));
+
+            await expect(service.fetchModels('litellm', 'sk-virtual')).resolves.toEqual([
+                { id: 'gpt-4.1-mini', name: 'gpt-4.1-mini', context: 1047576 },
+                { id: 'claude-sonnet', name: 'claude-sonnet', context: 200000 },
+                { id: 'my-vllm', name: 'my-vllm', context: undefined }
+            ]);
+            expect(fetch.mock.calls[0][0]).toBe('http://proxy.local:4000/model/info');
+            expect(fetch.mock.calls[0][1].headers.Authorization).toBe('Bearer sk-virtual');
+        });
+
+        it('falls back to /v1/models and sends no Authorization header to a keyless proxy', async () => {
+            const service = new AIService();
+            mockAppState.settings = { ai_base_url_litellm: 'http://proxy.local:4000' };
+            fetch
+                .mockResolvedValueOnce(jsonResponse({}, { ok: false, status: 404 }))
+                .mockResolvedValueOnce(jsonResponse({ data: [{ id: 'gpt-4.1-mini' }, { id: 'openai/*' }] }));
+
+            await expect(service.fetchModels('litellm', '')).resolves.toEqual([
+                { id: 'gpt-4.1-mini', name: 'gpt-4.1-mini' }
+            ]);
+            expect(fetch.mock.calls[1][0]).toBe('http://proxy.local:4000/v1/models');
+            expect(fetch.mock.calls[0][1].headers.Authorization).toBeUndefined();
+            expect(fetch.mock.calls[1][1].headers.Authorization).toBeUndefined();
+        });
+
+        it('surfaces the proxy error message when models cannot be listed', async () => {
+            const service = new AIService();
+            mockAppState.settings = { ai_base_url_litellm: 'http://proxy.local:4000' };
+            const authError = { error: { message: 'Authentication Error, Invalid proxy server token passed.' } };
+            fetch
+                .mockResolvedValueOnce(jsonResponse(authError, { ok: false, status: 401 }))
+                .mockResolvedValueOnce(jsonResponse(authError, { ok: false, status: 401 }));
+
+            await expect(service.fetchModels('litellm', 'sk-wrong')).rejects.toThrow(
+                'LiteLLM proxy error: Authentication Error, Invalid proxy server token passed.'
+            );
+        });
+
+        it('explains an unreachable proxy instead of a bare network error', async () => {
+            const service = new AIService();
+            mockAppState.settings = { ai_base_url_litellm: 'http://proxy.local:4000' };
+            fetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+            await expect(service.fetchModels('litellm', '')).rejects.toThrow(
+                'Could not reach the LiteLLM proxy at http://proxy.local:4000. Check the URL and that the proxy allows requests from this page (CORS).'
+            );
+        });
+
+        it('lists nothing until a proxy URL is configured', async () => {
+            const service = new AIService();
+
+            await expect(service.fetchModels('litellm', 'sk-virtual')).resolves.toEqual([]);
+            expect(fetch).not.toHaveBeenCalled();
+        });
+
+        it('sends prompts to the proxy with JSON mode and drop_params, without requiring a key', async () => {
+            const service = new AIService();
+            mockAppState.settings = {
+                ai_provider: 'litellm',
+                ai_base_url_litellm: 'http://proxy.local:4000/v1',
+                ai_model_litellm: 'claude-sonnet'
+            };
+            validWidgets();
+            fetch.mockResolvedValueOnce(jsonResponse({
+                choices: [{ message: { content: '{"widgets":[{"id":"w_1","type":"text"}]}' } }]
+            }));
+
+            const result = await service.processPrompt('Add a label', { display_type: 'color_lcd', widgets: [] });
+
+            expect(result).toEqual([{ id: 'w_1', type: 'text' }]);
+            const [url, init] = fetch.mock.calls[0];
+            expect(url).toBe('http://proxy.local:4000/v1/chat/completions');
+            expect(init.method).toBe('POST');
+            expect(init.headers.Authorization).toBeUndefined();
+            const body = JSON.parse(init.body);
+            expect(body).toMatchObject({
+                model: 'claude-sonnet',
+                temperature: 0.1,
+                max_tokens: 8192,
+                response_format: { type: 'json_object' },
+                drop_params: true
+            });
+            expect(body.messages.map((m) => m.role)).toEqual(['system', 'user']);
+        });
+
+        it('forwards a configured key and surfaces proxy errors from completions', async () => {
+            const service = new AIService();
+            mockAppState.settings = {
+                ai_provider: 'litellm',
+                ai_base_url_litellm: 'http://proxy.local:4000',
+                ai_api_key_litellm: 'sk-virtual',
+                ai_model_litellm: 'gpt-4.1-mini'
+            };
+            fetch.mockResolvedValueOnce(jsonResponse(
+                { error: { message: 'Budget has been exceeded' } },
+                { ok: false, status: 400 }
+            ));
+
+            await expect(service.processPrompt('Add a label', { display_type: 'color_lcd', widgets: [] }))
+                .rejects.toThrow('LiteLLM proxy error: Budget has been exceeded');
+            expect(fetch.mock.calls[0][1].headers.Authorization).toBe('Bearer sk-virtual');
+        });
+
+        it('reports an empty completion and a missing proxy URL clearly', async () => {
+            const service = new AIService();
+            mockAppState.settings = {
+                ai_provider: 'litellm',
+                ai_base_url_litellm: 'http://proxy.local:4000',
+                ai_model_litellm: 'gpt-4.1-mini'
+            };
+            fetch.mockResolvedValueOnce(jsonResponse({ choices: [{ message: { content: null } }] }));
+
+            await expect(service.processPrompt('Add a label', { display_type: 'color_lcd', widgets: [] }))
+                .rejects.toThrow('LiteLLM proxy returned an empty response for gpt-4.1-mini.');
+
+            mockAppState.settings = { ai_provider: 'litellm', ai_model_litellm: 'gpt-4.1-mini' };
+            await expect(service.processPrompt('Add a label', { display_type: 'color_lcd', widgets: [] }))
+                .rejects.toThrow('Missing LiteLLM proxy URL');
+        });
+    });
+
     it('dispatches GLM prompts with a default model when none is selected', async () => {
         const service = new AIService();
         mockAppState.settings = {

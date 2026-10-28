@@ -45,6 +45,7 @@ describe('SecretsStore', () => {
             ai_api_key_openai: '',
             ai_api_key_openrouter: 'router-key',
             ai_api_key_requesty: '',
+            ai_api_key_litellm: '',
             ai_api_key_minimax: '',
             ai_api_key_glm: ''
         });
@@ -99,6 +100,8 @@ describe('omitSecretSettings', () => {
             ai_api_key_openai: 'another-secret',
             ai_api_key_openrouter: '',
             ai_api_key_requesty: 'requesty-secret',
+            ai_api_key_litellm: 'sk-litellm-virtual-key',
+            ai_base_url_litellm: 'http://proxy.local:4000',
             ai_api_key_minimax: '',
             ai_api_key_glm: ''
         });
@@ -106,7 +109,9 @@ describe('omitSecretSettings', () => {
         expect(result).toEqual({
             orientation: 'landscape',
             ai_provider: 'gemini',
-            ai_model_gemini: 'gemini-3.6-flash'
+            ai_model_gemini: 'gemini-3.6-flash',
+            // The proxy URL is a setting like the model id; only the key is a secret.
+            ai_base_url_litellm: 'http://proxy.local:4000'
         });
         expect(Object.keys(result).some(isSecretSettingKey)).toBe(false);
     });

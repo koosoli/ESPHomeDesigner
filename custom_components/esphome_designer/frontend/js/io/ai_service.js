@@ -72,6 +72,11 @@ export class AIService {
         if (provider === 'minimax' || provider === 'glm') {
             return AIService.STATIC_MODELS[provider] || [];
         }
+        // A LiteLLM proxy may run without a key; its URL is what's required.
+        if (provider === 'litellm') {
+            if (!this.getLiteLLMBaseUrl()) return [];
+            return this.fetchLiteLLMModels(apiKey);
+        }
         if (!apiKey) return [];
 
         try {
@@ -158,7 +163,7 @@ export class AIService {
             }
         }
 
-        if (!apiKey) throw new Error(`Missing API Key for ${provider}. Configure it in Editor Settings → AI.`);
+        if (!apiKey && provider !== 'litellm') throw new Error(`Missing API Key for ${provider}. Configure it in Editor Settings → AI.`);
         if (!model) throw new Error(`No model selected for ${provider}. Please pick one in Editor Settings → AI.`);
 
         const systemPrompt = this.getSystemPrompt();
@@ -189,6 +194,8 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
                 responseText = await this.callOpenRouter(apiKey, model, systemPrompt, userPrompt);
             } else if (provider === 'requesty') {
                 responseText = await this.callRequesty(apiKey, model, systemPrompt, userPrompt);
+            } else if (provider === 'litellm') {
+                responseText = await this.callLiteLLM(apiKey, model, systemPrompt, userPrompt);
             } else if (provider === 'minimax') {
                 responseText = await this.callMiniMax(apiKey, model, systemPrompt, userPrompt);
             } else if (provider === 'glm') {
@@ -405,6 +412,99 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
     async callRequesty(apiKey, model, system, user) {
         return this.callOpenAICompatible(
             'https://router.requesty.ai/v1/chat/completions', apiKey, model, system, user);
+    }
+
+    /**
+     * The user's LiteLLM proxy URL without a trailing slash or `/v1`, so both
+     * `http://host:4000` and `http://host:4000/v1` work.
+     */
+    getLiteLLMBaseUrl() {
+        const raw = String(this.getSettings().ai_base_url_litellm || '').trim();
+        return raw.replace(/\/+$/, '').replace(/\/v1$/, '');
+    }
+
+    async fetchLiteLLM(path, apiKey, init = {}) {
+        const baseUrl = this.getLiteLLMBaseUrl();
+        if (!baseUrl) throw new Error('Missing LiteLLM proxy URL. Configure it in Editor Settings → AI.');
+        /** @type {Record<string, string>} */
+        const headers = { ...(init.headers || {}) };
+        // A keyless proxy rejects a placeholder bearer token, so only send a real one.
+        if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+        try {
+            return await fetch(`${baseUrl}${path}`, { ...init, headers });
+        } catch {
+            // fetch only rejects when no response arrives: from the browser that
+            // is an unreachable host or a proxy that doesn't allow this origin.
+            throw new Error(`Could not reach the LiteLLM proxy at ${baseUrl}. Check the URL and that the proxy allows requests from this page (CORS).`);
+        }
+    }
+
+    async liteLLMError(response) {
+        let detail = `HTTP ${response.status}`;
+        try {
+            const data = await response.json();
+            if (data?.error?.message) detail = data.error.message;
+        } catch {
+            // Non-JSON error body: the status code is all there is.
+        }
+        return new Error(`LiteLLM proxy error: ${detail}`);
+    }
+
+    /**
+     * Chat models the proxy serves. `/model/info` carries each alias's mode and
+     * context window; keys that can't read it fall back to `/v1/models`.
+     * Wildcard routes (`anthropic/*`) aren't callable as-is, so they're skipped.
+     */
+    async fetchLiteLLMModels(apiKey) {
+        const info = await this.fetchLiteLLM('/model/info', apiKey);
+        if (info.ok) {
+            const data = await info.json();
+            const models = [];
+            const seen = new Set();
+            for (const m of data.data || []) {
+                const name = m.model_name;
+                // An unset mode is a self hosted alias LiteLLM can't classify; keep it.
+                const mode = m.model_info?.mode;
+                if (!name || name.includes('*') || seen.has(name) || (mode && mode !== 'chat')) continue;
+                seen.add(name);
+                models.push({ id: name, name, context: m.model_info?.max_input_tokens || undefined });
+            }
+            return models;
+        }
+
+        const list = await this.fetchLiteLLM('/v1/models', apiKey);
+        if (!list.ok) throw await this.liteLLMError(list);
+        const data = await list.json();
+        return (data.data || [])
+            .filter(m => m.id && !m.id.includes('*'))
+            .map(m => ({ id: m.id, name: m.id }));
+    }
+
+    async callLiteLLM(apiKey, model, system, user) {
+        const response = await this.fetchLiteLLM('/v1/chat/completions', apiKey, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: model,
+                messages: [
+                    { role: "system", content: system },
+                    { role: "user", content: user }
+                ],
+                temperature: 0.1,
+                // The proxy maps this to max_completion_tokens for models that need it.
+                max_tokens: 8192,
+                // JSON mode wherever the upstream supports it; drop_params has the
+                // proxy strip it (and temperature on models that reject one)
+                // instead of failing the request.
+                response_format: { type: "json_object" },
+                drop_params: true
+            })
+        });
+        if (!response.ok) throw await this.liteLLMError(response);
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        if (!content) throw new Error(`LiteLLM proxy returned an empty response for ${model}.`);
+        return content;
     }
 
     getSystemPrompt() {
