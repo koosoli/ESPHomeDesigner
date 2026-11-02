@@ -250,6 +250,57 @@ describe('ai_service', () => {
         expect(result).toEqual([{ id: 'w_1', type: 'text' }]);
     });
 
+    it('lists Runcrate text models from the OpenAI-compatible models endpoint', async () => {
+        const service = new AIService();
+
+        fetch.mockResolvedValueOnce({
+            ok: true,
+            json: vi.fn().mockResolvedValue({
+                data: [
+                    { id: 'deepseek-ai/DeepSeek-V4.1-Flash', name: 'DeepSeek V4.1 Flash', output_modalities: ['text'], context_length: 1048576 },
+                    { id: 'Qwen/Qwen3-Embedding-8B', name: 'Qwen3 Embedding 8B', output_modalities: ['embeddings'], context_length: 32768 },
+                    { id: 'black-forest-labs/FLUX.2-flex', name: 'FLUX.2 Flex', output_modalities: ['image'] }
+                ]
+            })
+        });
+
+        await expect(service.fetchModels('runcrate', 'runcrate-key')).resolves.toEqual([
+            { id: 'deepseek-ai/DeepSeek-V4.1-Flash', name: 'DeepSeek V4.1 Flash', context: 1048576 }
+        ]);
+        expect(fetch.mock.calls[0][0]).toBe('https://api.runcrate.ai/v1/models');
+        expect(fetch.mock.calls[0][1].headers.Authorization).toBe('Bearer runcrate-key');
+        await expect(service.fetchModels('runcrate', '')).resolves.toEqual([]);
+    });
+
+    it('dispatches Runcrate prompts to the Runcrate chat completions endpoint', async () => {
+        const service = new AIService();
+        mockAppState.settings = {
+            ai_provider: 'runcrate',
+            ai_api_key_runcrate: 'runcrate-key',
+            ai_model_runcrate: 'deepseek-ai/DeepSeek-V4.1-Flash'
+        };
+        mockAIValidator.validateResponse.mockReturnValue({
+            valid: true,
+            errors: [],
+            sanitized: [{ id: 'w_1', type: 'text' }]
+        });
+        fetch.mockResolvedValueOnce({
+            json: vi.fn().mockResolvedValue({
+                choices: [{ message: { content: '{"widgets":[{"id":"w_1","type":"text"}]}' } }]
+            })
+        });
+
+        const result = await service.processPrompt('Add a label', {
+            display_type: 'color_lcd',
+            widgets: []
+        });
+
+        expect(fetch.mock.calls[0][0]).toBe('https://api.runcrate.ai/v1/chat/completions');
+        expect(fetch.mock.calls[0][1].headers.Authorization).toBe('Bearer runcrate-key');
+        expect(JSON.parse(fetch.mock.calls[0][1].body).model).toBe('deepseek-ai/DeepSeek-V4.1-Flash');
+        expect(result).toEqual([{ id: 'w_1', type: 'text' }]);
+    });
+
     it('dispatches GLM prompts with a default model when none is selected', async () => {
         const service = new AIService();
         mockAppState.settings = {
