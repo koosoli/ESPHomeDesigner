@@ -91,6 +91,14 @@ export class AIService {
                 return data.data
                     .filter(m => m.api === 'chat')
                     .map(m => ({ id: m.id, name: m.id, context: m.context_window }));
+            } else if (provider === 'runcrate') {
+                const response = await fetch('https://api.runcrate.ai/v1/models', {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+                const data = await response.json();
+                return data.data
+                    .filter(m => !m.output_modalities || m.output_modalities.includes('text'))
+                    .map(m => ({ id: m.id, name: m.name || m.id, context: m.context_length }));
             } else if (provider === 'openai') {
                 const response = await fetch('https://api.openai.com/v1/models', {
                     headers: { 'Authorization': `Bearer ${apiKey}` }
@@ -189,6 +197,8 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
                 responseText = await this.callOpenRouter(apiKey, model, systemPrompt, userPrompt);
             } else if (provider === 'requesty') {
                 responseText = await this.callRequesty(apiKey, model, systemPrompt, userPrompt);
+            } else if (provider === 'runcrate') {
+                responseText = await this.callRuncrate(apiKey, model, systemPrompt, userPrompt);
             } else if (provider === 'minimax') {
                 responseText = await this.callMiniMax(apiKey, model, systemPrompt, userPrompt);
             } else if (provider === 'glm') {
@@ -405,6 +415,11 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
     async callRequesty(apiKey, model, system, user) {
         return this.callOpenAICompatible(
             'https://router.requesty.ai/v1/chat/completions', apiKey, model, system, user);
+    }
+
+    async callRuncrate(apiKey, model, system, user) {
+        return this.callOpenAICompatible(
+            'https://api.runcrate.ai/v1/chat/completions', apiKey, model, system, user);
     }
 
     getSystemPrompt() {
