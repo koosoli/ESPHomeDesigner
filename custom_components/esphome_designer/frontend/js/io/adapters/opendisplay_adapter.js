@@ -89,8 +89,9 @@ function formatYamlValue(value) {
             value === '' ||
             /\r|\n/.test(value) ||
             /^\s|\s$/.test(value) ||
-            /[:#'"[\]{}]|^- /.test(value) ||
-            /^(?:true|false|null|yes|no|on|off|[-+]?\d+(?:\.\d+)?)$/i.test(value)
+            /[:#'"[\]{}]/.test(value) ||
+            /^[|>&*!%@`,?-]/.test(value) ||
+            /^(?:true|false|null|~|yes|no|on|off|[-+]?\d+(?:\.\d+)?)$/i.test(value)
         ) {
             return JSON.stringify(value);
         }

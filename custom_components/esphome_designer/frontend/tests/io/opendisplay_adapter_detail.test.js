@@ -125,6 +125,21 @@ describe('OpenDisplayAdapter details', () => {
         expect(yaml).not.toMatch(/anchor:\s*(?:ct|cm|cb|tc|cc|bc)\b/);
     });
 
+    it('quotes a multiline delimiter that starts with a YAML indicator', async () => {
+        const { default: multilinePlugin } = await import('../../features/odp_multiline/plugin.js');
+        mockRegistry.get.mockReturnValue(multilinePlugin);
+
+        const yaml = await new OpenDisplayAdapter().generate({
+            settings: {},
+            pages: [{
+                widgets: [{ id: 'w_multi', type: 'odp_multiline', x: 0, y: 0, props: {} }]
+            }]
+        });
+
+        expect(yaml).toContain('delimiter: "|"');
+        expect(yaml).toContain('value: Line 1|Line 2');
+    });
+
     it('uses page dark mode for theme_auto exports', async () => {
         const { default: textPlugin } = await import('../../features/text/plugin.js');
         mockRegistry.get.mockReturnValue(textPlugin);
